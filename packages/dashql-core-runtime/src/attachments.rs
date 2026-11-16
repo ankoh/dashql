@@ -46,7 +46,10 @@ impl WorkbookAttachment {
 pub fn attachment_parameter_name(file_name: &str) -> Option<&str> {
     let base_len = file_name.len().checked_sub(ATTACHMENT_EXTENSION.len()).filter(|len| *len > 0)?;
     let extension = file_name.get(base_len..)?;
-    extension.eq_ignore_ascii_case(ATTACHMENT_EXTENSION).then(|| &file_name[..base_len])
+    if !extension.eq_ignore_ascii_case(ATTACHMENT_EXTENSION) {
+        return None;
+    }
+    file_name.get(..base_len)
 }
 
 /// A file name for a new attachment whose table parameter takes no name of a script or another attachment, the same
@@ -88,7 +91,7 @@ fn free_attachment_file_name<'a>(file_name: &str, script_names: impl IntoIterato
     if file_name.contains(['/', '\\', '\0']) {
         return None;
     }
-    let extension = &file_name[base.len()..];
+    let extension = file_name.get(base.len()..)?;
     let taken: std::collections::HashSet<String> =
         script_names.into_iter().map(str::to_lowercase).chain(attachments.iter().map(|attachment| attachment.name.to_lowercase())).collect();
     let mut candidate = base.to_string();

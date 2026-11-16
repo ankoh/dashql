@@ -38,7 +38,7 @@ rust_test(
     crate = ":dashql_core_runtime",
 )
 
-# Clippy with the safety lints: no unwraps, expects or panics outside of tests, no RefCell borrow across an await
+# Clippy with the safety lints (//bazel:rust_safety_lints) and no warnings, see "The rules" in docs/design/dashql_core.md
 rust_safety_test(
     name = "clippy_test",
     deps = [":dashql_core_runtime"],

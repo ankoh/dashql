@@ -87,23 +87,27 @@ fn tokenize_fields(row_template: &str) -> (String, Vec<MarkdownField>) {
     let mut markdown = String::with_capacity(row_template.len());
     let mut fields: Vec<MarkdownField> = Vec::new();
     let mut rest = row_template;
-    while let Some(open) = rest.find("{{") {
-        let Some(close) = rest[open + 2..].find("}}").map(|close| open + 2 + close) else {
+    while let Some((before, after_open)) = rest.split_once("{{") {
+        let Some((inner, after_close)) = after_open.split_once("}}") else {
             break;
         };
-        markdown.push_str(&rest[..open]);
-        let name = rest[open + 2..close].trim_matches([' ', '\n']);
+        markdown.push_str(before);
+        let name = inner.trim_matches([' ', '\n']);
         if name.is_empty() {
-            markdown.push_str(&rest[open..close + 2]);
+            markdown.push_str("{{");
+            markdown.push_str(inner);
+            markdown.push_str("}}");
         } else {
-            let index = fields.iter().position(|field| field.name == name).unwrap_or_else(|| {
-                let token = format!("{prefix}{}TOKEN", fields.len());
-                fields.push(MarkdownField { name: name.to_string(), token });
-                fields.len() - 1
-            });
-            markdown.push_str(&fields[index].token);
+            match fields.iter().find(|field| field.name == name) {
+                Some(field) => markdown.push_str(&field.token),
+                None => {
+                    let token = format!("{prefix}{}TOKEN", fields.len());
+                    markdown.push_str(&token);
+                    fields.push(MarkdownField { name: name.to_string(), token });
+                }
+            }
         }
-        rest = &rest[close + 2..];
+        rest = after_close;
     }
     markdown.push_str(rest);
     (markdown, fields)
@@ -112,13 +116,13 @@ fn tokenize_fields(row_template: &str) -> (String, Vec<MarkdownField>) {
 /// Relative URLs and the schemes http, https and mailto are safe
 fn is_safe_url(url: &str) -> bool {
     let normalized: String = url.chars().filter(|&c| c > ' ' && c != '\x7f').map(|c| c.to_ascii_lowercase()).collect();
-    let Some(colon) = normalized.find(':') else {
+    let Some((scheme, _)) = normalized.split_once(':') else {
         return true;
     };
-    if normalized.find(['/', '?', '#']).is_some_and(|delimiter| delimiter < colon) {
+    if normalized.find(['/', '?', '#']).is_some_and(|delimiter| delimiter < scheme.len()) {
         return true;
     }
-    matches!(&normalized[..colon], "http" | "https" | "mailto")
+    matches!(scheme, "http" | "https" | "mailto")
 }
 
 /// Builds the document tree from the pulldown-cmark events
@@ -148,7 +152,8 @@ impl<'a> DocumentBuilder<'a> {
         while self.stack.len() > 1 {
             self.close();
         }
-        self.stack.pop().unwrap()
+        // The root stays on the stack until here
+        self.stack.pop().unwrap_or_else(|| MarkdownNode::new(MarkdownNodeType::DOCUMENT))
     }
 
     fn contains_field(&self, text: &str) -> bool {
@@ -156,7 +161,9 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn append(&mut self, node: MarkdownNode) {
-        self.stack.last_mut().unwrap().children.push(node);
+        if let Some(parent) = self.stack.last_mut() {
+            parent.children.push(node);
+        }
     }
 
     fn open(&mut self, node: MarkdownNode) {
@@ -166,8 +173,10 @@ impl<'a> DocumentBuilder<'a> {
 
     fn close(&mut self) {
         self.flush_text();
-        if self.stack.len() > 1 {
-            let mut node = self.stack.pop().unwrap();
+        if self.stack.len() <= 1 {
+            return;
+        }
+        if let Some(mut node) = self.stack.pop() {
             if node.node_type == MarkdownNodeType::LIST {
                 // pulldown-cmark does not report the tightness of a list, but it omits the paragraphs of tight items
                 node.tight = !node
@@ -199,11 +208,12 @@ impl<'a> DocumentBuilder<'a> {
                 self.append(MarkdownNode::leaf(MarkdownNodeType::TEXT, rest));
                 break;
             };
-            if at > 0 {
-                self.append(MarkdownNode::leaf(MarkdownNodeType::TEXT, &rest[..at]));
+            let (before, from_field) = rest.split_at_checked(at).unwrap_or((rest, ""));
+            if !before.is_empty() {
+                self.append(MarkdownNode::leaf(MarkdownNodeType::TEXT, before));
             }
             self.append(MarkdownNode::leaf(MarkdownNodeType::FIELD, &field.name));
-            rest = &rest[at + field.token.len()..];
+            rest = from_field.get(field.token.len()..).unwrap_or("");
         }
     }
 

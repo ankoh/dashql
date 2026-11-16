@@ -1,7 +1,5 @@
 //! The bundled function catalog of Hyper: what a Hyper or Salesforce connection knows about functions before it asked
 //! the engine.
-//!
-//! Ported from `prefetched_hyper_functions.ts` of `packages/dashql/src/runtime/connections/catalog/`.
 
 use dashql_core::catalog::{Catalog, CatalogEntryId};
 

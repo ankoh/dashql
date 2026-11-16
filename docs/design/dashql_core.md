@@ -140,11 +140,10 @@ marks are `runtime/changes.rs`.
 ### Connections, setups and channels
 
 - **The registry** (`connections/registry.rs`) holds the connections in the order they were registered with the
-  histories of their queries and the histories without a connection by name, and hands out all query ids from one
-  sequence. A history keeps every query of the user and the latest 100 finished internal queries
-  (`INTERNAL_QUERY_HISTORY_LIMIT`); the shell runs on its connection, its queries are in the history of that
-  connection. A connection that workbooks use is never deleted, the embedded Hyper is never
-  deleted.
+  histories of their queries, and hands out all query ids from one sequence. A history keeps every query of the user and
+  the latest 100 finished internal queries (`INTERNAL_QUERY_HISTORY_LIMIT`); the shell runs on its connection, its
+  queries are in the history of that connection. A connection that workbooks use is never deleted, the embedded Hyper is
+  never deleted.
 - **A connection owns its catalog**; `Runtime.catalog` hands out a read-only handle of it. The script with the
   functions of the connection stays in Rust.
 - **The connectors** (`ConnectorType` of `connections/params.rs`) are Hyper (the embedded Hyper, Hyper servers over
@@ -388,19 +387,38 @@ The module runs on one thread and a panic kills it. The runtime crates follow th
 - **Async without `Send`.** Futures of the module hold JavaScript values, so the host traits need no `Send`. In the
   module, `spawn_local` of `wasm-bindgen-futures` runs the tasks on the event loop, `JsFuture` awaits the promises of
   the platform and `future_to_promise` hands results to JavaScript.
-- **No borrow across an await.** A service keeps its state behind a `RefCell`. A task reads it, awaits the host without
-  holding a borrow, then applies the result. What the host is told (writes, statistics, notifications, the log) is
-  collected while the state is borrowed and passed on after, so the platform may call the runtime again from any of
-  its members. A slice whose state a task holds reads as busy (`try_borrow`) instead of failing.
+- **No borrow across an await or a call into JavaScript.** A service keeps its state behind a `RefCell`. A task reads
+  it, awaits the host without holding a borrow, then applies the result. No borrow of the state is held while a call
+  into JavaScript runs: a member of the platform (`JsPlatform`, which is also every `Host` method of the services, the
+  clock and the log included), a listener of the caller (`Function`) or a listener between the services
+  (`Rc<dyn Fn>`, which may reach the platform). What the host is told (writes, statistics, notifications, the log) is
+  collected while the state is borrowed and passed on after the guard is dropped, a value that comes from the
+  platform (the clock, a token) is read before the borrow. The platform may then call the runtime again from any of
+  its members. A slice whose state a task holds reads as `'busy'` (`try_borrow`) instead of failing, a command on it
+  fails with an error.
 - **No panics.** Actions return `Result`, a failed action leaves the state unchanged, input is never indexed or
   unwrapped, a value of JavaScript is converted with a checked conversion. `dispatch` never throws.
 
-`//bazel:rust_safety_lints` enforces the last two with Clippy: `unwrap_used`, `expect_used`, `panic` and
-`await_holding_refcell_ref` are denied outside of tests. `dashql-core-runtime` and `dashql-core-wasm` set it as their
-`lint_config`; `rust_safety_test` of `bazel/rust_safety.bzl` makes Clippy a test,
-`//packages/dashql-core-runtime:clippy_test` and `//packages/dashql-core-wasm:clippy_test` (over
-`:dashql_core_wasm_lint`, a host build of the same sources). A new crate of the runtime takes the same `lint_config` and
-a `rust_safety_test`. See "Clippy" in [build_bazel_targets.md](../agents/build_bazel_targets.md).
+A panic in any crate of the module traps it, so every crate linked into the core module runs Clippy with
+`//bazel:rust_safety_lints`, which denies outside of tests: `unwrap_used`, `expect_used`, `panic`, `unreachable`,
+`todo`, `unimplemented`, `indexing_slicing` (an index or a slice that can fail), `string_slice` (a slice of a `str`
+that can split a character) and `await_holding_refcell_ref`. The crates are `dashql-parser`, `dashql-core`,
+`dashql-core-script`, `dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-wasm`; each sets
+the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
+`dashql-core-wasm` over `:dashql_core_wasm_lint`, a host build of the same sources. `dashql-core` takes
+`//bazel:rust_safety_lints_without_indexing`: its analyzer, completion, formatter and diff index the arrays of a parsed
+script by the ids that the script holds, about 700 sites; the other lints hold there as well. The generated FlatBuffers
+bindings (`//proto/fb:dashql_buffers_rs`) are not linted. Test code (`#[cfg(test)]`, `tests/`) may index and unwrap.
+
+`dashql-core-runtime` and `dashql-core-wasm` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
+their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,
+`type_complexity` and `field_reassign_with_default`.
+
+Clippy doesn't see a borrow held across a synchronous call into JavaScript, `await_holding_refcell_ref` only catches
+one across an await; the rule above is kept by review. A `disallowed_methods` ban of `RefCell::borrow` and
+`borrow_mut` in favour of `try_borrow` was weighed and not taken: about 190 sites in the runtime of the module would
+each need a busy path of their own. A new crate of the module takes the same `lint_config` and a `rust_safety_test`.
+See "Clippy" in [build_bazel_targets.md](../agents/build_bazel_targets.md).
 
 ### What stays in TypeScript
 

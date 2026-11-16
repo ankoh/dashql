@@ -300,12 +300,15 @@ bazel build //packages/dashql-native-proxy:addon
 
 ### Clippy
 
-The crates of the runtime, `dashql-core-runtime` and the bindings of the core module `dashql-core-wasm`, run Clippy with
-the safety lints of `//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic` and
-`await_holding_refcell_ref` are denied outside of tests, a panic traps the whole module. The other lints of Clippy stay
-warnings. `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test, part of `//packages/...`; the bindings are
-checked as a host build of the same sources (`//packages/dashql-core-wasm:dashql_core_wasm_lint`), they compile on the
-host.
+Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-shell`,
+`dashql-core-profile`, `dashql-core-runtime` and the bindings `dashql-core-wasm`) runs Clippy with the safety lints of
+`//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
+`unimplemented`, `indexing_slicing`, `string_slice` and `await_holding_refcell_ref` are denied outside of tests, a panic
+traps the whole module. `dashql-core` takes `//bazel:rust_safety_lints_without_indexing`. The other lints of Clippy stay
+warnings, but `dashql-core-runtime` and `dashql-core-wasm` deny every warning under Clippy (`lib.rs`). See "The rules"
+in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
+(`:clippy_test` of each crate), part of `//packages/...`; the bindings are checked as a host build of the same sources
+(`//packages/dashql-core-wasm:dashql_core_wasm_lint`), they compile on the host.
 
 ```bash
 # Clippy with the safety lints, a breach fails the build of the test
@@ -315,7 +318,7 @@ bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-was
 bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-wasm:clippy_test_clippy
 ```
 
-A new crate takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
+A new crate of the module takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
 
 ### C++
 

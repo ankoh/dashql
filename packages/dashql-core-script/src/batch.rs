@@ -67,35 +67,37 @@ pub fn check_script(catalog: &Catalog, text: &str, until: ProcessingStage) -> Ch
     let mut script = Script::new(catalog);
     script.replace_text(text);
     script.scan();
-    for e in &script.scanned.as_ref().unwrap().errors {
+    for e in script.scanned.as_ref().map_or(&[][..], |s| &s.errors) {
         diagnostic(ProcessingStage::SCAN, DiagnosticSeverity::ERROR, e.location, &e.message);
     }
     if until >= ProcessingStage::PARSE {
         script.parse();
-        let parsed = script.parsed.as_ref().unwrap();
-        for e in &parsed.errors {
-            let span = resolve_text_span(&parsed.scanned.text, &parsed.scanned.symbols, e.location);
-            diagnostic(ProcessingStage::PARSE, DiagnosticSeverity::ERROR, span, &e.message);
+        if let Some(parsed) = script.parsed.as_ref() {
+            for e in &parsed.errors {
+                let span = resolve_text_span(&parsed.scanned.text, &parsed.scanned.symbols, e.location);
+                diagnostic(ProcessingStage::PARSE, DiagnosticSeverity::ERROR, span, &e.message);
+            }
         }
     }
     let mut failure = None;
     if until >= ProcessingStage::ANALYZE {
         match script.analyze(catalog, false) {
             Ok(()) => {
-                let analyzed = script.analyzed.as_ref().unwrap();
-                let scanned = &analyzed.parsed.scanned;
-                for e in &analyzed.errors {
-                    let severity = if e.severity == AnalyzerErrorSeverity::WARNING {
-                        DiagnosticSeverity::WARNING
-                    } else {
-                        DiagnosticSeverity::ERROR
-                    };
-                    let span = match (e.text_span, e.symbol_span) {
-                        (Some(t), _) => t,
-                        (None, Some(s)) => resolve_text_span(&scanned.text, &scanned.symbols, s),
-                        (None, None) => TextSpan::default(),
-                    };
-                    diagnostic(ProcessingStage::ANALYZE, severity, span, &e.message);
+                if let Some(analyzed) = script.analyzed.as_ref() {
+                    let scanned = &analyzed.parsed.scanned;
+                    for e in &analyzed.errors {
+                        let severity = if e.severity == AnalyzerErrorSeverity::WARNING {
+                            DiagnosticSeverity::WARNING
+                        } else {
+                            DiagnosticSeverity::ERROR
+                        };
+                        let span = match (e.text_span, e.symbol_span) {
+                            (Some(t), _) => t,
+                            (None, Some(s)) => resolve_text_span(&scanned.text, &scanned.symbols, s),
+                            (None, None) => TextSpan::default(),
+                        };
+                        diagnostic(ProcessingStage::ANALYZE, severity, span, &e.message);
+                    }
                 }
             }
             Err(e) => failure = Some(e.message),

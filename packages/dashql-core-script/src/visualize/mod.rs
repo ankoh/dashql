@@ -20,11 +20,12 @@ use dashql_parser::parser::context::resolve_text_span;
 /// The text of a node (`input.substr(span.offset(), span.length())`)
 fn node_text(script: &AnalyzedScript, node_id: u32) -> &[u8] {
     let scanned = &script.parsed.scanned;
-    let span = resolve_text_span(&scanned.text, &scanned.symbols, *script.parsed.nodes[node_id as usize].symbol_span());
+    let Some(node) = script.parsed.nodes.get(node_id as usize) else { return &[] };
+    let span = resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
     let text = scanned.text.as_bytes();
     let begin = (span.offset as usize).min(text.len());
     let end = (span.offset as usize + span.length as usize).min(text.len());
-    &text[begin..end]
+    text.get(begin..end).unwrap_or_default()
 }
 
 /// The renderer-specific packing of a visualization (the vegalite and markdown branches of
@@ -42,12 +43,13 @@ pub fn pack_visualization(
     let vegalite = (renderer == Some("vegalite"))
         .then(|| generate_vegalite_spec(spec, script))
         .filter(|json| !json.is_empty());
+    // A spec that does not read back packs as no Markdown spec
     let markdown =
-        (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().map(|doc| {
+        (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().and_then(|doc| {
             let mut builder = flatbuffers::FlatBufferBuilder::new();
             let packed = pack_markdown_spec(&mut builder, &doc);
             builder.finish(packed, None);
-            Box::new(flatbuffers::root::<MarkdownSpec>(builder.finished_data()).unwrap().unpack())
+            flatbuffers::root::<MarkdownSpec>(builder.finished_data()).ok().map(|spec| Box::new(spec.unpack()))
         });
     (vegalite, markdown)
 }

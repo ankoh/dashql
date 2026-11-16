@@ -220,7 +220,7 @@ impl<'a> AnalysisState<'a> {
         let ts = self.text_span(span);
         let begin = (ts.offset as usize).min(text.len());
         let end = (begin + ts.length as usize).min(text.len());
-        &text[begin..end]
+        text.get(begin..end).unwrap_or("")
     }
 
     /// Mark a node

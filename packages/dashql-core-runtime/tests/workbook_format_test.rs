@@ -1,6 +1,5 @@
-//! The storage format of workbooks: the semantics pinned by the tests of `storage/workbook_files.test.ts`,
-//! `workbook_validation.test.ts`, `workbook_bundle.test.ts`, `workbook_tables.test.ts`, the workbook migrations and
-//! the persistence tests of the TypeScript runtime.
+//! The storage format of workbooks: the files of a workbook, their validation, bundles, the workbook tables, the
+//! migrations of workbooks and their persistence.
 
 use std::collections::HashMap;
 

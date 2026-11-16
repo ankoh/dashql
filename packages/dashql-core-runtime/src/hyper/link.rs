@@ -3,9 +3,6 @@
 //! A link names the endpoint of the HTTP API and a bearer token. The connection keeps the endpoint, the token stays in
 //! the storage of the tab and only the channel adds it. Reading and writing that storage, asking the user and
 //! allocating connections stay with the host.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/hyper/hyper_link.ts` and
-//! `packages/dashql/src/platform/platform/events/hyper_link_target.ts`.
 
 use std::collections::BTreeMap;
 

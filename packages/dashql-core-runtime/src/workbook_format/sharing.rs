@@ -1,5 +1,5 @@
 //! Connection params that leave the app: the secrets stripped for sharing, and the comparison of params that ignores
-//! what sharing strips. Ported from `connection_params.ts` and the `sanitizeForSharing` of the connector descriptors.
+//! what sharing strips.
 //!
 //! The params are JSON in the shape of the workbook file, e.g. `{"trino": {...}}`.
 

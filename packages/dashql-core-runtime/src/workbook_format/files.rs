@@ -1,5 +1,5 @@
 //! The file lists of a workbook file: the scripts in feed order and the attachments, reconciled with the files that
-//! exist. Ported from `storage/workbook_files.ts`.
+//! exist.
 //!
 //! File names are compared in NFC and without case, like on a case-insensitive file system that normalizes Unicode
 //! (`file_name_key`): the names of a listing, of a workbook file and of the workbook tables of an archive alike.
@@ -218,7 +218,7 @@ pub fn patch_workbook_connection(workbook: &WorkbookData, copy: &WorkbookConnect
         .scripts
         .iter()
         .map(|script| {
-            if replaced.iter().any(|r| *r == script.connection_id) {
+            if replaced.contains(&script.connection_id) {
                 WorkbookScript::new(script.name.clone(), copy.connection_id.clone())
             } else {
                 script.clone()

@@ -1,6 +1,4 @@
 //! The request of a call: API names, path encoding, query styles, body formats, followed URLs and the origin check.
-//!
-//! Ported from `connections/clfn/clfn_request.ts` of `packages/dashql/src/runtime`.
 
 use std::collections::BTreeMap;
 
@@ -168,18 +166,20 @@ fn fill_placeholders(
 ) -> Result<String, ClientFunctionError> {
     let mut out = String::with_capacity(template.len());
     let mut rest = template;
-    while let Some(open) = rest.find('{') {
-        let (before, after) = rest.split_at(open);
+    while let Some((before, inner)) = rest.split_once('{') {
         out.push_str(before);
-        let inner = &after[1..];
         // A placeholder has no braces in its name, a lone brace stays as it is
-        match inner.find(['{', '}']) {
-            Some(close) if close > 0 && inner[close..].starts_with('}') => {
-                let name = &inner[..close];
+        let placeholder = inner
+            .find(['{', '}'])
+            .and_then(|close| inner.split_at_checked(close))
+            .and_then(|(name, tail)| Some((name, tail.strip_prefix('}')?)))
+            .filter(|(name, _)| !name.is_empty());
+        match placeholder {
+            Some((name, tail)) => {
                 out.push_str(&lookup(name).ok_or_else(|| ClientFunctionError::new(describe(name)))?);
-                rest = &inner[close + 1..];
+                rest = tail;
             }
-            _ => {
+            None => {
                 out.push('{');
                 rest = inner;
             }

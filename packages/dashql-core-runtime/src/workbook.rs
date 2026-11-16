@@ -201,12 +201,14 @@ pub fn text_change(from: &str, to: &str, unit: EditorOffsetUnit) -> TextChange {
     while !from.is_char_boundary(from.len() - suffix) || !to.is_char_boundary(to.len() - suffix) {
         suffix -= 1;
     }
-    let start = text_length(&from[..prefix], unit);
-    TextChange {
-        from: start,
-        to: start + text_length(&from[prefix..from.len() - suffix], unit),
-        insert: to[prefix..to.len() - suffix].to_string(),
-    }
+    let (Some(head), Some(removed), Some(inserted)) = (from.get(..prefix), from.get(prefix..from.len() - suffix), to.get(prefix..to.len() - suffix))
+    else {
+        // The prefix and the suffix end on character boundaries of both texts, a change of the whole text is the
+        // fallback
+        return TextChange { from: 0, to: text_length(from, unit), insert: to.to_string() };
+    };
+    let start = text_length(head, unit);
+    TextChange { from: start, to: start + text_length(removed, unit), insert: inserted.to_string() }
 }
 
 /// The formatting of the queries that a chart compiles to
@@ -875,10 +877,10 @@ impl Workbook {
         // Create the sessions of added and moved scripts, nothing is dropped yet
         let mut created: Vec<Option<WorkbookScript>> = Vec::with_capacity(unique.len());
         for entry in &unique {
-            let existing = self.scripts.iter().position(|script| script.file_name == entry.name);
+            let existing = self.scripts.iter().enumerate().find(|(_, script)| script.file_name == entry.name);
             let script = match existing {
-                Some(position) if self.scripts[position].connection.connection_id == entry.connection.connection_id => None,
-                Some(position) => Some(self.moved_script(position, entry.connection.clone())?),
+                Some((_, script)) if script.connection.connection_id == entry.connection.connection_id => None,
+                Some((position, _)) => Some(self.moved_script(position, entry.connection.clone())?),
                 None => Some(self.create_script(&entry.name, entry.connection.clone(), None)?),
             };
             let script = match script {
@@ -896,8 +898,7 @@ impl Workbook {
         // A failure from here on is reported once the workbook is whole again
         let mut failure = None;
         for (entry, created) in unique.into_iter().zip(created) {
-            let existing = previous.iter().position(|script| script.as_ref().is_some_and(|script| script.file_name == entry.name));
-            let existing = existing.and_then(|position| previous[position].take());
+            let existing = previous.iter_mut().find(|script| script.as_ref().is_some_and(|script| script.file_name == entry.name)).and_then(Option::take);
             let mut script = match (created, existing) {
                 (Some(created), existing) => {
                     // A replaced script leaves its catalog when it drops
@@ -1209,8 +1210,11 @@ impl Workbook {
                 text.replace_range(*begin..*end, &reference);
             }
             for (begin, end) in &spans {
-                let from = text_length(&from_text[..*begin], unit);
-                changes.push(TextChange { from, to: from + text_length(&from_text[*begin..*end], unit), insert: reference.clone() });
+                let (Some(head), Some(span)) = (from_text.get(..*begin), from_text.get(*begin..*end)) else {
+                    return Err(Error::invalid_argument("a reference outside of the text of its script"));
+                };
+                let from = text_length(head, unit);
+                changes.push(TextChange { from, to: from + text_length(span, unit), insert: reference.clone() });
             }
             rewrites.push((index, text, ExternalChanges { from_text, changes }));
         }
@@ -1313,7 +1317,7 @@ impl Workbook {
         match index {
             Some(index) if !self.scripts.is_empty() => {
                 let neighbor = index.min(self.scripts.len()).saturating_sub(1);
-                Some(self.scripts[neighbor].connection.clone())
+                self.scripts.get(neighbor).map(|script| script.connection.clone())
             }
             _ => self.pending_connection.clone().or_else(|| self.scripts.last().map(|script| script.connection.clone())),
         }
@@ -1660,18 +1664,21 @@ impl Workbook {
         let files = self.scripts.iter().map(|script| script.file_name.as_str());
         let base = unique_script_base(requested, files, file_name, self.attachment_names());
         let new_file_name = format!("{base}.sql");
-        let Some(position) = self.scripts.iter().position(|script| script.file_name == file_name) else {
+        let Some(script) = self.scripts.iter().find(|script| script.file_name == file_name) else {
             return Ok(());
         };
         if new_file_name == file_name {
             // The same name writes the unchanged text
-            outcome.effects.push(Self::write_script(&self.scripts[position]));
+            outcome.effects.push(Self::write_script(script));
             return Ok(());
         }
         // The scripts that read the script read the new name. A script that reads itself is a cycle, it keeps the name.
-        let key = self.scripts[position].key;
+        let key = script.key;
         let rewritten = self.rewrite_renamed_references(ReferenceTarget::Script(file_name), &base, Some(key))?;
-        let script = &mut self.scripts[position];
+        // The rewrite keeps the scripts, the script is found again by its key
+        let Some(script) = self.scripts.iter_mut().find(|script| script.key == key) else {
+            return Ok(());
+        };
         script.file_name = new_file_name.clone();
         script.revision = next_revision();
         // The other scripts read the script by its name
@@ -1705,7 +1712,7 @@ impl Workbook {
             return;
         }
         let mut scripts: Vec<Option<WorkbookScript>> = std::mem::take(&mut self.scripts).into_iter().map(Some).collect();
-        self.scripts = ordered.into_iter().filter_map(|index| scripts[index].take()).collect();
+        self.scripts = ordered.into_iter().filter_map(|index| scripts.get_mut(index).and_then(Option::take)).collect();
         outcome.changed = true;
         // The order lives in the workbook file, the script files stay untouched
         outcome.effects.push(WorkbookEffect::WriteScriptList(self.script_list()));
@@ -1771,13 +1778,12 @@ impl Workbook {
         // The new texts of all scripts first, then the scripts: all of them change or none
         let mut rewrites: Vec<(usize, String, String)> = Vec::new();
         for key in keys {
-            let Some(index) = self.scripts.iter().position(|script| script.key == *key) else {
+            let Some((index, script)) = self.scripts.iter().enumerate().find(|(_, script)| script.key == *key) else {
                 continue;
             };
             if rewrites.iter().any(|(other, ..)| *other == index) {
                 continue;
             }
-            let script = &self.scripts[index];
             let from_text = script.text();
             // A script that doesn't parse keeps its tags
             let Ok(text) = script.session.borrow_mut().rewrite_param_tag(name, Some(literal), true) else {
@@ -1927,17 +1933,20 @@ impl Workbook {
     }
 
     /// Replace the script at a position with a moved one, the previous script leaves its catalog
-    fn replace_moved(&mut self, position: usize, moved: WorkbookScript) -> WorkbookScript {
-        let previous = std::mem::replace(&mut self.scripts[position], moved);
+    fn replace_moved(&mut self, position: usize, moved: WorkbookScript) -> Result<WorkbookScript> {
+        let Some(slot) = self.scripts.get_mut(position) else {
+            moved.leave_catalog();
+            return Err(Error::invalid_argument("a move of an unknown script"));
+        };
+        let previous = std::mem::replace(slot, moved);
         previous.leave_catalog();
-        previous
+        Ok(previous)
     }
 
     fn set_script_connection(&mut self, file_name: &str, connection: Rc<ScriptConnection>, outcome: &mut WorkbookOutcome) -> Result<()> {
-        let Some(position) = self.scripts.iter().position(|script| script.file_name == file_name) else {
+        let Some((position, script)) = self.scripts.iter_mut().enumerate().find(|(_, script)| script.file_name == file_name) else {
             return Ok(());
         };
-        let script = &mut self.scripts[position];
         if script.connection.connection_id == connection.connection_id {
             // Picking the connection the script runs on replaces the unresolved reference
             if script.unresolved_connection_id.take().is_some() {
@@ -1955,7 +1964,7 @@ impl Workbook {
         moved.analyze();
         let key = moved.key;
         let connection = moved.connection.clone();
-        let previous = self.replace_moved(position, moved);
+        let previous = self.replace_moved(position, moved)?;
         // The scripts of both catalogs may have referenced the moved script
         self.mark_others_outdated(key, &previous.connection);
         self.mark_others_outdated(key, &connection);
@@ -1980,13 +1989,14 @@ impl Workbook {
     fn replace_connection(&mut self, from: &str, into: Rc<ScriptConnection>, outcome: &mut WorkbookOutcome) {
         let mut moved = 0;
         for position in 0..self.scripts.len() {
-            if self.scripts[position].connection.connection_id != from {
+            if self.scripts.get(position).is_none_or(|script| script.connection.connection_id != from) {
                 continue;
             }
             // A script that can't move stays on the replaced connection, it isn't removed
             if let Ok(script) = self.moved_script(position, into.clone()) {
-                self.replace_moved(position, script);
-                moved += 1;
+                if self.replace_moved(position, script).is_ok() {
+                    moved += 1;
+                }
             }
         }
         let moves_pending = self.pending_connection.as_ref().is_some_and(|pending| pending.connection_id == from);

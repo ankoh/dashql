@@ -4,6 +4,7 @@
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
 
 rust_library(
     name = "dashql_core_profile",
@@ -11,6 +12,7 @@ rust_library(
     crate_name = "dashql_core_profile",
     crate_root = "src/lib.rs",
     edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
     visibility = ["//visibility:public"],
     deps = [
         "//proto/fb:dashql_buffers_rs",
@@ -24,6 +26,12 @@ rust_test(
     name = "dashql_core_profile_unit_tests",
     size = "small",
     crate = ":dashql_core_profile",
+)
+
+# Clippy with the safety lints, see //bazel:rust_safety.bzl
+rust_safety_test(
+    name = "clippy_test",
+    deps = [":dashql_core_profile"],
 )
 
 # The query profile snapshots (tests/snapshots/profiles/hyper/tests/*.yaml, tests/snapshots/profiles/progress/*.yaml)

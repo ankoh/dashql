@@ -2,8 +2,6 @@
 //! the setup of a connection as a state machine (`setup`) and the binding of the Data 360 client functions
 //! (`client_functions`). Sans-IO: the functions build requests and read responses, the host sends them. The actions of
 //! the setup on the connection state are `connections::SalesforceAction`.
-//!
-//! Ported from `connections/salesforce/` of `packages/dashql/src/runtime`, without the catalog update.
 
 pub mod api;
 pub mod auth;

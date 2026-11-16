@@ -10,8 +10,8 @@
 //! reports the end of every update it started (`finished`). After each of these and when the wake-up time passed, it
 //! asks for the commands to run (`schedule`).
 //!
-//! Ported from the decisions of `CatalogLoaderService` (`catalog_loader_service.ts`). The microtask scheduling, the
-//! timers, the cancellation tokens and the client functions of a connection stay with the host.
+//! The microtask scheduling, the timers, the cancellation tokens and the client functions of a connection stay with the
+//! host.
 
 use std::collections::{BTreeSet, HashMap};
 

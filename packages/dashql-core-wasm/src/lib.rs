@@ -8,6 +8,18 @@
 //! catalog object. Freeing a script or session releases its memory and leaves the catalog as it is: its owner
 //! drops it from the catalog explicitly (`Catalog.dropScript`, `ScriptSession.dropFromCatalog`).
 
+// Clippy fails on any warning (`clippy_test`). Allowed by choice: enums whose variants differ in size, errors that
+// carry their details, types of listeners spelled out in place, and the generated FlatBuffers objects, which are
+// non-exhaustive: they are built from their default, field by field or with `..Default::default()`.
+#![cfg_attr(clippy, deny(warnings))]
+#![allow(
+    clippy::large_enum_variant,
+    clippy::result_large_err,
+    clippy::type_complexity,
+    clippy::field_reassign_with_default,
+    clippy::needless_update
+)]
+
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer};
 use dashql_core::completion::Completion;

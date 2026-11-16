@@ -104,20 +104,22 @@ fn statement_columns(state: &AnalysisState, root: u32) -> Option<HashSet<String>
 /// Collect the `field` references and the names that the spec defines itself (`as`)
 fn collect_fields<'v>(value: &'v Value, fields: &mut Vec<&'v str>, defined: &mut HashSet<&'v str>) {
     match value {
-        Value::Object(object) => {
-            for (key, value) in object {
-                match (key.as_str(), value) {
-                    ("field", Value::String(field)) => fields.push(field),
-                    ("as", Value::String(name)) => {
-                        defined.insert(name);
-                    }
-                    ("as", Value::Array(names)) => defined.extend(names.iter().filter_map(Value::as_str)),
-                    _ => collect_fields(value, fields, defined),
-                }
-            }
-        }
+        Value::Object(object) => collect_object_fields(object, fields, defined),
         Value::Array(values) => values.iter().for_each(|v| collect_fields(v, fields, defined)),
         _ => {}
+    }
+}
+
+fn collect_object_fields<'v>(object: &'v Map<String, Value>, fields: &mut Vec<&'v str>, defined: &mut HashSet<&'v str>) {
+    for (key, value) in object {
+        match (key.as_str(), value) {
+            ("field", Value::String(field)) => fields.push(field),
+            ("as", Value::String(name)) => {
+                defined.insert(name);
+            }
+            ("as", Value::Array(names)) => defined.extend(names.iter().filter_map(Value::as_str)),
+            _ => collect_fields(value, fields, defined),
+        }
     }
 }
 
@@ -153,7 +155,7 @@ impl StatementTags {
     }
 
     fn read_vegalite(&mut self, state: &mut AnalysisState, tag: &TagText, body: usize, kind: TextSpan, columns: Option<&HashSet<String>>) {
-        let json = &tag.text[body..];
+        let json = tag.text.get(body..).unwrap_or("");
         if json.trim().is_empty() {
             warn(state, kind, "@vis vegalite needs a Vega-Lite spec as JSON object".into());
             return;
@@ -168,7 +170,7 @@ impl StatementTags {
                 // serde_json counts lines and columns from 1, the columns in bytes
                 let line_begin = json.split('\n').take(e.line().saturating_sub(1)).map(|l| l.len() + 1).sum::<usize>();
                 let at = (body + line_begin + e.column().saturating_sub(1)).min(tag.text.len());
-                let line_end = tag.text[at..].find('\n').map_or(tag.text.len(), |n| at + n);
+                let line_end = tag.text.get(at..).and_then(|rest| rest.find('\n')).map_or(tag.text.len(), |n| at + n);
                 warn(state, tag.span(at, line_end.max(at)), format!("invalid Vega-Lite JSON: {e}"));
                 return;
             }
@@ -178,9 +180,8 @@ impl StatementTags {
             warn(state, span, "data is ignored, the statement is the data of the chart".into());
         }
         if let Some(columns) = columns {
-            let value = Value::Object(spec);
             let (mut fields, mut defined) = (Vec::new(), HashSet::new());
-            collect_fields(&value, &mut fields, &mut defined);
+            collect_object_fields(&spec, &mut fields, &mut defined);
             for field in fields {
                 // Nested fields refer to a column by their first part
                 let column = field.split(['.', '[']).next().unwrap_or(field);
@@ -198,8 +199,6 @@ impl StatementTags {
                 }
                 warn(state, span, message);
             }
-            let Value::Object(object) = value else { unreachable!() };
-            spec = object;
         }
         self.vegalite = Some(spec);
     }
@@ -230,7 +229,7 @@ fn read_args<const N: usize>(
             break;
         }
         at = next;
-        let arg = &tag.text[begin..end];
+        let arg = tag.text.get(begin..end).unwrap_or("");
         let span = tag.span(begin, end);
         let Some((key, value)) = arg.split_once('=') else {
             warn(state, span, format!("@{kind} takes key=value args, not \"{arg}\""));
@@ -379,7 +378,7 @@ pub(super) fn statement_tags<'p>(
     parsed.comment_blocks.blocks[begin..begin + description.description_blocks_count as usize]
         .iter()
         .filter(|b| b.block_type == CommentBlockType::DASHQL_TAG)
-        .map(move |b| (b, &script[b.tag_span.offset as usize..b.tag_span.end() as usize]))
+        .map(move |b| (b, script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or("")))
         .filter(move |(_, name)| names.contains(name))
 }
 
@@ -388,9 +387,9 @@ fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &Comment
     let script = parsed.scanned.text.as_str();
     let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
     let Some(line) = lines.first() else { return "" };
-    let text = &script[line.offset as usize..line.end() as usize];
+    let text = script.get(line.offset as usize..line.end() as usize).unwrap_or("");
     let (begin, end, _) = split_word(text, 0);
-    &text[begin..end]
+    text.get(begin..end).unwrap_or("")
 }
 
 /// Does a statement have a `@vis` tag that names a renderer? The compiler visualizes such a query. The board
@@ -442,12 +441,12 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             // `@board` and `@flow` take their args right away, `@vis` starts with its kind
             let (kind, kind_span, rest) = if name == VIS_TAG {
                 let (kind_begin, kind_end, rest) = split_word(&tag.text, 0);
-                let kind = &tag.text[kind_begin..kind_end];
+                let kind = tag.text.get(kind_begin..kind_end).unwrap_or("");
                 (kind, if kind.is_empty() { block.tag_span } else { tag.span(kind_begin, kind_end) }, rest)
             } else {
                 (name, block.tag_span, 0)
             };
-            let body = tag.text[rest..].trim();
+            let body = tag.text.get(rest..).unwrap_or("").trim();
             if kind == "flow" {
                 read_flow(state, &tag, rest, kind_span, statement_id as u32);
                 continue;
@@ -472,7 +471,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         if body.is_empty() {
                             warn(state, kind_span, "@vis markdown needs a row template".into());
                         }
-                        out.markdown = Some(tag.text[rest..].to_string());
+                        out.markdown = Some(tag.text.get(rest..).unwrap_or("").to_string());
                     }
                 }
                 "table" => {

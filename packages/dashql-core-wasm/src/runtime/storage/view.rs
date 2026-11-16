@@ -87,7 +87,6 @@ pub struct StorageKeyStatistics {
 /// Why the writes of the writer or of a workbook are held
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-
 pub enum StorageHoldReason {
     /// A file changed outside the app, the app asks the user
     ExternalChange,

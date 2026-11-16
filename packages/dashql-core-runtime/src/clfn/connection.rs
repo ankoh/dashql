@@ -6,8 +6,6 @@
 //! `spec_loaded` registers it on the catalog of the connection. A spec that failed to load is tried again on the next
 //! change, and the spec is dropped if the connection switches to a connector without it. Clearing the catalog keeps
 //! the specs, they come with the connector.
-//!
-//! Ported from `connections/connection_client_functions.ts` of `packages/dashql/src/runtime`.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -197,7 +195,7 @@ impl ClientFunctionRegistrations {
         spec: Result<&str, String>,
     ) -> Result<Vec<ClientFunctionRegistryEffect>, ClientFunctionError> {
         let Some(connection) = connection else { return Ok(Vec::new()) };
-        if self.registration(connection_id, connection).map_or(true, |r| r.ticket != ticket || r.namespace.is_some()) {
+        if self.registration(connection_id, connection).is_none_or(|r| r.ticket != ticket || r.namespace.is_some()) {
             return Ok(Vec::new());
         }
         let connection_id = connection_id.to_string();

@@ -1,8 +1,6 @@
 //! The health check of a connection: a probe query through the query executor, so it shows up in the query viewer
 //! like any other query. The host runs the query on the channel that the setup holds and reports how it ended, the
 //! check returns the action of the connection.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/health_check.ts`.
 
 use super::{ConnectionAction, ConnectorType, DetailedError};
 use crate::query::{QueryMetadata, QueryType};

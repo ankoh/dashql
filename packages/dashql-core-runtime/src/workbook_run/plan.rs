@@ -169,7 +169,7 @@ impl PlannedStatement {
         }
     }
 
-    /// The statement as the query metadata of the host holds it (`PlannedStatement` of the TypeScript runtime)
+    /// The statement as the query metadata of the host holds it (`PlannedStatement` of `@ankoh/dashql`)
     pub fn to_json(&self) -> Value {
         let (run, target) = match &self.run {
             PlanRun::Workbook => ("workbook", Value::Null),

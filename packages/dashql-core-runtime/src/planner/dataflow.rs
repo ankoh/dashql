@@ -163,8 +163,8 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
             text_span,
         });
     }
-    for (i, script) in scripts.iter_mut().enumerate() {
-        let input = request.scripts[i].script;
+    for (script, input) in scripts.iter_mut().zip(request.scripts) {
+        let input = input.script;
         // A script without statements has no nodes, it is planned if its analysis is current
         if !script.analyzed {
             script.analyzed = Prepared::lenient(input).is_some_and(|p| p.parsed.statements.is_empty());
@@ -194,9 +194,10 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
             });
             continue;
         }
-        let (Some(from), Some(to)) = (terminal_of(reference.script), nodes.get(reference.node as usize)) else { continue };
+        let from = terminal_of(reference.script).and_then(|from| nodes.get(from as usize));
+        let (Some(from), Some(to)) = (from, nodes.get(reference.node as usize)) else { continue };
         edges.insert(DataflowEdge {
-            from: port(&nodes[from as usize]),
+            from: port(from),
             to: port(to),
             kind: if reference.materialization != NONE { DataflowEdgeKind::ScanReference } else { DataflowEdgeKind::InlineReference },
             name: reference.parameter.clone().unwrap_or_default(),
@@ -204,12 +205,12 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     }
     for consumer in 0..request.scripts.len() as u32 {
         for reference in plan.references.of(consumer).iter().filter(|r| r.kind == ReferenceKind::Invalid) {
-            let Some(from) = reference.producer.and_then(terminal_of) else { continue };
+            let Some(from) = reference.producer.and_then(terminal_of).and_then(|from| nodes.get(from as usize)) else { continue };
             if !node_of.contains_key(&(consumer, reference.statement_id)) {
                 continue;
             }
             edges.insert(DataflowEdge {
-                from: port(&nodes[from as usize]),
+                from: port(from),
                 to: DataflowPort { script: consumer, statement: reference.statement_id },
                 kind: DataflowEdgeKind::InvalidReference,
                 name: reference.name.clone(),
@@ -224,7 +225,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
             continue;
         }
         let Some(relation) = relation_of(e.entity, e.unresolved_reference) else { continue };
-        let (from, to) = (&nodes[e.from as usize], &nodes[e.to as usize]);
+        let (Some(from), Some(to)) = (nodes.get(e.from as usize), nodes.get(e.to as usize)) else { continue };
         // A drop neither produces nor reads data
         let drop = |node: &ExecutionGraphNodeT| matches!(node.statement_type, StatementType::DROP_TABLE | StatementType::DROP_VIEW);
         if !writes(from).any(|r| r == relation) || drop(from) || drop(to) {
@@ -235,7 +236,7 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     for (&(from, relation), targets) in &table_edges {
         for &to in targets {
             // A read only through the query of an inlined script flows through that script
-            let node = &nodes[to as usize];
+            let (Some(from_node), Some(node)) = (nodes.get(from as usize), nodes.get(to as usize)) else { continue };
             let through_inlined = node
                 .inlined_scripts
                 .iter()
@@ -246,8 +247,8 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
                 continue;
             }
             edges.insert(DataflowEdge {
-                from: port(&nodes[from as usize]),
-                to: port(&nodes[to as usize]),
+                from: port(from_node),
+                to: port(node),
                 kind: DataflowEdgeKind::Table,
                 name: relation_name(graph, relation),
             });

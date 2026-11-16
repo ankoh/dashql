@@ -39,14 +39,27 @@ pub fn graphemes(text: &[u8]) -> Vec<(usize, usize)> {
     }
 }
 
-/// The end of the grapheme cluster that starts at the byte offset `offset`, the text length at the end
+/// The end of the grapheme cluster that starts at the byte offset `offset`, the text length at the end. An offset
+/// past the end or inside a character yields the text length, so a loop that walks forward ends.
 pub fn next_grapheme(text: &str, offset: usize) -> usize {
-    offset + text[offset..].graphemes(true).next().map_or(0, str::len)
+    match text.get(offset..) {
+        Some(rest) => offset + rest.graphemes(true).next().map_or(0, str::len),
+        None => text.len(),
+    }
 }
 
-/// The begin of the grapheme cluster that ends at the byte offset `offset`, 0 at the begin
+/// The begin of the grapheme cluster that ends at the byte offset `offset`, 0 at the begin. An offset past the end
+/// or inside a character yields 0, so a loop that walks backward ends.
 pub fn previous_grapheme(text: &str, offset: usize) -> usize {
-    offset - text[..offset].graphemes(true).next_back().map_or(0, str::len)
+    match text.get(..offset) {
+        Some(head) => offset - head.graphemes(true).next_back().map_or(0, str::len),
+        None => 0,
+    }
+}
+
+/// The text between two byte offsets, empty if they are out of bounds or inside a character
+pub(crate) fn substring(text: &str, begin: usize, end: usize) -> &str {
+    text.get(begin..end).unwrap_or("")
 }
 
 /// The begin offsets of the grapheme clusters of a text, followed by the text length

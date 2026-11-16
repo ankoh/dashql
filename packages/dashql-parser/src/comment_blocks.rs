@@ -123,16 +123,30 @@ struct Grouper<'a> {
 }
 
 impl<'a> Grouper<'a> {
+    // The scanner reports the comments of the text, a range off the text reads as empty and a byte off it as 0, which
+    // is no whitespace, line break, star or dash
+    fn byte(&self, offset: usize) -> u8 {
+        self.text.get(offset).copied().unwrap_or(0)
+    }
+
+    fn bytes(&self, begin: usize, end: usize) -> &'a [u8] {
+        self.text.get(begin..end).unwrap_or_default()
+    }
+
+    fn comment(&self, id: usize) -> TextSpan {
+        self.comments.get(id).copied().unwrap_or_default()
+    }
+
     fn slice(&self, r: Range) -> &'a [u8] {
-        &self.text[r.begin..r.end.max(r.begin)]
+        self.bytes(r.begin, r.end.max(r.begin))
     }
 
     /// Trim horizontal whitespace on both sides
     fn trim(&self, mut r: Range) -> Range {
-        while r.begin < r.end && is_horizontal_space(self.text[r.begin]) {
+        while r.begin < r.end && is_horizontal_space(self.byte(r.begin)) {
             r.begin += 1;
         }
-        while r.end > r.begin && is_horizontal_space(self.text[r.end - 1]) {
+        while r.end > r.begin && is_horizontal_space(self.byte(r.end - 1)) {
             r.end -= 1;
         }
         r
@@ -146,17 +160,17 @@ impl<'a> Grouper<'a> {
         let name_begin = line.begin + COMMENT_TAG_PREFIX.len();
         let mut name_end = name_begin;
         while name_end < line.end {
-            let c = self.text[name_end];
+            let c = self.byte(name_end);
             if !(c.is_ascii_alphanumeric() || c == b'_' || c == b'-') {
                 break;
             }
             name_end += 1;
         }
         // The tag name must be followed by whitespace or the end of the line
-        if name_end == name_begin || (name_end < line.end && !is_horizontal_space(self.text[name_end])) {
+        if name_end == name_begin || (name_end < line.end && !is_horizontal_space(self.byte(name_end))) {
             return None;
         }
-        if !is_comment_tag(&self.text[name_begin..name_end]) {
+        if !is_comment_tag(self.bytes(name_begin, name_end)) {
             return None;
         }
         Some(Tag {
@@ -185,21 +199,21 @@ impl<'a> Grouper<'a> {
 
     /// The offset of the line break after an offset, `limit` if there is none before it
     fn line_end(&self, offset: usize, limit: usize) -> usize {
-        self.text[offset..limit].iter().position(|&c| c == b'\n').map_or(limit, |i| offset + i)
+        self.bytes(offset, limit).iter().position(|&c| c == b'\n').map_or(limit, |i| offset + i)
     }
 
     /// Is a comment the first text on its line?
     fn starts_line(&self, mut offset: usize) -> bool {
-        while offset > 0 && is_horizontal_space(self.text[offset - 1]) {
+        while offset > 0 && is_horizontal_space(self.byte(offset - 1)) {
             offset -= 1;
         }
-        offset == 0 || self.text[offset - 1] == b'\n'
+        offset == 0 || self.byte(offset - 1) == b'\n'
     }
 
     /// Is the gap between two line comments only whitespace with a single line break?
     fn is_contiguous_gap(&self, begin: usize, end: usize) -> bool {
         let mut line_breaks = 0;
-        for &c in &self.text[begin..end] {
+        for &c in self.bytes(begin, end) {
             if c == b'\n' {
                 line_breaks += 1;
             } else if !is_horizontal_space(c) {
@@ -210,20 +224,20 @@ impl<'a> Grouper<'a> {
     }
 
     fn is_line_comment(&self, comment: TextSpan) -> bool {
-        comment.length >= 2 && self.text[comment.offset as usize..].starts_with(b"--")
+        comment.length >= 2 && self.text.get(comment.offset as usize..).unwrap_or_default().starts_with(b"--")
     }
 
     /// The content of a line comment: everything after the dashes and a single space
     fn line_comment_content(&self, comment: TextSpan) -> Range {
         let mut begin = comment.offset as usize;
         let mut end = comment.end() as usize;
-        while begin < end && self.text[begin] == b'-' {
+        while begin < end && self.byte(begin) == b'-' {
             begin += 1;
         }
-        if begin < end && self.text[begin] == b' ' {
+        if begin < end && self.byte(begin) == b' ' {
             begin += 1;
         }
-        while end > begin && is_horizontal_space(self.text[end - 1]) {
+        while end > begin && is_horizontal_space(self.byte(end - 1)) {
             end -= 1;
         }
         Range::new(begin, end)
@@ -237,21 +251,21 @@ impl<'a> Grouper<'a> {
         let mut begin = comment.offset as usize;
         let mut end = comment.end() as usize;
         // Strip `*/`, the scanner reports unterminated block comments as errors
-        if comment.length >= 4 && &self.text[end - 2..end] == b"*/" {
+        if comment.length >= 4 && self.bytes(end - 2, end) == b"*/" {
             end -= 2;
         }
         // Strip `/*` and additional stars, as in `/**`
         begin = (begin + 2).min(end);
-        while begin < end && self.text[begin] == b'*' {
+        while begin < end && self.byte(begin) == b'*' {
             begin += 1;
         }
-        while end > begin && self.text[end - 1] == b'*' {
+        while end > begin && self.byte(end - 1) == b'*' {
             end -= 1;
         }
         let mut lines = Vec::new();
         let mut line_begin = begin;
         for i in begin..=end {
-            if i < end && self.text[i] != b'\n' {
+            if i < end && self.byte(i) != b'\n' {
                 continue;
             }
             lines.push(Range::new(line_begin, i));
@@ -262,28 +276,28 @@ impl<'a> Grouper<'a> {
             (!t.is_empty()).then_some(t.begin)
         };
         let has_gutter = lines.len() > 1
-            && lines[1..].iter().any(|&l| first_text(l).is_some())
-            && lines[1..].iter().all(|&l| first_text(l).is_none_or(|b| self.text[b] == b'*'));
+            && lines.iter().skip(1).any(|&l| first_text(l).is_some())
+            && lines.iter().skip(1).all(|&l| first_text(l).is_none_or(|b| self.byte(b) == b'*'));
         if has_gutter {
-            for line in &mut lines[1..] {
+            for line in lines.iter_mut().skip(1) {
                 if let Some(star) = first_text(*line) {
                     line.begin = star + 1;
-                    if line.begin < line.end && self.text[line.begin] == b' ' {
+                    if line.begin < line.end && self.byte(line.begin) == b' ' {
                         line.begin += 1;
                     }
                 }
             }
         }
         // Remove the common indentation of the lines after the first
-        let indent = |r: Range| self.text[r.begin..r.end].iter().take_while(|&&c| is_horizontal_space(c)).count();
-        let common = lines[1..].iter().filter(|&&l| first_text(l).is_some()).map(|&l| indent(l)).min().unwrap_or(0);
+        let indent = |r: Range| self.bytes(r.begin, r.end).iter().take_while(|&&c| is_horizontal_space(c)).count();
+        let common = lines.iter().skip(1).filter(|&&l| first_text(l).is_some()).map(|&l| indent(l)).min().unwrap_or(0);
         for (i, line) in lines.iter_mut().enumerate() {
             let mut r = if i == 0 || first_text(*line).is_none() {
                 self.trim(*line)
             } else {
                 Range::new(line.begin + common, line.end)
             };
-            while r.end > r.begin && is_horizontal_space(self.text[r.end - 1]) {
+            while r.end > r.begin && is_horizontal_space(self.byte(r.end - 1)) {
                 r.end -= 1;
             }
             *line = r;
@@ -297,8 +311,8 @@ impl<'a> Grouper<'a> {
 
     /// Emit a block that spans whole comments, leading and trailing empty lines are dropped
     fn emit(&mut self, block_type: CommentBlockType, comments_begin: usize, comments_end: usize, tag: Range, lines: &[Range]) {
-        let first = self.comments[comments_begin];
-        let last = self.comments[comments_end - 1];
+        let first = self.comment(comments_begin);
+        let last = self.comment(comments_end - 1);
         let text_span = TextSpan::new(first.offset, last.end() - first.offset);
         self.emit_span(block_type, comments_begin, comments_end, text_span, tag, lines);
     }
@@ -313,11 +327,17 @@ impl<'a> Grouper<'a> {
         tag: Range,
         mut lines: &[Range],
     ) {
-        while lines.first().is_some_and(Range::is_empty) {
-            lines = &lines[1..];
+        while let Some((first, rest)) = lines.split_first() {
+            if !first.is_empty() {
+                break;
+            }
+            lines = rest;
         }
-        while lines.last().is_some_and(Range::is_empty) {
-            lines = &lines[..lines.len() - 1];
+        while let Some((last, rest)) = lines.split_last() {
+            if !last.is_empty() {
+                break;
+            }
+            lines = rest;
         }
         self.out.blocks.push(CommentBlock {
             block_type,
@@ -337,7 +357,7 @@ impl<'a> Grouper<'a> {
     }
 
     fn group_block_comment(&mut self, comment_id: usize) {
-        let comment = self.comments[comment_id];
+        let comment = self.comment(comment_id);
         let mut lines = self.block_comment_lines(comment);
         // Every tag line starts a tagged block, the end tag is never needed in a block comment
         let mut tags: Vec<(usize, Tag)> = Vec::new();
@@ -354,16 +374,17 @@ impl<'a> Grouper<'a> {
             return;
         }
         // Text before the first tag is an ordinary block
-        let first_tag = tags[0].0;
+        let Some((first_tag, first)) = tags.first() else { return };
+        let first_tag = *first_tag;
         let mut span_begin = comment.offset as usize;
-        if lines[..first_tag].iter().any(|l| !l.is_empty()) {
-            let tag_begin = tags[0].1.name.begin - COMMENT_TAG_PREFIX.len();
+        if sub_lines(&lines, 0, first_tag).iter().any(|l| !l.is_empty()) {
+            let tag_begin = first.name.begin - COMMENT_TAG_PREFIX.len();
             let span = Range::new(span_begin, tag_begin).span();
-            self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), &lines[..first_tag]);
+            self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), sub_lines(&lines, 0, first_tag));
             span_begin = tag_begin;
         }
-        for k in 0..tags.len() {
-            let (line, ref tag) = tags[k];
+        for (k, (line, tag)) in tags.iter().enumerate() {
+            let line = *line;
             let (lines_end, span_end) = match tags.get(k + 1) {
                 Some((next, next_tag)) => (*next, next_tag.name.begin - COMMENT_TAG_PREFIX.len()),
                 None => (lines.len(), comment.end() as usize),
@@ -371,26 +392,28 @@ impl<'a> Grouper<'a> {
             let name = tag.name;
             let rest = tag.rest;
             // The lines after a tag that ends at its line are ordinary text
-            let after = lines[line + 1..lines_end].iter().any(|l| !l.is_empty());
+            let after = sub_lines(&lines, line + 1, lines_end).iter().any(|l| !l.is_empty());
             let (tag_lines_end, tag_end) = if after && self.ends_at_its_line(tag) {
                 (line + 1, self.line_end(rest.end, span_end))
             } else {
                 (lines_end, span_end)
             };
-            lines[line] = rest;
+            if let Some(l) = lines.get_mut(line) {
+                *l = rest;
+            }
             let span = Range::new(span_begin, tag_end).span();
-            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, &lines[line..tag_lines_end]);
+            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, sub_lines(&lines, line, tag_lines_end));
             if tag_end < span_end {
                 let span = Range::new(tag_end, span_end).span();
-                self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), &lines[tag_lines_end..lines_end]);
+                self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), sub_lines(&lines, tag_lines_end, lines_end));
             }
             span_begin = span_end;
         }
     }
 
     fn group_line_comments(&mut self, run_begin: usize, run_end: usize) {
-        let lines: Vec<Range> = (run_begin..run_end).map(|i| self.line_comment_content(self.comments[i])).collect();
-        let line = |i: usize| lines[i - run_begin];
+        let lines: Vec<Range> = (run_begin..run_end).map(|i| self.line_comment_content(self.comment(i))).collect();
+        let line = |i: usize| lines.get(i - run_begin).copied().unwrap_or_default();
         // The comments of the run that are not yet emitted
         let mut pending = run_begin;
         let mut i = run_begin;
@@ -400,7 +423,7 @@ impl<'a> Grouper<'a> {
                 continue;
             };
             if self.is_end(&tag) {
-                self.warn(self.comments[i], "@end without an opening tag".to_string());
+                self.warn(self.comment(i), "@end without an opening tag".to_string());
                 i += 1;
                 continue;
             }
@@ -425,7 +448,7 @@ impl<'a> Grouper<'a> {
                 close += 1;
             }
             if pending < i {
-                self.emit(CommentBlockType::COMMENT, pending, i, Range::default(), &lines[pending - run_begin..i - run_begin]);
+                self.emit(CommentBlockType::COMMENT, pending, i, Range::default(), sub_lines(&lines, pending - run_begin, i - run_begin));
             }
             let mut content = Vec::with_capacity(close - i);
             content.push(tag.rest);
@@ -436,14 +459,14 @@ impl<'a> Grouper<'a> {
             i = region_end;
         }
         if pending < run_end {
-            self.emit(CommentBlockType::COMMENT, pending, run_end, Range::default(), &lines[pending - run_begin..]);
+            self.emit(CommentBlockType::COMMENT, pending, run_end, Range::default(), sub_lines(&lines, pending - run_begin, lines.len()));
         }
     }
 
     fn group(&mut self) {
         let mut i = 0;
         while i < self.comments.len() {
-            let comment = self.comments[i];
+            let comment = self.comment(i);
             if !self.is_line_comment(comment) {
                 self.group_block_comment(i);
                 i += 1;
@@ -453,8 +476,8 @@ impl<'a> Grouper<'a> {
             let mut run_end = i + 1;
             if self.starts_line(comment.offset as usize) {
                 while run_end < self.comments.len() {
-                    let prev = self.comments[run_end - 1];
-                    let next = self.comments[run_end];
+                    let prev = self.comment(run_end - 1);
+                    let next = self.comment(run_end);
                     if !self.is_line_comment(next)
                         || !self.is_contiguous_gap(prev.end() as usize, next.offset as usize)
                         || !self.starts_line(next.offset as usize)
@@ -468,6 +491,11 @@ impl<'a> Grouper<'a> {
             i = run_end;
         }
     }
+}
+
+/// The lines `begin..end`, empty for a range off the lines
+fn sub_lines(lines: &[Range], begin: usize, end: usize) -> &[Range] {
+    lines.get(begin..end).unwrap_or_default()
 }
 
 #[cfg(test)]

@@ -36,22 +36,21 @@ pub struct ParamTagParts<'a> {
 
 /// Split an `@param :name = <literal>` tag. The name may be double-quoted, `:"foo 2"`.
 pub fn split_param_tag(text: &str) -> Result<ParamTagParts<'_>, String> {
-    let start = text.len() - text.trim_start().len();
-    let rest = &text[start..];
+    let rest = text.trim_start();
+    let start = text.len() - rest.len();
     let Some(after) = rest.strip_prefix(':') else {
         return Err("@param names a parameter: @param :name = <literal>".into());
     };
-    let (name, name_end) = if let Some(quoted) = after.strip_prefix('"') {
-        let close = quoted.find('"').ok_or("the name of @param misses its closing quote")?;
-        (&quoted[..close], start + 1 + close + 2)
+    let (name, tail) = if let Some(quoted) = after.strip_prefix('"') {
+        quoted.split_once('"').ok_or("the name of @param misses its closing quote")?
     } else {
         let end = after.find(|c: char| c.is_whitespace() || c == '=').unwrap_or(after.len());
-        (&after[..end], start + 1 + end)
+        after.split_at_checked(end).unwrap_or((after, ""))
     };
     if name.is_empty() {
         return Err("@param names a parameter: @param :name = <literal>".into());
     }
-    let tail = &text[name_end..];
+    let name_end = text.len() - tail.len();
     let trimmed = tail.trim_start();
     if trimmed.is_empty() {
         return Ok(ParamTagParts { name, name_range: start..name_end, literal: None });
@@ -103,7 +102,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             }
             let literal = match parts.literal.clone() {
                 None => None,
-                Some(range) => match SqlLiteral::parse(&tag.text[range.clone()]) {
+                Some(range) => match SqlLiteral::parse(tag.text.get(range.clone()).unwrap_or("")) {
                     Ok(literal) => Some(literal),
                     Err(message) => {
                         warn(state, tag.span(range.start, range.end), message);

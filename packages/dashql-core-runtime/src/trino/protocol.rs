@@ -4,8 +4,6 @@
 //! A statement is posted to `/v1/statement`, its results follow the `nextUri` of every response until there is none,
 //! deleting the `nextUri` cancels the query and `/v1/query/{id}` returns the QueryInfo with the plans and statistics
 //! of the stages.
-//!
-//! Ported from `packages/dashql/src/platform/connections/trino/trino_api_client.ts`.
 
 use serde_json::Value;
 

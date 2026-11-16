@@ -1,6 +1,4 @@
 //! The rows of a table that pass the scalar filters of the cross filters, as row numbers in the order of the table.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/tasks/table_filtering.ts`.
 
 use super::sql::SqlFrame;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};

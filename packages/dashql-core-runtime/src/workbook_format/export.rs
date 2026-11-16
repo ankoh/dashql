@@ -1,5 +1,4 @@
-//! The export of a workbook as a `.dashql` archive or a link. Ported from the pure parts of
-//! `workbook/persistence/workbook_export.ts` and `workbook_link.ts`.
+//! The export of a workbook as a `.dashql` archive or a link.
 //!
 //! The host reads the bundle of the workbook, writes the workbook tables as Parquet with the embedded Hyper (from the
 //! Arrow IPC of `WorkbookTables::encode_table`) and adds the entries of `workbook_archive_entries` to a ZIP.

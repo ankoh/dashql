@@ -1,6 +1,4 @@
-//! The state of a connection, ported from `connection_state.test.ts`, `catalog/catalog_update_state.test.ts`,
-//! `trino/trino_connection_state.test.ts` and `salesforce/salesforce_connection_state.test.ts` of
-//! `packages/dashql/src/runtime/connections/`.
+//! The state of a connection.
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{CatalogEntryId, CatalogLayer};
@@ -1068,7 +1066,7 @@ fn connections_take_the_catalog_of_the_caller() {
     assert_ne!(function_entry_id(&connection), taken);
 }
 
-// The drafts of the setups of every connector, ported from `connection_draft.test.tsx` of the app
+// The drafts of the setups of every connector
 
 /// The params of a connector with an edited endpoint
 fn edited(connector: ConnectorType, endpoint: &str) -> ConnectionParams {
@@ -1187,7 +1185,7 @@ fn edits_of_the_raw_rows_during_a_setup_stay_and_the_promoted_params_drop_them()
     assert!(!connection.params().params.contains_key("draftRows"));
 }
 
-// The setups that the opening of a workbook starts, ported from `app/loading/initial_memory_setup.test.tsx`
+// The setups that the opening of a workbook starts
 
 mod open_setup {
     use super::*;

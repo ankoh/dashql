@@ -5,9 +5,6 @@
 //! the core token for the Data Cloud token over fetch and hands the channel with the tokens to the connection.
 //! `authenticate_salesforce` is a login without a connection, e.g. of the shell: its listener hears the names of the
 //! steps (`LoginStep`), the tokens are in its outcome.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/salesforce/salesforce_connection_setup.ts` and
-//! `salesforce_authentication.ts`.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;

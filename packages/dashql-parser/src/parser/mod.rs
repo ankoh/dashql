@@ -48,7 +48,7 @@ pub struct StatementDescription {
 
 /// Only whitespace and semicolons
 fn is_description_gap(text: &[u8], begin: usize, end: usize) -> bool {
-    text[begin..end.max(begin)].iter().all(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b';'))
+    text.get(begin..end.max(begin)).unwrap_or_default().iter().all(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b';'))
 }
 
 /// The end of the statement source, including comments that trail its terminating semicolon on the
@@ -63,7 +63,7 @@ fn statement_source_end(text: &[u8], sql_end: usize, limit: usize, comments: &[T
         if !is_description_gap(text, end, offset) {
             break;
         }
-        if text[end..offset].iter().any(|&c| c == b'\n' || c == b'\r') {
+        if text.get(end..offset).unwrap_or_default().iter().any(|&c| c == b'\n' || c == b'\r') {
             break;
         }
         end = comment.end() as usize;
@@ -80,7 +80,7 @@ fn is_leading_description_comment_gap(text: &[u8], previous_end: usize, comment:
     if previous_end == 0 || offset == 0 {
         return true;
     }
-    text[previous_end..offset].iter().any(|&c| c == b'\n' || c == b'\r')
+    text.get(previous_end..offset).unwrap_or_default().iter().any(|&c| c == b'\n' || c == b'\r')
 }
 
 impl ParsedScript {
@@ -96,7 +96,7 @@ impl ParsedScript {
         let span = context::resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
         let begin = (span.offset as usize).min(scanned.text.len());
         let end = (begin + span.length as usize).min(scanned.text.len());
-        &scanned.text[begin..end]
+        scanned.text.get(begin..end).unwrap_or_default()
     }
 
     /// Derive source spans and contiguous description comment blocks
@@ -104,7 +104,10 @@ impl ParsedScript {
         let scanned = &*self.scanned;
         let input = scanned.text.as_bytes();
         let comments = &scanned.comments;
-        let resolve = |node: u32| context::resolve_text_span(&scanned.text, &scanned.symbols, *self.nodes[node as usize].symbol_span());
+        let resolve = |node: u32| {
+            let Some(node) = self.nodes.get(node as usize) else { return TextSpan::default() };
+            context::resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span())
+        };
         let mut metadata = Vec::with_capacity(self.statements.len());
 
         // AST root spans exclude statement separators and comments. Extend each root to its first
@@ -122,7 +125,7 @@ impl ParsedScript {
                     cursor = comment.end() as usize;
                     continue;
                 }
-                if input[cursor] == b';' {
+                if input.get(cursor) == Some(&b';') {
                     end = cursor + 1;
                     break;
                 }
@@ -141,14 +144,16 @@ impl ParsedScript {
         let mut block_cursor = 0;
         let blocks = &self.comment_blocks.blocks;
         for statement in metadata.iter_mut() {
-            while comment_cursor < comments.len() && (comments[comment_cursor].offset as usize) < previous_end {
+            while comments.get(comment_cursor).is_some_and(|c| (c.offset as usize) < previous_end) {
                 comment_cursor += 1;
             }
             let mut begin = comment_cursor;
             let mut end = begin;
             let mut cursor = previous_end;
-            while end < comments.len() && comments[end].offset < statement.source_span.offset {
-                let comment = comments[end];
+            while let Some(&comment) = comments.get(end) {
+                if comment.offset >= statement.source_span.offset {
+                    break;
+                }
                 let allowed = if end == begin {
                     is_leading_description_comment_gap(input, cursor, comment)
                 } else {
@@ -164,11 +169,11 @@ impl ParsedScript {
                 statement.description_begin = begin as u32;
                 statement.description_count = (end - begin) as u32;
                 // Blocks never straddle the description comments
-                while block_cursor < blocks.len() && (blocks[block_cursor].comments_begin as usize) < begin {
+                while blocks.get(block_cursor).is_some_and(|b| (b.comments_begin as usize) < begin) {
                     block_cursor += 1;
                 }
                 statement.description_blocks_begin = block_cursor as u32;
-                while block_cursor < blocks.len() && (blocks[block_cursor].comments_begin as usize) < end {
+                while blocks.get(block_cursor).is_some_and(|b| (b.comments_begin as usize) < end) {
                     block_cursor += 1;
                 }
                 statement.description_blocks_count = block_cursor as u32 - statement.description_blocks_begin;
@@ -216,7 +221,7 @@ fn replace_obfuscated_cast_literals(scanned: &mut ScannedScript, nodes: &[Node])
         if node.node_type() != NodeType::LITERAL_STRING || node.attribute_key() != AttributeKey::SQL_CONST_CAST_VALUE {
             continue;
         }
-        let cast = nodes[node.parent() as usize];
+        let Some(&cast) = nodes.get(node.parent() as usize) else { continue };
         if !matches!(
             cast.node_type(),
             NodeType::OBJECT_SQL_CONST_TYPE_CAST | NodeType::OBJECT_SQL_CONST_FUNCTION_CAST | NodeType::OBJECT_SQL_CONST_INTERVAL_CAST
@@ -232,9 +237,9 @@ fn replace_obfuscated_cast_literals(scanned: &mut ScannedScript, nodes: &[Node])
         };
         // The type is the text of the cast in front of the literal, e.g. "timestamp with time zone"
         let cast_span = context::resolve_text_span(&scanned.text, &scanned.symbols, *cast.symbol_span());
-        let type_text = scanned.text[cast_span.offset as usize..literal_span.offset as usize].to_ascii_lowercase();
-        let literal = &mut scanned.obfuscated_literals[i];
-        let hash = literal.replacement[1..5].to_string();
+        let type_text = scanned.text.get(cast_span.offset as usize..literal_span.offset as usize).unwrap_or_default().to_ascii_lowercase();
+        let Some(literal) = scanned.obfuscated_literals.get_mut(i) else { continue };
+        let hash = literal.replacement.get(1..5).unwrap_or_default().to_string();
         let has = |s: &str| type_text.contains(s);
         let replacement = if has("timestamp") {
             "'2000-01-01 00:00:00'".to_string()

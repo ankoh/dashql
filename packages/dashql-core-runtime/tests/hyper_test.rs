@@ -1,8 +1,4 @@
-//! The Hyper connector and the connection helpers, ported from `hyperdb_http_client.test.ts`,
-//! `hyperdb_http_client_mock.test.ts` (with the mock as the fake server), `hyper_error_info.test.ts`,
-//! `hyper_link.test.ts`, `embedded/embedded_database_channel.test.ts`, `connector_setup_check.test.ts`,
-//! `connection_import.test.ts`, `connection_label.test.ts` and `connection_refresh.test.ts` of
-//! `packages/dashql/src/runtime/connections/`, and `web_hyperdb_http_client.test.ts` of the app.
+//! The Hyper connector and the connection helpers, against a fake server.
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -49,7 +45,7 @@ fn int_values(batch: &RecordBatch) -> Vec<i32> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The fake server, the mock of hyperdb_http_client_mock.ts
+// The fake server
 // ---------------------------------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]

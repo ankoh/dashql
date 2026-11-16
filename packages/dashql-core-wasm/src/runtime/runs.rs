@@ -25,7 +25,6 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
-use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState, ConnectorType};
 use dashql_core_runtime::executor::{FailureKind, QueryId};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
@@ -497,13 +496,12 @@ impl Runs {
         metadata.issuer = Some("Query Rerun".into());
         metadata.workbook_id = Some(workbook_id.to_string());
         metadata.result_owner = Some(result_owner(workbook_id, script_key));
-        let owner = QueryOwner::Connection(connection_id.to_string());
         let query_id = self.connections.registry.borrow_mut().next_query_id();
         let now = self.platform.now() as i64;
         let state = QueryExecutionState::new(query_id, 0, text, metadata, now);
-        let recorded = self.connections.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).and_then(|_| {
+        let recorded = self.connections.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).and_then(|_| {
             let error = QueryError { message: message.to_string(), details: None };
-            self.connections.apply_query(&owner, QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now }, true)
+            self.connections.apply_query(connection_id, QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now }, true)
         });
         let registered = recorded.and_then(|_| self.workbooks.apply(workbook_id, WorkbookAction::RegisterQuery { key: script_key, query_id: query_id as u32 }));
         if let Err(error) = registered {

@@ -12,6 +12,11 @@ pub type Str = &'static str;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NodeList(pub(crate) u32);
 
+impl NodeList {
+    /// A list off the arena of the parse context, it reads as empty and ignores appends
+    pub const NONE: NodeList = NodeList(u32::MAX);
+}
+
 /// An expression that is either a materialized node or an n-ary expression that may still be
 /// flattened into an enclosing AND / OR
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -72,14 +77,10 @@ impl From<()> for Value {
 /// Read a typed value from the stack.
 ///
 /// An [`ExprVariant`] accepts a node, and a symbol whose action did not set a value holds a
-/// default-constructed one.
+/// default-constructed one. The grammar gives every symbol one type, a value of another type reads as the empty
+/// value of the expected type, a node list as [`NodeList::NONE`].
 pub trait FromValue: Sized {
     fn from_value(v: Value) -> Self;
-}
-
-#[cold]
-fn type_mismatch(expected: &str, v: Value) -> ! {
-    panic!("parser value type mismatch: expected {expected}, found {v:?}")
 }
 
 impl FromValue for Value {
@@ -92,8 +93,7 @@ impl FromValue for Node {
     fn from_value(v: Value) -> Self {
         match v {
             Value::Node(n) => n,
-            Value::Empty => Node::default(),
-            v => type_mismatch("Node", v),
+            _ => Node::default(),
         }
     }
 }
@@ -103,8 +103,7 @@ impl FromValue for ExprVariant {
         match v {
             Value::Expr(e) => e,
             Value::Node(n) => ExprVariant::Node(n),
-            Value::Empty => ExprVariant::Node(Node::default()),
-            v => type_mismatch("ExprVariant", v),
+            _ => ExprVariant::Node(Node::default()),
         }
     }
 }
@@ -115,8 +114,7 @@ macro_rules! from_value {
             fn from_value(v: Value) -> Self {
                 match v {
                     Value::$variant(x) => x,
-                    Value::Empty => <$t>::default(),
-                    v => type_mismatch(stringify!($t), v),
+                    _ => <$t>::default(),
                 }
             }
         }
@@ -134,7 +132,7 @@ impl FromValue for NodeList {
     fn from_value(v: Value) -> Self {
         match v {
             Value::List(l) => l,
-            v => type_mismatch("NodeList", v),
+            _ => NodeList::NONE,
         }
     }
 }

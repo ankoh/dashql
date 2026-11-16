@@ -9,9 +9,6 @@
 //! The host drives the reader: `poll` returns the events so far, the requests to send and whether the result is read
 //! to the end, `receive` takes the response of a request. The host sends the requests of one poll in parallel and
 //! calls `poll` again after every response.
-//!
-//! Ported from `WebHyperResultReader` and `WebHyperDatabaseChannel` of
-//! `packages/dashql-app/src/connections/hyper/platform/web_hyperdb_http_client.ts`.
 
 use std::collections::VecDeque;
 

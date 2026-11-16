@@ -5,8 +5,7 @@
 //! batch publishes only while it is current: a newer batch of the same catalog or a reset of the connection
 //! (`ConnectionEffect::InvalidateCatalogBatch`) supersedes it.
 //!
-//! Ported from `catalog_batch.ts` of `packages/dashql/src/runtime/connections/catalog/`. The worker, its lifetime and
-//! the abort signals stay with the host.
+//! The worker, its lifetime and the abort signals stay with the host.
 
 use std::collections::HashMap;
 

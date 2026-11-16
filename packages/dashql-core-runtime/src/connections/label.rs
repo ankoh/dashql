@@ -1,6 +1,4 @@
 //! The labels of connections, and what kind of Hyper connection a connection is.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/connection_label.ts`.
 
 use super::params::string_field;
 use super::{ConnectionParams, ConnectionState, ConnectorType};

@@ -125,7 +125,7 @@ impl ScriptReferences {
 
     /// The references of a script
     pub(crate) fn of(&self, script: u32) -> &[Reference] {
-        &self.by_script[script as usize]
+        self.by_script.get(script as usize).map(Vec::as_slice).unwrap_or_default()
     }
 
     /// The scripts that a script references, in the order of their first reference
@@ -143,7 +143,7 @@ impl ScriptReferences {
     /// splices no invalid reference.
     pub(crate) fn invalidate_unprepared(&mut self, prepared: &[Option<Prepared>]) {
         for r in self.by_script.iter_mut().flatten() {
-            if r.producer.is_some_and(|p| prepared[p as usize].is_none()) {
+            if r.producer.is_some_and(|p| prepared.get(p as usize).is_none_or(Option::is_none)) {
                 r.kind = ReferenceKind::Invalid;
             }
         }
@@ -152,13 +152,15 @@ impl ScriptReferences {
     /// Resolve the table parameters of a script to the scripts and attachments they reference
     pub(crate) fn resolve(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
         let (scanned, parsed, analyzed) = (prepared.scanned, prepared.parsed, prepared.analyzed);
-        let consumer = &request.scripts[script as usize];
+        // A script or a connection that the request doesn't know has no references, the plan reports it
+        let Some(consumer) = request.scripts.get(script as usize) else { return };
+        let Some(consumer_connection) = request.connections.get(consumer.connection as usize) else { return };
         let mut out = Vec::new();
         for parameter in analyzed.parameters.iter().filter(|p| p.kind == ParameterKind::Table) {
             let text_span = resolve_text_span(&scanned.text, &scanned.symbols, parameter.location);
             let named = scanned.text.as_bytes().get(text_span.offset as usize) == Some(&b':');
             let Some(statement_id) = parameter.ast_statement_id else { continue };
-            let label = &scanned.text[text_span.offset as usize..text_span.end() as usize];
+            let label = scanned.text.get(text_span.offset as usize..text_span.end() as usize).unwrap_or_default();
             let name = match (&parameter.name, named) {
                 (Some(name), true) => name.to_string(),
                 _ => {
@@ -176,8 +178,8 @@ impl ScriptReferences {
                 kind: ReferenceKind::Invalid,
             };
             // The table reference of the parameter, a table parameter cannot be the target of a write
-            let tableref = &parsed.nodes[parsed.nodes[parameter.ast_node_id as usize].parent() as usize];
-            if matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET) {
+            let tableref = parsed.nodes.get(parameter.ast_node_id as usize).and_then(|node| parsed.nodes.get(node.parent() as usize));
+            if tableref.is_some_and(|tableref| matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET)) {
                 reporter.error(script, Some(text_span), format!("the table parameter {label} cannot be written"));
                 out.push(reference);
                 continue;
@@ -188,7 +190,7 @@ impl ScriptReferences {
                     TableParameterSource::Script(producer) => producer as usize,
                     TableParameterSource::Attachment(attachment) => {
                         reference.attachment = Some(attachment);
-                        reference.kind = if request.connections[consumer.connection as usize].kind == ConnectionKind::Local {
+                        reference.kind = if consumer_connection.kind == ConnectionKind::Local {
                             ReferenceKind::Attachment
                         } else {
                             reporter.error(
@@ -197,7 +199,7 @@ impl ScriptReferences {
                                 format!(
                                     "{} runs on the connection {} and cannot read the attachment {}, only the embedded Hyper reads attachments",
                                     script_label(request, script),
-                                    request.connections[consumer.connection as usize].id,
+                                    consumer_connection.id,
                                     attachment_label(request, attachment)
                                 ),
                             );
@@ -220,11 +222,16 @@ impl ScriptReferences {
                 }
             };
             reference.producer = Some(producer as u32);
-            let producer_connection = request.scripts[producer].connection;
-            let connection = |c: u32| request.connections[c as usize].id;
+            // The lookup found the producer among the scripts of the request
+            let Some(producer_script) = request.scripts.get(producer) else {
+                out.push(reference);
+                continue;
+            };
+            let producer_connection = producer_script.connection;
+            let connection = |c: u32| request.connections.get(c as usize).map(|c| c.id).unwrap_or_default();
             reference.kind = if producer_connection == consumer.connection {
                 ReferenceKind::Inline
-            } else if has_manual_tag(request.scripts[producer].script) {
+            } else if has_manual_tag(producer_script.script) {
                 // Reading the result on another connection would run the script in full
                 reporter.error(
                     script,
@@ -238,7 +245,7 @@ impl ScriptReferences {
                     ),
                 );
                 ReferenceKind::Invalid
-            } else if request.connections[consumer.connection as usize].kind == ConnectionKind::Local {
+            } else if consumer_connection.kind == ConnectionKind::Local {
                 ReferenceKind::Scan
             } else {
                 reporter.error(
@@ -256,7 +263,9 @@ impl ScriptReferences {
             };
             out.push(reference);
         }
-        self.by_script[script as usize] = out;
+        if let Some(references) = self.by_script.get_mut(script as usize) {
+            *references = out;
+        }
     }
 
     /// The scripts that references read, every script after the scripts it references, with what reads them: the
@@ -268,7 +277,7 @@ impl ScriptReferences {
                 return;
             }
             if r.kind == ReferenceKind::Inline {
-                let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
+                let terminal = prepared.get(producer as usize).and_then(Option::as_ref).and_then(Prepared::terminal);
                 for nested in this.of(producer).iter().filter(|n| Some(n.statement_id) == terminal) {
                     visit(this, prepared, nested, visited, out);
                 }
@@ -291,12 +300,12 @@ impl ScriptReferences {
         let mut reporter = FailedReferences { reporter, failed: &mut failed, current: (0, 0) };
         let reporter = &mut reporter;
         for (script, references) in self.by_script.iter().enumerate() {
-            let Some(consumer) = prepared[script].as_ref() else { continue };
+            let Some(consumer) = prepared.get(script).and_then(Option::as_ref) else { continue };
             for (index, r) in references.iter().enumerate() {
                 reporter.current = (script as u32, index);
                 let producer = match r.source() {
                     Some(TableParameterSource::Script(producer)) => {
-                        let Some(p) = prepared[producer as usize].as_ref() else { continue };
+                        let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
                         if let Some(message) = unreadable(request, p, producer, script as u32, r.kind) {
                             reporter.error(script as u32, Some(r.text_span), message);
                         }
@@ -317,7 +326,7 @@ impl ScriptReferences {
                 if let (Some(anchor), ReferenceKind::Inline) = (anchor, r.kind) {
                     let visible = visible_ctes(consumer, r.statement_id, anchor);
                     let conflict = closure.iter().filter(|(_, kind)| *kind == ReferenceKind::Inline).find_map(|&(inlined, _)| {
-                        let p = prepared[inlined as usize].as_ref()?;
+                        let p = prepared.get(inlined as usize)?.as_ref()?;
                         let terminal = p.terminal()?;
                         // The query reads its own common table expressions
                         let (mut own, mut relations) = (BTreeSet::new(), BTreeSet::new());
@@ -337,8 +346,8 @@ impl ScriptReferences {
                         );
                     }
                 }
-                let statement_type = consumer.parsed.statements[r.statement_id as usize].statement_type;
-                if statement_type == StatementType::CREATE_VIEW {
+                let statement_type = consumer.parsed.statements.get(r.statement_id as usize).map(|s| s.statement_type);
+                if statement_type == Some(StatementType::CREATE_VIEW) {
                     // The view scans what the queries it inlines scan
                     let message = |materialized: u32| format!("a view cannot read {} of another connection", script_label(request, materialized));
                     let lifetime = "its result exists only while the statement runs";
@@ -365,32 +374,39 @@ impl ScriptReferences {
         let mut colors = vec![Color::White; self.by_script.len()];
         let mut path: Vec<u32> = Vec::new();
         fn visit(this: &ScriptReferences, reporter: &mut FailedReferences, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
-            colors[script as usize] = Color::Gray;
+            if let Some(color) = colors.get_mut(script as usize) {
+                *color = Color::Gray;
+            }
             path.push(script);
             for (index, r) in this.of(script).iter().enumerate() {
                 let Some(producer) = r.producer else { continue };
-                match colors[producer as usize] {
-                    Color::Gray => {
+                match colors.get(producer as usize).copied() {
+                    Some(Color::Gray) => {
                         // A gray script is on the path
                         let Some(begin) = path.iter().position(|&s| s == producer) else { continue };
-                        let cycle: Vec<String> = path[begin..].iter().chain(std::iter::once(&producer)).map(|&s| script_label(request, s)).collect();
+                        let on_path = path.get(begin..).unwrap_or_default();
+                        let cycle: Vec<String> = on_path.iter().chain(std::iter::once(&producer)).map(|&s| script_label(request, s)).collect();
                         reporter.current = (script, index);
                         reporter.error(script, Some(r.text_span), format!("cyclic script reference: {}", cycle.join(" -> ")));
                     }
-                    Color::White => visit(this, reporter, request, producer, colors, path),
-                    Color::Black => {}
+                    Some(Color::White) => visit(this, reporter, request, producer, colors, path),
+                    Some(Color::Black) | None => {}
                 }
             }
             path.pop();
-            colors[script as usize] = Color::Black;
+            if let Some(color) = colors.get_mut(script as usize) {
+                *color = Color::Black;
+            }
         }
         for script in 0..self.by_script.len() as u32 {
-            if colors[script as usize] == Color::White && !self.of(script).is_empty() {
+            if colors.get(script as usize) == Some(&Color::White) && !self.of(script).is_empty() {
                 visit(self, reporter, request, script, &mut colors, &mut path);
             }
         }
         for (script, index) in failed {
-            self.by_script[script as usize][index].kind = ReferenceKind::Invalid;
+            if let Some(r) = self.by_script.get_mut(script as usize).and_then(|references| references.get_mut(index)) {
+                r.kind = ReferenceKind::Invalid;
+            }
         }
     }
 }
@@ -404,7 +420,7 @@ fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consume
         return Some(format!("{producer_label} is no single SELECT that {consumer_label} could read"));
     }
     let Some(call) = p.analyzed.single_client_function_call() else {
-        return match &p.parsed.statements[..] {
+        return match p.parsed.statements.as_slice() {
             [statement] if statement.statement_type == StatementType::SELECT => None,
             _ => Some(format!("{producer_label} is no single SELECT that {consumer_label} could read")),
         };
@@ -418,7 +434,8 @@ fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consume
     } else if !call.readable() {
         Some(format!("{producer_label} calls {function}, which writes, {consumer_label} can only read a call that reads"))
     } else if kind == ReferenceKind::Inline {
-        let connection = request.connections[request.scripts[consumer as usize].connection as usize].id;
+        let connection =
+            request.scripts.get(consumer as usize).and_then(|s| request.connections.get(s.connection as usize)).map(|c| c.id).unwrap_or_default();
         Some(format!(
             "{producer_label} calls {function}, which no query of the connection {connection} can inline, only the scripts of the embedded Hyper read its result"
         ))
@@ -561,7 +578,9 @@ pub fn table_parameter_collisions(request: &SessionPlanRequest) -> Vec<TablePara
     colliding_names(names.iter().copied())
         .into_iter()
         .map(|group| {
-            let mut collision = TableParameterCollision { name: names[group[0]].to_string(), scripts: Vec::new(), attachments: Vec::new() };
+            // A group of colliding names is never empty
+            let name = group.first().and_then(|&i| names.get(i)).copied().unwrap_or_default();
+            let mut collision = TableParameterCollision { name: name.to_string(), scripts: Vec::new(), attachments: Vec::new() };
             for i in group {
                 match source_of(request, i) {
                     TableParameterSource::Script(s) => collision.scripts.push(s),
@@ -602,7 +621,8 @@ pub(crate) struct SplicedStatement {
 
 /// The path of an attachment that a statement scans
 pub(crate) fn attachment_path(request: &SessionPlanRequest, attachment: u32) -> String {
-    format!("{}/{}", request.attachment_prefix, request.attachments[attachment as usize].file)
+    let file = request.attachments.get(attachment as usize).map(|a| a.file).unwrap_or_default();
+    format!("{}/{}", request.attachment_prefix, file)
 }
 
 /// The text of a CTE name or a script name as identifier
@@ -628,15 +648,15 @@ fn relation_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<Str
 /// The common table expressions of a statement: the node, its name lower-cased
 fn ctes<'a>(prepared: &'a Prepared, statement_id: u32) -> impl Iterator<Item = (u32, String)> + 'a {
     let (scanned, parsed) = (prepared.scanned, prepared.parsed);
-    let statement = &parsed.statements[statement_id as usize];
-    (statement.nodes_begin..statement.nodes_begin + statement.node_count).filter_map(move |ni| {
-        let node = &parsed.nodes[ni as usize];
+    let nodes = parsed.statements.get(statement_id as usize).map_or(0..0, |s| s.nodes_begin..s.nodes_begin + s.node_count);
+    nodes.filter_map(move |ni| {
+        let node = parsed.nodes.get(ni as usize)?;
         if node.node_type() != NodeType::OBJECT_SQL_CTE {
             return None;
         }
         let [name] = attrs!(parsed.children(node), [Key::SQL_CTE_NAME]);
         let span = resolve_text_span(&scanned.text, &scanned.symbols, *name?.symbol_span());
-        let text = &scanned.text[span.offset as usize..span.end() as usize];
+        let text = scanned.text.get(span.offset as usize..span.end() as usize)?;
         Some((ni, text.trim_matches('"').to_lowercase()))
     })
 }
@@ -661,7 +681,7 @@ fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet
     let encloses = |owner: u32| {
         let mut node_id = anchor;
         loop {
-            let parent = nodes[node_id as usize].parent();
+            let Some(parent) = nodes.get(node_id as usize).map(|node| node.parent()) else { return false };
             if parent == node_id {
                 return false;
             }
@@ -674,9 +694,10 @@ fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet
     let mut out = BTreeSet::new();
     for (cte, name) in ctes(prepared, statement_id) {
         // The common table expression is an element of the WITH array of its owner
-        let owner = nodes[nodes[cte as usize].parent() as usize].parent();
+        let Some(owner) = nodes.get(cte as usize).and_then(|cte| nodes.get(cte.parent() as usize)).map(|with| with.parent()) else { continue };
         let visible = if owner == anchor {
-            let [recursive] = attrs!(prepared.parsed.children(&nodes[owner as usize]), [Key::SQL_SELECT_WITH_RECURSIVE]);
+            let children = nodes.get(owner as usize).map(|owner| prepared.parsed.children(owner)).unwrap_or_default();
+            let [recursive] = attrs!(children, [Key::SQL_SELECT_WITH_RECURSIVE]);
             recursive.is_some()
         } else {
             encloses(owner)
@@ -692,14 +713,16 @@ fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet
 /// `(select 1) union (select 2)` is enclosed by no parentheses.
 fn inside_parentheses(text: &[u8], span: TextSpan) -> u32 {
     let (mut begin, mut end) = (span.offset as usize, (span.end() as usize).min(text.len()));
+    // The scan stays before `end`, which is within the text
+    let byte = |i: usize| text.get(i).copied().unwrap_or_default();
     loop {
-        while begin < end && text[begin].is_ascii_whitespace() {
+        while begin < end && byte(begin).is_ascii_whitespace() {
             begin += 1;
         }
-        while end > begin && text[end - 1].is_ascii_whitespace() {
+        while end > begin && byte(end - 1).is_ascii_whitespace() {
             end -= 1;
         }
-        if begin >= end || text[begin] != b'(' || text[end - 1] != b')' {
+        if begin >= end || byte(begin) != b'(' || byte(end - 1) != b')' {
             return begin as u32;
         }
         // Does the opening parenthesis close at the end? Quoted text and comments do not count.
@@ -707,22 +730,22 @@ fn inside_parentheses(text: &[u8], span: TextSpan) -> u32 {
         let mut i = begin;
         let mut closes_at_end = false;
         while i < end {
-            match text[i] {
+            match byte(i) {
                 b'\'' | b'"' => {
-                    let quote = text[i];
+                    let quote = byte(i);
                     i += 1;
-                    while i < end && text[i] != quote {
+                    while i < end && byte(i) != quote {
                         i += 1;
                     }
                 }
                 b'-' if text.get(i + 1) == Some(&b'-') => {
-                    while i < end && text[i] != b'\n' {
+                    while i < end && byte(i) != b'\n' {
                         i += 1;
                     }
                 }
                 b'/' if text.get(i + 1) == Some(&b'*') => {
                     i += 2;
-                    while i + 1 < end && !(text[i] == b'*' && text[i + 1] == b'/') {
+                    while i + 1 < end && !(byte(i) == b'*' && byte(i + 1) == b'/') {
                         i += 1;
                     }
                     i += 1;
@@ -751,8 +774,7 @@ fn inside_parentheses(text: &[u8], span: TextSpan) -> u32 {
 fn anchor_of(parsed: &dashql_parser::parser::ParsedScript, ast_node_id: u32) -> Option<u32> {
     let mut anchor = None;
     let mut node_id = ast_node_id;
-    loop {
-        let node = &parsed.nodes[node_id as usize];
+    while let Some(node) = parsed.nodes.get(node_id as usize) {
         if node.node_type() == NodeType::OBJECT_SQL_SELECT {
             anchor = Some(node_id);
         }
@@ -766,6 +788,8 @@ fn anchor_of(parsed: &dashql_parser::parser::ParsedScript, ast_node_id: u32) -> 
 }
 
 /// Splice the script references of a statement into its text
+// The parts of the plan that a statement reads, passed as they are
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn splice_statement(
     request: &SessionPlanRequest,
     prepared: &[Option<Prepared>],
@@ -785,6 +809,10 @@ pub(crate) fn splice_statement(
         return out;
     };
     let (scanned, parsed) = (consumer.scanned, consumer.parsed);
+    // The inlined queries bind their inputs in the dialect of the connection of the statement
+    let Some(dialect) = request.scripts.get(script as usize).and_then(|s| request.connections.get(s.connection as usize)).map(|c| c.dialect) else {
+        return out;
+    };
 
     // The scripts of the statement, every script after the scripts it references
     let order = references.closure(prepared, direct.iter().copied());
@@ -812,7 +840,7 @@ pub(crate) fn splice_statement(
         };
         direct.iter().for_each(|r| read(r));
         for &(producer, kind) in &order {
-            let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
+            let terminal = prepared.get(producer as usize).and_then(Option::as_ref).and_then(Prepared::terminal);
             if kind == ReferenceKind::Inline && terminal.is_some() {
                 references.of(producer).iter().filter(|r| Some(r.statement_id) == terminal).for_each(&mut read);
             }
@@ -823,8 +851,8 @@ pub(crate) fn splice_statement(
     let sources: Vec<TableParameterSource> =
         attachments.iter().map(|&a| TableParameterSource::Attachment(a)).chain(order.iter().map(|&(p, _)| TableParameterSource::Script(p))).collect();
     let name_of = |source: TableParameterSource| match source {
-        TableParameterSource::Script(script) => request.scripts[script as usize].name,
-        TableParameterSource::Attachment(attachment) => request.attachments[attachment as usize].name,
+        TableParameterSource::Script(script) => request.scripts.get(script as usize).map(|s| s.name).unwrap_or_default(),
+        TableParameterSource::Attachment(attachment) => request.attachments.get(attachment as usize).map(|a| a.name).unwrap_or_default(),
     };
 
     // A table parameter is no relation of the statement, a relation of the same name as a script would be shadowed
@@ -857,8 +885,8 @@ pub(crate) fn splice_statement(
         for r in refs.iter().filter(|r| r.statement_id == statement && r.kind != ReferenceKind::Invalid) {
             let Some(cte) = r.source().and_then(|source| cte_names.get(&source).map(|cte| (source, cte))) else { continue };
             let (source, cte) = cte;
-            let tableref = &p.parsed.nodes[p.parsed.nodes[r.ast_node_id as usize].parent() as usize];
-            let [alias] = attrs!(p.parsed.children(tableref), [Key::SQL_TABLEREF_ALIAS]);
+            let tableref = p.parsed.nodes.get(r.ast_node_id as usize).and_then(|node| p.parsed.nodes.get(node.parent() as usize));
+            let [alias] = attrs!(tableref.map(|tableref| p.parsed.children(tableref)).unwrap_or_default(), [Key::SQL_TABLEREF_ALIAS]);
             let has_alias = alias.is_some_and(|a| a.node_type() != NodeType::NONE);
             let script_name = name_of(source);
             let keeps_name = has_alias || cte == script_name || relations.contains(&script_name.to_lowercase());
@@ -882,11 +910,10 @@ pub(crate) fn splice_statement(
             ReferenceKind::Inline => {
                 let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
                 let Some(terminal) = p.terminal() else { continue };
-                let span = p.parsed.associate_descriptions()[terminal as usize].statement_span;
+                // The parser describes every statement
+                let Some(span) = p.parsed.associate_descriptions().get(terminal as usize).map(|d| d.statement_span) else { continue };
                 let mut edits = reference_edits(p, terminal, references.of(producer));
                 // The inlined query binds the inputs of its script
-                // Within the connection of the statement
-                let dialect = request.connections[request.scripts[script as usize].connection as usize].dialect;
                 let bindings = crate::planner::session_inputs::bind_inputs(inputs, p, Some(terminal), dialect);
                 edits.extend(bindings.edits);
                 out.input_errors.extend(bindings.errors.into_iter().map(|(span, message)| (producer, span, message)));
@@ -896,7 +923,7 @@ pub(crate) fn splice_statement(
             }
             _ => {
                 let Some(&m) = materialization_of.get(&producer) else { continue };
-                let path = materializations[m as usize].path.as_deref().unwrap_or("");
+                let path = materializations.get(m as usize).and_then(|m| m.path.as_deref()).unwrap_or("");
                 ctes.push(format!("{cte} as (select * from external('{}', format => 'parquet'))", path.replace('\'', "''")));
                 if !out.inputs.contains(&m) {
                     out.inputs.push(m);
@@ -913,9 +940,9 @@ pub(crate) fn splice_statement(
         }
     }
     for &anchor in anchors.keys() {
-        let node = &parsed.nodes[anchor as usize];
+        let Some(node) = parsed.nodes.get(anchor as usize) else { continue };
         let [with] = attrs!(parsed.children(node), [Key::SQL_SELECT_WITH_CTES]);
-        let first_cte = with.filter(|w| w.node_type() == NodeType::ARRAY && w.children_count() > 0).map(|w| parsed.children(w)[0]);
+        let first_cte = with.filter(|w| w.node_type() == NodeType::ARRAY).and_then(|w| parsed.children(w).first());
         match first_cte {
             Some(first) => {
                 let at = resolve_text_span(&scanned.text, &scanned.symbols, *first.symbol_span()).offset;

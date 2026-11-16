@@ -1,4 +1,4 @@
-//! The migrations of the storage root to the current storage version. Ported from `storage/migration/` of the app.
+//! The migrations of the storage root to the current storage version.
 //!
 //! The storage version (`storageVersion` of the app manifest) describes the root: where the workbooks, the workbook
 //! tree, the connections and the files of the shell live. `migrate_storage` brings an older root to the current version
@@ -82,7 +82,7 @@ pub const STORAGE_MIGRATION_STEPS: [StorageMigrationStep; 8] = [
 ];
 
 // The last step produces the current storage version
-const _: () = assert!(STORAGE_MIGRATION_STEPS[STORAGE_MIGRATION_STEPS.len() - 1].version == STORAGE_VERSION);
+const _: () = assert!(matches!(STORAGE_MIGRATION_STEPS.last(), Some(step) if step.version == STORAGE_VERSION));
 
 /// What a migration of the storage changed
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -665,7 +665,7 @@ async fn session_catalogs_to_connections<H: StorageRootHost>(host: &H) -> Result
             };
             let data: Value = serde_json::from_str(&text).map_err(|error| HostError::new(error.to_string()))?;
             let default_connection_id = match data.get("formatVersion").and_then(Value::as_f64) {
-                Some(version) if version == 6.0 => data.get("defaultConnectionId").and_then(Value::as_str),
+                Some(6.0) => data.get("defaultConnectionId").and_then(Value::as_str),
                 _ => None,
             };
             let Some(connection_id) = default_connection_id else {

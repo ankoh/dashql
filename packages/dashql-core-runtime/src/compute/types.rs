@@ -3,8 +3,6 @@
 //! The Arrow tables of the state are tables of the host, the state names them by their handles (`crate::handles`) and
 //! keeps what it read of them: the rows, the schema and the values of statistics. The data frames are ids of tables in
 //! the compute database of the host.
-//!
-//! Ported from `packages/dashql/src/platform/compute/computation_types.ts`.
 
 use std::fmt;
 use std::sync::Arc;

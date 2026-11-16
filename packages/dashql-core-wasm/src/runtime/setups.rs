@@ -510,12 +510,14 @@ impl Connections {
     /// of the connection and in the log.
     pub(crate) fn set_up_opened(self: &Rc<Self>, workbook_id: &str, connection_ids: Vec<String>) {
         for connection_id in connection_ids {
+            // The token comes from JS, before anything is borrowed
+            let token = self.platform.hyper_link_token(&connection_id);
             let decision = {
-                let registry = self.registry.borrow();
+                let Ok(registry) = self.registry.try_borrow() else { continue };
                 let Some(connection) = registry.get(&connection_id) else { continue };
-                let token = self.platform.hyper_link_token(&connection_id);
-                let state = connection.state.borrow();
-                self.open_setups.borrow_mut().consider(&state, token.as_deref())
+                let Ok(state) = connection.state.try_borrow() else { continue };
+                let Ok(mut open_setups) = self.open_setups.try_borrow_mut() else { continue };
+                open_setups.consider(&state, token.as_deref())
             };
             match decision {
                 OpenSetup::Skip => continue,

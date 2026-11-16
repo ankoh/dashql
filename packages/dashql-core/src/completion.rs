@@ -505,11 +505,11 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     pub(crate) fn symbols(&self) -> &'a [Symbol] {
-        &self.cursor.script.scanned.unwrap().symbols
+        self.cursor.script.scanned.map_or(&[], |scanned| &scanned.symbols)
     }
 
     fn text(&self) -> &'a str {
-        &self.cursor.script.scanned.unwrap().text
+        self.cursor.script.scanned.map_or("", |scanned| scanned.text.as_str())
     }
 
     fn analyzed(&self) -> Option<&'a Arc<AnalyzedScript>> {
@@ -719,7 +719,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 _ => false,
             };
 
-        let target = completion.target_symbol.unwrap();
+        let Some(target) = completion.target_symbol else { return completion };
         if !between_symbols && target.is_dot() {
             match target.relative_pos {
                 RelativeSymbolPosition::AFTER_SYMBOL | RelativeSymbolPosition::END_OF_SYMBOL => {
@@ -748,15 +748,15 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
 
         // Skip completion for the current symbol, e.g. at a comma
-        if !between_symbols && !is_symbol_kind_completable(completion.target_symbol.unwrap().symbol.kind) {
+        if !between_symbols && completion.target_symbol.is_none_or(|t| !is_symbol_kind_completable(t.symbol.kind)) {
             if !use_previous_if_at_end(&mut completion, &mut previous_symbol) {
                 return completion;
             }
-            if !is_symbol_kind_completable(completion.target_symbol.unwrap().symbol.kind) {
+            if completion.target_symbol.is_none_or(|t| !is_symbol_kind_completable(t.symbol.kind)) {
                 return completion;
             }
         }
-        let target = completion.target_symbol.unwrap();
+        let Some(target) = completion.target_symbol else { return completion };
 
         // Find the expected symbols when not dot-completing, keep the snapshot for the suffix probes
         let mut expects_identifier = false;
@@ -889,7 +889,8 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// The feed point and whether feeding replaces the target token
     fn feed_point(&self) -> (u32, bool) {
-        let target = self.target_symbol.unwrap();
+        // Without a target, feed at the first symbol and replace nothing
+        let Some(target) = self.target_symbol else { return (0, false) };
         let replace_target = matches!(
             target.relative_pos,
             RelativeSymbolPosition::BEGIN_OF_SYMBOL
@@ -905,7 +906,7 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Add the expected keywords to the heap
     fn add_expected_keywords_as_candidates(&mut self, symbols: &[SymbolKind], prefix: &PrefixSnapshot) {
-        let target = self.target_symbol.unwrap();
+        let Some(target) = self.target_symbol else { return };
         let (feed_id, replace_target) = self.feed_point();
 
         // The match tags of a keyword against the typed text
@@ -1004,7 +1005,7 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Find candidates in a name search index
     fn find_candidates_in_index(&mut self, index: &NameSearchIndex, through_catalog: bool) {
-        let target = self.target_symbol.unwrap();
+        let Some(target) = self.target_symbol else { return };
         let symbol_ofs = target.symbol.location.offset;
         let symbol_text = self.text_at(symbol_ofs, target.symbol.location.length);
         let prefix_text = self.read_target_prefix();
@@ -1404,8 +1405,7 @@ impl<'c, 'a> Completion<'c, 'a> {
     fn find_candidates_for_name_path(&mut self) {
         let cursor = self.cursor;
         let Some(analyzed) = self.analyzed() else { return };
-        let scanned = cursor.script.scanned.unwrap();
-        let target = self.target_symbol.unwrap();
+        let (Some(scanned), Some(target)) = (cursor.script.scanned, self.target_symbol) else { return };
 
         // A recovered `alias.` context without a column ref node: resolve the alias in the scopes
         if let CursorContext::AliasDot = cursor.context {
@@ -1413,7 +1413,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let Some(dot) = ScriptCursor::dot_symbol(&location, &target) else { return };
             let (alias_begin, alias_end) =
                 crate::cursor::qualifier_before(&scanned.text, dot.symbol.location.offset as usize);
-            let alias_text = &scanned.text[alias_begin..alias_end];
+            let alias_text = scanned.text.get(alias_begin..alias_end).unwrap_or("");
             // The qualifier is sealed, only the text after the dot is replaced
             let replace_at = SymbolSpan::new(cursor.text_offset as u32, 0);
             let qualified_at = SymbolSpan::new(alias_begin as u32, (cursor.text_offset - alias_begin) as u32);
@@ -1510,7 +1510,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             return;
         }
 
-        let name_text = |i: usize| -> &str { analyzed.name_text(name_path[i].name.unwrap()) };
+        let name_text = |i: usize| -> &str { name_path[i].name.map_or("", |name| analyzed.name_text(name)) };
         let mut dot_candidates: Vec<DotCandidate> = Vec::new();
         match cursor.context {
             CursorContext::TableRef { .. } => match sealed {

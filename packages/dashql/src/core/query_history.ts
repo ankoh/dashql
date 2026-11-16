@@ -3,12 +3,11 @@ import { DashQL, Ptr } from './api.js';
 import type * as glue from '@ankoh/dashql-wasm/dashql_core.js';
 
 /// The views of the queries of the runtime, declared by the module (`packages/dashql-core-wasm/src/query_history/view.rs`):
-/// a query is a slice `query` of the `Runtime`, a history without a connection the slice `history`.
+/// a query is a slice `query` of the `Runtime`.
 export type {
     ProfileLayoutView,
     QueryErrorView,
     QueryHistoryMetrics,
-    QueryHistoryView,
     QueryLatestProgressView,
     QueryMetadataView,
     QueryMetricsView,

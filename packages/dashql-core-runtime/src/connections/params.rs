@@ -3,9 +3,6 @@
 //! The params are the settings a connector connects with, as JSON in the shape of the workbook file: an object with
 //! one field named after the connector, e.g. `{"trino": {...}}`. The reducer reads only a few fields of them, the rest
 //! passes through untouched.
-//!
-//! Ported from `connector_info.ts`, `connection_params.ts` and the connector descriptors of
-//! `packages/dashql/src/runtime/connections/`.
 
 use serde_json::{json, Map, Value};
 

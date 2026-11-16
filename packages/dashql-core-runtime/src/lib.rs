@@ -9,6 +9,18 @@
 //! `docs/design/dashql_core.md`. The services of the runtime are async functions on a `host::Host`, the platform they
 //! run on.
 
+// Clippy fails on any warning (`clippy_test`). Allowed by choice: enums whose variants differ in size, errors that
+// carry their details, types of listeners spelled out in place, and the generated FlatBuffers objects, which are
+// non-exhaustive: they are built from their default, field by field or with `..Default::default()`.
+#![cfg_attr(clippy, deny(warnings))]
+#![allow(
+    clippy::large_enum_variant,
+    clippy::result_large_err,
+    clippy::type_complexity,
+    clippy::field_reassign_with_default,
+    clippy::needless_update
+)]
+
 pub mod attachments;
 pub mod catalog_loader;
 pub mod clfn;

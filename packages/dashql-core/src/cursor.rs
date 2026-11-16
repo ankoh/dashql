@@ -383,7 +383,7 @@ impl<'a> ScriptCursor<'a> {
         };
         let Some(dot) = Self::dot_symbol(&location, &location.current) else { return };
         let qualifier = qualifier_before(&scanned.text, dot.symbol.location.offset as usize);
-        let qualifier_text = &scanned.text[qualifier.0..qualifier.1];
+        let qualifier_text = scanned.text.get(qualifier.0..qualifier.1).unwrap_or("");
 
         let mut best_scope = None;
         for &scope in &self.name_scopes {

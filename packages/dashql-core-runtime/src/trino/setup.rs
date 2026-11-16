@@ -7,9 +7,6 @@
 //! query executor so that it shows up like any other query. The host passes the answers back with the time they
 //! arrived. The connection owns the channel that the setup makes ready, with the access token: the PKCE verifier and
 //! the code stay with the setup.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_setup.ts` and `performHealthCheck` of
-//! `health_check.ts`.
 
 use super::error::{TrinoError, TrinoErrorKind};
 use crate::http::url::form_encode;

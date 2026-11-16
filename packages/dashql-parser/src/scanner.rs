@@ -109,8 +109,8 @@ pub fn scan(text: &str, text_version: u64, external_id: u32) -> ScannedScript {
 fn line_breaks(text: &[u8]) -> Vec<TextSpan> {
     let mut breaks = Vec::new();
     let mut i = 0;
-    while i < text.len() {
-        match text[i] {
+    while let Some(&c) = text.get(i) {
+        match c {
             b'\r' if text.get(i + 1) == Some(&b'\n') => {
                 breaks.push(Lexer::span(i, 2));
                 i += 1;
@@ -435,19 +435,31 @@ impl<'a> Lexer<'a> {
     }
 
     /// Match the rules of a start condition at the current position and consume the match.
-    fn next_match<T>(&mut self) -> (T, TextSpan)
+    fn next_match<T>(&mut self) -> Option<(T, TextSpan)>
     where
         T: Logos<'a, Source = [u8], Extras = ()>,
     {
         let start = self.pos;
-        let mut lexer = T::lexer(&self.text[start..]);
-        // Every byte starts a match in every start condition.
+        let mut lexer = T::lexer(self.text.get(start..).unwrap_or_default());
+        // Every byte starts a match in every start condition, see `no_match` for the fallback
         let Some(Ok(token)) = lexer.next() else {
-            unreachable!("no rule matches at {start}")
+            return None;
         };
         let length = lexer.span().end;
         self.pos = start + length;
-        (token, Self::span(start, length))
+        Some((token, Self::span(start, length)))
+    }
+
+    /// No rule matches at the position: report it and skip the rest of the text
+    #[cold]
+    fn no_match(&mut self, out: &mut ScannedScript) -> Option<Symbol> {
+        out.errors.push(ScannerError {
+            location: Self::span(self.pos, self.text.len().saturating_sub(self.pos)),
+            message: "no scanner rule matches".to_string(),
+        });
+        self.pos = self.text.len();
+        self.state = State::Initial;
+        None
     }
 
     /// Scan the next raw token (before the lookahead filter)
@@ -473,17 +485,17 @@ impl<'a> Lexer<'a> {
                 continue;
             }
             let symbol = match self.state {
-                State::Initial => {
-                    let (token, loc) = self.next_match::<Initial>();
-                    self.initial(out, token, loc)
-                }
+                State::Initial => match self.next_match::<Initial>() {
+                    Some((token, loc)) => self.initial(out, token, loc),
+                    None => self.no_match(out),
+                },
                 State::Xc => match self.next_match::<Xc>() {
-                    (Xc::CommentStart, mut loc) => {
+                    Some((Xc::CommentStart, mut loc)) => {
                         self.yyless(&mut loc, 2);
                         self.ext_depth += 1;
                         None
                     }
-                    (Xc::CommentStop, loc) => {
+                    Some((Xc::CommentStop, loc)) => {
                         self.ext_depth -= 1;
                         if self.ext_depth == 0 {
                             out.comments.push(self.ext_begin.cover(loc));
@@ -491,38 +503,44 @@ impl<'a> Lexer<'a> {
                         }
                         None
                     }
-                    (Xc::Inside, _) => None,
+                    Some((Xc::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
                 State::Xb | State::Xh => match self.next_match::<XbXh>() {
-                    (XbXh::QuoteStop, loc) => {
+                    Some((XbXh::QuoteStop, loc)) => {
                         if self.quote_continue(out) {
                             None
                         } else {
                             Some(self.quote_stop(loc))
                         }
                     }
-                    (XbXh::Inside, _) => None,
+                    Some((XbXh::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
                 State::Xq => match self.next_match::<Xq>() {
-                    (Xq::QuoteStop, loc) => Some(self.quote_stop(loc)),
-                    (Xq::Inside, _) => None,
+                    Some((Xq::QuoteStop, loc)) => Some(self.quote_stop(loc)),
+                    Some((Xq::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
                 State::Xdq => match self.next_match::<Xdq>() {
-                    (Xdq::Stop, loc) => {
+                    Some((Xdq::Stop, loc)) => {
                         self.state = State::Initial;
                         Some(Symbol::new(S_DCONST, self.ext_begin.cover(loc)))
                     }
-                    (Xdq::Inside, _) => None,
+                    Some((Xdq::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
                 State::Xd => match self.next_match::<Xd>() {
-                    (Xd::Stop, loc) => Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier")),
-                    (Xd::Inside, _) => None,
+                    Some((Xd::Stop, loc)) => Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier")),
+                    Some((Xd::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
                 State::Xbt => match self.next_match::<Xbt>() {
-                    (Xbt::Stop, loc) => {
+                    Some((Xbt::Stop, loc)) => {
                         Some(self.identifier_stop(out, loc, b'`', "zero-length backtick-quoted identifier"))
                     }
-                    (Xbt::Inside, _) => None,
+                    Some((Xbt::Inside, _)) => None,
+                    None => self.no_match(out),
                 },
             };
             if let Some(symbol) = symbol {
@@ -546,7 +564,7 @@ impl<'a> Lexer<'a> {
                 None
             }
             Initial::ObfuscatedLiteral(kind) => {
-                out.obfuscated_literals.push(obfuscated_literal(self.text, loc));
+                out.obfuscated_literals.extend(obfuscated_literal(self.text, loc));
                 Some(Symbol::new(kind, loc))
             }
             Initial::CommentStart => {
@@ -589,7 +607,7 @@ impl<'a> Lexer<'a> {
 
     /// A number literal: integers that do not fit into an `i64` are FCONST, like in Postgres
     fn number(&self, loc: TextSpan) -> Symbol {
-        let text = &self.text[loc.offset as usize..loc.end() as usize];
+        let text = self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default();
         let is_integer = utf8(text).parse::<i64>().is_ok();
         Symbol::new(if is_integer { S_ICONST } else { S_FCONST }, loc)
     }
@@ -607,15 +625,15 @@ impl<'a> Lexer<'a> {
         let mut i = self.pos;
         let mut comments = Vec::new();
         let mut has_line_break = false;
-        while i < self.text.len() {
-            match self.text[i] {
+        while let Some(&c) = self.text.get(i) {
+            match c {
                 b' ' | b'\t' | b'\x0C' => i += 1,
                 b'\n' | b'\r' => {
                     has_line_break = true;
                     i += 1;
                 }
                 b'-' if self.text.get(i + 1) == Some(&b'-') => {
-                    let length = self.text[i..].iter().position(|&c| c == b'\n' || c == b'\r');
+                    let length = self.text.get(i..).unwrap_or_default().iter().position(|&c| c == b'\n' || c == b'\r');
                     let length = length.unwrap_or(self.text.len() - i);
                     comments.push(Self::span(i, length));
                     i += length;
@@ -654,18 +672,18 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_quoted_identifier(&mut self, out: &mut ScannedScript, loc: TextSpan, quote: u8) -> Symbol {
-        let text = &self.text[loc.offset as usize..loc.end() as usize];
-        let inner = &text[1..text.len() - 1];
+        let text = self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default();
+        // The text between the quotes
+        let inner = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
         let name = if inner.contains(&quote) {
             let name = &mut self.buffer;
             name.clear();
-            let mut i = 0;
-            while i < inner.len() {
-                name.push(inner[i]);
-                if inner[i] == quote && i + 1 < inner.len() && inner[i + 1] == quote {
-                    i += 1;
+            let mut bytes = inner.iter().peekable();
+            while let Some(&c) = bytes.next() {
+                name.push(c);
+                if c == quote && bytes.peek() == Some(&&quote) {
+                    bytes.next();
                 }
-                i += 1;
             }
             &self.buffer[..]
         } else {
@@ -680,7 +698,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_identifier(&mut self, out: &mut ScannedScript, loc: TextSpan) -> Symbol {
-        let text = &self.text[loc.offset as usize..loc.end() as usize];
+        let text = self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default();
         self.buffer.clear();
         self.buffer.extend(text.iter().map(u8::to_ascii_lowercase));
         let lower = &self.buffer[..];
@@ -703,7 +721,7 @@ impl<'a> Lexer<'a> {
     fn operator(&mut self, out: &mut ScannedScript, mut loc: TextSpan) -> Symbol {
         let start = loc.offset as usize;
         let yyleng = loc.length as usize;
-        let text = &self.text[start..start + yyleng];
+        let text = self.text.get(start..start + yyleng).unwrap_or_default();
 
         // Embedded slash-star or dash-dash start a comment, the operator stops there.
         let find = |pattern: &[u8]| text.windows(2).position(|w| w == pattern);
@@ -713,8 +731,8 @@ impl<'a> Lexer<'a> {
         }
         // '+' and '-' cannot end a multi-char operator unless it contains chars that are not in
         // SQL operators.
-        while nchars > 1 && matches!(text[nchars - 1], b'+' | b'-') {
-            if text[..nchars - 1].iter().any(|c| b"~!@#^&|?%".contains(c)) {
+        while nchars > 1 && matches!(text.get(nchars - 1), Some(b'+' | b'-')) {
+            if text.get(..nchars - 1).unwrap_or_default().iter().any(|c| b"~!@#^&|?%".contains(c)) {
                 break;
             }
             nchars -= 1;
@@ -722,13 +740,15 @@ impl<'a> Lexer<'a> {
         if nchars < yyleng {
             self.yyless(&mut loc, nchars);
             if nchars == 1 {
-                if let Some(kind) = special_character(text[0]) {
+                if let Some(kind) = text.first().and_then(|&c| special_character(c)) {
                     return Symbol::new(kind, loc);
                 }
             }
             if nchars == 2 {
-                if let Some(kind) = two_char_operator(text[0], text[1]) {
-                    return Symbol::new(kind, loc);
+                if let [first, second, ..] = *text {
+                    if let Some(kind) = two_char_operator(first, second) {
+                        return Symbol::new(kind, loc);
+                    }
                 }
             }
         }
@@ -742,13 +762,14 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// Derive an executable literal from the hash of a marker.
-fn obfuscated_literal(text: &[u8], location: TextSpan) -> ObfuscatedLiteral {
-    let marker = &text[location.offset as usize..location.end() as usize];
-    let open = marker.iter().position(|&c| c == b'(').unwrap();
-    let kind = &marker[2..open];
-    let hash = std::str::from_utf8(&marker[open + 1..open + 5]).unwrap();
-    let value = u32::from_str_radix(hash, 16).unwrap();
+/// Derive an executable literal from the hash of a marker. The rule of the marker matches `/*Kind(XXXX)*/` with four
+/// hex digits, `None` for another text.
+fn obfuscated_literal(text: &[u8], location: TextSpan) -> Option<ObfuscatedLiteral> {
+    let marker = text.get(location.offset as usize..location.end() as usize)?;
+    let open = marker.iter().position(|&c| c == b'(')?;
+    let kind = marker.get(2..open)?;
+    let hash = std::str::from_utf8(marker.get(open + 1..open + 5)?).ok()?;
+    let value = u32::from_str_radix(hash, 16).ok()?;
     let replacement = match kind {
         b"String" => format!("'{hash}'"),
         b"Integer" => value.to_string(),
@@ -759,12 +780,13 @@ fn obfuscated_literal(text: &[u8], location: TextSpan) -> ObfuscatedLiteral {
             format!("B'{bits}'")
         }
     };
-    ObfuscatedLiteral { location, replacement }
+    Some(ObfuscatedLiteral { location, replacement })
 }
 
-/// Names are cut out of valid UTF-8 at ASCII boundaries, so they are valid UTF-8 themselves.
+/// Names are cut out of valid UTF-8 at ASCII boundaries, so they are valid UTF-8 themselves, other bytes read as an
+/// empty text.
 fn utf8(bytes: &[u8]) -> &str {
-    std::str::from_utf8(bytes).expect("names are cut at ASCII boundaries")
+    std::str::from_utf8(bytes).unwrap_or_default()
 }
 
 #[cfg(test)]

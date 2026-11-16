@@ -363,7 +363,8 @@ impl ScriptSession {
             if scanned.text.as_bytes().get(span.offset as usize) != Some(&b':') {
                 continue;
             }
-            let tableref = &parsed.nodes[parsed.nodes[parameter.ast_node_id as usize].parent() as usize];
+            let parent = parsed.nodes.get(parameter.ast_node_id as usize).map(|node| node.parent() as usize);
+            let Some(tableref) = parent.and_then(|parent| parsed.nodes.get(parent)) else { continue };
             if matches!(tableref.attribute_key(), AttributeKey::SQL_INSERT_TARGET | AttributeKey::SQL_DELETE_TARGET) {
                 continue;
             }
@@ -555,7 +556,7 @@ impl ScriptSession {
             });
         }
         changes.sort_by_key(|c| (c.from_byte, c.to_byte, c.input_order));
-        if changes.windows(2).any(|w| w[1].from_byte < w[0].to_byte) {
+        if changes.windows(2).any(|w| matches!(w, [a, b] if b.from_byte < a.to_byte)) {
             return self.reject(
                 catalog,
                 update,
@@ -609,10 +610,11 @@ impl ScriptSession {
 
         update.text_changed = text_changed;
         update.selection_changed = self.primary_selection != next_selection;
-        if text_changed {
+        // A changed text is an edited one
+        if let Some(edited) = edited.filter(|_| text_changed) {
             // The catalog keeps the published version until the owner publishes the new analysis.
             // The analysis of the script ignores its own catalog entry.
-            self.script.set_text(edited.unwrap());
+            self.script.set_text(edited);
             self.script.set_cursor_offset(None);
             self.cursor_text_version = NO_VERSION;
             self.cursor_catalog_revision = NO_VERSION;
@@ -827,9 +829,13 @@ impl ScriptSession {
             if block.block_type != CommentBlockType::DASHQL_TAG {
                 continue;
             }
-            let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+            let lines = parsed
+                .comment_blocks
+                .lines
+                .get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
+                .unwrap_or_default();
             let mut tag = EditorCommentTagT::default();
-            tag.name = Some(scanned.text[block.tag_span.offset as usize..block.tag_span.end() as usize].to_string());
+            tag.name = Some(scanned.text.get(block.tag_span.offset as usize..block.tag_span.end() as usize).unwrap_or("").to_string());
             tag.text_span = projector.span(block.text_span);
             tag.lines = non_empty(lines.iter().filter_map(|&line| projector.span(line)).collect());
             comment_tags.push(tag);
@@ -867,11 +873,11 @@ impl ScriptSession {
             let Some(mut location) = expression.location else {
                 continue;
             };
-            if is_function && (expression.ast_node_id as usize) < parsed.nodes.len() {
-                let node = &parsed.nodes[expression.ast_node_id as usize];
+            let function_node = if is_function { parsed.nodes.get(expression.ast_node_id as usize) } else { None };
+            if let Some(node) = function_node {
                 if node.children_count() > 0 {
                     let begin = node.children_begin_or_value() as usize;
-                    let children = &parsed.nodes[begin..begin + node.children_count() as usize];
+                    let children = parsed.nodes.get(begin..begin + node.children_count() as usize).unwrap_or_default();
                     let [name] = attrs!(children, [AttributeKey::SQL_FUNCTION_NAME]);
                     if let Some(name) = name {
                         location = *name.symbol_span();
@@ -1092,10 +1098,10 @@ impl ScriptSession {
             project_symbol_span(&mut projector, &mut candidate.target_location_qualified);
             let completion_text = candidate.completion_text.as_deref().unwrap_or("");
             let cursor = candidate.completion_cursor_offset as usize;
-            if cursor > completion_text.len() || !completion_text.is_char_boundary(cursor) {
+            let Some(before_cursor) = completion_text.get(..cursor) else {
                 return Err(Error::invalid_argument("completion cursor is not on a UTF-8 codepoint boundary"));
-            }
-            candidate.completion_cursor_offset = completion_text[..cursor].encode_utf16().count() as u32;
+            };
+            candidate.completion_cursor_offset = before_cursor.encode_utf16().count() as u32;
             // The object API round trip
             candidate.display_text = candidate.display_text.take().filter(|s| !s.is_empty());
             candidate.completion_text = candidate.completion_text.take().filter(|s| !s.is_empty());

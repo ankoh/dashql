@@ -129,7 +129,8 @@ macro_rules! app_enum {
     ($doc:literal $name:ident: $runtime:path { $($variant:ident = $number:literal => $rt:ident),* $(,)? }) => {
         #[doc = $doc]
         #[wasm_bindgen]
-        #[allow(non_camel_case_types)]
+        // The variants keep the names of the app, in capitals
+        #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
         #[derive(Clone, Copy, Debug, PartialEq, Eq, serde_repr::Serialize_repr, serde_repr::Deserialize_repr)]
         #[repr(u8)]
         pub enum $name {

@@ -1,5 +1,4 @@
-//! How the connections of an imported workbook map to the connections of the app. Ported from
-//! `workbook/persistence/workbook_connection_import.ts`.
+//! How the connections of an imported workbook map to the connections of the app.
 
 use std::collections::HashMap;
 
@@ -139,7 +138,7 @@ pub fn apply_connection_import_plan(
         if !entries.iter().any(|entry| entry.id == connection_id) {
             return (connection_id.to_string(), None);
         }
-        let fresh = fresh_ids.entry(connection_id.to_string()).or_insert_with(|| new_uuid()).clone();
+        let fresh = fresh_ids.entry(connection_id.to_string()).or_insert_with(&mut *new_uuid).clone();
         (fresh, None)
     };
     let connections = workbook

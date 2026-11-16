@@ -1,8 +1,5 @@
 //! The tables and functions of a catalog as structure: built from the rows of metadata queries, packed into catalog
 //! descriptors and table updates for the core, read back from descriptors and rendered as the catalog files.
-//!
-//! Ported from `catalog_sql_generator.ts` and `catalog_structure.ts` of
-//! `packages/dashql/src/runtime/connections/catalog/`.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -58,32 +55,28 @@ impl CatalogTable {
 /// Values grouped by key in the order of the first appearance of the keys
 #[derive(Debug, Clone)]
 pub(crate) struct Groups<K, V> {
-    entries: Vec<(K, V)>,
-    index: HashMap<K, usize>,
+    /// The keys in the order of their first appearance
+    keys: Vec<K>,
+    values: HashMap<K, V>,
 }
 
 impl<K: Clone + Eq + Hash, V: Default> Groups<K, V> {
     pub(crate) fn new() -> Self {
-        Self { entries: Vec::new(), index: HashMap::new() }
+        Self { keys: Vec::new(), values: HashMap::new() }
     }
 
     /// The value of a key, a new value for a new key
     pub(crate) fn entry(&mut self, key: &K) -> &mut V {
-        let at = match self.index.get(key) {
-            Some(at) => *at,
-            None => {
-                self.entries.push((key.clone(), V::default()));
-                let at = self.entries.len() - 1;
-                self.index.insert(key.clone(), at);
-                at
-            }
-        };
-        // The index only holds positions of entries
-        &mut self.entries[at].1
+        let keys = &mut self.keys;
+        self.values.entry(key.clone()).or_insert_with(|| {
+            keys.push(key.clone());
+            V::default()
+        })
     }
 
     pub(crate) fn into_entries(self) -> Vec<(K, V)> {
-        self.entries
+        let mut values = self.values;
+        self.keys.into_iter().filter_map(|key| values.remove(&key).map(|value| (key, value))).collect()
     }
 }
 

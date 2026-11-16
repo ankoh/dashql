@@ -2,9 +2,6 @@
 //!
 //! Every connector keeps the setup timings, the params of the setup, the errors of the channel and the health check
 //! and the channel. Trino and Salesforce add their OAuth state.
-//!
-//! Ported from `connection_state_details.ts` and the details of the connector states in
-//! `packages/dashql/src/runtime/connections/`.
 
 use std::collections::BTreeMap;
 use std::fmt;

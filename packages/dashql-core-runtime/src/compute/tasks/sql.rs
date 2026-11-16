@@ -2,8 +2,6 @@
 //!
 //! The stages run in a fixed order, whatever the order of the calls: value ids, bins, scalar filters, semi-join
 //! filters, grouping, then the final projection with its order and limit.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/sql/sqlframe_builder.ts`.
 
 use crate::compute::types::{FilterOp, OrderByConstraint, ScalarFilter};
 

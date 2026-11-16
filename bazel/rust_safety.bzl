@@ -1,8 +1,9 @@
-"""Clippy with the safety rules of the Rust crates of the runtime, see docs/agents/build_bazel_targets.md.
+"""Clippy with the safety rules of the Rust crates of the core module, see docs/agents/build_bazel_targets.md.
 
-The crates set `lint_config = "//bazel:rust_safety_lints"`: no unwraps, expects or panics outside of tests, and no
-`RefCell` borrow held across an await. A panic traps the whole module of the core. Clippy reports the other lints as
-warnings, only these fail.
+The crates set `lint_config = "//bazel:rust_safety_lints"`: no unwrap, expect, panic, unreachable, todo or
+unimplemented, no index or slice that can fail and no `RefCell` borrow held across an await, outside of tests. A panic
+traps the whole module of the core. Clippy reports the other lints as warnings, only these fail, unless a crate denies
+its warnings itself.
 """
 
 load("@rules_rust//rust:defs.bzl", "rust_clippy")
@@ -13,7 +14,7 @@ def rust_safety_test(name, deps, **kwargs):
 
     Args:
         name: The name of the test, the clippy target is `<name>_clippy`
-        deps: The Rust targets that clippy checks, with `lint_config = "//bazel:rust_safety_lints"`
+        deps: The Rust targets that clippy checks, with the `lint_config` of the safety lints
         **kwargs: Passed to the test
     """
     rust_clippy(

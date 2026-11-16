@@ -57,7 +57,9 @@ fn find_ancestor(nodes: &[ParserDfsNode], mut next: usize) -> (Option<usize>, Ve
     let mut path = Vec::new();
 
     // Check the current node
-    let node = &nodes[next];
+    let Some(node) = nodes.get(next) else {
+        return (None, Vec::new());
+    };
     match node.parent_node_index {
         Some(parent) => {
             path.push(node.parent_path.clone());
@@ -68,7 +70,10 @@ fn find_ancestor(nodes: &[ParserDfsNode], mut next: usize) -> (Option<usize>, Ve
 
     // Walk upwards until we hit the root or an operator
     loop {
-        let node = &nodes[next];
+        let Some(node) = nodes.get(next) else {
+            path.reverse();
+            return (None, path);
+        };
         if node.operator_type.is_some() {
             path.reverse();
             return (Some(next), path);
@@ -137,7 +142,8 @@ fn is_join_operator(operator_type: &str) -> bool {
 
 /// Serialize an attribute value as compact JSON
 fn to_json(value: &Value) -> String {
-    serde_json::to_string(value).expect("a JSON value always serializes")
+    // A JSON value has string keys and always serializes
+    serde_json::to_string(value).unwrap_or_default()
 }
 
 /// Does a JSON value contain an operator?
@@ -249,10 +255,11 @@ fn read_operator_references(operator_type: &str, object: &Map<String, Value>) ->
     references
 }
 
-/// Read the operator from the DFS node of its JSON object
-fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> ParsedOperatorNode {
-    let object = node.json_value.as_object().expect("operators are objects");
-    let operator_type = node.operator_type.expect("operators have a type");
+/// Read the operator from the DFS node of its JSON object.
+/// Only a JSON object gets an operator type, None for any other node.
+fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> Option<ParsedOperatorNode> {
+    let object = node.json_value.as_object()?;
+    let operator_type = node.operator_type?;
     // The attributes are the members that do not contain other operators
     let attributes = object
         .iter()
@@ -260,7 +267,7 @@ fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> 
         .map(|(name, value)| (name.clone(), to_json(value)))
         .collect();
     let (estimated_rows, analyzed) = read_execution_statistics(object);
-    ParsedOperatorNode {
+    Some(ParsedOperatorNode {
         parent_child_path,
         references: read_operator_references(&operator_type, object),
         attributes,
@@ -272,7 +279,7 @@ fn read_operator(node: ParserDfsNode, parent_child_path: Vec<PathComponent>) -> 
         child_operators: node.child_operators,
         source_location: node.source_location,
         ..Default::default()
-    }
+    })
 }
 
 impl QueryProfile {
@@ -295,22 +302,26 @@ impl QueryProfile {
         let mut parsed_operators: Vec<ParsedOperatorNode> = Vec::new();
         let mut root_operators: Vec<usize> = Vec::new();
         let mut pending = vec![ParserDfsNode::new(&document, None, PathComponent::None)];
-        while !pending.is_empty() {
-            let current_index = pending.len() - 1;
+        while let Some(current_index) = pending.len().checked_sub(1) {
+            let Some(current) = pending.get_mut(current_index) else {
+                break;
+            };
 
             // Already visited?
-            if pending[current_index].visited {
+            if current.visited {
                 // Is an operator?
-                if pending[current_index].operator_type.is_some() {
+                if current.operator_type.is_some() {
                     // Build the ancestor path
                     let (ancestor, ancestor_path) = find_ancestor(&pending, current_index);
                     // Then emit the node
-                    let current = pending.pop().unwrap();
+                    let Some(operator) = pending.pop().and_then(|current| read_operator(current, ancestor_path)) else {
+                        continue;
+                    };
                     let op = parsed_operators.len();
-                    parsed_operators.push(read_operator(current, ancestor_path));
-                    match ancestor {
+                    parsed_operators.push(operator);
+                    match ancestor.and_then(|ancestor| pending.get_mut(ancestor)) {
                         // Register as child operator in ancestor
-                        Some(ancestor) => pending[ancestor].child_operators.push(op),
+                        Some(ancestor) => ancestor.child_operators.push(op),
                         // No parent operator, register as root
                         None => root_operators.push(op),
                     }
@@ -321,36 +332,40 @@ impl QueryProfile {
                 continue;
             }
             // Mark as visited
-            pending[current_index].visited = true;
+            current.visited = true;
+            let json_value = current.json_value;
 
-            match pending[current_index].json_value {
+            match json_value {
                 // Current node is an object:
                 // - Add children for DFS
                 // - Check if it is an operator
                 Value::Object(members) => {
                     let pending_begin = pending.len();
+                    let mut operator_type = None;
+                    let mut source_operator_id = None;
+                    let mut operator_label = None;
+                    let mut source_location = None;
                     for (attribute_name, value) in members {
-                        let current = &mut pending[current_index];
                         match (attribute_name.as_str(), value) {
                             // Is the current node an operator?
                             // Mark as such and skip attribute during DFS
-                            ("operator", Value::String(operator_type)) => {
-                                current.operator_type = Some(operator_type.clone());
+                            ("operator", Value::String(name)) => {
+                                operator_type = Some(name.clone());
                             }
                             // Contains an operator id?
                             ("operatorId" | "operator-id", _) if value.is_u64() => {
-                                current.source_operator_id = value.as_u64();
+                                source_operator_id = value.as_u64();
                             }
                             // Contains a debug name? Hyper plans use both camelCase and kebab-case spellings.
                             ("debugName" | "debug-name", Value::Object(debug_name)) => {
                                 if let Some(label) = debug_name.get("value").and_then(Value::as_str) {
-                                    current.operator_label = Some(label.to_string());
+                                    operator_label = Some(label.to_string());
                                 }
                             }
                             // Contains a sqlpos?
                             ("sqlpos", Value::Array(sql_pos)) => {
                                 if let Some(location) = read_source_location(sql_pos) {
-                                    current.source_location = Some(location);
+                                    source_location = Some(location);
                                 }
                             }
                             // Mark pending for DFS traversal
@@ -361,12 +376,19 @@ impl QueryProfile {
                             )),
                         }
                     }
-                    let current = &mut pending[current_index];
-                    if current.operator_label.is_none() && current.operator_type.as_deref() == Some("scan") {
-                        current.operator_label = infer_scan_label(members);
+                    if let Some(current) = pending.get_mut(current_index) {
+                        current.operator_type = operator_type;
+                        current.source_operator_id = source_operator_id;
+                        current.operator_label = operator_label;
+                        current.source_location = source_location;
+                        if current.operator_label.is_none() && current.operator_type.as_deref() == Some("scan") {
+                            current.operator_label = infer_scan_label(members);
+                        }
                     }
                     // Reverse the order of the attribute nodes on the stack
-                    pending[pending_begin..].reverse();
+                    if let Some(attribute_nodes) = pending.get_mut(pending_begin..) {
+                        attribute_nodes.reverse();
+                    }
                 }
                 // Current node is an array:
                 // - Add children for DFS
@@ -445,7 +467,9 @@ impl QueryProfile {
         pending.sort_by_key(|(source_node, ..)| *source_node);
         self.operator_cross_edges.reserve(pending.len());
         for (source_node, target_node, kind, attributes) in pending {
-            let source = &mut self.operators[source_node as usize];
+            let Some(source) = self.operators.get_mut(source_node as usize) else {
+                continue;
+            };
             if source.cross_edge_count == 0 {
                 source.cross_edges_begin = self.operator_cross_edges.len();
             }
@@ -469,16 +493,18 @@ impl QueryProfile {
         let mut root_boundaries: Vec<u32> = Vec::new();
         let mut pending: Vec<u32> = Vec::with_capacity(operators.len());
         for &root in self.root_operators.iter().rev() {
-            if operators[root as usize].operator_type.as_deref() == Some("executiontarget") {
+            if operators.get(root as usize).is_some_and(|op| op.operator_type.as_deref() == Some("executiontarget")) {
                 root_boundaries.push(root);
             }
             pending.push(root);
         }
         let push_children = |pending: &mut Vec<u32>, operator_id: u32| {
-            pending.extend(operators[operator_id as usize].children().rev().map(|c| c as u32));
+            if let Some(op) = operators.get(operator_id as usize) {
+                pending.extend(op.children().rev().map(|c| c as u32));
+            }
         };
         while let Some(operator_id) = pending.pop() {
-            if operators[operator_id as usize].operator_type.as_deref() == Some("federate") {
+            if operators.get(operator_id as usize).is_some_and(|op| op.operator_type.as_deref() == Some("federate")) {
                 boundaries.push(operator_id);
             }
             push_children(&mut pending, operator_id);
@@ -492,17 +518,21 @@ impl QueryProfile {
         let mut fragments = Vec::with_capacity(boundaries.len());
         for (f, &boundary_id) in boundaries.iter().enumerate() {
             let mut fragment = Fragment {
-                parent_fragment: parents[f],
+                parent_fragment: parents.get(f).copied().flatten(),
                 root_operator: Some(boundary_id),
                 operators: vec![boundary_id],
-                hidden: operators[boundary_id as usize].operator_type.as_deref() == Some("executiontarget"),
+                hidden: operators
+                    .get(boundary_id as usize)
+                    .is_some_and(|op| op.operator_type.as_deref() == Some("executiontarget")),
                 ..Default::default()
             };
             pending.clear();
             push_children(&mut pending, boundary_id);
             while let Some(operator_id) = pending.pop() {
                 if let Some(&nested) = fragment_of.get(&operator_id) {
-                    parents[nested as usize] = Some(f as u32);
+                    if let Some(parent) = parents.get_mut(nested as usize) {
+                        *parent = Some(f as u32);
+                    }
                     continue;
                 }
                 fragment.operators.push(operator_id);
@@ -512,7 +542,9 @@ impl QueryProfile {
         }
         for (f, fragment) in fragments.iter().enumerate() {
             for &operator_id in &fragment.operators {
-                self.operators[operator_id as usize].fragment = Some(f as u32);
+                if let Some(op) = self.operators.get_mut(operator_id as usize) {
+                    op.fragment = Some(f as u32);
+                }
             }
         }
         self.fragments = fragments;
@@ -539,8 +571,8 @@ impl QueryProfile {
             let membership: HashSet<u32> = members.iter().copied().collect();
             let slots: Vec<(u32, fb::ProfileSlotRole)> = members
                 .iter()
-                .map(|&member| {
-                    let op = &self.operators[member as usize];
+                .filter_map(|&member| {
+                    let op = self.operators.get(member as usize)?;
                     let consumes = op.children().any(|child| membership.contains(&(child as u32)));
                     let feeds = op.parent.is_some_and(|parent| membership.contains(&(parent as u32)));
                     let role = match (consumes, feeds) {
@@ -548,10 +580,10 @@ impl QueryProfile {
                         (true, true) => fb::ProfileSlotRole::THROUGH,
                         (true, false) => fb::ProfileSlotRole::SINK,
                     };
-                    (member, role)
+                    Some((member, role))
                 })
                 .collect();
-            let fragment = members.first().and_then(|m| self.operators[*m as usize].fragment);
+            let fragment = members.first().and_then(|m| self.operators.get(*m as usize)?.fragment);
             let attributes = source_pipeline
                 .iter()
                 .filter(|(name, _)| *name != "pipelineId" && *name != "operators")

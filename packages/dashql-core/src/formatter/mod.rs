@@ -402,7 +402,7 @@ impl<'a> Formatter<'a> {
         let ts = resolve_text_span(text, &self.scanned.symbols, *span);
         let begin = (ts.offset as usize).min(text.len());
         let end = (begin + ts.length as usize).min(text.len());
-        &text[begin..end]
+        text.get(begin..end).unwrap_or("")
     }
 
     fn is_pretty(&self) -> bool {

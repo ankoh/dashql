@@ -1,6 +1,5 @@
 //! The workbook tables: a workbook as the rows of a fixed set of tables, in a `.dashql` file as `<table>.parquet` and
-//! in a cloud as rows of tables of the same names. Ported from `storage/workbook_tables.ts`, see
-//! `docs/design/workbook_tables.md`.
+//! in a cloud as rows of tables of the same names, see `docs/design/workbook_tables.md`.
 //!
 //! Parquet stays with the embedded Hyper of the host: a table crosses as Arrow IPC (`encode_table_ipc`), which the
 //! host writes as Parquet, and the host scans a Parquet file into Arrow IPC that `decode_table_ipc` reads.
@@ -15,6 +14,7 @@ use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
+use crate::catalog_loader::tables::Groups;
 use crate::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
@@ -733,17 +733,7 @@ pub fn workbook_tables_to_bundle<B: Clone>(
 
 /// The tables and functions of the catalogs of the connections, by connection in the order of their ids
 fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStructure)> {
-    let mut catalogs: Vec<(String, CatalogStructure)> = Vec::new();
-    fn catalog_of<'a>(catalogs: &'a mut Vec<(String, CatalogStructure)>, connection_id: &str) -> &'a mut CatalogStructure {
-        let index = match catalogs.iter().position(|(id, _)| id == connection_id) {
-            Some(index) => index,
-            None => {
-                catalogs.push((connection_id.to_string(), CatalogStructure::default()));
-                catalogs.len() - 1
-            }
-        };
-        &mut catalogs[index].1
-    }
+    let mut catalogs: Groups<String, CatalogStructure> = Groups::new();
     // The columns of the tables and the params of the functions by id, read once
     let mut columns_of: HashMap<i32, Vec<&CatalogColumnRow>> = HashMap::new();
     for column in &tables.catalog_columns {
@@ -772,7 +762,7 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
                 })
                 .collect(),
         };
-        catalog_of(&mut catalogs, &row.connection_id).tables.push(table);
+        catalogs.entry(&row.connection_id).tables.push(table);
     }
     let mut function_rows: Vec<&CatalogFunctionRow> = tables.catalog_functions.iter().collect();
     function_rows.sort_by_key(|row| row.function_id);
@@ -787,7 +777,7 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
             return_type: row.return_type.clone(),
             params: params.into_iter().map(|param| CatalogFunctionParam { name: param.param_name.clone(), param_type: param.param_type.clone() }).collect(),
         };
-        catalog_of(&mut catalogs, &row.connection_id).functions.push(function);
+        catalogs.entry(&row.connection_id).functions.push(function);
     }
-    catalogs
+    catalogs.into_entries()
 }

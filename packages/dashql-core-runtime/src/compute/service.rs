@@ -19,9 +19,6 @@
 //!
 //! The state sits behind a `RefCell` that no task borrows across an await. A task tells the host after its actions
 //! that the state changed.
-//!
-//! Ported from `processTask` of `packages/dashql-app/src/compute/computation_scheduler.tsx` and `analyzeTable` of
-//! `packages/dashql/src/runtime/compute/analyze_table.ts`.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -760,9 +757,6 @@ impl From<super::types::SystemColumnsTask> for ComputationTask {
 // runs them; a request that the state already answers, or that a running task answers, runs nothing. After a task the
 // service derives again: a new filter orders the rows again, a search that the app asked for before the data frame
 // was there starts once it is.
-//
-// Ported from `useCrossFilters`, `useDataTableOrdering` and `useQueryResultSearch` of the app
-// (`packages/dashql-app/src/views/query_result/`).
 
 impl<H: ComputeHost> ComputeService<H> {
     /// Delete the computation of a table, its runs are cancelled
@@ -798,7 +792,7 @@ impl<H: ComputeHost> ComputeService<H> {
             let task = {
                 let inner = shared.inner.borrow();
                 inner.state.computation(table_id).and_then(|computation| {
-                    let known = constraints.iter().all(|c| computation.data_table_fields.iter().any(|field| *field == c.field));
+                    let known = constraints.iter().all(|c| computation.data_table_fields.contains(&c.field));
                     if constraints.is_empty() || !known {
                         return None;
                     }

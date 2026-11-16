@@ -1,7 +1,5 @@
 //! The setup of a Salesforce Data Cloud or Database.com connection: the OAuth flow of the core login, the Data Cloud
 //! token and the channel.
-//!
-//! Ported from `packages/dashql/src/platform/connections/salesforce/salesforce_connection_state.ts`.
 
 use serde_json::Value;
 

@@ -1,8 +1,5 @@
 //! The OAuth web server flow of Salesforce with PKCE: the authorization URL with the state of the flow, and the check of
 //! the callback that the redirect page hands back.
-//!
-//! Ported from `connections/salesforce/salesforce_authentication.ts` and `oauth/oauth_types.ts` of
-//! `packages/dashql/src/runtime`.
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;

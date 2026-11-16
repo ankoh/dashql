@@ -2,7 +2,7 @@
 //! parameters. The workbook tables carry catalogs as rows, the files on disk stay SQL.
 //!
 //! Reading the SQL of a catalog file and rendering it again belong to the catalog of a connection
-//! (`connections/catalog/catalog_structure.ts`), the workbook format takes them as a `CatalogSql`.
+//! (`catalog_loader::tables`), the workbook format takes them as a `CatalogSql`.
 
 use std::sync::Arc;
 

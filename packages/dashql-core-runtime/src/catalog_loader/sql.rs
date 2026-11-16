@@ -1,8 +1,5 @@
 //! The SQL that the catalog loader generates: quoting, the conditions that select relations, the statements of the
 //! catalog files and the headers of the function script.
-//!
-//! Ported from `catalog_sql_generator.ts`, `catalog_function_sql_generator.ts` and `utils/sql_quote.ts` of
-//! `packages/dashql/src/runtime/`.
 
 use crate::connections::{RelationName, Timestamp, DEFAULT_DATABASE_NAME};
 

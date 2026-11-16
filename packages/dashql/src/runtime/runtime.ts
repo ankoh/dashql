@@ -156,9 +156,9 @@ function destroyedError(): Error {
 /// object, and the store that the app reads its views from. The one object that the app and the command line tool hold.
 ///
 /// The module holds the state and the services: the computations, the connections with the histories of their queries,
-/// the histories without a connection, the query executor with the description of its queries and the keys of the query
-/// result cache, the setups of the connections, the catalog loader, the workbooks with their scripts, the runs of the
-/// workbooks, the storage writer, the restore, the imports and the exports. This class is the platform object of the
+/// the query executor with the description of its queries and the keys of the query result cache, the setups of the
+/// connections, the catalog loader, the workbooks with their scripts, the runs of the workbooks, the storage writer,
+/// the restore, the imports and the exports. This class is the platform object of the
 /// module (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of the host, the query
 /// result cache, the compute database, the OAuth flows, the specs of the extensions, the storage, the files of the
 /// runs, the archives), the store, and typed commands where a caller needs more than the module returns: the flush of
@@ -564,7 +564,7 @@ export class Runtime {
     /// Resolves with the new file name once the view is in the store, null for a name that is unchanged or no plain file
     /// name. Rejects before anything changed if the runtime refuses the rename, e.g. of a cloud preview.
     async renameAttachment(workbookId: string, fileName: string, name: string): Promise<string | null> {
-        return await this.settled(this.module.renameAttachment(workbookId, fileName, name));
+        return await this.settled(this.live().renameAttachment(workbookId, fileName, name));
     }
 
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once the

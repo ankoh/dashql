@@ -535,7 +535,9 @@ impl QueryProfile {
             if before == *state {
                 continue;
             }
-            changed_at[i] = time;
+            if let Some(changed_at) = changed_at.get_mut(i) {
+                *changed_at = time;
+            }
             updates.push(ProfileUpdate { time, entity, index, state: *state });
         }
         updates

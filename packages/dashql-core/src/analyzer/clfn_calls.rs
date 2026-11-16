@@ -87,7 +87,7 @@ fn source<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
     let span = resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
     let begin = (span.offset as usize).min(scanned.text.len());
     let end = (begin + span.length as usize).min(scanned.text.len());
-    &scanned.text[begin..end]
+    scanned.text.get(begin..end).unwrap_or("")
 }
 
 /// A name in a script, a key of an option or attribute
@@ -107,7 +107,7 @@ fn read_key(parsed: &ParsedScript, key: &Node) -> KeyName {
     match text.as_bytes().first() {
         Some(&quote @ (b'"' | b'`')) if text.len() >= 2 => {
             let quote = quote as char;
-            let inner = &text[1..text.len() - 1];
+            let inner = text.get(1..text.len() - 1).unwrap_or(text);
             KeyName { text: inner.replace(&format!("{quote}{quote}"), &quote.to_string()), quoted: true }
         }
         _ => KeyName { text: text.to_string(), quoted: false },
@@ -489,7 +489,9 @@ fn select_text<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
         symbols = &symbols[1..symbols.len() - 1];
     }
     match (symbols.first(), symbols.last()) {
-        (Some(first), Some(last)) => &scanned.text[first.location.offset as usize..last.location.end() as usize],
+        (Some(first), Some(last)) => {
+            scanned.text.get(first.location.offset as usize..last.location.end() as usize).unwrap_or("")
+        }
         _ => "",
     }
 }

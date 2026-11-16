@@ -36,7 +36,9 @@ pub fn is_terminal(kind: SymbolKind) -> bool {
 /// Mirrors bison's `yytnamerr_`: a quoted alias such as `"identifier literal"` loses its
 /// double quotes unless it contains an apostrophe, a comma or a backslash.
 pub fn symbol_name(kind: SymbolKind) -> Cow<'static, str> {
-    let name = tables::YYTNAME[kind as usize];
+    let Some(&name) = tables::YYTNAME.get(kind as usize) else {
+        return Cow::Borrowed("$undefined");
+    };
     let Some(quoted) = name.strip_prefix('"') else {
         return Cow::Borrowed(name);
     };

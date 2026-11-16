@@ -28,10 +28,11 @@ pub fn explain_executes(parsed: &ParsedScript, options: Option<&Node>) -> bool {
     let option_text = |n: Option<&Node>| -> String {
         let Some(n) = n.filter(|n| n.node_type() != NodeType::NONE) else { return String::new() };
         let span = resolve_text_span(&scanned.text, &scanned.symbols, *n.symbol_span());
-        let text = scanned.text[span.offset as usize..(span.offset + span.length) as usize].to_ascii_lowercase();
-        let b = text.as_bytes();
-        if b.len() >= 2 && (b[0] == b'\'' || b[0] == b'"') && b[b.len() - 1] == b[0] {
-            return text[1..text.len() - 1].to_string();
+        let text = scanned.text.get(span.offset as usize..(span.offset + span.length) as usize).unwrap_or("").to_ascii_lowercase();
+        for quote in ['\'', '"'] {
+            if let Some(inner) = text.strip_prefix(quote).and_then(|t| t.strip_suffix(quote)) {
+                return inner.to_string();
+            }
         }
         text
     };
@@ -72,7 +73,7 @@ fn name_of_path(path: &[String], database: &Option<String>, schema: &Option<Stri
 /// and for a statement whose relation the parser could not name.
 pub fn touched_relations_of_statement(parsed: &ParsedScript, statement_id: usize) -> Vec<QualifiedTableNameT> {
     let Some(statement) = parsed.statements.get(statement_id) else { return Vec::new() };
-    let root = &parsed.nodes[statement.root as usize];
+    let Some(root) = parsed.nodes.get(statement.root as usize) else { return Vec::new() };
     let read = |node: &Node| read_name_path(parsed, node);
     let attribute = |node: &Node, key: AttributeKey| attribute_of(parsed, node, key);
     match statement.statement_type {

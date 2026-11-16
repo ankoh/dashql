@@ -1,10 +1,7 @@
-//! Tests of the tasks of the computations, ported from `sqlframe_builder_text.test.ts`,
-//! `query_result_search_sql.test.ts`, `analyze_table.test.ts`, the tests under `compute/tasks` and
-//! `result_computations.test.ts` of the TypeScript runtime.
+//! Tests of the tasks of the computations.
 //!
-//! The tasks are sans-IO: a test compares the SQL of a plan and hands batches to its finish. `computations.test.ts` of
-//! the TypeScript runtime runs the tasks on Hyper (the analysis, the filter, the ordering and the search); here they
-//! pin the SQL that orders the rows.
+//! The tasks are sans-IO: a test compares the SQL of a plan and hands batches to its finish, and pins the SQL that
+//! orders the rows.
 
 use std::sync::Arc;
 

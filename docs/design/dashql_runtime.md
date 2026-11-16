@@ -173,7 +173,6 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | `computation` | table id | The computation of a result: column groups, tasks, filters, orderings, searches, its tables as handles |
 | `connectionList` | `'root'` | The connections in order, whether listed and their ordinals, the ids by connector |
 | `connection` | connection id | Connector, params, draft, details with the channel as a handle, health, status, the setup, catalog updates and version, `catalogId`, the queries, the workbooks that use it, the save, token summaries |
-| `history` | name | A history without a connection, by its name. No command creates one: the shell runs on its connection |
 | `query` | query id | Status, metadata, metrics, error, the latest progress with the structured progress as FlatBuffers by key, the result table as a handle |
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |

@@ -3,7 +3,7 @@
 //! The prompt is a script whose cursor moves by extended grapheme clusters. Grapheme offsets are
 //! those of the whole text, which is short and segmented on demand.
 
-use super::unicode::{grapheme_boundaries, is_valid, next_grapheme, previous_grapheme};
+use super::unicode::{grapheme_boundaries, next_grapheme, previous_grapheme, substring};
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
 
@@ -33,7 +33,7 @@ impl Positions {
         let mut count = 0;
         let mut previous = 0;
         for &b in &bytes {
-            count += text.as_bytes()[previous..b].iter().filter(|&&c| (c & 0xC0) != 0x80).count();
+            count += text.as_bytes().get(previous..b).unwrap_or(&[]).iter().filter(|&&c| (c & 0xC0) != 0x80).count();
             codepoints.push(count);
             previous = b;
         }
@@ -41,34 +41,34 @@ impl Positions {
     }
 
     fn count(&self) -> usize {
-        self.bytes.len() - 1
-    }
-
-    fn position(&self, idx: usize) -> Position {
-        Position { bytes: self.bytes[idx], codepoints: self.codepoints[idx], graphemes: idx }
+        self.bytes.len().saturating_sub(1)
     }
 
     /// The start of a grapheme cluster, the end for indexes past the end
     fn resolve(&self, idx: usize) -> Position {
-        self.position(idx.min(self.count()))
+        let idx = idx.min(self.count());
+        // `bytes` and `codepoints` hold `count() + 1` entries, the fallback is never taken
+        let bytes = self.bytes.get(idx).copied().unwrap_or(0);
+        let codepoints = self.codepoints.get(idx).copied().unwrap_or(0);
+        Position { bytes, codepoints, graphemes: idx }
     }
 
     /// The boundary at an exact byte offset
     fn boundary(&self, byte: usize) -> Option<Position> {
-        self.bytes.binary_search(&byte).ok().map(|idx| self.position(idx))
+        self.bytes.binary_search(&byte).ok().map(|idx| self.resolve(idx))
     }
 
     /// The first boundary at or after a byte offset
     fn at_or_after(&self, byte: usize) -> Position {
-        let byte = byte.min(*self.bytes.last().unwrap());
-        self.position(self.bytes.partition_point(|&b| b < byte))
+        let byte = byte.min(self.bytes.last().copied().unwrap_or(0));
+        self.resolve(self.bytes.partition_point(|&b| b < byte))
     }
 
     /// The boundary at a byte offset that callers expect to be one. A line break inside a CR LF cluster has no
     /// boundary; take the boundary before it.
     fn unchecked_boundary(&self, byte: usize) -> Position {
         self.boundary(byte)
-            .unwrap_or_else(|| self.position(self.bytes.partition_point(|&b| b <= byte).saturating_sub(1)))
+            .unwrap_or_else(|| self.resolve(self.bytes.partition_point(|&b| b <= byte).saturating_sub(1)))
     }
 }
 
@@ -191,7 +191,7 @@ impl PromptBuffer {
     pub fn move_to_line_start(&mut self) -> bool {
         let text = self.text();
         let cursor = self.cursor_byte_offset();
-        let begin = text.as_bytes()[..cursor].iter().rposition(|&c| c == b'\n').map_or(0, |i| i + 1);
+        let begin = line_begin(text.as_bytes(), cursor);
         self.move_to_byte_offset(begin)
     }
 
@@ -206,14 +206,14 @@ impl PromptBuffer {
     fn word_left(&self, text: &str, mut cursor: usize) -> usize {
         while cursor > 0 {
             let previous = previous_grapheme(text, cursor);
-            if is_word_grapheme(&text[previous..cursor]) {
+            if is_word_grapheme(substring(text, previous, cursor)) {
                 break;
             }
             cursor = previous;
         }
         while cursor > 0 {
             let previous = previous_grapheme(text, cursor);
-            if !is_word_grapheme(&text[previous..cursor]) {
+            if !is_word_grapheme(substring(text, previous, cursor)) {
                 break;
             }
             cursor = previous;
@@ -232,10 +232,10 @@ impl PromptBuffer {
         let text = self.text();
         let original = self.cursor_byte_offset();
         let mut cursor = original;
-        while cursor < text.len() && !is_word_grapheme(&text[cursor..next_grapheme(&text, cursor)]) {
+        while cursor < text.len() && !is_word_grapheme(substring(&text, cursor, next_grapheme(&text, cursor))) {
             cursor = next_grapheme(&text, cursor);
         }
-        while cursor < text.len() && is_word_grapheme(&text[cursor..next_grapheme(&text, cursor)]) {
+        while cursor < text.len() && is_word_grapheme(substring(&text, cursor, next_grapheme(&text, cursor))) {
             cursor = next_grapheme(&text, cursor);
         }
         cursor != original && self.move_to_byte_offset(cursor)
@@ -246,11 +246,11 @@ impl PromptBuffer {
         let bytes = text.as_bytes();
         let positions = Positions::of(&text);
         let cursor = positions.resolve(self.cursor_grapheme_offset).bytes;
-        let Some(line_begin) = bytes[..cursor].iter().rposition(|&c| c == b'\n') else {
+        let Some(line_begin) = rfind_before(bytes, b'\n', cursor) else {
             return false;
         };
         let previous_line_end = line_begin;
-        let previous_line_begin = bytes[..previous_line_end].iter().rposition(|&c| c == b'\n').map_or(0, |i| i + 1);
+        let previous_line_begin = self::line_begin(bytes, previous_line_end);
         let column = self.cursor_grapheme_offset - positions.unchecked_boundary(line_begin + 1).graphemes;
         let previous_line_column = positions.unchecked_boundary(previous_line_begin).graphemes;
         let previous_line_length = positions.unchecked_boundary(previous_line_end).graphemes - previous_line_column;
@@ -266,7 +266,7 @@ impl PromptBuffer {
         let Some(next_line_break) = find_from(bytes, b'\n', cursor) else {
             return false;
         };
-        let line_begin = bytes[..cursor].iter().rposition(|&c| c == b'\n').map_or(0, |i| i + 1);
+        let line_begin = line_begin(bytes, cursor);
         let next_line_begin = next_line_break + 1;
         let next_line_end = find_from(bytes, b'\n', next_line_begin).unwrap_or(bytes.len());
         let column = self.cursor_grapheme_offset.wrapping_sub(positions.unchecked_boundary(line_begin).graphemes);
@@ -315,12 +315,12 @@ impl PromptBuffer {
     pub fn delete_to_line_start(&mut self, deleted: Option<&mut String>) -> bool {
         let text = self.text();
         let end = self.cursor_byte_offset();
-        let begin = text.as_bytes()[..end].iter().rposition(|&c| c == b'\n').map_or(0, |i| i + 1);
+        let begin = line_begin(text.as_bytes(), end);
         if begin == end {
             return false;
         }
         if let Some(deleted) = deleted {
-            *deleted = text[begin..end].to_string();
+            *deleted = substring(&text, begin, end).to_string();
         }
         self.replace_byte_range(begin, end - begin, "")
     }
@@ -337,7 +337,7 @@ impl PromptBuffer {
             return false;
         }
         if let Some(deleted) = deleted {
-            *deleted = text[begin..end].to_string();
+            *deleted = substring(&text, begin, end).to_string();
         }
         self.replace_byte_range(begin, end - begin, "")
     }
@@ -349,7 +349,7 @@ impl PromptBuffer {
         }
         let begin = self.cursor_byte_offset();
         if let Some(deleted) = deleted {
-            *deleted = self.text()[begin..end].to_string();
+            *deleted = substring(&self.text(), begin, end).to_string();
         }
         self.replace_byte_range(begin, end - begin, "")
     }
@@ -361,7 +361,7 @@ impl PromptBuffer {
         }
         let end = self.cursor_byte_offset();
         if let Some(deleted) = deleted {
-            *deleted = self.text()[begin..end].to_string();
+            *deleted = substring(&self.text(), begin, end).to_string();
         }
         self.replace_byte_range(begin, end - begin, "")
     }
@@ -378,8 +378,8 @@ impl PromptBuffer {
         let begin = positions.resolve(left_index).bytes;
         let middle = positions.resolve(right_index).bytes;
         let end = positions.resolve(right_index + 1).bytes;
-        let mut replacement = text[middle..end].to_string();
-        replacement.push_str(&text[begin..middle]);
+        let mut replacement = substring(&text, middle, end).to_string();
+        replacement.push_str(substring(&text, begin, middle));
         self.replace_byte_range(begin, end - begin, &replacement)
     }
 
@@ -405,17 +405,24 @@ impl PromptBuffer {
 
     /// Replace a byte range with bytes that must be valid UTF-8
     pub fn replace_byte_range_bytes(&mut self, byte_offset: usize, byte_length: usize, text: &[u8]) -> bool {
-        if !is_valid(text) {
+        let Ok(text) = std::str::from_utf8(text) else {
             return false;
-        }
-        self.replace_byte_range(byte_offset, byte_length, std::str::from_utf8(text).unwrap())
+        };
+        self.replace_byte_range(byte_offset, byte_length, text)
     }
 }
 
 /// Find a byte at or after an offset
 pub(super) fn find_from(text: &[u8], needle: u8, from: usize) -> Option<usize> {
-    if from > text.len() {
-        return None;
-    }
-    text[from..].iter().position(|&c| c == needle).map(|i| i + from)
+    text.get(from..)?.iter().position(|&c| c == needle).map(|i| i + from)
+}
+
+/// Find the last byte before an offset, the offset clamped to the text
+pub(super) fn rfind_before(text: &[u8], needle: u8, end: usize) -> Option<usize> {
+    text.iter().take(end).rposition(|&c| c == needle)
+}
+
+/// The begin of the line that holds an offset: behind the last line break before it
+pub(super) fn line_begin(text: &[u8], offset: usize) -> usize {
+    rfind_before(text, b'\n', offset).map_or(0, |i| i + 1)
 }

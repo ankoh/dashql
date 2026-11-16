@@ -148,6 +148,7 @@ describe('the runtime', () => {
         await expect(runtime.exportLink(workbook.workbookId, 'https://dashql.app')).rejects.toThrow('the runtime was destroyed');
         await expect(runtime.restore()).rejects.toThrow('the runtime was destroyed');
         await expect(runtime.settleCatalog(connection.connectionId)).rejects.toThrow('the runtime was destroyed');
+        await expect(runtime.renameAttachment(workbook.workbookId, 'sales.parquet', 'revenue')).rejects.toThrow('the runtime was destroyed');
         expect(() => runtime.watchProfile(1)()).not.toThrow();
         await expect(runtime.cancel(1)).resolves.toBeUndefined();
         expect(() => {

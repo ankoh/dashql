@@ -11,7 +11,8 @@ pub fn base64_encode(bytes: &[u8]) -> String {
         let b1 = chunk.get(1).copied().unwrap_or(0);
         let b2 = chunk.get(2).copied().unwrap_or(0);
         let n = (u32::from(b0) << 16) | (u32::from(b1) << 8) | u32::from(b2);
-        let symbol = |shift: u32| char::from(BASE64[((n >> shift) & 63) as usize]);
+        // Six bits index the 64 symbols
+        let symbol = |shift: u32| char::from(BASE64.get(((n >> shift) & 63) as usize).copied().unwrap_or(b'A'));
         out.push(symbol(18));
         out.push(symbol(12));
         out.push(if chunk.len() > 1 { symbol(6) } else { '=' });
@@ -24,7 +25,7 @@ pub fn base64_encode(bytes: &[u8]) -> String {
 /// base64.
 pub fn base64_decode(text: &str) -> Option<Vec<u8>> {
     let mut symbols: Vec<u8> = text.bytes().filter(|b| !matches!(b, b' ' | b'\t' | b'\n' | b'\x0c' | b'\r')).collect();
-    if symbols.len() % 4 == 0 {
+    if symbols.len().is_multiple_of(4) {
         // Up to two padding characters at the end
         for _ in 0..2 {
             if symbols.last() == Some(&b'=') {

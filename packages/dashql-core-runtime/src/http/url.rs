@@ -348,8 +348,9 @@ impl fmt::Display for Url {
 fn push_percent(out: &mut String, byte: u8) {
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
     out.push('%');
-    out.push(char::from(HEX[usize::from(byte >> 4)]));
-    out.push(char::from(HEX[usize::from(byte & 0xf)]));
+    // A nibble indexes the 16 digits
+    out.push(char::from(HEX.get(usize::from(byte >> 4)).copied().unwrap_or(b'0')));
+    out.push(char::from(HEX.get(usize::from(byte & 0xf)).copied().unwrap_or(b'0')));
 }
 
 /// Percent-encode a string as `encodeURIComponent` does

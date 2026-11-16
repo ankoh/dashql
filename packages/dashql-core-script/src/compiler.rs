@@ -67,7 +67,10 @@ pub fn read_executable_text_with(scanned: &ScannedScript, span: TextSpan, edits:
     let end = clamp((span.offset + span.length) as usize);
     // The replacements of the obfuscated literals and the edits, ordered by offset with insertions first
     let first = scanned.obfuscated_literals.partition_point(|l| (l.location.offset as usize) < begin);
-    let mut replacements: Vec<(usize, usize, &str)> = scanned.obfuscated_literals[first..]
+    let mut replacements: Vec<(usize, usize, &str)> = scanned
+        .obfuscated_literals
+        .get(first..)
+        .unwrap_or_default()
         .iter()
         .take_while(|l| (l.location.offset + l.location.length) as usize <= end)
         .map(|l| (l.location.offset as usize, (l.location.offset + l.location.length) as usize, l.replacement.as_str()))
@@ -85,18 +88,18 @@ pub fn read_executable_text_with(scanned: &ScannedScript, span: TextSpan, edits:
         if b < at {
             continue;
         }
-        out.extend_from_slice(&text[at..clamp(b)]);
+        out.extend_from_slice(text.get(at..clamp(b)).unwrap_or_default());
         out.extend_from_slice(replacement.as_bytes());
         at = clamp(e);
     }
-    out.extend_from_slice(&text[at.min(end)..end]);
+    out.extend_from_slice(text.get(at.min(end)..end).unwrap_or_default());
     String::from_utf8_lossy(&out).into_owned()
 }
 
 fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
-    let root = &parsed.nodes[statement.root as usize];
+    let Some(root) = parsed.nodes.get(statement.root as usize) else { return false };
     let begin = root.children_begin_or_value() as usize;
-    let children = &parsed.nodes[begin..begin + root.children_count() as usize];
+    let children = parsed.nodes.get(begin..begin + root.children_count() as usize).unwrap_or_default();
     let [insert_returning, delete_returning] = attrs!(children, [AttributeKey::SQL_INSERT_RETURNING, AttributeKey::SQL_DELETE_RETURNING]);
     let returning = if statement.statement_type == StatementType::DELETE { delete_returning } else { insert_returning };
     returning.is_some_and(|r| r.node_type() != NodeType::NONE)
@@ -131,7 +134,9 @@ pub fn compile_visualization(spec: &VisualizationSpec, script: &AnalyzedScript) 
             let mut builder = flatbuffers::FlatBufferBuilder::new();
             let packed = visualize::pack_markdown_spec(&mut builder, &doc);
             builder.finish(packed, None);
-            out.markdown_spec = Some(Box::new(flatbuffers::root::<MarkdownSpec>(builder.finished_data()).unwrap().unpack()));
+            let packed = flatbuffers::root::<MarkdownSpec>(builder.finished_data())
+                .map_err(|e| format!("could not read the packed Markdown visualization spec: {e}"))?;
+            out.markdown_spec = Some(Box::new(packed.unpack()));
         }
         "table" => out.table_spec = Some(Box::new(TableSpecT::default())),
         _ => return Err(format!("unsupported visualization renderer: {renderer}")),
@@ -181,25 +186,27 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         }
         return finish(result, errors);
     }
-    if parsed.statements.is_empty() {
+    let Some(terminal_statement) = parsed.statements.last() else {
         errors.push(error(ErrorCode::EMPTY_SCRIPT, "script has no executable statement", PROTO_NULL_U32, PROTO_NULL_U32, None));
         return finish(result, errors);
-    }
+    };
     let terminal_statement_id = parsed.statements.len() - 1;
     result.terminal_statement_id = terminal_statement_id as u32;
     // A query with `@vis` tags is a visualization, the shell runs it as a plain query
     let vis_tags = options.allow_extensions
-        && parsed.statements[terminal_statement_id].statement_type == StatementType::SELECT
+        && terminal_statement.statement_type == StatementType::SELECT
         && dashql_core::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let descriptions = parsed.associate_descriptions();
-    let terminal_sql = read_executable_text(scanned, descriptions[terminal_statement_id].statement_span);
+    // There is one description per statement
+    let terminal_span = descriptions.last().map_or_else(|| TextSpan::new(0, scanned.text.len() as u32), |d| d.statement_span);
+    let terminal_sql = read_executable_text(scanned, terminal_span);
     if !vis_tags {
         result.sql = Some(terminal_sql);
         return finish(result, errors);
     }
 
     result.kind = StatementKind::VISUALIZE;
-    let terminal_root = parsed.statements[terminal_statement_id].root;
+    let terminal_root = terminal_statement.root;
     let current = script.analyzed.as_ref().is_some_and(|a| std::sync::Arc::ptr_eq(&a.parsed, &parsed));
     if !current {
         // A failed analysis leaves the visualization without metadata
@@ -226,7 +233,17 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     }
     result.sql = Some(sql);
 
-    let analyzed = script.analyzed.clone().unwrap();
+    // The analysis above succeeded or was current
+    let Some(analyzed) = script.analyzed.clone() else {
+        errors.push(error(
+            ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE,
+            "the script is not analyzed",
+            terminal_statement_id as u32,
+            terminal_root,
+            None,
+        ));
+        return finish(result, errors);
+    };
     let visualization = analyzed
         .visualization_specs
         .iter()

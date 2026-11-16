@@ -5,9 +5,6 @@
 //! The update queries every database at the same time. A database that fails keeps the relations it had, the others
 //! are published. An update that asks about relations only asks the databases they belong to and doesn't touch the
 //! functions.
-//!
-//! Ported from `hyper/hyper_catalog_update.ts` and `salesforce/salesforce_catalog_update.ts`
-//! (`getHyperCloudAttachedDatabase`) of `packages/dashql/src/runtime/connections/`.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 

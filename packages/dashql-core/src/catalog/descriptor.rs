@@ -232,7 +232,8 @@ impl DescriptorEntry {
         };
         if let Some(tables) = descriptor.tables() {
             for source in tables {
-                let name = source.table_name().unwrap();
+                // A table without a name can't be referenced, the descriptor skips it
+                let Some(name) = source.table_name() else { continue };
                 let db = register(&mut out, name.database_name().unwrap_or(""), NameTag::DATABASE_NAME);
                 let schema = register(&mut out, name.schema_name().unwrap_or(""), NameTag::SCHEMA_NAME);
                 let table_name = register(&mut out, name.table_name().unwrap_or(""), NameTag::TABLE_NAME);
@@ -301,7 +302,8 @@ impl DescriptorEntry {
         }
         if let Some(functions) = descriptor.function_declarations() {
             for source in functions {
-                let name = source.function_name().unwrap();
+                // A function without a name can't be called, the descriptor skips it
+                let Some(name) = source.function_name() else { continue };
                 let db = register(&mut out, name.database_name().unwrap_or(""), NameTag::DATABASE_NAME);
                 let schema = register(&mut out, name.schema_name().unwrap_or(""), NameTag::SCHEMA_NAME);
                 let function_name = register(&mut out, name.function_name().unwrap_or(""), NameTag::FUNCTION_NAME);

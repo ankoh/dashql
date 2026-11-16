@@ -4,8 +4,6 @@
 //! of the scripts such as settings and attached databases. The session runs one statement at a time: a query waits
 //! until the result of the previous one is read to the end, cancelled or failed. A waiting query that is cancelled
 //! leaves the queue without waiting for the running one.
-//!
-//! Ported from `packages/dashql/src/platform/connections/embedded/embedded_database_channel.ts`.
 
 use std::collections::VecDeque;
 
@@ -147,7 +145,7 @@ impl EmbeddedStreamMetrics {
         self.metrics.total_data_bytes_received += data_bytes;
         self.metrics.total_batches_received += 1;
         self.metrics.total_rows_received += rows;
-        self.metrics.total_batches_received % 8 == 0
+        self.metrics.total_batches_received.is_multiple_of(8)
     }
 
     /// The result was read to the end

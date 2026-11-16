@@ -1,6 +1,5 @@
 //! Workbook bundles: the durable, portable content of a workbook (the workbook file, the scripts, the attachments, the
-//! catalogs of its connections and, in exported workbooks, cached query results). Ported from
-//! `storage/workbook_bundle.ts`.
+//! catalogs of its connections and, in exported workbooks, cached query results).
 //!
 //! The bytes of attachments and results are a type of the host, `B`: e.g. the bytes themselves in tests, or a handle
 //! of a file or of a slice of an archive that stays with the host.

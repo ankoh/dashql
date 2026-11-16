@@ -156,7 +156,10 @@ fn sum_durations(summary: &Value, names: &[&str]) -> Option<u64> {
 /// The statistics of a slot: the Trino operators of one plan node in one pipeline, ordered by operator id.
 /// The input is the input of the first operator, the output the output of the last.
 fn slot_stats(operators: &[&Value]) -> Stats {
-    let (first, last) = (operators[0], operators[operators.len() - 1]);
+    // A slot has at least one operator, no statistics otherwise
+    let (Some(first), Some(last)) = (operators.first(), operators.last()) else {
+        return Stats::default();
+    };
     let mut stats = Stats {
         tuples_in: count(first, "inputPositions"),
         tuples_out: count(last, "outputPositions"),

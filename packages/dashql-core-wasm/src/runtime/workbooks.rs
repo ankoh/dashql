@@ -305,7 +305,7 @@ impl Workbooks {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let (outcome, update, update_key, derives) = {
             let mut held = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
-            if !held.script(key).is_some_and(|script| script.session_generation() == generation) {
+            if held.script(key).is_none_or(|script| script.session_generation() != generation) {
                 return Ok(None);
             }
             let before = analysis_key(&held, key);

@@ -13,6 +13,8 @@ pub use dashql_buffers::parser::AttributeKey;
 use dashql_buffers::parser::Node;
 
 /// Copy constant keys into an array, rejecting duplicates (evaluated at compile time)
+// A const fn can't use `get`, the indices stay below `N == keys.len()` and a breach fails the compilation
+#[allow(clippy::indexing_slicing)]
 pub const fn key_array<const N: usize>(keys: &[AttributeKey]) -> [AttributeKey; N] {
     assert!(keys.len() == N);
     let mut out = [AttributeKey::NONE; N];

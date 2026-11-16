@@ -1,5 +1,4 @@
-//! The scripts of a workbook file resolved to the connections of the app. Ported from
-//! `workbook/persistence/workbook_script_connections.ts`.
+//! The scripts of a workbook file resolved to the connections of the app.
 
 use std::collections::HashMap;
 

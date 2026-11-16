@@ -22,7 +22,7 @@ use dashql_core_runtime::connection_persistence::{
     connection_entry, connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes, write_workbook_copies,
     ConnectionChange, PersistedConnection,
 };
-use dashql_core_runtime::connections::registry::{ConnectionRegistry, QueryOwner, RegistryOutcome};
+use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{
     CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions,
     ConnectorType, JsonObject,
@@ -157,18 +157,14 @@ impl Connections {
 
     /// Hand the effects of the registry to the host and to the services: the effects on handles, the cancelled setups
     /// and catalog updates, the queries that stop and the computations of the results that a later result of their
-    /// owner superseded. The change marks the query of the action, or the queries of the history; their owner moves
-    /// with the lists of the history. A change that is urgent lets the catalog loader follow the registry, e.g. a query
-    /// that started or finished.
-    pub fn settle(self: &Rc<Self>, owner: &QueryOwner, outcome: &RegistryOutcome, urgent: bool, query: Option<QueryId>) {
-        let connection_id = match owner {
-            QueryOwner::Connection(id) => Some(id.as_str()),
-            QueryOwner::History(_) => None,
-        };
+    /// connection superseded. The change marks the query of the action, or the queries of the history; the connection
+    /// moves with the lists of the history. A change that is urgent lets the catalog loader follow the registry, e.g. a
+    /// query that started or finished.
+    pub fn settle(self: &Rc<Self>, connection_id: &str, outcome: &RegistryOutcome, urgent: bool, query: Option<QueryId>) {
         if outcome.changed || !outcome.effects.is_empty() {
             self.platform.mark(match query {
-                Some(query_id) => Slice::Query(owner, query_id),
-                None => Slice::Queries(owner),
+                Some(query_id) => Slice::Query(connection_id, query_id),
+                None => Slice::Queries(connection_id),
             });
         }
         let follow_up = self.platform.push_registry_effects(&outcome.effects);
@@ -176,11 +172,11 @@ impl Connections {
             // The cancel happens in the call, the query ends on its own
             self.cancel_now(*query_id);
         }
-        // The history decides which result of an owner is the latest, the others keep no computation
+        // The history decides which result of a connection is the latest, the others keep no computation
         for query_id in &outcome.superseded {
             self.delete_computation_of(*query_id);
         }
-        if let (true, Some(connection_id)) = (follow_up.cancel_setup, connection_id) {
+        if follow_up.cancel_setup {
             self.cancel_setup(connection_id);
         }
         if let Some(loader) = self.loader() {
@@ -324,7 +320,7 @@ impl Connections {
         if outcome.changed || !outcome.effects.is_empty() {
             self.platform.mark(Slice::Connection(connection_id));
         }
-        self.settle(&QueryOwner::Connection(connection_id.to_string()), &outcome, true, None);
+        self.settle(connection_id, &outcome, true, None);
         if outcome.changed {
             let changed_profile = connection.as_ref().zip(profile).is_some_and(|(connection, profile)| {
                 connection.state.try_borrow().is_ok_and(|state| *state.script_connection().profile() != profile)
@@ -370,14 +366,14 @@ impl Connections {
         Ok(outcome)
     }
 
-    /// Apply an action to a query of a history
-    pub fn apply_query(self: &Rc<Self>, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
+    /// Apply an action to a query of the history of a connection
+    pub fn apply_query(self: &Rc<Self>, connection_id: &str, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
         let query_id = action.query_id();
         let cache = matches!(action, QueryExecutionAction::QueryCacheRecorded { .. } | QueryExecutionAction::QueryCacheDeleted { .. });
-        let outcome = self.registry.borrow_mut().apply_query(owner, action)?;
-        self.settle(owner, &outcome, urgent, Some(query_id));
+        let outcome = self.registry.borrow_mut().apply_query(connection_id, action)?;
+        self.settle(connection_id, &outcome, urgent, Some(query_id));
         // The scripts of the workbooks on the connection show the cached results of their queries
-        if let (true, true, QueryOwner::Connection(connection_id)) = (cache, outcome.changed, owner) {
+        if cache && outcome.changed {
             let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
             let listener = self.results_listener.borrow().clone();
             if let Some(listener) = listener {

@@ -1,6 +1,5 @@
-//! Tests of the Trino connector, ported from `trino_api_client.test.ts`, `trino_channel.test.ts` and
-//! `arrow_conversion.test.ts` of the TypeScript runtime, with tests of the setup, the descriptor and the recorded
-//! responses of a Trino server.
+//! Tests of the Trino connector: the client, the channel, the Arrow conversion, the setup, the descriptor and the
+//! recorded responses of a Trino server.
 //!
 //! The TypeScript tests mock the API client and its promises. Here a harness answers the requests of a query from
 //! queues of responses and fires its timers on a fake clock.

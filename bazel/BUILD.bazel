@@ -9,14 +9,35 @@ exports_files([
     "macos_packaging.bzl",
 ])
 
-# The safety lints of the Rust crates of the runtime, see rust_safety.bzl: a panic traps the whole module of the core
+# The safety lints of the Rust crates linked into the core module, see rust_safety.bzl: a panic traps the whole module,
+# so no unwrap, expect, panic, unreachable, todo or unimplemented, no index or slice that can fail, no string slice off
+# a char boundary and no RefCell borrow held across an await
+SAFETY_LINTS = {
+    "await_holding_refcell_ref": "deny",
+    "expect_used": "deny",
+    "indexing_slicing": "deny",
+    "panic": "deny",
+    "string_slice": "deny",
+    "todo": "deny",
+    "unimplemented": "deny",
+    "unreachable": "deny",
+    "unwrap_used": "deny",
+}
+
 rust_lint_config(
     name = "rust_safety_lints",
+    clippy = SAFETY_LINTS,
+    visibility = ["//visibility:public"],
+)
+
+# The safety lints without indexing_slicing, for //packages/dashql-core: its analyzer, completion, formatter and diff
+# index the arrays of the parsed and analyzed script by the ids that the same script holds, about 700 sites
+rust_lint_config(
+    name = "rust_safety_lints_without_indexing",
     clippy = {
-        "await_holding_refcell_ref": "deny",
-        "expect_used": "deny",
-        "panic": "deny",
-        "unwrap_used": "deny",
+        lint: level
+        for lint, level in SAFETY_LINTS.items()
+        if lint != "indexing_slicing"
     },
     visibility = ["//visibility:public"],
 )

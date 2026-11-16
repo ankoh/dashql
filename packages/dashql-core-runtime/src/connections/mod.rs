@@ -9,8 +9,6 @@
 //!
 //! The query executions of a connection, its metrics and the query actions are the history of `crate::query`, the
 //! binding of the core module holds both and clears the history on `ConnectionEffect::StopQueries`.
-//!
-//! Ported from `reduceConnectionState` of `packages/dashql/src/platform/connections/connection_state.ts`.
 
 mod catalog_updates;
 mod details;

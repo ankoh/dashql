@@ -34,13 +34,14 @@ impl Keyword {
         if text.len() > MAX_KEYWORD_LENGTH {
             return None;
         }
-        let mask = KEYWORD_TABLE.len() - 1;
+        let mask = KEYWORD_TABLE.len().wrapping_sub(1);
         let mut slot = fnv1a(text) as usize & mask;
-        loop {
-            match KEYWORD_TABLE[slot] {
+        // The table has empty slots, a probe ends at one at the latest
+        for _ in 0..KEYWORD_TABLE.len() {
+            match KEYWORD_TABLE.get(slot).copied().unwrap_or(0) {
                 0 => return None,
                 i => {
-                    let keyword = &KEYWORDS[i as usize - 1];
+                    let keyword = KEYWORDS.get((i as usize).wrapping_sub(1))?;
                     if keyword.name.as_bytes() == text {
                         return Some(keyword);
                     }
@@ -48,6 +49,7 @@ impl Keyword {
             }
             slot = (slot + 1) & mask;
         }
+        None
     }
 
     /// The text of a keyword or operator symbol
@@ -87,7 +89,9 @@ fn keyword_names() -> &'static [Option<&'static str>] {
     NAMES.get_or_init(|| {
         let mut names = vec![None; crate::tables::YYNTOKENS];
         for k in KEYWORDS {
-            names[k.symbol as usize] = Some(k.name);
+            if let Some(name) = names.get_mut(k.symbol as usize) {
+                *name = Some(k.name);
+            }
         }
         names
     })

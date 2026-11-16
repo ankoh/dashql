@@ -1,5 +1,5 @@
-//! The cached query results that an exported workbook carries, and their import into the query result cache. Ported
-//! from the pure parts of `workbook/persistence/workbook_query_results.ts`, the cache stays with the host.
+//! The cached query results that an exported workbook carries, and their import into the query result cache. The cache
+//! stays with the host.
 
 /// The folder of the query results in an exported workbook of older versions, `results/<key>.parquet`
 pub const WORKBOOK_RESULTS_FOLDER: &str = "results";

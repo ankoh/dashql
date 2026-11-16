@@ -8,11 +8,8 @@
 //! the setup, the connection learns only that they arrived. A failed step stops the setup with `SetupFailed`, a
 //! cancelled one with `SetupCancelled`.
 //!
-//! We use the web server flow with PKCE and without a consumer secret, see the comment in
-//! `salesforce_connection_setup.ts`: never embed the secret of an External Client App.
-//!
-//! Ported from `connections/salesforce/salesforce_connection_setup.ts` and `salesforce_authentication.ts` of
-//! `packages/dashql/src/runtime`.
+//! We use the web server flow with PKCE and without a consumer secret: never embed the secret of an External Client
+//! App.
 
 use super::api::{
     core_access_token_request, core_user_info_request, data_cloud_access_token_request,

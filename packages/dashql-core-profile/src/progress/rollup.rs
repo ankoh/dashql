@@ -44,7 +44,9 @@ impl Rollup {
     fn add(&mut self, child: &EntityState) {
         let (stats, child_stats) = (&mut self.stats, &child.stats);
         self.children += 1;
-        self.statuses[child.status as usize] += 1;
+        if let Some(count) = self.statuses.get_mut(child.status as usize) {
+            *count += 1;
+        }
         if let Some(started_at) = child_stats.started_at {
             stats.started_at = Some(stats.started_at.map_or(started_at, |s| s.min(started_at)));
         }
@@ -75,7 +77,7 @@ impl Rollup {
 
     /// The rolled up status, over the children that know their status
     fn status(&self) -> Status {
-        let count = |status: Status| self.statuses[status as usize];
+        let count = |status: Status| self.statuses.get(status as usize).copied().unwrap_or(0);
         let known = self.children - count(Status::Unknown);
         if known == 0 {
             Status::Unknown
@@ -110,8 +112,13 @@ fn merge(reported: &EntityState, rollup: EntityState) -> EntityState {
 }
 
 /// Compute the effective state of all entities
+///
+/// The entities of `reported` and the slots, pipelines and fragments of the model are registered together, an index
+/// outside of them reads as an unknown state and an absent role.
 pub(super) fn compute_effective(model: &QueryProfile, reported: &Entities) -> Entities {
     let mut out = Entities { slots: reported.slots.clone(), ..Default::default() };
+    let state = |states: &[EntityState], i: usize| states.get(i).copied().unwrap_or_default();
+    let role = |s: u32| model.slots.get(s as usize).map(|slot| slot.role);
 
     // Operators from their slots
     out.operators = model
@@ -120,16 +127,16 @@ pub(super) fn compute_effective(model: &QueryProfile, reported: &Entities) -> En
         .enumerate()
         .map(|(o, op)| {
             let mut rollup = Rollup::default();
-            let passes_on = op.slots.iter().any(|s| model.slots[*s as usize].role != fb::ProfileSlotRole::SINK);
+            let passes_on = op.slots.iter().any(|s| role(*s) != Some(fb::ProfileSlotRole::SINK));
             for &s in &op.slots {
-                let slot = &out.slots[s as usize];
-                rollup.add(slot);
+                let slot = state(&out.slots, s as usize);
+                rollup.add(&slot);
                 rollup.add_input(&slot.stats);
-                if !passes_on || model.slots[s as usize].role != fb::ProfileSlotRole::SINK {
+                if !passes_on || role(s) != Some(fb::ProfileSlotRole::SINK) {
                     rollup.add_output(&slot.stats);
                 }
             }
-            merge(&reported.operators[o], rollup.finish())
+            merge(&state(&reported.operators, o), rollup.finish())
         })
         .collect();
 
@@ -141,48 +148,48 @@ pub(super) fn compute_effective(model: &QueryProfile, reported: &Entities) -> En
         .map(|(p, pipeline)| {
             let mut rollup = Rollup::default();
             for &s in &pipeline.slots {
-                let slot = &out.slots[s as usize];
-                rollup.add(slot);
-                match model.slots[s as usize].role {
-                    fb::ProfileSlotRole::SOURCE => rollup.add_input(&slot.stats),
-                    fb::ProfileSlotRole::SINK => rollup.add_output(&slot.stats),
+                let slot = state(&out.slots, s as usize);
+                rollup.add(&slot);
+                match role(s) {
+                    Some(fb::ProfileSlotRole::SOURCE) => rollup.add_input(&slot.stats),
+                    Some(fb::ProfileSlotRole::SINK) => rollup.add_output(&slot.stats),
                     _ => {}
                 }
             }
-            merge(&reported.pipelines[p], rollup.finish())
+            merge(&state(&reported.pipelines, p), rollup.finish())
         })
         .collect();
 
     // Fragments from their pipelines, the operators fill what no pipeline knows
     let mut pipelines_of: Vec<Vec<usize>> = vec![Vec::new(); model.fragments.len()];
     for (p, pipeline) in model.pipelines.iter().enumerate() {
-        if let Some(f) = pipeline.fragment {
-            pipelines_of[f as usize].push(p);
+        if let Some(pipelines) = pipeline.fragment.and_then(|f| pipelines_of.get_mut(f as usize)) {
+            pipelines.push(p);
         }
     }
     out.fragments = Vec::with_capacity(model.fragments.len());
     for (f, fragment) in model.fragments.iter().enumerate() {
         let (mut by_pipelines, mut by_operators) = (Rollup::default(), Rollup::default());
-        for &p in &pipelines_of[f] {
-            by_pipelines.add(&out.pipelines[p]);
+        for &p in pipelines_of.get(f).map(Vec::as_slice).unwrap_or_default() {
+            by_pipelines.add(&state(&out.pipelines, p));
         }
         for &o in &fragment.operators {
-            by_operators.add(&out.operators[o as usize]);
+            by_operators.add(&state(&out.operators, o as usize));
         }
         let mut own = merge(&by_pipelines.finish(), by_operators.finish());
         if let Some(root) = fragment.root_operator {
-            let root = &out.operators[root as usize].stats;
+            let root = state(&out.operators, root as usize).stats;
             (own.stats.tuples_out, own.stats.bytes_out) = (root.tuples_out, root.bytes_out);
         }
-        out.fragments.push(merge(&reported.fragments[f], own));
+        out.fragments.push(merge(&state(&reported.fragments, f), own));
     }
 
     // The query from all fragments, its output is the output of the top-level fragments
     let mut rollup = Rollup::default();
-    for (f, fragment) in model.fragments.iter().enumerate() {
-        rollup.add(&out.fragments[f]);
+    for (fragment, own) in model.fragments.iter().zip(&out.fragments) {
+        rollup.add(own);
         if fragment.parent_fragment.is_none() {
-            rollup.add_output(&out.fragments[f].stats);
+            rollup.add_output(&own.stats);
         }
     }
     out.query = merge(&reported.query, rollup.finish());

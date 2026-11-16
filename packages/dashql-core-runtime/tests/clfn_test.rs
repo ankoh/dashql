@@ -1,6 +1,5 @@
-//! The runtime of client functions against made-up specs and responses, ported from `clfn_runtime.test.ts` of
-//! `packages/dashql/src/platform/connections/clfn/`. A fake host answers the requests of a run in order and moves its
-//! clock when the run waits.
+//! The runtime of client functions against made-up specs and responses. A fake host answers the requests of a run in
+//! order and moves its clock when the run waits.
 
 use std::collections::VecDeque;
 use std::rc::Rc;

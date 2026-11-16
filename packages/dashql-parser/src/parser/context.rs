@@ -142,7 +142,7 @@ pub(crate) struct State {
 impl State {
     /// A copy of the nodes of a list
     pub(crate) fn lists_snapshot(&self, list: NodeList) -> Vec<Node> {
-        self.lists[list.0 as usize].clone()
+        self.lists.get(list.0 as usize).cloned().unwrap_or_default()
     }
 }
 
@@ -220,7 +220,7 @@ impl<'a> ParseContext<'a> {
     /// The text of a span of symbols
     fn text_at(&self, span: SymbolSpan) -> &'a str {
         let ts = self.resolve_text_span(span);
-        &self.text[ts.offset as usize..ts.end() as usize]
+        self.text.get(ts.offset as usize..ts.end() as usize).unwrap_or_default()
     }
 
     // -----------------------------------------------------------------------------------------
@@ -231,8 +231,10 @@ impl<'a> ParseContext<'a> {
     pub fn list(&self, nodes: &[Node]) -> NodeList {
         let mut state = self.state.borrow_mut();
         if let Some(id) = state.free_lists.pop() {
-            state.lists[id as usize].extend_from_slice(nodes);
-            return NodeList(id);
+            if let Some(free) = state.lists.get_mut(id as usize) {
+                free.extend_from_slice(nodes);
+                return NodeList(id);
+            }
         }
         state.lists.push(nodes.to_vec());
         NodeList(state.lists.len() as u32 - 1)
@@ -242,28 +244,34 @@ impl<'a> ParseContext<'a> {
     fn recycle(&self, list: NodeList, mut nodes: Vec<Node>) {
         nodes.clear();
         let mut state = self.state.borrow_mut();
-        state.lists[list.0 as usize] = nodes;
-        state.free_lists.push(list.0);
+        if let Some(slot) = state.lists.get_mut(list.0 as usize) {
+            *slot = nodes;
+            state.free_lists.push(list.0);
+        }
     }
 
     /// Append a node
     pub fn push_back(&self, list: NodeList, node: Node) {
-        self.state.borrow_mut().lists[list.0 as usize].push(node);
+        if let Some(nodes) = self.state.borrow_mut().lists.get_mut(list.0 as usize) {
+            nodes.push(node);
+        }
     }
 
     /// Prepend a node
     pub fn push_front(&self, list: NodeList, node: Node) {
-        self.state.borrow_mut().lists[list.0 as usize].insert(0, node);
+        if let Some(nodes) = self.state.borrow_mut().lists.get_mut(list.0 as usize) {
+            nodes.insert(0, node);
+        }
     }
 
     /// Is a list empty?
     pub fn list_is_empty(&self, list: NodeList) -> bool {
-        self.state.borrow().lists[list.0 as usize].is_empty()
+        self.state.borrow().lists.get(list.0 as usize).is_none_or(Vec::is_empty)
     }
 
     /// Move the nodes of a list
     fn take_list(&self, list: NodeList) -> Vec<Node> {
-        std::mem::take(&mut self.state.borrow_mut().lists[list.0 as usize])
+        self.state.borrow_mut().lists.get_mut(list.0 as usize).map(std::mem::take).unwrap_or_default()
     }
 
     /// Append the nodes of `other` to `list`
@@ -273,7 +281,9 @@ impl<'a> ParseContext<'a> {
             return;
         }
         let nodes = self.take_list(other);
-        self.state.borrow_mut().lists[list.0 as usize].extend_from_slice(&nodes);
+        if let Some(target) = self.state.borrow_mut().lists.get_mut(list.0 as usize) {
+            target.extend_from_slice(&nodes);
+        }
         self.recycle(other, nodes);
     }
 
@@ -320,7 +330,7 @@ impl<'a> ParseContext<'a> {
         if (node_type == NodeType::ARRAY || node_type.0 > NodeType::OBJECT_KEYS_.0) && node.children_count() > 0 {
             let begin = node.children_begin_or_value() as usize;
             let end = begin + node.children_count() as usize;
-            for child in &mut state.nodes[begin..end] {
+            for child in state.nodes.get_mut(begin..end).unwrap_or_default() {
                 *child = with_parent(child, node_id);
             }
         }
@@ -342,12 +352,12 @@ impl<'a> ParseContext<'a> {
         (begin, n)
     }
 
-    /// The span from the first to the last of `n` nodes starting at `begin`
-    fn shrunk_location(&self, begin: u32, n: u32) -> SymbolSpan {
+    /// The span from the first to the last of `n` nodes starting at `begin`, `None` for nodes that were not emitted
+    fn shrunk_location(&self, begin: u32, n: u32) -> Option<SymbolSpan> {
         let state = self.state.borrow();
-        let first = state.nodes[begin as usize].symbol_span().offset();
-        let last = state.nodes[(begin + n - 1) as usize].symbol_span();
-        SymbolSpan::new(first, last.offset().wrapping_add(last.length()).wrapping_sub(first))
+        let first = state.nodes.get(begin as usize)?.symbol_span().offset();
+        let last = state.nodes.get((begin + n).checked_sub(1)? as usize)?.symbol_span();
+        Some(SymbolSpan::new(first, last.offset().wrapping_add(last.length()).wrapping_sub(first)))
     }
 
     /// An array of nodes
@@ -363,7 +373,7 @@ impl<'a> ParseContext<'a> {
             return null();
         }
         if n > 0 && shrink_location {
-            loc = self.shrunk_location(begin, n);
+            loc = self.shrunk_location(begin, n).unwrap_or(loc);
         }
         Node::new(&loc, NodeType::ARRAY, AttributeKey::NONE, NO_PARENT, begin, n)
     }
@@ -398,7 +408,7 @@ impl<'a> ParseContext<'a> {
             return null();
         }
         if n > 0 && shrink_location {
-            loc = self.shrunk_location(begin, n);
+            loc = self.shrunk_location(begin, n).unwrap_or(loc);
         }
         Node::new(&loc, node_type, AttributeKey::NONE, NO_PARENT, begin, n)
     }
@@ -408,7 +418,10 @@ impl<'a> ParseContext<'a> {
         match expr.into() {
             ExprVariant::Node(node) => node,
             ExprVariant::Nary(id) => {
-                let nary = self.state.borrow().nary_expressions[id as usize];
+                // The ids come from `try_merge` of the same parse
+                let Some(nary) = self.state.borrow().nary_expressions.get(id as usize).copied() else {
+                    return null();
+                };
                 let args = self.array(nary.location, nary.args);
                 self.object(
                     nary.location,
@@ -446,7 +459,9 @@ impl<'a> ParseContext<'a> {
             match arg {
                 ExprVariant::Node(node) => self.push_back(nary_args, node),
                 ExprVariant::Nary(child_id) => {
-                    let child = self.state.borrow().nary_expressions[child_id as usize];
+                    let Some(child) = self.state.borrow().nary_expressions.get(child_id as usize).copied() else {
+                        continue;
+                    };
                     if child.op != op {
                         let node = self.expression(arg);
                         self.push_back(nary_args, node);
@@ -510,7 +525,7 @@ impl<'a> ParseContext<'a> {
     /// Read the precision of a float type
     pub fn read_float_type(&self, bits_loc: SymbolSpan) -> NumericType {
         let text = self.text_at(bits_loc);
-        let digits: &str = &text[..text.bytes().take_while(u8::is_ascii_digit).count()];
+        let digits: &str = text.get(..text.bytes().take_while(u8::is_ascii_digit).count()).unwrap_or_default();
         let bits: i64 = digits.parse().unwrap_or(0);
         if bits < 1 {
             self.add_error(bits_loc, "precision for float type must be least 1 bit");
@@ -570,7 +585,16 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_SQL_DELETE => StatementType::DELETE,
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
             NodeType::OBJECT_SQL_CALL => StatementType::CALL,
-            other => panic!("unexpected statement root {:?}", other.variant_name()),
+            // The grammar reduces statements only to the roots above, another root drops the statement
+            other => {
+                state.errors.push(ParseError {
+                    location: *node.symbol_span(),
+                    message: format!("unexpected statement root {:?}", other.variant_name()),
+                    hint: String::new(),
+                });
+                state.current_statement.nodes_begin = state.nodes.len() as u32;
+                return;
+            }
         };
         let nodes_len = state.nodes.len() as u32;
         let mut statement = state.current_statement;
@@ -622,7 +646,8 @@ fn select_statement_type(nodes: &[Node], root: Node) -> StatementType {
     while current.node_type() == NodeType::OBJECT_SQL_SELECT {
         let mut next = None;
         let begin = current.children_begin_or_value() as usize;
-        for child in &nodes[begin..begin + current.children_count() as usize] {
+        let children = nodes.get(begin..begin + current.children_count() as usize).unwrap_or_default();
+        for child in children {
             if child.attribute_key() == AttributeKey::SQL_SELECT_INTO && child.node_type() != NodeType::NONE {
                 return StatementType::SELECT_INTO;
             }
@@ -630,7 +655,7 @@ fn select_statement_type(nodes: &[Node], root: Node) -> StatementType {
                 && child.node_type() == NodeType::ARRAY
                 && child.children_count() > 0
             {
-                next = Some(nodes[child.children_begin_or_value() as usize]);
+                next = nodes.get(child.children_begin_or_value() as usize).copied();
             }
         }
         match next {
@@ -649,7 +674,11 @@ pub fn resolve_text_span(text: &str, symbols: &[Symbol], span: SymbolSpan) -> Te
             None => TextSpan::new(text.len() as u32, 0),
         };
     }
-    let first = symbols[span.offset() as usize].location;
-    let last = symbols[(span.offset() + span.length() - 1) as usize].location;
-    TextSpan::new(first.offset, last.end() - first.offset)
+    let first = symbols.get(span.offset() as usize);
+    let last = symbols.get((span.offset() + span.length() - 1) as usize);
+    match (first, last) {
+        (Some(first), Some(last)) => TextSpan::new(first.location.offset, last.location.end() - first.location.offset),
+        // A span off the symbols reads as the end of the text, as an empty span does
+        _ => TextSpan::new(text.len() as u32, 0),
+    }
 }

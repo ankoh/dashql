@@ -10,8 +10,6 @@
 //! the last hold on a table or a data frame returns an effect to release it, one that an action hands over and the
 //! state doesn't keep is released right away. An action changes the state in place and returns the effects that
 //! the host applies afterwards. `service` runs the tasks on a compute host.
-//!
-//! Ported from `reduceComputationState` of `packages/dashql/src/runtime/compute/computation_state.ts`.
 
 pub mod cross_filters;
 pub mod host;
@@ -1036,7 +1034,7 @@ fn reduce_computation(
                 SearchKind::Columns => &computation.column_search,
                 SearchKind::Data => &computation.data_search,
             };
-            if current.requested_pattern == pattern && current.pending == !pattern.is_empty() {
+            if current.requested_pattern == pattern && current.pending != pattern.is_empty() {
                 return false;
             }
             let request_id = current.request_id.saturating_add(1);

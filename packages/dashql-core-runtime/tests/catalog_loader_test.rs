@@ -1,7 +1,4 @@
-//! The catalog loader, ported from the tests of `packages/dashql/src/runtime/connections/catalog/`
-//! (`catalog_sql_generator.test.ts`, `catalog_structure.test.ts`, `catalog_query_*.test.ts`,
-//! `prefetched_hyper_functions.test.ts`, `catalog_loader_service.test.ts`), `hyper/hyper_catalog_update.test.ts`,
-//! `salesforce/salesforce_catalog_update.test.ts` and `trino/trino_catalogs.test.ts`.
+//! The catalog loader.
 
 use std::sync::Arc;
 

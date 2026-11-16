@@ -163,7 +163,7 @@ impl Candidates {
 }
 
 fn json_string(text: &str) -> String {
-    serde_json::to_string(text).expect("a string always serializes")
+    serde_json::Value::String(text.to_string()).to_string()
 }
 
 /// The comment that contains a text offset

@@ -2,14 +2,11 @@
 //!
 //! Trino writes the rows of a page as JSON arrays. A value that doesn't fit its column is null, a value of a type
 //! without an Arrow translation is a string, complex values (arrays, maps, rows) are their JSON text. The conversions
-//! follow the TypeScript runtime, which coerced values the way JavaScript does: a boolean column takes any truthy
-//! value, an integer column takes numeric strings.
+//! coerce values the way JavaScript does: a boolean column takes any truthy value, an integer column takes numeric
+//! strings.
 //!
 //! A timestamp with a named time zone needs the offsets of the zone, the crate has no time zone database: the host
 //! knows them (`Intl` in the browser) and implements `TimeZoneOffsets`.
-//!
-//! Ported from `packages/dashql/src/runtime/connections/trino/arrow_conversion.ts` and the schema translation of
-//! `trino_channel.ts`.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -401,7 +398,7 @@ fn unscaled_decimal(value: &Value, scale: usize) -> Option<i128> {
     }
     // The digits of the value times 10^scale, in the range of i128
     let mut unscaled: i128 = 0;
-    for digit in whole.bytes().chain(fraction.bytes()).chain(std::iter::repeat(b'0').take(scale - fraction.len())) {
+    for digit in whole.bytes().chain(fraction.bytes()).chain(std::iter::repeat_n(b'0', scale - fraction.len())) {
         let digit = i128::from(digit - b'0');
         unscaled = unscaled.checked_mul(10)?;
         unscaled = if negative { unscaled.checked_sub(digit)? } else { unscaled.checked_add(digit)? };
@@ -506,7 +503,7 @@ struct TimestampParts<'a> {
 }
 
 /// A run of digits of a length, the length 0 for one or more digits
-fn take_digits<'a>(text: &'a str, len: usize) -> Option<(&'a str, &'a str)> {
+fn take_digits(text: &str, len: usize) -> Option<(&str, &str)> {
     let count = text.bytes().take_while(u8::is_ascii_digit).count();
     if count == 0 || (len > 0 && count != len) {
         return None;
@@ -692,7 +689,7 @@ pub fn js_number_string(number: f64) -> String {
     } else if -6 < n && n <= 0 {
         format!("0.{}{digits}", "0".repeat((-n) as usize))
     } else {
-        let exponent_sign = if n - 1 >= 0 { "+" } else { "-" };
+        let exponent_sign = if n > 0 { "+" } else { "-" };
         let (first, rest) = digits.split_at(1);
         let rest = if rest.is_empty() { String::new() } else { format!(".{rest}") };
         format!("{first}{rest}e{exponent_sign}{}", (n - 1).abs())

@@ -26,7 +26,9 @@ impl Hasher for FxHasher {
     fn write(&mut self, bytes: &[u8]) {
         let mut chunks = bytes.chunks_exact(8);
         for chunk in &mut chunks {
-            self.add(u64::from_le_bytes(chunk.try_into().unwrap()));
+            if let Ok(word) = <[u8; 8]>::try_from(chunk) {
+                self.add(u64::from_le_bytes(word));
+            }
         }
         let rest = chunks.remainder();
         if !rest.is_empty() {

@@ -4,8 +4,7 @@
 //! cancelled. The history holds the active queries and the finished ones, and the metrics of the connection that the
 //! finished queries add up to. An action changes the history in place and returns the effects that the host applies
 //! afterwards: the handles that it lets go of. The result tables are Arrow tables that stay with the host, the history
-//! knows them and what the host keeps of a query (its record) by their handles (`crate::handles`). A history of its
-//! own, e.g. the one of the shell, may keep a limited number of queries.
+//! knows them and what the host keeps of a query (its record) by their handles (`crate::handles`).
 
 pub mod progress;
 
@@ -186,8 +185,8 @@ pub struct QueryMetadata {
     /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result tables of the
     /// earlier queries of its owner, the owner shows only its latest result.
     pub result_owner: Option<String>,
-    /// Where a statement of a plan of workbook scripts comes from, as the host holds it (`PlannedStatement` of the
-    /// TypeScript runtime)
+    /// Where a statement of a plan of workbook scripts comes from, as the host holds it (`PlannedStatement` of
+    /// `@ankoh/dashql`)
     pub planned: Option<serde_json::Value>,
 }
 
@@ -453,20 +452,12 @@ pub struct QueryExecutionHistory {
     metrics: ConnectionMetrics,
     /// The revision of the history, it changes with every change
     revision: u64,
-    /// The most queries that the history keeps, none for no limit
-    limit: Option<usize>,
 }
 
 impl QueryExecutionHistory {
     /// An empty history
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// An empty history that keeps at most `limit` queries. A query that starts beyond the limit drops the oldest
-    /// finished queries, then the oldest active ones.
-    pub fn with_limit(limit: usize) -> Self {
-        Self { limit: Some(limit), ..Self::default() }
     }
 
     /// The active query with an id
@@ -523,7 +514,6 @@ impl QueryExecutionHistory {
                 self.queries_active_ordered.push(query_id);
                 self.snapshot_queries_active_finished += 1;
                 outcome.changed = true;
-                self.drop_beyond_limit(&mut outcome);
             }
             // The cache bookkeeping can arrive after the query finished: the write of a result runs after the query,
             // and the cache of a finished result can be deleted
@@ -571,25 +561,6 @@ impl QueryExecutionHistory {
         self.snapshot_queries_active_finished += 1;
         self.revision = next_revision();
         outcome
-    }
-
-    /// Drop the oldest queries beyond the limit: the finished ones first, then the active ones. Later actions on a
-    /// dropped query change nothing.
-    fn drop_beyond_limit(&mut self, outcome: &mut QueryExecutionOutcome) {
-        let Some(limit) = self.limit else {
-            return;
-        };
-        let excess = (self.queries_finished_ordered.len() + self.queries_active_ordered.len()).saturating_sub(limit);
-        let finished = excess.min(self.queries_finished_ordered.len());
-        let active = (excess - finished).min(self.queries_active_ordered.len());
-        let dropped = self
-            .queries_finished_ordered
-            .drain(..finished)
-            .map(|id| self.queries_finished.remove(&id))
-            .chain(self.queries_active_ordered.drain(..active).map(|id| self.queries_active.remove(&id)));
-        for query in dropped.flatten() {
-            query.release(&mut outcome.effects);
-        }
     }
 
     /// The active or finished query with an id, for a change

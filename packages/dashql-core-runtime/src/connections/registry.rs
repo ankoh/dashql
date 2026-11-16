@@ -1,13 +1,10 @@
-//! The connections of a runtime with the histories of their queries, and the histories without a connection (e.g. the
-//! one of the shell).
+//! The connections of a runtime with the histories of their queries.
 //!
 //! The registry keeps the connections in the order they were registered and hands out the ids of the queries of all
-//! histories from one sequence, a query id names a query of one history. It applies the actions of a connection with
+//! connections from one sequence, a query id names a query of one history. It applies the actions of a connection with
 //! the rules of the registry: a connection that workbooks use is never deleted and switches its connector only while
 //! one workbook uses it, the embedded Hyper is never deleted. The workbooks that use a connection come from the host
-//! (`set_references`) until the workbooks are part of the runtime.
-//!
-//! Ported from `applyConnectionAction` of `packages/dashql/src/runtime/connections/connection_registry_state.ts`.
+//! (`set_references`), the workbooks of the runtime set them.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -19,15 +16,6 @@ use super::{ConnectionAction, ConnectionEffect, ConnectionState, ConnectorType, 
 use crate::catalog_loader::FollowedConnection;
 use crate::handles::Handle;
 use crate::query::{QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId};
-
-/// The history that a query belongs to
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum QueryOwner {
-    /// The history of a connection
-    Connection(String),
-    /// A history without a connection, by its name
-    History(String),
-}
 
 /// What the host does after an action of the registry, in order
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,7 +44,7 @@ impl From<&QueryExecutionEffect> for RegistryEffect {
 /// What an action of the registry did
 #[derive(Debug, Default)]
 pub struct RegistryOutcome {
-    /// Did the action change a connection or a history?
+    /// Did the action change a connection or its queries?
     pub changed: bool,
     /// The effects for the host, in order
     pub effects: Vec<RegistryEffect>,
@@ -91,14 +79,12 @@ pub struct ListedConnection {
     pub ordinal: Option<u32>,
 }
 
-/// The connections and the histories of a runtime. A runtime holds few connections and histories, they are lists: a
-/// map of each would grow the module by its own code.
+/// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
+/// own code.
 #[derive(Default)]
 pub struct ConnectionRegistry {
     /// The connections in the order of registration
     connections: Vec<(String, FollowedConnection)>,
-    /// The histories without a connection by name
-    histories: Vec<(String, Rc<RefCell<QueryExecutionHistory>>)>,
     /// The last query id
     last_query_id: QueryId,
     /// The workbooks that use a connection, in the order of the host
@@ -248,40 +234,9 @@ impl ConnectionRegistry {
         Ok(outcome)
     }
 
-    /// Create a history without a connection that keeps at most `limit` queries, an existing one stays
-    pub fn create_history(&mut self, name: &str, limit: Option<usize>) {
-        if self.histories.iter().any(|(held, _)| held == name) {
-            return;
-        }
-        let history = match limit {
-            Some(limit) => QueryExecutionHistory::with_limit(limit),
-            None => QueryExecutionHistory::new(),
-        };
-        self.histories.push((name.to_string(), Rc::new(RefCell::new(history))));
-    }
-
-    /// Drop a history without a connection, the effects release the handles of its queries
-    pub fn drop_history(&mut self, name: &str) -> RegistryOutcome {
-        let Some(index) = self.histories.iter().position(|(held, _)| held == name) else { return RegistryOutcome::default() };
-        let (_, history) = self.histories.remove(index);
-        let mut history = history.borrow_mut();
-        let stopped = history.active_ids().to_vec();
-        let mut outcome = RegistryOutcome::of_queries(history.clear("The query history was cleared"));
-        outcome.stopped = stopped;
-        outcome
-    }
-
-    /// The histories without a connection
-    pub fn histories(&self) -> impl Iterator<Item = (&str, &Rc<RefCell<QueryExecutionHistory>>)> {
-        self.histories.iter().map(|(name, history)| (name.as_str(), history))
-    }
-
-    /// The history of an owner
-    pub fn history(&self, owner: &QueryOwner) -> Option<Rc<RefCell<QueryExecutionHistory>>> {
-        match owner {
-            QueryOwner::Connection(id) => self.get(id).map(|connection| connection.queries.clone()),
-            QueryOwner::History(name) => self.histories.iter().find(|(held, _)| held == name).map(|(_, history)| history.clone()),
-        }
+    /// The history of the queries of a connection
+    pub fn history(&self, connection_id: &str) -> Option<Rc<RefCell<QueryExecutionHistory>>> {
+        self.get(connection_id).map(|connection| connection.queries.clone())
     }
 
     /// Hand out the id of a new query
@@ -297,20 +252,16 @@ impl ConnectionRegistry {
         self.last_query_id
     }
 
-    /// The history that holds a query and its owner, none for a query that left its history
-    pub fn query_history(&self, query_id: QueryId) -> Option<(QueryOwner, Rc<RefCell<QueryExecutionHistory>>)> {
+    /// The history that holds a query and its connection, none for a query that left its history
+    pub fn query_history(&self, query_id: QueryId) -> Option<(String, Rc<RefCell<QueryExecutionHistory>>)> {
         let holds = |history: &Rc<RefCell<QueryExecutionHistory>>| history.try_borrow().is_ok_and(|history| history.query(query_id).is_some());
         let connection = self.connections.iter().find(|(_, connection)| holds(&connection.queries));
-        if let Some((id, connection)) = connection {
-            return Some((QueryOwner::Connection(id.clone()), connection.queries.clone()));
-        }
-        let history = self.histories.iter().find(|(_, history)| holds(history));
-        history.map(|(name, history)| (QueryOwner::History(name.clone()), history.clone()))
+        connection.map(|(id, connection)| (id.clone(), connection.queries.clone()))
     }
 
-    /// Apply an action to a query of a history. The id of a new query comes from `next_query_id`.
-    pub fn apply_query(&mut self, owner: &QueryOwner, action: QueryExecutionAction) -> Result<RegistryOutcome> {
-        let history = self.history(owner).ok_or_else(|| Error::invalid_argument(format!("no query history of {owner:?}")))?;
+    /// Apply an action to a query of the history of a connection. The id of a new query comes from `next_query_id`.
+    pub fn apply_query(&mut self, connection_id: &str, action: QueryExecutionAction) -> Result<RegistryOutcome> {
+        let history = self.history(connection_id).ok_or_else(|| Error::invalid_argument(format!("no connection {connection_id}")))?;
         let outcome = history.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?.apply(action)?;
         Ok(RegistryOutcome::of_queries(outcome))
     }
@@ -369,39 +320,22 @@ mod tests {
     fn a_reset_stops_the_queries_of_the_connection() {
         let mut registry = ConnectionRegistry::new();
         registry.insert(trino("t")).unwrap();
-        let owner = QueryOwner::Connection("t".into());
+        let owner = "t";
         let first = registry.next_query_id();
         let second = registry.next_query_id();
         assert_eq!(second, first + 1);
         for (query_id, handle) in [(first, None), (second, Some(7))] {
             let mut state = QueryExecutionState::new(query_id, 1, "select 1", QueryMetadata::new(QueryType::UserProvided), 0);
             state.handle = handle;
-            registry.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
+            registry.apply_query(owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
         }
-        assert_eq!(registry.query_history(first).map(|(owner, _)| owner), Some(owner));
+        assert_eq!(registry.query_history(first).map(|(owner, _)| owner).as_deref(), Some(owner));
         let outcome = registry.apply("t", ConnectionAction::Reset, 0.0).unwrap();
         assert_eq!(outcome.stopped, [first, second]);
         assert!(registry.query_history(first).is_none());
         assert!(outcome.effects.contains(&RegistryEffect::Abort { handle: 7, reason: "Connection was reset" }));
         assert!(outcome.effects.contains(&RegistryEffect::Release { handle: 7 }));
         assert!(registry.get("t").unwrap().queries.borrow().active_ids().is_empty());
-    }
-
-    #[test]
-    fn keeps_histories_without_a_connection() {
-        let mut registry = ConnectionRegistry::new();
-        registry.create_history("shell", Some(1));
-        let owner = QueryOwner::History("shell".into());
-        for _ in 0..2 {
-            let query_id = registry.next_query_id();
-            let state = QueryExecutionState::new(query_id, 1, "select 1", QueryMetadata::new(QueryType::UserProvided), 0);
-            registry.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
-        }
-        let history = registry.history(&owner).unwrap();
-        assert_eq!(history.borrow().active_ids().len(), 1, "the limit drops the oldest query");
-        assert!(registry.apply_query(&QueryOwner::History("other".into()), QueryExecutionAction::QueryCacheDeleted { query_id: 1 }).is_err());
-        registry.drop_history("shell");
-        assert!(registry.history(&owner).is_none());
     }
 
     #[test]

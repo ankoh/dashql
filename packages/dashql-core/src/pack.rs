@@ -461,7 +461,7 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
             ExpressionSubTypeT::Literal(Box::new(build!(LiteralT {
                 literal_type: l.literal_type,
                 // Always written, even if empty
-                raw_value: Some(scanned.text[begin..end].to_string()),
+                raw_value: Some(scanned.text.get(begin..end).unwrap_or("").to_string()),
             })))
         }
         ExpressionInner::Comparison(c) => ExpressionSubTypeT::Comparison(Box::new(build!(ComparisonT {
@@ -531,14 +531,15 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
         .table_references
         .iter()
         .map(|r| {
-            let relation = r.inner.as_ref().expect("relation expression");
+            // The analyzer gives every table reference a relation, a missing one packs without a name
+            let relation = r.inner.as_ref();
             build!(TableReferenceT {
                 ast_node_id: r.ast_node_id,
                 ast_statement_id: r.ast_statement_id.unwrap_or(PROTO_NULL_U32),
                 symbol_span: r.location.map(symbol_span),
-                table_name: Some(Box::new(qualified_table_name(&relation.table_name))),
+                table_name: relation.map(|relation| Box::new(qualified_table_name(&relation.table_name))),
                 alias_name: r.alias.as_ref().map(|(a, _)| a.text.to_string()),
-                resolved_table: relation.resolved_table.as_ref().map(|t| {
+                resolved_table: relation.and_then(|relation| relation.resolved_table.as_ref()).map(|t| {
                     let (db, schema) = t.catalog_schema_id.unpack_schema_id();
                     Box::new(build!(ResolvedTableT {
                         catalog_database_id: db,

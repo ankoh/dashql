@@ -1,6 +1,4 @@
-//! Tests of the query executions and the progress of queries, ported from the reducer tests and
-//! `tracked_query_execution.test.ts` of the TypeScript runtime and the progress model tests of
-//! `query_progress_format.test.ts` and `profile_execution_controller.test.ts` of the app.
+//! Tests of the query executions and the progress of queries.
 
 use dashql_buffers::profile as fb;
 use dashql_core_profile::{EntityState, ProfileUpdate, Stats, Status};
@@ -363,51 +361,7 @@ fn a_result_that_no_active_query_takes_is_released() {
 }
 
 #[test]
-fn a_query_that_leaves_a_limited_history_releases_its_record_and_its_table() {
-    let mut history = QueryExecutionHistory::with_limit(1);
-    start_with_record(&mut history, 1, 101);
-    finish(&mut history, 1);
-    let mut state = QueryExecutionState::new(2, 0, "select 2", metadata(QueryType::UserProvided, None), NOW);
-    state.handle = Some(102);
-    let outcome = history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
-    assert_eq!(outcome.effects, vec![release(1), QueryExecutionEffect::Release { handle: 101 }]);
-    assert_eq!(history.query(2).and_then(|query| query.handle), Some(102));
-}
-
-// A history of its own with a limit, e.g. the one of the shell
-
-#[test]
-fn a_limited_history_drops_the_oldest_finished_queries_first() {
-    let mut history = QueryExecutionHistory::with_limit(3);
-    succeed(&mut history, 1, metadata(QueryType::UserProvided, None));
-    succeed(&mut history, 2, metadata(QueryType::UserProvided, None));
-    start(&mut history, 3, metadata(QueryType::UserProvided, None));
-    // The oldest finished query leaves with its result table
-    let state = QueryExecutionState::new(4, 0, "select 4", metadata(QueryType::UserProvided, None), NOW);
-    let outcome = history.apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
-    assert!(outcome.changed);
-    assert_eq!(outcome.effects, vec![release(1)]);
-    assert_eq!(history.finished_ids(), &[2]);
-    assert_eq!(history.active_ids(), &[3, 4]);
-    assert!(history.query(1).is_none());
-}
-
-#[test]
-fn a_limited_history_drops_the_oldest_active_queries_without_finished_ones() {
-    let mut history = QueryExecutionHistory::with_limit(2);
-    for query_id in 1..=4 {
-        start(&mut history, query_id, metadata(QueryType::UserProvided, None));
-    }
-    assert_eq!(history.active_ids(), &[3, 4]);
-    assert_eq!(history.finished_ids(), &[] as &[QueryId]);
-    // A late action on a dropped query changes nothing
-    let outcome = history.apply(QueryExecutionAction::QuerySucceeded { query_id: 1, now: NOW }).unwrap();
-    assert!(!outcome.changed);
-    assert!(history.query(1).is_none());
-}
-
-#[test]
-fn a_history_without_a_limit_keeps_every_user_query() {
+fn a_history_keeps_every_user_query() {
     let mut history = QueryExecutionHistory::new();
     for query_id in 1..=150 {
         succeed(&mut history, query_id, metadata(QueryType::UserProvided, None));
@@ -415,7 +369,7 @@ fn a_history_without_a_limit_keeps_every_user_query() {
     assert_eq!(history.finished_ids().len(), 150);
 }
 
-// Tracked query executions: the actions that `executeTrackedQuery` dispatches
+// Internal queries, e.g. the ones of computations and catalog loads
 
 fn internal_metadata() -> QueryMetadata {
     QueryMetadata {

@@ -200,7 +200,8 @@ impl Script {
         // The parser registers keyword names and the replacements of obfuscated literals in a copy
         // of the scanned script (in place if it is not shared), which becomes the scanned script
         let watch = Stopwatch::start();
-        let scanned = self.scanned.take().unwrap();
+        // The scan above leaves a scanned script
+        let Some(scanned) = self.scanned.take() else { return };
         let parsed = parse(scanned);
         self.scanned = Some(parsed.scanned.clone());
         self.parsed = Some(Arc::new(parsed));
@@ -433,7 +434,8 @@ impl Script {
         };
         let renderer = VisRenderer::VegaLite(spec);
         let (text, span) = crate::vis_rewrite::rewrite_vis_renderer_tag(&self.text.to_string(), &parsed, statement_id, Some(&renderer))?;
-        Ok((text, span.expect("a written tag has a span")))
+        let span = span.ok_or_else(|| Error::invalid_argument("the Vega-Lite tag was not written"))?;
+        Ok((text, span))
     }
 
     /// Scan and parse if requested and outdated, then return the parsed script to format

@@ -12,8 +12,6 @@
 //!
 //! The service reads the connections that it follows as they are, a dispatch of the host changes them right away. It
 //! keeps them as weak references: a connection that the host destroyed is gone for the service too.
-//!
-//! Ported from `CatalogLoaderService` of `packages/dashql/src/runtime/connections/catalog/catalog_loader_service.ts`.
 
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
@@ -489,13 +487,15 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         };
         let what = relations.as_ref().map_or_else(|| "all".to_string(), |relations| relations.len().to_string());
         self.log(LogLevel::Info, "Starting catalog update", &[("connectionId", connection_id), ("relations", &what)]);
+        // The clock of the host is read before anything is borrowed
+        let now = self.host.now();
         let started = {
             let connection_state = connection
                 .state
                 .try_borrow()
                 .map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
             let mut state = self.state.borrow_mut();
-            CatalogUpdate::start(&connection_state, task_id, relations, &mut state.generations, self.host.now())
+            CatalogUpdate::start(&connection_state, task_id, relations, &mut state.generations, now)
         };
         let (mut update, action) = match started {
             Ok(started) => started,

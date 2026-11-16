@@ -1,7 +1,5 @@
 //! The connections of a workbook file: the details of a connection as the file stores them, and the restored
 //! connection.
-//!
-//! Ported from `packages/dashql/src/platform/connections/connection_import.ts`.
 
 use dashql_core::error::{Error, Result};
 use serde_json::Value;

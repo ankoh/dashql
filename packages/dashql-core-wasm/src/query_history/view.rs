@@ -12,7 +12,7 @@
 use dashql_buffers::profile as fb;
 use dashql_core_runtime::query::progress::{EngineProgressPayload, QueryProfileProgress};
 use dashql_core_runtime::query::{
-    self as rt, ConnectionQueryMetrics, QueryExecutionHistory, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState,
+    self as rt, ConnectionQueryMetrics, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState,
     QueryMetadata,
 };
 use serde::{Deserialize, Serialize};
@@ -357,8 +357,8 @@ pub struct QueryResultTableView {
 #[tsify(missing_as_null)]
 pub struct QueryView {
     pub query_id: u64,
-    /// The connection of the query, null for a query of a history without a connection
-    pub connection_id: Option<String>,
+    /// The connection of the query
+    pub connection_id: String,
     /// The trace of the log messages of the query
     pub trace_id: u64,
     pub query_text: String,
@@ -380,11 +380,11 @@ pub struct QueryView {
 
 impl QueryView {
     /// The view of a query, the payloads of its structured progress that the host holds don't cross
-    pub fn of(query: &QueryExecutionState, connection_id: Option<&str>, known: QueryProfileKeys) -> Self {
+    pub fn of(query: &QueryExecutionState, connection_id: &str, known: QueryProfileKeys) -> Self {
         let m = &query.metrics;
         QueryView {
             query_id: query.query_id,
-            connection_id: connection_id.map(str::to_string),
+            connection_id: connection_id.to_string(),
             trace_id: query.trace_id,
             query_text: query.query_text.clone(),
             query_metadata: (&query.query_metadata).into(),
@@ -453,19 +453,4 @@ pub struct QueryHistoryMetrics {
     pub successful_queries: QueryOutcomeMetrics,
     pub canceled_queries: QueryOutcomeMetrics,
     pub failed_queries: QueryOutcomeMetrics,
-}
-
-/// The queries of a history without a connection, the slice `history`: the finished queries in the order they finished,
-/// then the active ones in the order they started
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct QueryHistoryView {
-    pub queries: Vec<u64>,
-}
-
-impl From<&QueryExecutionHistory> for QueryHistoryView {
-    fn from(history: &QueryExecutionHistory) -> Self {
-        QueryHistoryView { queries: history.finished_ids().iter().chain(history.active_ids()).copied().collect() }
-    }
 }

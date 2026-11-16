@@ -6,10 +6,9 @@
 //! actions; the work that takes time and returns a result is a method each (`analyzeTable`, `executeQuery`,
 //! `cancelQuery`, `saveConnection`, `setupConnection`, ...).
 //!
-//! The runtime owns the computations of result tables, the connections with the histories of their queries, the
-//! histories without a connection (the shell), the query executor, the setups and the health checks of the
-//! connections, the catalog loader, the saves of the connections, the workbooks with their scripts, the runs of the
-//! workbooks, the storage writer and the restore of the stored state. A new domain adds its state to `Runtime`, its
+//! The runtime owns the computations of result tables, the connections with the histories of their queries, the query
+//! executor, the setups and the health checks of the connections, the catalog loader, the saves of the connections, the
+//! workbooks with their scripts, the runs of the workbooks, the storage writer and the restore of the stored state. A new domain adds its state to `Runtime`, its
 //! slices to `ViewKind`, its targets and actions to the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
@@ -42,7 +41,7 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connections::registry::{ConnectionRegistry, QueryOwner, RegistryOutcome};
+use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
@@ -56,7 +55,7 @@ use wasm_bindgen_futures::future_to_promise;
 
 use crate::connection::view::{ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
-use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryProfileKeys, QueryProfileProgressView, QueryView};
+use crate::query_history::view::{ProfileLayoutView, QueryProfileKeys, QueryProfileProgressView, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
@@ -86,7 +85,6 @@ export interface RuntimeViews {
     connectionList: { id: 'root'; view: ConnectionListView; known: undefined };
     connection: { id: string; view: ConnectionView; known: undefined };
     query: { id: number; view: QueryView; known: (QueryProfileKeys | null)[] };
-    history: { id: string; view: QueryHistoryView; known: undefined };
     workbookList: { id: 'root'; view: WorkbookListView; known: undefined };
     workbook: { id: string; view: WorkbookView; known: undefined };
     script: { id: number; view: WorkbookScriptView; known: (WorkbookScriptKeys | null)[] };
@@ -350,7 +348,6 @@ const COMPUTATION: &str = "computation";
 const CONNECTION_LIST: &str = "connectionList";
 const CONNECTION: &str = "connection";
 const QUERY: &str = "query";
-const HISTORY: &str = "history";
 const WORKBOOK_LIST: &str = "workbookList";
 const WORKBOOK: &str = "workbook";
 const SCRIPT: &str = "script";
@@ -511,32 +508,11 @@ impl Runtime {
                     .iter()
                     .enumerate()
                     .map(|(i, id)| {
-                        let read = read_query(&registry, *id, |owner, query| {
-                            let connection_id = match owner {
-                                QueryOwner::Connection(id) => Some(id.as_str()),
-                                QueryOwner::History(_) => None,
-                            };
+                        let read = read_query(&registry, *id, |connection_id, query| {
                             let known = known.get(i).copied().flatten().unwrap_or_default();
                             QueryView::of(query, connection_id, known)
                         });
                         noted(read, number(*id), busy)
-                    })
-                    .collect();
-                views_to_js(&reads)
-            }
-            HISTORY => {
-                let ids = Self::text_ids(&ids, "history")?;
-                let Ok(registry) = self.connections.registry.try_borrow() else {
-                    return all_busy(ids.iter().map(|id| text(id)).collect(), busy);
-                };
-                let reads: Vec<Read<QueryHistoryView>> = ids
-                    .iter()
-                    .map(|name| {
-                        let read = match registry.history(&QueryOwner::History(name.clone())) {
-                            None => Read::Gone,
-                            Some(history) => history.try_borrow().map_or(Read::Busy, |history| Read::Value(QueryHistoryView::from(&*history))),
-                        };
-                        noted(read, text(name), busy)
                     })
                     .collect();
                 views_to_js(&reads)
@@ -676,7 +652,7 @@ impl Runtime {
             RuntimeAction::DeleteConnection => ConnectionAction::Delete,
             RuntimeAction::ResetConnection => ConnectionAction::Reset,
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            action => return self.dispatch_query(QueryOwner::Connection(connection_id), action),
+            action => return self.dispatch_query(&connection_id, action),
         };
         // The host logs a refused action
         let outcome = connections.apply(&connection_id, action, None);
@@ -684,12 +660,12 @@ impl Runtime {
     }
 
     /// Apply an action to a query of a connection
-    fn dispatch_query(&self, owner: QueryOwner, action: RuntimeAction) -> Result<DispatchOutcome, String> {
+    fn dispatch_query(&self, connection_id: &str, action: RuntimeAction) -> Result<DispatchOutcome, String> {
         let action = match action {
             RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? },
             _ => return Ok(DispatchOutcome::failed("the action doesn't apply to the target")),
         };
-        Ok(match self.connections.apply_query(&owner, action, true) {
+        Ok(match self.connections.apply_query(connection_id, action, true) {
             Ok(outcome) => DispatchOutcome::changed(outcome.changed),
             Err(error) => DispatchOutcome::failed(error_text(error)),
         })
@@ -1029,10 +1005,10 @@ impl Runtime {
     }
 
     /// An id of the sequence of the queries without a query, e.g. for the computation of a result that no query of the
-    /// runtime produced
+    /// runtime produced. Fails while a task holds the registry.
     #[wasm_bindgen(js_name = allocateId)]
-    pub fn allocate_id(&self) -> f64 {
-        self.connections.registry.borrow_mut().allocate_id() as f64
+    pub fn allocate_id(&self) -> Result<f64, JsError> {
+        Ok(self.connections.registry.try_borrow_mut().map_err(|_| busy())?.allocate_id() as f64)
     }
 
     /// Cancel a query, resolves once it ended
@@ -1292,8 +1268,8 @@ impl Runtime {
 
     /// Tests of the seam: call a function while a part of the state is borrowed, as a task of the runtime would hold it.
     /// The function may take the changes and read the views. The parts: `workbook:<id>`, `connection:<id>` (its state),
-    /// `queries:<connection id>` (its history), `history:<name>`, `registry`, `workbooks`, `scriptIndex`,
-    /// `computations`, `runs`, `storage`.
+    /// `queries:<connection id>` (its history), `registry`, `workbooks`, `scriptIndex`, `computations`, `runs`,
+    /// `storage`.
     #[wasm_bindgen(js_name = testHold)]
     pub fn test_hold(&self, part: &str, f: &Function) -> Result<JsValue, JsError> {
         let call = || f.call0(&JsValue::NULL).map_err(|error| JsError::new(&crate::host::message_of(&error)));
@@ -1311,10 +1287,9 @@ impl Runtime {
                 let _held = state.try_borrow_mut().map_err(|_| busy())?;
                 call()
             }
-            "queries" | "history" => {
-                let owner = if name == "queries" { QueryOwner::Connection(id.to_string()) } else { QueryOwner::History(id.to_string()) };
-                let history = self.connections.registry.try_borrow().map_err(|_| busy())?.history(&owner);
-                let history = history.ok_or_else(|| JsError::new("no history of the owner"))?;
+            "queries" => {
+                let history = self.connections.registry.try_borrow().map_err(|_| busy())?.history(id);
+                let history = history.ok_or_else(|| JsError::new("no connection registered with the id"))?;
                 let _held = history.try_borrow_mut().map_err(|_| busy())?;
                 call()
             }
@@ -1880,18 +1855,17 @@ fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, stat
     }
 }
 
-/// Read a query of the histories of a registry: gone if no history holds it, busy if none does but one is borrowed
-fn read_query<T>(registry: &ConnectionRegistry, query_id: QueryId, read: impl FnOnce(&QueryOwner, &QueryExecutionState) -> T) -> Read<T> {
-    let connections = registry.connections().map(|(id, connection)| (QueryOwner::Connection(id.to_string()), connection.queries.clone()));
-    let histories = registry.histories().map(|(name, history)| (QueryOwner::History(name.to_string()), history.clone()));
+/// Read a query of the histories of the connections of a registry: gone if no history holds it, busy if none does but
+/// one is borrowed
+fn read_query<T>(registry: &ConnectionRegistry, query_id: QueryId, read: impl FnOnce(&str, &QueryExecutionState) -> T) -> Read<T> {
     let mut busy = false;
-    for (owner, history) in connections.chain(histories) {
-        let Ok(history) = history.try_borrow() else {
+    for (connection_id, connection) in registry.connections() {
+        let Ok(history) = connection.queries.try_borrow() else {
             busy = true;
             continue;
         };
         if let Some(query) = history.query(query_id) {
-            return Read::Value(read(&owner, query));
+            return Read::Value(read(connection_id, query));
         }
     }
     if busy {
@@ -1915,7 +1889,7 @@ fn setup_outcome(outcome: SetupOutcome) -> Result<JsValue, JsValue> {
 }
 
 /// The error of a read of a state that a task holds. The seam never panics on a borrow: a view of a busy slice reads as
-/// null and follows with the next changes, a read for a command fails with this error.
+/// `'busy'` and follows with the next changes, a read for a command fails with this error.
 fn busy() -> JsError {
     JsError::new("the state is busy, a task of the runtime holds it")
 }

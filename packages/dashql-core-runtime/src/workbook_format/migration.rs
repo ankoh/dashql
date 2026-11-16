@@ -1,4 +1,4 @@
-//! The migrations of a workbook folder to the current format version. Ported from `storage/migration/`.
+//! The migrations of a workbook folder to the current format version.
 //!
 //! A migration only touches the top-level files of a folder, a fixed set of names (`MIGRATION_FILES`). The host reads
 //! the ones that exist into a `MigrationFolder`, the migration changes the folder in memory, and the host applies
@@ -517,7 +517,7 @@ fn connections_of_scripts(folder: &mut MigrationFolder) -> Result<()> {
     let empty_connection_id = data
         .get("defaultConnectionId")
         .and_then(Value::as_str)
-        .filter(|id| lookup(*id).is_some())
+        .filter(|id| lookup(id).is_some())
         .or_else(|| by_id.first().map(|(id, _)| *id));
     let used: Vec<&str> = if !script_connection_ids.is_empty() { script_connection_ids } else { empty_connection_id.into_iter().collect() };
     let mut unique: Vec<&str> = Vec::new();

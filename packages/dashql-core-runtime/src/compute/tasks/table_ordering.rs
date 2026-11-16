@@ -1,7 +1,5 @@
 //! The order of the rows of a table, as row numbers in display order. An ordering of a filtered or searched table
 //! orders the selected rows only. Equal rows keep the order of the table.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/tasks/table_ordering.ts`.
 
 use super::data_search::DATA_SEARCH_ROW_FIELD;
 use super::sql::SqlFrame;

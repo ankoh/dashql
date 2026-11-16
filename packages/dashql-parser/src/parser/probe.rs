@@ -7,7 +7,9 @@
 //! - [`probe_suffix_batch`] and [`probe_suffix_sequence`] replay the tokens after the cursor from a
 //!   snapshot to test whether candidate symbols fit the rest of the script.
 
-use super::driver::{lac_check, table_action, Action, StateId};
+use super::driver::{
+    default_rule, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId, NO_STATE,
+};
 use crate::scanner::Symbol;
 use crate::symbol_kind::*;
 use crate::tables::*;
@@ -98,12 +100,12 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
     loop {
         label = match label {
             Label::NewState => {
-                let state = *states.last().unwrap();
+                let state = states.last().copied().unwrap_or(NO_STATE);
                 if state == YYFINAL {
                     policy.on_accept();
                     return;
                 }
-                if YYPACT[state as usize] as i32 == YYPACT_NINF {
+                if is_default_state(state) {
                     Label::Default
                 } else {
                     let kind = match lookahead {
@@ -163,7 +165,7 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
                     }
                 }
             }
-            Label::Default => match YYDEFACT[*states.last().unwrap() as usize] as usize {
+            Label::Default => match default_rule(states.last().copied().unwrap_or(NO_STATE)) {
                 0 => Label::ErrLab,
                 rule => Label::Reduce(rule),
             },
@@ -172,10 +174,9 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
                 if reductions_without_shift > MAX_REDUCTIONS_WITHOUT_SHIFT {
                     return;
                 }
-                let len = YYR2[rule] as usize;
-                let n = states.len();
-                let next = super::driver::goto_state(states[n - 1 - len], YYR1[rule] as SymbolKind);
-                states.truncate(n - len);
+                let len = rule_length(rule);
+                let next = super::driver::goto_state(state_below(states, len), rule_lhs(rule));
+                states.truncate(states.len().saturating_sub(len));
                 states.push(next);
                 Label::NewState
             }
@@ -195,10 +196,10 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
             Label::ErrLab1 => {
                 errstatus = 3;
                 let next = loop {
-                    if let Some(Action::Shift(next)) = table_action(*states.last().unwrap(), S_YYerror) {
+                    if let Some(Action::Shift(next)) = table_action(states.last().copied().unwrap_or(NO_STATE), S_YYerror) {
                         break next;
                     }
-                    if states.len() == 1 {
+                    if states.len() <= 1 {
                         return;
                     }
                     states.pop();
@@ -313,13 +314,13 @@ struct SuffixProbePolicy<'a> {
 
 impl Policy for SuffixProbePolicy<'_> {
     fn on_lookahead_read(&mut self, _states: &[StateId], next: &mut SymbolKind, pre_index: u32, tokens: &mut Tokens, _stop: &mut bool) {
-        if self.fed_count < self.feed.len() {
+        if let Some(&fed) = self.feed.get(self.fed_count) {
             // Only the first fed symbol replaces the target, all other fed symbols are insertions
             let consumes_target = self.replace_target && self.fed_count == 0;
             if !consumes_target {
                 tokens.next_index = pre_index;
             }
-            *next = self.feed[self.fed_count];
+            *next = fed;
             self.fed_count += 1;
         }
     }

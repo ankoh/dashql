@@ -104,7 +104,8 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
                 });
                 inputs.len() - 1
             });
-            let input = &mut inputs[i];
+            // The index points into the inputs, every name got its input when it was indexed
+            let Some(input) = inputs.get_mut(i) else { continue };
             if let Some(statement) = parameter.ast_statement_id {
                 let consumer = InputConsumer { script: si as u32, statement };
                 if !input.consumers.contains(&consumer) {
@@ -131,8 +132,8 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
     for script in request.scripts {
         let Some(p) = Prepared::lenient(script.script) else { continue };
         for tag in &p.analyzed.param_values {
-            if let (Some(&i), Some(literal)) = (index.get(&tag.name), &tag.literal) {
-                inputs[i].literal.get_or_insert_with(|| literal.clone());
+            if let (Some(input), Some(literal)) = (index.get(&tag.name).and_then(|&i| inputs.get_mut(i)), &tag.literal) {
+                input.literal.get_or_insert_with(|| literal.clone());
             }
         }
     }
@@ -165,7 +166,7 @@ pub(crate) fn describe_call(inputs: &SessionInputs, analyzed: &AnalyzedScript, s
     let bindings = description.as_object_mut()?.remove("bindings");
     for binding in bindings.as_ref().and_then(Value::as_array).into_iter().flatten() {
         let (Some(pointer), Some(param)) = (binding["pointer"].as_str(), binding["param"].as_str()) else { continue };
-        let (Some(literal), Some(option)) = (inputs.value_of(analyzed, param), description["options"].pointer_mut(pointer)) else { continue };
+        let (Some(literal), Some(option)) = (inputs.value_of(analyzed, param), description.get_mut("options").and_then(|options| options.pointer_mut(pointer))) else { continue };
         *option = literal.to_json();
     }
     Some(description.to_string())

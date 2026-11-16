@@ -5,8 +5,6 @@
 //! token of the link) are channels that the module speaks itself: the setup resolves their params and the connection
 //! keeps the channel with the headers of its requests. The token of a link is never stored, the page that opened the
 //! link holds it and the channel keeps it in memory.
-//!
-//! Ported from `packages/dashql-app/src/connections/hyper/hyper_connection_setup.tsx`.
 
 use std::rc::Rc;
 

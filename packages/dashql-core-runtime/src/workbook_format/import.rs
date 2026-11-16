@@ -1,4 +1,4 @@
-//! The import of a `.dashql` archive. Ported from `workbook/persistence/workbook_import.ts`.
+//! The import of a `.dashql` archive.
 //!
 //! The ZIP stays with the host: it lists the entries of the archive, `plan_archive` decides what each entry is and
 //! what the host reads of it, and the host hands back what it read. An archive with `workbook.parquet` holds the

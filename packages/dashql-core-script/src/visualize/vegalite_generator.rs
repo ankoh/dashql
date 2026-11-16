@@ -13,5 +13,6 @@ pub fn generate_vegalite_spec(spec: &VisualizationSpec, script: &AnalyzedScript)
     if let Some(vegalite) = &spec.vegalite {
         root.extend(vegalite.iter().map(|(k, v)| (k.clone(), v.clone())));
     }
-    serde_json::to_string_pretty(&root).expect("a JSON value always serializes")
+    // A map of JSON values with string keys always serializes
+    serde_json::to_string_pretty(&root).unwrap_or_default()
 }

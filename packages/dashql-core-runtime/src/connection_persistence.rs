@@ -1,6 +1,4 @@
-//! The persistence of connections: what storage keeps of a connection and when it is written. Ported from
-//! `applyConnectionAction` of `packages/dashql/src/runtime/connections/connection_registry_state.ts` and from
-//! `connection_persistence_service.ts`.
+//! The persistence of connections: what storage keeps of a connection and when it is written.
 //!
 //! The app manifest is the source of truth of a connection: its entry holds the params, the draft, the name and the
 //! caching choice. Every workbook that references the connection keeps a copy of its saved params. The files of a

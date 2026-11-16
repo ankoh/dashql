@@ -1,5 +1,5 @@
 //! The workbook tree: the folders of the sidebar in `workbooktree/`, every directory a folder with a
-//! `dashql-folder.json` that lists its workbooks. Ported from `storage/workbook_tree.ts`.
+//! `dashql-folder.json` that lists its workbooks.
 //!
 //! The host lists the directories and reads the folder files, `read_workbook_tree` builds the tree of them.
 

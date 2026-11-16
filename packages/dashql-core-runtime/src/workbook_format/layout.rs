@@ -1,7 +1,5 @@
 //! The layout of the storage: the names of the files and folders of the OPFS root, of a workbook folder and of a
 //! native workbook folder, see `docs/design/storage_layout.md`. The file systems stay with the host.
-//!
-//! Ported from the pure parts of `storage_backend.ts`, `workbook_tree.ts` and `native_storage_backend.ts`.
 
 use std::collections::{BTreeSet, HashMap};
 

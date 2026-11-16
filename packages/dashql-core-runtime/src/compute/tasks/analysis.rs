@@ -4,8 +4,6 @@
 //! The values that the grid shows formatted stay Arrow values: the minimum and the maximum in the type of the
 //! column, the lower bounds of the bins as numbers or epoch milliseconds. The host formats them as it formats the
 //! cells of the grid.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/column_analysis.ts`.
 
 use arrow_array::ArrayRef;
 use dashql_core::error::{Error, Result};

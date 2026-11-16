@@ -235,12 +235,7 @@ impl PlanState {
         d.node = node;
         d.script = script;
         d.message = opt(Some(message));
-        d.text_span = text_span.map(|s| {
-            let mut t = TextSpanT::default();
-            t.offset = s.offset;
-            t.length = s.length;
-            t
-        });
+        d.text_span = text_span.map(text_span_t);
         d.error = error;
         self.diagnostics.push(d);
         if error && self.tolerant {
@@ -262,12 +257,14 @@ impl PlanState {
         }
         let i = self.entity_list.len() as u32;
         self.entities.insert((connection, table.object_id), i);
+        let catalog_object_id = ExecutionGraphCatalogObjectIDT {
+            object_type: ExecutionGraphEntityType::TABLE,
+            object_id: table.table_id().pack(),
+            sub_object_id: 0,
+            ..Default::default()
+        };
         let mut entity = ExecutionGraphEntityT::default();
-        let mut id = ExecutionGraphCatalogObjectIDT::default();
-        id.object_type = ExecutionGraphEntityType::TABLE;
-        id.object_id = table.table_id().pack();
-        id.sub_object_id = 0;
-        entity.catalog_object_id = id;
+        entity.catalog_object_id = catalog_object_id;
         (entity.catalog_database_id, entity.catalog_schema_id) = table.catalog_schema_id.unpack_schema_id();
         let (db, schema, name) = resource_name(&table.table_name);
         entity.database_name = opt(Some(db));
@@ -371,7 +368,8 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
                 offset = (c.offset + c.length) as usize;
                 continue;
             }
-            if !b" \t\r\n\x0c;".contains(&text[offset]) {
+            let Some(byte) = text.get(offset) else { break };
+            if !b" \t\r\n\x0c;".contains(byte) {
                 state.report(NONE, index, None, "unsupported SQL: parser produced no statements".into(), true);
                 break;
             }
@@ -396,7 +394,7 @@ pub(crate) fn has_manual_tag(script: &Script) -> bool {
 fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
     match request.scope {
         PlanScope::Session => (0..request.scripts.len() as u32)
-            .filter(|&i| !request.materialized.contains(&i) && !runs_on_request(request.scripts[i as usize].script))
+            .filter(|&i| !request.materialized.contains(&i) && request.scripts.get(i as usize).is_some_and(|s| !runs_on_request(s.script)))
             .collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
         PlanScope::Tolerant => (0..request.scripts.len() as u32).collect(),
@@ -475,19 +473,22 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let mut references = ScriptReferences::new(script_count);
     let mut pending: Vec<u32> = if targeted { targets.clone() } else { (0..script_count as u32).collect() };
     while let Some(i) = pending.pop() {
-        if planned[i as usize] {
+        // The scripts and their connections are checked with the request above
+        let (Some(planned), Some(input)) = (planned.get_mut(i as usize), request.scripts.get(i as usize)) else { continue };
+        if *planned {
             continue;
         }
-        planned[i as usize] = true;
-        let input = &request.scripts[i as usize];
-        let catalog = request.connections[input.connection as usize].catalog;
+        *planned = true;
+        let Some(catalog) = request.connections.get(input.connection as usize).map(|c| c.catalog) else { continue };
         let Some(p) = prepare(&mut state, i, input, catalog) else { continue };
         if !targeted {
             diagnose_syntax(&mut state, i, &p);
         }
         references.resolve(&mut state_reporter(&mut state), request, i, &p);
         pending.extend(references.of(i).iter().filter_map(|r| r.producer));
-        prepared[i as usize] = Some(p);
+        if let Some(slot) = prepared.get_mut(i as usize) {
+            *slot = Some(p);
+        }
     }
     // Invalid input snapshots must never yield executable partial plans
     if !state.graph.valid {
@@ -506,10 +507,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     {
         let mut pending: Vec<(u32, Include)> = targets.iter().map(|&t| (t, Include::All)).collect();
         while let Some((i, level)) = pending.pop() {
-            if include[i as usize] >= level {
-                continue;
-            }
-            include[i as usize] = level;
+            let Some(included) = include.get_mut(i as usize).filter(|included| **included < level) else { continue };
+            *included = level;
             // The references of the included statements and of the terminal query, which an inline reference inlines
             for r in references.of(i) {
                 let Some(producer) = r.producer else { continue };
@@ -523,16 +522,17 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         }
     }
     // A plan includes every statement of a script or none
-    let included = |i: usize| include[i] == Include::All;
+    let included = |i: usize| include.get(i) == Some(&Include::All);
     // Scripts that a plan of targets passes through as one statement, they don't parse
-    let opaque: Vec<bool> = (0..script_count).map(|i| targeted && include[i] == Include::All && prepared[i].as_ref().is_some_and(|p| !p.parses())).collect();
+    let opaque: Vec<bool> =
+        include.iter().zip(&prepared).map(|(&level, p)| targeted && level == Include::All && p.as_ref().is_some_and(|p| !p.parses())).collect();
 
     // The node ids of the included statements
     let mut node_of: BTreeMap<(u32, u32), u32> = BTreeMap::new();
     let mut node_count = 0u32;
-    for i in 0..script_count {
-        let Some(p) = prepared[i].as_ref() else { continue };
-        if opaque[i] {
+    for (i, (p, &is_opaque)) in prepared.iter().zip(&opaque).enumerate() {
+        let Some(p) = p.as_ref() else { continue };
+        if is_opaque {
             node_of.insert((i as u32, 0), node_count);
             node_count += 1;
             continue;
@@ -550,12 +550,14 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     // The relations of every connection
     let mut connections: Vec<ConnectionState> = (0..request.connections.len()).map(|_| ConnectionState::default()).collect();
     // Catalog entry ids are unique within the catalog of a connection
-    let participating_ids: BTreeSet<(u32, CatalogEntryId)> = (0..script_count)
-        .filter(|&i| participates(i))
-        .map(|i| (request.scripts[i].connection, request.scripts[i].script.catalog_entry_id()))
+    let participating_ids: BTreeSet<(u32, CatalogEntryId)> = request
+        .scripts
+        .iter()
+        .enumerate()
+        .filter(|&(i, _)| participates(i))
+        .map(|(_, s)| (s.connection, s.script.catalog_entry_id()))
         .collect();
-    for (ci, connection) in request.connections.iter().enumerate() {
-        let c = &mut connections[ci];
+    for (ci, (connection, c)) in request.connections.iter().zip(connections.iter_mut()).enumerate() {
         for (_, entry) in connection.catalog.entries_ranked() {
             c.views.extend(tables(entry).iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
             for table in tables(entry) {
@@ -563,8 +565,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 c.published_views.insert(table.object_id, table.is_view);
             }
         }
-        for (i, s) in request.scripts.iter().enumerate() {
-            let Some(p) = prepared[i].as_ref().filter(|_| s.connection as usize == ci) else { continue };
+        for (i, (s, p)) in request.scripts.iter().zip(&prepared).enumerate() {
+            let Some(p) = p.as_ref().filter(|_| s.connection as usize == ci) else { continue };
             let analyzed = p.analyzed;
             c.views.extend(analyzed.entry.table_declarations.iter().filter(|t| t.is_view).map(|t| t.table_id().pack()));
             for table in &analyzed.entry.table_declarations {
@@ -594,19 +596,20 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let mut materialization_of: BTreeMap<u32, u32> = BTreeMap::new();
     for i in 0..script_count as u32 {
         for r in references.of(i) {
-            if include[i as usize] == Include::None {
+            if include.get(i as usize).is_none_or(|&level| level == Include::None) {
                 continue;
             }
             let (ReferenceKind::Scan, Some(producer)) = (r.kind, r.producer) else { continue };
             materialization_of.entry(producer).or_insert_with(|| {
-                let mut m = ExecutionGraphMaterializationT::default();
-                m.script = producer;
-                let terminal = prepared[producer as usize].as_ref().and_then(Prepared::terminal);
-                m.node = terminal.and_then(|t| node_of.get(&(producer, t)).copied()).unwrap_or(NONE);
-                m.path = Some(match request.scripts[producer as usize].materialization_file {
+                let terminal = prepared.get(producer as usize).and_then(Option::as_ref).and_then(Prepared::terminal);
+                let path = match request.scripts.get(producer as usize).and_then(|s| s.materialization_file) {
                     Some(file) => format!("{}/{}", request.mount_prefix, file),
                     None => format!("{}/s{}.parquet", request.mount_prefix, producer),
-                });
+                };
+                let mut m = ExecutionGraphMaterializationT::default();
+                m.script = producer;
+                m.node = terminal.and_then(|t| node_of.get(&(producer, t)).copied()).unwrap_or(NONE);
+                m.path = Some(path);
                 materializations.push(m);
                 (materializations.len() - 1) as u32
             });
@@ -617,11 +620,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let mut graph_references: Vec<ExecutionGraphScriptReferenceT> = Vec::new();
     // Edges of script references: (from, to, reason)
     let mut reference_edges: Vec<(u32, u32, Reason, u32)> = Vec::new();
-    for si in 0..script_count {
-        let Some(p) = prepared[si].as_ref() else { continue };
-        let connection = request.scripts[si].connection;
+    for (si, ((p, input), &is_opaque)) in prepared.iter().zip(request.scripts).zip(&opaque).enumerate() {
+        let Some(p) = p.as_ref() else { continue };
+        let connection = input.connection;
         let (scanned, parsed, analyzed) = (p.scanned, p.parsed, p.analyzed);
-        if opaque[si] {
+        if is_opaque {
             // A script that does not parse runs as written, as one statement
             let node_id = nodes.len() as u32;
             let mut node = ExecutionGraphNodeT::default();
@@ -646,14 +649,18 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             let node_id = nodes.len() as u32;
             debug_assert_eq!(node_of.get(&(si as u32, statement_id as u32)), Some(&node_id));
-            let c = &mut connections[connection as usize];
+            // The connections of the scripts are checked with the request above
+            let (Some(c), Some(connection_request)) = (connections.get_mut(connection as usize), request.connections.get(connection as usize)) else {
+                continue;
+            };
             let mut node = ExecutionGraphNodeT::default();
             node.script = si as u32;
             node.statement_id = statement_id as u32;
             node.statement_type = statement.statement_type;
             node.connection = connection;
             let ty = statement.statement_type;
-            let span = descriptions[statement_id].statement_span;
+            // The parser describes every statement, a statement without a description has the empty span
+            let span = descriptions.get(statement_id).map(|d| d.statement_span).unwrap_or_default();
             state.spans.push(span);
             node.produces_output = produces_output(parsed, statement);
             node.script_result = terminal == Some(statement_id as u32) && node.produces_output;
@@ -674,7 +681,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 &state.inputs,
             );
             // The inputs of the statement become literals, an input without a value fails the plan
-            let dialect = request.connections[connection as usize].dialect;
+            let dialect = connection_request.dialect;
             let bindings = bind_inputs(&state.inputs, p, Some(statement_id as u32), dialect);
             spliced.edits.extend(bindings.edits);
             for (span, message) in bindings.errors {
@@ -696,7 +703,6 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 reference.materialization = r.materialization.unwrap_or(NONE);
                 graph_references.push(reference);
             }
-            let root = &parsed.nodes[statement.root as usize];
             let mut explain_executes = false;
             let mut accesses: BTreeMap<(u32, u32), Mode> = BTreeMap::new();
             let mut barrier = false;
@@ -759,7 +765,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 }
             }
             if ty == Type::EXPLAIN {
-                let [body, options] = attrs!(parsed.children(root), [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
+                // A root that the parser didn't emit has no children, the EXPLAIN has no body then
+                let children = parsed.nodes.get(statement.root as usize).map(|root| parsed.children(root)).unwrap_or_default();
+                let [body, options] = attrs!(children, [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
                 explain_executes = dashql_core_script::touched_relations::explain_executes(parsed, options);
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
                     barrier!("EXPLAIN requires a statement or expressions body");
@@ -779,8 +787,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             // AST effects that are not represented by ordinary relation reads, reported once per statement
             let mut effects = false;
-            for ni in statement.nodes_begin..statement.nodes_begin + statement.node_count {
-                let ast = &parsed.nodes[ni as usize];
+            for ast in parsed.nodes.iter().skip(statement.nodes_begin as usize).take(statement.node_count as usize) {
                 if ast.node_type() == NodeType::NONE {
                     continue;
                 }
@@ -880,9 +887,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 }
             }
             for &m in &spliced.inputs {
-                let producer_node = materializations[m as usize].node;
-                if producer_node != NONE {
-                    reference_edges.push((producer_node, node_id, Reason::MATERIALIZATION, materializations[m as usize].script));
+                let Some(materialization) = materializations.get(m as usize) else { continue };
+                if materialization.node != NONE {
+                    reference_edges.push((materialization.node, node_id, Reason::MATERIALIZATION, materialization.script));
                 }
             }
             node.inputs = (!spliced.inputs.is_empty()).then(|| spliced.inputs.clone());
@@ -1024,16 +1031,18 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         }
         // Merge by name only for conflict tracking
         let mut merged: BTreeMap<Name, &ExecutionGraphAccessT> = BTreeMap::new();
+        // The connection of a node is checked with the request
+        let Some(defaults) = request.connections.get(connection as usize) else { continue };
         for a in node.accesses.iter().flatten() {
+            // The accesses name the entities and the unresolved references that the plan interned
             let name = if a.entity != NONE {
-                let e = &state.entity_list[a.entity as usize];
+                let Some(e) = state.entity_list.get(a.entity as usize) else { continue };
                 (e.database_name.clone().unwrap_or_default(), e.schema_name.clone().unwrap_or_default(), e.name.clone().unwrap_or_default())
             } else {
-                let r = &state.unresolved_list[a.unresolved_reference as usize];
+                let Some(r) = state.unresolved_list.get(a.unresolved_reference as usize) else { continue };
                 (r.database_name.clone().unwrap_or_default(), r.schema_name.clone().unwrap_or_default(), r.name.clone().unwrap_or_default())
             };
             // A statement can write `t` and the catalog can know it as `db.schema.t`
-            let defaults = &request.connections[connection as usize];
             let name = (
                 if name.0.is_empty() { defaults.default_database.to_string() } else { name.0 },
                 if name.1.is_empty() { defaults.default_schema.to_string() } else { name.1 },
@@ -1068,7 +1077,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         if from < to {
             edge(Some(from), to, NONE, NONE, reason);
         } else {
-            let consumer = nodes[to as usize].script;
+            let consumer = nodes.get(to as usize).map_or(NONE, |node| node.script);
             let message = format!(
                 "{} references {}, which runs later; move {} above {}",
                 script_label(request, consumer),
@@ -1121,14 +1130,11 @@ fn is_cte_reference(analyzed: &AnalyzedScript, table_ref: &dashql_core::analyzer
         Some((a, _)) => a.text.clone(),
         None => relation.table_name.table_name.text.clone(),
     };
-    matches!(analyzed.name_scopes[scope as usize].source(&alias).map(|s| &s.table), Some(ReferencedTable::Cte(_)))
+    matches!(analyzed.name_scopes.get(scope as usize).and_then(|s| s.source(&alias)).map(|s| &s.table), Some(ReferencedTable::Cte(_)))
 }
 
 fn text_span_t(span: TextSpan) -> TextSpanT {
-    let mut t = TextSpanT::default();
-    t.offset = span.offset;
-    t.length = span.length;
-    t
+    TextSpanT { offset: span.offset, length: span.length, ..Default::default() }
 }
 
 /// A reporter for the diagnostics of script references

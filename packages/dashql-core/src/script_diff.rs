@@ -191,7 +191,9 @@ impl<'a> ScriptDiff<'a> {
                 continue;
             }
             sizes[node_id] = 1;
-            pending.last_mut().unwrap().2 = true;
+            if let Some(last) = pending.last_mut() {
+                last.2 = true;
+            }
             let node = &script.nodes[node_id];
             if has_children(node.node_type()) {
                 let begin = node.children_begin_or_value() as usize;
@@ -279,7 +281,7 @@ impl<'a> ScriptDiff<'a> {
                     sim.matching_nodes = pending[0].matching_nodes;
                     break;
                 }
-                let entry = pending.pop().unwrap();
+                let Some(entry) = pending.pop() else { break };
                 pending[entry.parent_entry].matching_nodes += entry.matching_nodes;
                 continue;
             }
@@ -447,17 +449,15 @@ impl<'a> ScriptDiff<'a> {
         // (source id, target id, size of the previous pile)
         let mut piles: Vec<Vec<(usize, usize, usize)>> = Vec::new();
         for &(source_id, target_id) in unique_pairs {
-            match piles.iter().position(|pile| pile.last().unwrap().1 >= target_id) {
+            match piles.iter().position(|pile| pile.last().is_some_and(|top| top.1 >= target_id)) {
                 Some(p) => {
                     let prev_pile_id = p.max(1) - 1;
                     let prev_pile_size = piles[prev_pile_id].len();
                     piles[p].push((source_id, target_id, prev_pile_size));
                 }
                 None => {
-                    piles.push(Vec::new());
-                    let prev_pile_id = piles.len().max(2) - 2;
-                    let prev_pile_size = piles[prev_pile_id].len();
-                    piles.last_mut().unwrap().push((source_id, target_id, prev_pile_size));
+                    let prev_pile_size = piles.last().map_or(0, Vec::len);
+                    piles.push(vec![(source_id, target_id, prev_pile_size)]);
                 }
             }
         }
@@ -549,7 +549,7 @@ impl<'a> ScriptDiff<'a> {
             let mut coalesced: Vec<TextSpan> = Vec::with_capacity(changes.len());
             coalesced.push(changes[0]);
             for change in &changes[1..] {
-                let last = coalesced.last_mut().unwrap();
+                let Some(last) = coalesced.last_mut() else { continue };
                 let last_end = last.end();
                 if change.offset <= last_end {
                     let new_end = last_end.max(change.end());

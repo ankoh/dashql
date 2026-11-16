@@ -53,6 +53,21 @@ fn push(output: &mut Vec<u8>, text: &str) {
     output.extend_from_slice(text.as_bytes());
 }
 
+/// The bytes between two offsets, empty if the range is out of bounds
+fn byte_range(text: &[u8], begin: usize, end: usize) -> &[u8] {
+    text.get(begin..end).unwrap_or(&[])
+}
+
+/// The bytes before an offset, all of them if the offset is past the end
+fn bytes_before(text: &[u8], end: usize) -> &[u8] {
+    text.get(..end).unwrap_or(text)
+}
+
+/// The bytes from an offset on, none if the offset is past the end
+fn bytes_from(text: &[u8], begin: usize) -> &[u8] {
+    text.get(begin..).unwrap_or(&[])
+}
+
 /// The byte offset after the grapheme cluster at `offset`, one byte further if the text is not valid UTF-8
 fn next_cluster(utf8: Option<&str>, offset: usize) -> usize {
     match utf8 {
@@ -75,7 +90,7 @@ fn truncate_display_text(text: &[u8], width: usize) -> Vec<u8> {
     let mut offset = 0;
     while offset < text.len() {
         let next = next_cluster(utf8, offset);
-        let grapheme_width = display_width(&text[offset..next]);
+        let grapheme_width = display_width(byte_range(text, offset, next));
         if rendered + grapheme_width > content_width {
             break;
         }
@@ -83,8 +98,8 @@ fn truncate_display_text(text: &[u8], width: usize) -> Vec<u8> {
         end = next;
         offset = next;
     }
-    let mut output = text[..end].to_vec();
-    output.extend_from_slice(&MARKER[..marker_width]);
+    let mut output = bytes_before(text, end).to_vec();
+    output.extend_from_slice(bytes_before(MARKER, marker_width));
     output
 }
 
@@ -132,7 +147,7 @@ fn append_prompt_prefix(
     let mut offset = 0;
     while offset < prefix.len() {
         let next = next_cluster(utf8, offset);
-        let grapheme = &prefix[offset..next];
+        let grapheme = byte_range(prefix, offset, next);
         let width = display_width(grapheme);
         if layout.column != 0 && layout.column + width > columns {
             push(output, vt100::CARRIAGE_RETURN);
@@ -154,7 +169,7 @@ fn advance_prompt_prefix(prefix: &[u8], columns: usize, layout: &mut PromptLayou
     let mut offset = 0;
     while offset < prefix.len() {
         let next = next_cluster(utf8, offset);
-        let width = display_width(&prefix[offset..next]);
+        let width = display_width(byte_range(prefix, offset, next));
         if layout.column != 0 && layout.column + width > columns {
             layout.rows += 1;
             layout.column = 0;
@@ -201,13 +216,13 @@ fn layout_prompt(text: &[u8], initial: &[u8], continuation: &[u8], columns: usiz
     let utf8 = std::str::from_utf8(text).ok();
     let mut offset = 0;
     while offset < text.len() {
-        if text[offset] == b'\n' {
+        if text.get(offset) == Some(&b'\n') {
             break_prompt_line(None, continuation, &[], &[], columns, &mut layout);
             offset += 1;
             continue;
         }
         let next = next_cluster(utf8, offset);
-        let width = display_width(&text[offset..next]);
+        let width = display_width(byte_range(text, offset, next));
         if layout.column != 0 && layout.column + width > columns {
             break_prompt_line(None, continuation, &[], &[], columns, &mut layout);
         }
@@ -232,9 +247,9 @@ fn render_highlighted_prompt(
     let utf8 = std::str::from_utf8(highlighted).ok();
     let mut offset = 0;
     while offset < highlighted.len() {
-        if highlighted[offset] == 0x1b && offset + 1 < highlighted.len() && highlighted[offset + 1] == b'[' {
+        if bytes_from(highlighted, offset).starts_with(b"\x1b[") {
             if let Some(end) = find_from(highlighted, b'm', offset + 2) {
-                let sequence = &highlighted[offset..end + 1];
+                let sequence = byte_range(highlighted, offset, end + 1);
                 output.extend_from_slice(sequence);
                 active_style =
                     if sequence == vt100::RESET_ATTRIBUTES.as_bytes() { Vec::new() } else { sequence.to_vec() };
@@ -242,13 +257,13 @@ fn render_highlighted_prompt(
                 continue;
             }
         }
-        if highlighted[offset] == b'\n' {
+        if highlighted.get(offset) == Some(&b'\n') {
             break_prompt_line(Some(output), continuation, prefix_style, &active_style, columns, &mut layout);
             offset += 1;
             continue;
         }
         let next = next_cluster(utf8, offset);
-        let grapheme = &highlighted[offset..next];
+        let grapheme = byte_range(highlighted, offset, next);
         let width = display_width(grapheme);
         if layout.column != 0 && layout.column + width > columns {
             break_prompt_line(Some(output), continuation, prefix_style, &active_style, columns, &mut layout);
@@ -268,8 +283,9 @@ fn escape_terminal_text(text: &[u8]) -> Vec<u8> {
             output.extend_from_slice(b"    ");
         } else if value < 0x20 || value == 0x7f {
             output.extend_from_slice(b"\\x");
-            output.push(HEX[(value >> 4) as usize]);
-            output.push(HEX[(value & 0x0f) as usize]);
+            // Both nibbles are below 16, the fallback is never taken
+            output.push(HEX.get(usize::from(value >> 4)).copied().unwrap_or(b'0'));
+            output.push(HEX.get(usize::from(value & 0x0f)).copied().unwrap_or(b'0'));
         } else {
             output.push(value);
         }
@@ -317,14 +333,14 @@ fn is_non_default_three_part_name(name: &[u8]) -> bool {
     let mut first_separator = None;
     let mut quoted = false;
     let mut i = 0;
-    while i < name.len() {
-        if name[i] == b'"' {
-            if quoted && i + 1 < name.len() && name[i + 1] == b'"' {
+    while let Some(&c) = name.get(i) {
+        if c == b'"' {
+            if quoted && name.get(i + 1) == Some(&b'"') {
                 i += 1;
             } else {
                 quoted = !quoted;
             }
-        } else if !quoted && name[i] == b'.' {
+        } else if !quoted && c == b'.' {
             if first_separator.is_none() {
                 first_separator = Some(i);
             }
@@ -338,9 +354,9 @@ fn is_non_default_three_part_name(name: &[u8]) -> bool {
     if separator_count != 2 {
         return false;
     }
-    let mut database = &name[..first_separator];
-    if database.len() >= 2 && database[0] == b'"' && database[database.len() - 1] == b'"' {
-        database = &database[1..database.len() - 1];
+    let mut database = bytes_before(name, first_separator);
+    if let Some(unquoted) = database.strip_prefix(b"\"").and_then(|d| d.strip_suffix(b"\"")) {
+        database = unquoted;
     }
     !ci_eq(database, DEFAULT_DATABASE_NAME.as_bytes())
 }
@@ -357,10 +373,7 @@ fn find_last_not_of(text: &[u8], set: &[u8]) -> Option<usize> {
 
 /// The first byte at or after an offset that is in a set
 fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
-    if from > text.len() {
-        return None;
-    }
-    text[from..].iter().position(|c| set.contains(c)).map(|i| i + from)
+    text.get(from..)?.iter().position(|c| set.contains(c)).map(|i| i + from)
 }
 
 /// The completion of the terminal: the inline hint in the terminal, and the list that the host shows over it
@@ -404,13 +417,15 @@ fn select_terminal_completion_hint(overlay: &mut TerminalCompletionOverlay, prom
     if overlay.candidates.is_empty() {
         return;
     }
-    let selected = &overlay.candidates[overlay.selection];
+    let Some(selected) = overlay.candidates.get(overlay.selection) else {
+        return;
+    };
     let selected_end = selected.target_offset as usize + selected.target_length as usize;
     if selected_end >= prompt_text.len() || !selected.is_identity {
         return;
     }
     let begin = selected.target_offset as usize;
-    let current = &prompt_text[begin..(begin + selected.target_length as usize).min(prompt_text.len())];
+    let current = byte_range(prompt_text, begin, (begin + selected.target_length as usize).min(prompt_text.len()));
     for (i, candidate) in overlay.candidates.iter().enumerate() {
         let target_end = candidate.target_offset as usize + candidate.target_length as usize;
         if target_end == selected_end
@@ -548,14 +563,18 @@ impl ShellSession {
         let mut begin = 0;
         while begin < commands.len() {
             let end = find_from(commands, b'\n', begin);
-            let name = &commands[begin..end.unwrap_or(commands.len())];
+            let name = byte_range(commands, begin, end.unwrap_or(commands.len()));
             if name.is_empty()
-                || name[0] == b'.'
+                || name.first() == Some(&b'.')
                 || !name.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_' || c == b'-')
             {
                 return ShellStatus::InvalidArgument;
             }
-            parsed.push(String::from_utf8(name.to_vec()).unwrap());
+            // The name is ASCII, the conversion does not fail
+            let Ok(name) = std::str::from_utf8(name) else {
+                return ShellStatus::InvalidArgument;
+            };
+            parsed.push(name.to_string());
             match end {
                 Some(end) => begin = end + 1,
                 None => break,
@@ -632,13 +651,13 @@ impl ShellSession {
         let text = prompt_text.as_bytes();
         let cursor = self.prompt.cursor_byte_offset();
         if let Some(command_begin) = find_first_not_of(text, b" \t") {
-            if text[command_begin] == b'.'
+            if text.get(command_begin) == Some(&b'.')
                 && cursor > command_begin
                 && find_first_of(text, b"\r\n", command_begin).is_none()
             {
                 let target_end = find_first_of(text, b" \t", command_begin).unwrap_or(text.len());
                 if cursor <= target_end {
-                    let prefix = &text[command_begin + 1..cursor];
+                    let prefix = byte_range(text, command_begin + 1, cursor);
                     let mut candidates = Vec::with_capacity(limit.min(self.commands.len()));
                     for command in &self.commands {
                         if !command.as_bytes().starts_with(prefix) {
@@ -695,8 +714,9 @@ impl ShellSession {
             } else {
                 quote_identifier(&candidate.completion_text)
             };
+            // The objects of a candidate index the objects of its completion
             let objects: Vec<_> =
-                candidate.catalog_objects.iter().map(|&co| &completion.candidate_objects[co]).collect();
+                candidate.catalog_objects.iter().filter_map(|&co| completion.candidate_objects.get(co)).collect();
             let is_function = objects.iter().any(|o| o.object.object_type() == CatalogObjectType::FunctionDeclaration);
             if is_function {
                 completion_text.push_str("()");
@@ -707,7 +727,10 @@ impl ShellSession {
                 let auto_qualify_table = auto_qualify
                     && object.object.object_type() == CatalogObjectType::TableDeclaration
                     && object.qualified_name.len() == 3
-                    && !ci_eq(object.qualified_name[0].as_bytes(), DEFAULT_DATABASE_NAME.as_bytes());
+                    && object
+                        .qualified_name
+                        .first()
+                        .is_some_and(|database| !ci_eq(database.as_bytes(), DEFAULT_DATABASE_NAME.as_bytes()));
                 if (object.prefer_qualified || auto_qualify_table) && !object.qualified_name.is_empty() {
                     let mut qualification_text = String::new();
                     for (i, name) in object.qualified_name.iter().enumerate() {
@@ -723,7 +746,7 @@ impl ShellSession {
                     let target_offset = candidate.target_location.offset() as usize;
                     let qualifier_already_present =
                         qualification_offset <= target_offset && target_offset <= text.len() && {
-                            let mut present = text[qualification_offset..target_offset].to_vec();
+                            let mut present = byte_range(text, qualification_offset, target_offset).to_vec();
                             present.extend_from_slice(completion_text.as_bytes());
                             qualification_text.as_bytes() == present
                         };
@@ -734,7 +757,7 @@ impl ShellSession {
                 }
             }
             if let Some(packed_objects) =
-                packed.candidates.as_mut().and_then(|packed| packed[candidate_index].catalog_objects.as_mut())
+                packed.candidates.as_mut().and_then(|packed| packed.get_mut(candidate_index)?.catalog_objects.as_mut())
             {
                 keep_variant_objects(packed_objects, &qualified_objects);
             }
@@ -922,7 +945,7 @@ impl ShellSession {
                         self.history_draft = self.prompt.text();
                     }
                     self.history_cursor -= 1;
-                    let entry = self.history[self.history_cursor].clone();
+                    let entry = self.history.get(self.history_cursor).cloned().unwrap_or_default();
                     self.prompt.set_text(entry.as_bytes());
                 }
             }
@@ -931,11 +954,8 @@ impl ShellSession {
                     key == PromptInputKey::Down && self.history_cursor == self.history.len() && self.prompt.move_down();
                 if !moved && self.history_cursor < self.history.len() {
                     self.history_cursor += 1;
-                    let entry = if self.history_cursor < self.history.len() {
-                        self.history[self.history_cursor].clone()
-                    } else {
-                        self.history_draft.clone()
-                    };
+                    let entry =
+                        self.history.get(self.history_cursor).cloned().unwrap_or_else(|| self.history_draft.clone());
                     self.prompt.set_text(entry.as_bytes());
                 }
             }
@@ -982,7 +1002,7 @@ impl ShellSession {
             self.terminal_prompt = prompt.to_vec();
             let rendered_prompt = self.terminal_prompt_text().to_vec();
             let marker_column = match rendered_prompt.iter().rposition(|&c| c == b'>') {
-                Some(marker) => display_width(&rendered_prompt[..marker]),
+                Some(marker) => display_width(bytes_before(&rendered_prompt, marker)),
                 None => display_width(&rendered_prompt),
             };
             self.terminal_continuation = vec![b' '; marker_column.saturating_sub(1)];
@@ -1012,7 +1032,8 @@ impl ShellSession {
         self.terminal_action = PromptInputAction::None;
         if let Some(overlay) = &self.overlay {
             if !overlay.hint_only {
-                let variant_count = overlay.candidates[overlay.selection].qualification_texts.len();
+                let variant_count =
+                    overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
                 if key == PromptInputKey::HistoryPrevious || key == PromptInputKey::Up {
                     return Ok(self.move_terminal_completion(-1));
                 }
@@ -1082,10 +1103,11 @@ impl ShellSession {
             return Ok(ShellOperation::ok(output_prefix));
         }
         if action == PromptInputAction::Complete {
-            let (candidates, completion) = self.complete_prompt_packed(50, catalog)?;
+            let (mut candidates, completion) = self.complete_prompt_packed(50, catalog)?;
             if candidates.len() == 1 {
-                let candidate = candidates.into_iter().next().unwrap();
-                return Ok(self.apply_terminal_candidate(candidate, 0, output_prefix));
+                if let Some(candidate) = candidates.pop() {
+                    return Ok(self.apply_terminal_candidate(candidate, 0, output_prefix));
+                }
             }
             if candidates.len() > 1 {
                 output_prefix.extend(self.open_terminal_completion_overlay(candidates, completion));
@@ -1172,7 +1194,8 @@ impl ShellSession {
         } else if advance_frame {
             progress.frame = (progress.frame + 1) % TERMINAL_QUERY_SPINNER_FRAMES.len();
         }
-        let mut line = TERMINAL_QUERY_SPINNER_FRAMES[progress.frame].as_bytes().to_vec();
+        // The frame is an index of the frames modulo their count
+        let mut line = TERMINAL_QUERY_SPINNER_FRAMES.get(progress.frame).copied().unwrap_or_default().as_bytes().to_vec();
         line.push(b' ');
         line.extend_from_slice(&progress.message);
         let line = truncate_display_text(&line, (self.terminal_columns as usize).max(1));
@@ -1229,13 +1252,13 @@ impl ShellSession {
         self.remember_prompt(&query);
         let bytes = query.as_bytes();
         if let Some(query_begin) = find_first_not_of(bytes, b" \t\r\n") {
-            if bytes[query_begin] == b'.' {
-                return self.suspend_effect(EffectType::ExecuteCommand, bytes[query_begin..].to_vec());
+            if bytes.get(query_begin) == Some(&b'.') {
+                return self.suspend_effect(EffectType::ExecuteCommand, bytes_from(bytes, query_begin).to_vec());
             }
         }
         if let Some(query_end) = find_last_not_of(bytes, b" \t\r\n") {
-            if bytes[query_end] == b';' {
-                return self.start_query(&bytes[..query_end], catalog);
+            if bytes.get(query_end) == Some(&b';') {
+                return self.start_query(bytes_before(bytes, query_end), catalog);
             }
         }
         self.start_query(bytes, catalog)
@@ -1250,10 +1273,10 @@ impl ShellSession {
             return false;
         };
         let end = find_last_not_of(bytes, ws);
-        if bytes[begin] == b'.' {
+        if bytes.get(begin) == Some(&b'.') {
             return find_first_of(bytes, b"\r\n", begin).is_none();
         }
-        if end.is_none_or(|end| bytes[end] != b';') {
+        if end.is_none_or(|end| bytes.get(end) != Some(&b';')) {
             return false;
         }
         let script = self.prompt.script_mut();
@@ -1262,7 +1285,8 @@ impl ShellSession {
             return false;
         };
         let symbols = &parsed.scanned.symbols;
-        if symbols.len() < 2 || symbols[symbols.len() - 2].kind != S_SEMICOLON {
+        // The last symbol is the end of the input, the one before it the semicolon
+        if symbols.iter().rev().nth(1).is_none_or(|symbol| symbol.kind != S_SEMICOLON) {
             return false;
         }
         // The remote grammar may accept syntax that the local parser does not recognize
@@ -1302,15 +1326,15 @@ impl ShellSession {
         let mut history = VecDeque::new();
         let mut offset = 0;
         while offset < data.len() {
-            if data.len() - offset < 4 {
+            let Some(&[b0, b1, b2, b3]) = data.get(offset..offset + 4) else {
                 return ShellStatus::InvalidArgument;
-            }
-            let size = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+            };
+            let size = u32::from_le_bytes([b0, b1, b2, b3]) as usize;
             offset += 4;
             if size > data.len() - offset {
                 return ShellStatus::InvalidArgument;
             }
-            let Ok(entry) = std::str::from_utf8(&data[offset..offset + size]) else {
+            let Some(Ok(entry)) = data.get(offset..offset + size).map(std::str::from_utf8) else {
                 return ShellStatus::InvalidArgument;
             };
             history.push_back(entry.to_string());
@@ -1366,11 +1390,11 @@ impl ShellSession {
         match (effect.effect_type, status) {
             (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => ShellOperation::ok(data.to_vec()),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {
-                if data.is_empty() {
+                let Some((&flags, output)) = data.split_first() else {
                     return ShellOperation::new(ShellStatus::InternalError, "invalid shell command result");
-                }
-                self.clear_terminal_after_command = (data[0] & 1) != 0;
-                ShellOperation::ok(data[1..].to_vec())
+                };
+                self.clear_terminal_after_command = (flags & 1) != 0;
+                ShellOperation::ok(output.to_vec())
             }
             (_, EffectCompletionStatus::Error) => ShellOperation::ok(normalize_error(data)),
             (_, EffectCompletionStatus::Cancelled) => ShellOperation::ok("Cancelled"),
@@ -1392,59 +1416,69 @@ impl ShellSession {
         let command_end = command_begin.and_then(|begin| find_first_of(text, b" \t\r\n", begin));
         let command_name_end = command_end.unwrap_or(text.len());
         let command_name: &[u8] = match command_begin {
-            Some(begin) if text[begin] == b'.' => &text[begin + 1..command_name_end],
+            Some(begin) if text.get(begin) == Some(&b'.') => byte_range(text, begin + 1, command_name_end),
             _ => &[],
         };
         let is_registered_command = self.commands.iter().any(|c| c.as_bytes() == command_name);
         if is_registered_command {
             let command_begin = command_begin.unwrap_or(text.len());
-            highlighted.extend_from_slice(&text[..command_begin]);
+            highlighted.extend_from_slice(bytes_before(text, command_begin));
             push(&mut highlighted, vt100::BOLD);
-            highlighted.extend_from_slice(&text[command_begin..command_name_end]);
+            highlighted.extend_from_slice(byte_range(text, command_begin, command_name_end));
             push(&mut highlighted, vt100::RESET_ATTRIBUTES);
-            highlighted.extend_from_slice(&text[command_name_end..]);
+            highlighted.extend_from_slice(bytes_from(text, command_name_end));
         } else {
             let script = self.prompt.script_mut();
             if script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
                 script.parse();
             }
-            let parsed = script.parsed.as_ref().unwrap();
-            let packed = pack_tokens(parsed);
-            let offsets = packed.token_offsets.unwrap_or_default();
-            let lengths = packed.token_lengths.unwrap_or_default();
-            let types = packed.token_types.unwrap_or_default();
-            let comments = &parsed.scanned.comments;
-            highlighted.reserve(text.len() + (offsets.len() + comments.len()) * 16);
-            let clamp = |i: usize| i.min(text.len());
-            let mut offset = 0;
-            let mut token_idx = 0;
-            let mut comment_idx = 0;
-            while token_idx < offsets.len() || comment_idx < comments.len() {
-                let token_begin = offsets.get(token_idx).map_or(usize::MAX, |&o| o as usize);
-                let comment_begin = comments.get(comment_idx).map_or(usize::MAX, |c| c.offset as usize);
-                let is_comment = comment_begin < token_begin;
-                let begin = if is_comment { comment_begin } else { token_begin };
-                let length =
-                    if is_comment { comments[comment_idx].length as usize } else { lengths[token_idx] as usize };
-                let token_type = if is_comment { ScannerTokenType::COMMENT } else { types[token_idx] };
-                let end = begin + length;
-                if begin > offset {
-                    highlighted.extend_from_slice(&text[clamp(offset)..clamp(begin)]);
+            // A script holds its parsed program after `parse`, the text shows unstyled without one
+            if let Some(parsed) = script.parsed.as_ref() {
+                let packed = pack_tokens(parsed);
+                let offsets = packed.token_offsets.unwrap_or_default();
+                let lengths = packed.token_lengths.unwrap_or_default();
+                let types = packed.token_types.unwrap_or_default();
+                let comments = &parsed.scanned.comments;
+                highlighted.reserve(text.len() + (offsets.len() + comments.len()) * 16);
+                let clamp = |i: usize| i.min(text.len());
+                let mut offset = 0;
+                let mut token_idx = 0;
+                let mut comment_idx = 0;
+                while token_idx < offsets.len() || comment_idx < comments.len() {
+                    let token_begin = offsets.get(token_idx).map_or(usize::MAX, |&o| o as usize);
+                    let comment_begin = comments.get(comment_idx).map_or(usize::MAX, |c| c.offset as usize);
+                    let is_comment = comment_begin < token_begin;
+                    let begin = if is_comment { comment_begin } else { token_begin };
+                    // The packed arrays of the tokens have the same length
+                    let (length, token_type) = if is_comment {
+                        (comments.get(comment_idx).map_or(0, |c| c.length as usize), ScannerTokenType::COMMENT)
+                    } else {
+                        (
+                            lengths.get(token_idx).map_or(0, |&l| l as usize),
+                            types.get(token_idx).copied().unwrap_or_default(),
+                        )
+                    };
+                    let end = begin + length;
+                    if begin > offset {
+                        highlighted.extend_from_slice(byte_range(text, clamp(offset), clamp(begin)));
+                    }
+                    let style = token_style(token_type);
+                    push(&mut highlighted, style);
+                    highlighted.extend_from_slice(byte_range(text, clamp(begin), clamp(end)));
+                    if !style.is_empty() {
+                        push(&mut highlighted, vt100::RESET_ATTRIBUTES);
+                    }
+                    offset = end;
+                    if is_comment {
+                        comment_idx += 1;
+                    } else {
+                        token_idx += 1;
+                    }
                 }
-                let style = token_style(token_type);
-                push(&mut highlighted, style);
-                highlighted.extend_from_slice(&text[clamp(begin)..clamp(end)]);
-                if !style.is_empty() {
-                    push(&mut highlighted, vt100::RESET_ATTRIBUTES);
-                }
-                offset = end;
-                if is_comment {
-                    comment_idx += 1;
-                } else {
-                    token_idx += 1;
-                }
+                highlighted.extend_from_slice(bytes_from(text, clamp(offset)));
+            } else {
+                highlighted.extend_from_slice(text);
             }
-            highlighted.extend_from_slice(&text[clamp(offset)..]);
         }
 
         let terminal_columns = self.terminal_columns as usize;
@@ -1481,7 +1515,7 @@ impl ShellSession {
         self.terminal_prompt_rows = rendered_layout.rows;
 
         let cursor = self.prompt.cursor_byte_offset();
-        let cursor_layout = layout_prompt(&text[..cursor], &terminal_prompt, &continuation, terminal_columns);
+        let cursor_layout = layout_prompt(bytes_before(text, cursor), &terminal_prompt, &continuation, terminal_columns);
         self.terminal_prompt_cursor_row = cursor_layout.rows - 1;
         if let Some(overlay) = self.overlay.as_mut() {
             overlay.cursor_row = self.terminal_prompt_cursor_row;
@@ -1501,15 +1535,20 @@ impl ShellSession {
         let mut overlay = TerminalCompletionOverlay { candidates, ..Default::default() };
         let prompt_text = self.prompt.text();
         let text = prompt_text.as_bytes();
-        let target = (overlay.candidates[0].target_offset as usize).min(text.len());
-        let follows_dot = target > 0 && text[target - 1] == b'.';
-        overlay.hint_only = !follows_dot && (overlay.candidates.len() == 1 || overlay.candidates[0].target_length == 0);
+        // The callers open the overlay with candidates only
+        let Some(first) = overlay.candidates.first() else {
+            self.overlay = None;
+            return Vec::new();
+        };
+        let target = (first.target_offset as usize).min(text.len());
+        let follows_dot = target > 0 && text.get(target - 1) == Some(&b'.');
+        overlay.hint_only = !follows_dot && (overlay.candidates.len() == 1 || first.target_length == 0);
         let terminal_prompt = self.terminal_prompt_text().to_vec();
         let terminal_columns = self.terminal_columns as usize;
         let target_layout =
-            layout_prompt(&text[..target], &terminal_prompt, &self.terminal_continuation, terminal_columns);
+            layout_prompt(bytes_before(text, target), &terminal_prompt, &self.terminal_continuation, terminal_columns);
         let cursor_layout = layout_prompt(
-            &text[..self.prompt.cursor_byte_offset()],
+            bytes_before(text, self.prompt.cursor_byte_offset()),
             &terminal_prompt,
             &self.terminal_continuation,
             terminal_columns,
@@ -1582,37 +1621,39 @@ impl ShellSession {
         let Some(overlay) = self.overlay.as_mut() else {
             return Vec::new();
         };
-        let candidate = &overlay.candidates[overlay.selection];
+        let Some(candidate) = overlay.candidates.get(overlay.selection) else {
+            return Vec::new();
+        };
         let target_end = candidate.target_offset as usize + candidate.target_length as usize;
         if target_end != cursor {
             return Vec::new();
         }
-        let current = &text[candidate.target_offset as usize..target_end];
+        let current = byte_range(text, candidate.target_offset as usize, target_end);
         let completion_text = candidate.completion_text.as_bytes();
         let mut prefix: Vec<u8> = Vec::new();
         let mut suffix: Vec<u8> = Vec::new();
         if overlay.hint_only {
             match find_bytes(completion_text, current) {
                 Some(completion) => {
-                    prefix = completion_text[..completion].to_vec();
-                    suffix = completion_text[completion + current.len()..].to_vec();
+                    prefix = bytes_before(completion_text, completion).to_vec();
+                    suffix = bytes_from(completion_text, completion + current.len()).to_vec();
                 }
                 None => suffix = completion_text.to_vec(),
             }
         } else if !candidate.qualification_texts.is_empty() {
             let variant = overlay.variant_selection.min(candidate.qualification_texts.len() - 1);
-            let qualified = candidate.qualification_texts[variant].as_bytes();
+            let qualified = candidate.qualification_texts.get(variant).map_or(&b""[..], |q| q.as_bytes());
             let completion = find_bytes(qualified, completion_text);
             let typed = ci_find(completion_text, current);
             if let (Some(completion), Some(typed)) = (completion, typed) {
-                prefix = qualified[..completion + typed].to_vec();
-                suffix = completion_text[typed + current.len()..].to_vec();
-                suffix.extend_from_slice(&qualified[completion + completion_text.len()..]);
+                prefix = bytes_before(qualified, completion + typed).to_vec();
+                suffix = bytes_from(completion_text, typed + current.len()).to_vec();
+                suffix.extend_from_slice(bytes_from(qualified, completion + completion_text.len()));
             }
         } else if ci_eq(completion_text, current) && !candidate.continuation_text.is_empty() {
             suffix = format!(" {}", candidate.continuation_text).into_bytes();
         } else if ci_starts_with(completion_text, current) {
-            suffix = completion_text[current.len()..].to_vec();
+            suffix = bytes_from(completion_text, current.len()).to_vec();
         }
         if prefix.is_empty() && suffix.is_empty() && !candidate.continuation_text.is_empty() {
             suffix = format!(" {}", candidate.continuation_text).into_bytes();
@@ -1651,9 +1692,14 @@ impl ShellSession {
 
     fn accept_terminal_completion(&mut self) -> ShellOperation {
         let output = self.clear_terminal_completion_overlay();
-        let overlay = self.overlay.take().unwrap();
+        // Called only with an open overlay whose selection is one of its candidates
+        let Some(overlay) = self.overlay.take() else {
+            return ShellOperation::ok(output);
+        };
         let variant_selection = overlay.variant_selection;
-        let candidate = overlay.candidates.into_iter().nth(overlay.selection).unwrap();
+        let Some(candidate) = overlay.candidates.into_iter().nth(overlay.selection) else {
+            return ShellOperation::ok(output);
+        };
         self.apply_terminal_candidate(candidate, variant_selection, output)
     }
 
@@ -1666,11 +1712,9 @@ impl ShellSession {
         mut output: Vec<u8>,
     ) -> ShellOperation {
         let continuation = candidate.continuation_text.clone();
-        let qualification = if candidate.qualification_texts.is_empty() {
-            String::new()
-        } else {
-            candidate.qualification_texts[variant_selection.min(candidate.qualification_texts.len() - 1)].clone()
-        };
+        let last_variant = candidate.qualification_texts.len().saturating_sub(1);
+        let qualification =
+            candidate.qualification_texts.get(variant_selection.min(last_variant)).cloned().unwrap_or_default();
         let apply_qualification = self.auto_qualify_non_default_database_tables
             && !candidate.completion_text.ends_with("()")
             && is_non_default_three_part_name(qualification.as_bytes());
@@ -1692,7 +1736,7 @@ impl ShellSession {
             let completion_length = candidate.completion_text.len() as u32;
             self.overlay = Some(TerminalCompletionOverlay {
                 hint_only: true,
-                cursor_row: prompt_text.as_bytes()[..cursor].iter().filter(|&&c| c == b'\n').count(),
+                cursor_row: bytes_before(prompt_text.as_bytes(), cursor).iter().filter(|&&c| c == b'\n').count(),
                 candidates: vec![CompletionCandidate {
                     display_text: candidate.completion_text,
                     completion_text: qualification.clone(),
@@ -1712,7 +1756,7 @@ impl ShellSession {
             let prompt_text = self.prompt.text();
             self.overlay = Some(TerminalCompletionOverlay {
                 hint_only: true,
-                cursor_row: prompt_text.as_bytes()[..cursor].iter().filter(|&&c| c == b'\n').count(),
+                cursor_row: bytes_before(prompt_text.as_bytes(), cursor).iter().filter(|&&c| c == b'\n').count(),
                 candidates: vec![CompletionCandidate {
                     display_text: continuation.clone(),
                     completion_text: format!(" {}", continuation),
@@ -1731,8 +1775,13 @@ impl ShellSession {
     }
 
     fn move_terminal_completion(&mut self, direction: i32) -> ShellOperation {
-        let overlay = self.overlay.as_mut().unwrap();
+        let Some(overlay) = self.overlay.as_mut() else {
+            return ShellOperation::ok(Vec::new());
+        };
         let count = overlay.candidates.len();
+        if count == 0 {
+            return ShellOperation::ok(Vec::new());
+        }
         if direction < 0 {
             overlay.selection = if overlay.selection == 0 { count - 1 } else { overlay.selection - 1 };
         } else {
@@ -1743,8 +1792,10 @@ impl ShellSession {
     }
 
     fn move_terminal_completion_variant(&mut self, direction: i32) -> ShellOperation {
-        let overlay = self.overlay.as_mut().unwrap();
-        let count = overlay.candidates[overlay.selection].qualification_texts.len();
+        let Some(overlay) = self.overlay.as_mut() else {
+            return ShellOperation::ok(Vec::new());
+        };
+        let count = overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
         if count < 2 {
             return ShellOperation::ok(Vec::new());
         }

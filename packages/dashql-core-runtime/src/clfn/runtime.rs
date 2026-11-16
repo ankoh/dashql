@@ -5,8 +5,6 @@
 //! request, a wait or the end. The rows of a page are ready once the page arrived (`take_rows`), the run keeps no
 //! page it read. The host owns the clock and the timers: every step takes the time, and a wait
 //! is a step that the host answers with `on_wake` once the time is over. Canceling a call is dropping the run.
-//!
-//! Ported from `connections/clfn/clfn_runtime.ts` of `packages/dashql/src/runtime`.
 
 use std::rc::Rc;
 
@@ -545,7 +543,7 @@ impl ClientFunctionCallRun {
             self.ready.push(row);
             return Ok(CallStep::Done);
         }
-        let retry_after = response.header("Retry-After").map_or(0.0, |v| super::json::js_number_from_str(&v));
+        let retry_after = response.header("Retry-After").map_or(0.0, super::json::js_number_from_str);
         let wait = if retry_after.is_finite() && retry_after > 0.0 { retry_after * 1000.0 } else { self.delay };
         self.delay = (self.delay * 2.0).min(POLL_MAX_MS);
         self.phase = Phase::Sleeping { poll };

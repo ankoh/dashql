@@ -1,8 +1,6 @@
 //! The statistics of all columns of a table: the row count, the counts, minimum and maximum of the ordinal columns
 //! and the counts and distinct counts of the string columns. A column of integers with a small domain gets one bin
 //! per value.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/tasks/table_aggregation.ts`.
 
 use arrow_schema::Schema;
 use dashql_core::error::Result;

@@ -151,7 +151,7 @@ impl RootScopes {
 
     fn erase(&mut self, scope: ScopeId) {
         let Some(pos) = self.positions.remove(&scope) else { return };
-        let last = self.values.pop().unwrap();
+        let Some(last) = self.values.pop() else { return };
         if pos < self.values.len() {
             self.values[pos] = last;
             self.positions.insert(last, pos);
@@ -719,10 +719,11 @@ impl NameResolutionPass {
                     })
                     .collect();
                 let best_name = entries[0].table_name.table_name.text.clone();
-                let relation = state.out.table_references[table_ref_id as usize].inner.as_mut().unwrap();
-                let mut entries = entries.into_iter();
-                relation.resolved_table = entries.next();
-                relation.resolved_alternatives.extend(entries);
+                if let Some(relation) = state.out.table_references[table_ref_id as usize].inner.as_mut() {
+                    let mut entries = entries.into_iter();
+                    relation.resolved_table = entries.next();
+                    relation.resolved_alternatives.extend(entries);
+                }
                 let table_ref = &state.out.table_references[table_ref_id as usize];
                 sources.push(source(table_ref, Self::table_ref_alias(table_ref, &best_name), ReferencedTable::Table(best_loc)));
                 continue;
@@ -838,7 +839,9 @@ impl NameResolutionPass {
             if !resolution.is_resolved() {
                 return Lookup::Missing;
             }
-            state.out.expressions[expr as usize].column_ref_mut().unwrap().resolved = resolution;
+            if let Some(column_ref) = state.out.expressions[expr as usize].column_ref_mut() {
+                column_ref.resolved = resolution;
+            }
             return Lookup::Resolved;
         }
 
@@ -878,7 +881,9 @@ impl NameResolutionPass {
                 return Lookup::Ambiguous;
             }
         };
-        state.out.expressions[expr as usize].column_ref_mut().unwrap().resolved = resolution;
+        if let Some(column_ref) = state.out.expressions[expr as usize].column_ref_mut() {
+            column_ref.resolved = resolution;
+        }
         Lookup::Resolved
     }
 
@@ -891,11 +896,14 @@ impl NameResolutionPass {
         let scope = &state.out.name_scopes[target as usize];
         match scope.output_columns_by_name.get(&column_ref.column_name.column_name.text) {
             Some(&column) => {
-                state.out.expressions[expr as usize].column_ref_mut().unwrap().resolved = ColumnResolution::ScopeColumn {
-                    scope: target,
-                    column: column as u32,
-                };
-                true
+                let resolution = ColumnResolution::ScopeColumn { scope: target, column: column as u32 };
+                match state.out.expressions[expr as usize].column_ref_mut() {
+                    Some(column_ref) => {
+                        column_ref.resolved = resolution;
+                        true
+                    }
+                    None => false,
+                }
             }
             None => false,
         }
@@ -1029,17 +1037,15 @@ impl NameResolutionPass {
             }
             // In p.x, p is not a table in scope but may be a row-typed column with a field x
             let qualified = column_ref.column_name.clone();
-            {
-                let column_ref = state.out.expressions[expr as usize].column_ref_mut().unwrap();
-                column_ref.column_name.table_alias = None;
-                column_ref.column_name.column_name = qualifier.clone();
-            }
+            let Some(column_ref) = state.out.expressions[expr as usize].column_ref_mut() else { continue };
+            column_ref.column_name.table_alias = None;
+            column_ref.column_name.column_name = qualifier.clone();
             let resolved = self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All) == Lookup::Resolved
                 || self.resolve_from_parent_chain(state, expr, scope);
             if resolved {
                 state.tag(&qualifier, NameTag::COLUMN_NAME);
-            } else {
-                state.out.expressions[expr as usize].column_ref_mut().unwrap().column_name = qualified;
+            } else if let Some(column_ref) = state.out.expressions[expr as usize].column_ref_mut() {
+                column_ref.column_name = qualified;
             }
         }
     }
@@ -1865,7 +1871,9 @@ impl NameResolutionPass {
         for i in 0..state.out.expressions.len() {
             let Some(column_ref) = state.out.expressions[i].column_ref() else { continue };
             let ids = Self::resolved_column_ids(state, column_ref.resolved);
-            state.out.expressions[i].column_ref_mut().unwrap().resolved_ids = ids;
+            if let Some(column_ref) = state.out.expressions[i].column_ref_mut() {
+                column_ref.resolved_ids = ids;
+            }
         }
     }
 

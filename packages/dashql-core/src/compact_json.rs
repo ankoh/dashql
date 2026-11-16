@@ -83,7 +83,8 @@ fn write_value(out: &mut String, value: &Value, indent: &str, taken: usize, widt
             out.push_str(indent);
             out.push('}');
         }
-        _ => unreachable!("scalars fit on one line"),
+        // Scalars are not breakable and returned above
+        _ => out.push_str(&line),
     }
 }
 

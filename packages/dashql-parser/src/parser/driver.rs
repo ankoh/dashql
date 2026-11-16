@@ -14,14 +14,51 @@ use dashql_buffers::parser::SymbolSpan;
 /// A parser state
 pub type StateId = i32;
 
+/// A state off the tables, every action on it is an error. The tables hold the states, rules and symbols of the
+/// grammar, so their lookups never miss; a miss ends in a syntax error instead of a panic.
+pub const NO_STATE: StateId = -1;
+
+/// The default rule of a state, 0 to fail
+#[inline(always)]
+pub fn default_rule(state: StateId) -> usize {
+    YYDEFACT.get(state as usize).map_or(0, |&rule| rule as usize)
+}
+
+/// The length of the right-hand side of a rule
+#[inline(always)]
+pub fn rule_length(rule: usize) -> usize {
+    YYR2.get(rule).map_or(0, |&len| len as usize)
+}
+
+/// The left-hand side of a rule, a symbol off the tables for an unknown rule
+#[inline(always)]
+pub fn rule_lhs(rule: usize) -> SymbolKind {
+    YYR1.get(rule).map_or(SymbolKind::MAX, |&lhs| lhs as SymbolKind)
+}
+
+/// Does a state take its default action without a lookahead?
+#[inline(always)]
+pub fn is_default_state(state: StateId) -> bool {
+    YYPACT.get(state as usize).is_some_and(|&pact| pact == YYPACT_NINF)
+}
+
+/// The state `depth` states below the top of a stack, `NO_STATE` below its bottom
+#[inline(always)]
+pub fn state_below(states: &[StateId], depth: usize) -> StateId {
+    states.len().checked_sub(depth + 1).and_then(|i| states.get(i)).copied().unwrap_or(NO_STATE)
+}
+
 /// The state of `goto` after reducing to `lhs` in `state` (`yy_lr_goto_state_`)
 pub fn goto_state(state: StateId, lhs: SymbolKind) -> StateId {
-    let nterm = lhs as usize - YYNTOKENS;
-    let r = YYPGOTO[nterm] as i32 + state;
-    if (0..=YYLAST).contains(&r) && YYCHECK[r as usize] as i32 == state {
-        YYTABLE[r as usize] as i32
+    let nterm = (lhs as usize).wrapping_sub(YYNTOKENS);
+    let (Some(&pgoto), Some(&defgoto)) = (YYPGOTO.get(nterm), YYDEFGOTO.get(nterm)) else {
+        return NO_STATE;
+    };
+    let r = pgoto as i32 + state;
+    if (0..=YYLAST).contains(&r) && YYCHECK.get(r as usize).is_some_and(|&check| check as i32 == state) {
+        YYTABLE.get(r as usize).map_or(NO_STATE, |&next| next as i32)
     } else {
-        YYDEFGOTO[nterm] as i32
+        defgoto as i32
     }
 }
 
@@ -36,15 +73,20 @@ pub enum Action {
 
 /// The table action of `state` on `token`, `None` if the default action applies
 pub fn table_action(state: StateId, token: SymbolKind) -> Option<Action> {
-    let pact = YYPACT[state as usize] as i32;
+    let Some(&pact) = YYPACT.get(state as usize) else {
+        return Some(Action::Error);
+    };
     if pact == YYPACT_NINF {
         return None;
     }
     let i = pact + token as i32;
-    if !(0..=YYLAST).contains(&i) || YYCHECK[i as usize] as i32 != token as i32 {
+    if !(0..=YYLAST).contains(&i) || YYCHECK.get(i as usize).map(|&check| check as i32) != Some(token as i32) {
         return None;
     }
-    let action = YYTABLE[i as usize] as i32;
+    let Some(&action) = YYTABLE.get(i as usize) else {
+        return Some(Action::Error);
+    };
+    let action = action as i32;
     Some(if action > 0 {
         Action::Shift(action)
     } else if action == YYTABLE_NINF {
@@ -62,18 +104,21 @@ pub fn lac_check(states: &[StateId], token: SymbolKind, scratch: &mut Vec<StateI
     // The number of states popped from `states`
     let mut lac_top = 0;
     loop {
-        let top_state = *scratch.last().unwrap_or(&states[states.len() - 1 - lac_top]);
+        let top_state = match scratch.last() {
+            Some(&state) => state,
+            None => state_below(states, lac_top),
+        };
         let rule = match table_action(top_state, token) {
             Some(Action::Shift(_)) => return true,
             Some(Action::Error) => return false,
             Some(Action::Reduce(rule)) => rule,
-            None => match YYDEFACT[top_state as usize] as usize {
+            None => match default_rule(top_state) {
                 0 => return false,
                 rule => rule,
             },
         };
         // Pop the right-hand side, first from the scratch stack
-        let mut len = YYR2[rule] as usize;
+        let mut len = rule_length(rule);
         if len < scratch.len() {
             scratch.truncate(scratch.len() - len);
             len = 0;
@@ -82,8 +127,11 @@ pub fn lac_check(states: &[StateId], token: SymbolKind, scratch: &mut Vec<StateI
             scratch.clear();
         }
         lac_top += len;
-        let top_state = *scratch.last().unwrap_or(&states[states.len() - 1 - lac_top]);
-        scratch.push(goto_state(top_state, YYR1[rule] as SymbolKind));
+        let top_state = match scratch.last() {
+            Some(&state) => state,
+            None => state_below(states, lac_top),
+        };
+        scratch.push(goto_state(top_state, rule_lhs(rule)));
     }
 }
 
@@ -91,7 +139,7 @@ pub fn lac_check(states: &[StateId], token: SymbolKind, scratch: &mut Vec<StateI
 /// the stack in an unspecified state) if the token is a syntax error.
 pub fn feed(states: &mut Vec<StateId>, token: SymbolKind) -> bool {
     loop {
-        let top = *states.last().unwrap();
+        let Some(&top) = states.last() else { return false };
         let rule = match table_action(top, token) {
             Some(Action::Shift(next)) => {
                 states.push(next);
@@ -99,15 +147,14 @@ pub fn feed(states: &mut Vec<StateId>, token: SymbolKind) -> bool {
             }
             Some(Action::Error) => return false,
             Some(Action::Reduce(rule)) => rule,
-            None => match YYDEFACT[top as usize] as usize {
+            None => match default_rule(top) {
                 0 => return false,
                 rule => rule,
             },
         };
-        let len = YYR2[rule] as usize;
-        states.truncate(states.len() - len);
-        let next = goto_state(*states.last().unwrap(), YYR1[rule] as SymbolKind);
-        states.push(next);
+        states.truncate(states.len().saturating_sub(rule_length(rule)));
+        let Some(&below) = states.last() else { return false };
+        states.push(goto_state(below, rule_lhs(rule)));
     }
 }
 
@@ -150,23 +197,24 @@ impl Stack {
     }
 
     fn pop(&mut self, n: usize) {
-        let len = self.states.len() - n;
+        let len = self.states.len().saturating_sub(n);
         self.states.truncate(len);
         self.values.truncate(len);
         self.locations.truncate(len);
     }
 
     fn top(&self) -> StateId {
-        *self.states.last().unwrap()
+        self.states.last().copied().unwrap_or(NO_STATE)
     }
 }
 
+// The actions of a rule read only the symbols of its right-hand side, which are on the stack
 impl ReduceStack for Stack {
     fn value_at(&self, i: usize) -> Value {
-        self.values[self.values.len() - 1 - i]
+        self.values.len().checked_sub(i + 1).and_then(|i| self.values.get(i)).copied().unwrap_or(Value::Empty)
     }
     fn location_at(&self, i: usize) -> SymbolSpan {
-        self.locations[self.locations.len() - 1 - i]
+        self.locations.len().checked_sub(i + 1).and_then(|i| self.locations.get(i)).copied().unwrap_or_default()
     }
 }
 
@@ -225,11 +273,10 @@ fn syntax_error(states: &[StateId], lookahead: Option<SymbolKind>, scratch: &mut
     if overflow {
         args.truncate(1);
     }
-    let names: Vec<_> = args.iter().map(|&a| symbol_name(a)).collect();
-    let mut message = format!("syntax error, unexpected {}", names[0]);
-    for (i, name) in names.iter().enumerate().skip(1) {
+    let mut message = format!("syntax error, unexpected {}", symbol_name(token));
+    for (i, &arg) in args.iter().enumerate().skip(1) {
         message.push_str(if i == 1 { ", expecting " } else { " or " });
-        message.push_str(name);
+        message.push_str(&symbol_name(arg));
     }
     // Suggest a double-quoted identifier when a string literal is used where an identifier fits.
     let hint = if token == S_SCONST && lac_check(states, S_IDENT, scratch) {
@@ -264,7 +311,7 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 if state == YYFINAL {
                     return true;
                 }
-                if YYPACT[state as usize] as i32 == YYPACT_NINF {
+                if is_default_state(state) {
                     Label::Default
                 } else {
                     let la = match lookahead {
@@ -312,15 +359,16 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                     }
                 }
             }
-            Label::Default => match YYDEFACT[stack.top() as usize] as usize {
+            Label::Default => match default_rule(stack.top()) {
                 0 => Label::ErrLab,
                 rule => Label::Reduce(rule),
             },
             Label::Reduce(rule) => {
-                let len = YYR2[rule] as usize;
-                let n = stack.states.len();
-                let lhs_state = goto_state(stack.states[n - 1 - len], YYR1[rule] as SymbolKind);
-                let location = default_location(&stack.locations[n - len..], stack.locations[n - 1]);
+                let len = rule_length(rule);
+                let lhs_state = goto_state(state_below(&stack.states, len), rule_lhs(rule));
+                let n = stack.locations.len();
+                let rhs = stack.locations.get(n.saturating_sub(len)..).unwrap_or_default();
+                let location = default_location(rhs, stack.locations.last().copied().unwrap_or_default());
                 error_range_begin = location;
                 match reduce(ctx, rule, &stack, location) {
                     Ok(value) => {
@@ -365,10 +413,10 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                     if let Some(Action::Shift(next)) = table_action(stack.top(), S_YYerror) {
                         break next;
                     }
-                    if stack.states.len() == 1 {
+                    if stack.states.len() <= 1 {
                         return false;
                     }
-                    error_range_begin = *stack.locations.last().unwrap();
+                    error_range_begin = stack.locations.last().copied().unwrap_or_default();
                     stack.pop(1);
                 };
                 let error_location = default_location(&[error_range_begin, lookahead_location], SymbolSpan::default());

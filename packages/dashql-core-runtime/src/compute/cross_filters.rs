@@ -1,6 +1,4 @@
 //! The cross filters of a result: a selection in the summary of a column filters the rows of every view of the result.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/cross_filters.ts`.
 
 use std::collections::BTreeMap;
 

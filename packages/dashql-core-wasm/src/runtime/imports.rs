@@ -405,7 +405,7 @@ impl Imports {
             filename: String,
             directory: bool,
         }
-        let entries: Vec<Entry> = items(self.platform.archives_call("entries", &[handle.clone()]).await?, "the entries of the archive")?;
+        let entries: Vec<Entry> = items(self.platform.archives_call("entries", std::slice::from_ref(&handle)).await?, "the entries of the archive")?;
         let entries: Vec<ArchiveEntry> = entries.into_iter().map(|entry| ArchiveEntry { filename: entry.filename, directory: entry.directory }).collect();
         let index = |index: usize| JsValue::from_f64(index as f64);
         match plan_archive(&entries).map_err(format_error)? {
@@ -556,13 +556,15 @@ impl Imports {
             return Ok(None);
         }
         let manifest = JsonValue::of(&self.platform.storage_await("loadManifestConnections", &[]).await?).0;
-        let registry = self.connections.registry.borrow();
+        let registry = self.connections.registry.try_borrow().map_err(|_| HostError::new("the connections are busy"))?;
         let live_params = |id: &str| -> Option<Value> {
             let connection = registry.get(id)?;
             let state = connection.state.try_borrow().ok()?;
             Some(Value::Object(state.params().to_object()))
         };
         let mut entries: Vec<ConnectionEntry> = Vec::new();
+        // Logged once the registry is no longer borrowed, the logger is JS
+        let mut ignored: Vec<String> = Vec::new();
         for value in manifest.as_array().into_iter().flatten() {
             let Some(mut entry) = ConnectionEntry::from_json(value) else { continue };
             // The live connections may be ahead of the manifest while writes are debounced
@@ -571,7 +573,7 @@ impl Imports {
             }
             // The restore skips a connection of an unknown connector, the import leaves it out as well
             if descriptor_of_params(&entry.params).is_none() {
-                self.log(LogLevel::Warn, "Ignored a stored connection of an unknown connector", &[("connectionId", &entry.id)]);
+                ignored.push(entry.id);
                 continue;
             }
             entries.push(entry);
@@ -587,6 +589,10 @@ impl Imports {
                 entry.name = state.name().map(str::to_string);
                 entries.push(entry);
             }
+        }
+        drop(registry);
+        for id in &ignored {
+            self.log(LogLevel::Warn, "Ignored a stored connection of an unknown connector", &[("connectionId", id)]);
         }
         Ok(Some(entries))
     }

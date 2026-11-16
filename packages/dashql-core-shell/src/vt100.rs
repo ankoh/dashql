@@ -27,9 +27,7 @@ pub fn append_sequence(output: &mut Vec<u8>, count: usize, command: Command) {
 
 /// A parameterized CSI command
 pub fn sequence(count: usize, command: Command) -> String {
-    let mut output = Vec::new();
-    append_sequence(&mut output, count, command);
-    String::from_utf8(output).unwrap()
+    format!("{CONTROL_SEQUENCE_INTRODUCER}{count}{}", char::from(command as u8))
 }
 
 pub const CURSOR_UP_ONE: &str = "\x1b[1A";

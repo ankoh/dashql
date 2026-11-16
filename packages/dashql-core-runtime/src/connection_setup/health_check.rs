@@ -1,8 +1,6 @@
 //! The health check of a new channel: the probe query of the connector through the query executor of the host, so it
 //! shows up in the query viewer like any other query. The check reports its start and its end as actions of the
 //! connection.
-//!
-//! Ported from `performHealthCheck` of `packages/dashql/src/runtime/connections/health_check.ts`.
 
 use std::rc::Rc;
 

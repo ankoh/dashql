@@ -329,7 +329,7 @@ pub(crate) fn rewrite(
             return Err(outdated());
         }
         let line_start = starts_line(bytes, begin);
-        let indent = if line_start { &text[skip_space_before(bytes, begin)..begin] } else { "" };
+        let indent = if line_start { text.get(skip_space_before(bytes, begin)..begin).unwrap_or("") } else { "" };
         let (comment, line_spans) = annotation.print(indent)?;
         let mut insert = String::new();
         if runs.is_empty() && !line_start {

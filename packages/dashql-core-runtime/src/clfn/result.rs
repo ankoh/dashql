@@ -1,8 +1,5 @@
 //! The result table of a call: its columns, the values of the response converted to the column types, and the table as
 //! an Arrow record batch or as IPC bytes for the UI.
-//!
-//! Ported from the result parts of `connections/clfn/clfn_runtime.ts` and `clfn_result_stream.ts` of
-//! `packages/dashql/src/runtime`, which turned the rows into Arrow with `translateAnyRowsToArrowBatch`.
 
 use std::sync::Arc;
 

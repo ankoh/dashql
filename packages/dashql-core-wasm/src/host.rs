@@ -35,7 +35,6 @@ use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 use crate::runtime::changes::{Dirty, Slice};
 use crate::runtime::computation::ComputeCallContext;
-use crate::views::JsonValue;
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_PLATFORM: &str = r#"
@@ -704,7 +703,7 @@ impl JsPlatform {
             let mut pending = self.inner.pending.borrow_mut();
             let before = pending.effects.len();
             pending.effects.extend(effects);
-            let immediate = pending.effects[before..].iter().any(|effect| !matches!(effect, HandleEffect::Release { .. }));
+            let immediate = pending.effects.iter().skip(before).any(|effect| !matches!(effect, HandleEffect::Release { .. }));
             let schedule = immediate && !pending.immediate;
             if schedule {
                 pending.immediate = true;

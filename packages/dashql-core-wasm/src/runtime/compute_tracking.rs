@@ -14,7 +14,6 @@ use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId};
 use dashql_core_runtime::compute::ComputationEffect;
-use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryMetadata, QueryType};
@@ -68,30 +67,25 @@ impl ComputeTracker {
         true
     }
 
-    /// The history of the queries of a call, the one of the connection of the computation, none without one
-    fn owner(&self, context: &ComputeContext) -> Option<QueryOwner> {
-        context.connection_id.clone().map(QueryOwner::Connection)
-    }
-
-    /// Open a query in a history, none if the history doesn't take it
-    fn open(&self, connections: &Rc<Connections>, owner: &QueryOwner, sql: &str, context: &ComputeContext) -> Option<QueryId> {
-        connections.registry.borrow().history(owner)?;
+    /// Open a query in the history of a connection, none if the history doesn't take it
+    fn open(&self, connections: &Rc<Connections>, connection_id: &str, sql: &str, context: &ComputeContext) -> Option<QueryId> {
+        connections.registry.borrow().history(connection_id)?;
         let query_id = connections.registry.borrow_mut().next_query_id();
         let now = connections.now() as i64;
         let mut metadata = QueryMetadata::new(QueryType::InternalSqlframe);
         metadata.title = Some(context.title.to_string());
         metadata.issuer = Some(ISSUER.to_string());
         let state = QueryExecutionState::new(query_id, query_id, sql, metadata, now);
-        connections.apply_query(owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).ok()?;
+        connections.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).ok()?;
         for action in [QueryExecutionAction::QuerySending { query_id, now }, QueryExecutionAction::QueryRunning { query_id, now }] {
-            let _ = connections.apply_query(owner, action, false);
+            let _ = connections.apply_query(connection_id, action, false);
         }
         self.inner.running.borrow_mut().insert(query_id, context.run);
         Some(query_id)
     }
 
     /// Close a query of a history with the outcome of its call
-    fn close(&self, connections: &Rc<Connections>, owner: &QueryOwner, query_id: QueryId, outcome: &Result<(), HostError>) {
+    fn close(&self, connections: &Rc<Connections>, connection_id: &str, query_id: QueryId, outcome: &Result<(), HostError>) {
         self.inner.running.borrow_mut().remove(&query_id);
         // A reset of the connection drops its queries from the history, there is nothing to close then
         if connections.registry.borrow().query_history(query_id).is_none() {
@@ -110,7 +104,7 @@ impl ComputeTracker {
                 }
             }
         };
-        if let Err(error) = connections.apply_query(owner, action, true) {
+        if let Err(error) = connections.apply_query(connection_id, action, true) {
             connections.log(LogLevel::Warn, "Failed to close a query of a computation", &[("error", error.what())]);
         }
     }
@@ -121,7 +115,7 @@ struct OpenQuery {
     tracker: ComputeTracker,
     /// Held weakly, a call that never ends keeps nothing of the runtime alive
     connections: Weak<Connections>,
-    owner: QueryOwner,
+    connection_id: String,
     query_id: QueryId,
     closed: bool,
 }
@@ -131,7 +125,7 @@ impl OpenQuery {
         if !self.closed {
             self.closed = true;
             if let Some(connections) = self.connections.upgrade() {
-                self.tracker.close(&connections, &self.owner, self.query_id, outcome);
+                self.tracker.close(&connections, &self.connection_id, self.query_id, outcome);
             }
         }
     }
@@ -173,11 +167,12 @@ impl ComputeHost for ComputeTracker {
 
     async fn create_table(&self, data_frame: u64, table_name: &str, sql: &str, context: &ComputeContext) -> Result<(), HostError> {
         let connections = self.inner.connections.borrow().upgrade();
-        let mut open = match (connections, self.owner(context)) {
-            (Some(connections), Some(owner)) => self.open(&connections, &owner, sql, context).map(|query_id| OpenQuery {
+        // The queries of a computation go to the history of its connection, a computation without one has none
+        let mut open = match (connections, context.connection_id.clone()) {
+            (Some(connections), Some(connection_id)) => self.open(&connections, &connection_id, sql, context).map(|query_id| OpenQuery {
                 tracker: self.clone(),
                 connections: Rc::downgrade(&connections),
-                owner,
+                connection_id,
                 query_id,
                 closed: false,
             }),
@@ -185,8 +180,8 @@ impl ComputeHost for ComputeTracker {
         };
         // A query of a connection is attributed to it in the Hyper log, it runs on a pooled compute connection
         let mut context = context.clone();
-        if let Some(OpenQuery { owner: QueryOwner::Connection(connection_id), .. }) = &open {
-            context.client_context = Some(sqlframe_client_context(connection_id));
+        if let Some(open) = &open {
+            context.client_context = Some(sqlframe_client_context(&open.connection_id));
         }
         let outcome = self.inner.platform.create_table(data_frame, table_name, sql, &context).await;
         if let Some(open) = open.as_mut() {

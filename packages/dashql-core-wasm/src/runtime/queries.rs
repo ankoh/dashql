@@ -34,7 +34,6 @@ use std::task::{Context, Poll};
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription};
-use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
@@ -481,7 +480,6 @@ impl Connections {
     /// changes, the rest follows with the next frame.
     pub(crate) fn report(self: &Rc<Self>, run: &QueryRun, event_: QueryEvent) {
         let query_id = run.query_id;
-        let owner = QueryOwner::Connection(run.connection_id.clone());
         let now = self.now() as i64;
         let action = match event_ {
             QueryEvent::Sending => QueryExecutionAction::QuerySending { query_id, now },
@@ -507,7 +505,7 @@ impl Connections {
                 };
                 let action = QueryExecutionAction::QueryReceivedAllBatches { query_id, table: QueryResultTable { id: table, rows }, metrics, now };
                 // A history that refuses the result took no handle, the handle goes again
-                if let Err(error) = self.apply_query(&owner, action, false) {
+                if let Err(error) = self.apply_query(&run.connection_id, action, false) {
                     self.release_table(table);
                     self.log_query(run, LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
                 }
@@ -570,7 +568,7 @@ impl Connections {
                 | QueryExecutionAction::QueryFailed { .. }
                 | QueryExecutionAction::QueryCancelled { .. }
         );
-        if let Err(error) = self.apply_query(&owner, action, urgent) {
+        if let Err(error) = self.apply_query(&run.connection_id, action, urgent) {
             self.log_query(run, LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
         }
     }
@@ -811,7 +809,6 @@ impl Connections {
     /// Run a query on a connection, see `Runtime.executeQuery`. Returns the id of the query and the promise of its
     /// outcome.
     pub(crate) fn execute(self: &Rc<Self>, connection_id: &str, args: QueryArgs, failure: JsValue, events: Option<Function>) -> (QueryId, Promise) {
-        let owner = QueryOwner::Connection(connection_id.to_string());
         let query_id = self.registry.borrow_mut().next_query_id();
         let now = self.now();
         let mut log_details = vec![("trace_id".to_string(), (args.trace_id as u64).to_string())];
@@ -824,7 +821,7 @@ impl Connections {
         let metadata: QueryMetadata = args.metadata.into();
         let state = QueryExecutionState::new(query_id, args.trace_id as u64, args.text.clone(), metadata.clone(), now as i64);
         // The query is in the history of the connection from the start
-        if let Err(error) = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
+        if let Err(error) = self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
             let message = format!("Couldn't find a connection with id {connection_id}");
             self.platform.log_on(LogLevel::Error, "Connection not configured", &[("connectionId", connection_id), ("error", error.what())], LOG_TARGET);
             let failed = outcome_value(QueryOutcome::Rejected(QueryFailure::new(FailureKind::Error, message)), JsValue::NULL);
@@ -837,7 +834,7 @@ impl Connections {
         let description = QueryDescription { connection_id: connection_id.to_string(), text: args.text, metadata, options: args.options };
         let connections = self.clone();
         let done = wasm_bindgen_futures::future_to_promise(async move {
-            let outcome = connections.run(&run, owner, description, failure).await;
+            let outcome = connections.run(&run, description, failure).await;
             // The caller gets the object of the result table while the run still owns it
             let table = match &outcome {
                 QueryOutcome::Resolved { has_result: true } => run.result().map(|table| connections.platform.handle(table)).unwrap_or(JsValue::NULL),
@@ -966,13 +963,13 @@ impl Connections {
 
     /// Describe a query and run it, the query ended once the future completed. Every step waits on the token of the run:
     /// a cancel before the executor runs the query ends it as cancelled, one while it runs stops it at the backend.
-    async fn run(self: &Rc<Self>, run: &Rc<QueryRun>, owner: QueryOwner, description: QueryDescription, failure: JsValue) -> QueryOutcome {
-        let outcome = self.run_steps(run, &owner, description, failure).await;
+    async fn run(self: &Rc<Self>, run: &Rc<QueryRun>, description: QueryDescription, failure: JsValue) -> QueryOutcome {
+        let outcome = self.run_steps(run, description, failure).await;
         run.end();
         outcome
     }
 
-    async fn run_steps(self: &Rc<Self>, run: &Rc<QueryRun>, owner: &QueryOwner, description: QueryDescription, failure: JsValue) -> QueryOutcome {
+    async fn run_steps(self: &Rc<Self>, run: &Rc<QueryRun>, description: QueryDescription, failure: JsValue) -> QueryOutcome {
         let query_id = run.query_id;
         let fail = |failure: QueryFailure| {
             let error = query_error(&failure);
@@ -981,7 +978,7 @@ impl Connections {
                 FailureKind::Cancelled => QueryExecutionAction::QueryCancelled { query_id, error, metrics: None, now },
                 _ => QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now },
             };
-            let _ = self.apply_query(owner, action, true);
+            let _ = self.apply_query(&run.connection_id, action, true);
             QueryOutcome::Rejected(failure)
         };
         // A query that the caller failed is recorded with its failure, nothing of it runs
@@ -1047,7 +1044,6 @@ impl Connections {
         read: bool,
         cancellation: &CancellationToken,
     ) -> (QueryId, InternalQuery) {
-        let owner = QueryOwner::Connection(connection_id.to_string());
         let query_id = self.registry.borrow_mut().next_query_id();
         let description = QueryDescription {
             connection_id: connection_id.to_string(),
@@ -1056,7 +1052,7 @@ impl Connections {
             options: QueryOptions { read_timeout_ms, throw_on_error: Some(true), ..Default::default() },
         };
         let state = QueryExecutionState::new(query_id, 0, text.to_string(), metadata, self.now() as i64);
-        if self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).is_err() {
+        if self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).is_err() {
             let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}"));
             return (query_id, InternalQuery::Ready(Some(Err(failure))));
         }
@@ -1077,7 +1073,7 @@ impl Connections {
         let (sender, receiver) = oneshot();
         let connections = self.clone();
         self.platform.spawn(Box::pin(async move {
-            let outcome = connections.run(&run, owner, description, JsValue::UNDEFINED).await;
+            let outcome = connections.run(&run, description, JsValue::UNDEFINED).await;
             ended.cancel();
             // The run owns its result table until it is dropped, the read happens before
             let result = match (outcome, run.result()) {
@@ -1101,7 +1097,6 @@ impl Connections {
     /// never complete the first.
     pub(crate) fn run_statement(self: &Rc<Self>, statement: Statement) -> (QueryId, LocalFuture<()>, LocalFuture<Result<bool, QueryFailure>>) {
         let connection_id = statement.connection_id.as_str();
-        let owner = QueryOwner::Connection(connection_id.to_string());
         let query_id = self.registry.borrow_mut().next_query_id();
         let description = QueryDescription {
             connection_id: connection_id.to_string(),
@@ -1125,7 +1120,7 @@ impl Connections {
             log_details.push(("workbookId".to_string(), workbook_id.clone()));
         }
         let state = QueryExecutionState::new(query_id, 0, statement.text.clone(), statement.metadata, self.now() as i64);
-        if let Err(error) = self.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
+        if let Err(error) = self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
             let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}: {}", error.what()));
             return (query_id, Box::pin(std::future::pending()), Box::pin(std::future::ready(Err(failure))));
         }
@@ -1137,7 +1132,7 @@ impl Connections {
         let (sender, done) = oneshot();
         let connections = self.clone();
         self.platform.spawn(Box::pin(async move {
-            let outcome = connections.run(&run, owner, description, JsValue::UNDEFINED).await;
+            let outcome = connections.run(&run, description, JsValue::UNDEFINED).await;
             drop(run);
             sender.send(match outcome {
                 QueryOutcome::Resolved { has_result } => Ok(has_result),

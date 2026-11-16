@@ -1,5 +1,4 @@
-//! Tests of the computations of result tables, ported from `computation_state.test.ts` and `cross_filters.test.ts` of
-//! the TypeScript runtime.
+//! Tests of the computations of result tables.
 //!
 //! The TypeScript tests count the references of a data frame registry. Here the state owns what it holds: a test
 //! counts the holds of a data frame in the state and reads the releases from the effects. The Arrow tables are Rust

@@ -79,8 +79,13 @@ impl<'a> Utf16Projector<'a> {
         if byte_idx > text.len() || !text.is_char_boundary(byte_idx) {
             return None;
         }
-        if byte_idx >= self.last_byte && byte_idx - self.last_byte <= MAX_WALK {
-            let units: usize = text[self.last_byte..byte_idx].chars().map(char::len_utf16).sum();
+        let walk = if byte_idx >= self.last_byte && byte_idx - self.last_byte <= MAX_WALK {
+            text.get(self.last_byte..byte_idx)
+        } else {
+            None
+        };
+        if let Some(walk) = walk {
+            let units: usize = walk.chars().map(char::len_utf16).sum();
             self.last_utf16 += units;
         } else {
             self.last_utf16 = self.rope.char_to_utf16_cu(self.rope.byte_to_char(byte_idx));

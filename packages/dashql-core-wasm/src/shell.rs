@@ -137,7 +137,7 @@ impl ShellOperation {
     /// The effect payload of a pending operation: the query or the dot command
     #[wasm_bindgen(getter, js_name = effectPayload)]
     pub fn effect_payload(&self) -> Option<String> {
-        self.effect_header().map(|_| String::from_utf8_lossy(&self.inner.data[16..]).into_owned())
+        self.effect_header().map(|_| String::from_utf8_lossy(self.inner.data.get(16..).unwrap_or_default()).into_owned())
     }
 }
 

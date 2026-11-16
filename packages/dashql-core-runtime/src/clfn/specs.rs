@@ -1,8 +1,6 @@
 //! Where the specs of the extensions are. Bazel generates `extensions/<folder>/clfn/spec/spec.json` from the sources of
 //! an extension; the platform knows where it put them (the chunks of the app, the files of Node) and reads one when a
 //! connection needs it.
-//!
-//! Ported from `connections/clfn/clfn_specs.ts` of `packages/dashql/src/runtime`.
 
 use super::ClientFunctionError;
 

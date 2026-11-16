@@ -160,6 +160,8 @@ impl ProfileLayoutNode {
 struct ProfileLayouter<'a> {
     /// The plan layout nodes
     nodes: Vec<ProfileLayoutNode>,
+    /// The node that an index outside of `nodes` reads and writes, see `node`
+    scratch: ProfileLayoutNode,
     /// The root operators
     root_operators: &'a [u32],
     /// The plan layout config
@@ -170,17 +172,40 @@ impl<'a> ProfileLayouter<'a> {
     fn new(view_model: &'a QueryProfile, layout_config: &fb::DerivedProfileLayoutConfig) -> Self {
         let input = *layout_config.input();
         let mut nodes = vec![ProfileLayoutNode::default(); view_model.operators.len()];
-        for (i, op) in view_model.operators.iter().enumerate() {
-            nodes[i].parent = op.parent;
-            nodes[i].children_begin = op.children_begin;
-            nodes[i].children_count = op.children_count;
-            nodes[i].width = compute_node_width(op, &input);
-            nodes[i].ancestor = i;
-            for child_index in 0..op.children_count {
-                nodes[op.children_begin + child_index].sibling_index = child_index;
+        for (i, (node, op)) in nodes.iter_mut().zip(&view_model.operators).enumerate() {
+            node.parent = op.parent;
+            node.children_begin = op.children_begin;
+            node.children_count = op.children_count;
+            node.width = compute_node_width(op, &input);
+            node.ancestor = i;
+        }
+        for op in &view_model.operators {
+            let children = op.children_begin..op.children_begin.saturating_add(op.children_count);
+            for (child_index, child) in nodes.get_mut(children).unwrap_or_default().iter_mut().enumerate() {
+                child.sibling_index = child_index;
             }
         }
-        Self { nodes, root_operators: &view_model.root_operators, layout_config: input }
+        Self {
+            nodes,
+            scratch: ProfileLayoutNode::default(),
+            root_operators: &view_model.root_operators,
+            layout_config: input,
+        }
+    }
+
+    /// A node of the arena.
+    /// A profile keeps the parents, children and roots of its operators inside the arena, an index outside of it
+    /// reads the scratch node instead of trapping the module.
+    fn node(&self, node: usize) -> &ProfileLayoutNode {
+        self.nodes.get(node).unwrap_or(&self.scratch)
+    }
+
+    /// A node of the arena to update, the scratch node for an index outside of it
+    fn node_mut(&mut self, node: usize) -> &mut ProfileLayoutNode {
+        match self.nodes.get_mut(node) {
+            Some(node) => node,
+            None => &mut self.scratch,
+        }
     }
 
     /// Does the plan grow from left to right?
@@ -194,7 +219,7 @@ impl<'a> ProfileLayouter<'a> {
         if self.is_left_to_right() {
             self.layout_config.node_height()
         } else {
-            self.nodes[node].width
+            self.node(node).width
         }
     }
 
@@ -214,13 +239,13 @@ impl<'a> ProfileLayouter<'a> {
 
     /// Perform the first walk over the tree
     fn first_walk(&mut self, node: usize, left_sibling: Option<usize>) {
-        if !self.nodes[node].is_leaf() {
+        if !self.node(node).is_leaf() {
             // The default ancestor is the left-most child.
-            let mut default_ancestor = self.nodes[node].left_most_child();
+            let mut default_ancestor = self.node(node).left_most_child();
             // Track the left sibling
             let mut current_left_sibling = None;
 
-            for child in self.nodes[node].children() {
+            for child in self.node(node).children() {
                 self.first_walk(child, current_left_sibling);
                 default_ancestor = self.apportion(child, current_left_sibling, default_ancestor);
                 current_left_sibling = Some(child);
@@ -230,46 +255,46 @@ impl<'a> ProfileLayouter<'a> {
             self.execute_shifts(node);
             // Compute the mid-point.
             // A left-to-right plan aligns a node with its first child instead, the plan then grows only downwards.
-            let n = &self.nodes[node];
+            let n = &self.node(node);
             let midpoint = if self.is_left_to_right() {
-                self.nodes[n.left_most_child()].prelim
+                self.node(n.left_most_child()).prelim
             } else {
-                (self.nodes[n.left_most_child()].prelim + self.nodes[n.right_most_child()].prelim) / 2.0
+                (self.node(n.left_most_child()).prelim + self.node(n.right_most_child()).prelim) / 2.0
             };
 
             // Is there a left sibling?
             if let Some(left_sibling) = left_sibling {
-                let prelim = self.nodes[left_sibling].prelim + self.separation(left_sibling, node);
-                self.nodes[node].prelim = prelim;
-                self.nodes[node].modifier = prelim - midpoint;
+                let prelim = self.node(left_sibling).prelim + self.separation(left_sibling, node);
+                self.node_mut(node).prelim = prelim;
+                self.node_mut(node).modifier = prelim - midpoint;
             } else {
-                self.nodes[node].prelim = midpoint;
+                self.node_mut(node).prelim = midpoint;
             }
         } else {
             // Is there a left sibling?
             if let Some(left_sibling) = left_sibling {
-                self.nodes[node].prelim = self.nodes[left_sibling].prelim + self.separation(left_sibling, node);
+                self.node_mut(node).prelim = self.node(left_sibling).prelim + self.separation(left_sibling, node);
             } else {
-                self.nodes[node].prelim = 0.0;
+                self.node_mut(node).prelim = 0.0;
             }
         }
     }
 
     /// Perform the second walk over the tree
     fn second_walk(&mut self, node: usize, m: f64, level: usize) {
-        self.nodes[node].x = self.nodes[node].prelim + m;
-        self.nodes[node].y = level as f64 * self.layout_config.level_height();
-        self.nodes[node].level = level;
-        let modifier = self.nodes[node].modifier;
-        for child in self.nodes[node].children() {
+        self.node_mut(node).x = self.node(node).prelim + m;
+        self.node_mut(node).y = level as f64 * self.layout_config.level_height();
+        self.node_mut(node).level = level;
+        let modifier = self.node(node).modifier;
+        for child in self.node(node).children() {
             self.second_walk(child, m + modifier, level + 1);
         }
     }
 
     /// Find the greatest distinct ancestor betweeen nodes
     fn find_greatest_distinct_ancestor(&self, left: usize, right: usize, default_ancestor: usize) -> usize {
-        let ancestor = self.nodes[left].ancestor;
-        if self.nodes[ancestor].parent == self.nodes[right].parent {
+        let ancestor = self.node(left).ancestor;
+        if self.node(ancestor).parent == self.node(right).parent {
             ancestor
         } else {
             default_ancestor
@@ -292,33 +317,42 @@ impl<'a> ProfileLayouter<'a> {
             let mut rl = root;
             let mut rr = root;
             let mut lr = left_sibling;
-            let parent = self.nodes[rl].parent.expect("apportioned node must have a parent");
-            let mut ll = self.nodes[parent].left_most_child();
+            // A node with a left sibling has a parent, a node without one is not apportioned
+            let Some(parent) = self.node(rl).parent else {
+                return new_default_ancestor;
+            };
+            let mut ll = self.node(parent).left_most_child();
 
-            let mut ll_mod = self.nodes[ll].modifier;
-            let mut lr_mod = self.nodes[lr].modifier;
-            let mut rl_mod = self.nodes[rl].modifier;
-            let mut rr_mod = self.nodes[rr].modifier;
+            let mut ll_mod = self.node(ll).modifier;
+            let mut lr_mod = self.node(lr).modifier;
+            let mut rl_mod = self.node(rl).modifier;
+            let mut rr_mod = self.node(rr).modifier;
 
             // Traverse down the "seam".
             // Left subtree, traverse along right contour.
             // Right subtree, traverse along left contour.
             while let (Some(next_lr), Some(next_rl)) =
-                (self.nodes[lr].next_along_right_contour(), self.nodes[rl].next_along_left_contour())
+                (self.node(lr).next_along_right_contour(), self.node(rl).next_along_left_contour())
             {
-                ll = self.nodes[ll].next_along_left_contour().expect("left contour ends early");
+                // The outside contours are at least as deep as the inside ones, they end the walk otherwise
+                let (Some(next_ll), Some(next_rr)) =
+                    (self.node(ll).next_along_left_contour(), self.node(rr).next_along_right_contour())
+                else {
+                    break;
+                };
+                ll = next_ll;
                 lr = next_lr;
                 rl = next_rl;
-                rr = self.nodes[rr].next_along_right_contour().expect("right contour ends early");
+                rr = next_rr;
 
                 // Maintain the ancestor of the right contour to be the common root.
                 // This allows us to resolve our ancestor in O(1) while going over the tree left-to-right.
-                self.nodes[rr].ancestor = root;
+                self.node_mut(rr).ancestor = root;
 
                 // Compute the current shift as the difference between the left contour and the right contour along
                 // the seam. Section 4 in the Buchheim paper does a good job explain the fractional spacing approach.
                 let shift =
-                    (self.nodes[lr].prelim + lr_mod) - (self.nodes[rl].prelim + rl_mod) + self.separation(lr, rl);
+                    (self.node(lr).prelim + lr_mod) - (self.node(rl).prelim + rl_mod) + self.separation(lr, rl);
 
                 if shift > 0.0 {
                     let ancestor = self.find_greatest_distinct_ancestor(lr, root, default_ancestor);
@@ -327,28 +361,28 @@ impl<'a> ProfileLayouter<'a> {
                     rr_mod += shift;
                 }
 
-                ll_mod += self.nodes[ll].modifier;
-                lr_mod += self.nodes[lr].modifier;
-                rl_mod += self.nodes[rl].modifier;
-                rr_mod += self.nodes[rr].modifier;
+                ll_mod += self.node(ll).modifier;
+                lr_mod += self.node(lr).modifier;
+                rl_mod += self.node(rl).modifier;
+                rr_mod += self.node(rr).modifier;
             }
 
             // Still have contour nodes at the seam from the left subtree?
-            let lr_next = self.nodes[lr].next_along_right_contour();
-            let rr_next = self.nodes[rr].next_along_right_contour();
+            let lr_next = self.node(lr).next_along_right_contour();
+            let rr_next = self.node(rr).next_along_right_contour();
             if lr_next.is_some() && rr_next.is_none() {
                 // Let thread of RR point to LRs right contour starting at next level.
-                self.nodes[rr].thread = lr_next;
-                self.nodes[rr].modifier += lr_mod - rr_mod;
+                self.node_mut(rr).thread = lr_next;
+                self.node_mut(rr).modifier += lr_mod - rr_mod;
             }
 
             // Still have contour nodes at the seam from the right subtree?
-            let rl_next = self.nodes[rl].next_along_left_contour();
-            let ll_next = self.nodes[ll].next_along_left_contour();
+            let rl_next = self.node(rl).next_along_left_contour();
+            let ll_next = self.node(ll).next_along_left_contour();
             if rl_next.is_some() && ll_next.is_none() {
                 // Let thread of LL point to RLs left contour starting at next level.
-                self.nodes[ll].thread = rl_next;
-                self.nodes[ll].modifier += rl_mod - ll_mod;
+                self.node_mut(ll).thread = rl_next;
+                self.node_mut(ll).modifier += rl_mod - ll_mod;
                 new_default_ancestor = root;
             }
         }
@@ -360,8 +394,8 @@ impl<'a> ProfileLayouter<'a> {
     fn execute_shifts(&mut self, v: usize) {
         let mut shift = 0.0;
         let mut change = 0.0;
-        for child in self.nodes[v].children().rev() {
-            let child = &mut self.nodes[child];
+        for child in self.node(v).children().rev() {
+            let child = self.node_mut(child);
             child.prelim += shift;
             child.modifier += shift;
             change += child.change;
@@ -371,16 +405,16 @@ impl<'a> ProfileLayouter<'a> {
 
     /// Helper to move a subtree
     fn move_subtree(&mut self, w0: usize, w1: usize, shift: f64) {
-        debug_assert!(self.nodes[w0].parent.is_some());
-        debug_assert!(self.nodes[w1].parent == self.nodes[w0].parent);
-        debug_assert!(self.nodes[w1].sibling_index > self.nodes[w0].sibling_index);
-        let subtrees = self.nodes[w1].sibling_index.wrapping_sub(self.nodes[w0].sibling_index) as f64;
+        debug_assert!(self.node(w0).parent.is_some());
+        debug_assert!(self.node(w1).parent == self.node(w0).parent);
+        debug_assert!(self.node(w1).sibling_index > self.node(w0).sibling_index);
+        let subtrees = self.node(w1).sibling_index.wrapping_sub(self.node(w0).sibling_index) as f64;
 
-        self.nodes[w1].change -= shift / subtrees;
-        self.nodes[w1].shift += shift;
-        self.nodes[w0].change += shift / subtrees;
-        self.nodes[w1].prelim += shift;
-        self.nodes[w1].modifier += shift;
+        self.node_mut(w1).change -= shift / subtrees;
+        self.node_mut(w1).shift += shift;
+        self.node_mut(w0).change += shift / subtrees;
+        self.node_mut(w1).prelim += shift;
+        self.node_mut(w1).modifier += shift;
     }
 
     /// Enforce the spacing invariant among all nodes on each level
@@ -391,26 +425,26 @@ impl<'a> ProfileLayouter<'a> {
             let mut next_level = Vec::new();
             let mut right_edge: Option<f64> = None;
             for (node, inherited_shift) in level {
-                let mut shift = inherited_shift + self.nodes[node].layout_shift;
-                let left_edge = self.nodes[node].x + shift - self.breadth(node) / 2.0;
+                let mut shift = inherited_shift + self.node(node).layout_shift;
+                let left_edge = self.node(node).x + shift - self.breadth(node) / 2.0;
                 if let Some(right_edge) = right_edge {
                     let correction = right_edge + margin - left_edge;
                     if correction > 0.0 {
-                        self.nodes[node].layout_shift += correction;
+                        self.node_mut(node).layout_shift += correction;
                         shift += correction;
                     }
                 }
-                right_edge = Some(self.nodes[node].x + shift + self.breadth(node) / 2.0);
-                next_level.extend(self.nodes[node].children().map(|child| (child, shift)));
+                right_edge = Some(self.node(node).x + shift + self.breadth(node) / 2.0);
+                next_level.extend(self.node(node).children().map(|child| (child, shift)));
             }
             level = next_level;
         }
 
         let mut pending: Vec<(usize, f64)> = vec![(root, 0.0)];
         while let Some((node, inherited_shift)) = pending.pop() {
-            let shift = inherited_shift + self.nodes[node].layout_shift;
-            self.nodes[node].x += shift;
-            pending.extend(self.nodes[node].children().map(|child| (child, shift)));
+            let shift = inherited_shift + self.node(node).layout_shift;
+            self.node_mut(node).x += shift;
+            pending.extend(self.node(node).children().map(|child| (child, shift)));
         }
     }
 
@@ -425,7 +459,7 @@ impl<'a> ProfileLayouter<'a> {
             self.first_walk(root, None);
             // Second run over the tree.
             // `prelim` stores the preliminary x-coordinate AFTER computing the subtree.
-            self.second_walk(root, -1.0 * self.nodes[root].prelim, 0);
+            self.second_walk(root, -1.0 * self.node(root).prelim, 0);
             self.resolve_level_overlaps(root);
 
             // Independent roots are laid out at the same origin. Pack their full subtree bounds left-to-right.
@@ -434,7 +468,7 @@ impl<'a> ProfileLayouter<'a> {
             let mut pending = vec![root];
             while let Some(node) = pending.pop() {
                 let breadth = self.breadth(node);
-                let n = &self.nodes[node];
+                let n = &self.node(node);
                 left = cpp_min(left, n.x - breadth / 2.0);
                 right = cpp_max(right, n.x + breadth / 2.0);
                 pending.extend(n.children());
@@ -443,8 +477,8 @@ impl<'a> ProfileLayouter<'a> {
                 let offset = packed_right + margin - left;
                 pending.push(root);
                 while let Some(node) = pending.pop() {
-                    self.nodes[node].x += offset;
-                    pending.extend(self.nodes[node].children());
+                    self.node_mut(node).x += offset;
+                    pending.extend(self.node(node).children());
                 }
                 right += offset;
             }
@@ -485,7 +519,9 @@ impl QueryProfile {
             let levels = nodes.iter().map(|node| node.level + 1).max().unwrap_or(0);
             let mut column_widths = vec![0.0; levels];
             for node in &nodes {
-                column_widths[node.level] = cpp_max(column_widths[node.level], node.width);
+                if let Some(column_width) = column_widths.get_mut(node.level) {
+                    *column_width = cpp_max(*column_width, node.width);
+                }
             }
             let mut column_lefts = Vec::with_capacity(levels);
             let mut column_left = 0.0;
@@ -495,7 +531,7 @@ impl QueryProfile {
             }
             for node in &mut nodes {
                 node.y = node.x;
-                node.x = column_lefts[node.level] + node.width / 2.0;
+                node.x = column_lefts.get(node.level).copied().unwrap_or(0.0) + node.width / 2.0;
             }
         }
 

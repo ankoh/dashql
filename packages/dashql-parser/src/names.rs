@@ -36,7 +36,8 @@ fn hash(text: &[u8]) -> u64 {
     let mut h: u64 = text.len() as u64;
     let mut chunks = text.chunks_exact(8);
     for chunk in &mut chunks {
-        let word = u64::from_le_bytes(chunk.try_into().unwrap());
+        // `chunks_exact(8)` yields 8 bytes
+        let word = <[u8; 8]>::try_from(chunk).map(u64::from_le_bytes).unwrap_or(0);
         h = (h.rotate_left(5) ^ word).wrapping_mul(K);
     }
     for &b in chunks.remainder() {
@@ -56,9 +57,15 @@ impl NameRegistry {
         self.names.is_empty()
     }
 
-    /// Get a name
+    /// Get a name, an id of another registry reads as an empty name without occurrences
     pub fn get(&self, id: NameId) -> &RegisteredName {
-        &self.names[id as usize]
+        static UNKNOWN: RegisteredName = RegisteredName {
+            name_id: NameId::MAX,
+            text: String::new(),
+            location: TextSpan::new(0, 0),
+            occurrences: 0,
+        };
+        self.names.get(id as usize).unwrap_or(&UNKNOWN)
     }
 
     /// All names in id order
@@ -66,41 +73,47 @@ impl NameRegistry {
         self.names.iter()
     }
 
-    /// The slot of a name text: either the slot holding it or the empty slot where it belongs
-    fn slot(&self, text: &str) -> usize {
-        let mask = self.table.len() - 1;
+    /// The slot of a name text and its entry: either the slot holding it or the empty slot where it belongs, `None`
+    /// for a table without an empty slot (the table is kept at most half full)
+    fn slot(&self, text: &str) -> Option<(usize, u32)> {
+        let mask = self.table.len().wrapping_sub(1);
         let mut slot = hash(text.as_bytes()) as usize & mask;
-        loop {
-            match self.table[slot] {
-                0 => return slot,
-                id if self.names[id as usize - 1].text == text => return slot,
+        for _ in 0..self.table.len() {
+            let entry = *self.table.get(slot)?;
+            match entry {
+                0 => return Some((slot, entry)),
+                id if self.names.get((id as usize).wrapping_sub(1)).is_some_and(|name| name.text == text) => {
+                    return Some((slot, entry))
+                }
                 _ => slot = (slot + 1) & mask,
             }
         }
+        None
     }
 
     /// Find a name by its text
     pub fn find(&self, text: &str) -> Option<NameId> {
-        if self.table.is_empty() {
-            return None;
-        }
-        match self.table[self.slot(text)] {
-            0 => None,
-            id => Some(id - 1),
+        match self.slot(text)? {
+            (_, 0) => None,
+            (_, id) => Some(id - 1),
         }
     }
 
     fn grow(&mut self) {
         let capacity = (self.table.len() * 2).max(64);
-        self.table = vec![0; capacity];
+        let mut table = vec![0; capacity];
         let mask = capacity - 1;
         for (i, name) in self.names.iter().enumerate() {
             let mut slot = hash(name.text.as_bytes()) as usize & mask;
-            while self.table[slot] != 0 {
+            // The new table is at most half full, a probe finds an empty slot
+            while table.get(slot).is_some_and(|&entry| entry != 0) {
                 slot = (slot + 1) & mask;
             }
-            self.table[slot] = i as u32 + 1;
+            if let Some(entry) = table.get_mut(slot) {
+                *entry = i as u32 + 1;
+            }
         }
+        self.table = table;
     }
 
     /// Register a name. A known name counts another occurrence and keeps its first location.
@@ -108,24 +121,23 @@ impl NameRegistry {
         if (self.names.len() + 1) * 2 > self.table.len() {
             self.grow();
         }
-        let slot = self.slot(text);
-        match self.table[slot] {
-            0 => {
-                let id = self.names.len() as NameId;
-                self.names.push(RegisteredName {
-                    name_id: id,
-                    text: text.to_string(),
-                    location,
-                    occurrences: 1,
-                });
-                self.table[slot] = id + 1;
-                id
-            }
-            id => {
-                self.names[id as usize - 1].occurrences += 1;
-                id - 1
-            }
+        // The table is at most half full after growing, a probe finds the name or an empty slot
+        let (slot, entry) = self.slot(text).unwrap_or((usize::MAX, 0));
+        if let Some(name) = entry.checked_sub(1).and_then(|id| self.names.get_mut(id as usize)) {
+            name.occurrences += 1;
+            return entry - 1;
         }
+        let id = self.names.len() as NameId;
+        self.names.push(RegisteredName {
+            name_id: id,
+            text: text.to_string(),
+            location,
+            occurrences: 1,
+        });
+        if let Some(entry) = self.table.get_mut(slot) {
+            *entry = id + 1;
+        }
+        id
     }
 }
 

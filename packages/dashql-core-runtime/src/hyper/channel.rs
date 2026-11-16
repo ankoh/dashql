@@ -6,9 +6,6 @@
 //! (`WASM`) stay channels of the host: the host runs the query and hands the Arrow IPC of the result to the module.
 //! Both kinds take the same input, the SQL text with the attached databases, the settings and the client context of
 //! the connection, like `HyperDatabaseChannel` of the TypeScript.
-//!
-//! Ported from `hyperdb_grpc_client.ts` of the runtime and `web_hyperdb_http_client.ts` and `hyper_connection_context.ts`
-//! of the app.
 
 use serde_json::{Map, Value};
 

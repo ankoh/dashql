@@ -1,8 +1,6 @@
 //! The spec of client functions as the runtime reads it, see `docs/design/client_functions.md`. The core reads the
 //! signatures of the same document (`dashql_core::catalog::clfn`) and checks it when a binding registers it, the runtime
 //! reads what a request needs: hosts, API names, locations, body formats, paging, pending results and errors.
-//!
-//! Ported from `connections/clfn/clfn_spec.ts` of `packages/dashql/src/runtime`.
 
 use std::collections::{BTreeMap, HashMap};
 

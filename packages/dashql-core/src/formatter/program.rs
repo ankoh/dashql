@@ -557,13 +557,13 @@ fn append_generated_text(output: &mut String, text: &str) {
             while pos < bytes.len() && !is_word(bytes[pos]) {
                 pos += 1;
             }
-            output.push_str(&text[start..pos]);
+            output.push_str(text.get(start..pos).unwrap_or(""));
             continue;
         }
         while pos < bytes.len() && is_word(bytes[pos]) {
             pos += 1;
         }
-        let word = &text[start..pos];
+        let word = text.get(start..pos).unwrap_or("");
         if Keyword::find(word.as_bytes()).is_none() {
             output.push_str(word);
         } else {

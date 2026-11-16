@@ -1,8 +1,5 @@
 //! The kinds of the columns of a result: which Arrow types are binned, counted or skipped, how a value turns into a
 //! number, and the column groups of the grid.
-//!
-//! Ported from `packages/dashql/src/runtime/compute/arrow_columns.ts` and `buildGridColumnGroups` of
-//! `analyze_table.ts`.
 
 use std::collections::HashSet;
 

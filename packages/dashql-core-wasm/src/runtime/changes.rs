@@ -4,12 +4,12 @@
 //! host takes only the marked slices: `takeChanges` reads them and nothing else, no change rescans the state. A marked
 //! slice moves. Its revision is the revision of its object where it has one (a script, a query, a computation, a run,
 //! the storage), which tells the objects of a mark that changed from the others, and a new revision otherwise (a
-//! connection, a history, a workbook, the lists). The derived view of a workbook moves when the hash of its buffers
+//! connection, a workbook, the lists). The derived view of a workbook moves when the hash of its buffers
 //! changed. Nothing is hashed or compared but these, every change site marks.
 //!
-//! The queries of a history are marked one by one (`Slice::Query`): a change of a query moves only that query. Its
-//! history moves its owner, the connection or the history, and all its queries are compared when the lists of the
-//! history changed, a query that started or finished.
+//! The queries of the history of a connection are marked one by one (`Slice::Query`): a change of a query moves only
+//! that query. The history moves its connection, and all its queries are compared when the lists of the history
+//! changed, a query that started or finished.
 //!
 //! A slice that is busy, borrowed by a task that runs, is never reported as gone: it stays marked for the next changes
 //! and the host is told again. While a slice is busy the releases of handles wait, a view of the last flush may still
@@ -22,7 +22,7 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use dashql_core_runtime::compute::types::TableId;
-use dashql_core_runtime::connections::registry::{ConnectionRegistry, QueryOwner};
+use dashql_core_runtime::connections::registry::ConnectionRegistry;
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionHistory, QueryId};
 use dashql_core_runtime::workbook::{next_revision, Workbook};
@@ -31,8 +31,8 @@ use wasm_bindgen::prelude::*;
 
 use super::workbooks::WorkbookEntry;
 use super::{
-    ChangeSet, Runtime, SliceChange, SliceId, COMPUTATION, CONNECTION, CONNECTION_LIST, HISTORY, QUERY, ROOT, RUN, SCRIPT, STORAGE,
-    WORKBOOK, WORKBOOK_DERIVED, WORKBOOK_LIST,
+    ChangeSet, Runtime, SliceChange, SliceId, COMPUTATION, CONNECTION, CONNECTION_LIST, QUERY, ROOT, RUN, SCRIPT, STORAGE, WORKBOOK,
+    WORKBOOK_DERIVED, WORKBOOK_LIST,
 };
 use crate::host::HandleEffect;
 
@@ -45,12 +45,10 @@ pub(crate) enum Slice<'a> {
     ConnectionList,
     /// The view of a connection and the list of the connections
     Connection(&'a str),
-    /// The view of a history without a connection
-    History(&'a str),
-    /// The queries of a history: they are compared if its lists changed
-    Queries(&'a QueryOwner),
-    /// A query of a history, and the queries of the history if its lists changed
-    Query(&'a QueryOwner, QueryId),
+    /// The queries of the history of a connection: they are compared if its lists changed
+    Queries(&'a str),
+    /// A query of the history of a connection, and the queries of the history if its lists changed
+    Query(&'a str, QueryId),
     /// A workbook with its scripts, what it derives and the list of the workbooks
     Workbook(&'a str),
     /// The scripts of a workbook
@@ -71,9 +69,8 @@ pub(crate) struct Dirty {
     computations: bool,
     connection_list: bool,
     connections: BTreeSet<String>,
-    histories: BTreeSet<String>,
-    /// The marked queries by history, a history without queries is compared by its lists only
-    queries: BTreeMap<QueryOwner, BTreeSet<QueryId>>,
+    /// The marked queries by connection, a connection without queries is compared by the lists of its history only
+    queries: BTreeMap<String, BTreeSet<QueryId>>,
     workbooks: BTreeSet<String>,
     scripts: BTreeSet<String>,
     derived: BTreeSet<String>,
@@ -90,14 +87,11 @@ impl Dirty {
             Slice::Connection(id) => {
                 self.connections.insert(id.to_string());
             }
-            Slice::History(name) => {
-                self.histories.insert(name.to_string());
+            Slice::Queries(connection_id) => {
+                self.queries.entry(connection_id.to_string()).or_default();
             }
-            Slice::Queries(owner) => {
-                self.queries.entry(owner.clone()).or_default();
-            }
-            Slice::Query(owner, query_id) => {
-                self.queries.entry(owner.clone()).or_default().insert(query_id);
+            Slice::Query(connection_id, query_id) => {
+                self.queries.entry(connection_id.to_string()).or_default().insert(query_id);
             }
             Slice::Workbook(id) => {
                 self.workbooks.insert(id.to_string());
@@ -118,7 +112,6 @@ impl Dirty {
         self.computations |= other.computations;
         self.connection_list |= other.connection_list;
         self.connections.extend(other.connections);
-        self.histories.extend(other.histories);
         for (owner, queries) in other.queries {
             self.queries.entry(owner).or_default().extend(queries);
         }
@@ -133,7 +126,6 @@ impl Dirty {
     pub fn is_empty(&self) -> bool {
         !(self.computations || self.connection_list || self.workbook_list || self.storage || self.runs)
             && self.connections.is_empty()
-            && self.histories.is_empty()
             && self.queries.is_empty()
             && self.workbooks.is_empty()
             && self.scripts.is_empty()
@@ -145,12 +137,11 @@ impl Dirty {
         self.workbooks.contains(workbook_id) || self.derived.contains(workbook_id)
     }
 
-    /// The marks of the connections, the histories and their queries
+    /// The marks of the connections and their queries
     fn of_connections(&self) -> Dirty {
         Dirty {
             connection_list: self.connection_list,
             connections: self.connections.clone(),
-            histories: self.histories.clone(),
             queries: self.queries.clone(),
             ..Dirty::default()
         }
@@ -227,8 +218,7 @@ pub(crate) struct Taken {
     /// The revisions of the computations, 0 forces a change
     computations: BTreeMap<TableId, u64>,
     connections: BTreeSet<String>,
-    histories: BTreeSet<String>,
-    queries: BTreeMap<QueryOwner, HeldQueries>,
+    queries: BTreeMap<String, HeldQueries>,
     workbooks: BTreeSet<String>,
     /// The revisions of the scripts of every workbook, 0 forces a change
     scripts: HashMap<String, BTreeMap<u32, u64>>,
@@ -247,7 +237,6 @@ struct Changes {
     computations: Vec<SliceChange>,
     connection_list: Vec<SliceChange>,
     connections: Vec<SliceChange>,
-    histories: Vec<SliceChange>,
     queries: Vec<SliceChange>,
     workbook_list: Vec<SliceChange>,
     workbooks: Vec<SliceChange>,
@@ -264,7 +253,6 @@ impl Changes {
             COMPUTATION => &mut self.computations,
             CONNECTION_LIST => &mut self.connection_list,
             CONNECTION => &mut self.connections,
-            HISTORY => &mut self.histories,
             QUERY => &mut self.queries,
             WORKBOOK_LIST => &mut self.workbook_list,
             WORKBOOK => &mut self.workbooks,
@@ -282,7 +270,6 @@ impl Changes {
             self.computations,
             self.connection_list,
             self.connections,
-            self.histories,
             self.queries,
             self.workbook_list,
             self.workbooks,
@@ -430,9 +417,9 @@ impl Runtime {
         taken.computations = current;
     }
 
-    /// The marked connections, histories and queries, and the list of the connections
+    /// The marked connections and queries, and the list of the connections
     fn take_connections(&self, dirty: &Dirty, taken: &mut Taken, out: &mut Changes, retry: &mut Dirty) {
-        let marked = dirty.connection_list || !dirty.connections.is_empty() || !dirty.histories.is_empty() || !dirty.queries.is_empty();
+        let marked = dirty.connection_list || !dirty.connections.is_empty() || !dirty.queries.is_empty();
         if !marked {
             return;
         }
@@ -442,30 +429,21 @@ impl Runtime {
         };
         let list = dirty.connection_list || !dirty.connections.is_empty();
         let mut connections = dirty.connections.clone();
-        let mut histories = dirty.histories.clone();
-        // The queries first: a history whose lists changed moves its owner
-        for (owner, marked) in &dirty.queries {
-            let history = registry.history(owner);
-            match take_queries(taken, owner, history.as_deref(), marked, &mut out.queries) {
-                Some(true) => match owner {
-                    QueryOwner::Connection(id) => {
-                        connections.insert(id.clone());
-                    }
-                    QueryOwner::History(name) => {
-                        histories.insert(name.clone());
-                    }
-                },
+        // The queries first: a history whose lists changed moves its connection
+        for (connection_id, marked) in &dirty.queries {
+            let history = registry.history(connection_id);
+            match take_queries(taken, connection_id, history.as_deref(), marked, &mut out.queries) {
+                Some(true) => {
+                    connections.insert(connection_id.clone());
+                }
                 Some(false) => {}
                 None => {
-                    retry.queries.insert(owner.clone(), marked.clone());
+                    retry.queries.insert(connection_id.clone(), marked.clone());
                 }
             }
         }
         for id in &connections {
-            take_owner(&registry, taken, &QueryOwner::Connection(id.clone()), out);
-        }
-        for name in &histories {
-            take_owner(&registry, taken, &QueryOwner::History(name.clone()), out);
+            take_connection(&registry, taken, id, out);
         }
         if list {
             out.connection_list.push(change(CONNECTION_LIST, text(ROOT), Some(next_revision())));
@@ -589,17 +567,12 @@ impl Runtime {
                     self.platform.mark(Slice::Connection(&id));
                 }
             }
-            HISTORY => {
-                for name in text_ids() {
-                    self.platform.mark(Slice::History(&name));
-                }
-            }
             QUERY => {
                 for id in number_ids() {
-                    let owner = taken.queries.iter_mut().find(|(_, held)| held.queries.contains_key(&id));
-                    if let Some((owner, held)) = owner {
+                    let connection = taken.queries.iter_mut().find(|(_, held)| held.queries.contains_key(&id));
+                    if let Some((connection_id, held)) = connection {
                         held.queries.insert(id, 0);
-                        self.platform.mark(Slice::Query(owner, id));
+                        self.platform.mark(Slice::Query(connection_id, id));
                     }
                 }
             }
@@ -647,42 +620,39 @@ impl Runtime {
     }
 }
 
-/// The view of the owner of a history, the connection or the history: moved, or gone with the queries of its history
-fn take_owner(registry: &ConnectionRegistry, taken: &mut Taken, owner: &QueryOwner, out: &mut Changes) {
-    let (kind, id, held, changes) = match owner {
-        QueryOwner::Connection(id) => (CONNECTION, id, &mut taken.connections, &mut out.connections),
-        QueryOwner::History(name) => (HISTORY, name, &mut taken.histories, &mut out.histories),
-    };
-    if registry.history(owner).is_some() {
-        changes.push(change(kind, text(id), Some(next_revision())));
-        held.insert(id.clone());
+/// The view of a connection: moved, or gone with the queries of its history
+fn take_connection(registry: &ConnectionRegistry, taken: &mut Taken, connection_id: &str, out: &mut Changes) {
+    if registry.get(connection_id).is_some() {
+        out.connections.push(change(CONNECTION, text(connection_id), Some(next_revision())));
+        taken.connections.insert(connection_id.to_string());
         return;
     }
-    if held.remove(id) {
-        changes.push(change(kind, text(id), None));
+    if taken.connections.remove(connection_id) {
+        out.connections.push(change(CONNECTION, text(connection_id), None));
     }
-    for query_id in taken.queries.remove(owner).unwrap_or_default().queries.into_keys() {
+    for query_id in taken.queries.remove(connection_id).unwrap_or_default().queries.into_keys() {
         out.queries.push(change(QUERY, SliceId::Number(query_id), None));
     }
 }
 
-/// The marked queries of a history by their revisions, all of them if the lists of the history changed. A history
-/// that is gone takes its queries with it. Some(true) if the lists changed, none if the history is busy.
+/// The marked queries of the history of a connection by their revisions, all of them if the lists of the history
+/// changed. A history that is gone takes its queries with it. Some(true) if the lists changed, none if the history is
+/// busy.
 fn take_queries(
     taken: &mut Taken,
-    owner: &QueryOwner,
+    connection_id: &str,
     history: Option<&std::cell::RefCell<QueryExecutionHistory>>,
     marked: &BTreeSet<QueryId>,
     out: &mut Vec<SliceChange>,
 ) -> Option<bool> {
     let Some(history) = history else {
-        for query_id in taken.queries.remove(owner).unwrap_or_default().queries.into_keys() {
+        for query_id in taken.queries.remove(connection_id).unwrap_or_default().queries.into_keys() {
             out.push(change(QUERY, SliceId::Number(query_id), None));
         }
         return Some(true);
     };
     let history = history.try_borrow().ok()?;
-    let held = taken.queries.entry(owner.clone()).or_default();
+    let held = taken.queries.entry(connection_id.to_string()).or_default();
     let lists = history.snapshot_queries_active_finished();
     if held.lists == Some(lists) {
         for query_id in marked {
@@ -723,13 +693,12 @@ mod tests {
         other.mark(Slice::Derived("w"));
         other.mark(Slice::Workbook("v"));
         other.mark(Slice::Storage);
-        let owner = QueryOwner::History("shell".into());
-        other.mark(Slice::Query(&owner, 7));
-        other.mark(Slice::Queries(&owner));
+        other.mark(Slice::Query("c", 7));
+        other.mark(Slice::Queries("c"));
         dirty.merge(other);
         assert!(dirty.derives("w") && dirty.derives("v") && !dirty.derives("u"));
         assert!(dirty.storage && dirty.scripts.contains("w"));
-        assert_eq!(dirty.queries.get(&owner).map(|queries| queries.iter().copied().collect::<Vec<_>>()), Some(vec![7]));
+        assert_eq!(dirty.queries.get("c").map(|queries| queries.iter().copied().collect::<Vec<_>>()), Some(vec![7]));
     }
 
     #[test]

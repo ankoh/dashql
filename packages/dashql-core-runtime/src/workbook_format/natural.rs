@@ -55,7 +55,8 @@ enum Element<'a> {
 fn elements(name: &str) -> Vec<Element<'_>> {
     let mut out = Vec::new();
     let mut rest = name;
-    while let Some(c) = rest.chars().next() {
+    let mut chars = rest.chars();
+    while let Some(c) = chars.next() {
         if c.is_ascii_digit() {
             let end = rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len());
             let (digits, tail) = rest.split_at(end);
@@ -64,8 +65,9 @@ fn elements(name: &str) -> Vec<Element<'_>> {
             rest = tail;
         } else {
             out.push(Element::Char(weight(c)));
-            rest = &rest[c.len_utf8()..];
+            rest = chars.as_str();
         }
+        chars = rest.chars();
     }
     out
 }

@@ -382,7 +382,9 @@ impl QueryProfile {
             }
             let slot = self.slots.len() as u32;
             self.slots.push(Slot { pipeline, operator, role });
-            self.operators[operator as usize].slots.push(slot);
+            if let Some(op) = self.operators.get_mut(operator as usize) {
+                op.slots.push(slot);
+            }
             slot_of.insert(operator, slot);
             pipeline_slots.push(slot);
         }
@@ -399,9 +401,8 @@ impl QueryProfile {
     ///
     /// Runs a post-order DFS over the parsed operator tree and writes the children of every operator as one block.
     pub(super) fn flatten_operators(&mut self, parsed_ops: Vec<ParsedOperatorNode>, parsed_roots: Vec<usize>) {
+        let children_of: Vec<Vec<usize>> = parsed_ops.iter().map(|op| op.child_operators.clone()).collect();
         let mut parsed_ops: Vec<Option<ParsedOperatorNode>> = parsed_ops.into_iter().map(Some).collect();
-        let children_of: Vec<Vec<usize>> =
-            parsed_ops.iter().map(|op| op.as_ref().unwrap().child_operators.clone()).collect();
 
         // Prepare the operators: (parsed operator, visited)
         let mut pending: Vec<(usize, bool)> = parsed_roots.iter().rev().map(|r| (*r, false)).collect();
@@ -409,26 +410,37 @@ impl QueryProfile {
 
         // The flattened operators that are not yet placed
         let mut mapped: Vec<Option<OperatorNode>> = (0..parsed_ops.len()).map(|_| None).collect();
+        // A parsed plan is a tree: every operator is flattened once, after its children. An operator that is
+        // reached twice or out of range is skipped instead of trapping the module.
         while let Some(&(op, visited)) = pending.last() {
+            let children: &[usize] = children_of.get(op).map(Vec::as_slice).unwrap_or_default();
             if visited {
+                pending.pop();
                 // Add child operators
                 let children_begin = self.operators.len();
-                for &child in &children_of[op] {
-                    let node = mapped[child].take().expect("child operator must be flattened");
-                    self.place_operator(node);
+                for &child in children {
+                    if let Some(node) = mapped.get_mut(child).and_then(Option::take) {
+                        self.place_operator(node);
+                    }
                 }
                 let child_count = self.operators.len() - children_begin;
-                let mut flat = OperatorNode::from_parsed(parsed_ops[op].take().unwrap());
+                let Some(parsed) = parsed_ops.get_mut(op).and_then(Option::take) else {
+                    continue;
+                };
+                let mut flat = OperatorNode::from_parsed(parsed);
                 flat.children_begin = children_begin;
                 flat.children_count = child_count;
 
                 // Register flat operator
-                mapped[op] = Some(flat);
-                pending.pop();
+                if let Some(slot) = mapped.get_mut(op) {
+                    *slot = Some(flat);
+                }
             } else {
-                pending.last_mut().unwrap().1 = true;
+                if let Some(last) = pending.last_mut() {
+                    last.1 = true;
+                }
                 // Add the children, reversed since we're using a DFS stack
-                pending.extend(children_of[op].iter().rev().map(|c| (*c, false)));
+                pending.extend(children.iter().rev().map(|c| (*c, false)));
             }
         }
 
@@ -436,7 +448,9 @@ impl QueryProfile {
         // (see docs/design/core_quirks.md).
         self.root_operators.reserve(parsed_roots.len());
         for root in parsed_roots.into_iter().rev() {
-            let node = mapped[root].take().expect("root operator must be flattened");
+            let Some(node) = mapped.get_mut(root).and_then(Option::take) else {
+                continue;
+            };
             let oid = self.place_operator(node);
             self.root_operators.push(oid as u32);
         }
@@ -464,7 +478,7 @@ impl QueryProfile {
         let operator_id = self.operators.len();
         let children = node.children();
         self.operators.push(node);
-        for child in &mut self.operators[children] {
+        for child in self.operators.get_mut(children).unwrap_or_default() {
             child.parent = Some(operator_id);
         }
         operator_id

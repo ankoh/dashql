@@ -1,5 +1,5 @@
-//! JSON the way the TypeScript runtime read it: JSON pointers, the text of a value and the number of a value, so a
-//! request carries the same text as before.
+//! JSON the way JavaScript reads it: JSON pointers, the text of a value and the number of a value, so a request carries
+//! the text that JavaScript would write.
 
 use serde_json::{Map, Number, Value};
 

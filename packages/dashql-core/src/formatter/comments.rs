@@ -212,7 +212,7 @@ const FLOW_TAG: &str = "flow";
 /// Split a line at its first whitespace, the rest is trimmed
 fn split_word(line: &str) -> (&str, &str) {
     let end = line.find([' ', '\t', '\r', '\x0c', '\x0b']).unwrap_or(line.len());
-    (&line[..end], line[end..].trim())
+    line.split_at_checked(end).map_or((line, ""), |(word, rest)| (word, rest.trim()))
 }
 
 /// The canonical content lines of a `@vis` tag, the first line is the text on the line of the tag.

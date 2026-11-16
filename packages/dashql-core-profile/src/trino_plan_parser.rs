@@ -77,7 +77,8 @@ fn trino_operator_kind(op: &OperatorNode) -> fb::ProfileOperatorKind {
 
 /// Serialize an attribute value as compact JSON
 fn to_json(value: &Value) -> String {
-    serde_json::to_string(value).expect("a JSON value always serializes")
+    // A JSON value has string keys and always serializes
+    serde_json::to_string(value).unwrap_or_default()
 }
 
 /// The fragments of a node that reads other fragments (`sourceFragmentIds: "[1, 2]"`)
@@ -180,8 +181,10 @@ impl TrinoPlanReader<'_> {
         }
         for source in source_fragments(node) {
             if let Some(root) = self.read_fragment(&source, Some(fragment)) {
-                self.operators[root].parent_child_path =
-                    vec![PathComponent::MemberInObject { attribute: format!("fragment {source}") }];
+                if let Some(root) = self.operators.get_mut(root) {
+                    root.parent_child_path =
+                        vec![PathComponent::MemberInObject { attribute: format!("fragment {source}") }];
+                }
                 children.push(root);
             }
         }
@@ -242,14 +245,17 @@ impl QueryProfile {
         // The operators of the fragments; the root of a fragment has no parent in the same fragment
         for (op_id, op) in self.operators.iter_mut().enumerate() {
             op.kind = trino_operator_kind(op);
-            if let Some(fragment) = op.fragment {
-                self.fragments[fragment as usize].operators.push(op_id as u32);
+            if let Some(fragment) = op.fragment.and_then(|fragment| self.fragments.get_mut(fragment as usize)) {
+                fragment.operators.push(op_id as u32);
             }
         }
         for (op_id, op) in self.operators.iter().enumerate() {
             let Some(fragment) = op.fragment else { continue };
-            if op.parent.is_none_or(|parent| self.operators[parent].fragment != Some(fragment)) {
-                self.fragments[fragment as usize].root_operator = Some(op_id as u32);
+            let parent_fragment = op.parent.and_then(|parent| self.operators.get(parent)).map(|parent| parent.fragment);
+            if parent_fragment != Some(Some(fragment)) {
+                if let Some(fragment) = self.fragments.get_mut(fragment as usize) {
+                    fragment.root_operator = Some(op_id as u32);
+                }
             }
         }
 

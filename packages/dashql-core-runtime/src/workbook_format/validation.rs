@@ -1,4 +1,4 @@
-//! The validation of a workbook file before it is restored. Ported from `storage/workbook_validation.ts`.
+//! The validation of a workbook file before it is restored.
 
 use std::collections::HashSet;
 
@@ -174,7 +174,7 @@ pub fn is_local_hyper_wasm_params(params: &Value) -> bool {
         return false;
     };
     let protocol = hyper.get("protocol").filter(|p| !p.is_null());
-    protocol.map_or(true, |p| p.as_str() == Some("WASM")) && embedded_cloud_databases(hyper).is_empty()
+    protocol.is_none_or(|p| p.as_str() == Some("WASM")) && embedded_cloud_databases(hyper).is_empty()
 }
 
 /// A workbook that failed its validation and was refused a load. It holds what the workbench needs to show and delete

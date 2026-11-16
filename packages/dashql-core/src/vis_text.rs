@@ -27,7 +27,7 @@ impl TagText {
                 text.push('\n');
             }
             offsets.push((line.offset as usize, text.len()));
-            text.push_str(&script[line.offset as usize..line.end() as usize]);
+            text.push_str(script.get(line.offset as usize..line.end() as usize).unwrap_or(""));
         }
         Self {
             text,
