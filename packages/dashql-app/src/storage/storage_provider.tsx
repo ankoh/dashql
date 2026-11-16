@@ -10,6 +10,7 @@ import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
+import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 
 // Storage context for reading
 export interface StorageReader {
@@ -37,6 +38,7 @@ interface StorageProviderProps {
 
 export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: providedBackend, children }) => {
     const logger = useLogger();
+    const setupCore = useDashQLCoreSetup();
     const [backend, setBackend] = React.useState<StorageBackend | null>(providedBackend || null);
     const [migrationStatus, setMigrationStatus] = React.useState<IndicatorStatus>(providedBackend ? IndicatorStatus.Skip : IndicatorStatus.None);
     const [migrationError, setMigrationError] = React.useState<string | null>(null);
@@ -53,10 +55,10 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         const initBackend = async () => {
             const initStartTime = performance.now();
 
-            // The storage is brought to the current version before anything reads it
+            // The storage is brought to the current version before anything reads it, the runtime of the core migrates it
             setMigrationStatus(IndicatorStatus.Running);
             try {
-                const migrated = await migrateStorage(logger);
+                const migrated = await migrateStorage(logger, setupCore);
                 setMigrationStatus(migrated.steps + migrated.workbooks > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
             } catch (error) {
                 logger.error("Failed to migrate the storage", { error: stringifyError(error) }, "storage_provider");

@@ -27,6 +27,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::host::{message_of, JsPlatform};
+use crate::runtime::migrations::migrate_workbook_folder;
 use crate::runtime::workbooks::view::WorkbookDataFile;
 use crate::views::{to_js, JsonValue};
 use restore_view::{RestoreProgress as ProgressView, RestoreScriptFile};
@@ -80,6 +81,10 @@ pub(crate) struct StorageState {
     revision: Cell<u64>,
     /// Hears the progress of the restore that runs
     progress: RefCell<Option<Function>>,
+    /// The workbooks in folders of their own whose folders were brought to the current workbook format
+    migrated: RefCell<std::collections::BTreeSet<String>>,
+    /// The workbooks that changed outside the app and wait for the answer of the user, in the order they were asked
+    questions: RefCell<Vec<ExternalChangeView>>,
 }
 
 impl StorageState {
@@ -90,7 +95,25 @@ impl StorageState {
 
     /// The view of the storage
     pub fn view(&self) -> StorageView {
-        StorageView { held_workbooks: self.held.borrow().clone() }
+        StorageView { held_workbooks: self.held.borrow().clone(), external_changes: self.questions.borrow().clone() }
+    }
+
+    /// Ask about a workbook that changed outside the app, a question about it replaces the one before
+    pub fn ask(&self, workbook_id: &str, prompt: u32, pending_writes: bool) {
+        let mut questions = self.questions.borrow_mut();
+        questions.retain(|question| question.workbook_id != workbook_id);
+        questions.push(ExternalChangeView { workbook_id: workbook_id.to_string(), prompt, pending_writes });
+        self.revision.set(next_revision());
+    }
+
+    /// The question about a workbook was answered
+    pub fn answered(&self, workbook_id: &str) {
+        let mut questions = self.questions.borrow_mut();
+        let before = questions.len();
+        questions.retain(|question| question.workbook_id != workbook_id);
+        if questions.len() != before {
+            self.revision.set(next_revision());
+        }
     }
 
     /// The statistics of the keys in the order they were first written
@@ -114,13 +137,29 @@ impl StorageState {
     }
 }
 
-/// The storage of the runtime: the workbooks that a change outside the app holds
+/// The storage of the runtime: the workbooks that a change outside the app holds, and the questions about workbook
+/// folders that changed outside the app
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct StorageView {
     /// The workbooks whose writes are held because one of their scripts changed outside the app
     pub held_workbooks: Vec<String>,
+    /// The workbooks whose scripts changed on disk, the app asks the user whether to reload them
+    /// (`answerExternalChange`)
+    pub external_changes: Vec<ExternalChangeView>,
+}
+
+/// A question about a workbook folder whose scripts changed outside the app
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ExternalChangeView {
+    pub workbook_id: String,
+    /// The number of the question, the answer names it. A second question about the same change has a new number.
+    pub prompt: u32,
+    /// Does the app hold writes of the scripts that a reload discards?
+    pub pending_writes: bool,
 }
 
 /// A command of the storage writer
@@ -198,8 +237,23 @@ fn text(value: &str) -> JsValue {
     JsValue::from_str(value)
 }
 
+impl JsStorage {
+    /// Bring the folder of a workbook to the current workbook format before its workbook file is first read, e.g. a
+    /// native workbook folder that an older version of the app wrote. The folders of the storage root were migrated
+    /// with the storage.
+    async fn migrate_workbook_folder(&self, workbook_id: &str) -> Result<(), HostError> {
+        if self.state.migrated.borrow().contains(workbook_id) {
+            return Ok(());
+        }
+        migrate_workbook_folder(&self.platform, workbook_id).await?;
+        self.state.migrated.borrow_mut().insert(workbook_id.to_string());
+        Ok(())
+    }
+}
+
 impl StorageHost for JsStorage {
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        self.migrate_workbook_folder(workbook_id).await?;
         let workbook = self.call("loadWorkbook", &[text(workbook_id)]).await?;
         if workbook.is_null() || workbook.is_undefined() {
             return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));

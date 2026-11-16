@@ -1,63 +1,20 @@
+import type * as core from '@ankoh/dashql-core';
+
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { OPFS_MANIFEST_LOCK } from '../opfs_storage_backend.js';
-import { listSessionFolders, readManifestJson, writeManifestJson } from './storage_root.js';
-import { migrateWorkbookFolder, WorkbookMigrationResult } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
-import { notebooksToSessions } from './storage/v2_notebooks_to_sessions.js';
-import { globalConnections } from './storage/v3_global_connections.js';
-import { sessionCatalogsToConnections } from './storage/v4_session_catalogs_to_connections.js';
-import { shellFolder } from './storage/v5_shell_folder.js';
-import { dropConnectionAliases } from './storage/v6_drop_connection_aliases.js';
-import { sessionTree } from './storage/v7_session_tree.js';
-import { dbcomConnector } from './storage/v8_dbcom_connector.js';
-import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
-import { flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-runtime/storage/workbook_tree';
+import { createRuntime } from '@ankoh/dashql-runtime/runtime';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
+import { createStorageRoot } from '@ankoh/dashql-runtime/storage/storage_root';
+import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { OPFS_MANIFEST_LOCK } from '../opfs_storage_backend.js';
 
-const LOG_CTX = 'storage_migration';
-
-/// What a storage migration step works on
-export interface StorageMigrationContext {
-    /// The storage root (the OPFS root)
-    root: FileSystemDirectoryHandle;
-    /// The logger
-    logger: Logger;
-}
-
-/// A step that brings the storage from the previous version to `version`.
-///
-/// A step spells out every file, folder and field it touches, it never uses the storage constants
-/// of the app. Those describe the current layout while a step describes the layout of its own
-/// version. Steps are idempotent: the version is written after a step, an interrupted migration
-/// repeats the step.
-export interface StorageMigrationStep {
-    /// The storage version the step produces
-    version: number;
-    /// What the step changes
-    description: string;
-    /// Migrate the storage
-    migrate(context: StorageMigrationContext): Promise<void>;
-}
-
-/// The steps in order. Steps are never removed, a storage may skip any number of app versions.
-export const STORAGE_MIGRATION_STEPS: readonly StorageMigrationStep[] = [
-    notebooksToSessions,
-    globalConnections,
-    sessionCatalogsToConnections,
-    shellFolder,
-    dropConnectionAliases,
-    sessionTree,
-    dbcomConnector,
-    sessionsToWorkbooks,
-];
+// The migrations of the storage are steps of the runtime of the core (`workbook_format::storage_migration`), see
+// docs/design/storage_layout.md. The app gives them the origin private file system and the native workbook folders of
+// the desktop app, and holds the lock of the manifest meanwhile.
 
 /// What a storage migration changed
-export interface StorageMigrationSummary {
-    /// The storage steps that ran
-    steps: number;
-    /// The session folders that were brought to the current session format
-    workbooks: number;
-}
+export type StorageMigrationSummary = core.StorageMigrationOutcome;
 
 /// Run an operation while holding the manifest lock, which the tabs of the app share
 async function withManifestLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -65,61 +22,31 @@ async function withManifestLock<T>(fn: () => Promise<T>): Promise<T> {
     return locks != null ? await locks.request(OPFS_MANIFEST_LOCK, fn) : await fn();
 }
 
+/// A native workbook folder that the manifest registers, claimed for the app. Folders registered before the app granted
+/// folders are claimed once, later starts reject the claim. Null outside of the desktop app and for a missing folder.
+async function nativeWorkbookFolder(nativePath: string): Promise<core.RuntimeFolder | null> {
+    if (globalThis.dashqlElectron === undefined) return null;
+    await globalThis.dashqlElectron.claimWorkbookFolder(nativePath);
+    if (!(await ELECTRON_FILE_SYSTEM.exists(nativePath))) return null;
+    return new NativeStorageBackend(nativePath, ELECTRON_FILE_SYSTEM);
+}
+
 /// Bring the storage of the app to the current version.
 ///
-/// The app runs this at startup before anything reads the storage. The storage steps bring the
-/// storage root to the current version, then every reachable session folder is brought to the
-/// current session format. Session folders that become reachable later are migrated when they are
-/// registered. A storage of a newer app version is refused. Returns what the migration changed.
+/// The app runs this at startup before anything reads the storage, on a runtime of its own. The steps of the runtime
+/// bring the storage root to the current storage version, then every reachable workbook folder to the current workbook
+/// format. Workbook folders that become reachable later are migrated when they are registered. A storage of a newer
+/// app version is refused. Returns what the migration changed.
 export async function migrateStorage(
     logger: Logger,
+    setupCore: (context: string) => Promise<core.DashQL>,
     root?: FileSystemDirectoryHandle,
-    steps: readonly StorageMigrationStep[] = STORAGE_MIGRATION_STEPS,
 ): Promise<StorageMigrationSummary> {
-    const storageRoot = root ?? await getOPFSRoot();
-    const summary: StorageMigrationSummary = { steps: 0, workbooks: 0 };
-    await withManifestLock(async () => {
-        let manifest = await readManifestJson(storageRoot);
-        if (manifest == null) {
-            // A fresh storage, the first write of the manifest stamps the current version
-            return;
-        }
-        const version = manifest.storageVersion ?? 1;
-        if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
-            throw new Error(`Invalid storage version: ${JSON.stringify(version)}`);
-        }
-        const latestVersion = steps.reduce((latest, step) => Math.max(latest, step.version), 1);
-        if (version > latestVersion) {
-            throw new Error(`The storage was written by a newer version of DashQL (storage version ${version}, this version supports ${latestVersion})`);
-        }
-
-        for (const step of steps) {
-            if (step.version <= version) {
-                continue;
-            }
-            logger.info('Migrating the storage', { version: step.version.toString(), step: step.description }, LOG_CTX);
-            await step.migrate({ root: storageRoot, logger });
-            manifest = await readManifestJson(storageRoot) ?? {};
-            await writeManifestJson(storageRoot, { ...manifest, storageVersion: step.version });
-            ++summary.steps;
-        }
-
-        // The storage is current, the workbook tree registers the workbooks
-        const workbookEntries = flattenWorkbookTree(await readWorkbookTree(storageRoot));
-        for (const { sessionId: workbookId, folder } of await listSessionFolders(storageRoot, workbookEntries, 'workbooks')) {
-            try {
-                const result = await migrateWorkbookFolder(folder);
-                if (result === WorkbookMigrationResult.Migrated) {
-                    logger.info('Migrated a session', { workbookId }, LOG_CTX);
-                    ++summary.workbooks;
-                } else if (result !== WorkbookMigrationResult.Current) {
-                    logger.warn('Session cannot be migrated', { workbookId, result }, LOG_CTX);
-                }
-            } catch (error) {
-                // The session is surfaced as invalid when it is loaded
-                logger.warn('Failed to migrate a session', { workbookId, error: stringifyError(error) }, LOG_CTX);
-            }
-        }
-    });
-    return summary;
+    const storageRoot = createStorageRoot(root ?? await getOPFSRoot(), nativeWorkbookFolder);
+    const runtime = createRuntime({ logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore, storageRoot });
+    try {
+        return await withManifestLock(() => runtime.migrateStorage());
+    } finally {
+        await runtime.destroy();
+    }
 }

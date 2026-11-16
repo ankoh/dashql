@@ -9,7 +9,6 @@ import {
     StorageBackendType,
 } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from './opfs_storage_backend.js';
-import { type ManifestJson, readManifestJson } from './migration/storage_root.js';
 import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from '@ankoh/dashql-runtime/storage/workbook_tree';
 import { SHELL_FILES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs.js';
 import {
@@ -233,6 +232,25 @@ export async function removeOPFSCleanupCandidates(
     return locks != null
         ? await locks.request(OPFS_MANIFEST_LOCK, () => locks.request(OPFS_WORKBOOK_TREE_LOCK, run))
         : await run();
+}
+
+/// A manifest as it is stored
+type ManifestJson = Record<string, unknown>;
+
+/// Read the manifest of a storage root, null if it has none
+async function readManifestJson(root: FileSystemDirectoryHandle): Promise<ManifestJson | null> {
+    let text: string;
+    try {
+        text = await (await (await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false })).getFile()).text();
+    } catch (error) {
+        if ((error as DOMException).name === 'NotFoundError') return null;
+        throw error;
+    }
+    const manifest: unknown = JSON.parse(text);
+    if (manifest == null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+        throw new Error(`Invalid ${STORAGE_MANIFEST_FILE}: not a JSON object`);
+    }
+    return manifest as ManifestJson;
 }
 
 /// Read the registrations of a storage root

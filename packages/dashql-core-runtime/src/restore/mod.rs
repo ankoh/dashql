@@ -161,8 +161,8 @@ fn params_value(state: &ConnectionState) -> Value {
 }
 
 /// Create the state of a stored connection. A restored connection is active. A draft that can't be read is dropped,
-/// the saved params stay.
-fn connection_state<H: RestoreHost>(host: &H, connection: &RestoreConnection, catalog: Catalog) -> Result<ConnectionState> {
+/// the saved params stay. The runtime creates the connections of a workbook folder that changed outside the app with it.
+pub fn connection_state<H: RestoreHost>(host: &H, connection: &RestoreConnection, catalog: Catalog) -> Result<ConnectionState> {
     let now = host.now();
     let (_, details) = decode_connection(&connection.params, &connection.connection_id)?;
     let params_draft = match &connection.params_draft {

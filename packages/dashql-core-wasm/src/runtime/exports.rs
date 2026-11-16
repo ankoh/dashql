@@ -17,7 +17,7 @@ use dashql_core_runtime::workbook_format::export::{
     connection_link_workbook, exported_bundle, shared_export_head, shared_workbook_tables, workbook_archive_entries, workbook_link,
     ArchiveEntrySource, EntryCompression, SharedWorkbookExportOptions,
 };
-use dashql_core_runtime::workbook_format::tables::{WorkbookTableName, WorkbookTables};
+use dashql_core_runtime::workbook_format::tables::{ColumnType, WorkbookTableName, WorkbookTables};
 use js_sys::{Function, Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -356,4 +356,54 @@ fn tables_value(tables: &WorkbookTables<HostFile>) -> Result<JsValue, HostError>
         ])
     });
     Ok(object(&[("rows", rows.into()), ("data", list(data))]))
+}
+
+/// The type of a column of a workbook table
+#[derive(Clone, Copy, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum WorkbookTableColumnType {
+    Text,
+    Integer,
+    Boolean,
+}
+
+/// A column of a workbook table
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbookTableColumn {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub column_type: WorkbookTableColumnType,
+    pub nullable: bool,
+}
+
+/// A workbook table of the format with its columns
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbookTableSchema {
+    pub name: String,
+    pub columns: Vec<WorkbookTableColumn>,
+}
+
+/// The workbook tables of the format with their columns, the schema of a cloud
+pub(crate) fn workbook_table_schemas() -> Vec<WorkbookTableSchema> {
+    WorkbookTableName::ALL
+        .iter()
+        .map(|table| WorkbookTableSchema {
+            name: table.name().to_string(),
+            columns: table
+                .columns()
+                .iter()
+                .map(|column| WorkbookTableColumn {
+                    name: column.name.to_string(),
+                    column_type: match column.column_type {
+                        ColumnType::Text => WorkbookTableColumnType::Text,
+                        ColumnType::Integer => WorkbookTableColumnType::Integer,
+                        ColumnType::Boolean => WorkbookTableColumnType::Boolean,
+                    },
+                    nullable: column.nullable,
+                })
+                .collect(),
+        })
+        .collect()
 }

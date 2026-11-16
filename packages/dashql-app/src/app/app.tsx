@@ -102,11 +102,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                 <PlatformEventListenerProvider>
                     <VersionCheck>
                         <AppOwnershipGate>
-                            <StorageProvider>
-                                <HttpClientProvider>
-                                    <AppSettingsSync>
-                                        <HyperDatabaseClientProvider>
-                                            <DashQLCoreProvider>
+                            <DashQLCoreProvider>
+                                <StorageProvider>
+                                    <HttpClientProvider>
+                                        <AppSettingsSync>
+                                            <HyperDatabaseClientProvider>
                                                 <AppEmbeddedDatabaseProvider>
                                                     <ComputeConnectionProvider>
                                                         <QueryResultCacheProvider>
@@ -116,11 +116,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                         </QueryResultCacheProvider>
                                                     </ComputeConnectionProvider>
                                                 </AppEmbeddedDatabaseProvider>
-                                            </DashQLCoreProvider>
-                                        </HyperDatabaseClientProvider>
-                                    </AppSettingsSync>
-                                </HttpClientProvider>
-                            </StorageProvider>
+                                            </HyperDatabaseClientProvider>
+                                        </AppSettingsSync>
+                                    </HttpClientProvider>
+                                </StorageProvider>
+                            </DashQLCoreProvider>
                         </AppOwnershipGate>
                     </VersionCheck>
                 </PlatformEventListenerProvider>

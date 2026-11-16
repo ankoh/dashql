@@ -102,17 +102,24 @@ the app. Scripts that were never acknowledged are not checked; OPFS workbooks ne
 
 ### Coordinator
 
-`NativeWorkbookSync` in
-`packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx` is mounted once inside the
-connection and workbook registry providers. It queues a workbook check
+The checks are a service of the runtime of the core (`packages/dashql-core-wasm/src/runtime/external.rs`):
+`checkWorkbookFolders(workbookIds)` queues checks, they run one at a time and a request for a workbook that is queued
+already is dropped. The storage of the platform names the folder of a workbook (`storage.workbookFolder`, the
+`NativeStorageBackend` of a native workbook) with its stamps. The runtime resolves the scripts of a folder that changed
+against its connections (`resolve_workbook_scripts` of the crate): a connection that only the workbook file names joins
+the runtime from its copy and leaves it again unless the reload is applied. When the scripts differ from the app, the
+`storage` view asks the question (`externalChanges`: the workbook, the number of the question, whether the app holds
+writes that a reload discards) and the check waits for `answerExternalChange(workbookId, prompt, reload)`.
 
-- once for every workbook that enters the workbook registry,
-- for every workbook when the window gets the focus,
-- for a workbook whose script write the writer holds.
+`NativeWorkbookSync` in `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx` is mounted once
+in the desktop app. It asks the runtime to check
 
-Checks are serialized: repeated requests for a workbook collapse in a `Set` and only one native dialog
-is open at a time. The coordinator is the only component that knows about native dialogs, storage
-coordination, and both state registries.
+- once for every workbook that enters the list of the workbooks,
+- every workbook when the window gets the focus,
+- a workbook whose script write the writer holds (`heldWorkbooks` of the `storage` view),
+
+and shows every question of the view once as a native dialog. A dialog that fails answers nothing, the version of the
+app stays and the next check asks again.
 
 ### Domain Reconciliation
 
@@ -159,7 +166,7 @@ flowchart TD
     U --> Z
 ```
 
-The coordinator follows these steps for one workbook at a time:
+A check of the runtime follows these steps for one workbook at a time:
 
 1. Pause that workbook's debounced writes. Other workbooks continue normally.
 2. Await writes that already started.
@@ -172,8 +179,9 @@ The coordinator follows these steps for one workbook at a time:
 6. Compare the script stamps with the recorded ones. No difference ends the check. Otherwise read
    the scripts and compare them with the live state. If they match, e.g. because a tool only touched
    a file, acknowledge the stamps and end the check.
-7. Ask the user whether to reload. When relevant local writes are pending, the dialog explicitly says
-   that reloading discards them.
+7. Ask the user whether to reload: the `storage` view holds the question until the app answers. When
+   relevant local writes are pending, the dialog explicitly says that reloading discards them. A local
+   edit that arrives while a question without pending writes is open asks again with that warning.
 8. **Keep current** acknowledges the stamps and writes the app version of every script that differs.
    Scripts that exist only on disk are left alone.
 9. **Reload** rechecks the relevant write generation after the dialog. The editor remains
@@ -181,7 +189,7 @@ The coordinator follows these steps for one workbook at a time:
    is stale and the workbook is requeued for a fresh snapshot and decision.
 10. Cancel only conflicting pending workbook writes when the user accepted that consequence,
     acknowledge the stamps, and reconcile the workbook.
-11. Resume the workbook writer in a `finally` block. A held write runs now: after Keep current it
+11. Resume the workbook writer at the end of every check, also a failed one. A held write runs now: after Keep current it
     overwrites the acknowledged disk version, after Reload it was cancelled.
 
 ## Writer Coordination
@@ -277,7 +285,7 @@ bazel build //packages/dashql-native:compile
 
 ## Implementation References
 
-- Check coordinator: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
+- Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
 - Stamps and refused script writes: `packages/dashql-runtime/src/storage/native_storage_backend.ts`
 - Held writes: `packages/dashql-runtime/src/storage/storage_writer.ts`
 - Workbook scripts reconciliation: `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`

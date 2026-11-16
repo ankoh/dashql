@@ -3,14 +3,13 @@ import type * as core from '@ankoh/dashql-core';
 import { stringifyError } from '../platform/logger/logger.js';
 import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from './storage_backend.js';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from './storage_backend.js';
+import { NativeStorageBackend } from './native_storage_backend.js';
+import { markWorkbookAttachmentsChanged } from '../workbook/attachments/attachment_mounts.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
 /// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/wip/runtime_api.md). The writer
 /// decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
 /// statistics. The workbooks and the connections of the runtime write through it.
-
-/// How long a write of the host waits for the next change
-export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
 
 /// The key of a write. Writes with the same key coalesce, the latest task wins. Workbook keys start with the workbook
 /// id, the keys of the app storage with `@`.
@@ -81,9 +80,11 @@ export function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteRe
 
 /// A storage that registers native workbook folders in place, the storage of the desktop app
 export interface NativeWorkbookRegistry {
-    /// Register a native workbook folder under an id: migrate its top-level files, reconcile its file lists with its
-    /// files and add it to the workbook tree. The catalogs of the folder were seeded before.
+    /// Register a native workbook folder under an id: add it to the workbook tree. The catalogs of the folder were
+    /// seeded before, the runtime migrates the folder and reconciles its file lists with its files after.
     registerNativeWorkbook(dir: string, workbookId: string): Promise<void>;
+    /// The folder of a workbook that lives in a native folder, null for other workbooks
+    nativeWorkbookFolder(workbookId: string): NativeStorageBackend | null;
 }
 
 /// `storage` of the platform over a storage backend: the reads and writes of the storage writer and of the restore
@@ -125,6 +126,11 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
             if (typeof native.registerNativeWorkbook !== 'function') throw new Error('the storage registers no native workbook folders');
             await native.registerNativeWorkbook(dir, workbookId);
         },
+        // A storage of a single folder is that folder, the storage of the desktop app keeps native workbooks in theirs
+        workbookFolder: workbookId => backend instanceof NativeStorageBackend
+            ? backend
+            : (backend as Partial<NativeWorkbookRegistry>).nativeWorkbookFolder?.(workbookId) ?? null,
+        attachmentsChanged: workbookId => markWorkbookAttachmentsChanged(workbookId),
     };
 }
 

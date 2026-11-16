@@ -1,7 +1,7 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 
 import { CONNECTOR_INFOS, type ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import type { InvalidWorkbook, WorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
 import { useOptionalRuntime, useWorkbookList } from '../runtime/runtime_hooks.js';
@@ -20,6 +20,10 @@ function useLazyRuntime() {
     }, [runtime]);
 }
 
+/// A workbook that was refused a load: the workbook id of its entry, a title, the connector of its first connection, the
+/// code of the validation error and its explanation
+export type InvalidWorkbook = core.RestoredInvalidWorkbook;
+
 /// The workbooks that were refused a load
 export interface InvalidWorkbooks {
     /// The invalid workbooks (workbookId -> reason)
@@ -37,12 +41,7 @@ export function useInvalidWorkbooks(): InvalidWorkbooks {
     const invalid = list?.invalidWorkbooks;
     const invalidWorkbooks = React.useMemo(() => {
         if (invalid == null || invalid.length === 0) return NO_INVALID_WORKBOOKS;
-        return new Map(invalid.map(workbook => [workbook.workbookId, {
-            workbookId: workbook.workbookId,
-            title: workbook.title,
-            connectorType: workbook.connectorType as ConnectorType | null,
-            error: workbook.error as WorkbookValidationError,
-        }]));
+        return new Map(invalid.map(workbook => [workbook.workbookId, workbook]));
     }, [invalid]);
     const deleteInvalidWorkbook = React.useCallback((workbookId: string) => runtime().deleteInvalidWorkbook(workbookId), [runtime]);
     return React.useMemo(() => ({ invalidWorkbooks, deleteInvalidWorkbook }), [invalidWorkbooks, deleteInvalidWorkbook]);

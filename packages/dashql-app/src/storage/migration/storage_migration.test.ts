@@ -1,11 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import * as core from '@ankoh/dashql-core';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { migrateStorage, STORAGE_MIGRATION_STEPS } from './storage_migration.js';
+import { migrateStorage as migrateStorageWithCore } from './storage_migration.js';
 import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import { sessionsToWorkbooks } from './storage/v9_sessions_to_workbooks.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';
@@ -25,7 +27,14 @@ function notebook(notebookId: string, databaseId: string): string {
     });
 }
 
+// The steps are tested in the core (`storage_migration_test.rs`), these tests run them on the runtime over the storage
+// root and the native folders of the app
 describe('storage migration', () => {
+    let dql: core.DashQL;
+    beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+    const migrateStorage = (logger: TestLogger, root: FileSystemDirectoryHandle) => migrateStorageWithCore(logger, async () => dql, root)
+        .then(({ steps, workbooks }) => ({ steps, workbooks }));
+
     let files: Map<string, string | ArrayBuffer>;
     let dirs: Set<string>;
     let root: FileSystemDirectoryHandle;
@@ -52,9 +61,9 @@ describe('storage migration', () => {
         delete globalThis.dashqlElectron;
     });
 
-    it('ends with the current storage version', () => {
-        expect(STORAGE_MIGRATION_STEPS.map(step => step.version))
-            .toEqual(Array.from({ length: STORAGE_VERSION - 1 }, (_, i) => i + 2));
+    it('migrates to the versions of the app', async () => {
+        const outcome = await migrateStorageWithCore(new TestLogger(), async () => dql, root);
+        expect(outcome).toEqual({ steps: 0, workbooks: 0, storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION });
     });
 
     it('leaves a fresh storage untouched', async () => {
@@ -78,7 +87,7 @@ describe('storage migration', () => {
         fsStore.files.set(`${NATIVE_DIR}/dashql-notebook.json`, notebook(SESSION_B, DB_B));
 
         const summary = await migrateStorage(new TestLogger(), root);
-        expect(summary.steps).toBe(STORAGE_MIGRATION_STEPS.length);
+        expect(summary.steps).toBe(STORAGE_VERSION - 1);
         expect(summary.workbooks).toBeGreaterThan(0);
         // The native session folder is claimed before it is read
         expect(new Set(claims)).toEqual(new Set([NATIVE_DIR]));
@@ -163,10 +172,6 @@ describe('storage migration', () => {
         expect(json('workbooktree/clients/dashql-folder.json').workbooks).toEqual([{ path: SESSION_B, storageType: 'native', nativePath: NATIVE_DIR }]);
         expect(json('workbooktree/dashql-folder.json')).toEqual({ workbooks: [] });
         expect(json('dashql-manifest.json')).toEqual({ connections: [], appSettings: { keywordCase: 'upper' }, storageVersion: STORAGE_VERSION });
-
-        // The step is idempotent
-        await sessionsToWorkbooks.migrate({ root, logger: new TestLogger() });
-        expect(json('workbooktree/My Sessions/dashql-folder.json')).toEqual({ workbooks: [{ path: SESSION_A, storageType: 'opfs' }] });
     });
 
     it('seeds connections without a catalog from the catalog copies of the sessions', async () => {

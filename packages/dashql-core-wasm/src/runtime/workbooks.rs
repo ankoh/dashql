@@ -69,6 +69,7 @@ pub(crate) struct NewWorkbook {
 }
 
 /// A script as storage holds it, by the id of its connection
+#[derive(Clone)]
 pub(crate) struct StoredScriptRef {
     pub name: String,
     pub sql: String,

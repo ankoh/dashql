@@ -24,6 +24,19 @@ export interface QueryResultCacheEntry {
     lastAccessMs: number;
 }
 
+/// The size and the times of a file of the cache, what the eviction of the runtime decides on
+export interface CacheFileStat {
+    /// The file name, unique within the cache folder
+    name: string;
+    /// The size in bytes
+    size: number;
+    /// The time of the write in milliseconds since the epoch, the "cached at" time of the UI
+    mtimeMs: number;
+    /// The time of the last read in milliseconds since the epoch: the mtime of the `<file>.last_access` marker that a
+    /// hit bumps, the write time without one
+    lastAccessMs: number;
+}
+
 /// The query result cache of the app (docs/design/query_cache.md).
 ///
 /// The cache holds Parquet files in the origin private file system for every workbook and connection, keyed by the
@@ -32,7 +45,8 @@ export interface QueryResultCacheEntry {
 /// files of the key, a lookup finds the newest one. A transient file holds a result that can't be reused, e.g. the
 /// materialized result of a script whose connection doesn't cache results: it has no key and is removed once nobody
 /// pins it. Readers pin the files they read, eviction and deletion leave pinned files alone, also those of other
-/// windows of the app.
+/// windows of the app. The runtime keeps the files within the limits of `capacity`: after every write of a file of a
+/// key it removes the least recently read files that nobody reads (`fileStats`, `remove`).
 export interface QueryResultCache {
     /// The mount path of the files in the compute database
     readonly mountPath: string;
@@ -73,8 +87,11 @@ export interface QueryResultCache {
     /// its files, also one that a run wrote while the bytes were streamed: resolves true if the file was added. Fails
     /// and leaves no file if the bytes don't have the given CRC-32.
     importFile(key: string, data: Blob, options?: { crc32?: number }): Promise<boolean>;
-    /// The limits of the files, eviction removes the least recently read files beyond them
+    /// The limits of the files, the eviction of the runtime removes the least recently read files beyond them
     readonly capacity: { maxBytes: number; maxFiles: number };
-    /// Remove a file that nobody reads, e.g. a transient file of a run once the run ended
-    remove(name: string): Promise<void>;
+    /// The Parquet files with their sizes and times. Old transient files that nobody pins are removed.
+    fileStats(): Promise<CacheFileStat[]>;
+    /// Remove a file and its marker if nobody reads it, e.g. a transient file of a run once the run ended. Resolves
+    /// true if the file is gone, also if it was gone already.
+    remove(name: string): Promise<boolean>;
 }

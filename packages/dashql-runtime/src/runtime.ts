@@ -33,7 +33,7 @@ import type { ScriptData, WorkbookScripts } from './workbook/scripts/workbook_sc
 import { createRunMounts } from './workbook/scripts/run_mounts.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from './workbook/scripts/workbook_execution.js';
 import { supportsParquet } from './platform/hyperdb/hyperdb_parquet_export.js';
-import { emptyWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from './storage/workbook_tables.js';
+import { emptyWorkbookTables, provideWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from './storage/workbook_tables.js';
 
 const LOG_CTX = 'runtime';
 
@@ -47,6 +47,9 @@ export interface RuntimePlatform {
     setupCore?: ((context: string) => Promise<core.DashQL>) | core.DashQL | null;
     /// Where the workbooks and connections are kept
     storage?: StorageBackend | null;
+    /// The storage root that `migrateStorage` brings to the current version, e.g. the origin private file system of the
+    /// app before its storage is set up
+    storageRoot?: core.RuntimeStorageRoot | null;
     /// The HTTP client, the query executor and the setups send their requests with it
     http?: HttpClient | null;
     /// How connectors authorize
@@ -276,6 +279,7 @@ export class Runtime {
             get storage() {
                 return runtime.storagePlatform();
             },
+            storageRoot: this.platform.storageRoot ?? null,
             get archives() {
                 return runtime.archivesPlatform();
             },
@@ -424,6 +428,7 @@ export class Runtime {
     setCore(instance: core.DashQL): void {
         if (this.destroyed || this.runtimeModule != null) return;
         this.instance = instance;
+        provideWorkbookTables(instance);
         const module = instance.createRuntime(this.modulePlatform());
         this.runtimeModule = module;
         // The progress shows the plan in short panels, it grows left-to-right
@@ -718,6 +723,18 @@ export class Runtime {
     /// Returns whether the analysis of the session is outdated by them.
     attachTableParameters(workbookId: string, session: core.DashQLScriptSession): boolean {
         return this.runtimeModule?.attachTableParameters(workbookId, session.ptr.assertNotNull()) ?? false;
+    }
+
+    /// Bring the storage root of the platform to the current storage version and its workbook folders to the current
+    /// workbook format. Rejects for a storage of a newer version of the app.
+    async migrateStorage(): Promise<core.StorageMigrationOutcome> {
+        return await (await this.ready()).migrateStorage();
+    }
+
+    /// Bring the folder of a workbook that the storage keeps in a folder of its own to the current workbook format, e.g. the
+    /// folder of a run of the command line tool before it reads the workbook id. Null for a workbook of the storage root.
+    async migrateWorkbookFolder(workbookId: string): Promise<string | null> {
+        return await (await this.ready()).migrateWorkbookFolder(workbookId);
     }
 
     /// Restore the connections and the workbooks of the storage, the runtime takes them. Resolves once their views are

@@ -260,6 +260,7 @@ impl Runs {
             can_run,
             listener,
             prepares,
+            keyed_files: RefCell::new(BTreeSet::new()),
         }
     }
 
@@ -686,6 +687,8 @@ pub(crate) struct RuntimeRunHost {
     /// Hears the events of the scripts and prepares the connections
     listener: Option<JsValue>,
     prepares: bool,
+    /// The names of the files of keys that the run writes, the cache keeps its limits after each
+    keyed_files: RefCell<BTreeSet<String>>,
 }
 
 impl RuntimeRunHost {
@@ -818,8 +821,13 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn mount_file_name(&self, key: Option<&str>) -> String {
+        let keyed = key.is_some();
         let key = key.map(JsValue::from_str).unwrap_or(JsValue::NULL);
-        self.platform.mounts_call_now("fileName", &[self.number(), key]).ok().and_then(|name| name.as_string()).unwrap_or_default()
+        let name = self.platform.mounts_call_now("fileName", &[self.number(), key]).ok().and_then(|name| name.as_string()).unwrap_or_default();
+        if keyed && !name.is_empty() {
+            self.keyed_files.borrow_mut().insert(name.clone());
+        }
+        name
     }
 
     fn mount_write(&self, path: &str, query_id: QueryId) -> impl Future<Output = Result<u64, HostError>> + 'static {
@@ -829,9 +837,16 @@ impl RunHost for RuntimeRunHost {
             registry.query_history(query_id).and_then(|(_, history)| history.try_borrow().ok().and_then(|history| history.query(query_id).and_then(|query| query.result_table.as_ref().map(|table| table.id))))
         };
         let write = table.map(|table| self.platform.mounts_call("write", &[self.number(), JsValue::from_str(path), JsValue::from_f64(table as f64)]));
+        // The cache keeps its limits after every file of a key, a transient file of the run goes when the run ends
+        let keyed = self.keyed_files.borrow().iter().any(|name| path.rsplit('/').next() == Some(name.as_str()));
+        let evict = keyed.then(|| self.platform.evict_cache());
         async move {
             let Some(write) = write else { return Err(HostError::new("The statement has no result")) };
-            Ok(write.await?.as_f64().unwrap_or_default().max(0.0) as u64)
+            let rows = write.await?.as_f64().unwrap_or_default().max(0.0) as u64;
+            if let Some(evict) = evict {
+                evict.await;
+            }
+            Ok(rows)
         }
     }
 

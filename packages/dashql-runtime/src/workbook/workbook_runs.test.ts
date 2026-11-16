@@ -508,6 +508,21 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
     });
 
+    it('keeps the query result cache within its limits, the least recently read files go first', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
+        f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };
+        await f.run('foo.sql');
+        await f.core.module?.flushCacheWrites();
+        const [foo, bar] = await f.core.resultKeys(f.workbookId);
+        const fooFile = (await f.cache!.lookup(foo!))!.name;
+        await f.run('bar.sql');
+        await f.core.module?.flushCacheWrites();
+        // The runtime evicts after the write of bar, the file of foo was read longer ago
+        expect(f.cache!.remove).toHaveBeenCalledWith(fooFile);
+        expect(await f.cache!.has(foo!)).toBe(false);
+        expect(await f.cache!.has(bar!)).toBe(true);
+    });
+
     it('runs create, insert and select across scripts in the order of their dependencies', async () => {
         const f = await scripts([
             ['1_create.sql', 'create table items (id int);'],

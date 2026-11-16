@@ -8,7 +8,9 @@ is built: the connections with their query histories, the query executor and the
 [Step 4 as built](#step-4-as-built). Step 5 is built: the runs of workbooks, see [Step 5 as built](#step-5-as-built).
 Step 6 is built: the imports and exports of workbooks, see [Step 6 as built](#step-6-as-built).
 Step 7 is built: one facade over the runtime of the module, the hooks over its views and the description of the queries
-in Rust, see [Step 7 as built](#step-7-as-built). The sections before the migration describe the state when this
+in Rust, see [Step 7 as built](#step-7-as-built). Step 8 is built: the migrations of the storage, the eviction of the
+query result cache and the checks of native workbook folders run in the runtime, see
+[Step 8 as built](#step-8-as-built). The sections before the migration describe the state when this
 document was written. Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
@@ -458,6 +460,12 @@ deletes more than it adds.
    −1,100.
 7. **The rest** (done, see [Step 7 as built](#step-7-as-built)). `runtime.ts` becomes the facade; the old hook names,
    `storeWithoutRuntime` and the binding modules of the app go.
+8. **The storage migrations, the native folders and the eviction** (done, see [Step 8 as built](#step-8-as-built)). The
+   migrations of the storage root and of workbook folders, the checks of the native workbook folders that change outside
+   the app with the restore of their connections, and the eviction of the query result cache move onto the runtime.
+   Deletes `workbook_format.rs` of the bindings with `DashQLWorkbookFormat`, `workbook_migration.ts`, the storage steps
+   of the app, `query_result_cache_eviction.ts`, `connection_restore.ts`, `workbook_format.ts` and
+   `workbook_validation.ts`. TypeScript about −900.
 
 ### Step 1 as built
 
@@ -1114,6 +1122,104 @@ the 1,072 lines of `testing/`; 6,772 lines of tests in 60 files):
 
 Since the migration started the package went from 32,400 lines without tests to 23,656 when this document was written
 and to 14,697 now.
+
+### Step 8 as built
+
+The migrations of the storage, the native workbook folders and the eviction of the query result cache, built on
+`e31b504b8` (step 7). It retires the last binding of the workbook format.
+
+- **The migrations are commands.** `migrateStorage()` brings the storage root of the platform to the current storage
+  version with the steps of `workbook_format/storage_migration.rs` of the crate (the eight storage steps of the app,
+  versions 2 to 9, with the consolidation of the connections of version 3), then every workbook folder that the
+  workbook tree registers to the current workbook format, and resolves with `StorageMigrationOutcome` (`steps`,
+  `workbooks`, `storageVersion`, `formatVersion`). `migrate_folder` of `migration.rs` migrates a folder over a
+  `FolderHost`: the top-level files are read, migrated in memory, written first and removed after; a folder at the
+  current version is only read. The restore migrates a folder that the platform keeps elsewhere
+  (`storage.workbookFolder`, e.g. a native workbook folder or the folder of a run of the command line tool) before it
+  first reads its workbook file, an import migrates a native folder after it registered it, and
+  `migrateWorkbookFolder(workbookId)` migrates one on request: the command line tool calls it before it reads the
+  workbook id of its folder. The app migrates its storage before the storage is set up, on a runtime of its own over the
+  storage root (`createStorageRoot` of `storage/storage_root.ts` over the OPFS root, the native folders of the desktop
+  app claimed by the platform), with the lock of the manifest; the core provider moved above the storage provider for
+  it.
+- **The platform grew** `storageRoot` (`RuntimeStorageRoot`: `readText`, `writeText`, `createDirectory`, `remove`,
+  `list`, `copyDirectory` by path, `nativeFolder`), `storage.workbookFolder` (`RuntimeWorkbookFolder`: `readText`,
+  `writeText`, `remove`, `stampFolder`, `acknowledgeScripts`, `findExternalScriptChanges`, the `NativeStorageBackend` of
+  a native workbook), `storage.attachmentsChanged`, and `resultCache.files` and `resultCache.remove`.
+  `registerNativeWorkbook` no longer migrates.
+- **The eviction is Rust.** After every write of a file of a key (a result of the executor, a materialized result of a
+  run under a reusable key, an imported result) the runtime evicts (`JsPlatform::evict_cache` over `evict_to_fit` of
+  `workbook_format/eviction.rs`): it lists the files of the cache, removes the least recently read ones that nobody
+  reads until the limits of `resultCache.capacity` hold, and logs a failure. The cache of the platform only lists,
+  sizes and removes files (`fileStats`, `remove` of `QueryResultCache`), `writeTable` and `importFile` no longer evict.
+- **The native folders are Rust.** `checkWorkbookFolders(workbookIds)` queues checks of the folders of workbooks
+  (`runtime/external.rs`), one at a time: the writes of the workbook are held, the stamps of the folder are compared
+  with the acknowledged ones, changed attachments are listed again, the scripts of a folder that changed are resolved
+  against the connections of the runtime (`resolve_workbook_scripts`; a connection that only the workbook file names
+  joins the runtime from its copy with `connection_state` of the restore and leaves it again unless the reload is
+  applied). When the scripts differ from the app, the `storage` view asks (`externalChanges`: `workbookId`, `prompt`,
+  `pendingWrites`) and the check waits for `answerExternalChange(workbookId, prompt, reload)`: a reload replaces the
+  scripts, cancels the writes that it replaces, saves the connections that joined and writes the script list, a
+  refusal writes the scripts of the app over the disk, no answer keeps the app version until the next check. A local
+  edit during a question without pending writes asks again, a decision that the writes overtook starts the check
+  over. `NativeWorkbookSync` of the app asks for the checks (once per workbook, on focus, for the held workbooks) and
+  shows each question of the view once as the native dialog.
+- **The format helpers.** The invalid workbooks of the restore and of the `workbookList` view carry the description of
+  their error (`RestoredInvalidWorkbook.description`), `InvalidWorkbook` of the app is that view. The columns of the
+  workbook tables are `Runtime.workbookTables()` (`DashQL.workbookTables()`, the generated `WorkbookTableSchema`);
+  `workbookTableColumns` of the runtime package reads them from a core that a runtime or the test frame provided.
+- **Deleted.** `workbook_format.rs` of the bindings (`workbookFormat`, `resolveWorkbookScripts`, `CacheEviction`),
+  `workbook_format.ts` of `dashql-core-js` and its test; `storage/workbook_format.ts`, `storage/workbook_validation.ts`,
+  `storage/migration/workbook_migration.ts` and its test, `storage/migration/migration_folder.ts`,
+  `storage/query_result_cache_eviction.ts` and its test and `connections/connection_restore.ts` of the runtime package;
+  the storage steps of the app (`storage/migration/storage/v2_*.ts` to `v9_*.ts`, the test of v3), `storage_root.ts`,
+  `readStoredWorkbookScripts` and the check of `native_workbook_sync_react.tsx`, the loaders of the core for the format
+  (`setWorkbookFormatCoreLoader`, `provideWorkbookFormatCore`, `instantiateBeforeProvider`) and
+  `DEBOUNCE_DURATION_WORKBOOK_WRITE`.
+- **Tests.** The storage steps and the plan of the connections of version 3 are tested in the crate
+  (`storage_migration_test.rs`, the tests of the app and of `workbook_migration.test.ts` ported), the eviction in the
+  unit tests of `eviction.rs` and through a run (`workbook_runs.test.ts`), the migrations on the runtime over a root of
+  Node and a folder (`node/storage_root.node.test.ts`) and over the OPFS mock of the app
+  (`storage_migration.test.ts`), the native folders with the tests of the app (`native_workbook_sync.test.tsx`).
+- **Changed on purpose.** The storage setup of the app instantiates the core before it migrates, also when nothing
+  needs a step; a folder at the current version costs one read as before. A failed eviction is logged instead of
+  failing the write that triggered it. A failed question about a changed folder logs in the app and in the runtime. A
+  connection that a changed workbook file brings along is written to the app manifest only when the reload is applied.
+  The errors of an unreadable manifest of a migration are the ones of the JSON reader of Rust.
+
+Measured (`git diff HEAD --numstat` with the new files; the test helpers of `testing/`, `tests/` and the test frame
+count as tests, the unit tests of the crate count as source):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 415 | 207 | 125 | 154 |
+| `dashql-core-js` | 134 | 12 | 56 | |
+| `dashql-core-wasm` | 267 | 1,026 | | |
+| `dashql-core-runtime` | 6 | 1,055 | | 826 |
+| `dashql-app` | 1,124 | 130 | 146 | 40 |
+| `dashql-cli` | 1 | 3 | | |
+
+TypeScript lost 1,674 lines and gained 352 without tests (−1,322 net), and 327 lines of tests for 194. Rust gained
+1,808 net: the storage steps with the plan of the connections (`storage_migration.rs`, 886 lines), the checks of the
+native folders (`runtime/external.rs`, 514), the migrations over the platform (`runtime/migrations.rs`, 193) and the
+eviction over a host came, `workbook_format.rs` of the bindings (255) went; 826 lines of tests of the crate came. The
+release module (`--config=release`) grew from 13,672,855 to 13,892,509 bytes (+1.6%), gzip (`-9`) from 3,775,707 to
+3,868,442 bytes (+2.5%): the futures of the storage steps, the migrations over the platform and the checks of the
+native folders came, the JSON operations of the format binding went. The typing benchmark is unchanged (one run of one
+pass: the editor 79 / 145 µs, the update 30 / 67 µs, the flush 11 / 14 µs, the derivation 24 / 35 µs, p10 / p50).
+
+What is left in `packages/dashql-runtime/src` (14,489 lines in 133 files without tests and test helpers, 15,564 with
+the 1,075 lines of `testing/`; 6,802 lines of tests in 59 files), cut anew by file:
+
+| Kind | Lines | What |
+|---|---|---|
+| Facade and store | 2,106 | `runtime.ts`, `store/`, the projections of the workbook, script and progress views, `runtime_storage.ts` |
+| Platform | 5,222 | the storage backends, the storage root of the migrations, the archives, the query result cache in OPFS, the embedded Hyper, the logger, HTTP, OAuth, the compute platform, the files of runs and attachments, `query_channels.ts`, utilities |
+| Connector clients | 1,677 | Hyper over gRPC and HTTP with its mock, the API of Salesforce with its mock, Trino, the embedded Hyper channel, the result streams, the tracked queries of the host |
+| UI helpers | 3,633 | the Arrow formatter, the types of the computation views, connector infos and descriptors, labels, params, the query states, script names and formatting, inputs, the profile symbols |
+| CLI and Node | 1,310 | `node/`, lint, format and reports of SQL, the journal of a session |
+| Remaining logic | 317 | the mock setup of Salesforce, the catalog SQL of the shell |
+| Test helpers in the sources | 224 | `hyperdb_http_client_mock.ts` |
 
 ### The order
 

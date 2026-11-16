@@ -25,8 +25,6 @@ import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_stora
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { NativeFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
-import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
@@ -343,11 +341,10 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     }
 
     /// Register a native workbook folder in place under an id (`NativeWorkbookRegistry` of the runtime). The runtime
-    /// validated the folder and seeded the catalogs of its connections before, and reconciles the file lists of its
-    /// workbook file with its files after. The top-level files of an older version are migrated here. A workbook of
-    /// the origin private file system that the folder replaces loses its files once the folder is registered.
+    /// validated the folder and seeded the catalogs of its connections before, and migrates the folder of an older
+    /// version and reconciles the file lists of its workbook file with its files after. A workbook of the origin private
+    /// file system that the folder replaces loses its files once the folder is registered.
     async registerNativeWorkbook(dir: string, workbookId: string): Promise<void> {
-        await migrateWorkbookFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, dir));
         const replaced = this.locations.get(workbookId);
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await this.upsertWorkbookEntry({
@@ -364,14 +361,13 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// A native workbook folder as the runtime reads it for an import. The folder is only read: a folder of an older
     /// version is migrated in memory and a missing folder is not created.
     importFolder(dir: string): core.RuntimeImportFolder {
-        const folder = new NativeFolder(ELECTRON_FILE_SYSTEM, dir);
         // Native reads do not require initialize(), which would create a missing folder
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         const failed = (error: unknown) => new Error(`Failed to read workbook in ${dir}: ${(error as Error)?.message ?? String(error)}`);
         return {
             errorPrefix: `Invalid workbook folder ${dir}`,
             nativePath: dir,
-            readText: path => folder.readText(path),
+            readText: path => native.readText(path),
             scripts: async () => {
                 try {
                     return (await native.loadScripts(dir)).map(script => ({ name: script.name, sql: script.sql }));

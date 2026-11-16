@@ -78,7 +78,10 @@ export function memoryQueryResultCache(mountPath: string = '/mnt/external/cache'
             files.set(newFileName(key), { key, cachedAtMs: ++clock, table: null, bytes: new Uint8Array(await data.arrayBuffer()) });
             return true;
         }),
-        remove: vi.fn(async (name: string) => { files.delete(name); }),
+        fileStats: vi.fn(async () => [...files].map(([name, file]) => ({
+            name, size: file.bytes?.length ?? 1, mtimeMs: file.cachedAtMs, lastAccessMs: file.cachedAtMs,
+        }))),
+        remove: vi.fn(async (name: string) => { files.delete(name); return true; }),
     } satisfies QueryResultCache & Record<string, unknown>;
     return cache;
 }

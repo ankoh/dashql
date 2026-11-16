@@ -4,7 +4,6 @@ import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isC
 import { LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { isLocalHyperWasmParams } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 
 describe('cloud connection', () => {
@@ -43,9 +42,8 @@ describe('cloud connection', () => {
     it('makes the local cloud a connection of its own, not the embedded Hyper', () => {
         const local = createLocalCloudParams();
         const embedded = { hyper: { protocol: 'WASM' } } as any;
-        // Workbooks that name the embedded Hyper don't take the local cloud for it
-        expect(isLocalHyperWasmParams(local as any)).toBe(false);
-        expect(isLocalHyperWasmParams(embedded)).toBe(true);
+        // Workbooks that name the embedded Hyper don't take the local cloud for it (`is_local_hyper_wasm_params` of the
+        // core, tested there)
         const connection = (params: any) => ({ connectorType: ConnectorType.HYPER, details: { setupParams: params.hyper } }) as unknown as ConnectionState;
         expect(isHyperWasmConnection(connection(local))).toBe(false);
         expect(isHyperWasmConnection(connection(embedded))).toBe(true);

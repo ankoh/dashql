@@ -1,4 +1,4 @@
-import { workbookFormat } from './workbook_format.js';
+import * as core from '@ankoh/dashql-core';
 
 // The tables of one workbook: in a `.dashql` file as `<table>.parquet`, in the cloud as rows of tables of the same
 // names, merged across the versions of all workbooks. A table is named after what its rows belong to, the workbook or a
@@ -48,18 +48,26 @@ export const WORKBOOK_TABLE_NAMES = [
 export type WorkbookTableName = typeof WORKBOOK_TABLE_NAMES[number];
 
 /// The type of a column of a workbook table
-export type WorkbookTableColumnType = 'text' | 'integer' | 'boolean';
+export type WorkbookTableColumnType = core.WorkbookTableColumnType;
 
 /// A column of a workbook table
-export interface WorkbookTableColumn {
-    name: string;
-    type: WorkbookTableColumnType;
-    nullable: boolean;
+export type WorkbookTableColumn = core.WorkbookTableColumn;
+
+/// The workbook tables of the core with their columns, once a core gave them
+let schemas: core.WorkbookTableSchema[] | null = null;
+
+/// Read the workbook tables from a core, e.g. the core of a runtime. A core may come from another copy of the package,
+/// e.g. the one of the page that runs the browser tests.
+export function provideWorkbookTables(instance: core.DashQL): void {
+    schemas ??= instance.workbookTables();
 }
 
-/// The columns of a workbook table, as the core declares them. Needs the core instantiated.
+/// The columns of a workbook table, as the core declares them. Needs a core: one that was provided, or the core of this
+/// copy of the package once it is instantiated.
 export function workbookTableColumns(name: WorkbookTableName): WorkbookTableColumn[] {
-    const table = workbookFormat().constants().tables.find(table => table.name === name);
+    schemas ??= core.DashQL.instantiated()?.workbookTables() ?? null;
+    if (schemas == null) throw new Error('The columns of the workbook tables need the core, which is not instantiated yet');
+    const table = schemas.find(table => table.name === name);
     if (table == null) throw new Error(`Unknown workbook table ${name}`);
     return table.columns;
 }

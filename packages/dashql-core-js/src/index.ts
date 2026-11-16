@@ -5,7 +5,6 @@ export * from './connection.js';
 export * from './query_history.js';
 export * from './runtime.js';
 export * from './flatbuffer_view.js';
-export * from './workbook_format.js';
 export * from './dataflow.js';
 export * from './batch.js';
 export * from './tokens.js';

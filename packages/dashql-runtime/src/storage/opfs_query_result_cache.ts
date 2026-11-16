@@ -1,10 +1,9 @@
 import type * as arrow from 'apache-arrow';
 
-import type { QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
+import type { CacheFileStat, QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
 import { copyArrowTableAsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
 import { crc32CheckStream } from '../utils/crc32.js';
-import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES, evictToFit, type CacheFileStat, type QueryResultCacheStore } from './query_result_cache_eviction.js';
 
 /// The folder of the query result cache in the origin private file system
 export const QUERY_RESULT_CACHE_DIRECTORY = 'cache';
@@ -23,6 +22,10 @@ const TRANSIENT_SUFFIX = '.transient.parquet';
 const GARBAGE_AFTER_MS = 60 * 60 * 1000;
 /// The Web Lock of a file, readers hold it shared, eviction and deletion take it exclusively if nobody holds it
 const LOCK_PREFIX = 'dashql-query-result-cache/';
+/// The default cap on the total size of the query result cache of the app
+export const DEFAULT_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+/// The default cap on the number of cached query results of the app
+export const DEFAULT_CACHE_MAX_FILES = 1000;
 
 /// The options of the query result cache
 export interface OPFSQueryResultCacheOptions {
@@ -121,10 +124,6 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
             return true;
         });
     };
-    const store: QueryResultCacheStore = {
-        listCacheFiles: listFiles,
-        deleteCacheFile: async name => await tryRemove(name),
-    };
     const touch = async (name: string) => {
         const writable = await (await (await directory()).getFileHandle(`${name}${ACCESS_SUFFIX}`, { create: true })).createWritable();
         await writable.close();
@@ -160,8 +159,8 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
     });
 
     /// Write a file of a key under a transient name and move it in place once it is complete, readers of other
-    /// windows never see a partial file. Then record the write as a read, remove the older files of the key and
-    /// keep the files below the limits.
+    /// windows never see a partial file. Then record the write as a read and remove the older files of the key. The
+    /// runtime keeps the files below the limits after the write.
     const writeKeyFile = async (name: string, key: string, write: (temporary: string) => Promise<void>, keep: () => Promise<boolean> = async () => true) => {
         const dir = await directory();
         const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
@@ -185,11 +184,10 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
             if (!written) await tryRemove(temporary).catch(() => false);
         }
         await touch(name);
-        // The older files of the key are removed once nobody reads them, eviction keeps the files below the limits
+        // The older files of the key are removed once nobody reads them
         for (const entry of await entries()) {
             if (entry.key === key && entry.name !== name) await tryRemove(entry.name);
         }
-        await evictToFit(store, maxBytes, maxFiles);
         return await (await dir.getFileHandle(name)).getFile();
     };
 
@@ -272,6 +270,7 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
             return file != null;
         },
         capacity: { maxBytes, maxFiles },
+        fileStats: listFiles,
         readTable: async (database: ParquetDatabase, name: string) => {
             const release = await pin(name);
             try {
@@ -288,6 +287,6 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
                 await release();
             }
         },
-        remove: async name => { await tryRemove(name); },
+        remove: tryRemove,
     };
 }

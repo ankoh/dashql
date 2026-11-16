@@ -65,6 +65,8 @@ pub struct RestoredInvalidWorkbook {
     pub connector_type: Option<ConnectorType>,
     /// The code of the validation error, e.g. `unsupported_format_version`
     pub error: String,
+    /// A short explanation of the error for the user
+    pub description: String,
 }
 
 impl From<&InvalidWorkbook> for RestoredInvalidWorkbook {
@@ -74,6 +76,7 @@ impl From<&InvalidWorkbook> for RestoredInvalidWorkbook {
             title: invalid.title.clone(),
             connector_type: invalid.connector_type.map(Into::into),
             error: invalid.error.code().to_string(),
+            description: invalid.error.describe().to_string(),
         }
     }
 }

@@ -6,7 +6,7 @@ import '@ankoh/dashql-ui/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import '../connections/clfn/bundled_clfn_specs.js';
 import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql-runtime/platform/opfs_root';
-import { provideWorkbookFormatCore, setWorkbookFormatCoreLoader } from '@ankoh/dashql-runtime/storage/workbook_format';
+import { provideWorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import * as core from '@ankoh/dashql-core';
 
 import {
@@ -71,9 +71,8 @@ async function setupBrowserTestEnvironment(): Promise<void> {
     globals.__DASHQL_TEST_CORE_FACTORY__ = parent.__DASHQL_TEST_CORE_FACTORY__;
     globals.__DASHQL_TEST_HYPERDB_CLIENT__ = parent.__DASHQL_TEST_HYPERDB_CLIENT__;
     installSharedCoreTestPool();
-    // The workbook format of the runtime needs the module instantiated, a test may call it before it creates a core
-    setWorkbookFormatCoreLoader(async () => await core.DashQL.create({ wasmBinary: await globals.DASHQL_PRECOMPILED! }));
-    provideWorkbookFormatCore(await core.DashQL.create({ wasmBinary: await globals.DASHQL_PRECOMPILED! }));
+    // The columns of the workbook tables come from the core, a test of a cloud may read them before it creates a core
+    provideWorkbookTables(await core.DashQL.create({ wasmBinary: await globals.DASHQL_PRECOMPILED! }));
     // A font that loads during a test changes the sizes that the test measured before
     await Promise.all(Array.from(document.fonts, face => face.load()));
     if (typeof ResizeObserver === 'undefined') {

@@ -205,7 +205,7 @@ The cache of the app has these defaults:
 | Total payload bytes | 2 GiB |
 | Payload files | 1000 |
 
-After a write, `evictToFit` lists all payload files, totals their sizes, and deletes least-recently-used entries until the retained entries fit. Pinned files are skipped. It sorts on the `.last_access` marker modification time. If the marker is missing, the payload modification time is used, so an entry falls back to write-time ordering.
+The runtime evicts after every write of a file of a key: the result of a query that the executor writes, the materialized result of a run under a reusable key, and an imported result (`evict_to_fit` of `workbook_format/eviction.rs`, `JsPlatform::evict_cache` of the bindings). It lists all payload files through the cache of the platform (`resultCache.files`), totals their sizes, and removes least-recently-used entries (`resultCache.remove`) until the retained entries fit the limits of the cache (`resultCache.capacity`). A file that is read stays, the next one goes instead. It sorts on the `.last_access` marker modification time. If the marker is missing, the payload modification time is used, so an entry falls back to write-time ordering. A failed eviction is logged, the write stands. The cache of the platform only lists, sizes and removes files.
 
 The policy counts and sizes every Parquet file of the folder, also the transient files that are pinned, i.e. written or read right now; access markers do not count as entries. Deleting an entry removes its payload and marker. Every listing also removes orphaned markers left behind by a crash or another window.
 
@@ -234,7 +234,7 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Cache contract: `packages/dashql-runtime/src/query/query_result_cache.ts`
 - OPFS implementation: `packages/dashql-runtime/src/storage/opfs_query_result_cache.ts`
 - Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime, the description of a query and its key) and `packages/dashql-runtime/src/query/query_channels.ts` (the files of the platform)
-- Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, driven by `packages/dashql-runtime/src/storage/query_result_cache_eviction.ts`
+- Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, run by the runtime after the writes of files of keys (`evict_cache` of `packages/dashql-core-wasm/src/host.rs`) over `files`, `remove` and `capacity` of the cache of the platform
 - Files of runs: `createRunMounts` in `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`
 - Exported and imported results: `packages/dashql-core-wasm/src/runtime/exports.rs` and `imports.rs`, the plan of an

@@ -1,4 +1,7 @@
+import * as core from '@ankoh/dashql-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRuntime } from '@ankoh/dashql-runtime/runtime';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -9,6 +12,8 @@ import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/das
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
 
@@ -218,11 +223,23 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
     });
 
-    it('migrates a native folder of an older version when it registers it', async () => {
+    it('registers a native folder of an older version, the runtime migrates it through the folder of the workbook', async () => {
         const dir = '/tmp/session';
         const { workbookId, ...workbook } = testWorkbook();
         fsStore.files.set(`${dir}/dashql-session.json`, JSON.stringify({ ...workbook, formatVersion: 10, sessionId: workbookId }));
         await backend.registerNativeWorkbook(dir, workbookId);
+        expect(fsStore.files.has(`${dir}/dashql-session.json`)).toBe(true);
+        const runtime = createRuntime({
+            logger: new TestLogger(),
+            scheduler: TASK_UPDATE_SCHEDULER,
+            setupCore: await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
+            storage: backend,
+        });
+        try {
+            expect(await runtime.migrateWorkbookFolder(workbookId)).toBe('migrated');
+        } finally {
+            await runtime.destroy();
+        }
         expect(fsStore.files.has(`${dir}/dashql-session.json`)).toBe(false);
         expect(JSON.parse(fsStore.files.get(`${dir}/dashql-workbook.json`)!)).toMatchObject({ workbookId });
     });

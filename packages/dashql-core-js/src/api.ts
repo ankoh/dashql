@@ -6,7 +6,6 @@ import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
-import { DashQLWorkbookFormat } from './workbook_format.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
 export type DashQLBindings = Pick<
@@ -32,9 +31,6 @@ export type DashQLBindings = Pick<
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
     | 'Runtime'
-    | 'workbookFormat'
-    | 'resolveWorkbookScripts'
-    | 'CacheEviction'
 >;
 
 /// The shell of the module, the host runs its effects
@@ -462,10 +458,9 @@ export class DashQL {
         return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
     }
 
-    /// The parts of the storage format of workbooks that the storage of the platform calls: the validation of a workbook
-    /// file, the migrations, the scripts of a folder that changed outside the app and the eviction of the result cache
-    public get workbookFormat(): DashQLWorkbookFormat {
-        return new DashQLWorkbookFormat(this.bindings);
+    /// The workbook tables of the storage format with their columns, e.g. the schema of a cloud
+    public workbookTables(): glue.WorkbookTableSchema[] {
+        return this.bindings.Runtime.workbookTables();
     }
 
     /// Create the table parameters of a session, the tables that `:foo` in table position reads

@@ -4,11 +4,15 @@
 //! the ones that exist into a `MigrationFolder`, the migration changes the folder in memory, and the host applies
 //! `MigrationFolder::changes`: the writes first, then the removals. A folder that must stay untouched (an import) is
 //! simply not written back. Steps are idempotent, an interrupted migration repeats its last step.
+//!
+//! `migrate_folder` runs the migration on a folder of the storage (`FolderHost`): it reads the files, migrates them in
+//! memory and writes back what changed.
 
 use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
+use crate::host::HostError;
 use crate::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use crate::workbook_format::json::{to_pretty_text, JsonObject};
 
@@ -189,6 +193,19 @@ pub enum WorkbookMigrationResult {
     Newer,
 }
 
+impl WorkbookMigrationResult {
+    /// The name of the outcome, e.g. for the log
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WorkbookMigrationResult::Current => "current",
+            WorkbookMigrationResult::Migrated => "migrated",
+            WorkbookMigrationResult::Missing => "missing",
+            WorkbookMigrationResult::Unsupported => "unsupported",
+            WorkbookMigrationResult::Newer => "newer",
+        }
+    }
+}
+
 /// The metadata of a folder under its newest name, with its object if it is one
 fn read_metadata(folder: &MigrationFolder) -> Option<(&'static str, Option<JsonObject>)> {
     WORKBOOK_METADATA_FILES.iter().find_map(|name| {
@@ -198,6 +215,51 @@ fn read_metadata(folder: &MigrationFolder) -> Option<(&'static str, Option<JsonO
             _ => None,
         }))
     })
+}
+
+/// The top-level files of a workbook folder in storage, as the migrations read and write them
+#[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send
+pub trait FolderHost {
+    /// The text of a file, None if the folder doesn't hold it
+    async fn read_text(&self, name: &str) -> std::result::Result<Option<String>, HostError>;
+    /// Write a file
+    async fn write_text(&self, name: &str, text: &str) -> std::result::Result<(), HostError>;
+    /// Remove a file, a missing file is ignored
+    async fn remove(&self, name: &str) -> std::result::Result<(), HostError>;
+}
+
+/// The text of the workbook file of a folder at the current format version, None if the folder needs the migrations.
+/// The migrations read nothing else of a current folder.
+pub async fn read_current_workbook_file<F: FolderHost>(folder: &F) -> std::result::Result<Option<String>, HostError> {
+    let Some(text) = folder.read_text(WORKBOOK_METADATA_FILES[0]).await? else {
+        return Ok(None);
+    };
+    let version = serde_json::from_str::<Value>(&text).ok().and_then(|data| data.get("formatVersion").and_then(Value::as_f64));
+    Ok((version == Some(WORKBOOK_FORMAT_VERSION as f64)).then_some(text))
+}
+
+/// Bring a workbook folder of the storage to a format version: read its top-level files, migrate them in memory and
+/// write back what changed, the writes first, then the removals. A folder whose workbook file is at the current version
+/// is only read.
+pub async fn migrate_folder<F: FolderHost>(folder: &F, target_version: i64) -> std::result::Result<WorkbookMigrationResult, HostError> {
+    if target_version == WORKBOOK_FORMAT_VERSION && read_current_workbook_file(folder).await?.is_some() {
+        return Ok(WorkbookMigrationResult::Current);
+    }
+    let mut files = Vec::new();
+    for name in MIGRATION_FILES {
+        if let Some(text) = folder.read_text(name).await? {
+            files.push((name.to_string(), text));
+        }
+    }
+    let mut memory = MigrationFolder::new(files);
+    let result = migrate_workbook_folder_to(&mut memory, target_version, &WORKBOOK_MIGRATION_STEPS).map_err(|error| HostError::new(error.message))?;
+    for change in memory.changes() {
+        match change {
+            FolderChange::Write { name, text } => folder.write_text(&name, &text).await?,
+            FolderChange::Remove { name } => folder.remove(&name).await?,
+        }
+    }
+    Ok(result)
 }
 
 /// Bring a folder to the current format version

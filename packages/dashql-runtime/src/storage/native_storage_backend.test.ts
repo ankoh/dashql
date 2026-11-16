@@ -86,10 +86,14 @@ describe('NativeStorageBackend V2 flat storage', () => {
         await expect(backend.listDataFiles(TEST_WORKBOOK_ID)).rejects.toThrow('nested data');
     });
 
-    it('migrates a folder of an older version of the app before it loads the workbook', async () => {
-        const { workbookId, ...rest } = testWorkbook();
-        fsStore.files.set(`${DIR}/dashql-session.json`, JSON.stringify({ ...rest, sessionId: workbookId, formatVersion: 10 }));
-        expect(await backend.loadWorkbook(TEST_WORKBOOK_ID)).toEqual(testWorkbook());
+    it('reads, writes and removes the top-level files that the runtime migrates', async () => {
+        // The runtime migrates a folder of an older version of the app before it loads the workbook
+        // (node/storage_root.node.test.ts)
+        expect(await backend.readText('dashql-session.json')).toBeNull();
+        await backend.writeText('dashql-session.json', '{"formatVersion":10}');
+        expect(await backend.readText('dashql-session.json')).toBe('{"formatVersion":10}');
+        await backend.remove('dashql-session.json');
+        await backend.remove('dashql-session.json');
         expect(fsStore.files.has(`${DIR}/dashql-session.json`)).toBe(false);
     });
 });

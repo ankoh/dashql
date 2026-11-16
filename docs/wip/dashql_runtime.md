@@ -192,7 +192,8 @@ packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@a
   src/compute/                      the compute platform over the embedded Hyper, the types of the computation views,
                                     the Arrow formatter
   src/storage/                      the storage backends, the storage of the platform and the commands of the writer of
-                                    the runtime, the archives, the query result cache in OPFS, migrations
+                                    the runtime, the storage root that the runtime migrates, the archives, the query
+                                    result cache in OPFS, the versions of the storage
   src/session/                      the journal of an agent session and its state
   src/oauth/, src/sql/              the OAuth flow; lint, format and reports of SQL files
   src/node/                         the only modules that import node:, e.g. @ankoh/dashql-runtime/node/node_platform:
@@ -217,15 +218,16 @@ class Runtime {
     // Typed commands where the caller needs more than the module returns: the core set up on the first call, the flush
     // of the store after the command, handles for the objects that cross
     execute, cancel, watchProfile, analyzeTable, createConnection, createWorkbook, deleteWorkbook, setupConnection,
-    authenticateSalesforce, saveConnection, retrySave, refreshCatalog, restore, restoreWorkbook, runWorkbook,
+    authenticateSalesforce, saveConnection, retrySave, refreshCatalog, migrateStorage, migrateWorkbookFolder, restore,
+    restoreWorkbook, runWorkbook,
     runScript, resultKeys, exportArchive, exportLink, exportTables, readImport, commitImport, reportEditorUpdate, ...
     destroy(): Promise<void>;               // stops the runs and the loader, writes what is pending, frees the module
 }
 ```
 
 `RuntimePlatform` names what a platform hands over: the logger, the scheduler of the store, the core, the storage
-backend, the HTTP client, the OAuth flow, the connector of channels, the compute database, the query result cache, the
-API of Salesforce and the archives. Every member but the logger and the scheduler is optional, the shell of Hyper runs
+backend, the storage root to migrate, the HTTP client, the OAuth flow, the connector of channels, the compute database,
+the query result cache, the API of Salesforce and the archives. Every member but the logger and the scheduler is optional, the shell of Hyper runs
 a runtime with the core and the compute database only. The runtime builds the one platform object of the module from
 it (`core.RuntimePlatform`, see [runtime_api.md](runtime_api.md)). Everything else the app calls on the module itself
 (`runtime.module?.stopRun(id)`, `cancelSetup`, `dropImport`, `exportConnection`, ...) and reads through the store.

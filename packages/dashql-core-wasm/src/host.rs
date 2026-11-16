@@ -25,6 +25,7 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
+use dashql_core_runtime::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::Serialize;
 use tsify::{Ts, Tsify};
@@ -66,6 +67,8 @@ export interface RuntimePlatform {
     readonly salesforce: RuntimeSalesforce | null;
     /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
     readonly storage: RuntimeStorage | null;
+    /** The storage root that `migrateStorage` brings to the current version, null without one */
+    readonly storageRoot?: RuntimeStorageRoot | null;
     /** The `.dashql` archives of imports and exports: the ZIP container and the Parquet files of the workbook tables. Null without. */
     readonly archives: RuntimeArchives | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
@@ -110,8 +113,55 @@ export interface RuntimeStorage {
     upsertWorkbookEntry(entry: unknown): Promise<void>;
     /** Delete the files of a workbook, its entry stays */
     deleteWorkbookFiles(workbookId: string): Promise<void>;
-    /** Register a native workbook folder in place under an id: the platform migrates it and adds it to the workbook tree */
+    /** Register a native workbook folder in place under an id: the platform adds it to the workbook tree, the runtime migrates it */
     registerNativeWorkbook(dir: string, workbookId: string): Promise<void>;
+    /** The folder of a workbook that the platform keeps in a folder of its own, e.g. a native workbook folder; null for the workbooks of the storage root, which `migrateStorage` migrates. The runtime migrates the folder before it first reads its workbook file and checks it for changes outside the app. */
+    workbookFolder?(workbookId: string): RuntimeWorkbookFolder | null;
+    /** The attachments of a workbook folder changed outside the app, e.g. its mount looks them up again */
+    attachmentsChanged?(workbookId: string): void;
+}
+
+/** The top-level files of a workbook folder, as the migrations read and write them */
+export interface RuntimeFolder {
+    /** A file, null if the folder doesn't hold it */
+    readText(name: string): Promise<string | null>;
+    writeText(name: string, text: string): Promise<void>;
+    /** Remove a file, a missing file is ignored */
+    remove(name: string): Promise<void>;
+}
+
+/** The stamps of the files of a workbook folder: size and modification time */
+export interface RuntimeFolderStamps {
+    scripts: { name: string; size: number; mtimeMs: number }[];
+    attachments: { name: string; size: number; mtimeMs: number }[];
+}
+
+/** A workbook folder that may change outside the app, e.g. a native workbook folder */
+export interface RuntimeWorkbookFolder extends RuntimeFolder {
+    /** The stamps of the scripts and the attachments of the folder */
+    stampFolder(): Promise<RuntimeFolderStamps>;
+    /** The scripts are as the app shows them, later writes check the disk against these stamps */
+    acknowledgeScripts(stamps: RuntimeFolderStamps['scripts']): void;
+    /** The scripts whose stamps differ from the acknowledged ones */
+    findExternalScriptChanges(stamps: RuntimeFolderStamps['scripts']): string[];
+}
+
+/** The storage root of the app for its migrations: files and directories by their paths below the root, `/` separated */
+export interface RuntimeStorageRoot {
+    /** A file, null if it doesn't exist */
+    readText(path: string): Promise<string | null>;
+    /** Write a file, its directories are created */
+    writeText(path: string, text: string): Promise<void>;
+    /** Create a directory and its parents */
+    createDirectory(path: string): Promise<void>;
+    /** Remove a file, or a directory with its content; a missing one is ignored */
+    remove(path: string): Promise<void>;
+    /** The entries of a directory, null if it doesn't exist */
+    list(path: string): Promise<{ name: string; directory: boolean }[] | null>;
+    /** Copy the files and folders of a directory into another one, which is created. Existing files are replaced, or kept with `keepExisting`. */
+    copyDirectory(from: string, to: string, keepExisting: boolean): Promise<void>;
+    /** The folder of a native workbook, claimed for the app; null without native folders or if it doesn't exist */
+    nativeFolder(nativePath: string): Promise<RuntimeFolder | null>;
 }
 
 /** An entry of a `.dashql` archive that the platform writes: a workbook table from the Arrow IPC of its rows, written as Parquet, or a file of the handle table as it is */
@@ -308,8 +358,12 @@ export interface RuntimeResultCache {
     file(name: string): Promise<Blob>;
     /** Add a result of a key from a file of the handle table, checked against the CRC-32. Resolves false if the key was cached already, the files of the app win. */
     import(key: string, file: number, crc32: number | null): Promise<boolean>;
-    /** The limits of the files, eviction removes the least recently read files beyond them */
+    /** The limits of the files, the runtime evicts the least recently read files beyond them after every write of a file of a key */
     capacity(): { maxBytes: number; maxFiles: number };
+    /** The Parquet files with their sizes, their write times and the times they were read last (the write time if never), for the eviction */
+    files(): Promise<{ name: string; size: number; mtimeMs: number; lastAccessMs: number }[]>;
+    /** Remove a file and its marker if nobody reads it, resolves false if the file is read and stays */
+    remove(name: string): Promise<boolean>;
 }
 
 /** The files of the runs of workbooks in the compute database. A run names its files by its number. */
@@ -762,6 +816,21 @@ impl JsPlatform {
         call(&storage, name, args)
     }
 
+    /// The storage root of the platform for the migrations, an error without one
+    pub fn storage_root(&self) -> Result<JsValue, HostError> {
+        member(self.object(), "storageRoot").map_err(|_| HostError::new("the platform has no storage root to migrate"))
+    }
+
+    /// The folder of a workbook whose files the platform keeps in a folder of its own, e.g. a native workbook folder.
+    /// None for the workbooks of the storage root and for a storage without such folders.
+    pub fn workbook_folder(&self, workbook_id: &str) -> Option<JsValue> {
+        let storage = member(self.object(), "storage").ok()?;
+        if Reflect::get(&storage, &JsValue::from_str("workbookFolder")).ok().is_none_or(|f| !f.is_function()) {
+            return None;
+        }
+        call(&storage, "workbookFolder", &[JsValue::from_str(workbook_id)]).ok().filter(|folder| folder.is_object())
+    }
+
     /// Call a member of the storage of the platform and await it
     pub fn storage_await(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
         settled(self.storage_call(name, args))
@@ -882,6 +951,27 @@ impl JsPlatform {
         self.result_cache().is_ok()
     }
 
+    /// Keep the query result cache within its limits after a file of a key was written: the least recently read files
+    /// go first, the files that are read stay. A failed eviction is logged, the write stands.
+    pub fn evict_cache(&self) -> impl Future<Output = ()> + 'static {
+        let platform = self.clone();
+        async move {
+            let evicted = async {
+                let capacity = settled(platform.result_cache().and_then(|cache| call(&cache, "capacity", &[]))).await?;
+                let limit = |name: &str| field(&capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).map(|n| n as u64).unwrap_or(u64::MAX);
+                evict_to_fit(&JsCache(platform.clone()), limit("maxBytes"), limit("maxFiles")).await
+            };
+            match evicted.await {
+                Ok(removed) if !removed.is_empty() => {
+                    let count = removed.len().to_string();
+                    platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                }
+                Ok(_) => {}
+                Err(error) => platform.log_on(LogLevel::Warn, "Evicting query results failed", &[("error", error.message())], "query_result_cache"),
+            }
+        }
+    }
+
     /// The files of the runs, an error without a compute database that reads Parquet files
     fn mounts(&self) -> Result<JsValue, HostError> {
         member(self.object(), "mounts").map_err(|_| HostError::new("Scripts that read the results of other scripts or attachments need the compute database"))
@@ -928,6 +1018,32 @@ impl JsPlatform {
                 Some(Err(value)) => Err(host_error(value)),
             }
         }
+    }
+}
+
+/// The files of the query result cache of the platform as the eviction sees them
+struct JsCache(JsPlatform);
+
+impl CacheHost for JsCache {
+    async fn list_files(&self) -> Result<Vec<CacheFileStat>, HostError> {
+        let files = settled(self.0.result_cache().and_then(|cache| call(&cache, "files", &[]))).await?;
+        if !Array::is_array(&files) {
+            return Err(HostError::new("the files of the query result cache are not a list"));
+        }
+        let number = |file: &JsValue, name: &str| field(file, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).unwrap_or(0.0) as u64;
+        Ok(Array::from(&files)
+            .iter()
+            .filter_map(|file| {
+                let name = field(&file, "name")?.as_string()?;
+                Some(CacheFileStat { name, size: number(&file, "size"), mtime_ms: number(&file, "mtimeMs"), last_access_ms: number(&file, "lastAccessMs") })
+            })
+            .collect())
+    }
+
+    async fn remove_file(&self, name: &str) -> Result<bool, HostError> {
+        let removed = settled(self.0.result_cache().and_then(|cache| call(&cache, "remove", &[JsValue::from_str(name)]))).await?;
+        // A file that is read stays
+        Ok(removed.as_bool() != Some(false))
     }
 }
 

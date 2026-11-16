@@ -20,7 +20,9 @@ pub(crate) mod catalog;
 pub(crate) mod computation;
 pub(crate) mod connections;
 pub(crate) mod exports;
+pub(crate) mod external;
 pub(crate) mod imports;
+pub(crate) mod migrations;
 pub(crate) mod queries;
 pub(crate) mod runs;
 pub(crate) mod setups;
@@ -529,6 +531,7 @@ pub struct Runtime {
     pub(crate) workbooks: Rc<Workbooks>,
     runs: Rc<Runs>,
     imports: Rc<imports::Imports>,
+    external: Rc<external::ExternalChanges>,
     storage: Rc<StorageState>,
     taken: RefCell<Taken>,
 }
@@ -1072,6 +1075,7 @@ impl Runtime {
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
         let imports = imports::Imports::new(platform.clone(), connections.clone());
+        let external = external::ExternalChanges::new(platform.clone(), storage.clone(), connections.clone(), workbooks.clone(), runs.clone());
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
         let taken = Taken {
             list: Some((Vec::new(), 0)),
@@ -1079,7 +1083,7 @@ impl Runtime {
             storage: Some((0, 0)),
             ..Taken::default()
         };
-        Runtime { computations, connections, workbooks, runs, imports, storage, platform, taken: RefCell::new(taken) }
+        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, taken: RefCell::new(taken) }
     }
 
     /// The slices that changed and the effects on handles since the last call
@@ -1709,6 +1713,58 @@ impl Runtime {
         }))
     }
 
+    /// Bring the storage root of the platform (`storageRoot`) to the current storage version and every workbook folder
+    /// that its workbook tree registers to the current workbook format. A fresh storage stays untouched, a storage of a
+    /// newer version of the app is refused. The platform holds the lock of the storage meanwhile. The restore migrates
+    /// a workbook folder that the platform keeps elsewhere (`storage.workbookFolder`) before it reads it.
+    #[wasm_bindgen(js_name = migrateStorage, unchecked_return_type = "Promise<StorageMigrationOutcome>")]
+    pub fn migrate_storage(&self) -> Promise {
+        let platform = self.platform.clone();
+        future_to_promise(async move {
+            match migrations::migrate(platform).await {
+                Ok(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
+                Err(error) => Err(storage::error_value(&error)),
+            }
+        })
+    }
+
+    /// Bring the folder of a workbook that the platform keeps in a folder of its own (`storage.workbookFolder`) to the
+    /// current workbook format, e.g. the folder of a run of the command line tool before it reads the workbook id.
+    /// Resolves with the outcome (`current`, `migrated`, `missing`, `unsupported`, `newer`), null for a workbook of the
+    /// storage root. The restore migrates the folder of a workbook itself.
+    #[wasm_bindgen(js_name = migrateWorkbookFolder, unchecked_return_type = "Promise<'current' | 'migrated' | 'missing' | 'unsupported' | 'newer' | null>")]
+    pub fn migrate_workbook_folder(&self, workbook_id: String) -> Promise {
+        let platform = self.platform.clone();
+        future_to_promise(async move {
+            match migrations::migrate_workbook_folder(&platform, &workbook_id).await {
+                Ok(outcome) => Ok(outcome.map(|outcome| JsValue::from_str(outcome.as_str())).unwrap_or(JsValue::NULL)),
+                Err(error) => Err(storage::error_value(&error)),
+            }
+        })
+    }
+
+    /// The workbook tables of the format with their columns, e.g. the schema of a cloud
+    #[wasm_bindgen(js_name = workbookTables, unchecked_return_type = "WorkbookTableSchema[]")]
+    pub fn workbook_tables() -> Result<JsValue, JsError> {
+        views_to_js(&exports::workbook_table_schemas())
+    }
+
+    /// Check the folders of workbooks that the platform keeps in folders of their own for changes outside the app, e.g.
+    /// when the window gets the focus. The checks run one at a time after the ones that are queued. A change of the
+    /// scripts asks the question of the `storage` view (`externalChanges`), see `answerExternalChange`.
+    #[wasm_bindgen(js_name = checkWorkbookFolders)]
+    pub fn check_workbook_folders(&self, workbook_ids: Vec<String>) {
+        self.external.check(workbook_ids);
+    }
+
+    /// Answer the question about a workbook that changed outside the app: `true` reloads it from disk, `false` keeps the
+    /// version of the app and writes it over the disk, `null` gives no answer, e.g. when the question failed. The
+    /// answer to an older question is ignored.
+    #[wasm_bindgen(js_name = answerExternalChange)]
+    pub fn answer_external_change(&self, workbook_id: &str, prompt: u32, reload: Option<bool>) {
+        self.external.answer(workbook_id, prompt, reload);
+    }
+
     /// Delete the files of a workbook that was refused a load and drop it from the list
     #[wasm_bindgen(js_name = deleteInvalidWorkbook, unchecked_return_type = "Promise<void>")]
     pub fn delete_invalid_workbook(&self, workbook_id: String) -> Promise {
@@ -1960,6 +2016,7 @@ impl Runtime {
     pub fn destroy(&self) {
         self.runs.stop_all();
         self.imports.drop_all();
+        self.external.destroy();
         if let Some(loader) = self.connections.loader.borrow_mut().take() {
             loader.stop();
         }

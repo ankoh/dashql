@@ -18,8 +18,7 @@ import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_datab
 import { getAppHost } from '../../platform/native_globals.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { InvalidWorkbook, WorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
-import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -153,12 +152,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                             const workbook = runtime.store.get('workbook', workbookId);
                             if (workbook != null) workbooks.set(workbookId, workbook);
                         }
-                        const invalidWorkbooks = new Map<string, InvalidWorkbook>(restored.invalidWorkbooks.map(invalid => [invalid.workbookId, {
-                            workbookId: invalid.workbookId,
-                            title: invalid.title,
-                            connectorType: invalid.connectorType as ConnectorType | null,
-                            error: invalid.error as WorkbookValidationError,
-                        }]));
+                        const invalidWorkbooks = new Map<string, InvalidWorkbook>(restored.invalidWorkbooks.map(invalid => [invalid.workbookId, invalid]));
                         return { connectionIds: restored.connectionIds, workbooks, invalidWorkbooks };
                     },
                 }, setProgress),

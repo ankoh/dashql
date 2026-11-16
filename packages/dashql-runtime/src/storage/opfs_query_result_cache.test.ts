@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
 import { Crc32 } from '../utils/crc32.js';
-import { DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES } from './query_result_cache_eviction.js';
-import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
+import { cacheFileKey, createOPFSQueryResultCache, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
 
 const KEY_A = 'a'.repeat(64);
 const KEY_B = 'b'.repeat(64);
@@ -136,13 +135,25 @@ describe('OPFS query result cache', () => {
         // A key that is cached keeps its file
         expect(await c.importFile(KEY_A, new Blob([new Uint8Array([9])]))).toBe(false);
         expect((await c.list()).map(e => e.name)).toEqual([entry.name]);
-        // An import evicts like a write, the transient file is gone
+        // The cache keeps every imported file, the runtime evicts beyond the limits. No transient file is left.
         await tick();
         expect(await c.importFile(KEY_B, bytes)).toBe(true);
         await tick();
         expect(await c.importFile('c'.repeat(64), bytes)).toBe(true);
-        expect((await c.list()).map(e => e.key).sort()).toEqual([KEY_B, 'c'.repeat(64)]);
+        expect((await c.list()).map(e => e.key).sort()).toEqual([KEY_A, KEY_B, 'c'.repeat(64)].sort());
         expect((await files()).filter(name => isTransientCacheFile(name))).toEqual([]);
+        expect(c.capacity).toEqual({ maxBytes: DEFAULT_CACHE_MAX_BYTES, maxFiles: 2 });
+        // The files of the eviction, least recently read first: the read of the first file counts
+        await c.touch(entry.name);
+        const stats = await c.fileStats();
+        expect(stats.map(file => file.name).sort()).toEqual((await c.list()).map(e => e.name).sort());
+        expect(stats.find(file => file.name === entry.name)!.lastAccessMs).toBeGreaterThanOrEqual(stats.find(file => file.name === entry.name)!.mtimeMs);
+        // A file that is read stays, one that nobody reads goes with its marker
+        const release = await c.pin(entry.name);
+        expect(await c.remove(entry.name)).toBe(false);
+        await release();
+        expect(await c.remove(entry.name)).toBe(true);
+        expect((await files()).filter(name => name.startsWith(entry.name))).toEqual([]);
         await expect(c.importFile('not-a-key', bytes)).rejects.toThrow('Invalid cache key');
     });
 

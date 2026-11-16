@@ -202,6 +202,8 @@ export class QueryChannels {
                 return await cache.importFile(key, blob, { crc32: crc32 ?? undefined });
             },
             capacity: () => cache.capacity,
+            files: () => cache.fileStats(),
+            remove: name => cache.remove(name),
             write: (key, handle) => {
                 // The table is taken when the runtime calls, its handle may go before the write ends
                 const table = this.deps.handles.get<arrow.Table>(handle);

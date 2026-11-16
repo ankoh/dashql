@@ -777,7 +777,11 @@ impl Imports {
             let crc32 = result.crc32.map(|crc| JsValue::from_f64(crc as f64)).unwrap_or(JsValue::NULL);
             let args = [text(&result.key), JsValue::from_f64(result.bytes.handle as f64), crc32];
             match self.platform.cache_call("import", &args).await {
-                Ok(added) if added.is_truthy() => outcome.added(result.bytes.size),
+                Ok(added) if added.is_truthy() => {
+                    outcome.added(result.bytes.size);
+                    // The cache keeps its limits after every file of a key
+                    self.platform.evict_cache().await;
+                }
                 Ok(_) => outcome.kept(),
                 Err(error) => {
                     self.log(LogLevel::Warn, "Adding an imported query result to the cache failed", &[("key", &result.key), ("error", error.message())]);
@@ -981,13 +985,15 @@ impl Writer<'_> {
     }
 
     /// Register a native folder in place: the catalogs of the folder seed the connections that are new to the app, the
-    /// platform migrates the folder and adds it to the workbook tree
+    /// platform adds the folder to the workbook tree and the runtime migrates it
     async fn register_native(&self, bundle: &WorkbookBundle<HostFile>, dir: &str, workbook_id: &str) -> Result<(), HostError> {
         if let Err(error) = validate_workbook_data(&bundle.workbook) {
             return Err(HostError::new(format!("Workbook in {dir} is invalid: {}", error.describe())));
         }
         self.seed_catalogs(bundle).await?;
         self.storage("registerNativeWorkbook", &[text(dir), text(workbook_id)]).await?;
+        // A folder of an older version of the app is brought to the current format before it is read
+        crate::runtime::migrations::migrate_workbook_folder(&self.platform, workbook_id).await?;
         // The file lists of the workbook file follow the files of the folder, the workbook file is written only when
         // they changed
         let stored = self.storage("loadWorkbook", &[text(workbook_id)]).await?;

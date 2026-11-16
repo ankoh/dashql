@@ -11,11 +11,9 @@ import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration
 import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
-import { workbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -268,34 +266,6 @@ describe('Workbook connections', () => {
 
             restored = await restore(backend);
             expect(workbooksOf(restored, TRINO_ID)).toEqual([]);
-        });
-    });
-
-    describe('reloading a native folder', () => {
-        it('keeps a script on a connection that a pulled workbook file brings along', async () => {
-            const backend = new WorkbookTestBackend();
-            await seedWorkbook(backend, [['query.sql', HYPER_ID, 'select 1']]);
-            backend.connections = backend.connections!.filter(entry => entry.id !== TRINO_ID);
-            const restored = await restore(backend);
-            expect(restored.runtime.module?.views('connection', [TRINO_ID])[0] ?? null).toBeNull();
-
-            // A pull adds a script on a connection that the app doesn't know
-            const pulled: WorkbookData = {
-                ...backend.workbooks.get(WORKBOOK_ID)!,
-                connections: [{ connectionId: HYPER_ID, params: HYPER_PARAMS }, { connectionId: TRINO_ID, params: TRINO_PARAMS }],
-                scripts: [{ name: 'query.sql', connectionId: HYPER_ID }, { name: 'remote.sql', connectionId: TRINO_ID }],
-            };
-            const stored = readStoredWorkbookScripts(restored.runtime, pulled, [
-                { name: 'query.sql', sql: 'select 1' },
-                { name: 'remote.sql', sql: 'select 2' },
-            ])!;
-            expect(stored.created.map(connection => connection.connectionId)).toEqual([TRINO_ID]);
-            expect(stored.scripts.map(script => [script.name, script.connectionId])).toEqual([
-                ['query.sql', HYPER_ID],
-                ['remote.sql', TRINO_ID],
-            ]);
-            // The workbook file stays as it was pulled
-            expect(workbookFormat().resolutionChanged(pulled, stored.workbook)).toBe(false);
         });
     });
 

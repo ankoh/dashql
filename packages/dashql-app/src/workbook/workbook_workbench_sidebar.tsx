@@ -73,7 +73,6 @@ import { useStorageReader } from '../storage/storage_provider.js';
 import { browserWorkbookFolder } from './persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '../storage/workbook_transfer.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
-import { describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptsOnConnection, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './scripts/script_selection.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
@@ -878,7 +877,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             label: invalid.title,
             path: displayPath(invalid.workbookId, location),
             isNative: location.type === StorageBackendType.Native,
-            invalidReason: describeWorkbookValidationError(invalid.error),
+            invalidReason: invalid.description,
         };
     }), [invalidWorkbooks, storageReader]);
     const workbookCount = workbooks.length + invalidItems.length;

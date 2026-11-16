@@ -493,9 +493,15 @@ impl ExecutorHost for QueryHost {
         let table = self.connections.upgrade().and_then(|connections| connections.run_of(query_id, |run| run.result)).flatten();
         // The platform takes the table when it is called
         let write = table.map(|table| self.platform.cache_write(key, table));
+        // The cache keeps its limits after every file of a key
+        let evict = self.platform.evict_cache();
         async move {
             match write {
-                Some(write) => write.await,
+                Some(write) => {
+                    write.await?;
+                    evict.await;
+                    Ok(())
+                }
                 None => Err(HostError::new("The query has no result")),
             }
         }

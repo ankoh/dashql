@@ -225,7 +225,9 @@ function dashqlRootOf(workspace: string): string {
 /// Load the workbook of a folder into the runtime: the storage of the runtime is the folder, the runtime restores its
 /// workbook with the connections that it names
 async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise<WorkbookScripts> {
-    // The folder is the workbook, its file names its id
+    // The folder is the workbook, its file names its id. A folder of an older version of the app is brought to the
+    // current format first.
+    await rt.migrateWorkbookFolder('');
     const { workbookId } = await storage.loadWorkbook('');
     await rt.restoreWorkbook(workbookId);
     const workbook = rt.store.get('workbook', workbookId);
