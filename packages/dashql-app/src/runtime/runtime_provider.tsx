@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
+import { createRuntimeArchives } from '@ankoh/dashql-runtime/storage/workbook_archives';
 import type { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
@@ -17,6 +18,7 @@ import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCoreSetup } from './core_provider.js';
+import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 
 const RUNTIME_CTX = React.createContext<Runtime | null>(null);
 
@@ -63,6 +65,11 @@ function AppRuntime(props: { children?: React.ReactNode }) {
     const salesforce = useSalesforceAPI();
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
+    // The imports and exports of `.dashql` archives set the embedded database up when they first need it, through
+    // the setup of the latest render
+    const archiveDatabase = useWorkbookArchiveDatabase();
+    const archiveDatabaseRef = React.useRef(archiveDatabase);
+    archiveDatabaseRef.current = archiveDatabase;
 
     const [runtime] = React.useState(() => createRuntime({
         logger,
@@ -74,6 +81,7 @@ function AppRuntime(props: { children?: React.ReactNode }) {
         computeDatabase,
         resultCache,
         salesforce: salesforce ?? undefined,
+        archives: handles => createRuntimeArchives(handles, context => archiveDatabaseRef.current(context)),
     }));
 
     // The embedded database starts after the settings loaded and the config may choose the mock of Salesforce. They

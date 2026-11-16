@@ -2,7 +2,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { exportArrowTableAsParquet } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import {
     ATTACHMENTS_TABLE,
@@ -11,11 +10,11 @@ import {
     CATALOG_TABLES_TABLE,
     newDataTableName,
     SCRIPTS_TABLE,
+    RESULTS_TABLE,
     WORKBOOK_TABLE,
-    workbookBundleToTables,
-    workbookTablesToBundle,
     type WorkbookTables,
 } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { cloudRows, testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { listCloudEntries, type CloudCursor, type CloudSearch } from './cloud_folders.js';
 import {
@@ -78,22 +77,26 @@ async function typesParquet(): Promise<Uint8Array> {
     return await exportArrowTableAsParquet(database, table);
 }
 
-async function testBundle(): Promise<WorkbookBundle> {
-    return {
-        workbook: testWorkbook({
-            name: "Bob's workbook",
-            scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }],
-            attachments: [{ name: 'types.parquet' }],
-        }),
-        catalogs: [{ connectionId: TEST_CONNECTION_ID, relations: 'CREATE TABLE db.public.orders (id integer);', functions: 'CREATE FUNCTION scale(value bigint) RETURNS bigint;' }],
-        scripts: [{ name: 'a.sql', sql: "select 'it''s'" }],
-        data: [{ name: 'types.parquet', bytes: await typesParquet() }],
-        results: [{ key: 'k1', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
-    };
-}
+/// The workbook of the tests: a script, the catalog of its connection, an attachment and a cached result
+const TEST_WORKBOOK = testWorkbook({
+    name: "Bob's workbook",
+    scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }],
+    attachments: [{ name: 'types.parquet' }],
+});
 
 async function testTables(): Promise<WorkbookTables> {
-    return workbookBundleToTables(await testBundle());
+    return testWorkbookTables({
+        workbook: TEST_WORKBOOK,
+        scripts: { 'a.sql': "select 'it''s'" },
+        catalog: {
+            tables: [{ table_id: 0, connection_id: TEST_CONNECTION_ID, database_name: 'db', schema_name: 'public', table_name: 'orders' }],
+            columns: [{ table_id: 0, position: 0, column_name: 'id', column_type: 'integer' }],
+            functions: [{ function_id: 0, connection_id: TEST_CONNECTION_ID, database_name: '', schema_name: '', function_name: 'scale', is_aggregate: false, return_type: 'bigint' }],
+            params: [{ function_id: 0, position: 0, param_name: 'value', param_type: 'bigint' }],
+        },
+        attachments: [{ name: 'types.parquet', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
+        results: [{ key: 'k1', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
+    });
 }
 
 /// Does a table of the schema of DashQL exist?
@@ -175,7 +178,7 @@ describe('cloud store', () => {
         await installCloudStore(query, { migrations: newer });
         const published = await publishCloudWorkbook(query, database, await testTables());
         const { tables } = await readCloudWorkbook(query, database, published.workbookId);
-        expect(tables[SCRIPTS_TABLE][0].text).toBe("select 'it''s'");
+        expect(cloudRows(tables, SCRIPTS_TABLE)[0].text).toBe("select 'it''s'");
         expect((await connection.query(`SELECT note FROM "dashql"."dashql"."workbook_scripts"`)).get(0)!.note).toBeNull();
     });
 
@@ -194,7 +197,8 @@ describe('cloud store', () => {
         await connection.execute(`INSERT INTO "dashql"."dashql"."workbook_connections" VALUES ('${workbookId}', '${versionId}', 0, 'c', '{}')`);
         statements = [];
         const { tables } = await readCloudWorkbook(query, database, workbookId, { migrations: newer });
-        expect(tables[CONNECTIONS_TABLE]).toEqual([{ position: 0, connection_id: 'c', name: null, params: '{}' }]);
+        // The column of the names is missing, the runtime reads it as null
+        expect(cloudRows(tables, CONNECTIONS_TABLE)).toEqual([{ position: 0, connection_id: 'c', params: '{}' }]);
         expect(statements.every(sql => sql.startsWith('SELECT'))).toBe(true);
     });
 
@@ -250,19 +254,22 @@ describe('cloud store', () => {
 
         const { version, tables: read } = await readCloudWorkbook(query, database, published.workbookId);
         expect(version).toEqual(published);
-        expect(read[WORKBOOK_TABLE][0].workbook_id).toBe(published.workbookId);
-        expect(read[CATALOG_TABLES_TABLE]).toEqual(tables[CATALOG_TABLES_TABLE]);
-        expect(read[CATALOG_FUNCTION_PARAMS_TABLE]).toEqual(tables[CATALOG_FUNCTION_PARAMS_TABLE]);
-        const bundle = await workbookTablesToBundle(read);
-        const expected = await testBundle();
-        expect(bundle.workbook).toEqual({ ...expected.workbook, workbookId: published.workbookId });
-        expect(bundle.scripts).toEqual(expected.scripts);
-        expect(bundle.results!.map(result => result.key)).toEqual(['k1']);
+        const [workbookRow] = cloudRows(read, WORKBOOK_TABLE);
+        expect(workbookRow.workbook_id).toBe(published.workbookId);
+        expect(workbookRow.name).toBe("Bob's workbook");
+        expect(JSON.parse(workbookRow.metadata as string)).toEqual(TEST_WORKBOOK.metadata);
+        expect(cloudRows(read, CATALOG_TABLES_TABLE)).toEqual(tables[CATALOG_TABLES_TABLE]);
+        expect(cloudRows(read, CATALOG_FUNCTION_PARAMS_TABLE)).toEqual(tables[CATALOG_FUNCTION_PARAMS_TABLE]);
+        expect(cloudRows(read, SCRIPTS_TABLE)).toEqual(tables[SCRIPTS_TABLE]);
+        const [attachmentRow] = cloudRows(read, ATTACHMENTS_TABLE);
+        const [resultRow] = cloudRows(read, RESULTS_TABLE);
+        expect(resultRow.cache_key).toBe('k1');
+        const file = (tableName: unknown) => read.data.find(entry => entry.tableName === tableName)!.file;
 
         // The data tables hold the values of the Parquet files
-        const original = await readParquetAsText(database, new Blob([expected.data![0].bytes as Uint8Array<ArrayBuffer>]));
-        const attachment = await readParquetAsText(database, new Blob([bundle.data![0].bytes as Uint8Array<ArrayBuffer>]));
-        const result = await readParquetAsText(database, bundle.results![0].bytes);
+        const original = await readParquetAsText(database, tables.data.get(tables[ATTACHMENTS_TABLE][0].table_name)!.bytes);
+        const attachment = await readParquetAsText(database, file(attachmentRow.table_name));
+        const result = await readParquetAsText(database, file(resultRow.table_name));
         expect(attachment).toEqual(original);
         expect(result).toEqual(original);
         expect(original.rows[0]).toContain("it's \\ \"x\"");
@@ -289,11 +296,11 @@ describe('cloud store', () => {
 
         const latest = await readCloudWorkbook(query, database, first.workbookId);
         expect(latest.version).toEqual(second);
-        expect(latest.tables[SCRIPTS_TABLE][0].text).toBe('select 2');
-        expect(latest.tables[WORKBOOK_TABLE][0].workbook_id).toBe(first.workbookId);
+        expect(cloudRows(latest.tables, SCRIPTS_TABLE)[0].text).toBe('select 2');
+        expect(cloudRows(latest.tables, WORKBOOK_TABLE)[0].workbook_id).toBe(first.workbookId);
         const earlier = await readCloudWorkbook(query, database, first.workbookId, { versionId: first.versionId });
         expect(earlier.version).toEqual(first);
-        expect(earlier.tables[SCRIPTS_TABLE][0].text).toBe("select 'it''s'");
+        expect(cloudRows(earlier.tables, SCRIPTS_TABLE)[0].text).toBe("select 'it''s'");
         await expect(readCloudWorkbook(query, database, first.workbookId, { versionId: newVersionId() })).rejects.toThrow('no version');
     });
 
@@ -340,7 +347,7 @@ describe('cloud store', () => {
         await expect(publishCloudWorkbook(cleaning, database, await testTables(), { workbookId: first.workbookId })).rejects.toThrow('did not complete');
         for (const tableName of createdDataTables()) expect(await tableExists(tableName)).toBe(false);
         expect(await listCloudWorkbookVersions(query, first.workbookId)).toEqual([first]);
-        expect((await readCloudWorkbook(query, database, first.workbookId)).tables[SCRIPTS_TABLE]).toHaveLength(1);
+        expect(cloudRows((await readCloudWorkbook(query, database, first.workbookId)).tables, SCRIPTS_TABLE)).toHaveLength(1);
     });
 
     it('keeps a data table that another version names', async () => {
@@ -354,7 +361,7 @@ describe('cloud store', () => {
         await cleanupCloud(query, { purgeAfterSeconds: 0 });
         expect(await tableExists(shared)).toBe(true);
         const { tables } = await readCloudWorkbook(query, database, second.workbookId);
-        expect(tables.data.has(shared)).toBe(true);
+        expect(tables.data.map(entry => entry.tableName)).toContain(shared);
         await deleteCloudWorkbook(query, second.workbookId);
         await cleanupCloud(query, { purgeAfterSeconds: 0 });
         expect(await tableExists(shared)).toBe(false);

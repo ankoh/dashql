@@ -18,8 +18,11 @@ their metadata queries on the executor of the runtime, fetches the metadata of S
 functions of the connections, the runs of workbooks (`runtime/runs.rs` of the bindings over `src/workbook_run/`): a
 run analyzes, plans and runs the scripts of a workbook of the runtime on its executor, and the setups of the connectors and the health checks (`runtime/setups.rs` of the
 bindings over `connection_setup/`): Trino, Salesforce and Hyper set up their connections over the OAuth flows of the
-platform. The storage format of workbooks is called by the storage, the imports and the exports of the TypeScript
-runtime (`src/workbook_format/`, see [The format of workbooks](#the-format-of-workbooks)).
+platform, and the imports and exports of workbooks (`runtime/imports.rs` and `runtime/exports.rs` of the bindings over
+`src/workbook_format/`): the runtime reads `.dashql` archives, workbook folders and the workbook tables of a cloud,
+maps their connections and writes them, and exports workbooks as archives, links and workbook tables, the platform
+keeps the ZIP container and the Parquet files (see [The format of workbooks](#the-format-of-workbooks)). The storage of
+the platform calls the format for its migrations, validations and evictions.
 
 The runtime is linked into the core module, but it isn't part of the contract of the core. Integrations that use the
 core on its own get the classes of the core (`DashQL`, `Catalog`, `ScriptSession`, the shell) and the FlatBuffer
@@ -560,8 +563,8 @@ the core and `EXPLAIN`.
 with its validation and migrations, the file lists, the workbook tree, bundles, the workbook tables, the archives of
 imports and exports, the connections of imports, the eviction of the query result cache and the decisions of the
 restore. It takes the contents of files and returns parsed values, validation results, migrated files and the files to
-write. The TypeScript runtime calls it for every decision of the format, its modules in `src/storage/` and
-`src/workbook/persistence/` read and write the files.
+write. The runtime of the module runs it for the restore, the imports and the exports, the storage of the platform for
+its migrations, validations and evictions; the platform reads and writes the files.
 
 - **Files as values.** `WorkbookData` reads a workbook file leniently: a field of the wrong type reads as absent, a
   malformed entry of the lists of scripts and attachments is left out and marks the lists, and fields the schema
@@ -586,38 +589,49 @@ write. The TypeScript runtime calls it for every decision of the format, its mod
 
 ### The bindings
 
-The module binds the format as free functions (`packages/dashql-core-wasm/src/workbook_format.rs`):
-`workbookFormat(op, args)` runs an operation on JSON arguments and returns its JSON, `encodeWorkbookTable` and
-`decodeWorkbookTable` turn the rows of a workbook table into Arrow IPC and back, `resolveWorkbookScripts` resolves the
-scripts of a workbook file over a resolver object of the host, and the class `CacheEviction` steps through an eviction
-of the query result cache. `DashQLWorkbookFormat` of `@ankoh/dashql-core` (`DashQL.workbookFormat`) gives the operations
-types. The bytes of attachments and results stay with the host, a bundle names them with tokens of the host. The fresh
-ids of exports and imports come from `crypto.randomUUID`.
+The imports and exports of workbooks are commands of the runtime (`packages/dashql-core-wasm/src/runtime/imports.rs`,
+`exports.rs`, `archives.rs`, see "Step 6 as built" of [runtime_api.md](runtime_api.md)): the runtime reads the workbook
+from `storage` of the platform, its sources and its archives through `archives`, and runs the format on them. The bytes
+of attachments and results stay with the host by handle (`HostFile`: a handle of the handle table and a size), the
+rows of the workbook tables cross as Arrow IPC. The fresh ids of exports and imports come from `crypto.randomUuid` of
+the platform.
 
-- **Pure calls.** Validation, the file lists of bundles, the connections of exports and imports, the sanitized
-  workbook tables of a share, the links of shared workbooks and connections, the questions of a connection import and
-  the resolution of the scripts of a native folder that changed on disk are calls of the format.
+What the storage of the platform calls itself stays a binding of free functions
+(`packages/dashql-core-wasm/src/workbook_format.rs`): `workbookFormat(op, args)` runs an operation on JSON arguments and
+returns its JSON (the constants with the columns of the workbook tables, the validation of a workbook file and its
+description, whether params are those of the embedded Hyper, the check of a UUID, the migration of the top-level files
+of a folder, the rename of the `sidb` connections, whether a resolution of a native folder changed it),
+`resolveWorkbookScripts` resolves the scripts of a workbook file over a resolver object of the host, and the class
+`CacheEviction` steps through an eviction of the query result cache. `DashQLWorkbookFormat` of `@ankoh/dashql-core`
+(`DashQL.workbookFormat`) gives them types.
+
+- **Commands of the runtime.** `exportWorkbook` reads the workbook through `storage` (the attachments by handle), the
+  cached results through the query result cache (retained while the export reads them), and the live params and names
+  of its connections from the registry; the format sanitizes the bundle and builds the workbook tables, the platform
+  writes them (`archives.write`). `readImport` reads an archive (`archives.entries`, `readTable`, `readFile`,
+  `readText`), a workbook folder (`RuntimeImportFolder`: the top-level files, then the catalog files of the
+  connections that the format names, then the scripts and attachments) or the workbook tables of a cloud, and holds
+  the bundle as a pending import. `commitImport` maps the connections, adds the results to the cache and writes the
+  workbook through `storage`, with the verification and the rollback of a replacement in Rust.
 - **Host-driven.** The migration of a folder (`storage/migration/workbook_migration.ts`): the host reads the top-level
-  files, the core migrates them, the host applies the changes. The head of a bundle (`readWorkbookBundleHead`): the host
-  reads the top-level files and then the catalog files of the connections that the core names. An import
-  (`workbook/persistence/workbook_import.ts`): zip.js lists the entries, the core plans the archive, the host reads the
-  entries (the embedded Hyper scans the Parquet files of the workbook tables) and the core builds the bundle. An export
-  (`workbook_export.ts`): the core builds the sanitized tables and names the entries of the archive, the embedded Hyper
-  writes the Parquet files and zip.js the archive. The eviction (`query_result_cache_eviction.ts`): the host lists and
-  deletes the files that the core names. The import of query results: the core decides which results fit the cache.
-- **The core when it is needed.** The synchronous calls of the runtime use the core that the platform provided
+  files, the core migrates them, the host applies the changes. The eviction (`query_result_cache_eviction.ts`): the
+  host lists and deletes the files that the core names. The scripts of a native folder that changed on disk
+  (`native_workbook_sync_react.tsx`): the core resolves them over a resolver of the host.
+- **The core when it is needed.** The synchronous calls of the storage use the core that the platform provided
   (`provideWorkbookFormatCore`: the provider of the core of the app, the storage writer, the test frame) or that the
   package instantiated, the asynchronous ones instantiate it when nothing did yet (`storage/workbook_format.ts`), with
   the loader that the platform sets: the app fetches its module, Node reads the file of the package, the tests use the
-  precompiled one. A workbook folder whose workbook file is at the current
-  version needs no migration, so the startup of the app checks the folders before it instantiates the core.
+  precompiled one. A workbook folder whose workbook file is at the current version needs no migration, so the startup
+  of the app checks the folders before it instantiates the core.
 - **The workbook tree stays in TypeScript.** The storage of the app reads the tree at startup, before the core is
   instantiated, and the sidebar edits it synchronously. The core has its port (`tree.rs`), the restore gets the
-  workbooks of the tree from the host.
+  workbooks of the tree from the host, an import finds and updates entries through `storage` (`findWorkbook`,
+  `upsertWorkbookEntry`).
 - **Changed on purpose.** A migration writes a renamed file and removes the old one, the TypeScript steps renamed it.
   The bundle head of an older folder reads all of its top-level files that the migrations know, the TypeScript steps
-  read the ones they touched. `workbookBundleToTables` reads the catalog files with the core, it takes no parser. The
-  connection import names the fresh ids of separate connections with `crypto.randomUUID`, it takes no generator.
+  read the ones they touched. The tables of a bundle read the catalog files with the core, they take no parser. The
+  connection import names the fresh ids of separate connections with `crypto.randomUuid` of the platform. The
+  verification of an imported workbook compares its attachments by name and size, not by their bytes.
 
 ## The Hyper connector
 
@@ -878,6 +892,9 @@ p50). The change set crosses the `run` slices as well, a keystroke changes none 
   again. The parts of the stream could go to the compute database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
+- The storage of the platform calls the format through the binding `workbook_format.rs` for its migrations, the
+  validation, the eviction of the query result cache and the scripts of a native folder that changed on disk. It goes
+  when the storage moves into the runtime.
 - The connections of a native workbook that changed on disk are read from the copies of its file in TypeScript
   (`connections/connection_restore.ts`) and created in the runtime, the restore of a single workbook could take them
   over.

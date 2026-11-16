@@ -24,7 +24,7 @@ Node command line tool share it. An agent then works on workbooks with the same 
 ## Why
 
 - **One implementation.** `workbook check`, `pack`, `link` and `run` in the CLI must give the answers of the app. A
-  second implementation would drift from `storage/workbook_tables.ts`.
+  second implementation would drift from the workbook tables of the format (`workbook_format::tables` of the crate).
 - **Agents iterate over SQL.** The agent writes scripts, checks them against the catalog, runs them where it may
   and fixes them. The commands it runs most work offline on files, so they work in sandboxed harnesses (Codex blocks
   loopback, listening and DNS inside its sandbox). Commands that need the network (`run`, catalog refreshes) are
@@ -404,10 +404,14 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the
   tests of what React adds: hooks, rendering order, remounting and unmounting.
-- **Export and import in Node.** Writing and reading `.dashql` files (`workbook/persistence/workbook_export.ts`,
-  `workbook_import.ts`, `workbook_zip.ts`, `storage/workbook_tables_parquet.ts`) moved into the runtime with their
-  tests; a link takes the URL of the app that opens it, the app passes its
-  own, `workbook_link.ts` has the one of the desktop app.
+- **Export and import.** Writing and reading `.dashql` files are commands of the runtime of the module
+  (`exportWorkbook`, `readImport`, `commitImport`, see "Step 6 as built" of [runtime_api.md](runtime_api.md)); the
+  package keeps the half of the platform: `storage/workbook_archives.ts` (`archives` of the platform: zip.js over
+  `workbook/persistence/workbook_zip.ts`, the Parquet files of the workbook tables with the embedded Hyper) and
+  `CoreRuntime.exportArchive`, `exportLink`, `exportTables`, `exportConnectionLink`, `readImport` and `commitImport`.
+  A link takes the URL of the app that opens it, the app passes its own, `workbook_link.ts` has the one of the desktop
+  app. The round trip is tested on the runtime of the module (`runtime_imports.test.ts` of `dashql-core-js`) with
+  archives of the test that keep their entries in memory.
 - **The compute tasks.** The tasks of the computations (aggregation, filtering, ordering, search, system columns) run in
   the runtime of the core (`packages/dashql-core-runtime/src/compute`); the app keeps `compute/computation_scheduler.tsx`,
   which tracks their queries in React.

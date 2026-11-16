@@ -5,16 +5,8 @@ import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { WorkbookTestRegistry, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import {
-    findWorkbookImportConflict,
-    prepareNativeWorkbookImport,
-    registerNativeWorkbook,
-    replaceWorkbookWithNativeFolder,
-    replaceWorkbookWithPortableBundle,
-    writePortableWorkbookFresh,
-} from './workbook_import_transaction.js';
 import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
@@ -209,30 +201,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await expect(backend.relocateWorkbookToNative(TEST_WORKBOOK_ID, '/tmp/again')).rejects.toThrow('is not an OPFS workbook');
     });
 
-    it('replaces a persisted V1 workbook with a legacy draft under the same stable UUID', async () => {
-        await registry.saveWorkbookManifest(TEST_WORKBOOK_ID, {
-            ...testWorkbook(),
-            formatVersion: 1,
-        } as any);
-        await registry.saveScript(TEST_WORKBOOK_ID, 'legacy.sql', 'SELECT 0');
-        registry.legacyDrafts.add(TEST_WORKBOOK_ID);
-        await backend.refreshLocations();
-
-        const source = {
-            workbook: testWorkbook(),
-            catalogs: [],
-            scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }],
-        };
-        await replaceWorkbookWithPortableBundle(backend, source, {
-            workbookId: TEST_WORKBOOK_ID,
-            location: { type: StorageBackendType.OPFS },
-        }, { randomUUID: () => '99999999-8888-4777-8666-555555555555' });
-
-        expect(await backend.loadWorkbook(TEST_WORKBOOK_ID)).toEqual(testWorkbook({ scripts: [{ name: '01_query.sql', connectionId: TEST_CONNECTION_ID }] }));
-        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
-    });
-
-    it('replaces an OPFS workbook with a selected native folder of the same workbook', async () => {
+    it('registers a native folder in place of an OPFS workbook and drops the files of the old one', async () => {
         const dir = '/tmp/selected';
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await native.initialize();
@@ -241,182 +210,41 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
 
-        const prepared = await prepareNativeWorkbookImport(backend, dir);
-        const conflict = { workbookId: TEST_WORKBOOK_ID, location: { type: StorageBackendType.OPFS } } as const;
-        await expect(replaceWorkbookWithNativeFolder(backend, prepared, { ...conflict, workbookId: OTHER_WORKBOOK_ID })).rejects.toThrow('does not match');
-        expect(await replaceWorkbookWithNativeFolder(backend, prepared, conflict)).toBe(TEST_WORKBOOK_ID);
+        await backend.registerNativeWorkbook(dir, TEST_WORKBOOK_ID);
 
         expect(registry.manifest).toEqual([{ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: dir }]);
         expect(registry.scripts.has(TEST_WORKBOOK_ID)).toBe(false);
+        expect(backend.getWorkbookLocation(TEST_WORKBOOK_ID)).toEqual({ type: StorageBackendType.Native, nativePath: dir });
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
-        // The folder that is registered already needs no replacement
-        await expect(replaceWorkbookWithNativeFolder(backend, prepared, { workbookId: TEST_WORKBOOK_ID, location: { type: StorageBackendType.Native, nativePath: dir } })).resolves.toBe(TEST_WORKBOOK_ID);
     });
 
-    it('imports workbooks that share their connections with other workbooks', async () => {
-        // Connections are global, an import may use a connection that other workbooks use too
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        const source = {
-            workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID }),
-            catalogs: [],
-            scripts: [],
-        };
-        await expect(writePortableWorkbookFresh(backend, source)).resolves.toBe(OTHER_WORKBOOK_ID);
-        expect((await backend.loadWorkbook(OTHER_WORKBOOK_ID)).connections.map(connection => connection.connectionId)).toEqual([TEST_CONNECTION_ID]);
-
-        await expect(replaceWorkbookWithPortableBundle(backend, { ...source, workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID, name: 'Replaced' }) }, {
-            workbookId: OTHER_WORKBOOK_ID,
-            location: { type: StorageBackendType.OPFS },
-        }, { randomUUID: () => '99999999-8888-4777-8666-555555555555' })).resolves.toBe(OTHER_WORKBOOK_ID);
-        expect((await backend.loadWorkbook(OTHER_WORKBOOK_ID)).name).toBe('Replaced');
-    });
-});
-
-describe('workbook import transactions', () => {
-    const STAGING_ID = '99999999-8888-4777-8666-555555555555';
-    let registry: Registry;
-    let backend: CompositeStorageBackend;
-
-    beforeEach(async () => {
-        resetFsStore();
-        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
-        registry = new Registry();
-        backend = new CompositeStorageBackend(registry, new TestLogger());
-        await backend.initialize();
+    it('migrates a native folder of an older version when it registers it', async () => {
+        const dir = '/tmp/session';
+        const { workbookId, ...workbook } = testWorkbook();
+        fsStore.files.set(`${dir}/dashql-session.json`, JSON.stringify({ ...workbook, formatVersion: 10, sessionId: workbookId }));
+        await backend.registerNativeWorkbook(dir, workbookId);
+        expect(fsStore.files.has(`${dir}/dashql-session.json`)).toBe(false);
+        expect(JSON.parse(fsStore.files.get(`${dir}/dashql-workbook.json`)!)).toMatchObject({ workbookId });
     });
 
-    afterEach(() => {
-        delete globalThis.dashqlElectron;
-        vi.restoreAllMocks();
-    });
-
-    /// A native workbook folder that is ready for import
-    async function nativeFolder(dir: string, workbookId = TEST_WORKBOOK_ID) {
+    it('reads a native folder for an import without creating a missing one', async () => {
+        const dir = '/tmp/folder';
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await native.initialize();
-        await native.saveWorkbookManifest(workbookId, { ...testWorkbook({ workbookId }), storageType: StorageBackendType.Native, nativePath: dir });
-        await native.saveScript(workbookId, '02_native.sql', 'SELECT 2');
-        return await prepareNativeWorkbookImport(backend, dir);
-    }
+        await native.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await native.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        await native.saveDataFile(TEST_WORKBOOK_ID, 'payload.parquet', new Uint8Array([1, 2, 3]));
 
-    it('registers a native folder under its own UUID', async () => {
-        const prepared = await nativeFolder('/tmp/import', OTHER_WORKBOOK_ID);
-        expect(await findWorkbookImportConflict(backend, OTHER_WORKBOOK_ID)).toBeNull();
-        await expect(registerNativeWorkbook(backend, prepared)).resolves.toBe(OTHER_WORKBOOK_ID);
-        expect(registry.manifest).toEqual([{ path: OTHER_WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: '/tmp/import' }]);
-        expect(await backend.loadScripts(OTHER_WORKBOOK_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
-        expect(await findWorkbookImportConflict(backend, OTHER_WORKBOOK_ID)).not.toBeNull();
-        await expect(registerNativeWorkbook(backend, prepared)).rejects.toThrow('is already registered');
-    });
+        const folder = backend.importFolder(dir);
+        expect(folder.nativePath).toBe(dir);
+        expect(JSON.parse((await folder.readText('dashql-workbook.json'))!)).toMatchObject({ workbookId: TEST_WORKBOOK_ID });
+        expect(await folder.scripts([])).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
+        expect(await folder.attachments([])).toEqual([{ name: 'payload.parquet', file: new Uint8Array([1, 2, 3]) }]);
 
-    it('rejects a fresh portable write over a registered workbook', async () => {
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        const source = { workbook: testWorkbook(), catalogs: [], scripts: [] };
-        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow('is already registered');
-    });
-
-    it('deletes a fresh portable write that does not verify', async () => {
-        const source = { workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID }), catalogs: [], scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }] };
-        vi.spyOn(backend, 'readPortableWorkbookBundle').mockResolvedValue({ ...source, scripts: [] });
-        const deleted = vi.spyOn(backend, 'deletePortableWorkbook');
-        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow(
-            `verification failed for ${OTHER_WORKBOOK_ID}: the scripts differ: expected [01_query.sql], found []`);
-        expect(deleted).toHaveBeenCalledWith(OTHER_WORKBOOK_ID);
+        const missing = backend.importFolder('/tmp/missing');
+        expect(await missing.readText('dashql-workbook.json')).toBeNull();
+        expect(fsStore.dirs.has('/tmp/missing')).toBe(false);
+        // Nothing is registered by reading
         expect(registry.manifest).toEqual([]);
-    });
-
-    it('names the field of the workbook file that does not verify', async () => {
-        const source = { workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID, metadata: { originalFileName: 'stocks' } }), catalogs: [], scripts: [] };
-        vi.spyOn(backend, 'readPortableWorkbookBundle').mockResolvedValue({ ...source, workbook: { ...source.workbook, metadata: {} } });
-        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow(
-            `verification failed for ${OTHER_WORKBOOK_ID}: workbook.metadata.originalFileName differs`);
-    });
-
-    it('writes a workbook whose scripts and attachments are not in the order of their names', async () => {
-        // A bundle from workbook tables lists the files in the order of the workbook, the storage by name
-        const source = {
-            workbook: testWorkbook({
-                workbookId: OTHER_WORKBOOK_ID,
-                scripts: [
-                    { name: 'prices.sql', connectionId: TEST_CONNECTION_ID },
-                    { name: 'dashboard.sql', connectionId: TEST_CONNECTION_ID },
-                ],
-                attachments: [{ name: 'quotes.parquet' }, { name: 'companies.parquet' }],
-            }),
-            catalogs: [],
-            scripts: [{ name: 'prices.sql', sql: 'SELECT 1' }, { name: 'dashboard.sql', sql: 'SELECT 2' }],
-            data: [
-                { name: 'quotes.parquet', bytes: new Uint8Array([1, 2]) },
-                { name: 'companies.parquet', bytes: new Uint8Array([3]) },
-            ],
-        };
-        await expect(writePortableWorkbookFresh(backend, source)).resolves.toBe(OTHER_WORKBOOK_ID);
-        expect((await backend.loadWorkbook(OTHER_WORKBOOK_ID)).scripts.map(script => script.name)).toEqual(['prices.sql', 'dashboard.sql']);
-    });
-
-    it('keeps the import error when the cleanup of a fresh write fails too', async () => {
-        const source = { workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID }), catalogs: [], scripts: [] };
-        vi.spyOn(backend, 'writePortableWorkbookBundle').mockRejectedValue(new Error('disk full'));
-        vi.spyOn(backend, 'deletePortableWorkbook').mockRejectedValue(new Error('locked'));
-        await expect(writePortableWorkbookFresh(backend, source)).rejects.toThrow('disk full');
-    });
-
-    it('checks the replacement before touching the registered workbook', async () => {
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        const conflict = { workbookId: TEST_WORKBOOK_ID, location: { type: StorageBackendType.OPFS } } as const;
-        const source = { workbook: testWorkbook(), catalogs: [], scripts: [] };
-        await expect(replaceWorkbookWithPortableBundle(backend, { ...source, workbook: testWorkbook({ workbookId: OTHER_WORKBOOK_ID }) }, conflict))
-            .rejects.toThrow('does not match replacement');
-        await backend.saveWorkbookManifest(OTHER_WORKBOOK_ID, testWorkbook({ workbookId: OTHER_WORKBOOK_ID }));
-        await expect(replaceWorkbookWithPortableBundle(backend, source, conflict, { randomUUID: () => OTHER_WORKBOOK_ID }))
-            .rejects.toThrow(`Staging workbook ${OTHER_WORKBOOK_ID} is already registered`);
-
-        const unregistered = { workbookId: STAGING_ID, location: { type: StorageBackendType.OPFS } } as const;
-        await expect(replaceWorkbookWithPortableBundle(backend, { ...source, workbook: testWorkbook({ workbookId: STAGING_ID }) }, unregistered))
-            .rejects.toThrow('is no longer registered');
-    });
-
-    it('restores the old workbook when the replacement fails after the target changed', async () => {
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'Old' }));
-        await backend.saveScript(TEST_WORKBOOK_ID, '01_old.sql', 'SELECT 0');
-        const write = backend.writePortableWorkbookBundle.bind(backend);
-        let targetWrites = 0;
-        vi.spyOn(backend, 'writePortableWorkbookBundle').mockImplementation(async (bundle, workbookId, fresh) => {
-            // Fail the first write of the new bundle into the target, not the restore of the old one
-            if (workbookId === TEST_WORKBOOK_ID && targetWrites++ === 0) throw new Error('quota exceeded');
-            return await write(bundle, workbookId, fresh);
-        });
-        const source = { workbook: testWorkbook({ name: 'New' }), catalogs: [], scripts: [{ name: '01_new.sql', sql: 'SELECT 1' }] };
-        await expect(replaceWorkbookWithPortableBundle(backend, source, {
-            workbookId: TEST_WORKBOOK_ID,
-            location: { type: StorageBackendType.OPFS },
-        }, { randomUUID: () => STAGING_ID })).rejects.toThrow('quota exceeded');
-
-        expect((await backend.loadWorkbook(TEST_WORKBOOK_ID)).name).toBe('Old');
-        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_old.sql', sql: 'SELECT 0' }]);
-        expect(registry.manifest).toEqual([{ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.OPFS }]);
-        expect(await findWorkbookImportConflict(backend, STAGING_ID)).toBeNull();
-        expect(registry.scripts.has(STAGING_ID)).toBe(false);
-    });
-
-    it('reports a failing staging cleanup of a successful replacement', async () => {
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        vi.spyOn(backend, 'deletePortableWorkbook').mockRejectedValue(new Error('locked'));
-        const source = { workbook: testWorkbook({ name: 'New' }), catalogs: [], scripts: [] };
-        await expect(replaceWorkbookWithPortableBundle(backend, source, {
-            workbookId: TEST_WORKBOOK_ID,
-            location: { type: StorageBackendType.OPFS },
-        }, { randomUUID: () => STAGING_ID })).rejects.toThrow('locked');
-    });
-
-    it('restores the manifest entry when the replacement by a native folder fails', async () => {
-        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
-        const prepared = await nativeFolder('/tmp/selected');
-        vi.spyOn(backend, 'deletePortableWorkbookFiles').mockRejectedValue(new Error('locked'));
-        const conflict = { workbookId: TEST_WORKBOOK_ID, location: { type: StorageBackendType.OPFS } } as const;
-        await expect(replaceWorkbookWithNativeFolder(backend, prepared, conflict)).rejects.toThrow('locked');
-        expect(registry.manifest).toEqual([{ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.OPFS }]);
-        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
     });
 });

@@ -6,14 +6,12 @@ import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { exportWorkbookAsUrl } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
+import { useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
 import { ShareURLField } from './share_url_field.js';
-import { useWorkbookArchiveWriter } from './workbook_archive_database.js';
+import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 
 interface Props {
     className?: string;
@@ -33,10 +31,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const connections = useWorkbookConnections(workbookScripts?.workbookId ?? null);
     // The connections are resolved anew on every render, the link follows their ids
     const connectionIds = connections?.map(connection => connection.connectionId).join(',') ?? null;
-    const [databaseRegistry] = useConnectionRegistry();
-    const references = useConnectionReferences();
-    const storage = useStorageReader();
-    const archiveWriter = useWorkbookArchiveWriter();
+    const runtime = useCoreRuntime();
     const [publicURLText, setPublicURLText] = React.useState<string | null>(null);
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         withCatalog: false,
@@ -52,30 +47,17 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         let cancelled = false;
         setPublicURLText(null);
 
+        // The runtime reads the workbook from the storage and the live params and names of its connections
         async function generateURL() {
-            let setupUrl: URL | null = null;
+            let link: string | null = null;
             if (workbookScripts != null && connectionIds != null) {
-                const attached = resolveWorkbookConnections(databaseRegistry, references, workbookScripts.workbookId);
-                if (attached != null) {
-                    const params = new Map();
-                    const connectionNames = new Map<string, string>();
-                    for (const database of attached) {
-                        const connectionParams = database.params;
-                        if (connectionParams != null) params.set(database.connectionId, connectionParams);
-                        if (database.name != null) connectionNames.set(database.connectionId, database.name);
-                    }
-                    setupUrl = await exportWorkbookAsUrl(
-                        storage.backend,
-                        await archiveWriter('workbook_link'),
-                        workbookScripts.workbookId,
-                        params,
-                        process.env.DASHQL_APP_URL!,
-                        { ...settings, connectionNames },
-                    );
-                }
+                link = await runtime.exportLink(workbookScripts.workbookId, process.env.DASHQL_APP_URL!, {
+                    withCatalog: settings.withCatalog,
+                    withLoginHint: settings.withLoginHint,
+                    preserveUuids: settings.preserveUUIDs,
+                });
             }
-
-            if (!cancelled) setPublicURLText(setupUrl?.toString() ?? null);
+            if (!cancelled) setPublicURLText(link);
         }
 
         generateURL().catch(() => {
@@ -85,7 +67,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         return () => {
             cancelled = true;
         };
-    }, [databaseRegistry, references, settings, workbookScripts, connectionIds, props.isOpen, archiveWriter]);
+    }, [runtime, settings, workbookScripts, connectionIds, props.isOpen]);
 
     const hasLoginHint = React.useMemo(
         () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionSetupParams(connection))),

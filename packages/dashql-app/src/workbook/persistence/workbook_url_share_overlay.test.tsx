@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -15,7 +16,6 @@ import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import * as core from '@ankoh/dashql-core';
@@ -76,8 +76,8 @@ describe('WorkbookURLShareOverlay', () => {
         await root.render(tree(false));
         await act(async () => {
             addTestConnections(coreRuntime!, [CONNECTION]);
-            // The workbook uses the connection without a script, it keeps its name on disk
-            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, null, false, undefined, TEST_WORKBOOK_ID);
+            // The workbook uses the connection without a script
+            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, undefined, TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -105,7 +105,10 @@ describe('WorkbookURLShareOverlay', () => {
     async function sharedWorkbook() {
         const url = new URL(urlInput()!.value);
         const archive = new Blob([BASE64URL_CODEC.decode(url.searchParams.get('zip')!)]);
-        return (await readWorkbookBundleFromZip(archive, database)).workbook;
+        // The runtime reads the archive like the import of the link
+        const preview = await coreRuntime!.readImport({ archive });
+        coreRuntime!.dropImport(preview.importId);
+        return preview.workbook as WorkbookData;
     }
 
     it('shares the workbook as a link and copies it', async () => {

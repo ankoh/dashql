@@ -1,12 +1,10 @@
 import * as React from 'react';
 
+import type * as core from '@ankoh/dashql-core';
+
 import { PlatformFile } from '../platform/file/file.js';
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
-import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
-import { useWorkbookImport, type ConflictChoice, type PreparedPortableImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
+import { importedWorkbook, useWorkbookImport, type ConflictChoice, type PreparedImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
-import type { ImportedWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router/router.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -24,36 +22,32 @@ interface ImportProgress {
     /// The step that runs
     step: CommitStep;
     /// The outcome of the query results, once they were added
-    results: ImportedWorkbookQueryResults | null;
+    results: core.ImportedResults | null;
 }
 
 type FileLoadState =
     | { phase: 'reading' }
     | { phase: 'validating'; fileByteCount: number }
     /// The archive is fine, the connections of its workbook are resolved, the user may be asked
-    | { phase: 'resolving'; bundle: WorkbookBundle; fileByteCount: number }
+    | { phase: 'resolving'; preview: core.ImportPreview; fileByteCount: number }
     /// Every decision but the import itself is made
-    | { phase: 'ready'; prepared: PreparedPortableImport; bundle: WorkbookBundle; fileByteCount: number }
-    | { phase: 'importing'; prepared: PreparedPortableImport; bundle: WorkbookBundle; fileByteCount: number; progress: ImportProgress }
+    | { phase: 'ready'; prepared: PreparedImport; preview: core.ImportPreview; fileByteCount: number }
+    | { phase: 'importing'; prepared: PreparedImport; preview: core.ImportPreview; fileByteCount: number; progress: ImportProgress }
     /// Imported, but some query results weren't added. The card stays until the user opens the workbook.
-    | { phase: 'imported'; bundle: WorkbookBundle; fileByteCount: number; workbookId: string; results: ImportedWorkbookQueryResults }
+    | { phase: 'imported'; preview: core.ImportPreview; fileByteCount: number; workbookId: string; results: core.ImportedResults }
     | {
         phase: 'failed'; failedPhase: PreparationPhase | 'importing'; error: Error; fileByteCount: number | null;
-        bundle: WorkbookBundle | null; progress: ImportProgress | null;
+        preview: core.ImportPreview | null; progress: ImportProgress | null;
     };
 
 export interface FileLoaderDependencies {
     workbookImportCard?: WorkbookImportCardDependencies;
-    readWorkbookBundleFromZip: typeof readWorkbookBundleFromZip;
-    useWorkbookArchiveDatabase: typeof useWorkbookArchiveDatabase;
-    useWorkbookImport(): Pick<ReturnType<typeof useWorkbookImport>, 'preparePortableImport' | 'commitPortableImport'>;
+    useWorkbookImport(): Pick<ReturnType<typeof useWorkbookImport>, 'readImport' | 'prepareImport' | 'commitImport' | 'dropImport'>;
     useRouterNavigate: typeof useRouterNavigate;
     useLogger?: () => LoggerLike | null;
 }
 
 const DEFAULT_DEPENDENCIES: FileLoaderDependencies = {
-    readWorkbookBundleFromZip,
-    useWorkbookArchiveDatabase,
     useWorkbookImport,
     useRouterNavigate,
     useLogger,
@@ -70,8 +64,7 @@ interface Props {
 export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }: Props): React.ReactElement {
     const navigate = dependencies.useRouterNavigate();
     const logger = (dependencies.useLogger ?? (() => null))();
-    const archiveDatabase = dependencies.useWorkbookArchiveDatabase();
-    const { preparePortableImport, commitPortableImport } = dependencies.useWorkbookImport();
+    const { readImport, prepareImport, commitImport, dropImport } = dependencies.useWorkbookImport();
     const [attempt, setAttempt] = React.useState(0);
     const [state, setState] = React.useState<FileLoadState>({ phase: 'reading' });
     const prepareFile = React.useEffectEvent(async (input: PlatformFile, signal: AbortSignal) => {
@@ -82,27 +75,30 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
             signal.throwIfAborted();
 
             setState({ phase: 'validating', fileByteCount: zipBlob.size });
-            const database = await archiveDatabase('file_loader');
-            signal.throwIfAborted();
-            const bundle = await dependencies.readWorkbookBundleFromZip(zipBlob, database);
-            signal.throwIfAborted();
-            const results = bundle.results ?? [];
+            const preview = await readImport({ archive: zipBlob });
+            if (signal.aborted) {
+                dropImport(preview);
+                return;
+            }
             logger?.info('Read a workbook file', {
                 file: input.path, bytes: zipBlob.size.toString(), inPlace: (input.blob != null).toString(),
-                scripts: bundle.scripts.length.toString(), connections: bundle.workbook.connections.length.toString(),
-                results: results.length.toString(), resultBytes: results.reduce((sum, result) => sum + result.bytes.size, 0).toString(),
+                scripts: preview.scriptCount.toString(), connections: importedWorkbook(preview).connections.length.toString(),
+                results: preview.results.count.toString(), resultBytes: preview.results.bytes.toString(),
             }, LOG_CTX);
 
             // The connections are resolved right away, the user may be asked which existing connections to use
-            setState({ phase: 'resolving', bundle, fileByteCount: zipBlob.size });
-            const prepared = await preparePortableImport(bundle);
-            signal.throwIfAborted();
+            setState({ phase: 'resolving', preview, fileByteCount: zipBlob.size });
+            const prepared = await prepareImport(preview);
             if (prepared == null) {
                 logger?.info('Cancelled the import of a workbook file while resolving its connections', { file: input.path }, LOG_CTX);
-                onDone();
+                if (!signal.aborted) onDone();
                 return;
             }
-            setState({ phase: 'ready', prepared, bundle: prepared.bundle, fileByteCount: zipBlob.size });
+            if (signal.aborted) {
+                dropImport(preview);
+                return;
+            }
+            setState({ phase: 'ready', prepared, preview, fileByteCount: zipBlob.size });
         } catch (error) {
             if (signal.aborted) return;
             logger?.warn('Preparing a workbook file failed', { file: input.path, error: stringifyError(error) }, LOG_CTX);
@@ -111,7 +107,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
                 failedPhase: current.phase === 'validating' || current.phase === 'resolving' ? current.phase : 'reading',
                 error: toError(error),
                 fileByteCount: 'fileByteCount' in current ? current.fileByteCount : null,
-                bundle: 'bundle' in current ? current.bundle : null,
+                preview: 'preview' in current ? current.preview : null,
                 progress: null,
             }));
         }
@@ -124,33 +120,36 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     }, [file, attempt]);
 
     const requestClose = React.useCallback(() => {
-        if (state.phase !== 'importing') onDone();
-    }, [onDone, state.phase]);
+        if (state.phase === 'importing') return;
+        // A file that the user doesn't import lets go of its import
+        if (state.phase === 'ready') dropImport(state.preview);
+        onDone();
+    }, [dropImport, onDone, state]);
     const retry = React.useCallback(() => setAttempt(value => value + 1), []);
     const openImported = React.useCallback(() => {
         if (state.phase !== 'imported') return;
         navigate({ type: OPEN_LINK_WORKBOOK, value: state.workbookId });
         onDone();
     }, [navigate, onDone, state]);
-    const startImport = React.useEffectEvent(async (prepared: PreparedPortableImport, fileByteCount: number, choice: ConflictChoice | null) => {
-        const bundle = prepared.bundle;
-        let progress: ImportProgress = { step: (bundle.results?.length ?? 0) > 0 ? 'results' : 'workbook', results: null };
+    const startImport = React.useEffectEvent(async (prepared: PreparedImport, fileByteCount: number, choice: ConflictChoice | null) => {
+        const preview = prepared.preview;
+        let progress: ImportProgress = { step: preview.results.count > 0 ? 'results' : 'workbook', results: null };
         const onProgress = (update: WorkbookImportProgress) => {
             // The file shows the commit as adding the results and saving the workbook
             if (update.step !== 'results' && update.step !== 'workbook') return;
             progress = { step: update.step, results: update.step === 'results' ? update.outcome : progress.results };
             setState(current => current.phase === 'importing' ? { ...current, progress } : current);
         };
-        setState({ phase: 'importing', prepared, bundle, fileByteCount, progress });
+        setState({ phase: 'importing', prepared, preview, fileByteCount, progress });
         try {
-            const workbookId = await commitPortableImport(prepared, choice, onProgress);
+            const workbookId = await commitImport(prepared, choice, { onProgress });
             // Query results that weren't added are shown before the workbook opens, their scripts need a connection
             const results = progress.results;
             if (results != null && missingResults(results) > 0) {
                 logger?.info('Kept the import card open, some query results were not added', {
                     file: file.path, workbookId, results: results.total.toString(), missing: missingResults(results).toString(),
                 }, LOG_CTX);
-                setState({ phase: 'imported', bundle, fileByteCount, workbookId, results });
+                setState({ phase: 'imported', preview, fileByteCount, workbookId, results });
                 return;
             }
             navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
@@ -162,7 +161,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
                 failedPhase: 'importing',
                 error: toError(error),
                 fileByteCount,
-                bundle,
+                preview,
                 progress,
             });
         }
@@ -175,34 +174,34 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     const card = dependencies.workbookImportCard;
     switch (state.phase) {
         case 'reading':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="reading" steps={steps} fileByteCount={null} bundle={null} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="reading" steps={steps} fileByteCount={null} preview={null} onClose={requestClose} dependencies={card} />;
         case 'validating':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="validating" steps={steps} fileByteCount={state.fileByteCount} bundle={null} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="validating" steps={steps} fileByteCount={state.fileByteCount} preview={null} onClose={requestClose} dependencies={card} />;
         case 'resolving':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="resolving" steps={steps} fileByteCount={state.fileByteCount} bundle={state.bundle} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="resolving" steps={steps} fileByteCount={state.fileByteCount} preview={state.preview} onClose={requestClose} dependencies={card} />;
         case 'ready':
         case 'importing':
-            return <WorkbookImportCard phase="file-ready" sourcePath={file.path} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={steps}
+            return <WorkbookImportCard phase="file-ready" sourcePath={file.path} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
                 conflict={state.prepared.conflict} busy={state.phase === 'importing'}
                 onImport={() => requestImport(null)} onReplace={() => requestImport('replace')} onCreateNew={() => requestImport('create-new')}
                 onClose={requestClose} dependencies={card} />;
         case 'imported':
             return <WorkbookImportCard phase="file-imported" sourcePath={file.path} fileByteCount={state.fileByteCount}
-                bundle={state.bundle} steps={steps} warning={resultsWarning(state.results)} warningDetail={state.results.error}
+                preview={state.preview} steps={steps} warning={resultsWarning(state.results)} warningDetail={state.results.error}
                 onOpen={openImported} onClose={requestClose} dependencies={card} />;
         case 'failed':
-            return <WorkbookImportCard phase="file-error" sourcePath={file.path} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={steps}
+            return <WorkbookImportCard phase="file-error" sourcePath={file.path} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
                 failedStage={state.failedPhase} errorMessage={state.error.message} onRetry={retry} onClose={requestClose} dependencies={card} />;
     }
 }
 
 /// The query results of an import that aren't in the cache
-function missingResults(results: ImportedWorkbookQueryResults): number {
+function missingResults(results: core.ImportedResults): number {
     return results.failed + results.dropped;
 }
 
 /// Why some query results of an imported workbook aren't in the cache
-function resultsWarning(results: ImportedWorkbookQueryResults): string {
+function resultsWarning(results: core.ImportedResults): string {
     const missing = missingResults(results);
     const reasons = [
         results.failed > 0 ? `${results.failed} failed` : null,
@@ -233,15 +232,15 @@ function fileImportSteps(state: FileLoadState): WorkbookFileStepStatus[] {
         { step: 'read', status: stepStatus(0, prepared, failed) },
         { step: 'check', status: stepStatus(1, prepared, failed) },
     ];
-    const bundle = 'bundle' in state ? state.bundle : null;
-    if (bundle == null) return steps;
+    const preview = 'preview' in state ? state.preview : null;
+    if (preview == null) return steps;
     steps.push({ step: 'connections', status: stepStatus(2, prepared, failed) });
 
     // How far the commit got: the step that runs or failed, all steps once imported, none before
     const progress = state.phase === 'importing' || state.phase === 'failed' ? state.progress : null;
     const reached = state.phase === 'imported' ? COMMIT_STEPS.length : progress == null ? -1 : COMMIT_STEPS.indexOf(progress.step);
     const results = state.phase === 'imported' ? state.results : progress?.results ?? null;
-    const resultCount = bundle.results?.length ?? 0;
+    const resultCount = preview.results.count;
     COMMIT_STEPS.forEach((step, index) => {
         if (step === 'results' && resultCount === 0) return;
         let status = stepStatus(index, reached, failed);

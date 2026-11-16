@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
@@ -6,11 +7,11 @@ import { ProgressBar } from '../../ui/foundations/progress_bar.js';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 import { formatBytes } from '../../utils/format.js';
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { CompactNavBar } from '../../app/navbar.js';
 import { SetupSteps } from '../../app/setup_steps.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { HttpWorkbookLoadProgress, HttpWorkbookLoadResult } from './http_workbook_bundle.js';
+import { importedWorkbook, importedWorkbookName } from './workbook_import_provider.js';
 import * as styles from './workbook_import_card.module.css';
 
 interface LoadingState {
@@ -75,7 +76,7 @@ interface FileLoadingState {
     steps: WorkbookFileStepStatus[];
     fileByteCount: number | null;
     /// The workbook of the file, once the archive is checked
-    bundle: WorkbookBundle | null;
+    preview: core.ImportPreview | null;
     onClose(): void;
 }
 
@@ -83,7 +84,7 @@ interface FileReadyState {
     phase: 'file-ready';
     sourcePath: string;
     fileByteCount: number;
-    bundle: WorkbookBundle;
+    preview: core.ImportPreview;
     steps: WorkbookFileStepStatus[];
     /// The registered workbook with the same id, the user replaces it or creates a new workbook
     conflict: { displayLocation: string; isNative: boolean } | null;
@@ -98,7 +99,7 @@ interface FileErrorState {
     phase: 'file-error';
     sourcePath: string;
     fileByteCount: number | null;
-    bundle: WorkbookBundle | null;
+    preview: core.ImportPreview | null;
     failedStage: WorkbookFileFailureStage;
     steps: WorkbookFileStepStatus[];
     errorMessage: string;
@@ -111,7 +112,7 @@ interface FileImportedState {
     phase: 'file-imported';
     sourcePath: string;
     fileByteCount: number;
-    bundle: WorkbookBundle;
+    preview: core.ImportPreview;
     steps: WorkbookFileStepStatus[];
     /// What went wrong, e.g. the query results that weren't added
     warning: string;
@@ -178,8 +179,9 @@ function LoadingCard({ state, dependencies }: { state: LoadingState; dependencie
 }
 
 function ReadyCard({ state, dependencies }: { state: ReadyState; dependencies: WorkbookImportCardDependencies }): React.ReactElement {
-    const { bundle, listedScriptCount, loadedScriptCount, incomplete } = state.result;
-    const workbookName = bundle.workbook.name?.trim() || bundle.workbook.metadata.originalFileName || 'Unnamed workbook';
+    const { preview, listedScriptCount, loadedScriptCount, incomplete } = state.result;
+    const workbook = importedWorkbook(preview);
+    const workbookName = importedWorkbookName(preview);
     const scriptCount = incomplete
         ? listedScriptCount > 0 ? `${loadedScriptCount} of ${listedScriptCount}` : String(loadedScriptCount)
         : String(loadedScriptCount);
@@ -206,8 +208,8 @@ function ReadyCard({ state, dependencies }: { state: ReadyState; dependencies: W
             )}
             <WorkbookImportDetails>
                 {state.conflictLocation != null && <WorkbookImportDetail label="Existing" mono>{state.conflictLocation}</WorkbookImportDetail>}
-                <WorkbookImportDetail label="Source" mono>{bundle.workbook.metadata.originalHttpUrl}</WorkbookImportDetail>
-                <WorkbookImportDetail label="UUID" mono>{bundle.workbook.workbookId}</WorkbookImportDetail>
+                <WorkbookImportDetail label="Source" mono>{workbook.metadata.originalHttpUrl}</WorkbookImportDetail>
+                <WorkbookImportDetail label="UUID" mono>{workbook.workbookId}</WorkbookImportDetail>
                 <WorkbookImportDetail label="Name">{workbookName}</WorkbookImportDetail>
                 <WorkbookImportDetail label="Scripts">{scriptSummary}</WorkbookImportDetail>
             </WorkbookImportDetails>
@@ -224,7 +226,7 @@ const FILE_STAGE_STATUS: Record<WorkbookFileLoadStage, string> = {
 function FileLoadingCard({ state, dependencies }: { state: FileLoadingState; dependencies: WorkbookImportCardDependencies }): React.ReactElement {
     return (
         <CardShell title="Loading Workbook" wide busy onClose={state.onClose} dependencies={dependencies}
-            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} preview={state.preview} steps={state.steps} />}
         >
             <div className={styles.visuallyHidden} role="status" aria-live="polite" data-testid="workbook-import-file-status" data-stage={state.stage}>
                 {FILE_STAGE_STATUS[state.stage]}
@@ -251,7 +253,7 @@ function FileReadyCard({ state, dependencies }: { state: FileReadyState; depende
             onClose={state.onClose}
             actions={actions}
             dependencies={dependencies}
-            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} preview={state.preview} steps={state.steps}
                 existingLocation={state.conflict?.displayLocation ?? null} />}
         >
             {state.conflict != null && <ConflictWarning native={state.conflict.isNative} />}
@@ -270,7 +272,7 @@ function FileImportedCard({ state, dependencies }: { state: FileImportedState; d
             onClose={state.onClose}
             actions={<Button data-testid="workbook-import-open" autoFocus variant={ButtonVariant.Primary} onClick={state.onOpen}>Open Workbook</Button>}
             dependencies={dependencies}
-            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} preview={state.preview} steps={state.steps} />}
         >
             <div className={styles.warning} role="alert" data-testid="workbook-import-warning">
                 <AlertIcon size={16} aria-hidden="true" />
@@ -299,7 +301,7 @@ function FileErrorCard({ state, dependencies }: { state: FileErrorState; depende
             onClose={state.onClose}
             actions={<Button data-testid="workbook-import-retry" autoFocus variant={ButtonVariant.Primary} onClick={state.onRetry}>Try Again</Button>}
             dependencies={dependencies}
-            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} bundle={state.bundle} steps={state.steps} />}
+            split={<FileImportSplit sourcePath={state.sourcePath} fileByteCount={state.fileByteCount} preview={state.preview} steps={state.steps} />}
         >
             <div className={styles.error} role="alert" data-stage={state.failedStage}>
                 <AlertIcon size={16} aria-hidden="true" />
@@ -316,14 +318,12 @@ function FileErrorCard({ state, dependencies }: { state: FileErrorState; depende
 function FileImportSplit(props: {
     sourcePath: string;
     fileByteCount: number | null;
-    bundle: WorkbookBundle | null;
+    preview: core.ImportPreview | null;
     steps: WorkbookFileStepStatus[];
     existingLocation?: string | null;
 }): React.ReactElement {
-    const bundle = props.bundle;
-    const workbookName = bundle == null ? null
-        : bundle.workbook.name?.trim() || bundle.workbook.metadata.originalFileName || 'Unnamed workbook';
-    const results = bundle?.results ?? [];
+    const preview = props.preview;
+    const results = preview?.results ?? { count: 0, bytes: 0 };
     return (
         <>
             <div className={styles.splitPane} data-testid="workbook-import-summary">
@@ -331,16 +331,16 @@ function FileImportSplit(props: {
                     <WorkbookImportDetail label="File" mono>{props.sourcePath}</WorkbookImportDetail>
                     {props.fileByteCount != null && <WorkbookImportDetail label="Size">{formatBytes(props.fileByteCount)}</WorkbookImportDetail>}
                     {props.existingLocation != null && <WorkbookImportDetail label="Existing" mono>{props.existingLocation}</WorkbookImportDetail>}
-                    {bundle != null && (
+                    {preview != null && (
                         <>
-                            <WorkbookImportDetail label="Workbook">{workbookName}</WorkbookImportDetail>
-                            <WorkbookImportDetail label="UUID" mono>{bundle.workbook.workbookId}</WorkbookImportDetail>
-                            <WorkbookImportDetail label="Scripts">{formatCount(bundle.scripts.length, 'script')}</WorkbookImportDetail>
+                            <WorkbookImportDetail label="Workbook">{importedWorkbookName(preview)}</WorkbookImportDetail>
+                            <WorkbookImportDetail label="UUID" mono>{importedWorkbook(preview).workbookId}</WorkbookImportDetail>
+                            <WorkbookImportDetail label="Scripts">{formatCount(preview.scriptCount, 'script')}</WorkbookImportDetail>
                         </>
                     )}
-                    {results.length > 0 && (
+                    {results.count > 0 && (
                         <WorkbookImportDetail label="Query Results">
-                            {`${formatCount(results.length, 'result')}, ${formatBytes(results.reduce((sum, result) => sum + result.bytes.size, 0))}`}
+                            {`${formatCount(results.count, 'result')}, ${formatBytes(results.bytes)}`}
                         </WorkbookImportDetail>
                     )}
                 </WorkbookImportDetails>

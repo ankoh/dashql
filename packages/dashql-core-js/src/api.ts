@@ -33,9 +33,6 @@ export type DashQLBindings = Pick<
     | 'replayQueryProgress'
     | 'Runtime'
     | 'workbookFormat'
-    | 'encodeWorkbookTable'
-    | 'decodeWorkbookTable'
-    | 'workbookLink'
     | 'resolveWorkbookScripts'
     | 'CacheEviction'
 >;
@@ -465,7 +462,8 @@ export class DashQL {
         return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
     }
 
-    /// The storage format of workbooks: the workbook file, migrations, bundles, the workbook tables and archives
+    /// The parts of the storage format of workbooks that the storage of the platform calls: the validation of a workbook
+    /// file, the migrations, the scripts of a folder that changed outside the app and the eviction of the result cache
     public get workbookFormat(): DashQLWorkbookFormat {
         return new DashQLWorkbookFormat(this.bindings);
     }

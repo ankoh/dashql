@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HttpWorkbookLoadResult } from './http_workbook_bundle.js';
 import { WorkbookImportCard, type WorkbookImportCardDependencies } from './workbook_import_card.js';
+import { testImportPreview } from './import_test_sources.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -13,19 +14,15 @@ const dependencies: WorkbookImportCardDependencies = {
 };
 
 const RESULT: HttpWorkbookLoadResult = {
-    bundle: {
-        workbook: {
-            formatVersion: 11,
-            workbookId: '11111111-2222-4333-8444-555555555555',
-            name: 'Flat workbook',
-            connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as any }],
-            scripts: [{ name: '01_query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
-            attachments: [],
-            metadata: { originType: 'HTTP', originalHttpUrl: 'https://example.com/dashql-workbook.json' },
-        },
-        catalogs: [],
-        scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }],
-    },
+    preview: testImportPreview({
+        formatVersion: 11,
+        workbookId: '11111111-2222-4333-8444-555555555555',
+        name: 'Flat workbook',
+        connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as any }],
+        scripts: [{ name: '01_query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
+        attachments: [],
+        metadata: { originType: 'HTTP', originalHttpUrl: 'https://example.com/dashql-workbook.json' },
+    }),
     listedScriptCount: 1,
     loadedScriptCount: 1,
     incomplete: false,

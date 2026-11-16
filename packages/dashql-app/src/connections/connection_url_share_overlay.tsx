@@ -6,10 +6,9 @@ import { AnchorAlignment } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
-import { exportConnectionAsUrl } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useWorkbookArchiveWriter } from '../workbook/persistence/workbook_archive_database.js';
+import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 
 interface Props {
     /// The connection to share
@@ -28,22 +27,22 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
         withLoginHint: true,
         preserveUUIDs: false,
     });
-    const params = database.params;
-    const name = database.name ?? null;
-    const archiveWriter = useWorkbookArchiveWriter();
+    // The link follows the params and the name of the connection
+    const { connectionId, params, name } = database;
+    // The row menus render the overlay closed, also in tests without a runtime
+    const runtime = useOptionalCoreRuntime();
 
     React.useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || runtime == null) return;
         let cancelled = false;
         setURL(null);
-        archiveWriter('connection_link')
-            .then(writer => exportConnectionAsUrl(writer, params, name, process.env.DASHQL_APP_URL!, { withLoginHint: settings.withLoginHint }))
-            .then(link => { if (!cancelled) setURL(link.toString()); })
+        runtime.exportConnectionLink(connectionId, process.env.DASHQL_APP_URL!, settings.withLoginHint)
+            .then(link => { if (!cancelled) setURL(link); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {
             cancelled = true;
         };
-    }, [params, name, settings.withLoginHint, isOpen, archiveWriter]);
+    }, [runtime, connectionId, params, name, settings.withLoginHint, isOpen]);
 
     const hasLoginHint = React.useMemo(
         () => isOpen && connectionParamsHaveLoginHint(getConnectionSetupParams(database)),

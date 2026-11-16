@@ -2,8 +2,9 @@ import * as React from 'react';
 
 import { Button, ButtonVariant } from '../../ui/foundations/button.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import type { ConnectionImportChoice, ConnectionImportPlanItem } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
+import type * as core from '@ankoh/dashql-core';
 import { connectionParamsLabel } from '@ankoh/dashql-runtime/connections/connection_label';
+import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 
 import * as styles from './workbook_import_conflict_dialog.module.css';
 import * as ownStyles from './workbook_connection_import_dialog.module.css';
@@ -12,17 +13,17 @@ interface Props {
     /// The name of the imported workbook
     workbookName: string;
     /// The connections of the workbook that may consolidate with existing connections
-    questions: ConnectionImportPlanItem[];
+    questions: core.ImportQuestion[];
     /// Is the import running?
     busy: boolean;
     /// Import with the chosen connections, keyed by the connection id in the workbook
-    onConfirm: (choices: Map<string, ConnectionImportChoice>) => void;
+    onConfirm: (choices: Map<string, core.ImportChoice>) => void;
     /// Abort the import
     onCancel: () => void;
 }
 
 /// The value of a choice in the form
-function choiceValue(choice: ConnectionImportChoice): string {
+function choiceValue(choice: core.ImportChoice): string {
     return choice.kind === 'link' ? `link:${choice.connectionId}` : 'separate';
 }
 
@@ -33,9 +34,9 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
     const titleId = React.useId();
     const descriptionId = React.useId();
     const dialogRef = React.useRef<HTMLElement>(null);
-    const [choices, setChoices] = React.useState(() => new Map<string, ConnectionImportChoice>(props.questions.map(item => [
-        item.ref.connectionId,
-        item.decision.kind === 'ask' ? { kind: 'link', connectionId: item.decision.candidates[0].id } : { kind: 'separate' },
+    const [choices, setChoices] = React.useState(() => new Map<string, core.ImportChoice>(props.questions.map(item => [
+        item.connectionId,
+        item.candidates.length > 0 ? { kind: 'link', connectionId: item.candidates[0].id } : { kind: 'separate' },
     ])));
     const cancel = React.useCallback(() => {
         if (!props.busy) props.onCancel();
@@ -62,22 +63,21 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
                         Using an existing connection shares its settings with the workbooks that already use it.
                     </p>
                     {props.questions.map(item => {
-                        if (item.decision.kind !== 'ask') return null;
-                        const current = choices.get(item.ref.connectionId);
-                        const name = `connection-${item.ref.connectionId}`;
-                        const options: Array<{ choice: ConnectionImportChoice; label: string }> = [
-                            ...item.decision.candidates.map(candidate => ({
+                        const current = choices.get(item.connectionId);
+                        const name = `connection-${item.connectionId}`;
+                        const options: Array<{ choice: core.ImportChoice; label: string }> = [
+                            ...item.candidates.map(candidate => ({
                                 choice: { kind: 'link' as const, connectionId: candidate.id },
-                                label: `Use ${candidate.name ?? connectionParamsLabel(candidate.params)}`,
+                                label: `Use ${candidate.name ?? connectionParamsLabel(candidate.params as ConnectionParams)}`,
                             })),
                             { choice: { kind: 'separate' }, label: 'Keep as a new connection' },
                         ];
                         return (
-                            <fieldset key={item.ref.connectionId} className={ownStyles.connection} disabled={props.busy}>
+                            <fieldset key={item.connectionId} className={ownStyles.connection} disabled={props.busy}>
                                 <legend className={ownStyles.connection_label}>
-                                    {item.ref.name == null
-                                        ? connectionParamsLabel(item.ref.params)
-                                        : `${item.ref.name} · ${connectionParamsLabel(item.ref.params)}`}
+                                    {item.name == null
+                                        ? connectionParamsLabel(item.params as ConnectionParams)
+                                        : `${item.name} · ${connectionParamsLabel(item.params as ConnectionParams)}`}
                                 </legend>
                                 {options.map(option => (
                                     <label key={choiceValue(option.choice)} className={ownStyles.option}>
@@ -86,7 +86,7 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
                                             name={name}
                                             value={choiceValue(option.choice)}
                                             checked={current != null && choiceValue(current) === choiceValue(option.choice)}
-                                            onChange={() => setChoices(prev => new Map(prev).set(item.ref.connectionId, option.choice))}
+                                            onChange={() => setChoices(prev => new Map(prev).set(item.connectionId, option.choice))}
                                         />
                                         {option.label}
                                     </label>

@@ -250,8 +250,9 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **Publishing.** The menu of a local workbook offers Publish to Cloud, with several clouds Publish to <cloud> for each
   one. A workbook linked to a published workbook of a cloud offers Publish New Version and Publish as New Workbook for
   that cloud instead, naming the cloud when there are several. The workbook is exported like a shared `.dashql` file,
-  with the catalogs and the cached query results and without the login hints (`exportWorkbookAsSharedTables`,
-  `retainWorkbookQueryResults`), and its link follows the published version and its cloud. Results that are too large
+  with the catalogs and the cached query results and without the login hints (`exportWorkbook` of the runtime with
+  the format `tables`, which retains the cached results until the publish sent them), and its link follows the
+  published version and its cloud. Results that are too large
   to publish are left out. A publish to a deleted workbook fails, Publish as New Workbook publishes it again. A new
   workbook lands at the top of the cloud.
 - **Deleting.** The menu of a published workbook deletes it from the cloud. Local workbooks linked to it keep their

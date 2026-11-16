@@ -1,17 +1,12 @@
-import * as arrow from 'apache-arrow';
-import type { WorkbookTablesJson } from '@ankoh/dashql-core';
-
-import type { DataFileData, WorkbookData } from './storage_backend.js';
-import { bundleJson, type WorkbookBundle, type WorkbookBundleResult } from './workbook_bundle.js';
 import { workbookFormat } from './workbook_format.js';
 
 // The tables of one workbook: in a `.dashql` file as `<table>.parquet`, in the cloud as rows of tables of the same
 // names, merged across the versions of all workbooks. A table is named after what its rows belong to, the workbook or a
 // connection. See docs/design/workbook_tables.md.
 //
-// The rows are a module of the workbook format of the core (`workbook_format::tables`): it turns bundles into rows and
-// back, and rows into Arrow IPC and back. The Parquet files stay with the embedded Hyper, the bytes of the data tables
-// with the host.
+// The rows are a module of the workbook format of the core (`workbook_format::tables`). The runtime turns workbooks into
+// rows and back when it imports and exports them, a cloud writes and reads the rows of the export and the import. The
+// Parquet files stay with the embedded Hyper, the bytes of the data tables with the host.
 
 /// The workbook, one row
 export const WORKBOOK_TABLE = 'workbook';
@@ -197,75 +192,4 @@ export function newDataTableName(prefix: typeof ATTACHMENT_TABLE_PREFIX | typeof
 /// Is a name the name of a table that holds the data of an attachment or a result?
 export function isDataTableName(name: string): boolean {
     return /^workbook_(attachment|result)_[0-9a-f]{32}$/.test(name);
-}
-
-/// The JSON of tables for the core, the data tables name their files by table name
-export function workbookTablesJson(tables: WorkbookTables): WorkbookTablesJson {
-    const json: Record<string, unknown> = {};
-    for (const name of WORKBOOK_TABLE_NAMES) json[name] = tables[name];
-    json.data = [...tables.data].map(([tableName, file]) => ({
-        tableName,
-        bytes: tableName,
-        ...(file.crc32 == null ? {} : { crc32: file.crc32 }),
-    }));
-    return json as unknown as WorkbookTablesJson;
-}
-
-/// The tables of the JSON of the core, `files` holds the files of the tokens of the data tables
-export function workbookTablesOfJson(json: WorkbookTablesJson, files: ReadonlyMap<string, DataTableFile>): WorkbookTables {
-    const tables = emptyWorkbookTables();
-    const rows = json as unknown as Record<string, unknown>;
-    for (const name of WORKBOOK_TABLE_NAMES) {
-        (tables as unknown as Record<string, unknown>)[name] = rows[name] ?? [];
-    }
-    for (const entry of json.data) {
-        const file = files.get(entry.bytes);
-        if (file == null) continue;
-        tables.data.set(entry.tableName, { bytes: file.bytes, ...(entry.crc32 == null ? {} : { crc32: entry.crc32 }) });
-    }
-    return tables;
-}
-
-/// The files of the attachments and results of a bundle by the tokens of `bundleJson`
-export function bundleDataFiles(bundle: WorkbookBundle): Map<string, DataTableFile> {
-    const files = new Map<string, DataTableFile>();
-    (bundle.data ?? []).forEach((file, index) => files.set(`data:${index}`, { bytes: new Blob([file.bytes as Uint8Array<ArrayBuffer>]) }));
-    (bundle.results ?? []).forEach((result, index) => files.set(`result:${index}`, { bytes: result.bytes }));
-    return files;
-}
-
-/// The rows of a bundle. The connection params are written as the bundle holds them, an export sanitizes them first.
-/// The core reads the catalog files of the connections into their tables and functions. Needs the core instantiated.
-export function workbookBundleToTables(bundle: WorkbookBundle): WorkbookTables {
-    return workbookTablesOfJson(workbookFormat().bundleToTables(bundleJson(bundle)), bundleDataFiles(bundle));
-}
-
-/// Read the bundle of the workbook of a set of tables.
-/// The workbook file of the bundle is assembled from the rows and migrated like a workbook folder. A data table that
-/// the tables don't carry leaves its attachment or result out. Needs the core instantiated.
-export async function workbookTablesToBundle(tables: WorkbookTables, errorPrefix: string = 'Invalid workbook tables'): Promise<WorkbookBundle> {
-    const json = workbookFormat().tablesToBundle(workbookTablesJson(tables), errorPrefix);
-    const data: DataFileData[] = [];
-    for (const file of json.data) {
-        const table = tables.data.get(file.bytes);
-        if (table == null) continue;
-        data.push({ name: file.name, bytes: new Uint8Array(await table.bytes.arrayBuffer()) });
-    }
-    const results: WorkbookBundleResult[] = (json.results ?? []).flatMap(result => {
-        const table = tables.data.get(result.bytes);
-        return table == null ? [] : [{ key: result.key, bytes: table.bytes, ...(result.crc32 == null ? {} : { crc32: result.crc32 }) }];
-    });
-    const bundle: WorkbookBundle = { workbook: json.workbook as WorkbookData, catalogs: json.catalogs, scripts: json.scripts, data };
-    return results.length > 0 ? { ...bundle, results } : bundle;
-}
-
-/// The Arrow table of the rows of a workbook table. Needs the core instantiated.
-export function workbookTableToArrow(name: WorkbookTableName, rows: readonly object[]): arrow.Table {
-    return arrow.tableFromIPC(workbookFormat().encodeTable(name, rows));
-}
-
-/// The rows of an Arrow table of a workbook table. Missing columns of nullable fields read as null, other missing
-/// columns fail. Needs the core instantiated.
-export function workbookTableFromArrow<N extends WorkbookTableName>(name: N, table: arrow.Table): WorkbookTables[N] {
-    return workbookFormat().decodeTable(name, arrow.tableToIPC(table, 'stream')) as unknown as WorkbookTables[N];
 }

@@ -7,7 +7,7 @@ import type { OAuthFlow } from './oauth/oauth_flow.js';
 import type { UpdateScheduler } from './store/store.js';
 import type { StorageBackend } from './storage/storage_backend.js';
 import type { QueryResultCache } from './query/query_result_cache.js';
-import { CoreRuntime, type ChannelConnector } from './core_runtime.js';
+import { CoreRuntime, type ChannelConnector, type RuntimeArchivesFactory } from './core_runtime.js';
 import type { SalesforceApiClientInterface } from './connections/salesforce/salesforce_api_client.js';
 
 /// What a platform passes to the runtime: the browser, the desktop app or Node
@@ -32,6 +32,10 @@ export interface RuntimePlatform {
     /// The API of Salesforce, by default the client over `http`. The catalog loader fetches the metadata of Salesforce
     /// over `http` itself, another API, e.g. the mock of the app, answers it instead.
     salesforce?: SalesforceApiClientInterface;
+    /// The `.dashql` archives over the handle table of the runtime, e.g. `createRuntimeArchives` of
+    /// `storage/workbook_archives.ts` with the embedded database that writes and scans their Parquet files. Without,
+    /// the runtime imports and exports no archives.
+    archives?: RuntimeArchivesFactory;
 }
 
 /// The logic of DashQL without a user interface: the runtime of the module with the connections, their queries, the
@@ -71,6 +75,7 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
         channels: platform.channels ?? null,
         salesforce: platform.salesforce ?? null,
         storage,
+        archives: platform.archives ?? null,
     });
 
     return {

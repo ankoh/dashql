@@ -3,8 +3,10 @@
 A workbook that leaves the app travels as the rows of a fixed set of tables. A `.dashql` file is a ZIP that holds each
 table as a Parquet file, `<table>.parquet`. The cloud keeps published workbooks in the same tables, the rows of all
 versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter, the workbook format of
-the core runtime (`workbook_format/tables.rs`, `storage/workbook_tables.ts` in TypeScript); only the sink differs. The tables
-hold exactly one workbook, so no row names its workbook.
+the core runtime (`workbook_format/tables.rs`); only the sink differs. The runtime of the module exports and imports them
+(`runtime/exports.rs` and `runtime/imports.rs` of `dashql-core-wasm`), the platform keeps the ZIP container and the
+Parquet files (`storage/workbook_archives.ts` of `dashql-runtime`), and a cloud writes and reads the rows itself
+(`storage/workbook_tables.ts` has their types). The tables hold exactly one workbook, so no row names its workbook.
 
 ## Sharing a Workbook
 
@@ -15,8 +17,10 @@ hold exactly one workbook, so no row names its workbook.
 | Hosted folder, `?workbook=` | a workbook folder on a static host, read over HTTP | `workbook_publishing.md` |
 | Cloud | the rows of the workbook tables in the tables of a cloud connection | `cloud.md` |
 
-Every way imports through the portable import (`workbook_import_provider.tsx`): the connections of the workbook are
-matched with the registered ones, and a workbook whose id is registered already asks to be replaced or copied.
+Every way imports through the import of the runtime (`readImport` and `commitImport`, the app asks its questions in
+`workbook_import_provider.tsx`): the connections of the workbook are matched with the registered ones, and a workbook
+whose id is registered already asks to be replaced or copied. A replacement writes a staged copy first and verifies it
+before the registered workbook changes.
 
 ## Tables
 
@@ -68,19 +72,21 @@ workbook_results.parquet                    (with query results only)
 workbook_result_<id>.parquet
 ```
 
-- **Writing.** The core turns the rows of a table into Arrow IPC, the embedded Hyper writes them as Parquet
-  (`exportArrowTableAsParquet`). The core names the entries of the archive and their compression. Attachments and results are
-  Parquet files already, so they go in unchanged. Empty tables are left out, and a reader takes a missing table as one
-  without rows.
+- **Writing.** The runtime reads the workbook from the storage and the cached results from the query result cache, and
+  hands the platform the entries of the archive in order (`archives.write`): the rows of a table as Arrow IPC, which
+  the embedded Hyper writes as Parquet (`exportArrowTableAsParquet`), and the attachments and results by handle, which
+  are Parquet files already and go in unchanged. The core names the entries and their compression. Empty tables are
+  left out, and a reader takes a missing table as one without rows.
 - **Compression.** The entries are deflated. Hyper compresses the pages of a Parquet file with Snappy, but not its
   footer, which is most of a small table: deflate halves the workbook tables, and an attachment that Hyper wrote as
   well. Hyper takes no Parquet option but `codec`, and deflate over Snappy pages comes out smaller than over plain ones.
   A query result stays stored, an import reads it as a slice of the archive (`query_cache.md`).
-- **Reading.** The core decides what each entry of an archive is (`plan_archive`). The embedded Hyper mounts every
-  workbook table and scans it (`readWorkbookTableParquet`), the core reads the rows of the Arrow IPC. An archive
-  without `workbook.parquet` is an archive of an older version, which holds the files of a workbook folder
-  (`dashql-workbook.json`, `scripts/`, `attachments/`, `connections/<id>/`, `results/`). The import still reads it,
-  without the embedded Hyper.
+- **Reading.** The platform lists the entries (`archives.entries`), the core decides what each entry is
+  (`plan_archive`). The embedded Hyper mounts every workbook table and scans it (`archives.readTable`), the core reads
+  the rows of the Arrow IPC. The attachments and results stay with the platform by handle, a stored result as a slice
+  of the archive with its CRC-32 (`archives.readFile`). An archive without `workbook.parquet` is an archive of an older
+  version, which holds the files of a workbook folder (`dashql-workbook.json`, `scripts/`, `attachments/`,
+  `connections/<id>/`, `results/`). The import still reads it, without the embedded Hyper.
 
 ## Links
 

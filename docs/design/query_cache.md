@@ -149,12 +149,13 @@ The **Query Results** toggle of the export of a `.dashql` file, off by default, 
 to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections. Every result
 is a table of its own, `workbook_result_<id>.parquet`, and a row of `workbook_results` names its cache key
 (`workbook_tables.md`).
-Archives of older versions carry `results/<key>.parquet`, an import still reads them. The export plans the workbook
-without analyzing it, like the cache indicators of the cards, and takes the newest file of every reusable key (`computeWorkbookResultCacheKeys`,
-`retainWorkbookQueryResults`), pinned until the archive holds it. The overlay packs the archive without results whenever
-the workbook or the settings change and shows its size plus the sizes of the results (`countWorkbookQueryResults`). The
-results go in when the file is saved, a pack that is no longer needed stops (`signal` of the export). The archive
-stores the files without compressing them again. Links never carry results, an import of a link drops them.
+Archives of older versions carry `results/<key>.parquet`, an import still reads them. The export of the runtime plans
+the workbook without analyzing it, like the cache indicators of the cards, and takes the newest file of every reusable
+key (`resultKeys`, `resultCache.retain` of the platform), retained until the archive holds it (`exportWorkbook` with
+`results`). The overlay packs the archive without results whenever the workbook or the settings change and shows its
+size plus the sizes of the results (`exportedResults`). The results go in when the file is saved, a pack that is no
+longer needed is ignored. The archive stores the files without compressing them again. Links never carry results, an
+import of a link drops them.
 
 Neither side holds the results in memory. The export streams each file of the cache into the archive, and the archive
 into a Blob that the browser keeps and pages out. The import reads the central directory of the dropped file, a stored
@@ -163,8 +164,8 @@ when it repacked the archive is inflated into memory. The archives are read and 
 thread: its inline worker is a `blob:` script that the pages don't allow (`app_csp.md`), and its wasm codec isn't
 needed, the browser deflates and inflates with `CompressionStream`.
 
-An import adds the files to the cache of the app once the connections of the workbook are resolved
-(`QueryResultCache.importFile`), as new files of their keys. A key that is cached already keeps its files, the results
+An import adds the files to the cache of the app once the connections of the workbook are resolved (`commitImport`
+of the runtime through `resultCache.import` of the platform, `QueryResultCache.importFile`), as new files of their keys. A key that is cached already keeps its files, the results
 of the app win, also a result that a run writes while the import streams the bytes of its key. The import checks the
 CRC-32 that the archive stores for each stored result while it streams it, a result that differs leaves no file. The
 results beyond the capacity of the cache are left out, they would evict each other; the import may evict the least
@@ -236,5 +237,6 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, driven by `packages/dashql-runtime/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createRunMounts` in `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`
-- Exported results: `packages/dashql-runtime/src/workbook/persistence/workbook_query_results.ts`
-- Archives: `packages/dashql-runtime/src/workbook/persistence/workbook_zip.ts`
+- Exported and imported results: `packages/dashql-core-wasm/src/runtime/exports.rs` and `imports.rs`, the plan of an
+  import in `packages/dashql-core-runtime/src/workbook_format/query_results.rs`
+- Archives: `packages/dashql-runtime/src/storage/workbook_archives.ts` over `workbook/persistence/workbook_zip.ts`

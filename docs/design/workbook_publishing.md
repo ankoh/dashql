@@ -93,13 +93,16 @@ an example raise the same `SETUP_WORKBOOK_URL` event.
 flowchart TD
     A[SETUP_WORKBOOK_URL] --> B[Validate URL, fetch workbook file]
     B --> C[Best-effort scripts, attachments, catalogs]
-    C --> D[WorkbookBundle]
+    C --> D[ImportPreview of the runtime]
     D --> E[Import card: Import, Replace, Create new, Close]
     E --> F[Resolve connections onto existing ones]
-    F --> G[importPortableBundleWithChoice]
+    F --> G[commitImport]
 ```
 
-`readWorkbookBundleFromHttp` (`packages/dashql-app/src/workbook/persistence/http_workbook_bundle.ts`):
+`readWorkbookFromHttp` (`packages/dashql-app/src/workbook/persistence/http_workbook_bundle.ts`) is a workbook folder
+over HTTP that the runtime reads (`readImport` with a `RuntimeImportFolder`): the runtime asks for the workbook file,
+migrates it in memory, then asks for the catalog files of its connections, its scripts and its attachments. The
+folder:
 
 - accepts public `https:` URLs and loopback `http:` in development builds, without credentials or fragment,
   ending in `dashql-workbook.json` (or the legacy `dashql-session.json` and `dashql-notebook.json`),
@@ -108,12 +111,12 @@ flowchart TD
 - builds file URLs as `scripts/<name>`, `attachments/<name>` and `connections/<id>/<file>` relative to the
   workbook file, so all fetches stay below its directory on the same origin,
 - fetches with `credentials: 'omit'`: plain `GET`s without cookies, authorization or custom headers,
-- limits the workbook file to 1 MiB, each script and catalog to 8 MiB, and the total to 32 MiB. Over budget,
-  all optional files are dropped and only the workbook metadata is imported,
+- limits the workbook file to 1 MiB, each script and catalog to 8 MiB, and the total to 32 MiB. The optional
+  files after the budget is spent read as missing,
 - reports the workbook as incomplete when entries were dropped, files were missing, or the budget was
   exceeded.
 
-The app loads the bundle during setup with progress phases and shows it on a `WorkbookImportCard`
+The app reads the workbook during setup with progress phases and shows it on a `WorkbookImportCard`
 (`packages/dashql-app/src/app/loading/shared_workbook_import.tsx`,
 `packages/dashql-app/src/workbook/persistence/workbook_import_card.tsx`), including where a workbook with the same
 UUID already lives. Imported catalogs are parse-validated and only seed connections that have no catalog
@@ -129,8 +132,8 @@ Remote trees use the portable import path of `.dashql` files and inline ZIP link
 
 - No conflict: keep the published UUID.
 - Create new: allocate a fresh UUID and append ` (copy)` to a non-empty name.
-- Replace: stage the bundle under a fresh UUID, verify it, then swap it in
-  (`packages/dashql-app/src/storage/workbook_import_transaction.ts`).
+- Replace: stage the workbook under a fresh UUID, verify it, then swap it in (`commitImport` of the runtime,
+  `packages/dashql-core-wasm/src/runtime/imports.rs`).
 - Close: no storage changes.
 
 OPFS and registered native workbooks both participate in the UUID check.

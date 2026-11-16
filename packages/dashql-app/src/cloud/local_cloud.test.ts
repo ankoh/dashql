@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { workbookBundleToTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { testWorkbookTables } from './cloud_test_tables.js';
 import { publishCloudWorkbook } from './cloud_store.js';
 import { createCloudFolder, listCloudEntries } from './cloud_folders.js';
 import { cloudDatabaseOf } from './cloud_query.js';
@@ -74,10 +74,9 @@ describe('local cloud', () => {
         const query: CloudQuery = async (sql, signal) => await first.session.query(sql, signal);
         await installCloudStore(query);
         const reports = await createCloudFolder(query, 'Reports', null);
-        const tables = workbookBundleToTables({
+        const tables = testWorkbookTables({
             workbook: testWorkbook({ name: 'Sales', scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }),
-            scripts: [{ name: 'a.sql', sql: 'select 1' }],
-            catalogs: [],
+            scripts: { 'a.sql': 'select 1' },
         });
         const sales = await publishCloudWorkbook(query, first.database, tables, { folderId: reports.folderId });
         // A reload: the worker goes away while the session attaches the database

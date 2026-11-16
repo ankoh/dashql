@@ -45,6 +45,8 @@ export class MemoryStorage implements RuntimeStorage {
     readonly scripts = new Map<string, Map<string, string>>();
     connections: unknown[] | null = [];
     readonly connectionFiles = new Map<string, string>();
+    /// The attachments of the workbooks
+    readonly dataFiles = new Map<string, Map<string, Uint8Array>>();
     /// The workbooks of the workbook tree in order
     order: string[] = [];
 
@@ -78,7 +80,7 @@ export class MemoryStorage implements RuntimeStorage {
         scripts.delete(from);
         if (text != null) scripts.set(to, text);
     };
-    listAttachments = async () => [];
+    listAttachments = async (workbookId: string) => [...(this.dataFiles.get(workbookId)?.keys() ?? [])];
     updateConnections = async (update: (connections: unknown[] | null) => unknown[] | null) => {
         const next = update(this.connections);
         if (next != null) this.connections = next;
@@ -90,16 +92,45 @@ export class MemoryStorage implements RuntimeStorage {
         for (const key of [...this.connectionFiles.keys()]) if (key.startsWith(`${connectionId}/`)) this.connectionFiles.delete(key);
     };
     deleteWorkbook = async (workbookId: string) => {
+        await this.deleteWorkbookFiles(workbookId);
+        this.order = this.order.filter(id => id !== workbookId);
+    };
+    deleteWorkbookFiles = async (workbookId: string) => {
         this.workbooks.delete(workbookId);
         this.scripts.delete(workbookId);
-        this.order = this.order.filter(id => id !== workbookId);
+        this.dataFiles.delete(workbookId);
     };
     ownsConnections = () => true;
     listWorkbooks = async () => [...this.order];
     loadManifestConnections = async () => this.connections;
     loadScripts = async (workbookId: string) => [...this.scriptsOf(workbookId)].map(([name, sql]) => ({ name, sql }));
-    listDataFiles = async () => [];
+    listDataFiles = async (workbookId: string) => [...(this.dataFiles.get(workbookId) ?? [])].map(([name, bytes]) => ({ name, sizeBytes: bytes.byteLength }));
     loadConnectionFile = async (connectionId: string, fileName: string) => this.connectionFiles.get(`${connectionId}/${fileName}`) ?? null;
+    loadDataFile = async (workbookId: string, name: string) => {
+        const bytes = this.dataFiles.get(workbookId)?.get(name);
+        if (bytes == null) throw new Error(`no attachment ${name} of ${workbookId}`);
+        return bytes;
+    };
+    saveDataFile = async (workbookId: string, name: string, file: Blob | Uint8Array) => {
+        const bytes = file instanceof Uint8Array ? file : new Uint8Array(await file.arrayBuffer());
+        let files = this.dataFiles.get(workbookId);
+        if (files == null) {
+            files = new Map();
+            this.dataFiles.set(workbookId, files);
+        }
+        files.set(name, bytes);
+    };
+    findWorkbook = async (workbookId: string) => {
+        const path = this.order.find(id => id.toLowerCase() === workbookId.toLowerCase());
+        return path == null ? null : { path, storageType: 'opfs' };
+    };
+    upsertWorkbookEntry = async (entry: unknown) => {
+        const path = (entry as { path: string }).path;
+        if (!this.order.includes(path)) this.order.push(path);
+    };
+    registerNativeWorkbook = async () => {
+        throw new Error('the storage of the test has no native folders');
+    };
 }
 
 /// A platform of a test: the handle table, the storage in memory, timers of the event loop and no other I/O
@@ -147,6 +178,7 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         salesforce: null,
         storage,
+        archives: null,
         changed: urgent => {
             changed.push(urgent);
         },

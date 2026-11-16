@@ -1,3 +1,4 @@
+import type * as core from '@ankoh/dashql-core';
 import {
     type StorageBackend,
     type WorkbookRegistryBackend,
@@ -23,34 +24,12 @@ import { type FileStamp } from '@ankoh/dashql-runtime/platform/electron_fs';
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import { validateWorkbookData, describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
-import {
-    assembleWorkbookBundle,
-    readWorkbookBundle,
-    readWorkbookBundleHead,
-    reconcileStoredWorkbookFiles,
-    seedConnectionCatalogs,
-    writeWorkbookBundle,
-    type WorkbookBundle,
-    type WorkbookBundleWriteStep,
-} from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { NativeFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { migrateWorkbookFolder } from '@ankoh/dashql-runtime/storage/migration/workbook_migration';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
-
-export interface WorkbookImportConflict {
-    /// The registry key, preserving its registered spelling/casing.
-    workbookId: string;
-    location: WorkbookLocation;
-}
-
-export interface PreparedNativeWorkbook {
-    bundle: WorkbookBundle;
-    dir: string;
-}
 
 /// A storage backend that routes by per-workbook location.
 ///
@@ -363,104 +342,52 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         return this.locationOf(workbookId);
     }
 
-    /// Find a registered UUID collision without attempting to read the workbook itself.
-    ///
-    /// The workbook tree is authoritative, including entries whose files or metadata are invalid.
-    /// UUID comparison is case-insensitive, but the returned id preserves the actual registry key.
-    async findWorkbookImportConflict(workbookId: string): Promise<WorkbookImportConflict | null> {
-        const normalizedId = workbookId.toLowerCase();
-        const entries = await this.opfs.listWorkbooks();
-        const entry = entries.find(candidate => candidate.path.toLowerCase() === normalizedId);
-        return entry == null
-            ? null
-            : { workbookId: entry.path, location: locationFromEntry(entry) };
-    }
-
-    /// Read and validate a selected native folder without creating or modifying anything in it.
-    ///
-    /// A folder of an older version is migrated in memory, the folder itself is migrated once it is
-    /// registered.
-    async prepareNativeWorkbook(dir: string): Promise<PreparedNativeWorkbook> {
-        const head = await readWorkbookBundleHead(new NativeFolder(ELECTRON_FILE_SYSTEM, dir), `Invalid workbook folder ${dir}`);
-
-        let bundle: WorkbookBundle;
-        try {
-            // Native reads do not require initialize(); avoiding it keeps a missing selected folder
-            // from being created as a side effect of validation.
-            const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
-            const scripts = await native.loadScripts(dir);
-            const data = await Promise.all((await native.listDataFiles(dir))
-                .map(async file => ({ name: file.name, bytes: await native.loadDataFile(dir, file.name) })));
-            bundle = assembleWorkbookBundle(head, scripts, data);
-        } catch (error) {
-            throw new Error(`Failed to read workbook in ${dir}: ${(error as Error)?.message ?? String(error)}`);
-        }
-        return { bundle, dir };
-    }
-
-    /// Read durable data from the physical location currently registered for a workbook.
-    readWorkbookBundle(workbookId: string): Promise<WorkbookBundle> {
-        return readWorkbookBundle(workbookId, this);
-    }
-
-    /// Read durable data explicitly from OPFS, bypassing composite location routing.
-    readPortableWorkbookBundle(workbookId: string): Promise<WorkbookBundle> {
-        return readWorkbookBundle(workbookId, this.opfs);
-    }
-
-    /// Write a complete bundle explicitly to OPFS, bypassing a current native route.
-    ///
-    /// `targetIsFresh` enables writeWorkbookBundle's whole-workbook rollback. The in-memory route is
-    /// changed only after every durable write succeeds.
-    async writePortableWorkbookBundle(
-        bundle: WorkbookBundle,
-        targetWorkbookId: string,
-        targetIsFresh: boolean,
-        onStep?: (step: WorkbookBundleWriteStep) => void,
-    ): Promise<void> {
-        await writeWorkbookBundle(bundle, this.opfs, { targetWorkbookId, targetIsFresh, onStep });
-        this.setLocationAfterPortableWrite(targetWorkbookId);
-        this.nativeCache.delete(targetWorkbookId);
-    }
-
-    private setLocationAfterPortableWrite(workbookId: string): void {
-        // Preserve the registry key when the source UUID differs only by case, the tree keeps its place
-        const registeredId = [...this.locations.keys()]
-            .find(candidate => candidate.toLowerCase() === workbookId.toLowerCase()) ?? workbookId;
-        this.locations.set(registeredId, { type: StorageBackendType.OPFS });
-        this.tree = upsertWorkbookInTree(this.tree, { path: registeredId, storageType: StorageBackendType.OPFS });
-    }
-
-    /// Delete the complete OPFS workbook directory (durable files and derived cache), preserving its
-    /// registry entry and any native folder registered under the same UUID.
-    deletePortableWorkbookFiles(workbookId: string): Promise<void> {
-        return this.opfs.deleteWorkbookFiles(workbookId);
-    }
-
-    /// Delete an OPFS workbook directory and registry entry. Used for fresh staging UUID cleanup.
-    async deletePortableWorkbook(workbookId: string): Promise<void> {
-        await this.opfs.deleteWorkbook(workbookId);
-        this.forgetWorkbook(workbookId);
-    }
-
-    /// Register an already-prepared native folder and reconcile its file lists with its files.
-    async registerPreparedNativeWorkbook(prepared: PreparedNativeWorkbook, workbookId: string): Promise<void> {
-        const validation = validateWorkbookData(prepared.bundle.workbook);
-        if (!validation.ok) {
-            throw new Error(`Workbook in ${prepared.dir} is invalid: ${describeWorkbookValidationError(validation.error)}`);
-        }
-        // The catalogs of the folder seed the connections that are new to the app. The app ignores
-        // them afterwards, and the migration removes the catalog copy of older folders.
-        await seedConnectionCatalogs(this.opfs, prepared.bundle, workbookId);
-        await migrateWorkbookFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, prepared.dir));
-        const native = new NativeStorageBackend(prepared.dir, ELECTRON_FILE_SYSTEM);
-        await reconcileStoredWorkbookFiles(native, workbookId);
+    /// Register a native workbook folder in place under an id (`NativeWorkbookRegistry` of the runtime). The runtime
+    /// validated the folder and seeded the catalogs of its connections before, and reconciles the file lists of its
+    /// workbook file with its files after. The top-level files of an older version are migrated here. A workbook of
+    /// the origin private file system that the folder replaces loses its files once the folder is registered.
+    async registerNativeWorkbook(dir: string, workbookId: string): Promise<void> {
+        await migrateWorkbookFolder(new NativeFolder(ELECTRON_FILE_SYSTEM, dir));
+        const replaced = this.locations.get(workbookId);
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
         await this.upsertWorkbookEntry({
             path: workbookId,
             storageType: StorageBackendType.Native,
-            nativePath: prepared.dir,
+            nativePath: dir,
         });
         this.nativeCache.set(workbookId, native);
+        if (replaced?.type === StorageBackendType.OPFS) {
+            await this.opfs.deleteWorkbookFiles(workbookId);
+        }
+    }
+
+    /// A native workbook folder as the runtime reads it for an import. The folder is only read: a folder of an older
+    /// version is migrated in memory and a missing folder is not created.
+    importFolder(dir: string): core.RuntimeImportFolder {
+        const folder = new NativeFolder(ELECTRON_FILE_SYSTEM, dir);
+        // Native reads do not require initialize(), which would create a missing folder
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
+        const failed = (error: unknown) => new Error(`Failed to read workbook in ${dir}: ${(error as Error)?.message ?? String(error)}`);
+        return {
+            errorPrefix: `Invalid workbook folder ${dir}`,
+            nativePath: dir,
+            readText: path => folder.readText(path),
+            scripts: async () => {
+                try {
+                    return (await native.loadScripts(dir)).map(script => ({ name: script.name, sql: script.sql }));
+                } catch (error) {
+                    throw failed(error);
+                }
+            },
+            attachments: async () => {
+                try {
+                    return await Promise.all((await native.listDataFiles(dir))
+                        .map(async file => ({ name: file.name, file: await native.loadDataFile(dir, file.name) })));
+                } catch (error) {
+                    throw failed(error);
+                }
+            },
+        };
     }
 
     /// Relocate a single OPFS workbook's files into a native directory.

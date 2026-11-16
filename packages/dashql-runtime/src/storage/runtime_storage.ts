@@ -1,9 +1,8 @@
 import type * as core from '@ankoh/dashql-core';
 
 import { stringifyError } from '../platform/logger/logger.js';
-import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookRegistryBackend } from './storage_backend.js';
+import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from './storage_backend.js';
 import { STORAGE_CONNECTIONS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from './storage_backend.js';
-import { workbookFormat } from './workbook_format.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
 /// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/wip/runtime_api.md). The writer
@@ -84,6 +83,13 @@ export function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteRe
     return { status: 'failed', error };
 }
 
+/// A storage that registers native workbook folders in place, the storage of the desktop app
+export interface NativeWorkbookRegistry {
+    /// Register a native workbook folder under an id: migrate its top-level files, reconcile its file lists with its
+    /// files and add it to the workbook tree. The catalogs of the folder were seeded before.
+    registerNativeWorkbook(dir: string, workbookId: string): Promise<void>;
+}
+
 /// `storage` of the platform over a storage backend: the reads and writes of the storage writer and of the restore
 export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStorage {
     const registry = (): WorkbookRegistryBackend => {
@@ -97,8 +103,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         saveScript: async (workbookId, fileName, text) => backend.saveScript(workbookId, fileName, text),
         deleteScript: async (workbookId, fileName) => backend.deleteScript(workbookId, fileName),
         renameScript: async (workbookId, from, to) => backend.renameScript(workbookId, from, to),
-        // The natural order of file names follows the collator of the host
-        listAttachments: async workbookId => workbookFormat().workbookAttachments((await backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC'))),
+        listAttachments: async workbookId => (await backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC')),
         updateConnections: async update => registry().updateConnections(connections => update(connections ?? null) as ConnectionEntry[] | null),
         saveConnectionFile: async (connectionId, fileName, text) => registry().saveConnectionFile(connectionId, fileName, text),
         deleteConnectionFiles: async connectionId => registry().deleteConnectionFiles(connectionId),
@@ -109,6 +114,21 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         loadScripts: async workbookId => (await backend.loadScripts(workbookId)).map(script => ({ name: script.name, sql: script.sql })),
         listDataFiles: async workbookId => backend.listDataFiles(workbookId),
         loadConnectionFile: async (connectionId, fileName) => owner == null ? null : owner.loadConnectionFile(connectionId, fileName),
+        loadDataFile: async (workbookId, name) => backend.loadDataFile(workbookId, name),
+        saveDataFile: async (workbookId, name, file) => backend.saveDataFile(workbookId, name, file),
+        findWorkbook: async workbookId => {
+            // The workbook tree is authoritative, also for entries whose files or metadata are invalid. Ids compare
+            // without their case, the entry keeps the spelling of the tree.
+            const id = workbookId.toLowerCase();
+            return (await backend.listWorkbooks()).find(entry => entry.path.toLowerCase() === id) ?? null;
+        },
+        upsertWorkbookEntry: async entry => registry().upsertWorkbookEntry(entry as WorkbookEntry),
+        deleteWorkbookFiles: async workbookId => registry().deleteWorkbookFiles(workbookId),
+        registerNativeWorkbook: async (dir, workbookId) => {
+            const native = backend as Partial<NativeWorkbookRegistry>;
+            if (typeof native.registerNativeWorkbook !== 'function') throw new Error('the storage registers no native workbook folders');
+            await native.registerNativeWorkbook(dir, workbookId);
+        },
     };
 }
 

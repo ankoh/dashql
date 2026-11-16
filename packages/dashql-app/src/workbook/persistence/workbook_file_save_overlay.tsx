@@ -5,82 +5,54 @@ import { DownloadIcon, FileIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { classNames } from '../../utils/classnames.js';
-import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
-import { StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { resolveWorkbookConnections, useConnectionReferences, useConnectionRegistry, useWorkbookConnections } from '../../connections/connection_registry.js';
+import { useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import type { QueryResultCache } from '@ankoh/dashql-runtime/query/query_result_cache';
 import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
-import { countWorkbookQueryResults, retainWorkbookQueryResults, type WorkbookQueryResultCounts, type WorkbookResultKeys } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
+import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { ExportedResults } from '@ankoh/dashql-core';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
-import { useWorkbookArchiveWriter } from './workbook_archive_database.js';
-import type { WorkbookArchiveWriter } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
-
 const LOG_CTX = 'workbook_export';
 
-/// Pack the workbook into an archive. The cached results go in only if the settings ask for them and a cache is given.
+/// Pack the workbook into an archive with the runtime. The cached results go in only if the settings ask for them.
 async function packAndCompressFile(
-    backend: StorageBackend,
-    archiveWriter: WorkbookArchiveWriter,
-    databases: ConnectionState[],
-    workbookScripts: WorkbookScripts,
+    runtime: CoreRuntime,
+    workbookId: string,
     settings: WorkbookExportSettings,
-    cache: QueryResultCache | null,
-    services: WorkbookResultKeys | null,
-    signal: AbortSignal,
+    withResults: boolean,
     logger: LoggerLike | null,
 ): Promise<Blob> {
-    const connectionParams = new Map();
-    const connectionNames = new Map<string, string>();
-    for (const database of databases) {
-        const params = database.params;
-        if (params != null) connectionParams.set(database.connectionId, params);
-        if (database.name != null) connectionNames.set(database.connectionId, database.name);
-    }
-    // The cached results stay pinned until the archive holds them
-    const retained = settings.withQueryResults && cache != null && services != null
-        ? await retainWorkbookQueryResults(services, workbookScripts, cache)
-        : null;
-    const workbookId = workbookScripts.workbookId;
-    if (retained != null) {
-        logger?.info('Packing the cached query results of a workbook', {
-            workbookId, cachedScripts: retained.cachedScripts.toString(), totalScripts: retained.totalScripts.toString(),
-            results: retained.results.length.toString(), bytes: retained.results.reduce((sum, result) => sum + result.bytes.size, 0).toString(),
-        }, LOG_CTX);
-    }
     const started = performance.now();
-    try {
-        // The archive stays a Blob that the browser keeps, a large one is paged out of memory
-        const archive = await exportWorkbookAsSharedZip(backend, archiveWriter, workbookId, connectionParams, {
-            ...settings, connectionNames, queryResults: retained?.results, signal,
-        });
-        const fields = {
-            workbookId, bytes: archive.size.toString(), results: (retained?.results.length ?? 0).toString(),
-            durationMs: Math.round(performance.now() - started).toString(),
-        };
-        // The archive without results is packed with every change of the workbook, only a save with results is news
-        if (retained != null) logger?.info('Packed a workbook file', fields, LOG_CTX);
-        else logger?.debug('Packed a workbook file', fields, LOG_CTX);
-        return archive;
-    } finally {
-        await retained?.release();
-    }
+    // The archive stays a Blob that the browser keeps, a large one is paged out of memory. The runtime keeps the cached
+    // results pinned until the archive holds them.
+    const { archive, results } = await runtime.exportArchive(workbookId, {
+        withCatalog: settings.withCatalog,
+        withLoginHint: settings.withLoginHint,
+        preserveUuids: settings.preserveUUIDs,
+        results: withResults,
+    });
+    const fields = {
+        workbookId, bytes: archive.size.toString(), results: results.files.toString(), resultBytes: results.bytes.toString(),
+        cachedScripts: results.cachedScripts.toString(), totalScripts: results.totalScripts.toString(),
+        durationMs: Math.round(performance.now() - started).toString(),
+    };
+    // The archive without results is packed with every change of the workbook, only a save with results is news
+    if (withResults) logger?.info('Packed a workbook file', fields, LOG_CTX);
+    else logger?.debug('Packed a workbook file', fields, LOG_CTX);
+    return archive;
 }
 
 /// The line below the toggle of the query results
-function queryResultsHint(counts: WorkbookQueryResultCounts | null): string {
+function queryResultsHint(counts: ExportedResults | null): string {
     const cached = counts == null ? '' : `${counts.cachedScripts} of ${counts.totalScripts} scripts have a cached result. `;
     return `${cached}Results contain query data.`;
 }
@@ -98,10 +70,6 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
-    const storage = useStorageReader();
-    const archiveWriter = useWorkbookArchiveWriter();
-    const [databaseRegistry] = useConnectionRegistry();
-    const references = useConnectionReferences();
     const fileName = `${props.fileName ?? props.workbookScripts?.workbookMetadata.originalFileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
@@ -112,24 +80,26 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     });
     const cache = useQueryResultCache();
     const logger = useLogger() as LoggerLike | null;
-    const services = useOptionalCoreRuntime();
+    const runtime = useOptionalCoreRuntime();
 
     // The scripts with cached results, counted when the overlay opens
-    const [resultCounts, setResultCounts] = React.useState<WorkbookQueryResultCounts | null>(null);
+    const [resultCounts, setResultCounts] = React.useState<ExportedResults | null>(null);
     React.useEffect(() => {
         const workbookScripts = props.workbookScripts;
         setResultCounts(null);
-        if (!props.isOpen || workbookScripts == null || cache == null || services == null) return;
+        if (!props.isOpen || workbookScripts == null || cache == null || runtime == null) return;
         let cancelled = false;
-        countWorkbookQueryResults(services, workbookScripts, cache)
+        runtime.exportedResults(workbookScripts.workbookId)
             .then(counts => { if (!cancelled) setResultCounts(counts); })
             .catch(() => {});
         return () => { cancelled = true; };
-    }, [props.isOpen, props.workbookScripts, cache, services]);
+    }, [props.isOpen, props.workbookScripts, cache, runtime]);
 
-    // The archive without the results is packed whenever the workbook or the settings change, it is small. The results
-    // can be gigabytes, they are streamed into the archive when it is saved.
+    // The archive without the results is packed whenever the workbook, its connections or the settings change, it is
+    // small. The results can be gigabytes, they are streamed into the archive when it is saved. A pack of settings that
+    // changed in the meantime is ignored.
     const { withCatalog, withLoginHint, preserveUUIDs, withQueryResults } = settings;
+    const connections = useWorkbookConnections(props.workbookScripts?.workbookId ?? null);
     const [file, setFile] = React.useState<Blob | null>(null);
     const [packError, setPackError] = React.useState<string | null>(null);
     React.useEffect(() => {
@@ -137,73 +107,66 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             return;
         }
         const workbookScripts = props.workbookScripts;
-        if (workbookScripts == null) {
+        if (workbookScripts == null || runtime == null) {
             return;
         }
-        const cancellation = new AbortController();
+        let cancelled = false;
         setFile(null);
         setPackError(null);
-        const pack = async () => {
-            const attached = resolveWorkbookConnections(databaseRegistry, references, workbookScripts.workbookId);
-            if (attached == null) return;
-            const file = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts,
-                { withCatalog, withLoginHint, preserveUUIDs }, null, null, cancellation.signal, logger);
-            if (!cancellation.signal.aborted) {
-                setFile(file);
-            }
-        };
-        pack().catch(error => {
-            if (cancellation.signal.aborted) return;
-            logger?.warn('Packing a workbook file failed', { workbookId: workbookScripts.workbookId, error: stringifyError(error) }, LOG_CTX);
-            setFile(null);
-            setPackError(`The export failed: ${stringifyError(error)}`);
-        });
-        return () => cancellation.abort();
-    }, [databaseRegistry, references, withCatalog, withLoginHint, preserveUUIDs, props.workbookScripts, props.isOpen, storage.backend, archiveWriter, logger]);
+        packAndCompressFile(runtime, workbookScripts.workbookId, { withCatalog, withLoginHint, preserveUUIDs }, false, logger)
+            .then(file => {
+                if (!cancelled) setFile(file);
+            })
+            .catch(error => {
+                if (cancelled) return;
+                logger?.warn('Packing a workbook file failed', { workbookId: workbookScripts.workbookId, error: stringifyError(error) }, LOG_CTX);
+                setFile(null);
+                setPackError(`The export failed: ${stringifyError(error)}`);
+            });
+        return () => { cancelled = true; };
+    }, [connections, withCatalog, withLoginHint, preserveUUIDs, props.workbookScripts, props.isOpen, runtime, logger]);
 
-    const connections = useWorkbookConnections(props.workbookScripts?.workbookId ?? null);
     const hasLoginHint = React.useMemo(
         () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionSetupParams(connection))),
         [connections],
     );
 
-    // A save with the results packs them, closing the overlay stops it
+    // A save with the results packs them, closing the overlay drops the archive
     const [saving, setSaving] = React.useState(false);
-    const saveRun = React.useRef<AbortController | null>(null);
+    const saveRun = React.useRef<{ cancelled: boolean } | null>(null);
     React.useEffect(() => {
-        if (props.isOpen) return;
-        saveRun.current?.abort();
+        if (props.isOpen || saveRun.current == null) return;
+        saveRun.current.cancelled = true;
     }, [props.isOpen]);
-    React.useEffect(() => () => saveRun.current?.abort(), []);
+    React.useEffect(() => () => {
+        if (saveRun.current != null) saveRun.current.cancelled = true;
+    }, []);
     const downloadFile = React.useCallback(async () => {
         const workbookScripts = props.workbookScripts;
-        if (file == null || workbookScripts == null || saveRun.current != null) return;
+        if (file == null || workbookScripts == null || runtime == null || saveRun.current != null) return;
         if (!withQueryResults || cache == null) {
             await fileDownloader.downloadBufferAsFile(file, fileName);
             return;
         }
-        const attached = resolveWorkbookConnections(databaseRegistry, references, workbookScripts.workbookId);
-        if (attached == null) return;
-        const run = new AbortController();
+        const run = { cancelled: false };
         saveRun.current = run;
         setSaving(true);
         setPackError(null);
         try {
-            const packed = await packAndCompressFile(storage.backend, await archiveWriter('workbook_export'), attached, workbookScripts, settings, cache, services, run.signal, logger);
-            run.signal.throwIfAborted();
+            const packed = await packAndCompressFile(runtime, workbookScripts.workbookId, settings, true, logger);
+            if (run.cancelled) {
+                logger?.info('Dropped a workbook file with query results, the overlay was closed', { workbookId: workbookScripts.workbookId }, LOG_CTX);
+                return;
+            }
             await fileDownloader.downloadBufferAsFile(packed, fileName);
         } catch (error) {
-            if (run.signal.aborted) {
-                logger?.info('Stopped saving a workbook file with query results', { workbookId: workbookScripts.workbookId }, LOG_CTX);
-            } else {
-                logger?.warn('Saving a workbook file with query results failed', { workbookId: workbookScripts.workbookId, error: stringifyError(error) }, LOG_CTX);
-                setPackError(`The export failed: ${stringifyError(error)}`);
-            }
+            logger?.warn('Saving a workbook file with query results failed', { workbookId: workbookScripts.workbookId, error: stringifyError(error) }, LOG_CTX);
+            if (!run.cancelled) setPackError(`The export failed: ${stringifyError(error)}`);
         } finally {
             saveRun.current = null;
             setSaving(false);
         }
-    }, [file, fileName, withQueryResults, cache, services, settings, databaseRegistry, references, props.workbookScripts, storage.backend, archiveWriter, logger]);
+    }, [file, fileName, withQueryResults, cache, runtime, settings, props.workbookScripts, logger]);
     // The results are stored as they are, the archive grows by about their size
     const fileSize = file == null ? 0 : file.size + (withQueryResults ? resultCounts?.bytes ?? 0 : 0);
 

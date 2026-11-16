@@ -14,6 +14,7 @@ import { WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
 import type { ScriptDataMap, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
 import { TestLogger } from './test_logger.js';
 import { WorkbookTestBackend } from './workbook_test_backend.js';
+import { createRuntimeArchives, type ParquetReadDatabase } from '../storage/workbook_archives.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -33,6 +34,8 @@ export interface TestRuntimeOptions {
     computeDatabase?: EmbeddedComputeDatabase | null;
     /// The cache of query results, none by default
     resultCache?: QueryResultCache | null;
+    /// The database that writes and scans the Parquet files of `.dashql` archives, none by default
+    archiveDatabase?: (context: string) => Promise<ParquetReadDatabase>;
     /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of other
     /// services stop it.
     catalogLoader?: boolean;
@@ -149,6 +152,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         setupCore: async () => instance,
         computeDatabase: options.computeDatabase ?? null,
         resultCache: options.resultCache ?? null,
+        archives: options.archiveDatabase == null ? undefined : handles => createRuntimeArchives(handles, options.archiveDatabase!),
     };
     const runtime = createRuntime(platform);
     if (!options.catalogLoader) runtime.coreRuntime.runCatalogLoader(false);

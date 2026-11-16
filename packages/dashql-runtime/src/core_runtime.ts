@@ -34,6 +34,7 @@ import type { ScriptData, ScriptDataMap, WorkbookAction, WorkbookScripts } from 
 import { createRunMounts } from './workbook/scripts/run_mounts.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from './workbook/scripts/workbook_execution.js';
 import { supportsParquet } from './platform/hyperdb/hyperdb_parquet_export.js';
+import { emptyWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from './storage/workbook_tables.js';
 
 const LOG_CTX = 'runtime';
 
@@ -59,7 +60,22 @@ export interface CoreRuntimeOptions {
     salesforce?: SalesforceApiClientInterface | null;
     /// The storage of the workbooks and the connections, null without one
     storage?: StorageBackend | null;
+    /// The `.dashql` archives of the platform over the handle table, e.g. `createRuntimeArchives` of
+    /// `storage/workbook_archives.ts`. Null without, the command line tool reads and writes no archives.
+    archives?: RuntimeArchivesFactory | null;
 }
+
+/// Creates the `.dashql` archives of a platform over the handle table of the runtime
+export type RuntimeArchivesFactory = (handles: HandleTable) => core.RuntimeArchives;
+
+/// The source of an import: a `.dashql` archive, a workbook folder, or the workbook tables of a cloud
+export type ImportSource =
+    | { archive: Blob }
+    | { folder: core.RuntimeImportFolder }
+    | { tables: { rows: Record<string, Uint8Array>; data: { tableName: string; file: Blob | Uint8Array; crc32?: number | null }[]; errorPrefix?: string } };
+
+/// The options of an export of a workbook, without its format
+export type ExportOptions = Omit<core.ExportOptions, 'format' | 'linkBase'>;
 
 /// Connects the channels of the setups that the runtime asks for besides Trino: the embedded Hyper, Hyper over gRPC and
 /// HTTP, the Hyper of Salesforce. The app sets it once its clients are there, Node connects the embedded Hyper.
@@ -160,6 +176,8 @@ export class CoreRuntime {
     private salesforce: SalesforceApiClientInterface | null;
     private storageBackend: StorageBackend | null;
     private runtimeStorage: core.RuntimeStorage | null = null;
+    private archivesFactory: RuntimeArchivesFactory | null;
+    private archives: core.RuntimeArchives | null = null;
     /// The projection of the scripts of the workbooks, with the session handles of the scripts
     private scripts: ScriptProjection | null = null;
     /// The files of the runs of workbooks in the compute database
@@ -181,6 +199,7 @@ export class CoreRuntime {
         this.channelConnector = options.channels ?? null;
         this.salesforce = options.salesforce ?? null;
         this.storageBackend = options.storage ?? null;
+        this.archivesFactory = options.archives ?? null;
         this.storage = new StorageWriter(this);
         this.tables = createRuntimeTables(this.handles);
         this.queries = new QueryPlatform({
@@ -249,6 +268,9 @@ export class CoreRuntime {
             },
             get storage() {
                 return runtime.storagePlatform();
+            },
+            get archives() {
+                return runtime.archivesPlatform();
             },
             changed: urgent => this.store.changed(urgent),
         };
@@ -368,6 +390,14 @@ export class CoreRuntime {
         return this.runtimeStorage;
     }
 
+    /// The `.dashql` archives of the imports and exports
+    private archivesPlatform(): core.RuntimeArchives | null {
+        const factory = this.archivesFactory;
+        if (factory == null) return null;
+        this.archives ??= factory(this.handles);
+        return this.archives;
+    }
+
     /// The files of the runs of workbooks, with a compute database that reads Parquet files
     private runMounts(): core.RuntimeMounts | null {
         const database = this.computeDatabase;
@@ -475,6 +505,12 @@ export class CoreRuntime {
     /// Track the queries of the tasks, e.g. in the query history of the connection of a computation
     setQueryExecution(create: CreateComputeQueryExecution | null): void {
         this.queryExecution = create;
+    }
+
+    /// Set the `.dashql` archives of the platform
+    setArchives(factory: RuntimeArchivesFactory | null): void {
+        this.archivesFactory = factory;
+        this.archives = null;
     }
 
     /// Set the storage backend of the platform, the writes and the restores that start later use it
@@ -852,6 +888,91 @@ export class CoreRuntime {
     async resultKeys(workbookId: string, targets: readonly number[] | null = null): Promise<(string | null)[]> {
         const module = await this.ready();
         return await module.resultKeys(workbookId, targets == null ? undefined : Uint32Array.from(targets));
+    }
+
+    // The imports and exports of workbooks
+
+    /// Export a workbook as a `.dashql` archive: the workbook tables as Parquet, the attachments and, if asked for, the
+    /// cached results of the scripts. The connection params are sanitized for sharing. Resolves with the archive and
+    /// the results it carries.
+    async exportArchive(workbookId: string, options: ExportOptions = {}): Promise<{ archive: Blob; results: core.ExportedResults }> {
+        const module = await this.ready();
+        const outcome = await module.exportWorkbook(workbookId, { ...options, format: 'archive' }, null);
+        const archive = this.handles.get<Blob>(outcome.archive);
+        if (outcome.archive != null) this.handles.release(outcome.archive);
+        if (archive == null) throw new Error('the export wrote no archive');
+        return { archive, results: outcome.results };
+    }
+
+    /// Export a workbook as a link that carries its archive inline, without cached results and, by default, without
+    /// the catalogs. `linkBase` is the URL of the app that opens the link.
+    async exportLink(workbookId: string, linkBase: string, options: Omit<ExportOptions, 'results'> = {}): Promise<string> {
+        const module = await this.ready();
+        const outcome = await module.exportWorkbook(workbookId, { ...options, format: 'link', linkBase }, null);
+        if (outcome.link == null) throw new Error('the export wrote no link');
+        return outcome.link;
+    }
+
+    /// Export the workbook tables of a workbook, e.g. for a cloud. `consume` gets the rows and the Parquet files of the
+    /// attachments and results, which stay readable until it settled. Resolves with the results that the tables carry.
+    async exportTables(workbookId: string, options: ExportOptions, consume: (tables: WorkbookTables) => Promise<void>): Promise<core.ExportedResults> {
+        const module = await this.ready();
+        const outcome = await module.exportWorkbook(workbookId, { ...options, format: 'tables' }, async exported => {
+            const tables = emptyWorkbookTables();
+            for (const name of WORKBOOK_TABLE_NAMES) (tables as unknown as Record<string, unknown>)[name] = exported.rows[name] ?? [];
+            for (const entry of exported.data) {
+                const file = this.handles.get<Blob | Uint8Array>(entry.file);
+                if (file == null) continue;
+                const bytes = file instanceof Blob ? file : new Blob([file as Uint8Array<ArrayBuffer>]);
+                tables.data.set(entry.tableName, entry.crc32 == null ? { bytes } : { bytes, crc32: entry.crc32 });
+            }
+            await consume(tables);
+        });
+        return outcome.results;
+    }
+
+    /// The link of a connection: an empty workbook that holds only the connection, with fresh ids and the params
+    /// sanitized for sharing
+    async exportConnectionLink(connectionId: string, linkBase: string, withLoginHint: boolean = true): Promise<string> {
+        const module = await this.ready();
+        return await module.exportConnection(connectionId, { linkBase, withLoginHint });
+    }
+
+    /// The cached results of the scripts of a workbook that an export would carry, counted without reading them
+    async exportedResults(workbookId: string): Promise<core.ExportedResults> {
+        const module = await this.ready();
+        return await module.exportedResults(workbookId);
+    }
+
+    /// Read a workbook to import: nothing is written until `commitImport`, `dropImport` lets go of it. Resolves with the
+    /// workbook, the registered workbook with the same id and the questions about its connections.
+    async readImport(source: ImportSource): Promise<core.ImportPreview> {
+        const module = await this.ready();
+        if ('archive' in source) {
+            const archive = this.handles.register(source.archive);
+            try {
+                return await module.readImport({ archive });
+            } finally {
+                this.handles.release(archive);
+            }
+        }
+        return await module.readImport(source);
+    }
+
+    /// Import a workbook that was read, with the answers to its questions. Resolves once the workbook was written and,
+    /// unless it replaced a workbook or registered a native folder, restored and in the store.
+    async commitImport(importId: number, answers: core.ImportAnswers, onStep?: (step: core.ImportStep, results: core.ImportedResults | null) => void): Promise<core.ImportOutcome> {
+        const module = await this.ready();
+        try {
+            return await module.commitImport(importId, answers, onStep ?? null);
+        } finally {
+            this.store.flush();
+        }
+    }
+
+    /// Let go of an import that was read
+    dropImport(importId: number): void {
+        this.module?.dropImport(importId);
     }
 
     /// Take the changes of the runtime now

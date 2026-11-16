@@ -1,44 +1,24 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql-core';
 
-import { filterInvalidWorkbookCatalogs, renameBundleCatalogs, type WorkbookBundle, type WorkbookBundleWriteStep } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import type { PreparedNativeWorkbook } from '../../storage/composite_storage_backend.js';
-import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import {
-    findWorkbookImportConflict,
-    type WorkbookImportConflict,
-    prepareNativeWorkbookImport,
-    registerNativeWorkbook,
-    replaceWorkbookWithNativeFolder,
-    replaceWorkbookWithPortableBundle,
-    writePortableWorkbookFresh,
-} from '../../storage/workbook_import_transaction.js';
-import { displayPath } from '../../storage/workbook_locator.js';
-import { useStorage } from '../../storage/storage_provider.js';
-import { connectionEntryFromState, findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
+import type { ImportSource } from '@ankoh/dashql-runtime/core_runtime';
+import { StorageBackendType, type WorkbookData, type WorkbookEntry } from '@ankoh/dashql-runtime/storage/storage_backend';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
-import { getConnectorInfoForParams } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
+import { displayPath, locationFromEntry } from '../../storage/workbook_locator.js';
+import { useStorage } from '../../storage/storage_provider.js';
+import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useCancelQuery } from '../../connections/query_executor.js';
+import { useCancelQuery, useQueryReader } from '../../connections/query_executor.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';
-import { StorageBackendType, type ConnectionEntry } from '@ankoh/dashql-runtime/storage/storage_backend';
-import {
-    applyConnectionImportPlan,
-    connectionImportQuestions,
-    connectionRefsChanged,
-    planConnectionImport,
-    type ConnectionImportChoice,
-    type ConnectionImportPlanItem,
-} from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
-import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { failedWorkbookQueryResults, importWorkbookQueryResults, type ImportedWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { useQueryReader } from '../../connections/query_executor.js';
 import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+
+// The imports of workbooks in the app. The runtime reads a source (a `.dashql` archive, a workbook folder or the
+// workbook tables of a cloud) into an import of its own, maps its connections to the connections of the app and writes
+// it (docs/wip/runtime_api.md). The provider asks the user what the runtime can't decide: whether to replace a
+// registered workbook with the same id, and which existing connections the connections of the workbook use.
 
 type ImportPresentation =
     | { mode: 'centered' }
@@ -53,17 +33,19 @@ type ImportPresentation =
 export type WorkbookImportProgress =
     | { step: 'connections' }
     /// The query results of the workbook, with the outcome once they are added. Only reported if the workbook has some.
-    | { step: 'results'; total: number; outcome: ImportedWorkbookQueryResults | null }
+    | { step: 'results'; total: number; outcome: core.ImportedResults | null }
     | { step: 'workbook' }
     /// The parts of the saved workbook, reported by a fresh import only
-    | { step: WorkbookBundleWriteStep }
+    | { step: 'scripts' | 'attachments' }
     /// The saved workbook is restored into the app, reported by a fresh import only
     | { step: 'open' };
 
 export type WorkbookImportProgressConsumer = (progress: WorkbookImportProgress) => void;
 
-export interface PortableWorkbookImportOptions {
+/// The options of an import
+export interface WorkbookImportOptions {
     presentation: ImportPresentation;
+    /// Reload the app after the import instead of restoring the workbook into it
     reloadAfterSuccess?: boolean;
     /// Follow the steps of the import, e.g. to show the query results that weren't added
     onProgress?: WorkbookImportProgressConsumer;
@@ -71,8 +53,14 @@ export interface PortableWorkbookImportOptions {
     /// may consolidate with existing ones. `preview` asks nothing: such a connection uses the first existing one, a
     /// preview of a published workbook is imported again with the questions when the user imports it.
     connections?: 'ask' | 'preview';
-    /// The mapping of the connections, once it is decided
+    /// The mapping of the connections, once the workbook is written
     onConnections?: (mapping: WorkbookImportConnectionMapping) => void;
+    /// The id of the written workbook, the id of the source by default, e.g. a fresh one for a version of a cloud
+    workbookId?: string;
+    /// The metadata of the written workbook, the metadata of the source by default, e.g. with the link of a cloud
+    metadata?: WorkbookData['metadata'];
+    /// Add the cached query results of the workbook to the cache, true by default. A link never does.
+    results?: boolean;
 }
 
 /// How the connections of an imported workbook were mapped
@@ -84,34 +72,69 @@ export interface WorkbookImportConnectionMapping {
 }
 
 /// A registered workbook with the id of an imported one
-export interface PortableImportConflict {
+export interface WorkbookImportConflict {
+    /// The id of the registered workbook
+    workbookId: string;
     displayLocation: string;
     isNative: boolean;
 }
 
-/// An import whose decisions are made, nothing is written yet
-export interface PreparedPortableImport {
-    /// The validated bundle with the resolved connections, still with its query results
-    bundle: WorkbookBundle;
-    /// The registered workbook with the same id, the import replaces it or creates a new workbook
-    conflict: PortableImportConflict | null;
+/// The registered workbook with the id of an imported one, null if there is none
+export function importConflictOf(preview: core.ImportPreview): WorkbookImportConflict | null {
+    const conflict = preview.conflict;
+    if (conflict == null) return null;
+    const entry = conflict.entry as WorkbookEntry;
+    return {
+        workbookId: conflict.workbookId,
+        displayLocation: displayPath(conflict.workbookId, locationFromEntry(entry)),
+        isNative: entry.storageType === StorageBackendType.Native,
+    };
 }
 
-interface WorkbookImportContextValue {
-    findPortableBundleConflict(bundle: WorkbookBundle): Promise<PortableImportConflict | null>;
-    /// Validate a bundle and resolve its connections, null if the user cancelled. Writes nothing.
-    preparePortableImport(bundle: WorkbookBundle, onProgress?: WorkbookImportProgressConsumer): Promise<PreparedPortableImport | null>;
-    /// Add the query results of a prepared import to the cache and save its workbook. The choice decides a conflict.
-    commitPortableImport(prepared: PreparedPortableImport, choice: ConflictChoice | null, onProgress?: WorkbookImportProgressConsumer): Promise<string>;
-    importPortableBundleWithChoice(bundle: WorkbookBundle, choice: ConflictChoice): Promise<string | null>;
-    importPortableBundle(bundle: WorkbookBundle, options: PortableWorkbookImportOptions): Promise<string | null>;
-    importNativeFolder(dir: string, presentation: ImportPresentation): Promise<string | null>;
+/// The workbook file of a read import
+export function importedWorkbook(preview: core.ImportPreview): WorkbookData {
+    return preview.workbook as WorkbookData;
 }
+
+/// The name of an imported workbook for display
+export function importedWorkbookName(preview: core.ImportPreview): string {
+    const workbook = importedWorkbook(preview);
+    return workbook.name?.trim() || workbook.metadata.originalFileName || 'Unnamed workbook';
+}
+
+/// An import whose decisions about the connections are made, nothing is written yet
+export interface PreparedImport {
+    /// The import that the runtime read
+    preview: core.ImportPreview;
+    /// The answers about the connections, by the id of the connection in the workbook
+    connections: Record<string, core.ImportChoice>;
+    /// Were the questions answered with the first candidates, without asking?
+    unasked: boolean;
+    /// The registered workbook with the same id, the import replaces it or creates a new workbook
+    conflict: WorkbookImportConflict | null;
+}
+
+/// What a commit does besides the choice of a conflict
+export type WorkbookCommitOptions = Pick<WorkbookImportOptions, 'onProgress' | 'onConnections' | 'workbookId' | 'metadata' | 'results' | 'reloadAfterSuccess'>;
 
 export type ConflictChoice = 'replace' | 'create-new';
 
+interface WorkbookImportContextValue {
+    /// Read a source into an import of the runtime, nothing is written. Rejects if the source is no workbook.
+    readImport(source: ImportSource): Promise<core.ImportPreview>;
+    /// Ask about the connections of a read import, null if the user cancelled. A cancelled import is dropped.
+    prepareImport(preview: core.ImportPreview, options?: Pick<WorkbookImportOptions, 'connections' | 'onProgress'>): Promise<PreparedImport | null>;
+    /// Write a prepared import, the choice decides a conflict. Resolves with the id of the written workbook. A
+    /// replacement and a native folder reload the app.
+    commitImport(prepared: PreparedImport, choice: ConflictChoice | null, options?: WorkbookCommitOptions): Promise<string>;
+    /// Let go of a read import
+    dropImport(preview: core.ImportPreview): void;
+    /// Read a source, ask about a conflict and the connections and write it. Null if the user cancelled.
+    importWorkbook(source: ImportSource, options: WorkbookImportOptions): Promise<string | null>;
+}
+
 interface ConflictDialogState {
-    bundle: WorkbookBundle;
+    preview: core.ImportPreview;
     existingDisplayLocation: string;
     presentation: ImportPresentation;
     busy: boolean;
@@ -125,9 +148,9 @@ interface ConnectionDialogState {
     /// The name of the imported workbook
     workbookName: string;
     /// The connections that may consolidate
-    questions: ConnectionImportPlanItem[];
+    questions: core.ImportQuestion[];
     /// Resolve with the choices, null if the import was cancelled
-    resolve(choices: Map<string, ConnectionImportChoice> | null): void;
+    resolve(choices: Map<string, core.ImportChoice> | null): void;
 }
 
 const WORKBOOK_IMPORT_CTX = React.createContext<WorkbookImportContextValue | null>(null);
@@ -153,7 +176,6 @@ const DEFAULT_DEPENDENCIES: WorkbookImportDependencies = {
 export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependencies?: WorkbookImportDependencies }>) {
     const { reload, card } = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const logger = useLogger();
-    const setupCore = useDashQLCoreSetup();
     const [reader, writer] = useStorage();
     // Read the registry when importing instead of re-creating the import context for every query event
     const connectionStore = useConnectionRegistryStore();
@@ -161,129 +183,44 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     const coreRuntime = useCoreRuntime();
     const readQuery = useQueryReader();
     const cancelQuery = useCancelQuery();
-    const queryResultCache = useQueryResultCache();
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
     const [connectionDialog, setConnectionDialog] = React.useState<ConnectionDialogState | null>(null);
 
     const backend = reader.workbookFolders;
 
-    const validatePortableBundle = React.useCallback(async (bundle: WorkbookBundle): Promise<WorkbookBundle> => {
-        const core = await setupCore('workbook_import_validation');
-        const validation = filterInvalidWorkbookCatalogs(core, bundle);
-        if (validation.invalidFiles.length > 0) {
-            logger.warn('ignored malformed workbook catalog files', {
-                workbookId: bundle.workbook.workbookId,
-                files: validation.invalidFiles.join(', '),
-            }, 'workbook_import');
-        }
-        return validation.bundle;
-    }, [logger, setupCore]);
+    const readImport = React.useCallback(async (source: ImportSource): Promise<core.ImportPreview> => {
+        if (backend == null) throw new Error('Workbook imports require composite storage');
+        return await coreRuntime.readImport(source);
+    }, [backend, coreRuntime]);
 
-    /// Add the cached query results of an imported workbook to the cache of the app, the results of the app win. The
-    /// results are no part of the workbook, a failure leaves the import alone.
-    const importQueryResults = React.useCallback(async (bundle: WorkbookBundle, report?: WorkbookImportProgressConsumer): Promise<WorkbookBundle> => {
-        const results = bundle.results ?? [];
-        if (results.length === 0) return bundle;
-        const workbookId = bundle.workbook.workbookId;
-        const bytes = results.reduce((sum, result) => sum + result.bytes.size, 0);
-        report?.({ step: 'results', total: results.length, outcome: null });
-        if (queryResultCache == null) {
-            logger.warn('ignored the query results of an imported workbook, results are not cached', {
-                workbookId, results: results.length.toString(), bytes: bytes.toString(),
-            }, 'workbook_import');
-            report?.({ step: 'results', total: results.length, outcome: failedWorkbookQueryResults(results.length, 'This app does not cache query results') });
-        } else {
-            logger.info('importing the query results of a workbook', { workbookId, results: results.length.toString(), bytes: bytes.toString() }, 'workbook_import');
-            const started = performance.now();
-            try {
-                const outcome = await importWorkbookQueryResults(queryResultCache, results, logger);
-                const fields = {
-                    workbookId, results: results.length.toString(), added: outcome.added.toString(), kept: outcome.kept.toString(),
-                    failed: outcome.failed.toString(), dropped: outcome.dropped.toString(), bytes: outcome.bytes.toString(), durationMs: Math.round(performance.now() - started).toString(),
-                };
-                if (outcome.failed > 0 || outcome.dropped > 0) logger.warn('imported the query results of a workbook, some were left out', fields, 'workbook_import');
-                else logger.info('imported the query results of a workbook', fields, 'workbook_import');
-                report?.({ step: 'results', total: results.length, outcome });
-            } catch (error) {
-                logger.warn('importing the query results of a workbook failed', { workbookId, error: stringifyError(error) }, 'workbook_import');
-                report?.({ step: 'results', total: results.length, outcome: failedWorkbookQueryResults(results.length, error) });
-            }
-        }
-        const { results: _results, ...rest } = bundle;
-        return rest;
-    }, [logger, queryResultCache]);
+    const dropImport = React.useCallback((preview: core.ImportPreview) => {
+        coreRuntime.dropImport(preview.importId);
+    }, [coreRuntime]);
 
-    /// Map the connections of an imported workbook to the connections of the app.
-    /// Connections that may consolidate with existing ones are decided by the user, null if the
-    /// user cancelled the import.
-    const resolveConnections = React.useCallback(async (
-        bundle: WorkbookBundle,
-        report?: WorkbookImportProgressConsumer,
-        mode: 'ask' | 'preview' = 'ask',
-        onMapping?: (mapping: WorkbookImportConnectionMapping) => void,
-    ): Promise<WorkbookBundle | null> => {
-        report?.({ step: 'connections' });
-        if (backend == null) return bundle;
-        // The live connections may be ahead of the manifest while writes are debounced
-        const live = connectionStore.current;
-        const entries: ConnectionEntry[] = ((await backend.loadManifest()).connections ?? [])
-            .map(entry => ({ ...entry, params: live.connections.get(entry.id)?.params ?? entry.params }))
-            // The restoration skips a connection of an unknown connector, e.g. one that a tab of an older version wrote
-            // after the migration, the import leaves it out as well
-            .filter(entry => {
-                if (entry.params != null && getConnectorInfoForParams(entry.params) != null) return true;
-                logger.warn('ignored a stored connection of an unknown connector', {
-                    connectionId: entry.id, keys: Object.keys(entry.params ?? {}).join(','),
-                }, 'workbook_import');
-                return false;
-            });
-        // The embedded database always takes the embedded databases of the imported workbook
-        for (const [connectionId, connection] of live.connections) {
-            if (!entries.some(entry => entry.id === connectionId)
-                && (references.workbooksOf(connectionId).length > 0 || isHyperWasmConnection(connection))) {
-                entries.push(connectionEntryFromState({ ...connection, paramsDraft: null }));
-            }
-        }
-        const plan = planConnectionImport(bundle.workbook, entries);
-        const questions = connectionImportQuestions(plan);
-        let choices = new Map<string, ConnectionImportChoice>();
-        if (mode === 'preview') {
-            // A preview asks nothing, the import of the preview asks
-            for (const question of questions) {
-                if (question.decision.kind === 'ask') choices.set(question.ref.connectionId, { kind: 'link', connectionId: question.decision.candidates[0].id });
-            }
-        } else if (questions.length > 0) {
-            const workbookName = bundle.workbook.name?.trim() || bundle.workbook.metadata.originalFileName || 'Unnamed workbook';
-            const chosen = await new Promise<Map<string, ConnectionImportChoice> | null>(resolve => {
-                setConnectionDialog({ workbookName, questions, resolve });
-            });
-            setConnectionDialog(null);
-            if (chosen == null) return null;
-            choices = chosen;
-        }
-        const { workbook, connectionIds } = applyConnectionImportPlan(bundle.workbook, plan, choices, entries);
-        onMapping?.({
-            registered: workbook.connections.map(connection => connection.connectionId).filter(id => !entries.some(entry => entry.id === id)),
-            unasked: mode === 'preview' && questions.length > 0,
+    /// Map the connections of an imported workbook to the connections of the app. Connections that may consolidate
+    /// with existing ones are decided by the user, null if the user cancelled the import.
+    const prepareImport = React.useCallback(async (
+        preview: core.ImportPreview,
+        options: Pick<WorkbookImportOptions, 'connections' | 'onProgress'> = {},
+    ): Promise<PreparedImport | null> => {
+        options.onProgress?.({ step: 'connections' });
+        const questions = preview.questions;
+        const prepared = (connections: Record<string, core.ImportChoice>, unasked: boolean): PreparedImport =>
+            ({ preview, connections, unasked, conflict: importConflictOf(preview) });
+        // A preview asks nothing, the import of the preview asks
+        if (options.connections === 'preview' || questions.length === 0) return prepared({}, questions.length > 0);
+        const chosen = await new Promise<Map<string, core.ImportChoice> | null>(resolve => {
+            setConnectionDialog({ workbookName: importedWorkbookName(preview), questions, resolve });
         });
-        logger.info('resolved the connections of an imported workbook', {
-            workbookId: bundle.workbook.workbookId,
-            connections: plan.map(item => item.decision.kind).join(','),
-        }, 'workbook_import');
-        return { ...bundle, workbook, catalogs: renameBundleCatalogs(bundle.catalogs, connectionIds) };
-    }, [backend, connectionStore, logger, references]);
+        setConnectionDialog(null);
+        if (chosen == null) {
+            dropImport(preview);
+            return null;
+        }
+        return prepared(Object.fromEntries(chosen), false);
+    }, [dropImport]);
 
-    /// Resolve the connections, then add the query results to the cache: the last decision of an import is made then
-    const resolveAndImportResults = React.useCallback(async (
-        bundle: WorkbookBundle,
-        report?: WorkbookImportProgressConsumer,
-        mode?: 'ask' | 'preview',
-        onMapping?: (mapping: WorkbookImportConnectionMapping) => void,
-    ): Promise<WorkbookBundle | null> => {
-        const resolved = await resolveConnections(bundle, report, mode, onMapping);
-        return resolved == null ? null : await importQueryResults(resolved, report);
-    }, [importQueryResults, resolveConnections]);
-
+    /// Cancel the queries of a workbook and hold the writes, before a replacement
     const stopWorkbookWork = React.useCallback(async (workbookId: string) => {
         const databases = references.connectionsOf(workbookId)
             .map(connectionId => connectionStore.current.connections.get(connectionId))
@@ -301,37 +238,54 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         }
     }, [cancelQuery, connectionStore, readQuery, references, writer]);
 
-    const restoreFreshPortable = React.useCallback(async (
-        bundle: WorkbookBundle,
-        targetWorkbookId: string,
-        suffixNameWithCopy: boolean,
-        report?: WorkbookImportProgressConsumer,
-    ) => {
+    const commitImport = React.useCallback(async (
+        prepared: PreparedImport,
+        choice: ConflictChoice | null,
+        options: WorkbookCommitOptions = {},
+    ): Promise<string> => {
         if (backend == null) throw new Error('Workbook imports require composite storage');
-        const importedBundle = suffixNameWithCopy
-            ? withFreshIdentity(bundle, targetWorkbookId)
-            : bundle;
-        await writePortableWorkbookFresh(backend, importedBundle, targetWorkbookId, step => report?.({ step }));
-        // The same bundle may have been imported and deleted before in this tab
-        writer.reviveWorkbook(targetWorkbookId);
-        report?.({ step: 'open' });
-        try {
-            await setupCore('workbook_import');
-            // The runtime restores the workbook against its connections and takes it
-            await coreRuntime.restoreWorkbook(targetWorkbookId);
-            return targetWorkbookId;
-        } catch (error) {
+        const { preview } = prepared;
+        // The registered workbooks may have changed since the import was read, the runtime checks again
+        const replaces = prepared.conflict != null && choice === 'replace';
+        // A replacement and a native folder change registered workbooks, the app restores them again after a reload
+        const reloads = replaces || preview.nativePath != null || (options.reloadAfterSuccess ?? false);
+        if (replaces) {
+            await stopWorkbookWork(prepared.conflict!.workbookId);
+        } else if (reloads) {
+            writer.pause();
             try {
-                await backend.deletePortableWorkbook(targetWorkbookId);
-            } catch {
-                // Preserve the restoration error.
+                await writer.flush();
+            } catch (error) {
+                writer.resume();
+                throw error;
             }
+        }
+        const report = options.onProgress;
+        try {
+            const outcome = await coreRuntime.commitImport(preview.importId, {
+                connections: prepared.connections,
+                preview: prepared.unasked,
+                conflict: choice ?? undefined,
+                workbookId: options.workbookId,
+                metadata: options.metadata,
+                results: options.results,
+                restore: !reloads,
+            }, (step, results) => {
+                if (step === 'results') report?.({ step, total: preview.results.count, outcome: results });
+                else report?.({ step });
+            });
+            options.onConnections?.({ registered: outcome.registered, unasked: outcome.unasked });
+            if (reloads) reload();
+            return outcome.workbookId;
+        } catch (error) {
+            if (reloads) writer.resume();
+            logger.warn('Importing a workbook failed', { workbookId: importedWorkbook(preview).workbookId, error: String(error) }, 'workbook_import');
             throw error;
         }
-    }, [backend, coreRuntime, setupCore, writer]);
+    }, [backend, coreRuntime, logger, reload, stopWorkbookWork, writer]);
 
     const requestConflictChoice = React.useCallback((
-        bundle: WorkbookBundle,
+        preview: core.ImportPreview,
         existingDisplayLocation: string,
         presentation: ImportPresentation,
         run: (choice: ConflictChoice) => Promise<string | null>,
@@ -343,157 +297,35 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
                     logger.warn('ignored workbook import while another decision is pending', {}, 'workbook_import');
                     return current;
                 }
-                return { bundle, existingDisplayLocation, presentation, busy: false, run, resolve };
+                return { preview, existingDisplayLocation, presentation, busy: false, run, resolve };
             });
         });
     }, [logger]);
 
-    const importPortableBundle = React.useCallback(async (
-        bundle: WorkbookBundle,
-        options: PortableWorkbookImportOptions,
+    const importWorkbook = React.useCallback(async (
+        source: ImportSource,
+        options: WorkbookImportOptions,
     ): Promise<string | null> => {
-        if (backend == null) throw new Error('Workbook imports require composite storage');
-        const validated = await validatePortableBundle(bundle);
-        // Whether the workbook is already registered is asked before the connections, resolving them
-        // keeps the workbook id
-        const conflict = await findWorkbookImportConflict(backend, validated.workbook.workbookId);
-        const report = options.onProgress;
+        const preview = await readImport(source);
+        // Whether the workbook is registered already is asked before the connections
+        const conflict = options.workbookId == null ? importConflictOf(preview) : null;
+        const run = async (choice: ConflictChoice | null): Promise<string | null> => {
+            const prepared = await prepareImport(preview, options);
+            if (prepared == null) return null;
+            return await commitImport(prepared, choice, options);
+        };
         if (conflict == null) {
-            const resolved = await resolveAndImportResults(validated, report, options.connections, options.onConnections);
-            if (resolved == null) return null;
-            bundle = resolved;
-            const workbookId = bundle.workbook.workbookId;
-            report?.({ step: 'workbook' });
-            if (options.reloadAfterSuccess) {
-                await reloadThen(() => writePortableWorkbookFresh(backend, bundle, workbookId), writer, reload);
-            } else {
-                await restoreFreshPortable(bundle, workbookId, false, report);
+            try {
+                return await run(null);
+            } catch (error) {
+                dropImport(preview);
+                throw error;
             }
-            return workbookId;
         }
-
-        return await requestConflictChoice(
-            validated,
-            displayPath(conflict.workbookId, conflict.location),
-            options.presentation,
-            async choice => {
-                const bundle = await resolveAndImportResults(validated, report);
-                if (bundle == null) return null;
-                report?.({ step: 'workbook' });
-                if (choice === 'create-new') {
-                    const workbookId = crypto.randomUUID();
-                    const importedBundle = withFreshIdentity(bundle, workbookId);
-                    if (options.reloadAfterSuccess) {
-                        await reloadThen(() => writePortableWorkbookFresh(backend, importedBundle, workbookId), writer, reload);
-                    } else {
-                        await restoreFreshPortable(bundle, workbookId, true);
-                    }
-                    return workbookId;
-                }
-                await stopWorkbookWork(conflict.workbookId);
-                try {
-                    const workbookId = await replaceWorkbookWithPortableBundle(backend, bundle, conflict);
-                    reload();
-                    return workbookId;
-                } catch (error) {
-                    writer.resume();
-                    throw error;
-                }
-            },
-        );
-    }, [backend, reload, requestConflictChoice, resolveAndImportResults, restoreFreshPortable, stopWorkbookWork, validatePortableBundle, writer]);
-
-    const findPortableBundleConflict = React.useCallback(async (bundle: WorkbookBundle): Promise<{ displayLocation: string; isNative: boolean } | null> => {
-        if (backend == null) throw new Error('Workbook imports require composite storage');
-        const conflict = await findWorkbookImportConflict(backend, bundle.workbook.workbookId);
-        return conflict == null ? null : {
-            displayLocation: displayPath(conflict.workbookId, conflict.location),
-            isNative: conflict.location.type === StorageBackendType.Native,
-        };
-    }, [backend]);
-
-    const preparePortableImport = React.useCallback(async (
-        bundle: WorkbookBundle,
-        report?: WorkbookImportProgressConsumer,
-    ): Promise<PreparedPortableImport | null> => {
-        if (backend == null) throw new Error('Workbook imports require composite storage');
-        const validated = await validatePortableBundle(bundle);
-        const conflict = await findPortableBundleConflict(validated);
-        const resolved = await resolveConnections(validated, report);
-        return resolved == null ? null : { bundle: resolved, conflict };
-    }, [backend, findPortableBundleConflict, resolveConnections, validatePortableBundle]);
-
-    const commitPortableImport = React.useCallback(async (
-        prepared: PreparedPortableImport,
-        choice: ConflictChoice | null,
-        report?: WorkbookImportProgressConsumer,
-    ): Promise<string> => {
-        if (backend == null) throw new Error('Workbook imports require composite storage');
-        const bundle = await importQueryResults(prepared.bundle, report);
-        report?.({ step: 'workbook' });
-        // The registered workbooks may have changed since the import was prepared
-        const conflict = await findWorkbookImportConflict(backend, bundle.workbook.workbookId);
-        if (conflict == null) return await restoreFreshPortable(bundle, bundle.workbook.workbookId, false);
-        if (choice == null) throw new Error(`A workbook with the id ${bundle.workbook.workbookId} was added meanwhile`);
-        if (choice === 'create-new') {
-            const workbookId = crypto.randomUUID();
-            return await restoreFreshPortable(bundle, workbookId, true);
-        }
-        await stopWorkbookWork(conflict.workbookId);
-        try {
-            const workbookId = await replaceWorkbookWithPortableBundle(backend, bundle, conflict);
-            reload();
-            return workbookId;
-        } catch (error) {
-            writer.resume();
-            throw error;
-        }
-    }, [backend, importQueryResults, reload, restoreFreshPortable, stopWorkbookWork, writer]);
-
-    const importPortableBundleWithChoice = React.useCallback(async (
-        bundle: WorkbookBundle,
-        choice: ConflictChoice,
-    ): Promise<string | null> => {
-        const prepared = await preparePortableImport(bundle);
-        return prepared == null ? null : await commitPortableImport(prepared, choice);
-    }, [commitPortableImport, preparePortableImport]);
-
-    const importNativeFolder = React.useCallback(async (
-        dir: string,
-        presentation: ImportPresentation,
-    ): Promise<string | null> => {
-        if (backend == null) throw new Error('Native workbook imports require composite storage');
-        const original = await prepareNativeWorkbookImport(backend, dir);
-        // The folder is registered untouched, references to consolidated connections are written after
-        const resolve = async () => {
-            const resolved = await resolveConnections(original.bundle);
-            if (resolved == null) return null;
-            const prepared: PreparedNativeWorkbook = { ...original, bundle: resolved };
-            return { prepared, refsChanged: connectionRefsChanged(original.bundle.workbook, resolved.workbook) };
-        };
-        const conflict = await findWorkbookImportConflict(backend, original.bundle.workbook.workbookId);
-        if (conflict == null) {
-            const resolution = await resolve();
-            if (resolution == null) return null;
-            const { prepared, refsChanged } = resolution;
-            await reloadThen(async () => {
-                const workbookId = await registerNativeWorkbook(backend, prepared);
-                if (refsChanged) await writeNativeConnectionRefs(backend, workbookId, prepared.bundle);
-                return workbookId;
-            }, writer, reload);
-            return prepared.bundle.workbook.workbookId;
-        }
-        return await requestConflictChoice(
-            original.bundle,
-            displayPath(conflict.workbookId, conflict.location),
-            presentation,
-            async choice => {
-                const resolution = await resolve();
-                if (resolution == null) return null;
-                return await runNativeConflict(choice, resolution.prepared, resolution.refsChanged, conflict, backend, writer, stopWorkbookWork, reload);
-            },
-        );
-    }, [backend, reload, requestConflictChoice, resolveConnections, stopWorkbookWork, writer]);
+        const imported = await requestConflictChoice(preview, conflict.displayLocation, options.presentation, run);
+        if (imported == null) dropImport(preview);
+        return imported;
+    }, [commitImport, dropImport, prepareImport, readImport, requestConflictChoice]);
 
     const handleChoice = React.useCallback(async (choice: ConflictChoice) => {
         const current = dialog;
@@ -516,13 +348,12 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     }, [dialog]);
 
     const value = React.useMemo<WorkbookImportContextValue>(() => ({
-        findPortableBundleConflict,
-        preparePortableImport,
-        commitPortableImport,
-        importPortableBundleWithChoice,
-        importPortableBundle,
-        importNativeFolder,
-    }), [commitPortableImport, findPortableBundleConflict, importNativeFolder, importPortableBundle, importPortableBundleWithChoice, preparePortableImport]);
+        readImport,
+        prepareImport,
+        commitImport,
+        dropImport,
+        importWorkbook,
+    }), [commitImport, dropImport, importWorkbook, prepareImport, readImport]);
 
     return (
         <WORKBOOK_IMPORT_CTX.Provider value={value}>
@@ -533,8 +364,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
                 {props.children}
             </div>
             {/* The connections are asked after the conflict choice, the conflict dialog waits behind them */}
-            {connectionDialog == null && dialog?.presentation.mode === 'centered' && renderConflictDialog(dialog, handleChoice, cancelDialog, card)}
-            {connectionDialog == null && dialog?.presentation.mode === 'anchored' && renderConflictDialog(dialog, handleChoice, cancelDialog, card)}
+            {connectionDialog == null && dialog != null && renderConflictDialog(dialog, handleChoice, cancelDialog, card)}
             {connectionDialog != null && (
                 <WorkbookConnectionImportDialog
                     workbookName={connectionDialog.workbookName}
@@ -548,65 +378,6 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     );
 }
 
-/// Give an imported workbook a new identity.
-/// The connections keep their ids, the connections of the copy were resolved by the import.
-function withFreshIdentity(bundle: WorkbookBundle, workbookId: string): WorkbookBundle {
-    const workbook = { ...bundle.workbook, workbookId };
-    const name = workbook.name?.trim();
-    if (name) workbook.name = `${name} (copy)`;
-    return { ...bundle, workbook };
-}
-
-async function reloadThen<T>(operation: () => Promise<T>, writer: ReturnType<typeof useStorage>[1], reload: () => void): Promise<T> {
-    writer.pause();
-    try {
-        await writer.flush();
-        const result = await operation();
-        reload();
-        return result;
-    } catch (error) {
-        writer.resume();
-        throw error;
-    }
-}
-
-/// Write the resolved connection references into a registered native folder
-async function writeNativeConnectionRefs(backend: CompositeStorageBackend, workbookId: string, bundle: WorkbookBundle): Promise<void> {
-    const existing = await backend.loadWorkbook(workbookId);
-    await backend.saveWorkbookManifest(workbookId, {
-        ...existing,
-        connections: bundle.workbook.connections,
-        scripts: bundle.workbook.scripts,
-    });
-}
-
-async function runNativeConflict(
-    choice: ConflictChoice,
-    prepared: PreparedNativeWorkbook,
-    refsChanged: boolean,
-    conflict: WorkbookImportConflict,
-    backend: CompositeStorageBackend,
-    writer: ReturnType<typeof useStorage>[1],
-    stopWorkbookWork: (workbookId: string) => Promise<void>,
-    reload: () => void,
-): Promise<string> {
-    if (choice === 'create-new') {
-        const workbookId = crypto.randomUUID();
-        const bundle = withFreshIdentity(prepared.bundle, workbookId);
-        return await reloadThen(() => writePortableWorkbookFresh(backend, bundle, workbookId), writer, reload);
-    }
-    await stopWorkbookWork(conflict.workbookId);
-    try {
-        const workbookId = await replaceWorkbookWithNativeFolder(backend, prepared, conflict);
-        if (refsChanged) await writeNativeConnectionRefs(backend, workbookId, prepared.bundle);
-        reload();
-        return workbookId;
-    } catch (error) {
-        writer.resume();
-        throw error;
-    }
-}
-
 function renderConflictDialog(
     dialog: ConflictDialogState,
     handleChoice: (choice: ConflictChoice) => Promise<void>,
@@ -614,12 +385,10 @@ function renderConflictDialog(
     dependencies: WorkbookImportCardDependencies | undefined,
 ): React.ReactElement {
     const common = {
-        workbookName: dialog.bundle.workbook.name?.trim()
-            || dialog.bundle.workbook.metadata.originalFileName
-            || 'Unnamed workbook',
-        workbookUuid: dialog.bundle.workbook.workbookId,
+        workbookName: importedWorkbookName(dialog.preview),
+        workbookUuid: importedWorkbook(dialog.preview).workbookId,
         folderCount: 0,
-        scriptCount: dialog.bundle.scripts.length,
+        scriptCount: dialog.preview.scriptCount,
         existingDisplayLocation: dialog.existingDisplayLocation,
         existingIsNative: getAppHost() === AppHost.ELECTRON && dialog.existingDisplayLocation.startsWith('fs://'),
         busy: dialog.busy,

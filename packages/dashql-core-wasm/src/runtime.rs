@@ -15,9 +15,12 @@
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
 //! call into the platform. Arguments of the wrong type fail with a JS error, nothing panics.
 
+pub(crate) mod archives;
 pub(crate) mod catalog;
 pub(crate) mod computation;
 pub(crate) mod connections;
+pub(crate) mod exports;
+pub(crate) mod imports;
 pub(crate) mod queries;
 pub(crate) mod runs;
 pub(crate) mod setups;
@@ -525,6 +528,7 @@ pub struct Runtime {
     connections: Rc<Connections>,
     pub(crate) workbooks: Rc<Workbooks>,
     runs: Rc<Runs>,
+    imports: Rc<imports::Imports>,
     storage: Rc<StorageState>,
     taken: RefCell<Taken>,
 }
@@ -978,6 +982,47 @@ impl Runtime {
         Ok(self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action)))
     }
 
+    /// What restores the stored state into the runtime
+    fn restorer(&self) -> Restorer {
+        Restorer {
+            platform: self.platform.clone(),
+            storage: self.storage.clone(),
+            connections: self.connections.clone(),
+            workbooks: self.workbooks.clone(),
+            runs: self.runs.clone(),
+        }
+    }
+
+    /// The services that an export reads
+    fn exports(&self) -> exports::Exports {
+        exports::Exports { platform: self.platform.clone(), connections: self.connections.clone(), workbooks: self.workbooks.clone(), runs: self.runs.clone() }
+    }
+
+    /// The outcome of an action of a workbook, a failure is logged
+    fn workbook_outcome(&self, workbook_id: &str, outcome: dashql_core::error::Result<bool>) -> DispatchOutcome {
+        match outcome {
+            Ok(changed) => DispatchOutcome::changed(changed),
+            Err(error) => {
+                let details = [("workbookId", workbook_id), ("error", error.what())];
+                self.platform.log_on(LogLevel::Warn, "Workbook script action failed", &details, "workbook_scripts");
+                DispatchOutcome::failed(error_text(error))
+            }
+        }
+    }
+}
+
+/// What restores the stored state into the runtime: the restore of the app at startup and the restore of single
+/// workbooks, e.g. after an import
+#[derive(Clone)]
+pub(crate) struct Restorer {
+    pub platform: JsPlatform,
+    pub storage: Rc<StorageState>,
+    pub connections: Rc<Connections>,
+    pub workbooks: Rc<Workbooks>,
+    pub runs: Rc<Runs>,
+}
+
+impl Restorer {
     /// A restore over the storage of the platform that writes through the writer of the runtime
     fn app_restore(&self) -> AppRestore<JsStorage, JsStorage> {
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
@@ -990,15 +1035,25 @@ impl Runtime {
         AppRestore::new(host, self.workbooks.writer.clone(), options)
     }
 
-    /// The outcome of an action of a workbook, a failure is logged
-    fn workbook_outcome(&self, workbook_id: &str, outcome: dashql_core::error::Result<bool>) -> DispatchOutcome {
-        match outcome {
-            Ok(changed) => DispatchOutcome::changed(changed),
-            Err(error) => {
-                let details = [("workbookId", workbook_id), ("error", error.what())];
-                self.platform.log_on(LogLevel::Warn, "Workbook script action failed", &details, "workbook_scripts");
-                DispatchOutcome::failed(error_text(error))
+    /// Restore a single workbook of the storage against the connections of the runtime, unknown connections are
+    /// registered and a workbook with the same id is replaced
+    pub async fn restore_workbook(self, workbook_id: String) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
+        use dashql_core_runtime::restore::{script_connection_of, LiveConnection};
+        use dashql_core_runtime::workbook_format::restore::RestoreConnection;
+        let mut restore = self.app_restore();
+        for (connection_id, connection) in self.connections.registry.borrow().connections() {
+            let Ok(state) = connection.state.try_borrow() else { continue };
+            let params = serde_json::Value::Object(state.params().to_object());
+            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
+            restore.add_live_connection(LiveConnection { connection, script_connection: script_connection_of(&state) });
+        }
+        match restore.restore_workbook(&workbook_id).await {
+            Ok(state) => {
+                let outcome = adopt_restored(&self.connections, &self.workbooks, state);
+                self.runs.describe_attachments();
+                Ok(outcome)
             }
+            Err(error) => Err(dashql_core_runtime::host::HostError::new(error.what())),
         }
     }
 }
@@ -1016,6 +1071,7 @@ impl Runtime {
         *connections.writer.borrow_mut() = Some(writer.clone());
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
+        let imports = imports::Imports::new(platform.clone(), connections.clone());
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
         let taken = Taken {
             list: Some((Vec::new(), 0)),
@@ -1023,7 +1079,7 @@ impl Runtime {
             storage: Some((0, 0)),
             ..Taken::default()
         };
-        Runtime { computations, connections, workbooks, runs, storage, platform, taken: RefCell::new(taken) }
+        Runtime { computations, connections, workbooks, runs, imports, storage, platform, taken: RefCell::new(taken) }
     }
 
     /// The slices that changed and the effects on handles since the last call
@@ -1624,7 +1680,7 @@ impl Runtime {
             Some(progress.dyn_into::<Function>().map_err(|_| JsError::new("the progress of a restore is no function"))?)
         };
         self.storage.set_progress(listener);
-        let restore = self.app_restore();
+        let restore = self.restorer().app_restore();
         let connections = self.connections.clone();
         let workbooks = self.workbooks.clone();
         let runs = self.runs.clone();
@@ -1645,26 +1701,11 @@ impl Runtime {
     /// if the workbook can't be restored.
     #[wasm_bindgen(js_name = restoreWorkbook, unchecked_return_type = "Promise<RestoreOutcome>")]
     pub fn restore_workbook(&self, workbook_id: String) -> Result<Promise, JsError> {
-        use dashql_core_runtime::restore::{script_connection_of, LiveConnection};
-        use dashql_core_runtime::workbook_format::restore::RestoreConnection;
-        let mut restore = self.app_restore();
-        for (connection_id, connection) in self.connections.registry.borrow().connections() {
-            let state = connection.state.borrow();
-            let params = serde_json::from_str(&state.params().to_json()).unwrap_or(serde_json::Value::Null);
-            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
-            restore.add_live_connection(LiveConnection { connection, script_connection: script_connection_of(&state) });
-        }
-        let connections = self.connections.clone();
-        let workbooks = self.workbooks.clone();
-        let runs = self.runs.clone();
+        let restore = self.restorer().restore_workbook(workbook_id);
         Ok(future_to_promise(async move {
-            match restore.restore_workbook(&workbook_id).await {
-                Ok(state) => {
-                    let outcome = adopt_restored(&connections, &workbooks, state);
-                    runs.describe_attachments();
-                    Ok(to_js(&outcome).map_err(JsValue::from)?.into())
-                }
-                Err(error) => Err(JsError::new(&error.message).into()),
+            match restore.await {
+                Ok(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
+                Err(error) => Err(JsError::new(error.message()).into()),
             }
         }))
     }
@@ -1729,6 +1770,82 @@ impl Runtime {
             let keys = keys.await;
             Ok(keys.into_iter().map(|key| key.map(|key| JsValue::from_str(&key)).unwrap_or(JsValue::NULL)).collect::<Array>().into())
         }))
+    }
+
+    // The imports and exports of workbooks
+
+    /// Export a workbook: a `.dashql` archive (a Blob of the handle table that the caller releases), a link, or the
+    /// workbook tables, which go to `consume` and stay readable until it settled. The pending writes of the workbook
+    /// are written first, the cached results are retained while the export reads them. Rejects with what the platform
+    /// failed with.
+    #[wasm_bindgen(js_name = exportWorkbook, unchecked_return_type = "Promise<ExportOutcome>")]
+    pub fn export_workbook(
+        &self,
+        workbook_id: String,
+        options: Ts<exports::ExportOptions>,
+        #[wasm_bindgen(unchecked_param_type = "((tables: ExportedTables) => Promise<void>) | null")] consume: JsValue,
+    ) -> Result<Promise, JsError> {
+        let options = from_js(&options)?;
+        let consume = imports::function_of(consume, "consumer of the workbook tables")?;
+        let export = self.exports().export_workbook(workbook_id, options, consume);
+        Ok(future_to_promise(async move {
+            let outcome = export.await.map_err(|error| error_value(&error))?;
+            Ok(to_js(&outcome).map_err(JsValue::from)?.into())
+        }))
+    }
+
+    /// The link of a connection: an empty workbook that holds only the connection, the params sanitized for sharing
+    #[wasm_bindgen(js_name = exportConnection, unchecked_return_type = "Promise<string>")]
+    pub fn export_connection(&self, connection_id: String, options: Ts<exports::ConnectionLinkOptions>) -> Result<Promise, JsError> {
+        let options = from_js(&options)?;
+        let export = self.exports().export_connection(connection_id, options);
+        Ok(future_to_promise(async move { export.await.map(|link| JsValue::from_str(&link)).map_err(|error| error_value(&error)) }))
+    }
+
+    /// The cached results of the scripts of a workbook that an export would carry, counted without reading them
+    #[wasm_bindgen(js_name = exportedResults, unchecked_return_type = "Promise<ExportedResults>")]
+    pub fn exported_results(&self, workbook_id: String) -> Promise {
+        let exports = self.exports();
+        future_to_promise(async move {
+            let counts = exports.result_counts(&workbook_id).await.map_err(|error| error_value(&error))?;
+            Ok(to_js(&counts).map_err(JsValue::from)?.into())
+        })
+    }
+
+    /// Read a workbook to import: a `.dashql` archive, a workbook folder or the workbook tables of a cloud. Nothing is
+    /// written, the import waits for `commitImport` or `dropImport`. Resolves with what an import would write, the
+    /// registered workbook with the same id and the questions about the connections.
+    #[wasm_bindgen(js_name = readImport, unchecked_return_type = "Promise<ImportPreview>")]
+    pub fn read_import(&self, #[wasm_bindgen(unchecked_param_type = "ImportSource")] source: JsValue) -> Promise {
+        let read = self.imports.clone().read(source);
+        future_to_promise(async move {
+            let preview = read.await.map_err(|error| error_value(&error))?;
+            Ok(to_js(&preview).map_err(JsValue::from)?.into())
+        })
+    }
+
+    /// Import a workbook that was read, with the answers to its questions: the connections are mapped, the cached
+    /// results go to the query result cache, the workbook is written and restored. The listener hears the steps.
+    #[wasm_bindgen(js_name = commitImport, unchecked_return_type = "Promise<ImportOutcome>")]
+    pub fn commit_import(
+        &self,
+        import_id: u32,
+        answers: Ts<imports::ImportAnswers>,
+        #[wasm_bindgen(unchecked_param_type = "((step: ImportStep, results: ImportedResults | null) => void) | null")] listener: JsValue,
+    ) -> Result<Promise, JsError> {
+        let answers = from_js(&answers)?;
+        let listener = imports::function_of(listener, "listener of the import")?;
+        let commit = self.imports.clone().commit(import_id, answers, listener, self.restorer());
+        Ok(future_to_promise(async move {
+            let outcome = commit.await.map_err(|error| error_value(&error))?;
+            Ok(to_js(&outcome).map_err(JsValue::from)?.into())
+        }))
+    }
+
+    /// Drop an import that was read, its files are released
+    #[wasm_bindgen(js_name = dropImport)]
+    pub fn drop_import(&self, import_id: u32) {
+        self.imports.drop_import(import_id);
     }
 
     // The storage writer
@@ -1843,6 +1960,7 @@ impl Runtime {
     /// released with the next changes
     pub fn destroy(&self) {
         self.runs.stop_all();
+        self.imports.drop_all();
         if let Some(loader) = self.connections.loader.borrow_mut().take() {
             loader.stop();
         }

@@ -139,7 +139,7 @@ export class QueryPlatform {
         return {
             lookup: async key => {
                 const entry = await cache.lookup(key);
-                return entry == null ? null : { name: entry.name, cachedAt: entry.cachedAtMs };
+                return entry == null ? null : { name: entry.name, cachedAt: entry.cachedAtMs, size: entry.size };
             },
             read: async name => {
                 const table = await cache.readTable(database(), name);
@@ -162,6 +162,15 @@ export class QueryPlatform {
                 this.retained.delete(id);
                 await release?.().catch(() => { });
             },
+            file: name => cache.readFile(name),
+            import: async (key, handle, crc32) => {
+                const file = this.deps.handles.get<Blob | Uint8Array>(handle);
+                if (file == null) throw new Error(`The result of ${key} has no file`);
+                // The bytes are streamed into the file, a slice of a dropped archive never sits in memory
+                const blob = file instanceof Blob ? file : new Blob([file as Uint8Array<ArrayBuffer>]);
+                return await cache.importFile(key, blob, { crc32: crc32 ?? undefined });
+            },
+            capacity: () => cache.capacity,
             write: (key, handle) => {
                 // The table is taken when the runtime calls, its handle may go before the write ends
                 const table = this.deps.handles.get<arrow.Table>(handle);

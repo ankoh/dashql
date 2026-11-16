@@ -1,22 +1,24 @@
+import type * as core from '@ankoh/dashql-core';
+
 import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
-import type { DataFileData, ScriptData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import {
     STORAGE_WORKBOOK_FILE,
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_SCRIPTS_FOLDER,
 } from '@ankoh/dashql-runtime/storage/storage_backend';
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { assembleWorkbookBundle, readWorkbookBundleHead } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import type { MigrationFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 import { LEGACY_WORKBOOK_FILES } from '../../platform/events/legacy_links.js';
+
+// A workbook that a web server hosts as the files of a workbook folder: the runtime reads it like any workbook folder
+// (`RuntimeImportFolder`), the files are fetched when it asks for them. Workbooks published by older versions are
+// migrated in memory.
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_SCRIPT_BYTES = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 32 * 1024 * 1024;
 
 export interface HttpWorkbookLoadResult {
-    /// The loaded workbook
-    bundle: WorkbookBundle;
+    /// The workbook that the runtime read, an import that waits for the user
+    preview: core.ImportPreview;
     /// The number of scripts that the workbook file lists
     listedScriptCount: number;
     /// The number of scripts that were loaded
@@ -39,142 +41,142 @@ export type HttpWorkbookLoadProgress =
         totalScriptCount: number;
     };
 
-export async function readWorkbookBundleFromHttp(
+/// Read a hosted workbook into an import of the runtime. `read` is the read of an import, e.g. `readImport` of the
+/// import provider. The workbook file is required, the other files are fetched best effort: a file that is missing,
+/// unusable or beyond the size budget is left out and the load is incomplete.
+export async function readWorkbookFromHttp(
     manifestUrl: URL,
     httpClient: HttpClient,
+    read: (source: { folder: core.RuntimeImportFolder }) => Promise<core.ImportPreview>,
     signal?: AbortSignal,
     onProgress?: (progress: HttpWorkbookLoadProgress) => void,
 ): Promise<HttpWorkbookLoadResult> {
     const manifestName = validateManifestUrl(manifestUrl);
-    const baseUrl = new URL('.', manifestUrl);
-    let totalBytes = 0;
-
     onProgress?.({ phase: 'manifest' });
     const manifestText = await fetchRequiredText(httpClient, manifestUrl, manifestName, MAX_MANIFEST_BYTES, signal);
-    totalBytes += textBytes(manifestText);
-    // Workbooks published by older versions are migrated in memory
-    const folder = new HttpFolder(baseUrl, httpClient, MAX_SCRIPT_BYTES, signal, manifestName, manifestText);
-    const head = await readWorkbookBundleHead(folder, 'Invalid remote workbook');
-    const workbook = head.workbook;
-    const workbookName = workbook.name?.trim() || workbook.metadata.originalFileName || 'Unnamed workbook';
-    totalBytes += head.catalogs.flatMap(catalog => [catalog.relations, catalog.functions])
-        .reduce((bytes, text) => bytes + (text == null ? 0 : textBytes(text)), 0);
-
-    onProgress?.({ phase: 'listing', workbookName, workbookId: workbook.workbookId });
-    const listedScripts = workbook.scripts;
-    const listedAttachments = workbook.attachments;
-    const listedScriptCount = listedScripts.length;
-    // The manifest and the catalog files of the connections
-    const headFileCount = 1 + 2 * workbook.connections.length;
-    const totalFileCount = headFileCount + listedScriptCount + listedAttachments.length;
-    let completedFileCount = headFileCount;
-    let completedScriptCount = 0;
-    const reportFileProgress = () => onProgress?.({
-        phase: 'files',
-        workbookName,
-        workbookId: workbook.workbookId,
-        completedFileCount,
-        totalFileCount,
-        completedScriptCount,
-        totalScriptCount: listedScriptCount,
-    });
-    const trackFile = async <T>(load: Promise<T>, script: boolean = false): Promise<T> => {
-        try {
-            return await load;
-        } finally {
-            completedFileCount += 1;
-            if (script) completedScriptCount += 1;
-            reportFileProgress();
-        }
-    };
-    reportFileProgress();
-
-    const scripts: ScriptData[] = (await Promise.all(listedScripts.map(async script => {
-            const sql = await trackFile(fetchBestEffortText(
-                httpClient,
-                workbookFileUrl(baseUrl, script.name),
-                MAX_SCRIPT_BYTES,
-                signal,
-            ), true);
-            return sql == null ? null : { name: script.name, sql };
-        }))).filter((script): script is ScriptData => script != null);
-
-    totalBytes += scripts.reduce((bytes, script) => bytes + textBytes(script.sql), 0);
-    const data = (await Promise.all(listedAttachments.map(async file => {
-        const bytes = await trackFile(fetchBestEffortBytes(httpClient,
-            new URL(`${STORAGE_ATTACHMENTS_FOLDER}/${encodeURIComponent(file.name)}`, baseUrl), MAX_TOTAL_BYTES, signal));
-        return bytes == null ? null : { name: file.name, bytes };
-    }))).filter((file): file is DataFileData => file != null);
-    totalBytes += data.reduce((size, file) => size + file.bytes.byteLength, 0);
-    // Optional files are loaded only while the workbook remains within the total budget. The
-    // manifest is the sole required file, so an oversized optional tree degrades to metadata only.
-    const includeOptionalFiles = totalBytes <= MAX_TOTAL_BYTES;
-
-    // Scripts that failed to load are dropped from the list
-    const bundle = assembleWorkbookBundle({
-        workbook: {
-            ...workbook,
-            metadata: {
-                ...workbook.metadata,
-                originType: 'HTTP',
-                originalHttpUrl: manifestUrl.toString(),
-            },
-        },
-        catalogs: includeOptionalFiles ? head.catalogs : [],
-    }, includeOptionalFiles ? scripts : [], includeOptionalFiles ? data : []);
-    const loadedScriptCount = bundle.scripts.length;
+    const head = manifestHead(manifestText);
+    onProgress?.({ phase: 'listing', ...head });
+    const folder = new HttpFolder(manifestUrl, httpClient, signal, manifestName, manifestText, progress => onProgress?.({ phase: 'files', ...head, ...progress }));
+    const preview = await read({ folder });
+    const loadedScriptCount = preview.scriptCount;
     return {
-        bundle,
-        listedScriptCount,
+        preview,
+        listedScriptCount: folder.listedScripts,
         loadedScriptCount,
-        incomplete: !head.filesValid || !includeOptionalFiles || loadedScriptCount !== listedScriptCount
-            || data.length !== listedAttachments.length,
+        incomplete: !preview.filesValid || folder.overBudget || loadedScriptCount < folder.listedScripts
+            || preview.attachmentCount < folder.listedAttachments,
     };
 }
 
-/// The top-level files of a hosted workbook, fetched when a reader asks for them.
+/// The name and the id of a workbook file for the progress, of any format version
+function manifestHead(text: string): { workbookName: string; workbookId: string } {
+    try {
+        const manifest = JSON.parse(text) as Record<string, unknown>;
+        const string = (value: unknown) => typeof value === 'string' ? value : null;
+        const metadata = (manifest.metadata ?? {}) as Record<string, unknown>;
+        return {
+            workbookName: string(manifest.name)?.trim() || string(metadata.originalFileName) || 'Unnamed workbook',
+            workbookId: string(manifest.workbookId) ?? string(manifest.sessionId) ?? string(manifest.notebookId) ?? '',
+        };
+    } catch {
+        return { workbookName: 'Unnamed workbook', workbookId: '' };
+    }
+}
+
+/// The counts of the files of a hosted workbook
+type FileProgress = Pick<Extract<HttpWorkbookLoadProgress, { phase: 'files' }>, 'completedFileCount' | 'totalFileCount' | 'completedScriptCount' | 'totalScriptCount'>;
+
+/// The files of a hosted workbook, fetched when the runtime asks for them.
 ///
-/// Each file is fetched at most once, a missing or unreadable file reads as null. The folder is
-/// read-only, the workbook migration of the core changes it in memory.
-class HttpFolder implements MigrationFolder {
+/// Each top-level file is fetched at most once, a missing or unreadable file reads as null. The workbook file, the
+/// listed scripts and the listed attachments are the files of the progress.
+class HttpFolder implements core.RuntimeImportFolder {
+    readonly errorPrefix = 'Invalid remote workbook';
+    readonly metadata: { originType: 'HTTP'; originalHttpUrl: string };
+    /// The scripts and attachments that the workbook file lists, once the runtime asked for them
+    listedScripts = 0;
+    listedAttachments = 0;
+    /// Was a file left out because the workbook exceeds the size budget?
+    overBudget = false;
     /// The URL of the workbook folder
     private readonly baseUrl: URL;
     /// The client that fetches the files
     private readonly httpClient: HttpClient;
-    /// The maximum size of a file
-    private readonly maxBytes: number;
     /// The signal that aborts the fetches
     private readonly signal: AbortSignal | undefined;
-    /// The fetched files by name, null for missing ones
+    /// The fetched top-level and catalog files by path, null for missing ones
     private readonly files: Map<string, Promise<string | null>>;
+    /// The bytes fetched so far, the workbook file included
+    private totalBytes: number;
+    /// The progress of the files
+    private readonly progress: FileProgress = { completedFileCount: 1, totalFileCount: 1, completedScriptCount: 0, totalScriptCount: 0 };
+    private readonly onProgress: (progress: FileProgress) => void;
 
-    constructor(baseUrl: URL, httpClient: HttpClient, maxBytes: number, signal: AbortSignal | undefined, manifestName: string, manifestText: string) {
-        this.baseUrl = baseUrl;
+    constructor(manifestUrl: URL, httpClient: HttpClient, signal: AbortSignal | undefined, manifestName: string, manifestText: string, onProgress: (progress: FileProgress) => void) {
+        this.baseUrl = new URL('.', manifestUrl);
         this.httpClient = httpClient;
-        this.maxBytes = maxBytes;
         this.signal = signal;
         this.files = new Map([[manifestName, Promise.resolve(manifestText)]]);
+        this.totalBytes = textBytes(manifestText);
+        this.onProgress = onProgress;
+        this.metadata = { originType: 'HTTP', originalHttpUrl: manifestUrl.toString() };
     }
 
-    async exists(name: string): Promise<boolean> {
-        return (await this.readText(name)) != null;
+    /// Count the bytes of an optional file, null once the workbook exceeds the size budget
+    private budget<T>(content: T | null, bytes: number): T | null {
+        if (content == null) return null;
+        if (this.totalBytes + bytes > MAX_TOTAL_BYTES) {
+            this.overBudget = true;
+            return null;
+        }
+        this.totalBytes += bytes;
+        return content;
     }
 
-    readText(name: string): Promise<string | null> {
-        let file = this.files.get(name);
+    readText(path: string): Promise<string | null> {
+        let file = this.files.get(path);
         if (file === undefined) {
-            file = fetchBestEffortText(this.httpClient, new URL(name, this.baseUrl), this.maxBytes, this.signal);
-            this.files.set(name, file);
+            file = fetchBestEffortText(this.httpClient, new URL(path, this.baseUrl), MAX_SCRIPT_BYTES, this.signal)
+                .then(text => this.budget(text, text == null ? 0 : textBytes(text)));
+            this.files.set(path, file);
         }
         return file;
     }
 
-    async writeText(name: string): Promise<void> {
-        throw new Error(`Cannot write ${name} of a remote workbook`);
+    async scripts(listed: string[]): Promise<{ name: string; sql: string }[]> {
+        this.listedScripts = listed.length;
+        this.progress.totalFileCount += listed.length;
+        this.progress.totalScriptCount = listed.length;
+        this.onProgress({ ...this.progress });
+        const scripts = await Promise.all(listed.map(async name => {
+            const sql = await fetchBestEffortText(this.httpClient, scriptUrl(this.baseUrl, name), MAX_SCRIPT_BYTES, this.signal);
+            this.progress.completedFileCount += 1;
+            this.progress.completedScriptCount += 1;
+            this.onProgress({ ...this.progress });
+            return { name, sql };
+        }));
+        // The scripts count against the budget in the order of the feed
+        return scripts.flatMap(({ name, sql }) => {
+            const kept = this.budget(sql, sql == null ? 0 : textBytes(sql));
+            return kept == null ? [] : [{ name, sql: kept }];
+        });
     }
 
-    async remove(name: string): Promise<void> {
-        throw new Error(`Cannot remove ${name} of a remote workbook`);
+    async attachments(listed: string[]): Promise<{ name: string; file: Uint8Array }[]> {
+        this.listedAttachments = listed.length;
+        this.progress.totalFileCount += listed.length;
+        this.onProgress({ ...this.progress });
+        const files = await Promise.all(listed.map(async name => {
+            const bytes = await fetchBestEffortBytes(this.httpClient,
+                new URL(`${STORAGE_ATTACHMENTS_FOLDER}/${encodeURIComponent(name)}`, this.baseUrl), MAX_TOTAL_BYTES, this.signal);
+            this.progress.completedFileCount += 1;
+            this.onProgress({ ...this.progress });
+            return { name, bytes };
+        }));
+        return files.flatMap(({ name, bytes }) => {
+            const kept = this.budget(bytes, bytes?.byteLength ?? 0);
+            return kept == null ? [] : [{ name, file: kept }];
+        });
     }
 }
 
@@ -195,7 +197,6 @@ function validateManifestUrl(url: URL): string {
     return name;
 }
 
-
 async function fetchBestEffortBytes(
     httpClient: HttpClient, url: URL, maxBytes: number, signal?: AbortSignal,
 ): Promise<Uint8Array | null> {
@@ -212,7 +213,7 @@ async function fetchBestEffortBytes(
     }
 }
 
-function workbookFileUrl(baseUrl: URL, scriptName: string): URL {
+function scriptUrl(baseUrl: URL, scriptName: string): URL {
     return new URL(
         `${STORAGE_SCRIPTS_FOLDER}/${encodeURIComponent(scriptName)}`,
         baseUrl,
@@ -260,9 +261,6 @@ async function readLimitedText(response: HttpFetchResult, label: string, maxByte
     }
     return text;
 }
-
-
-
 
 function textBytes(value: string): number {
     return new TextEncoder().encode(value).byteLength;

@@ -2,7 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { WORKBOOK_TABLE, workbookBundleToTables, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { WORKBOOK_TABLE, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import {
     createCloudFolder,
@@ -45,7 +46,7 @@ beforeEach(async () => {
 
 
 function tablesNamed(name: string, sql = 'select 1'): WorkbookTables {
-    const tables = workbookBundleToTables({ workbook: testWorkbook({ name, scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }), scripts: [{ name: 'a.sql', sql }], catalogs: [] });
+    const tables = testWorkbookTables({ workbook: testWorkbook({ name, scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }), scripts: { 'a.sql': sql } });
     expect(tables[WORKBOOK_TABLE][0].name).toBe(name);
     return tables;
 }

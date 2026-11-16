@@ -78,7 +78,7 @@ import { displayPath } from '../storage/workbook_locator.js';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { WorkbookStorageOverlay } from './persistence/workbook_storage_overlay.js';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
-import { readWorkbookBundleFromBrowserFolder } from './persistence/browser_workbook_folder.js';
+import { browserWorkbookFolder } from './persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '../storage/workbook_transfer.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
 import { describeWorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
@@ -1184,7 +1184,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     }, [coreRuntime, logger, setupCore, storageReader.backend]);
 
     const openWorkbookFolder = React.useCallback(async () => {
-        if (storageReader.workbookFolders == null) return;
+        const workbookFolders = storageReader.workbookFolders;
+        if (workbookFolders == null) return;
         if (platform === PlatformType.WEB) {
             folderInputRef.current?.click();
             return;
@@ -1192,10 +1193,12 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const folder = await globalThis.dashqlElectron?.openDirectory('Open an existing workbook folder');
         if (folder == null) return;
         try {
-            await workbookImport.importNativeFolder(folder, {
-                mode: 'anchored',
-                anchorRef: folderButtonRef,
-                returnFocusRef: folderButtonRef,
+            await workbookImport.importWorkbook({ folder: workbookFolders.importFolder(folder) }, {
+                presentation: {
+                    mode: 'anchored',
+                    anchorRef: folderButtonRef,
+                    returnFocusRef: folderButtonRef,
+                },
             });
         } catch (error) {
             logger.error('adding native workbook from folder failed', { error: String(error) }, 'workbook_workbench');
@@ -1206,8 +1209,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const input = event.currentTarget;
         if (input.files == null || input.files.length === 0) return;
         try {
-            const bundle = await readWorkbookBundleFromBrowserFolder(input.files);
-            await workbookImport.importPortableBundle(bundle, {
+            await workbookImport.importWorkbook({ folder: browserWorkbookFolder(input.files) }, {
                 presentation: {
                     mode: 'anchored',
                     anchorRef: folderButtonRef,

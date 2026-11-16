@@ -114,6 +114,7 @@ class TestPlatform {
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         salesforce: null,
         storage: null,
+        archives: null,
         changed: () => { },
     };
 

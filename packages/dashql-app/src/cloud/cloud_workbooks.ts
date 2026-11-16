@@ -4,8 +4,7 @@ import { useDeleteComputation, useOptionalCoreRuntime } from '../runtime/runtime
 import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore, type ConnectionReferences } from '../connections/connection_registry.js';
 import type { ConnectionParams, WorkbookCloudLink } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
-import { workbookTablesToBundle } from '@ankoh/dashql-runtime/storage/workbook_tables';
-import type { WorkbookBundle, WorkbookBundleResult } from '@ankoh/dashql-runtime/storage/workbook_bundle';
+import type * as core from '@ankoh/dashql-core';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import {
@@ -18,14 +17,16 @@ import {
     updateCloudWorkbookLoading,
     type CloudLoadingCounts,
 } from './cloud_workbook_loading.js';
-import type { WorkbookImportConnectionMapping, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import {
+    importedWorkbook,
+    useWorkbookImport,
+    type WorkbookImportConnectionMapping,
+    type WorkbookImportProgressConsumer,
+} from '../workbook/persistence/workbook_import_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
-import { exportWorkbookAsSharedTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
-import { useWorkbookImport } from '../workbook/persistence/workbook_import_provider.js';
 import {
     isCloudPreview,
     workbookCloudLink,
@@ -40,9 +41,8 @@ import {
 import { useClouds, type CloudState } from './cloud_state.js';
 import { useCloudQueries } from './cloud_query.js';
 import { trackCloudPublish } from './cloud_publish_status.js';
-import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookVersion } from './cloud_store.js';
+import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookTables, type CloudWorkbookVersion } from './cloud_store.js';
 import type { CloudQuery } from './cloud_store_schema.js';
-import { retainWorkbookQueryResults } from '@ankoh/dashql-runtime/workbook/persistence/workbook_query_results';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import {
     createCloudFolder,
@@ -84,11 +84,11 @@ export function findLinkedWorkbook(
     return null;
 }
 
-/// The previews by the id of the local preview: the version it shows and whether a connection uses an existing one
-/// that the import would ask about. A preview that outlived the page is imported again from the cloud.
+/// The previews by the id of the local preview: the version it shows, its tables and whether a connection uses an
+/// existing one that the import would ask about. A preview that outlived the page is imported again from the cloud.
 interface PreviewSource {
     link: WorkbookCloudLink;
-    bundle: WorkbookBundle;
+    tables: CloudWorkbookTables;
     unasked: boolean;
 }
 const previewSources = new Map<string, PreviewSource>();
@@ -199,7 +199,6 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         return { cloud, query: queryOf(cloudId), database: cloud.database };
     }, [queryOf]);
     const archiveDatabase = useWorkbookArchiveDatabase();
-    const setupCore = useDashQLCoreSetup();
     const workbookImport = useWorkbookImport();
     const navigate = useRouterNavigate();
     const readWorkbook = useWorkbookReader();
@@ -252,28 +251,41 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         }
     }, [deleteComputation, connectionStore, deleteConnection, deleteScripts, logger, readWorkbook, references, storageReader, storageWriter]);
 
-    /// Read a version of a published workbook, the latest without one
+    /// Read the tables of a version into an import of the runtime, nothing is written
+    const readTables = React.useCallback((tables: CloudWorkbookTables) =>
+        workbookImport.readImport({ tables: { ...tables, errorPrefix: 'Invalid cloud workbook' } }), [workbookImport]);
+
+    /// Read a version of a published workbook, the latest without one, into an import of the runtime
     const readVersion = React.useCallback(async (cloudId: string, cloudWorkbookId: string, versionId?: string) => {
         const { query, database } = readyCloud(cloudId);
         const local = await archiveDatabase('cloud_read');
         const { version, tables } = await readCloudWorkbook(query, local, cloudWorkbookId, { database, versionId });
-        return { version, bundle: await workbookTablesToBundle(tables, 'Invalid cloud workbook') };
-    }, [archiveDatabase, readyCloud]);
+        return { version, tables, preview: await readTables(tables) };
+    }, [archiveDatabase, readTables, readyCloud]);
 
-    /// Import a version as a local workbook of its own, linked to the version, with its query results. The import maps
-    /// its connections to the connections of the app, a preview asks nothing.
+    /// Import a version that was read as a local workbook of its own, linked to the version, with its query results.
+    /// The import maps its connections to the connections of the app, a preview asks nothing. An import that is
+    /// cancelled or fails is dropped.
     const importVersion = React.useCallback(async (
-        bundle: WorkbookBundle,
+        preview: core.ImportPreview,
         link: WorkbookCloudLink,
         onConnections?: (mapping: WorkbookImportConnectionMapping) => void,
         onProgress?: WorkbookImportProgressConsumer,
-    ) => {
-        // Every version opens as a workbook of its own, an id of a local workbook never clashes with it
-        const workbookId = crypto.randomUUID();
-        return await workbookImport.importPortableBundle({
-            ...bundle,
-            workbook: { ...bundle.workbook, workbookId, metadata: linkedWorkbookMetadata(bundle.workbook.metadata, link) },
-        }, { presentation: { mode: 'centered' }, connections: link.preview ? 'preview' : 'ask', onConnections, onProgress });
+    ): Promise<string | null> => {
+        try {
+            const prepared = await workbookImport.prepareImport(preview, { connections: link.preview ? 'preview' : 'ask', onProgress });
+            if (prepared == null) return null;
+            // Every version opens as a workbook of its own, an id of a local workbook never clashes with it
+            return await workbookImport.commitImport(prepared, null, {
+                workbookId: crypto.randomUUID(),
+                metadata: linkedWorkbookMetadata(importedWorkbook(preview).metadata, link),
+                onConnections,
+                onProgress,
+            });
+        } catch (error) {
+            workbookImport.dropImport(preview);
+            throw error;
+        }
     }, [workbookImport]);
 
     /// Download a version and import it, as a preview or as a local workbook
@@ -293,17 +305,18 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             navigate({ type: SELECT_WORKBOOK, value: shown.workbookId });
             return shown.workbookId;
         }
-        const { version, bundle } = await readVersion(cloudId, cloudWorkbookId, options.versionId);
+        const { version, tables, preview } = await readVersion(cloudId, cloudWorkbookId, options.versionId);
         progress.downloaded({
             version: version.version,
-            connections: bundle.workbook.connections.length,
-            results: bundle.results?.length ?? 0,
-            scripts: bundle.scripts.length,
-            attachments: bundle.data?.length ?? 0,
+            connections: importedWorkbook(preview).connections.length,
+            results: preview.results.count,
+            scripts: preview.scriptCount,
+            attachments: preview.attachmentCount,
         });
         if (options.preview) {
             const again = findLinkedWorkbook(readWorkbooks(), cloudWorkbookId, { versionId: version.versionId, preview: true });
             if (again != null) {
+                workbookImport.dropImport(preview);
                 navigate({ type: SELECT_WORKBOOK, value: again.workbookId });
                 return again.workbookId;
             }
@@ -313,10 +326,10 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         if (options.preview) {
             // A preview keeps the connections of the version, the ones the app doesn't have are registered for it
             let mapping: WorkbookImportConnectionMapping = { registered: [], unasked: false };
-            imported = await importVersion(bundle, { ...link, preview: true }, decided => { mapping = decided; progress.mapped(decided); }, progress.imported);
-            if (imported != null) previewSources.set(imported, { link, bundle, unasked: mapping.unasked });
+            imported = await importVersion(preview, { ...link, preview: true }, decided => { mapping = decided; progress.mapped(decided); }, progress.imported);
+            if (imported != null) previewSources.set(imported, { link, tables, unasked: mapping.unasked });
         } else {
-            imported = await importVersion(bundle, link, progress.mapped, progress.imported);
+            imported = await importVersion(preview, link, progress.mapped, progress.imported);
         }
         if (imported == null) return null;
         logger.info('Opened a published workbook', {
@@ -330,7 +343,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             }
         }
         return imported;
-    }, [discardPreview, importVersion, logger, navigate, readWorkbooks, readVersion, readyCloud]);
+    }, [discardPreview, importVersion, logger, navigate, readWorkbooks, readVersion, readyCloud, workbookImport]);
 
     const open = React.useCallback(async (cloudId: string, cloudWorkbookId: string, options: { versionId?: string; preview: boolean; name?: string }) => {
         setCloudWorkbookLoading(startCloudLoading(options.name ?? 'Untitled', options.preview));
@@ -361,14 +374,14 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             logger.info('Imported a cloud preview', { workbookId, cloudWorkbookId: link.workbookId, versionId: link.versionId }, LOG_CTX);
             return workbookId;
         }
-        const bundle = source?.bundle ?? (await readVersion(cloudId, link.workbookId, link.versionId)).bundle;
-        const imported = await importVersion(bundle, versionLink);
+        const preview = source != null ? await readTables(source.tables) : (await readVersion(cloudId, link.workbookId, link.versionId)).preview;
+        const imported = await importVersion(preview, versionLink);
         if (imported == null) return null;
         logger.info('Imported a cloud preview again', { workbookId: imported, preview: workbookId, cloudWorkbookId: link.workbookId, versionId: link.versionId }, LOG_CTX);
         navigate({ type: SELECT_WORKBOOK, value: imported });
         await discardPreview(workbookId);
         return imported;
-    }, [discardPreview, dispatchScripts, importVersion, logger, navigate, readWorkbook, readVersion]);
+    }, [discardPreview, dispatchScripts, importVersion, logger, navigate, readTables, readWorkbook, readVersion]);
 
     const publishVersion = React.useCallback(async (workbookId: string, options: { cloudId: string; asNew: boolean; folderId?: string | null }) => {
         const { cloud, query, database } = readyCloud(options.cloudId);
@@ -378,49 +391,37 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const link = workbookCloudLink(scripts);
         // A new version goes to the published workbook of the link only in its own cloud
         const linkedHere = link?.connectionId === options.cloudId;
-        // The export reads the workbook from the storage
-        await storageWriter.flushWorkbook(workbookId);
-        const connectionParams = new Map<string, ConnectionParams>();
-        const connectionNames = new Map<string, string>();
-        for (const connectionId of references.connectionsOf(workbookId)) {
-            const connection = connectionStore.current.connections.get(connectionId);
-            if (connection?.params != null) connectionParams.set(connectionId, connection.params);
-            if (connection?.name != null) connectionNames.set(connectionId, connection.name);
-        }
-        const core = await setupCore('cloud_publish');
+        if (coreRuntime == null) throw new Error('Publishing a workbook needs the runtime');
         const local = await archiveDatabase('cloud_publish');
         const cloudWorkbookId = options.asNew || !linkedHere ? undefined : link?.workbookId;
         const folderId = options.folderId ?? undefined;
-        // The cached results go along, a preview shows them for the connections that it doesn't run on. They stay
-        // pinned until the publish sent them.
-        const retained = queryResultCache == null || coreRuntime == null ? null : await retainWorkbookQueryResults(coreRuntime, scripts, queryResultCache);
-        let version: CloudWorkbookVersion;
-        try {
-            // Whoever opens the workbook logs in to the connections with their own account
-            const exportTables = (queryResults?: readonly WorkbookBundleResult[]) => exportWorkbookAsSharedTables(storageReader.backend, core, workbookId, connectionParams, {
-                withCatalog: true, withLoginHint: false, connectionNames, queryResults,
-            });
-            try {
-                version = await publishCloudWorkbook(query, local, await exportTables(retained?.results), { database, workbookId: cloudWorkbookId, folderId });
-            } catch (error) {
-                if (!(error instanceof CloudPublishTooLargeError) || (retained?.results.length ?? 0) === 0) throw error;
-                logger.warn('The query results are too large to publish, publishing without them', { workbookId, error: stringifyError(error) }, LOG_CTX);
-                version = await publishCloudWorkbook(query, local, await exportTables(), { database, workbookId: cloudWorkbookId, folderId });
-            }
-        } finally {
-            await retained?.release();
-        }
+        // The runtime reads the workbook from the storage with the changes that are pending. The cached results go
+        // along, a preview shows them for the connections that it doesn't run on, they stay pinned until the publish
+        // sent them. Whoever opens the workbook logs in to the connections with their own account.
+        const written: { version: CloudWorkbookVersion | null; results: number } = { version: null, results: 0 };
+        const publishTables = (results: boolean) => coreRuntime.exportTables(workbookId, { withCatalog: true, withLoginHint: false, results }, async tables => {
+            written.results = tables.workbook_results.length;
+            written.version = await publishCloudWorkbook(query, local, tables, { database, workbookId: cloudWorkbookId, folderId });
+        });
+        const published = await publishTables(queryResultCache != null).catch(async error => {
+            // Only the query results are left out, a workbook that is too large without them fails
+            if (!(error instanceof CloudPublishTooLargeError) || written.results === 0) throw error;
+            logger.warn('The query results are too large to publish, publishing without them', { workbookId, error: stringifyError(error) }, LOG_CTX);
+            return await publishTables(false);
+        });
+        const publishedVersion = written.version;
+        if (publishedVersion == null) throw new Error(`The publish of workbook ${workbookId} wrote no version`);
         dispatchScripts(workbookId, {
             kind: 'setCloudLink',
-            value: { link: { workbookId: version.workbookId, versionId: version.versionId, connectionId: options.cloudId } },
+            value: { link: { workbookId: publishedVersion.workbookId, versionId: publishedVersion.versionId, connectionId: options.cloudId } },
         });
         logger.info('Published a workbook', {
-            workbookId, cloudId: options.cloudId, cloudWorkbookId: version.workbookId, versionId: version.versionId, version: String(version.version),
-            results: String(retained?.results.length ?? 0),
+            workbookId, cloudId: options.cloudId, cloudWorkbookId: publishedVersion.workbookId, versionId: publishedVersion.versionId,
+            version: String(publishedVersion.version), results: String(published.files),
         }, LOG_CTX);
         await cloud.refresh();
-        return version;
-    }, [archiveDatabase, connectionStore, dispatchScripts, logger, queryResultCache, readWorkbook, readyCloud, references, coreRuntime, setupCore, storageReader, storageWriter]);
+        return publishedVersion;
+    }, [archiveDatabase, dispatchScripts, logger, queryResultCache, readWorkbook, readyCloud, coreRuntime]);
     // The status of the workbook tells the publish
     const publish = React.useCallback(
         (workbookId: string, options: Parameters<typeof publishVersion>[1]) => trackCloudPublish(workbookId, publishVersion(workbookId, options)),

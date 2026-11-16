@@ -1,12 +1,13 @@
+import * as arrow from 'apache-arrow';
+
 import { DASHQL_VERSION } from '../globals.js';
 import { exportArrowTableAsParquet } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_arrow_insert';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import type { ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_tables_parquet';
+import type { ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_archives';
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,
-    emptyWorkbookTables,
     isDataTableName,
     newDataTableName,
     RESULT_TABLE_PREFIX,
@@ -14,7 +15,6 @@ import {
     WORKBOOK_TABLE,
     WORKBOOK_TABLE_NAMES,
     workbookTableColumns,
-    workbookTableFromArrow,
     type AttachmentRow,
     type WorkbookTableName,
     type WorkbookTables,
@@ -466,6 +466,22 @@ async function readVersions(query: CloudQuery, workbookId: string, options: Clou
     return numberedVersions(rows).reverse();
 }
 
+/// The workbook tables of a version as a cloud holds them: the rows of each table as Arrow IPC, which the runtime
+/// imports, and the Parquet files of the attachment and result tables
+export interface CloudWorkbookTables {
+    /// The rows of the workbook tables by table name, a table that the cloud lacks is left out
+    rows: Record<string, Uint8Array>;
+    /// The Parquet files of the attachment and result tables
+    data: { tableName: string; file: Blob }[];
+}
+
+/// The values of a column of text of an Arrow table, without nulls
+function textColumn(table: arrow.Table, name: string): string[] {
+    const column = table.getChild(name);
+    if (column == null) return [];
+    return [...column].filter((value): value is string => typeof value === 'string');
+}
+
 /// Read the tables of a version of a workbook, named by its id, the latest without one. `local` writes the attachment
 /// and result tables as Parquet files.
 export async function readCloudWorkbook(
@@ -473,7 +489,7 @@ export async function readCloudWorkbook(
     local: ParquetReadDatabase,
     workbookId: string,
     options: CloudStoreOptions & { versionId?: string } = {},
-): Promise<{ version: CloudWorkbookVersion; tables: WorkbookTables }> {
+): Promise<{ version: CloudWorkbookVersion; tables: CloudWorkbookTables }> {
     checkCloudId(workbookId, 'workbook');
     if (options.versionId != null) checkCloudId(options.versionId, 'version');
     const view = await openCloudStore(query, 'read', options);
@@ -488,25 +504,28 @@ export async function readCloudWorkbook(
     if (row.formatVersion > WORKBOOK_FORMAT_VERSION) {
         throw new Error(`The workbook ${workbookId} was published by a newer DashQL, update DashQL to read it`);
     }
-    const tables = emptyWorkbookTables();
-    // The tables may lack columns and tables that this client knows, of migrations that no writer ran yet. A missing
-    // column reads as null, a missing table as one without rows.
-    const read = async <N extends WorkbookTableName>(tableName: N, cloudTableName: string): Promise<WorkbookTables[N]> => {
+    const tables: CloudWorkbookTables = { rows: {}, data: [] };
+    // The tables may lack columns and tables that this client knows, of migrations that no writer ran yet. The runtime
+    // reads a missing column of a nullable field as null and a missing table as one without rows.
+    const read = async (tableName: WorkbookTableName, cloudTableName: string): Promise<arrow.Table | null> => {
         const existing = view.columns.get(cloudTableName);
         const columns = workbookTableColumns(tableName).filter(column => existing?.has(column.name)).map(column => column.name);
-        if (columns.length === 0) return [] as unknown as WorkbookTables[N];
+        if (columns.length === 0) return null;
         const result = await query(`SELECT ${columns.map(selected).join(', ')} FROM ${cloudTable(cloudTableName, options)} `
             + `WHERE ${versionWhere(row)} ORDER BY ${columns.map(name => qualifiedName(name)).join(', ')}`, signal);
-        return workbookTableFromArrow(tableName, result);
+        tables.rows[tableName] = arrow.tableToIPC(result, 'stream');
+        return result;
     };
-    tables[WORKBOOK_TABLE] = await read(WORKBOOK_TABLE, CLOUD_VERSIONS_TABLE);
+    await read(WORKBOOK_TABLE, CLOUD_VERSIONS_TABLE);
+    const dataTables: string[] = [];
     for (const tableName of CLOUD_MERGED_TABLE_NAMES) {
-        (tables as unknown as Record<WorkbookTableName, object[]>)[tableName] = await read(tableName, tableName);
+        const result = await read(tableName, tableName);
+        if (result != null && (tableName === ATTACHMENTS_TABLE || tableName === RESULTS_TABLE)) dataTables.push(...textColumn(result, 'table_name'));
     }
-    for (const name of [...tables[ATTACHMENTS_TABLE].map(row => row.table_name), ...tables[RESULTS_TABLE].map(row => row.table_name)]) {
+    for (const name of dataTables) {
         const result = await query(`SELECT * FROM ${dataTable(name, options)}`, signal);
         const bytes = await exportArrowTableAsParquet(local, result);
-        tables.data.set(name, { bytes: new Blob([bytes as Uint8Array<ArrayBuffer>]) });
+        tables.data.push({ tableName: name, file: new Blob([bytes as Uint8Array<ArrayBuffer>]) });
     }
     return { version: row, tables };
 }

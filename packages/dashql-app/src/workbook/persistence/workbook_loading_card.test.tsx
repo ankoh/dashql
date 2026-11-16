@@ -4,31 +4,27 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
 import { WorkbookImportCard, type WorkbookImportCardDependencies } from './workbook_import_card.js';
+import { testImportPreview } from './import_test_sources.js';
 
-const FILE_BUNDLE: WorkbookBundle = {
-    workbook: {
-        formatVersion: 11,
-        workbookId: '11111111-2222-4333-8444-555555555555',
-        name: 'Local workbook',
-        connections: [{
-            connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-            params: {
-                hyper: {
-                    protocol: 'WASM',
-                    endpoint: '',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
-                },
+const FILE_PREVIEW = testImportPreview({
+    formatVersion: 11,
+    workbookId: '11111111-2222-4333-8444-555555555555',
+    name: 'Local workbook',
+    connections: [{
+        connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        params: {
+            hyper: {
+                protocol: 'WASM',
+                endpoint: '',
+                tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
             },
-        }],
-        scripts: [],
-        attachments: [],
-        metadata: { originType: 'FILE', originalFileName: 'local.dashql' },
-    },
-    catalogs: [],
-    scripts: [{ name: 'query.sql', sql: 'SELECT 1' }],
-};
+        },
+    }],
+    scripts: [{ name: 'query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
+    attachments: [],
+    metadata: { originType: 'FILE', originalFileName: 'local.dashql' },
+});
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -104,7 +100,7 @@ describe('WorkbookImportCard loading state', () => {
         const onRetry = vi.fn();
         act(() => render(
             <WorkbookImportCard phase="file-ready" sourcePath="/tmp/local.dashql" fileByteCount={1200}
-                bundle={FILE_BUNDLE} steps={[]} conflict={null} busy={false} onImport={onImport} onReplace={() => {}} onCreateNew={() => {}} onClose={() => {}} dependencies={dependencies} />,
+                preview={FILE_PREVIEW} steps={[]} conflict={null} busy={false} onImport={onImport} onReplace={() => {}} onCreateNew={() => {}} onClose={() => {}} dependencies={dependencies} />,
         ));
         expect(container.textContent).toContain('Local workbook');
         const importButton = container.querySelector('[data-testid="workbook-import-confirm"]') as HTMLButtonElement;
@@ -112,7 +108,7 @@ describe('WorkbookImportCard loading state', () => {
         expect(onImport).toHaveBeenCalledOnce();
 
         act(() => render(
-            <WorkbookImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200} steps={[]} bundle={null}
+            <WorkbookImportCard phase="file-error" sourcePath="/tmp/local.dashql" fileByteCount={1200} steps={[]} preview={null}
                 failedStage="validating" errorMessage="Invalid ZIP" onRetry={onRetry} onClose={() => {}} dependencies={dependencies} />,
         ));
         const alert = container.querySelector('[role="alert"]');

@@ -5,15 +5,11 @@ import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import type { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { writePortableWorkbookFresh } from '../../storage/workbook_import_transaction.js';
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
 import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
 import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { applyConnectionImportPlan, planConnectionImport, type ConnectionImportChoice } from '@ankoh/dashql-runtime/workbook/persistence/workbook_connection_import';
-import { exportWorkbookAsSharedZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
-import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
@@ -336,11 +332,18 @@ describe('Workbook connections', () => {
         afterAll(async () => {
             await disposeDatabase?.();
         });
-        const exportAndRead = async () => readWorkbookBundleFromZip(await exportWorkbookAsSharedZip(backend, { database, core: dql }, WORKBOOK_ID, new Map()), database);
+        /// The app that exports the seeded workbook and reads the export, nothing is imported yet
+        const exportAndRead = async () => {
+            const app = await createTestRuntime({ storage: backend, archiveDatabase: async () => database });
+            await app.restore();
+            const runtime = app.coreRuntime;
+            const { archive } = await runtime.exportArchive(WORKBOOK_ID, { withCatalog: true });
+            return { runtime, preview: await runtime.readImport({ archive }) };
+        };
 
         it('gives the connections fresh ids and keeps every script on its connection', async () => {
-            const bundle = await exportAndRead();
-            const { workbook } = bundle;
+            const { preview } = await exportAndRead();
+            const workbook = preview.workbook as WorkbookData;
             expect(workbook.workbookId).not.toBe(WORKBOOK_ID);
             const ids = workbook.connections.map(connection => connection.connectionId);
             expect(ids).not.toContain(HYPER_ID);
@@ -354,14 +357,12 @@ describe('Workbook connections', () => {
         });
 
         it('imports a shared workbook with connections of its own', async () => {
-            const bundle = await exportAndRead();
-            const entries = registry.connections!;
-            const plan = planConnectionImport(bundle.workbook, entries);
+            const { runtime, preview } = await exportAndRead();
             // The embedded database is the one of the app, the user is asked about the other connection
-            expect(plan.map(item => item.decision.kind)).toEqual(['link', 'ask']);
-            const choices = new Map<string, ConnectionImportChoice>(plan.map(item => [item.ref.connectionId, { kind: 'separate' }]));
-            const workbook = applyConnectionImportPlan(bundle.workbook, plan, choices, entries).workbook;
-            await writePortableWorkbookFresh(backend, { ...bundle, workbook }, IMPORTED_WORKBOOK_ID);
+            expect(preview.questions.map(question => question.candidates.map(candidate => candidate.id))).toEqual([[TRINO_ID]]);
+            const connections = Object.fromEntries(preview.questions.map(question => [question.connectionId, { kind: 'separate' as const }]));
+            await runtime.commitImport(preview.importId, { connections, workbookId: IMPORTED_WORKBOOK_ID, restore: false });
+            await runtime.storage.flush();
 
             const restored = await restore(backend);
             expect(scriptOf(restored, 'define.sql', IMPORTED_WORKBOOK_ID).connectionId).toBe(HYPER_ID);
@@ -372,19 +373,17 @@ describe('Workbook connections', () => {
         });
 
         it('imports a shared workbook that links its connections to the connections of the app', async () => {
-            const bundle = await exportAndRead();
-            const entries = registry.connections!;
-            const plan = planConnectionImport(bundle.workbook, entries);
-            const choices = new Map<string, ConnectionImportChoice>(plan.map(item => [
-                item.ref.connectionId,
-                { kind: 'link', connectionId: item.decision.kind === 'ask' ? item.decision.candidates[0].id : '' },
+            const { runtime, preview } = await exportAndRead();
+            const connections = Object.fromEntries(preview.questions.map(question => [
+                question.connectionId,
+                { kind: 'link' as const, connectionId: question.candidates[0].id },
             ]));
-            const workbook = applyConnectionImportPlan(bundle.workbook, plan, choices, entries).workbook;
-            expect(workbook.scripts).toEqual([
+            await runtime.commitImport(preview.importId, { connections, workbookId: IMPORTED_WORKBOOK_ID, restore: false });
+            expect(registry.workbooks.get(IMPORTED_WORKBOOK_ID)!.scripts).toEqual([
                 { name: 'define.sql', connectionId: HYPER_ID },
                 { name: 'remote.sql', connectionId: TRINO_ID },
             ]);
-            await writePortableWorkbookFresh(backend, { ...bundle, workbook }, IMPORTED_WORKBOOK_ID);
+            await runtime.storage.flush();
 
             const restored = await restore(backend);
             // Both workbooks share the connections of the app

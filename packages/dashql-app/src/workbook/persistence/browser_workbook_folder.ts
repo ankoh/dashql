@@ -1,12 +1,13 @@
-import type { ScriptData } from '@ankoh/dashql-runtime/storage/storage_backend';
+import type * as core from '@ankoh/dashql-core';
+
 import {
     STORAGE_ATTACHMENTS_FOLDER,
+    STORAGE_CATALOG_FUNCTIONS,
+    STORAGE_CATALOG_RELATIONS,
+    STORAGE_CONNECTIONS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
 } from '@ankoh/dashql-runtime/storage/storage_backend';
-import type { WorkbookBundle } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { assembleWorkbookBundle, isBundleCatalogPath, readWorkbookBundleHead } from '@ankoh/dashql-runtime/storage/workbook_bundle';
-import { MemoryFolder } from '@ankoh/dashql-runtime/storage/migration/migration_folder';
 
 interface BrowserFolderEntry {
     path: string;
@@ -16,11 +17,10 @@ interface BrowserFolderEntry {
 
 const NATURAL_SORT = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
-/// Parse a workbook folder selected by an input with `webkitdirectory`. Browsers do not include
-/// directory entries in FileList, so explicitly empty script folders cannot be preserved.
-export async function readWorkbookBundleFromBrowserFolder(
-    selectedFiles: FileList | readonly File[],
-): Promise<WorkbookBundle> {
+/// A workbook folder selected by an input with `webkitdirectory`, as the runtime reads it for an import. The paths are
+/// checked right away, the files are read when the runtime asks for them. Browsers do not include directory entries in
+/// FileList, so explicitly empty script folders cannot be preserved.
+export function browserWorkbookFolder(selectedFiles: FileList | readonly File[]): core.RuntimeImportFolder {
     const entries: BrowserFolderEntry[] = [];
     let rootName: string | null = null;
     let usesRelativePaths: boolean | null = null;
@@ -79,33 +79,20 @@ export async function readWorkbookBundleFromBrowserFolder(
             throw new Error(`Invalid workbook folder: duplicate destination ${entry.path}`);
         }
         destinations.set(key, entry);
-
     }
 
-    const contents = new Map<string, string>();
-    await Promise.all([...destinations].map(async ([key, entry]) => {
-        if (classifyBundlePath(entry.path) === 'data') return;
-        contents.set(key, await entry.file.text());
-    }));
-
-    // The top-level files are migrated in memory, the scripts and attachments are read as they are
-    const head = await readWorkbookBundleHead(new MemoryFolder([...destinations]
-        .filter(([key, entry]) => isTopLevelFile(key) || isBundleCatalogPath(entry.path))
-        .map(([key, entry]) => [isBundleCatalogPath(entry.path) ? entry.path : key, contents.get(key)!] as [string, string])),
-        'Invalid workbook folder');
-
-    const scripts: ScriptData[] = [...destinations]
-        .filter(([, entry]) => classifyBundlePath(entry.path) === 'script')
-        .map(([key, entry]) => ({
-            name: entry.path.split('/')[1],
-            sql: contents.get(key)!,
-        }))
-        .sort((a, b) => NATURAL_SORT.compare(a.name, b.name));
-
-    return assembleWorkbookBundle(head, scripts, await Promise.all([...destinations.values()]
-        .filter(entry => classifyBundlePath(entry.path) === 'data')
-        .sort((a, b) => NATURAL_SORT.compare(a.path, b.path))
-        .map(async entry => ({ name: entry.path.split('/')[1], bytes: new Uint8Array(await entry.file.arrayBuffer()) }))));
+    const ofKind = (kind: 'accept' | 'script' | 'data') => [...destinations.values()]
+        .filter(entry => classifyBundlePath(entry.path) === kind)
+        .sort((a, b) => NATURAL_SORT.compare(a.path, b.path));
+    return {
+        // The top-level files are migrated in memory by the runtime, the scripts and attachments are read as they are
+        readText: async path => {
+            const entry = destinations.get(destinationKey(path));
+            return entry == null || classifyBundlePath(entry.path) !== 'accept' ? null : await entry.file.text();
+        },
+        scripts: async () => await Promise.all(ofKind('script').map(async entry => ({ name: entry.path.split('/')[1], sql: await entry.file.text() }))),
+        attachments: async () => ofKind('data').map(entry => ({ name: entry.path.split('/')[1], file: entry.file })),
+    };
 }
 
 function normalizeSelectedPath(input: string): { path: string; sourcePath: string } {
@@ -138,7 +125,7 @@ function classifyBundlePath(path: string): 'accept' | 'script' | 'data' | 'ignor
         validateDataFileName(parts[1]);
         return 'data';
     }
-    if (isTopLevelFile(key) || isBundleCatalogPath(path)) {
+    if (isTopLevelFile(key) || isCatalogPath(path)) {
         return 'accept';
     }
 
@@ -154,6 +141,13 @@ function classifyBundlePath(path: string): 'accept' | 'script' | 'data' | 'ignor
         return 'invalid-script';
     }
     return 'script';
+}
+
+/// Is a path the path of a catalog file of a connection, `connections/<id>/dashql-catalog-*.sql`?
+function isCatalogPath(path: string): boolean {
+    const parts = path.split('/');
+    return parts.length === 3 && parts[0] === STORAGE_CONNECTIONS_FOLDER
+        && (parts[2] === STORAGE_CATALOG_RELATIONS || parts[2] === STORAGE_CATALOG_FUNCTIONS);
 }
 
 /// Is the path a top-level file of the workbook folder? Older versions name the files differently,

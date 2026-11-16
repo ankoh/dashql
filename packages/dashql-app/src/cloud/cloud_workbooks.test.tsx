@@ -2,14 +2,13 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
-import { DashQL } from '@ankoh/dashql-core';
 
 import { WORKBOOK_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
-import { sharedWorkbookTables } from '@ankoh/dashql-runtime/workbook/persistence/workbook_export';
+import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { findLinkedWorkbook, linkedWorkbookMetadata, previewConnections, useCloudPreviewCleanup } from './cloud_workbooks.js';
 import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
-import { testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { TEST_WORKBOOK_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -48,14 +47,21 @@ describe('Cloud workbooks', () => {
     });
 
     it('publishes a workbook without its link', async () => {
-        // The core sanitizes the shared workbook and reads its catalogs
-        const core = await DashQL.create({ wasmBinary: await globalThis.DASHQL_PRECOMPILED! });
-        const tables = sharedWorkbookTables(core, {
-            workbook: testWorkbook({ metadata: { originalFileName: 'hyper', cloud: { workbookId: CLOUD_WORKBOOK, versionId: VERSION_1, connectionId: 'cloud' } } }),
-            catalogs: [],
-            scripts: [],
-        });
-        expect(JSON.parse(tables[WORKBOOK_TABLE][0].metadata)).toEqual({ originalFileName: 'hyper' });
+        // The runtime reads the workbook from the storage and sanitizes the shared workbook
+        const storage = new WorkbookTestBackend();
+        await storage.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({
+            metadata: { originalFileName: 'hyper', cloud: { workbookId: CLOUD_WORKBOOK, versionId: VERSION_1, connectionId: 'cloud' } },
+        }));
+        const runtime = await createTestRuntime({ storage });
+        try {
+            const exported: { metadata: string | null } = { metadata: null };
+            await runtime.coreRuntime.exportTables(TEST_WORKBOOK_ID, { withCatalog: true, withLoginHint: false }, async tables => {
+                exported.metadata = tables[WORKBOOK_TABLE][0].metadata;
+            });
+            expect(JSON.parse(exported.metadata!)).toEqual({ originalFileName: 'hyper' });
+        } finally {
+            await runtime.destroy();
+        }
     });
 
     it('discards a preview once another workbook is shown', async () => {

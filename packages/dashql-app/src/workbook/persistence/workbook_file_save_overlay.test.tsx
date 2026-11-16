@@ -4,7 +4,8 @@ import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useConnectionRegistry } from '../../connections/connection_registry.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -19,15 +20,14 @@ import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
 import { TestRuntime } from '../../tests/test_runtime.js';
-import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import * as core from '@ankoh/dashql-core';
 import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
 import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
 import { useRuntime } from '../../runtime/runtime_provider.js';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { addTestConnections } from '../../tests/test_connections.js';
+import { analyzeWorkbook } from '@ankoh/dashql-runtime/testing/test_runtime';
 
 let coreRuntime: CoreRuntime | null = null;
 let runtime: Runtime | null = null;
@@ -50,9 +50,11 @@ type Registry = ReturnType<typeof useConnectionRegistry>;
 const CONNECTION = {
     connectionId: TEST_CONNECTION_ID,
     name: 'Warehouse',
-    params: { hyper: {} },
-    // The connection carries no setup params, so there is no login hint to share
-    details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: null } } },
+    // A Hyper over gRPC, its results have cache keys
+    params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } },
+    // Online with a channel: the setup params of a Hyper carry no login hint to share, and the results of the
+    // connection have cache keys
+    connectionHealth: ConnectionHealth.ONLINE,
 } as unknown as ConnectionState;
 
 // The workbook uses the connection without a script
@@ -74,8 +76,8 @@ describe('WorkbookFileSaveOverlay', () => {
         return null;
     }
 
-    /// Render the overlay, with `known` the runtime holds the workbook on its connection
-    async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, known = true, cache?: QueryResultCache) {
+    /// Render the overlay over a runtime that holds the workbook on its connection
+    async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, cache?: QueryResultCache) {
         const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
         const tree = (overlay: boolean) => withCache(
             <LoggerProvider>
@@ -94,8 +96,7 @@ describe('WorkbookFileSaveOverlay', () => {
         await root.render(tree(false));
         await act(async () => {
             addTestConnections(coreRuntime!, [CONNECTION]);
-            // The workbook keeps its name on disk
-            if (known) coreRuntime!.createWorkbook(TEST_CONNECTION_ID, null, false, 'orders', TEST_WORKBOOK_ID);
+            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, 'orders', TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -125,7 +126,13 @@ describe('WorkbookFileSaveOverlay', () => {
             await vi.waitFor(() => expect(download.mock.calls.length).toBe(saves + 1));
         });
         const [bytes, fileName] = download.mock.calls.at(-1)! as [Blob, string];
-        return { fileName, bytes, workbook: (await readWorkbookBundleFromZip(bytes, database)).workbook };
+        return { fileName, bytes, ...await readArchive(bytes) };
+    }
+    /// The workbook and the number of cached results of an archive, as an import of the runtime reads them
+    async function readArchive(bytes: Blob): Promise<{ workbook: WorkbookData; results: number }> {
+        const preview = await coreRuntime!.readImport({ archive: bytes });
+        coreRuntime!.dropImport(preview.importId);
+        return { workbook: preview.workbook as WorkbookData, results: preview.results.count };
     }
 
     it('packs the workbook into a file of the original name and saves it', async () => {
@@ -157,70 +164,69 @@ describe('WorkbookFileSaveOverlay', () => {
     });
 
     it('carries the cached query results of the scripts only when asked to', async () => {
-        const key = 'a'.repeat(64);
         // A result of 200 kB, the size of the file shows it
         const bytes = new Uint8Array(200_000);
         bytes.set([80, 65, 82, 49]);
         const cache = memoryQueryResultCache();
-        cache.put(key, null, bytes);
-        // Two scripts, one with a cached result. The runtime plans them and derives their keys from their signatures.
-        const workbook = {
-            ...WORKBOOK, scriptOrder: ['1.sql', '2.sql'], scriptKeys: [1, 2],
-            scriptRefs: { '1.sql': { scriptId: 1 }, '2.sql': { scriptId: 2 } },
-        } as unknown as WorkbookScripts;
-        {
-            await render({}, true, cache);
-            vi.spyOn(coreRuntime!, 'resultKeys').mockResolvedValue([key, 'b'.repeat(64)]);
-            await root.render(
-                <QueryResultCacheProvider cache={cache}>
-                    <LoggerProvider>
-                        <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
-                            <DashQLCoreProvider>
-                                <StorageProvider backend={backend}>
-                                    <TestRuntime>
-                                        <Capture />
-                                        <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={workbook} />
-                                    </TestRuntime>
-                                </StorageProvider>
-                            </DashQLCoreProvider>
-                        </EmbeddedDatabaseProvider>
-                    </LoggerProvider>
-                </QueryResultCacheProvider>,
-            );
-            await waitForFile();
-            expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
-            await act(async () => {
-                await vi.waitFor(() => expect(document.querySelector('[data-testid="export-query-results-hint"]')?.textContent)
-                    .toBe('1 of 2 scripts have a cached result. Results contain query data.'));
-            });
-            let archive = await JSZip.loadAsync((await savedWorkbook()).bytes);
-            expect(archive.file(/^workbook_result/)).toEqual([]);
+        await render({ isOpen: false }, cache);
+        // Two scripts on a connection that caches its results, one of them with a cached result. The runtime plans
+        // them and derives their keys from their signatures.
+        let key: string | null = null;
+        await act(async () => {
+            coreRuntime!.dispatchConnection(TEST_CONNECTION_ID, { kind: 'setQueryResultCaching', value: { caching: true } });
+            coreRuntime!.dispatchWorkbook(TEST_WORKBOOK_ID, { kind: 'createScript', value: { text: 'select 1 as a', base: '1' } });
+            coreRuntime!.dispatchWorkbook(TEST_WORKBOOK_ID, { kind: 'createScript', value: { text: 'select 2 as b', base: '2' } });
+            analyzeWorkbook(runtime!, TEST_WORKBOOK_ID);
+            const keys = await coreRuntime!.resultKeys(TEST_WORKBOOK_ID);
+            expect(keys).toHaveLength(2);
+            key = keys[0];
+        });
+        expect(key).not.toBeNull();
+        cache.put(key!, null, bytes);
+        const workbook = coreRuntime!.workbook(TEST_WORKBOOK_ID)!;
+        await root.render(
+            <QueryResultCacheProvider cache={cache}>
+                <LoggerProvider>
+                    <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
+                        <DashQLCoreProvider>
+                            <StorageProvider backend={backend}>
+                                <TestRuntime>
+                                    <Capture />
+                                    <WorkbookFileSaveOverlay isOpen setIsOpen={vi.fn()} workbookScripts={workbook} />
+                                </TestRuntime>
+                            </StorageProvider>
+                        </DashQLCoreProvider>
+                    </EmbeddedDatabaseProvider>
+                </LoggerProvider>
+            </QueryResultCacheProvider>,
+        );
+        await waitForFile();
+        expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
+        await act(async () => {
+            await vi.waitFor(() => expect(document.querySelector('[data-testid="export-query-results-hint"]')?.textContent)
+                .toBe('1 of 2 scripts have a cached result. Results contain query data.'));
+        });
+        let saved = await savedWorkbook();
+        expect(saved.results).toBe(0);
+        let archive = await JSZip.loadAsync(saved.bytes);
+        expect(archive.file(/^workbook_result/)).toEqual([]);
 
-            act(() => toggle('query-results').click());
-            await waitForFile();
-            // The results are read when the file is saved, not before. The size counts them already.
-            expect(cache.retain).not.toHaveBeenCalled();
-            expect(document.body.textContent).toMatch(/~\s20\d(\.\d+)? kB/);
-            const saved = await savedWorkbook();
-            expect(cache.retain).toHaveBeenCalledWith(key);
-            expect(saved.bytes.size).toBeGreaterThan(bytes.length);
-            archive = await JSZip.loadAsync(saved.bytes);
-            const resultTables = archive.file(/^workbook_result_/);
-            expect(resultTables).toHaveLength(1);
-            expect(await resultTables[0].async('uint8array')).toEqual(bytes);
-            const imported = await readWorkbookBundleFromZip(saved.bytes, database);
-            expect(imported.results!.map(result => result.key)).toEqual([key]);
-        }
+        act(() => toggle('query-results').click());
+        await waitForFile();
+        // The results are read when the file is saved, not before. The size counts them already.
+        expect(cache.retain).not.toHaveBeenCalled();
+        expect(document.body.textContent).toMatch(/~\s20\d(\.\d+)? kB/);
+        saved = await savedWorkbook();
+        expect(cache.retain).toHaveBeenCalledWith(key);
+        expect(saved.bytes.size).toBeGreaterThan(bytes.length);
+        archive = await JSZip.loadAsync(saved.bytes);
+        const resultTables = archive.file(/^workbook_result_/);
+        expect(resultTables).toHaveLength(1);
+        expect(await resultTables[0].async('uint8array')).toEqual(bytes);
+        expect(saved.results).toBe(1);
     });
 
-    it('packs nothing while the connections of the workbook are unknown or the overlay is closed', async () => {
-        await render({}, false);
-        await act(() => new Promise(resolve => setTimeout(resolve, 50)));
-        expect(saveButton()!.disabled).toBe(true);
-        expect(document.body.textContent).toContain('~ 0 bytes');
-
-        root.unmount();
-        root = createTestRoot();
+    it('packs nothing while the overlay is closed or without a workbook', async () => {
         await render({ isOpen: false });
         expect(saveButton()).toBeNull();
 

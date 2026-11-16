@@ -3,16 +3,17 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as core from '@ankoh/dashql-core';
+
 import type { PlatformFile } from '../platform/file/file.js';
-import type { ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_tables_parquet';
-import type { PreparedPortableImport, WorkbookImportProgressConsumer } from '../workbook/persistence/workbook_import_provider.js';
+import type { PreparedImport, WorkbookCommitOptions } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {
-    preparePortableImport: vi.fn(),
-    commitPortableImport: vi.fn(),
+    readImport: vi.fn(),
+    prepareImport: vi.fn(),
+    commitImport: vi.fn(),
+    dropImport: vi.fn(),
     navigate: vi.fn(),
-    readWorkbookBundleFromZip: vi.fn(),
-    archiveDatabase: {} as ParquetReadDatabase,
 };
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -23,24 +24,40 @@ const dependencies = {
     workbookImportCard: {
         CompactNavBar: () => <></>,
     },
-    readWorkbookBundleFromZip: state.readWorkbookBundleFromZip,
-    useWorkbookArchiveDatabase: () => async () => state.archiveDatabase,
-    useWorkbookImport: () => ({ preparePortableImport: state.preparePortableImport, commitPortableImport: state.commitPortableImport }),
+    useWorkbookImport: () => ({
+        readImport: state.readImport,
+        prepareImport: state.prepareImport,
+        commitImport: state.commitImport,
+        dropImport: state.dropImport,
+    }),
     useRouterNavigate: () => state.navigate,
 } as FileLoaderDependencies;
 
-const BUNDLE = {
+const PREVIEW: core.ImportPreview = {
+    importId: 1,
     workbook: {
-        formatVersion: 4,
+        formatVersion: 11,
         workbookId: '11111111-2222-4333-8444-555555555555',
         name: 'Explain',
-        mainDatabase: { databaseId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } },
-        attachedDatabases: [],
+        connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } }],
+        scripts: [{ name: '01_query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
+        attachments: [],
         metadata: { originType: 'FILE', originalFileName: 'Explain.dashql' },
     },
-    catalogs: [],
-    scripts: [{ name: '01_query.sql', sql: 'SELECT 1' }],
+    scriptCount: 1,
+    attachmentCount: 0,
+    results: { count: 0, bytes: 0 },
+    conflict: null,
+    questions: [],
+    invalidCatalogs: [],
+    filesValid: true,
+    nativePath: null,
 };
+
+/// A prepared import of a preview
+function prepared(preview: core.ImportPreview, conflict: PreparedImport['conflict'] = null): PreparedImport {
+    return { preview, connections: {}, unasked: false, conflict };
+}
 
 function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))): PlatformFile {
     return {
@@ -64,13 +81,7 @@ function steps(container: HTMLElement): Record<string, string | null> {
         .map(step => [step.getAttribute('data-testid')!.slice('workbook-import-step-'.length), step.getAttribute('data-status')]));
 }
 
-const RESULT_BUNDLE = {
-    ...BUNDLE,
-    results: [
-        { key: 'a'.repeat(64), bytes: new Blob([new Uint8Array(3)]) },
-        { key: 'b'.repeat(64), bytes: new Blob([new Uint8Array(5)]) },
-    ],
-};
+const RESULT_PREVIEW: core.ImportPreview = { ...PREVIEW, results: { count: 2, bytes: 8 } };
 
 describe('FileLoader', () => {
     let container: HTMLDivElement;
@@ -80,11 +91,11 @@ describe('FileLoader', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        state.preparePortableImport.mockReset().mockImplementation(async (bundle: typeof BUNDLE): Promise<PreparedPortableImport> =>
-            ({ bundle: bundle as unknown as PreparedPortableImport['bundle'], conflict: null }));
-        state.commitPortableImport.mockReset().mockResolvedValue('imported-workbook');
+        state.prepareImport.mockReset().mockImplementation(async (preview: core.ImportPreview) => prepared(preview));
+        state.commitImport.mockReset().mockResolvedValue('imported-workbook');
+        state.dropImport.mockReset();
         state.navigate.mockReset();
-        state.readWorkbookBundleFromZip.mockReset().mockResolvedValue(BUNDLE);
+        state.readImport.mockReset().mockResolvedValue(PREVIEW);
     });
 
     afterEach(() => {
@@ -97,17 +108,17 @@ describe('FileLoader', () => {
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(state.preparePortableImport).toHaveBeenCalledWith(BUNDLE);
+        expect(state.prepareImport).toHaveBeenCalledWith(PREVIEW);
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'None' });
         expect(card(container)?.getAttribute('aria-busy')).toBeNull();
         expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
-        expect(container.textContent).toContain(BUNDLE.workbook.workbookId);
-        expect(state.commitPortableImport).not.toHaveBeenCalled();
+        expect(container.textContent).toContain('11111111-2222-4333-8444-555555555555');
+        expect(state.commitImport).not.toHaveBeenCalled();
 
         await act(async () => button(container, 'workbook-import-confirm')!.click());
 
-        await vi.waitFor(() => expect(state.commitPortableImport).toHaveBeenCalledOnce());
-        expect(state.commitPortableImport).toHaveBeenCalledWith({ bundle: BUNDLE, conflict: null }, null, expect.any(Function));
+        await vi.waitFor(() => expect(state.commitImport).toHaveBeenCalledOnce());
+        expect(state.commitImport).toHaveBeenCalledWith(prepared(PREVIEW), null, { onProgress: expect.any(Function) });
         expect(state.navigate).toHaveBeenCalledOnce();
         expect(onDone).toHaveBeenCalledOnce();
     });
@@ -118,17 +129,17 @@ describe('FileLoader', () => {
         await act(async () => root.render(<FileLoader file={{ ...file(read), blob }} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledWith(blob, state.archiveDatabase);
+        expect(state.readImport).toHaveBeenCalledWith({ archive: blob });
         expect(read).not.toHaveBeenCalled();
     });
 
     it('shows the stages while reading, validating and resolving', async () => {
         let finishRead!: (bytes: Uint8Array) => void;
-        let finishValidation!: (bundle: typeof BUNDLE) => void;
-        let finishResolving!: (prepared: PreparedPortableImport) => void;
+        let finishValidation!: (preview: core.ImportPreview) => void;
+        let finishResolving!: (prepared: PreparedImport) => void;
         const read = new Promise<Uint8Array>(resolve => { finishRead = resolve; });
-        state.readWorkbookBundleFromZip.mockReturnValue(new Promise<typeof BUNDLE>(resolve => { finishValidation = resolve; }));
-        state.preparePortableImport.mockReturnValue(new Promise<PreparedPortableImport>(resolve => { finishResolving = resolve; }));
+        state.readImport.mockReturnValue(new Promise<core.ImportPreview>(resolve => { finishValidation = resolve; }));
+        state.prepareImport.mockReturnValue(new Promise<PreparedImport>(resolve => { finishResolving = resolve; }));
 
         act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} dependencies={dependencies} />));
         const stage = () => container.querySelector('[data-testid="workbook-import-file-status"]')?.getAttribute('data-stage');
@@ -140,13 +151,13 @@ describe('FileLoader', () => {
         await vi.waitFor(() => expect(stage()).toBe('validating'));
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Running' });
 
-        await act(async () => finishValidation(BUNDLE));
+        await act(async () => finishValidation(PREVIEW));
         await vi.waitFor(() => expect(stage()).toBe('resolving'));
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Running', workbook: 'None' });
         // The summary shows the workbook while its connections are resolved
         expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
 
-        await act(async () => finishResolving({ bundle: BUNDLE as unknown as PreparedPortableImport['bundle'], conflict: null }));
+        await act(async () => finishResolving(prepared(PREVIEW)));
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
     });
 
@@ -164,12 +175,12 @@ describe('FileLoader', () => {
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')).toBeNull();
-        expect(state.readWorkbookBundleFromZip).toHaveBeenCalledOnce();
-        expect(state.commitPortableImport).not.toHaveBeenCalled();
+        expect(state.readImport).toHaveBeenCalledOnce();
+        expect(state.commitImport).not.toHaveBeenCalled();
     });
 
     it('shows an accessible validation error and retries', async () => {
-        state.readWorkbookBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP: missing dashql-workbook.json'));
+        state.readImport.mockRejectedValueOnce(new Error('Invalid ZIP: missing dashql-workbook.json'));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
@@ -184,16 +195,27 @@ describe('FileLoader', () => {
     });
 
     it('closes when the user cancels the question about the connections', async () => {
-        state.preparePortableImport.mockResolvedValueOnce(null);
+        state.prepareImport.mockResolvedValueOnce(null);
         const onDone = vi.fn();
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
-        expect(state.commitPortableImport).not.toHaveBeenCalled();
+        expect(state.commitImport).not.toHaveBeenCalled();
+    });
+
+    it('lets go of the import when the user closes the card', async () => {
+        const onDone = vi.fn();
+        await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
+        await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
+        await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click());
+
+        await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+        expect(state.dropImport).toHaveBeenCalledWith(PREVIEW);
+        expect(state.commitImport).not.toHaveBeenCalled();
     });
 
     it('marks the connections when resolving them failed', async () => {
-        state.preparePortableImport.mockRejectedValueOnce(new Error('Unknown connector of the connection params with the keys [sidb]'));
+        state.prepareImport.mockRejectedValueOnce(new Error('Unknown connector of the connection params with the keys [sidb]'));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
@@ -203,8 +225,8 @@ describe('FileLoader', () => {
     });
 
     it('asks to replace or copy a registered workbook with the same id', async () => {
-        state.preparePortableImport.mockImplementation(async (bundle: typeof BUNDLE) =>
-            ({ bundle, conflict: { displayLocation: 'opfs://workbooks/Explain', isNative: false } }));
+        state.prepareImport.mockImplementation(async (preview: core.ImportPreview) =>
+            prepared(preview, { workbookId: 'Explain', displayLocation: 'opfs://workbooks/Explain', isNative: false }));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-replace')).not.toBeNull());
@@ -213,12 +235,12 @@ describe('FileLoader', () => {
         expect(container.textContent).toContain('opfs://workbooks/Explain');
 
         await act(async () => button(container, 'workbook-import-replace')!.click());
-        await vi.waitFor(() => expect(state.commitPortableImport).toHaveBeenCalledWith(expect.anything(), 'replace', expect.any(Function)));
+        await vi.waitFor(() => expect(state.commitImport).toHaveBeenCalledWith(expect.anything(), 'replace', { onProgress: expect.any(Function) }));
     });
 
     it('shows import failures without falsely completing the dropzone', async () => {
         const onDone = vi.fn();
-        state.commitPortableImport.mockRejectedValueOnce(new Error('Storage is unavailable'));
+        state.commitImport.mockRejectedValueOnce(new Error('Storage is unavailable'));
         await act(async () => root.render(<FileLoader file={file()} onDone={onDone} dependencies={dependencies} />));
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         await act(async () => button(container, 'workbook-import-confirm')!.click());
@@ -233,11 +255,11 @@ describe('FileLoader', () => {
     });
 
     it('shows the steps of the import as they run', async () => {
-        state.readWorkbookBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
-        let report!: WorkbookImportProgressConsumer;
+        state.readImport.mockResolvedValue(RESULT_PREVIEW);
+        let report!: NonNullable<WorkbookCommitOptions['onProgress']>;
         let finish!: (workbookId: string) => void;
-        state.commitPortableImport.mockImplementation((_prepared, _choice, onProgress: WorkbookImportProgressConsumer) => {
-            report = onProgress;
+        state.commitImport.mockImplementation((_prepared, _choice, options: WorkbookCommitOptions) => {
+            report = options.onProgress!;
             return new Promise<string>(resolve => { finish = resolve; });
         });
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
@@ -260,10 +282,10 @@ describe('FileLoader', () => {
     });
 
     it('keeps the card open when query results were not added', async () => {
-        state.readWorkbookBundleFromZip.mockResolvedValue(RESULT_BUNDLE);
-        state.commitPortableImport.mockImplementation(async (_prepared, _choice, onProgress: WorkbookImportProgressConsumer) => {
-            onProgress({ step: 'results', total: 2, outcome: { total: 2, added: 1, kept: 0, failed: 1, dropped: 0, bytes: 3, error: 'The checksum of b.parquet differs' } });
-            onProgress({ step: 'workbook' });
+        state.readImport.mockResolvedValue(RESULT_PREVIEW);
+        state.commitImport.mockImplementation(async (_prepared, _choice, options: WorkbookCommitOptions) => {
+            options.onProgress!({ step: 'results', total: 2, outcome: { total: 2, added: 1, kept: 0, failed: 1, dropped: 0, bytes: 3, error: 'The checksum of b.parquet differs' } });
+            options.onProgress!({ step: 'workbook' });
             return 'imported-workbook';
         });
         const onDone = vi.fn();
@@ -285,7 +307,7 @@ describe('FileLoader', () => {
     });
 
     it('marks the step of the file that failed', async () => {
-        state.readWorkbookBundleFromZip.mockRejectedValueOnce(new Error('Invalid ZIP'));
+        state.readImport.mockRejectedValueOnce(new Error('Invalid ZIP'));
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Failed' });

@@ -30,7 +30,7 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { workbookBundleToTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';
 import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
@@ -73,10 +73,9 @@ const query: CloudQuery = (sql, signal) => {
 
 /// Publish a workbook with one script
 async function publish(name: string, folderId: string | null = null, sql = 'select 1') {
-    const tables = workbookBundleToTables({
+    const tables = testWorkbookTables({
         workbook: testWorkbook({ name, scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }),
-        scripts: [{ name: 'a.sql', sql }],
-        catalogs: [],
+        scripts: { 'a.sql': sql },
     });
     return await publishCloudWorkbook(query, database, tables, { folderId: folderId ?? undefined });
 }

@@ -10,11 +10,9 @@ import { usePlatformEventListener } from '../../platform/events/event_listener_p
 import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
-import { readWorkbookBundleFromZip } from '@ankoh/dashql-runtime/workbook/persistence/workbook_import';
-import { useWorkbookArchiveDatabase } from '../../workbook/persistence/workbook_archive_database.js';
-import { useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
+import { importConflictOf, importedWorkbook, useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
 import {
-    readWorkbookBundleFromHttp,
+    readWorkbookFromHttp,
     type HttpWorkbookLoadProgress,
     type HttpWorkbookLoadResult,
 } from '../../workbook/persistence/http_workbook_bundle.js';
@@ -55,7 +53,6 @@ export function useSharedWorkbookImport(
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const setupCore = useDashQLCoreSetup();
-    const archiveDatabase = useWorkbookArchiveDatabase();
     const appEvents = usePlatformEventListener();
     const workbookImport = useWorkbookImport();
     const httpClient = useHttpClient();
@@ -74,6 +71,9 @@ export function useSharedWorkbookImport(
 
         let remoteAbort: AbortController | null = null;
         let remoteResult: Promise<HttpWorkbookLoadResult> | null = null;
+        // Remote workbook I/O can proceed while the application initializes. Reading the import and detecting a
+        // conflict wait for the setup because they use the initialized storage registry.
+        const setup = Promise.all([setupCore("app_setup"), setupDone]);
         if (data.type === SETUP_WORKBOOK_URL) {
             remoteAbortRef.current?.abort();
             remoteAbort = new AbortController();
@@ -81,9 +81,14 @@ export function useSharedWorkbookImport(
             setRemoteLoad({ sourceUrl: data.value, progress: { phase: 'preparing' } });
             setLoaded(null);
             traced.info('Loading shared workbook', { sourceUrl: data.value }, LOG_CTX);
-            remoteResult = readWorkbookBundleFromHttp(
+            remoteResult = readWorkbookFromHttp(
                 new URL(data.value),
                 httpClient,
+                // The workbook folder is read once the app set up, the import needs the restored storage
+                async source => {
+                    await setup;
+                    return await workbookImport.readImport(source);
+                },
                 remoteAbort.signal,
                 progress => {
                     if (remoteAbortRef.current === remoteAbort) {
@@ -93,39 +98,38 @@ export function useSharedWorkbookImport(
             );
         }
 
-        // Remote workbook I/O can proceed while the application initializes. Import and conflict
-        // detection still wait for setup because they use the initialized storage registry.
-        const setup = Promise.all([setupCore("app_setup"), setupDone]);
         const result = remoteResult == null ? null : await remoteResult;
         await setup;
-        remoteAbort?.signal.throwIfAborted();
+        if (remoteAbort?.signal.aborted) {
+            if (result != null) workbookImport.dropImport(result.preview);
+            remoteAbort.signal.throwIfAborted();
+        }
         if (data.type === SETUP_WORKBOOK) {
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
             // A link imports without the user handing over a file, it never adds query results to the cache
-            const { results, ...bundle } = await readWorkbookBundleFromZip(zipBlob, await archiveDatabase('workbook_import'));
-            if ((results?.length ?? 0) > 0) {
-                traced.warn("Ignored the query results of a link", { results: results!.length.toString() }, LOG_CTX);
-            }
-            const workbookId = await workbookImport.importPortableBundle(bundle, {
+            const workbookId = await workbookImport.importWorkbook({ archive: zipBlob }, {
                 presentation: { mode: 'centered' },
+                results: false,
             });
             if (workbookId != null) {
                 traced.debug("Finished link setup", { workbookId }, LOG_CTX);
                 navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
                 return true;
             }
+        } else if (data.type === SETUP_WORKBOOK_URL && result != null && remoteAbortRef.current !== remoteAbort) {
+            // A newer shared workbook replaced this one
+            workbookImport.dropImport(result.preview);
         } else if (data.type === SETUP_WORKBOOK_URL && remoteAbortRef.current === remoteAbort) {
+            const workbookId = importedWorkbook(result!.preview).workbookId;
             traced.info('Loaded shared workbook', {
-                workbookId: result!.bundle.workbook.workbookId,
+                workbookId,
                 loadedScriptCount: String(result!.loadedScriptCount),
                 listedScriptCount: String(result!.listedScriptCount),
                 incomplete: String(result!.incomplete),
             }, LOG_CTX);
-            const conflict = await workbookImport.findPortableBundleConflict(result!.bundle);
-            remoteAbort!.signal.throwIfAborted();
-            if (remoteAbortRef.current !== remoteAbort) return false;
+            const conflict = importConflictOf(result!.preview);
             traced.info('Checked shared workbook import conflict', {
-                workbookId: result!.bundle.workbook.workbookId,
+                workbookId,
                 conflict: String(conflict != null),
                 existingLocation: conflict?.displayLocation ?? '',
             }, LOG_CTX);
@@ -169,15 +173,24 @@ export function useSharedWorkbookImport(
         setImportBusy(true);
         const { result } = loaded;
         const importChoice = choice ?? 'import';
+        const sourceWorkbookId = importedWorkbook(result.preview).workbookId;
         logger.info('Importing shared workbook', {
-            workbookId: result.bundle.workbook.workbookId,
+            workbookId: sourceWorkbookId,
             choice: importChoice,
         }, LOG_CTX);
-        void workbookImport.importPortableBundleWithChoice(result.bundle, choice ?? 'create-new').then(workbookId => {
-            // The user cancelled the import while choosing connections
+        const run = async () => {
+            const prepared = await workbookImport.prepareImport(result.preview);
+            // The user cancelled the import while choosing connections, the import is dropped
+            if (prepared == null) {
+                setLoaded(null);
+                return null;
+            }
+            return await workbookImport.commitImport(prepared, choice ?? 'create-new');
+        };
+        void run().then(workbookId => {
             if (workbookId == null) return;
             logger.info('Imported shared workbook', {
-                sourceWorkbookId: result.bundle.workbook.workbookId,
+                sourceWorkbookId,
                 workbookId,
                 choice: importChoice,
             }, LOG_CTX);
@@ -189,9 +202,10 @@ export function useSharedWorkbookImport(
     }, [loaded, importBusy, logger, navigate, workbookImport]);
 
     const cancelLoaded = React.useCallback(() => {
-        if (importBusy) return;
+        if (importBusy || loaded == null) return;
+        workbookImport.dropImport(loaded.result.preview);
         setLoaded(null);
-    }, [importBusy]);
+    }, [importBusy, loaded, workbookImport]);
 
     if (remoteLoad != null) {
         return <WorkbookImportCard

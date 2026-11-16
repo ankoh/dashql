@@ -229,7 +229,9 @@ impl StorageHost for JsStorage {
         if !Array::is_array(&names) {
             return Err(HostError::new(format!("the attachments of {workbook_id} are not a list")));
         }
-        Ok(Array::from(&names).iter().filter_map(|name| name.as_string()).collect())
+        // The attachments in natural order
+        let names: Vec<String> = Array::from(&names).iter().filter_map(|name| name.as_string()).collect();
+        Ok(dashql_core_runtime::workbook_format::files::workbook_attachments(&names).into_iter().map(|attachment| attachment.name).collect())
     }
 
     async fn update_connections(&self, mut update: ConnectionsUpdate) -> Result<(), HostError> {

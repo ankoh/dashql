@@ -68,6 +68,8 @@ export interface RuntimePlatform {
     readonly salesforce: RuntimeSalesforce | null;
     /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
     readonly storage: RuntimeStorage | null;
+    /** The `.dashql` archives of imports and exports: the ZIP container and the Parquet files of the workbook tables. Null without. */
+    readonly archives: RuntimeArchives | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
     changed(urgent: boolean): void;
 }
@@ -81,7 +83,7 @@ export interface RuntimeStorage {
     saveScript(workbookId: string, fileName: string, text: string): Promise<void>;
     deleteScript(workbookId: string, fileName: string): Promise<void>;
     renameScript(workbookId: string, from: string, to: string): Promise<void>;
-    /** The names of the attachments in natural order */
+    /** The names of the attachments in NFC, the runtime orders them naturally */
     listAttachments(workbookId: string): Promise<string[]>;
     /** Update the connection entries of the app manifest exclusively. The update gets the entries, null before the connections were migrated, and returns the new ones, null if nothing changed. */
     updateConnections(update: (connections: unknown[] | null) => unknown[] | null): Promise<void>;
@@ -100,6 +102,78 @@ export interface RuntimeStorage {
     listDataFiles(workbookId: string): Promise<WorkbookDataFile[]>;
     /** A file of a connection, null if it doesn't exist */
     loadConnectionFile(connectionId: string, fileName: string): Promise<string | null>;
+    /** An attachment of a workbook, a Blob or its bytes */
+    loadDataFile(workbookId: string, name: string): Promise<Blob | Uint8Array>;
+    /** Write an attachment of a workbook */
+    saveDataFile(workbookId: string, name: string, file: Blob | Uint8Array): Promise<void>;
+    /** The entry of the workbook tree with an id, ignoring its case, null if none */
+    findWorkbook(workbookId: string): Promise<{ path: string; storageType?: string; nativePath?: string | null } | null>;
+    /** Add or replace an entry of the workbook tree, e.g. to route a workbook to the origin private file system */
+    upsertWorkbookEntry(entry: unknown): Promise<void>;
+    /** Delete the files of a workbook, its entry stays */
+    deleteWorkbookFiles(workbookId: string): Promise<void>;
+    /** Register a native workbook folder in place under an id: the platform migrates it and adds it to the workbook tree */
+    registerNativeWorkbook(dir: string, workbookId: string): Promise<void>;
+}
+
+/** An entry of a `.dashql` archive that the platform writes: a workbook table from the Arrow IPC of its rows, written as Parquet, or a file of the handle table as it is */
+export interface RuntimeArchiveEntry {
+    fileName: string;
+    /** Stored without compression, else deflated */
+    stored: boolean;
+    table: Uint8Array | null;
+    file: number | null;
+}
+
+/** The `.dashql` archives of the platform. An archive that is read is a Blob of the handle table, the platform keeps its reader until `close`. */
+export interface RuntimeArchives {
+    /** Write an archive of the entries in order, resolves with its Blob */
+    write(entries: RuntimeArchiveEntry[]): Promise<Blob>;
+    /** The bytes of an archive of the handle table, e.g. for a link */
+    bytes(archive: number): Promise<Uint8Array>;
+    /** The entries of an archive, their names in NFC */
+    entries(archive: number): Promise<{ filename: string; directory: boolean }[]>;
+    /** The text of an entry */
+    readText(archive: number, index: number): Promise<string>;
+    /** A workbook table of a Parquet entry as Arrow IPC */
+    readTable(archive: number, index: number): Promise<Uint8Array>;
+    /** A file entry: a slice of the archive with the CRC-32 of the entry if it is stored and `slice` is set, else its bytes checked against the CRC-32 */
+    readFile(archive: number, index: number, slice: boolean): Promise<{ file: Blob; crc32: number | null }>;
+    /** Close the reader of an archive */
+    close(archive: number): Promise<void>;
+}
+
+/** A workbook folder that an import reads: a native folder, a folder of the browser, a hosted workbook */
+export interface RuntimeImportFolder {
+    /** A top-level file or a catalog file of a connection (`connections/<id>/<file>`), null if missing */
+    readText(path: string): Promise<string | null>;
+    /** The script files, given the scripts that the workbook file lists */
+    scripts(listed: string[]): Promise<{ name: string; sql: string }[]>;
+    /** The attachments, given the attachments that the workbook file lists */
+    attachments(listed: string[]): Promise<{ name: string; file: Blob | Uint8Array }[]>;
+    /** The prefix of the errors, e.g. "Invalid remote workbook" */
+    readonly errorPrefix?: string;
+    /** Metadata of the source that the workbook file takes, e.g. the URL of a hosted workbook */
+    readonly metadata?: unknown;
+    /** The folder of a native workbook that is registered in place */
+    readonly nativePath?: string | null;
+}
+
+/** The source of an import: a `.dashql` archive (a Blob of the handle table), a workbook folder, or the workbook tables with the rows of each table as Arrow IPC and the Parquet files of the data tables */
+export type ImportSource =
+    | { archive: number }
+    | { folder: RuntimeImportFolder }
+    | { tables: { rows: Record<string, Uint8Array>; data: { tableName: string; file: Blob | Uint8Array; crc32?: number | null }[]; errorPrefix?: string } };
+
+/** A step of the commit of an import */
+export type ImportStep = 'results' | 'workbook' | 'scripts' | 'attachments' | 'open';
+
+/** The workbook tables of an export */
+export interface ExportedTables {
+    /** The rows of the workbook tables by table name */
+    rows: Record<string, Record<string, string | number | boolean | null>[]>;
+    /** The Parquet files of the attachment and result tables by handle */
+    data: { tableName: string; file: number; size: number; crc32: number | null }[];
 }
 
 /** A channel that a setup asks the host to connect */
@@ -230,7 +304,7 @@ export interface RuntimeChannels {
 /** The query result cache of the platform, Parquet files that the compute database reads and writes */
 export interface RuntimeResultCache {
     /** The newest file of a key, null on a miss */
-    lookup(key: string): Promise<{ name: string; cachedAt: number } | null>;
+    lookup(key: string): Promise<{ name: string; cachedAt: number; size: number } | null>;
     /** Read a file into a table of the handle table */
     read(name: string): Promise<{ table: number; rows: number; columns: number }>;
     /** Record a read of a file */
@@ -243,6 +317,12 @@ export interface RuntimeResultCache {
     retain(key: string): Promise<{ id: number; name: string } | null>;
     /** Release a file that `retain` kept */
     release(id: number): Promise<void>;
+    /** The Blob of a file, e.g. one that `retain` kept for an export */
+    file(name: string): Promise<Blob>;
+    /** Add a result of a key from a file of the handle table, checked against the CRC-32. Resolves false if the key was cached already, the files of the app win. */
+    import(key: string, file: number, crc32: number | null): Promise<boolean>;
+    /** The limits of the files, eviction removes the least recently read files beyond them */
+    capacity(): { maxBytes: number; maxFiles: number };
 }
 
 /** The files of the runs of workbooks in the compute database. A run names its files by its number. */
@@ -371,6 +451,11 @@ fn call(object: &JsValue, name: &str, args: &[JsValue]) -> Result<JsValue, HostE
 /// Await the promise of a call
 async fn settled(value: Result<JsValue, HostError>) -> Result<JsValue, HostError> {
     JsFuture::from(Promise::resolve(&value?)).await.map_err(host_error)
+}
+
+/// Call a method of an object of the host and await it, e.g. of the folder of an import
+pub(crate) fn call_method(object: &JsValue, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    settled(call(object, name, args))
 }
 
 /// A number of the platform as a handle, none for no handle
@@ -677,6 +762,29 @@ impl JsPlatform {
     pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
         let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;
         call(&storage, name, args)
+    }
+
+    /// Call a member of the storage of the platform and await it
+    pub fn storage_await(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        settled(self.storage_call(name, args))
+    }
+
+    /// Call a member of the archives of the platform and await it
+    pub fn archives_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let archives = member(self.object(), "archives").map_err(|_| HostError::new("the platform writes and reads no workbook archives"));
+        settled(archives.and_then(|archives| call(&archives, name, args)))
+    }
+
+    /// Call a member of the query result cache and await it
+    pub fn cache_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        settled(self.result_cache().and_then(|cache| call(&cache, name, args)))
+    }
+
+    /// Forget the object of a handle
+    pub fn release_handle(&self, handle: Handle) {
+        if let Ok(handles) = member(self.object(), "handles") {
+            let _ = call(&handles, "release", &[JsValue::from_f64(handle as f64)]);
+        }
     }
 
     /// A random id

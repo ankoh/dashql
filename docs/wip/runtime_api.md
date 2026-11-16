@@ -6,6 +6,7 @@ is built: the connections with their query histories, the query executor and the
 [Step 2 as built](#step-2-as-built). Step 3 is built: the setups of the connections and the catalog loader, see
 [Step 3 as built](#step-3-as-built). Step 4 is built: the workbooks, the storage writer and the restore, see
 [Step 4 as built](#step-4-as-built). Step 5 is built: the runs of workbooks, see [Step 5 as built](#step-5-as-built).
+Step 6 is built: the imports and exports of workbooks, see [Step 6 as built](#step-6-as-built).
 Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
@@ -449,8 +450,8 @@ deletes more than it adds.
    `connections.prepare` of its platform. Deletes
    `workbook_execution_service.ts`, `workbook_execution.ts` but the event types, `script_run.ts`, `rerun_query.ts`,
    `workbook_run.rs`. TypeScript about −900.
-6. **Imports and exports.** `importWorkbook`, `exportWorkbook` over the format of the core and the `tables` and
-   `storage` of the platform. Deletes the orchestration of `workbook_import.ts`, `workbook_export.ts`,
+6. **Imports and exports** (done, see [Step 6 as built](#step-6-as-built)). `importWorkbook`, `exportWorkbook` over the
+   format of the core and the `tables` and `storage` of the platform. Deletes the orchestration of `workbook_import.ts`, `workbook_export.ts`,
    `workbook_connection_import.ts`, `workbook_query_results.ts`, `workbook_format.rs` and its wrapper. TypeScript about
    −1,100.
 7. **The rest.** `runtime.ts` becomes the facade; the old hook names, `storeWithoutRuntime` and the binding modules
@@ -910,6 +911,104 @@ platform already (`retainWorkbookQueryResults`, `countWorkbookQueryResults`); an
 hand the Parquet files to the archive by handle. `importWorkbookQueryResults` adds results to the cache in
 TypeScript; an import command needs a `resultCache.import` of the platform. The restore of an imported workbook is
 `restoreWorkbook` already.
+
+### Step 6 as built
+
+The imports and exports of workbooks, built on `3f6d09704` (step 5).
+
+- **The commands.** `exportWorkbook(workbookId, options, consume)` exports a workbook as a `.dashql` archive (a Blob of
+  the handle table), as a link (`linkBase`; without results and, by default, without catalogs) or as the workbook
+  tables, which go to `consume` and stay readable until it settled (a cloud). The options are `format`, `results`,
+  `withCatalog`, `withLoginHint` and `preserveUuids`; the outcome names the archive or the link and the cached results
+  that the export carries (`ExportedResults`). `exportConnection(connectionId, { linkBase, withLoginHint })` is the link
+  of a connection, `exportedResults(workbookId)` counts the cached results that an export would carry. `readImport(source)`
+  reads a `.dashql` archive (`{ archive }`, a handle), a workbook folder (`{ folder }`, a `RuntimeImportFolder`) or the
+  workbook tables of a cloud (`{ tables }`, the rows of each table as Arrow IPC) into a pending import and resolves
+  with an `ImportPreview`: the workbook file, its counts, the cached results, the registered workbook with the same id,
+  the questions about the connections and the catalog files that didn't parse. `commitImport(importId, answers,
+  onStep)` writes it with the answers (`connections`, `preview`, `conflict`: `replace` or `create-new`, `workbookId`,
+  `metadata`, `results`, `restore`) and resolves with `ImportOutcome` (the id, the outcome of the results, the
+  registered connections, whether it was restored). `dropImport(importId)` lets go of it. The plan's
+  `importWorkbook(archive, plan)` became the two steps because the app asks its questions between them; a commit that
+  fails keeps the import for another try.
+- **The export in Rust** (`runtime/exports.rs`). It writes the pending writes of the workbook first, reads the workbook
+  from `storage` (the attachments by handle, `storage.loadDataFile`), the live params and names of its connections
+  from the registry, and the cached results under the keys of `resultKeys`, retained (`resultCache.retain`, `file`)
+  until the export ended. The format prunes the connections, sanitizes them for sharing, gives fresh ids and builds the
+  workbook tables; `archives.write` of the platform writes the rows as Parquet and adds the files by handle.
+- **The import in Rust** (`runtime/imports.rs`). An archive: the platform lists the entries, `plan_archive` decides,
+  the platform scans the workbook tables into Arrow IPC (`archives.readTable`) and hands the attachments and results
+  over by handle (`readFile`, a stored result as a slice with its CRC-32). A folder: the runtime reads the top-level
+  files (the workbook file alone when it is current), migrates them in memory, reads the catalog files of the
+  connections that the format names, then the scripts and attachments. The catalogs that don't parse are left out.
+  The connections map to the stored connections with their live params and to the connections of the runtime that
+  workbooks use (`plan_connection_import`). A commit applies the answers, adds the results to the cache
+  (`plan_result_import`, `resultCache.import` with the CRC-32) and writes the workbook through `storage`: a fresh write
+  with its verification (the scripts, the attachments by name and size and the workbook file, read back) and a delete
+  on failure; a replacement through a verified staged copy, its entry routed to the origin private file system and the
+  old workbook written back when the swap fails; a native folder registered in place (the runtime validates it and
+  seeds the catalogs, `storage.registerNativeWorkbook` migrates and registers it, the runtime reconciles its file
+  lists). A fresh copy is restored into the runtime (`Restorer` of `runtime.rs`, which `restoreWorkbook` uses as well).
+- **The platform grew** `archives` (`write`, `bytes`, `entries`, `readText`, `readTable`, `readFile`, `close`;
+  `createRuntimeArchives` of `storage/workbook_archives.ts` over zip.js and the embedded Hyper, which is set up when an
+  archive first needs it; the app passes it as `archives` of the platform of `createRuntime`, the command line tool has
+  none), `storage.loadDataFile`, `saveDataFile`, `findWorkbook`, `upsertWorkbookEntry`, `deleteWorkbookFiles` and
+  `registerNativeWorkbook`, `resultCache.file`, `import` and `capacity`, and the size in `resultCache.lookup`.
+  `storage.listAttachments` hands the names over in NFC, the runtime orders them.
+- **The binding of the format shrank.** `workbook_format.rs` of the bindings keeps what the storage of the platform
+  calls itself: the constants with the columns of the workbook tables (the schema of a cloud), the validation and its
+  descriptions, `isLocalHyperWasmParams`, `isValidUuid`, the migrations of folders and of `sidb` connections, the
+  resolution of the scripts of a native folder that changed on disk and the eviction of the query result cache. Its
+  readers of bundles, tables, archives, plans of connections and results, `encodeWorkbookTable`, `decodeWorkbookTable`
+  and `workbookLink` went, and so did those methods of `DashQLWorkbookFormat`. The rest goes when the storage moves.
+- **TypeScript.** `CoreRuntime` has `exportArchive`, `exportLink`, `exportTables`, `exportConnectionLink`,
+  `exportedResults`, `readImport`, `commitImport` and `dropImport`. Deleted: `workbook_import.ts`, `workbook_export.ts`,
+  `workbook_connection_import.ts`, `workbook_query_results.ts` and their tests, `storage/workbook_bundle.ts` and its
+  test, `storage/workbook_tables_parquet.ts`, the converters of `storage/workbook_tables.ts` (it keeps the names and the
+  row types that a cloud writes), and `storage/workbook_import_transaction.ts` of the app with the bundle methods of
+  `CompositeStorageBackend` (`prepareNativeWorkbook`, `readWorkbookBundle`, `writePortableWorkbookBundle`,
+  `registerPreparedNativeWorkbook`, ...); the composite backend registers a native folder (`registerNativeWorkbook`) and
+  reads one for an import (`importFolder`).
+- **The app.** `WorkbookImportProvider` has `readImport`, `prepareImport` (the connection dialog), `commitImport` (the
+  pause of the writer and the reload for a replacement or a native folder), `dropImport` and `importWorkbook` (read,
+  the conflict dialog, prepare, commit). A dropped file, a link, a shared URL (`readWorkbookFromHttp`, a folder over
+  HTTP), a native folder, a folder of the browser (`browserWorkbookFolder`) and a version of a cloud import through it;
+  the cards and the connection dialog read the preview and its questions. The save overlay, the share overlays and the
+  publish to a cloud export through `CoreRuntime`, the connection maps and `useWorkbookArchiveWriter` went. A cloud reads
+  a version as the Arrow IPC of its tables (`readCloudWorkbook`) and publishes the tables of `exportTables`.
+- **Changed on purpose.** Every export writes the pending writes of its workbook first, not only a publish, and takes
+  the params and names of the connections from the runtime. A pack of the save overlay that is no longer needed is
+  ignored instead of aborted. The verification of an imported workbook compares the attachments by name and size, not
+  by their bytes. A commit that fails can be tried again with the same import, e.g. after the user chose again. The
+  budget of a shared URL drops the optional files after it is spent, not all of them. A publish retries without the
+  query results only when it carried some. The logs of imports and exports come from Rust.
+
+Measured (`git diff --numstat` with the new files, sources without tests; the test helpers of `testing/`, `tests/`,
+`test_fixture.ts`, `cloud_test_tables.ts` and `import_test_sources.ts` count as tests):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 1,032 | 300 | 703 | 4 |
+| `dashql-core-js` | 173 | 28 | 20 | 201 |
+| `dashql-core-wasm` | 609 | 1,837 | | |
+| `dashql-app` | 1,275 | 703 | 594 | 615 |
+
+TypeScript lost 2,480 lines and gained 1,031 without tests (−1,449 net), and 1,317 lines of tests for 820. Rust gained
+about 1,230 net in the bindings: `runtime/imports.rs`, `runtime/exports.rs` and `runtime/archives.rs` (about 1,830
+lines with the platform calls and the views) came, about 600 lines of the JSON readers of `workbook_format.rs` went.
+The release module (`--config=release`) grew from 13,526,490 to 13,628,426 bytes (+0.8%), gzip (`-9`) from 3,718,380
+to 3,762,803 bytes (+1.2%): the futures of the import and the export, their views and the writes with their
+verification came, the JSON readers of bundles, tables and plans went. The typing benchmark is unchanged (one run of
+one pass: the editor 80 / 145 µs, the update 31 / 67 µs, the flush 11 / 15 µs, the derivation 25 / 36 µs, p10 / p50).
+
+What step 7 needs: `runtime.ts` becomes the facade over `CoreRuntime`; the old hook names (`useConnectionRegistry`,
+`useWorkbookScripts`, `useQueryExecutor`, ...), `storeWithoutRuntime` and the binding modules of the app go. What the
+package keeps is the platform (the storage backends with their migrations and the eviction, `workbook_archives.ts`,
+the query result cache, the embedded Hyper, the HTTP client, the logger, Node), the connector clients and channels,
+the store with its projections, and helpers for the UI (labels, connector infos, formatting, computation types). The
+logic that is left in it: `QueryPlatform` (the description of a query from the view of its connection, the cache key
+of a connection with SHA-256), the query result cache with its eviction, the migrations of workbook folders and of the
+storage, and the binding of the format that they call (`workbook_format.rs`, `DashQLWorkbookFormat`).
 
 ### The order
 
