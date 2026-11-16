@@ -1,6 +1,6 @@
 // The query executor on a fake host: an executor of a single thread, a clock that only the test advances, an HTTP
-// server of answers and a channel of the host. The semantics follow
-// packages/dashql/src/runtime/connections/query_executor_service.test.ts.
+// server of answers and a channel of the host. A query is cancelled through the token of its run, the one
+// cancellation of the runtime.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap, VecDeque};
@@ -18,8 +18,8 @@ use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpe
 use dashql_core_runtime::connections::{ConnectorType, TrinoSessionDefaults};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
-    CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, HostTable, QueryEvent,
-    QueryExecutor, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget,
+    CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
+    QueryControls, QueryEvent, QueryExecutor, QueryId, QueryOutcome, QueryRequest, QueryTarget,
 };
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{
@@ -159,7 +159,19 @@ struct State {
     channel_aborted: CancellationToken,
     cache_read_fails: bool,
     cache_write_fails: bool,
+    /// Does the eviction after a write remove the new file right away?
+    cache_write_evicted: bool,
+    /// The answer of the next lookup of the cache, it waits for it
+    cache_lookup_later: Option<Receiver<Option<CacheEntry>>>,
+    /// The next read of the cache waits for this
+    cache_read_later: Option<Receiver<()>>,
     analysis_fails: bool,
+    /// Does the analysis wait until its query is cancelled?
+    analysis_holds: bool,
+    /// Does the channel wait with the open until it is cancelled, like a query that waits for the query before it?
+    open_holds: bool,
+    /// The answer of the next open of the channel, it waits for it whether the query is cancelled or not
+    open_later: Option<Receiver<bool>>,
     /// The access tokens that shared Trino channels refreshed
     refreshed_tokens: Vec<String>,
     /// The auth headers of the Hyper channel as they are now, none keeps those of the query
@@ -173,6 +185,8 @@ struct FakeHost {
     server: RefCell<Option<Server>>,
     /// The requests that the host aborted, by their URL
     aborted: Rc<RefCell<Vec<String>>>,
+    /// The tables that the reads of the cache handed to the runs, by query
+    cache_tables: Rc<RefCell<Vec<QueryId>>>,
 }
 
 impl FakeHost {
@@ -183,6 +197,7 @@ impl FakeHost {
             state: RefCell::new(State { channel_stream: true, ..State::default() }),
             server: RefCell::new(None),
             aborted: Rc::default(),
+            cache_tables: Rc::default(),
         })
     }
 
@@ -306,7 +321,6 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::Sending => "sending".into(),
         QueryEvent::Running => "running".into(),
         QueryEvent::Progress(progress) => format!("progress:{}", progress.phase.clone().unwrap_or_default()),
-        QueryEvent::ResultData(_) => return None,
         QueryEvent::ReceivedBatch(metrics) => format!("batch:{}", metrics.total_rows_received),
         QueryEvent::ReceivedAllBatches { rows, .. } => format!("all:{rows}"),
         QueryEvent::ProcessingResults => "processing".into(),
@@ -322,23 +336,45 @@ fn event_name(event: &QueryEvent) -> Option<String> {
     })
 }
 
+/// The run of a query as the host keeps it: its id, its token and its controls
+#[derive(Default)]
+struct FakeRun {
+    query_id: QueryId,
+    token: CancellationToken,
+    controls: QueryControls,
+}
+
+impl ExecutorRun for FakeRun {
+    fn query_id(&self) -> QueryId {
+        self.query_id
+    }
+
+    fn token(&self) -> &CancellationToken {
+        &self.token
+    }
+
+    fn controls(&self) -> &QueryControls {
+        &self.controls
+    }
+}
+
+/// Wait for a value that the test sends, a value that never comes fails
+fn later<T: 'static>(receiver: Receiver<T>, what: &'static str) -> Boxed<Result<T, HostError>> {
+    Box::pin(async move { receiver.await.ok_or_else(|| HostError::new(what)) })
+}
+
 impl ExecutorHost for FakeHost {
-    fn report(&self, query_id: QueryId, event: QueryEvent) {
+    type Run = FakeRun;
+
+    fn report(&self, run: &FakeRun, event: QueryEvent) {
         let mut state = self.state.borrow_mut();
         if let QueryEvent::Log { level, message, details, .. } = &event {
             state.logs.push((*level, message.clone(), details.clone()));
             return;
         }
         match &event {
-            // The parts of the result stay with the host
-            QueryEvent::ResultData(Body::Bytes(bytes)) => state.parts.entry(query_id).or_default().push(bytes.clone()),
-            QueryEvent::ResultData(Body::Host(bytes)) => {
-                let kept = bytes.value().downcast_ref::<Vec<u8>>().expect("bytes of the host").clone();
-                state.host_parts += 1;
-                state.parts.entry(query_id).or_default().push(kept);
-            }
             QueryEvent::ReceivedAllBatches { rows, .. } => {
-                state.results.insert(query_id, *rows as usize);
+                state.results.insert(run.query_id, *rows as usize);
             }
             QueryEvent::Progress(progress) => state.progress.push((**progress).clone()),
             _ => {}
@@ -348,34 +384,90 @@ impl ExecutorHost for FakeHost {
         }
     }
 
-    fn cache_lookup(&self, _query_id: QueryId, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static {
+    fn push_result(&self, run: &FakeRun, part: Body) -> Result<(), HostError> {
         let mut state = self.state.borrow_mut();
-        state.cache_calls.push(format!("lookup:{key}"));
-        std::future::ready(Ok(state.cache.get(key).cloned()))
+        // The parts of the result stay with the host
+        let part = match part {
+            Body::Bytes(bytes) => bytes,
+            Body::Host(bytes) => {
+                state.host_parts += 1;
+                bytes.value().downcast_ref::<Vec<u8>>().cloned().ok_or_else(|| HostError::new("no bytes of the host"))?
+            }
+        };
+        state.parts.entry(run.query_id).or_default().push(part);
+        Ok(())
     }
 
-    fn cache_read(&self, _query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+    fn finish_result(&self, run: &Rc<FakeRun>) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+        let mut state = self.state.borrow_mut();
+        // The host builds the table from the parts of the stream, or from the batches of its channel
+        let table = match state.parts.remove(&run.query_id) {
+            Some(parts) => read_stream(&parts.concat()).map_err(HostError::new).map(|(schema, batches)| HostTable {
+                rows: batches.iter().map(|batch| batch.num_rows() as u64).sum(),
+                columns: schema.fields().len() as u64,
+                batches: batches.len() as u64,
+            }),
+            None => Ok(HostTable { rows: state.channel_rows, columns: 1, batches: 1 }),
+        };
+        std::future::ready(table)
+    }
+
+    fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static {
+        let mut state = self.state.borrow_mut();
+        state.cache_calls.push(format!("lookup:{key}"));
+        match state.cache_lookup_later.take() {
+            Some(answer) => later(answer, "no answer"),
+            None => Box::pin(std::future::ready(Ok(state.cache.get(key).cloned()))),
+        }
+    }
+
+    fn cache_read(&self, run: &Rc<FakeRun>, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.cache_calls.push(format!("read:{}", entry.name));
         let fails = state.cache_read_fails;
-        std::future::ready(if fails { Err(HostError::new("corrupt parquet")) } else { Ok(HostTable { rows: 1, columns: 1, batches: 1 }) })
+        let wait = state.cache_read_later.take();
+        let tables = self.cache_tables.clone();
+        let query_id = run.query_id;
+        async move {
+            if let Some(wait) = wait {
+                wait.await;
+            }
+            if fails {
+                return Err(HostError::new("corrupt parquet"));
+            }
+            // The run owns the table that was read
+            tables.borrow_mut().push(query_id);
+            Ok(HostTable { rows: 1, columns: 1, batches: 1 })
+        }
     }
 
-    fn cache_touch(&self, _query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
+    fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
         self.state.borrow_mut().cache_calls.push(format!("touch:{}", entry.name));
         std::future::ready(Err(HostError::new("read only")))
     }
 
-    fn cache_write(&self, _query_id: QueryId, key: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+    fn cache_write(&self, _run: &Rc<FakeRun>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.cache_calls.push(format!("write:{key}"));
-        let fails = state.cache_write_fails;
-        std::future::ready(if fails { Err(HostError::new("quota exceeded")) } else { Ok(()) })
+        let outcome = if state.cache_write_fails { Err(HostError::new("quota exceeded")) } else { Ok(!state.cache_write_evicted) };
+        std::future::ready(outcome)
     }
 
-    fn analyze_result(&self, _query_id: QueryId, _cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let fails = self.state.borrow().analysis_fails;
-        std::future::ready(if fails { Err(HostError::new("no compute")) } else { Ok(()) })
+    fn analyze_result(&self, run: &Rc<FakeRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let state = self.state.borrow();
+        let (fails, holds) = (state.analysis_fails, state.analysis_holds);
+        let cancelled = run.token.cancelled();
+        async move {
+            if holds {
+                cancelled.await;
+                return Err(HostError::cancelled());
+            }
+            if fails {
+                Err(HostError::new("no compute"))
+            } else {
+                Ok(())
+            }
+        }
     }
 
     fn fetch_result(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
@@ -392,27 +484,24 @@ impl ExecutorHost for FakeHost {
         }
     }
 
-    fn finish_result(&self, query_id: QueryId) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
-        let mut state = self.state.borrow_mut();
-        // The host builds the table from the parts of the stream, or from the batches of its channel
-        let table = match state.parts.remove(&query_id) {
-            Some(parts) => read_stream(&parts.concat()).map_err(HostError::new).map(|(schema, batches)| HostTable {
-                rows: batches.iter().map(|batch| batch.num_rows() as u64).sum(),
-                columns: schema.fields().len() as u64,
-                batches: batches.len() as u64,
-            }),
-            None => Ok(HostTable { rows: state.channel_rows, columns: 1, batches: 1 }),
-        };
-        std::future::ready(table)
-    }
-
-    fn channel_open(&self, _query_id: QueryId) -> impl Future<Output = Result<bool, HostError>> + 'static {
+    fn channel_open(&self, _run: &Rc<FakeRun>) -> impl Future<Output = Result<bool, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.channel_calls.push("open".into());
-        std::future::ready(Ok(state.channel_stream))
+        if let Some(answer) = state.open_later.take() {
+            return later(answer, "no answer");
+        }
+        if state.open_holds {
+            // The query waits for its turn until the channel is cancelled
+            let aborted = state.channel_aborted.cancelled();
+            return Box::pin(async move {
+                aborted.await;
+                Err(HostError::new("aborted"))
+            });
+        }
+        Box::pin(std::future::ready(Ok(state.channel_stream)))
     }
 
-    fn channel_next(&self, _query_id: QueryId) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static {
+    fn channel_next(&self, _run: &FakeRun) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static {
         let message = self.state.borrow_mut().channel.pop_front();
         if let Some(Ok(ChannelMessage::Batch { metrics })) = &message {
             self.state.borrow_mut().channel_rows = metrics.total_rows_received;
@@ -430,7 +519,7 @@ impl ExecutorHost for FakeHost {
         future
     }
 
-    fn channel_cancel(&self, _query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static {
+    fn channel_cancel(&self, _run: &FakeRun) -> impl Future<Output = Result<(), HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.channel_calls.push("cancel".into());
         state.channel_aborted.cancel();
@@ -438,11 +527,11 @@ impl ExecutorHost for FakeHost {
         std::future::ready(if fails { Err(HostError::new("backend gone")) } else { Ok(()) })
     }
 
-    fn channel_profile_detail(&self, _query_id: QueryId, wanted: bool) {
+    fn channel_profile_detail(&self, _run: &FakeRun, wanted: bool) {
         self.state.borrow_mut().channel_calls.push(format!("profile:{wanted}"));
     }
 
-    fn channel_auth(&self, _query_id: QueryId) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+    fn channel_auth(&self, _run: &FakeRun) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
         std::future::ready(Ok(self.state.borrow().hyper_auth.clone()))
     }
 
@@ -453,9 +542,28 @@ impl ExecutorHost for FakeHost {
 
 // Helpers
 
-fn request(query_id: QueryId, target: QueryTarget) -> QueryRequest {
-    QueryRequest {
-        query_id,
+/// A query of a test: its request and its run. It reads as its request.
+struct TestQuery {
+    request: QueryRequest,
+    run: Rc<FakeRun>,
+}
+
+impl std::ops::Deref for TestQuery {
+    type Target = QueryRequest;
+
+    fn deref(&self) -> &QueryRequest {
+        &self.request
+    }
+}
+
+impl std::ops::DerefMut for TestQuery {
+    fn deref_mut(&mut self) -> &mut QueryRequest {
+        &mut self.request
+    }
+}
+
+fn request(query_id: QueryId, target: QueryTarget) -> TestQuery {
+    let request = QueryRequest {
         connection_id: "c".into(),
         text: "select 1".into(),
         target,
@@ -465,25 +573,24 @@ fn request(query_id: QueryId, target: QueryTarget) -> QueryRequest {
         cache_only: false,
         touches_relations: false,
         throw_on_error: false,
-        failure: None,
         log_details: vec![("workbookId".into(), "w".into())],
-        keep_alive: None,
-    }
+    };
+    TestQuery { request, run: Rc::new(FakeRun { query_id, ..FakeRun::default() }) }
 }
 
 /// Start a query, the outcome arrives in the cell
-fn start(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, request: QueryRequest) -> Rc<RefCell<Option<QueryOutcome>>> {
+fn start(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, query: TestQuery) -> Rc<RefCell<Option<QueryOutcome>>> {
     let outcome = Rc::new(RefCell::new(None));
     let slot = outcome.clone();
-    let future = executor.execute(request, CancellationToken::new());
+    let future = executor.execute(query.request, query.run);
     host.executor.spawn(Box::pin(async move {
         *slot.borrow_mut() = Some(future.await);
     }));
     outcome
 }
 
-fn run(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, request: QueryRequest) -> QueryOutcome {
-    let outcome = start(host, executor, request);
+fn run(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, query: TestQuery) -> QueryOutcome {
+    let outcome = start(host, executor, query);
     host.advance(0);
     let outcome = outcome.borrow_mut().take();
     outcome.expect("the query ended")
@@ -602,7 +709,6 @@ fn trino_streams_the_pages_of_a_query() {
     assert!(sent[1].url.contains("targetResultSize=32MB"));
     assert!(host.log_messages().contains(&"Executing query".to_string()));
     assert!(host.log_messages().contains(&"Executed query".to_string()));
-    assert!(!executor.is_running(1));
 }
 
 #[test]
@@ -640,18 +746,13 @@ fn trino_cancels_a_query_at_the_server() {
     let host = FakeHost::new();
     trino_server(&host, vec![]);
     let executor = QueryExecutor::new(host.clone());
-    let outcome = start(&host, &executor, request(1, QueryTarget::Trino(trino_channel())));
+    let query = request(1, QueryTarget::Trino(trino_channel()));
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
     host.advance(0);
-    assert!(executor.is_running(1));
-    let cancelled = Rc::new(Cell::new(false));
-    let flag = cancelled.clone();
-    let cancel = executor.cancel(1);
-    host.executor.spawn(Box::pin(async move {
-        cancel.await;
-        flag.set(true);
-    }));
+    assert!(outcome.borrow().is_none());
+    run.token.cancel();
     host.advance(0);
-    assert!(cancelled.get());
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
     let sent = host.state.borrow().sent.clone();
     let delete = sent.last().unwrap();
@@ -675,16 +776,40 @@ fn trino_fetches_the_profile_while_a_view_shows_it() {
         pages.pop_front().unwrap_or(Answer::Hold)
     });
     let executor = QueryExecutor::new(host.clone());
-    let _outcome = start(&host, &executor, request(1, QueryTarget::Trino(trino_channel())));
+    let query = request(1, QueryTarget::Trino(trino_channel()));
+    let run = query.run.clone();
+    let _outcome = start(&host, &executor, query);
     host.advance(0);
     let infos = || host.state.borrow().sent.iter().filter(|r| r.url.contains("/v1/query/")).count();
     assert_eq!(infos(), 0);
-    executor.watch_profile(1, 1);
+    run.controls.watch_profile(1);
     host.advance(0);
     assert_eq!(infos(), 1);
-    executor.watch_profile(1, -1);
+    run.controls.watch_profile(-1);
     host.advance(0);
-    executor.watch_profile(1, 0);
+    run.controls.watch_profile(0);
+}
+
+#[test]
+fn a_view_of_the_profile_before_the_query_started_counts() {
+    let host = FakeHost::new();
+    let stages = json!({ "state": "RUNNING", "rootStage": { "stageId": "0", "state": "RUNNING", "subStages": [] } });
+    host.serve(move |request| {
+        if request.url.contains("/v1/query/") {
+            return json_response(json!({ "queryId": "q1", "state": "RUNNING" }));
+        }
+        if request.url.ends_with("/v1/statement") {
+            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": stages.clone() }));
+        }
+        Answer::Hold
+    });
+    let executor = QueryExecutor::new(host.clone());
+    let query = request(1, QueryTarget::Trino(trino_channel()));
+    // The run keeps the controls from its registration on
+    query.run.controls.watch_profile(1);
+    let _outcome = start(&host, &executor, query);
+    host.advance(0);
+    assert_eq!(host.state.borrow().sent.iter().filter(|r| r.url.contains("/v1/query/")).count(), 1);
 }
 
 #[test]
@@ -707,13 +832,14 @@ fn trino_refreshes_an_expiring_token_once_for_all_queries_of_the_channel() {
     let executor = QueryExecutor::new(host.clone());
     // The token expires within the refresh margin, every query of the channel needs a fresh one
     let channel = oauth_trino_channel(30_000);
-    let first = start(&host, &executor, request(1, QueryTarget::Trino(channel.clone())));
+    let query = request(1, QueryTarget::Trino(channel.clone()));
+    let first_run = query.run.clone();
+    let first = start(&host, &executor, query);
     let second = start(&host, &executor, request(2, QueryTarget::Trino(channel.clone())));
     host.advance(0);
     assert_eq!(token_requests.get(), 1, "one refresh for both queries");
     // The query that started the refresh is cancelled, the refresh runs on for the other one
-    let cancel = executor.cancel(1);
-    host.executor.spawn(Box::pin(async move { cancel.await }));
+    first_run.token.cancel();
     host.advance(0);
     assert!(matches!(first.borrow().as_ref(), Some(QueryOutcome::Resolved { has_result: false })));
     assert!(second.borrow().is_none());
@@ -760,13 +886,14 @@ fn trino_cancels_the_query_at_the_server_during_a_token_refresh() {
     let executor = QueryExecutor::new(host.clone());
     // The token is fresh for the statement and the first page, the retry of the page needs a refresh
     let channel = oauth_trino_channel(60_050);
-    let outcome = start(&host, &executor, request(1, QueryTarget::Trino(channel)));
+    let query = request(1, QueryTarget::Trino(channel));
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
     host.advance(0);
     assert!(!host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL));
     host.advance(100);
     assert!(host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL), "the next page waits for a refresh");
-    let cancel = executor.cancel(1);
-    host.executor.spawn(Box::pin(async move { cancel.await }));
+    run.token.cancel();
     host.advance(0);
     assert!(outcome.borrow().is_some());
     let sent = host.state.borrow().sent.clone();
@@ -796,10 +923,11 @@ fn cancelling_a_query_aborts_the_requests_that_it_waits_for() {
     let host = FakeHost::new();
     trino_server(&host, vec![]);
     let executor = QueryExecutor::new(host.clone());
-    let _outcome = start(&host, &executor, request(1, QueryTarget::Trino(trino_channel())));
+    let query = request(1, QueryTarget::Trino(trino_channel()));
+    let run = query.run.clone();
+    let _outcome = start(&host, &executor, query);
     host.advance(0);
-    let cancel = executor.cancel(1);
-    host.executor.spawn(Box::pin(async move { cancel.await }));
+    run.token.cancel();
     host.advance(0);
     assert_eq!(*host.aborted.borrow(), [format!("{}?targetResultSize=32MB", next_uri(1))]);
 }
@@ -998,34 +1126,38 @@ fn a_channel_is_cancelled_at_the_backend_and_follows_the_profile() {
     let host = FakeHost::new();
     host.state.borrow_mut().channel_cancel_fails = true;
     let executor = QueryExecutor::new(host.clone());
-    let outcome = start(&host, &executor, request(1, QueryTarget::Host));
+    let query = request(1, QueryTarget::Host);
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
     host.advance(0);
-    // The channel learns of the views right away
-    executor.watch_profile(1, 1);
-    executor.watch_profile(1, 1);
-    executor.watch_profile(1, -1);
+    // The task tells the channel of the views
+    run.controls.watch_profile(1);
+    run.controls.watch_profile(1);
+    host.advance(0);
+    run.controls.watch_profile(-1);
+    host.advance(0);
     assert_eq!(host.state.borrow().channel_calls.last().map(String::as_str), Some("profile:true"));
-    executor.watch_profile(1, -1);
-    let _ = executor.cancel(1);
+    run.controls.watch_profile(-1);
+    host.advance(0);
+    run.token.cancel();
     host.advance(0);
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(
-        host.state.borrow().channel_calls,
-        ["open", "profile:false", "profile:true", "profile:true", "profile:true", "profile:false", "cancel"]
-    );
+    assert_eq!(host.state.borrow().channel_calls, ["open", "profile:false", "profile:true", "profile:true", "profile:false", "cancel"]);
     assert!(host.log_messages().contains(&"Failed to cancel query at the backend".to_string()));
     assert_eq!(host.events(), ["sending", "running", "cancelled"]);
-    // A query that ended ignores a cancel and a view
-    let _ = executor.cancel(1);
-    executor.watch_profile(1, 1);
+    // A query that ended ignores a view
+    run.controls.watch_profile(1);
+    host.advance(0);
+    assert_eq!(host.state.borrow().channel_calls.len(), 6);
 }
 
 #[test]
 fn a_cancelled_query_does_not_reach_the_backend() {
     let host = FakeHost::new();
     let executor = QueryExecutor::new(host.clone());
-    let outcome = start(&host, &executor, request(1, QueryTarget::Host));
-    let _ = executor.cancel(1);
+    let query = request(1, QueryTarget::Host);
+    query.run.token.cancel();
+    let outcome = start(&host, &executor, query);
     host.advance(0);
     assert!(matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled));
     assert!(host.state.borrow().channel_calls.is_empty());
@@ -1033,14 +1165,84 @@ fn a_cancelled_query_does_not_reach_the_backend() {
 }
 
 #[test]
-fn a_failure_of_the_caller_is_recorded_without_running_the_query() {
+fn a_cancel_while_the_channel_opens_the_query_stops_it_there() {
+    // The embedded Hyper runs one query at a time, a query waits in the channel for the one before it
     let host = FakeHost::new();
+    host.state.borrow_mut().open_holds = true;
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
-    query.failure = Some(QueryFailure::new(FailureKind::Error, "bar.sql: unknown script :missing"));
-    assert!(matches!(run(&host, &executor, query), QueryOutcome::Rejected(_)));
-    assert_eq!(host.events(), ["failed:bar.sql: unknown script :missing"]);
-    assert!(host.state.borrow().channel_calls.is_empty());
+    query.touches_relations = true;
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    assert!(outcome.borrow().is_none());
+    // The token is the one cancellation: the task tells the channel, the open fails and the query ends at once
+    run.token.cancel();
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(host.state.borrow().channel_calls, ["open", "cancel"]);
+    assert_eq!(host.events(), ["sending", "cancelled", "touch"]);
+}
+
+#[test]
+fn a_stream_that_the_channel_opens_after_a_cancel_is_cancelled() {
+    let host = FakeHost::new();
+    let (answer, open) = oneshot();
+    host.state.borrow_mut().open_later = Some(open);
+    let executor = QueryExecutor::new(host.clone());
+    let query = request(1, QueryTarget::Host);
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    run.token.cancel();
+    host.advance(0);
+    // The channel ignored the cancel of the open and returns a stream, the stream is cancelled
+    assert!(outcome.borrow().is_none());
+    answer.send(true);
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(host.state.borrow().channel_calls, ["open", "cancel", "cancel"]);
+    assert_eq!(host.events(), ["sending", "cancelled"]);
+}
+
+#[test]
+fn a_cancel_that_races_the_end_of_a_query_ends_it_once() {
+    let host = FakeHost::new();
+    let (answer, open) = oneshot();
+    {
+        let mut state = host.state.borrow_mut();
+        state.open_later = Some(open);
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.throw_on_error = true;
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    // The stream and the cancel arrive in the same turn, the cancel wins
+    answer.send(true);
+    run.token.cancel();
+    host.advance(0);
+    assert!(matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled));
+    let events = host.events();
+    let ends = events.iter().filter(|e| *e == "succeeded" || *e == "cancelled" || e.starts_with("failed:")).count();
+    assert_eq!(ends, 1, "{events:?}");
+    assert_eq!(events.last().map(String::as_str), Some("cancelled"));
+
+    // A cancel after the end changes nothing
+    let host = FakeHost::new();
+    host.state.borrow_mut().channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+    let executor = QueryExecutor::new(host.clone());
+    let query = request(1, QueryTarget::Host);
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    run.token.cancel();
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(true));
+    assert_eq!(host.events().last().map(String::as_str), Some("succeeded"));
+    assert!(!host.state.borrow().channel_calls.contains(&"cancel".to_string()));
 }
 
 #[test]
@@ -1055,12 +1257,43 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
     query.analyze_results = true;
+    query.cache = cached("k");
     let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
     assert_eq!(failure.kind, FailureKind::Processing);
+    host.advance(0);
+    // The result is fine, it goes into the cache all the same
     assert_eq!(
         host.events(),
-        ["sending", "running", "batch:1", "timing:Results", "all:1", "ready", "processing", "timing:Postprocess", "failed:no compute"]
+        [
+            "sending", "running", "batch:1", "timing:Results", "all:1", "ready", "processing", "timing:Postprocess",
+            "failed:no compute", "cache:k:false"
+        ]
     );
+    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
+}
+
+#[test]
+fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_cache() {
+    let host = FakeHost::new();
+    {
+        let mut state = host.state.borrow_mut();
+        state.analysis_holds = true;
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.analyze_results = true;
+    query.cache = cached("k");
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    assert!(outcome.borrow().is_none());
+    assert_eq!(host.events().last().map(String::as_str), Some("processing"));
+    run.token.cancel();
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
+    assert_eq!(host.state.borrow().cache_calls, ["lookup:k"]);
 }
 
 // The query result cache
@@ -1157,6 +1390,71 @@ fn a_refresh_skips_the_lookup() {
     query.cache = Some(CacheRequest { key: "k".into(), refresh: true });
     run(&host, &executor, query);
     assert!(host.state.borrow().cache_calls.is_empty());
+}
+
+#[test]
+fn a_result_that_the_eviction_removes_right_away_is_not_recorded() {
+    let host = FakeHost::new();
+    {
+        let mut state = host.state.borrow_mut();
+        state.cache_write_evicted = true;
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.cache = cached("k");
+    assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
+    host.advance(0);
+    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
+    assert!(!host.events().iter().any(|event| event.starts_with("cache:")));
+    assert!(host.log_messages().contains(&"The query result cache evicted the result right away".to_string()));
+}
+
+#[test]
+fn a_cancel_during_the_lookup_of_the_cache_ends_the_query_at_once() {
+    let host = FakeHost::new();
+    let (_answer, lookup) = oneshot();
+    host.state.borrow_mut().cache_lookup_later = Some(lookup);
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.cache = cached("k");
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    assert!(outcome.borrow().is_none());
+    run.token.cancel();
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(host.events(), ["cancelled"]);
+    assert_eq!(host.state.borrow().cache_calls, ["lookup:k"]);
+    assert!(host.state.borrow().channel_calls.is_empty());
+}
+
+#[test]
+fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
+    let host = FakeHost::new();
+    let (read_done, read) = oneshot();
+    {
+        let mut state = host.state.borrow_mut();
+        state.cache.insert("k".into(), CacheEntry { name: "k.parquet".into(), cached_at: 1.0 });
+        state.cache_read_later = Some(read);
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.cache = cached("k");
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    run.token.cancel();
+    host.advance(0);
+    // The read runs to its end, the run owns the table that it read
+    assert!(outcome.borrow().is_none());
+    read_done.send(());
+    host.advance(0);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(*host.cache_tables.borrow(), [1]);
+    assert_eq!(host.events(), ["cancelled"]);
+    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "read:k.parquet"]);
 }
 
 // Client functions
@@ -1276,9 +1574,11 @@ fn a_client_function_call_stops_its_request_when_cancelled() {
         description: segment_call(),
         tokens: Some(salesforce_tokens()),
     };
-    let outcome = start(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
+    let query = request(1, QueryTarget::ClientFunction(target));
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
     host.advance(0);
-    let _ = executor.cancel(1);
+    run.token.cancel();
     host.advance(0);
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
     assert_eq!(host.events(), ["sending", "cancelled"]);

@@ -28,7 +28,7 @@ use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -36,6 +36,7 @@ use wasm_bindgen_futures::{spawn_local, JsFuture};
 
 use crate::runtime::changes::{Dirty, Slice};
 use crate::runtime::computation::ComputeCallContext;
+use crate::views::JsonValue;
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_PLATFORM: &str = r#"
@@ -327,8 +328,8 @@ export interface RuntimeChannels {
     connect(setupId: string, request: RuntimeChannelRequest): Promise<number>;
     /** The token of the link to a Hyper that the page holds, null without */
     hyperLinkToken(connectionId: string): string | null;
-    /** Describe where a query runs on the channel of its connection (null before its setup): a Hyper channel over HTTP that the runtime speaks itself (`{ type: 'hyperHttp', params, clientContext, auth, parallelChunks }`) or one of the host (`{ type: 'host' }`). The connection of Trino owns its channel and the tokens of Salesforce, the host never describes them. The host keeps the channel and the query until `forget`. */
-    describe(queryId: number, channel: number | null, query: RuntimeChannelQuery): Promise<unknown>;
+    /** Describe where a query runs on the channel of its connection (null before its setup): a Hyper channel over HTTP that the runtime speaks itself or one of the host. The connection of Trino owns its channel and the tokens of Salesforce, the host never describes them. The host keeps the channel and the query until `forget`. */
+    describe(queryId: number, channel: number | null, query: RuntimeChannelQuery): Promise<RuntimeChannelTarget>;
     /** The auth headers of the Hyper channel over HTTP of a query as they are now, asked before every round of requests of its result. Null keeps the headers of the description. */
     auth?(queryId: number): Promise<Record<string, string> | null>;
     /** The query ended */
@@ -337,7 +338,7 @@ export interface RuntimeChannels {
     open(queryId: number, table: number): Promise<boolean>;
     /** The next message of the stream of a query */
     next(queryId: number): Promise<RuntimeChannelMessage>;
-    /** Cancel the query of a channel at the backend */
+    /** Cancel the query of a channel: one that `open` still opens, the open then fails or returns a stream that the next cancel stops, or its stream at the backend */
     cancel(queryId: number): Promise<void>;
     /** Is the profile of the query shown? A channel fetches the plan and its statistics only then. */
     profileDetail(queryId: number, shown: boolean): void;
@@ -348,11 +349,11 @@ export interface RuntimeResultCache {
     /** The newest file of a key, null on a miss */
     lookup(key: string): Promise<{ name: string; cachedAt: number; size: number } | null>;
     /** Read a file into a table of the handle table */
-    read(name: string): Promise<{ table: number; rows: number; columns: number }>;
+    read(name: string): Promise<RuntimeCachedTable>;
     /** Record a read of a file */
     touch(name: string): Promise<void>;
-    /** Write a table of the handle table as the newest file of a key */
-    write(key: string, table: number): Promise<void>;
+    /** Write a table of the handle table as the newest file of a key, resolves with the name of the file */
+    write(key: string, table: number): Promise<string>;
     /** Keep the newest file of a key until `release`, null on a miss */
     retain(key: string): Promise<{ id: number; name: string } | null>;
     /** Release a file that `retain` kept */
@@ -410,6 +411,39 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "RuntimePlatform")]
     #[derive(Clone)]
     pub type JsRuntimePlatform;
+}
+
+/// Where a query of a channel of the host runs, as the platform describes it: a Hyper channel over HTTP that the
+/// module speaks itself, or the channel of the host
+#[derive(Deserialize, Tsify)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum RuntimeChannelTarget {
+    Host,
+    HyperHttp {
+        /// The params of the Hyper connection: the endpoint, the attached databases, the query parameters
+        params: JsonValue,
+        #[serde(default)]
+        #[tsify(optional, type = "unknown")]
+        client_context: Option<JsonValue>,
+        /// The auth headers of the channel
+        #[serde(default)]
+        #[tsify(optional, type = "Record<string, string> | null")]
+        auth: Option<std::collections::BTreeMap<String, String>>,
+        /// The chunks that a result fetches in parallel
+        #[serde(default)]
+        #[tsify(optional, type = "number | null")]
+        parallel_chunks: Option<u32>,
+    },
+}
+
+/// A cached result that the query result cache read into a table of the handle table
+#[derive(Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeCachedTable {
+    #[tsify(type = "number")]
+    pub table: Handle,
+    pub rows: f64,
+    pub columns: f64,
 }
 
 /// What the services of the runtime do after an action of the registry
@@ -828,10 +862,13 @@ impl JsPlatform {
 
     /// Describe where a query runs on the channel of its connection, the target as JSON. The platform keeps the
     /// channel of a query of the host until `forget_channel_query`.
-    pub fn channel_describe(&self, query_id: f64, channel: Option<Handle>, query: &JsValue) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    pub fn channel_describe(&self, query_id: f64, channel: Option<Handle>, query: &JsValue) -> impl Future<Output = Result<RuntimeChannelTarget, HostError>> + 'static {
         let channel = channel.map(|channel| JsValue::from_f64(channel as f64)).unwrap_or(JsValue::NULL);
         let call = member(self.object(), "channels").and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
-        settled(call)
+        async move {
+            let described = settled(call).await?;
+            serde_wasm_bindgen::from_value(described).map_err(|error| HostError::new(format!("the platform described no channel: {error}")))
+        }
     }
 
     /// A query ended, the platform lets go of its channel
@@ -1036,10 +1073,13 @@ impl JsPlatform {
         settled(call)
     }
 
-    /// Read a cached file into a table
-    pub fn cache_read(&self, name: &str) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    /// Read a cached file into a table of the handle table
+    pub fn cache_read(&self, name: &str) -> impl Future<Output = Result<RuntimeCachedTable, HostError>> + 'static {
         let call = self.result_cache().and_then(|cache| call(&cache, "read", &[JsValue::from_str(name)]));
-        settled(call)
+        async move {
+            let read = settled(call).await?;
+            serde_wasm_bindgen::from_value(read).map_err(|error| HostError::new(format!("the cache returned no table: {error}")))
+        }
     }
 
     /// Record a read of a cached file
@@ -1048,10 +1088,10 @@ impl JsPlatform {
         async move { settled(call).await.map(|_| ()) }
     }
 
-    /// Write a table as the newest file of a key. The host takes the table when it is called.
-    pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<(), HostError>> + 'static {
+    /// Write a table as the newest file of a key, the name of the file. The host takes the table when it is called.
+    pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<String, HostError>> + 'static {
         let call = self.result_cache().and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
-        async move { settled(call).await.map(|_| ()) }
+        async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("the cache named no file")) }
     }
 
     /// Keep the newest file of a key until it is released: its id and its name, none on a miss
@@ -1079,8 +1119,9 @@ impl JsPlatform {
     }
 
     /// Keep the query result cache within its limits after a file of a key was written: the least recently read files
-    /// go first, the files that are read stay. A failed eviction is logged, the write stands.
-    pub fn evict_cache(&self) -> impl Future<Output = ()> + 'static {
+    /// go first, the files that are read stay. Returns the names of the files that were removed. A failed eviction is
+    /// logged and removed nothing, the write stands.
+    pub fn evict_cache(&self) -> impl Future<Output = Vec<String>> + 'static {
         let platform = self.clone();
         async move {
             let evicted = async {
@@ -1089,12 +1130,17 @@ impl JsPlatform {
                 evict_to_fit(&JsCache(platform.clone()), limit("maxBytes"), limit("maxFiles")).await
             };
             match evicted.await {
-                Ok(removed) if !removed.is_empty() => {
-                    let count = removed.len().to_string();
-                    platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                Ok(removed) => {
+                    if !removed.is_empty() {
+                        let count = removed.len().to_string();
+                        platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                    }
+                    removed
                 }
-                Ok(_) => {}
-                Err(error) => platform.log_on(LogLevel::Warn, "Evicting query results failed", &[("error", error.message())], "query_result_cache"),
+                Err(error) => {
+                    platform.log_on(LogLevel::Warn, "Evicting query results failed", &[("error", error.message())], "query_result_cache");
+                    Vec::new()
+                }
             }
         }
     }
@@ -1136,12 +1182,12 @@ impl JsPlatform {
         async move {
             let mut abort = abort;
             let Some(sent) = sent else {
-                return Err(HostError::new(CANCELLED_MESSAGE));
+                return Err(HostError::cancelled());
             };
             let promise = Promise::resolve(&sent?);
             let settled = token.run(JsFuture::from(promise)).await;
             match settled {
-                None => Err(HostError::new(CANCELLED_MESSAGE)),
+                None => Err(HostError::cancelled()),
                 Some(Ok(value)) => {
                     abort.disarm();
                     response_keeping(&value, keep_body)

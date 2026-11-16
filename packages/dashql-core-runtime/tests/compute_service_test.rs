@@ -80,6 +80,8 @@ struct Database {
     queries: Vec<String>,
     /// The runs that the service cancelled
     cancelled: Vec<RunId>,
+    /// The runs that created tables, in order
+    runs: Vec<RunId>,
     /// The effects of the changes that the tasks reported
     changes: Vec<Vec<ComputationEffect>>,
     /// Holds the next creation of a table of a title until the test releases it
@@ -166,6 +168,7 @@ impl ComputeHost for FakeHost {
 
     async fn create_table(&self, _data_frame: u64, table_name: &str, sql: &str, context: &ComputeContext) -> std::result::Result<(), HostError> {
         self.database.borrow_mut().calls.push(format!("create {table_name} ({})", context.title));
+        self.database.borrow_mut().runs.push(context.run);
         let gate = self.database.borrow_mut().gates.remove(context.title);
         if let Some(gate) = gate {
             gate.await;
@@ -552,6 +555,40 @@ fn a_new_data_search_cancels_the_running_one() {
     });
     setup.executor.run_until_stalled();
     assert_eq!(setup.data_frame_tables(), setup.state_data_frame_tables());
+}
+
+#[test]
+fn a_run_that_is_cancelled_by_its_id_drops_its_future() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let (table_version, data_frame) = setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        (computation.version, computation.data_frame.unwrap())
+    });
+    let search = ComputationTask::DataSearch(DataSearchTask {
+        table_id: 1,
+        table_version,
+        input_data_frame: data_frame,
+        row_number_column_name: "_rownum".into(),
+        columns: vec![DataSearchColumn { column_idx: 0, column_group_idx: 2, field_name: "name".into() }],
+        pattern: "a".into(),
+        request_id: 1,
+    });
+    let (_release, gate): (Sender<()>, Receiver<()>) = oneshot();
+    setup.database.borrow_mut().gates.insert("Data search", gate);
+    setup.service.apply(ComputationAction::SetResultSearchPattern { table_id: 1, kind: dashql_core_runtime::compute::SearchKind::Data, pattern: "a".into() }).unwrap();
+    let task = setup.schedule(search);
+    let output = setup.run(setup.service.run_task(task));
+    assert!(output.borrow().is_none());
+    let run = *setup.database.borrow().runs.last().unwrap();
+    // A stopped query of the run cancels the run in Rust, not only the calls of the host
+    assert!(setup.service.cancel_run(run));
+    assert!(!setup.service.cancel_run(run));
+    setup.executor.run_until_stalled();
+    assert!(!setup.service.is_running(task));
+    assert_eq!(setup.database.borrow().cancelled, [run]);
+    let error = output.borrow_mut().take().expect("the task ended").unwrap_err();
+    assert!(error.to_string().contains("cancelled"), "{error}");
 }
 
 #[test]

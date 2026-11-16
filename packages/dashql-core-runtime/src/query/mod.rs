@@ -719,17 +719,19 @@ impl QueryExecutionHistory {
 
     /// Move a done query to the finished queries and add it to the metrics of the connection.
     ///
-    /// The finished queries keep their result tables for the views of their results. Internal queries return their
-    /// results to their callers and keep only their metrics. A succeeded query with a result owner releases the result
-    /// tables of the other queries of its owner, except for a later one, like the latest result of a script. The queries
-    /// that lose their result this way are superseded, the host drops their computations.
+    /// The succeeded queries of the user keep their result tables for the views of their results. Internal queries
+    /// return their results to their callers and keep only their metrics. A query that was cancelled or failed keeps no
+    /// result either, e.g. one that was cancelled while its result was analyzed: the host dropped its computation. A
+    /// succeeded query with a result owner releases the result tables of the other queries of its owner, except for a
+    /// later one, like the latest result of a script. The queries that lose their result this way are superseded, the
+    /// host drops their computations.
     fn finish_query(&mut self, query_id: QueryId, outcome: &mut QueryExecutionOutcome) {
         let Some(mut query) = self.queries_active.remove(&query_id) else {
             return;
         };
         self.queries_active_ordered.retain(|id| *id != query_id);
         let user_provided = query.query_metadata.query_type == QueryType::UserProvided;
-        if !user_provided {
+        if !user_provided || query.status != QueryExecutionStatus::Succeeded {
             if let Some(table) = query.result_table.take() {
                 outcome.effects.push(QueryExecutionEffect::Release { handle: table.id });
             }

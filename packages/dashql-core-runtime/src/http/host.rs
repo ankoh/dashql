@@ -19,7 +19,10 @@ pub const CANCELLED_MESSAGE: &str = "The request was cancelled";
 #[derive(Default)]
 struct TokenState {
     cancelled: bool,
-    wakers: Vec<Waker>,
+    /// The wakers of the futures that wait, by their slot. A future that is dropped takes its waker out.
+    wakers: Vec<(u64, Waker)>,
+    /// The slot of the next future that waits
+    next_slot: u64,
 }
 
 /// The cancellation of a task: cancelled once, checked by the task and passed to the requests of the task. Clones share
@@ -51,7 +54,7 @@ impl CancellationToken {
             state.cancelled = true;
             std::mem::take(&mut state.wakers)
         };
-        for waker in wakers {
+        for (_, waker) in wakers {
             waker.wake();
         }
     }
@@ -63,7 +66,7 @@ impl CancellationToken {
 
     /// A future that completes once the token is cancelled
     pub fn cancelled(&self) -> Cancelled {
-        Cancelled { token: self.clone() }
+        Cancelled { token: self.clone(), slot: None }
     }
 
     /// Run a future until it completes or the token is cancelled, none if the token was cancelled first. The future is
@@ -73,23 +76,47 @@ impl CancellationToken {
     }
 }
 
-/// Completes once its token is cancelled
+/// Completes once its token is cancelled. It keeps one waker with the token while it waits and takes it out when it
+/// is dropped, so a token that lives long, e.g. the one of a catalog update, gathers no wakers of futures that are gone.
 pub struct Cancelled {
     token: CancellationToken,
+    /// The slot of its waker with the token, none before the first poll
+    slot: Option<u64>,
 }
 
 impl Future for Cancelled {
     type Output = ();
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        let mut state = self.token.state.borrow_mut();
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
+        let token = self.token.clone();
+        let mut state = token.state.borrow_mut();
         if state.cancelled {
             return Poll::Ready(());
         }
-        if !state.wakers.iter().any(|waker| waker.will_wake(cx.waker())) {
-            state.wakers.push(cx.waker().clone());
+        let slot = match self.slot {
+            Some(slot) => slot,
+            None => {
+                let slot = state.next_slot;
+                state.next_slot = state.next_slot.wrapping_add(1);
+                self.slot = Some(slot);
+                slot
+            }
+        };
+        match state.wakers.iter_mut().find(|(held, _)| *held == slot) {
+            Some((_, waker)) => waker.clone_from(cx.waker()),
+            None => state.wakers.push((slot, cx.waker().clone())),
         }
         Poll::Pending
+    }
+}
+
+impl Drop for Cancelled {
+    fn drop(&mut self) {
+        let Some(slot) = self.slot else { return };
+        // While the token wakes its futures their wakers are taken already
+        if let Ok(mut state) = self.token.state.try_borrow_mut() {
+            state.wakers.retain(|(held, _)| *held != slot);
+        }
     }
 }
 
@@ -147,5 +174,30 @@ mod tests {
         assert!(token.is_cancelled());
         let mut ready = Box::pin(CancellationToken::new().run(std::future::ready(1)));
         assert_eq!(ready.as_mut().poll(&mut cx), Poll::Ready(Some(1)));
+    }
+
+    #[test]
+    fn a_future_that_is_dropped_leaves_no_waker_with_its_token() {
+        let flag = std::sync::Arc::new(Flag(std::sync::atomic::AtomicBool::new(false)));
+        let waker = Waker::from(flag.clone());
+        let mut cx = Context::from_waker(&waker);
+        let token = CancellationToken::new();
+        for _ in 0..100 {
+            let mut waiting = Box::pin(token.cancelled());
+            assert!(waiting.as_mut().poll(&mut cx).is_pending());
+            assert!(waiting.as_mut().poll(&mut cx).is_pending());
+        }
+        assert!(token.state.borrow().wakers.is_empty());
+        let mut waiting = Box::pin(token.run(std::future::pending::<()>()));
+        assert!(waiting.as_mut().poll(&mut cx).is_pending());
+        assert_eq!(token.state.borrow().wakers.len(), 1);
+        drop(waiting);
+        assert!(token.state.borrow().wakers.is_empty());
+        // A future that waits still wakes up
+        let mut waiting = Box::pin(token.cancelled());
+        assert!(waiting.as_mut().poll(&mut cx).is_pending());
+        token.cancel();
+        assert!(flag.0.load(std::sync::atomic::Ordering::SeqCst));
+        assert_eq!(waiting.as_mut().poll(&mut cx), Poll::Ready(()));
     }
 }

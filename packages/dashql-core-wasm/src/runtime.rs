@@ -63,7 +63,7 @@ use changes::{Read, Slice, Taken};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
-use queries::QueryArgs;
+use queries::{QueryArgs, QueryTicket};
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
 use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
@@ -99,27 +99,6 @@ export type ViewId<K extends ViewKind> = RuntimeViews[K]['id'];
 export type ViewOf<K extends ViewKind> = RuntimeViews[K]['view'];
 /** The keys of the payloads that the host holds, they don't cross again */
 export type KnownKeys<K extends ViewKind> = RuntimeViews[K]['known'];
-/** What the caller of a query hears while it runs: the timings and the result before its analysis */
-export type QueryCallerEvent =
-    | { type: 'timing'; label: string; elapsedMs: number }
-    | { type: 'resultsReady' };
-/** The failure of a query, `hostValue` tells whether `value` is what the host failed with */
-export interface QueryRunFailure {
-    kind: 'error' | 'cancelled' | 'cacheMiss' | 'processing';
-    message: string;
-    details: Record<string, string>;
-    target: string;
-    hostValue: boolean;
-}
-/** How a query ended for its caller */
-export type QueryRunOutcome =
-    | { status: 'resolved'; hasResult: boolean; table: unknown }
-    | { status: 'rejected'; failure: QueryRunFailure; value: unknown };
-/** A query that runs: its id and its outcome */
-export interface QueryTicket {
-    queryId: number;
-    done: Promise<QueryRunOutcome>;
-}
 /** The read of a slice that a task of the runtime holds: it moves with the next changes, the host keeps its view */
 export type BusyView = 'busy';
 export interface Runtime {
@@ -1184,14 +1163,14 @@ impl Runtime {
     /// runtime described it: the target on the channel of the connection, the key of its result in the query result
     /// cache and what the options of the arguments ask for. The caller hears the events of the query (`events`).
     /// `failure` is what a query that the caller failed fails with. Returns the id and the promise of the outcome.
-    #[wasm_bindgen(js_name = executeQuery, unchecked_return_type = "QueryTicket")]
+    #[wasm_bindgen(js_name = executeQuery)]
     pub fn execute_query(
         &self,
         connection_id: &str,
         args: Ts<QueryArgs>,
         failure: JsValue,
         #[wasm_bindgen(unchecked_param_type = "((event: QueryCallerEvent) => void) | null")] events: JsValue,
-    ) -> Result<JsValue, JsError> {
+    ) -> Result<Ts<QueryTicket>, JsError> {
         let args = from_js(&args)?;
         let events = if events.is_undefined() || events.is_null() {
             None
@@ -1199,10 +1178,7 @@ impl Runtime {
             Some(events.dyn_into::<Function>().map_err(|_| JsError::new("the events of a query are no function"))?)
         };
         let (query_id, done) = self.connections.execute(connection_id, args, failure, events);
-        let ticket = Object::new();
-        let _ = Reflect::set(&ticket, &JsValue::from_str("queryId"), &JsValue::from_f64(query_id as f64));
-        let _ = Reflect::set(&ticket, &JsValue::from_str("done"), &done);
-        Ok(ticket.into())
+        to_js(&QueryTicket { query_id: query_id as f64, done: done.into() })
     }
 
     /// An id of the sequence of the queries without a query, e.g. for the computation of a result that no query of the

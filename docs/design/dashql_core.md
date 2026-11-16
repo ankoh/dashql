@@ -154,14 +154,26 @@ marks are `runtime/changes.rs`.
   the semantic signature of the script (`executor/cache_key.rs`); the digest comes from `crypto.sha256` of the platform.
   See [query_cache.md](query_cache.md).
 - **One run object per query.** `QueryRun` of `queries.rs` lives from the registration of a query to the end of its
-  last follow-up (the write of the result into the cache, the touch of a cached entry). Its token is the one
-  cancellation of the query: `cancelQuery`, a reset of the connection and a caller that stops waiting cancel it while
-  the query is described, loads the spec of its client functions, runs or is analyzed. The run owns its result table,
-  the history and the analysis take handles of their own.
+  last follow-up (the write of the result into the cache, the touch of a cached entry). It is the run of the executor
+  (`ExecutorHost::Run`, `ExecutorRun`): the executor gets it with the request and hands it to every call of its host,
+  the host never looks a query up by its id. Its token is the one cancellation of the query: `cancelQuery`, a reset
+  of the connection, a catalog update that is cancelled and a caller that stops waiting cancel it while the query is
+  described, loads the spec of its client functions, waits for the cache, runs or is analyzed. A channel of the host
+  learns it from the executor (`channel_cancel`), also while it still opens the query, e.g. a query of the embedded
+  Hyper that waits for the one before it. Its controls (`QueryControls`) count the views of its profile from the
+  registration on. The run owns its result table, the history and the analysis take handles of their own.
 - **The executor** (`executor/`, `QueryExecutor::execute`) serves a result from the cache or sends the query, reports
   `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core script crate),
-  analyzes the result on the computations and writes it into the cache. The history decides the latest result of an
-  owner and reports the superseded queries; the runtime deletes their computations.
+  analyzes the result on the computations and writes it into the cache, also when only the analysis failed. The
+  history applies the start and the end of a query as urgent changes, the rest with the next frame. It decides the
+  latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
+  was cancelled or failed keeps no result in the history.
+- **A query that the caller failed** (`executeQuery` with a failure) is recorded as failed with it and nothing of it
+  runs: no description, no spec, no check of the compute database.
+- **The seam of a query** is typed: the ticket and the outcome of `executeQuery` (`QueryTicket`, `QueryRunOutcome`,
+  `QueryRunFailure`), the events of its caller (`QueryCallerEvent`), the channel that the platform describes
+  (`RuntimeChannelTarget`) and the table of a cached result (`RuntimeCachedTable`) are Rust types with generated
+  declarations.
 - **The connectors are sans-IO state machines** driven by the executor over `HttpHost::fetch`: Trino (`TrinoQuery`,
   pages of up to 32 MB as Arrow batches, retries, the profile only while it shows, named time zones through
   `ExecutorHost::time_zones` since the crate has no time zone database), Hyper over HTTP (`HyperResultReader`, the
@@ -184,7 +196,9 @@ planned sans-IO in `compute/tasks/`: a SELECT that creates the table of a data f
 table. The app sends requests (`orderBy`, `histogramFilter`, `mostFrequentValueFilter`, `setResultSearchPattern`,
 `requestFilteredColumnAggregation`, ...); the service derives the tasks from the state and runs them, a request that the
 state answers runs nothing. The SELECTs of the tasks are listed in the query history of the connection of the result,
-or in the history that the analysis names (`compute_tracking.rs`), and a reset of the connection aborts them. The tables
+or in the history that the analysis names (`compute_tracking.rs`). A reset of the connection or a cancel of such a query
+cancels the run of its task in Rust (`ComputeService::cancel_run`), which aborts its calls; the query ends cancelled
+and the task fails. The tables
 stay with the host by handle; formatting of values stays with the host. See
 [vegalite_crossfilter.md](vegalite_crossfilter.md).
 
@@ -257,14 +271,16 @@ its timer when dropped), tasks (`spawn`) and the log. A service adds a trait for
 | `http::HttpHost` | `fetch` with a `CancellationToken` |
 | `storage::StorageHost`, `restore::RestoreHost` | The operations of the storage backend, the reads of the restore |
 | `connection_setup::OAuthHost`, `SetupHost` | The OAuth flows, PKCE and random ids; connecting and closing channels, the token of a Hyper link, the probe of a health check |
-| `executor::ExecutorHost` | The events of a query, the query result cache, the analysis of a result, result tables, host channels, time zones |
+| `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the query result cache, the analysis of a result, host channels, time zones |
 | `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
 | `workbook_run::RunHost` | Statements, the result keys, preparing connections, cached results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
 | `workbook_format`: `FolderHost`, `StorageRootHost`, `CacheHost`, `CatalogSql` | Folders, the storage root, the files of the cache, catalog SQL |
 
 A host call that fails returns a `HostError`, the error of the task: it keeps what the host failed with and hands it
-back unchanged. `host::signal` has a value sent once and a future that can be cancelled.
+back unchanged. A call that was cancelled fails with `HostError::cancelled()`, the code asks `is_cancelled()` and
+never matches the text of a message. A `CancellationToken` keeps one waker per future that waits for it and drops it
+with the future, so a token that lives long gathers nothing. `host::signal` has a value sent once and a future that can be cancelled.
 
 **`JsPlatform`** (`packages/dashql-core-wasm/src/host.rs`) implements `Host`, `HttpHost` and `ComputeHost` once over
 the platform object. The bindings of each service implement its traits over `JsPlatform`: `QueryHost` of

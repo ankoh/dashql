@@ -234,6 +234,49 @@ describe('The computations of the runtime', () => {
         expect(warn).not.toHaveBeenCalledWith('Failed to close a query of a computation', expect.anything(), expect.anything());
     }, 60_000);
 
+    it('cancels the run of a task whose query is stopped', async () => {
+        database = await openTestHyperDB('runtime_computations_stop_test');
+        const real = database;
+        // The first SELECT of a task hangs until its call is aborted
+        let hanging: (() => void) | null = null;
+        const hangs = new Promise<void>(resolve => { hanging = resolve; });
+        let hung = false;
+        const computeDatabase = {
+            ...real,
+            connect: async (options?: Parameters<HyperDB['connect']>[0]) => {
+                const conn = await real.connect(options);
+                return Object.assign(Object.create(Object.getPrototypeOf(conn)), conn, {
+                    createTableAs: (name: string, sql: string, signal?: AbortSignal) => {
+                        if (hung || signal == null) return conn.createTableAs(name, sql, signal);
+                        hung = true;
+                        hanging?.();
+                        // The call ends only after the runtime stopped waiting for it
+                        return new Promise<void>((_resolve, reject) => signal.addEventListener('abort', () => {
+                            setTimeout(() => reject(new Error('the call ended late')), 10);
+                        }, { once: true }));
+                    },
+                });
+            },
+        } as unknown as HyperDB;
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => computeDatabase });
+        const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
+        const table = new arrow.Table({ score: vectorFromArray([42, 10], new arrow.Float64()) });
+        const analysis = runtime.analyzeTable(1, table, { connectionId: connection.connectionId }).then(() => null, error => error);
+        await hangs;
+        runtime.flush();
+        const [queryId] = runtime.store.get('connection', connection.connectionId)!.queriesActiveOrdered;
+
+        // The stop cancels the run of the task in the runtime: the query ends cancelled right away, not with the error
+        // of the call
+        await runtime.cancel(queryId);
+        await vi.waitFor(() => {
+            runtime!.flush();
+            expect(runtime!.store.get('query', queryId)?.status).toBe(QueryExecutionStatus.CANCELLED);
+        });
+        expect(runtime.store.get('query', queryId)).toMatchObject({ error: { message: 'The request was cancelled' } });
+        expect(await analysis).not.toBeNull();
+    }, 60_000);
+
     it('analyzes nothing without columns and dispatches nothing once destroyed', async () => {
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql });
         await runtime.analyzeTable(1, new arrow.Table());

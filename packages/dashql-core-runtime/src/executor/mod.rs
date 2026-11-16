@@ -11,7 +11,7 @@
 //! A result never lives in the module, it passes through one page at a time where a protocol needs a conversion. The
 //! chunks of Hyper over HTTP are parts of one Arrow IPC stream already, they go to the host as they arrive, unread and
 //! mostly without entering the module (`ExecutorHost::fetch_result`). A page of Trino or of a client function becomes
-//! the next part of an Arrow IPC stream and goes to the host right away (`QueryEvent::ResultData`). The batches of a
+//! the next part of an Arrow IPC stream and goes to the host right away (`ExecutorHost::push_result`). The batches of a
 //! channel of the host stay with the host. Once the result is complete, the host builds its table from the parts
 //! (`ExecutorHost::finish_result`).
 //!
@@ -23,23 +23,19 @@
 //! files of the embedded Hyper), the analysis of the results on the compute database and the relations that a
 //! statement touches. The task decides when they happen.
 //!
-//! The caller owns the run of a query: it creates the cancellation token and hands it over with the request, and what
-//! it keeps of the run (`QueryRequest::keep_alive`) lives as long as the task or a follow-up of it runs, e.g. the write
-//! of the result into the cache after the query ended. Cancelling a query cancels its token: the requests of the query
-//! stop, the query is cancelled at the backend (a Trino or Hyper query by its request, a channel of the host by the
-//! host) and the task ends as cancelled.
-//!
-//! Ported from `QueryExecutorService` of `packages/dashql/src/runtime/connections/query_executor_service.ts`.
+//! The host owns the run of a query (`ExecutorHost::Run`): the id of the query, its cancellation token and its
+//! controls, from the registration of the query on. The executor gets the run with the request and hands it to every
+//! call of the host, the task and its follow-ups hold it, e.g. the write of the result into the cache after the query
+//! ended. The token is the one cancellation of the query: the requests of the query stop, the query is cancelled at the
+//! backend (a Trino or Hyper query by its request, a channel of the host by `channel_cancel`, also while it opens) and
+//! the task ends as cancelled.
 
 pub mod cache_key;
 pub mod connectors;
 pub mod ipc;
-pub mod json;
 mod wait;
 
-use std::any::Any;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::future::Future;
 use std::rc::Rc;
 
@@ -54,7 +50,7 @@ use crate::hyper::{HyperError, HyperHttpChannel};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use crate::salesforce::SalesforceTokens;
 use crate::trino::{NoTimeZones, SharedTrinoChannel, TimeZoneOffsets, TrinoAccessToken, TrinoError};
-use wait::Controls;
+pub use wait::QueryControls;
 
 /// The target of the log messages of the executor
 pub const LOG_TARGET: &str = "query_executor";
@@ -63,7 +59,7 @@ pub const LOG_TARGET: &str = "query_executor";
 pub type QueryId = u64;
 
 /// A value of the host, e.g. a JavaScript value in the module
-pub type HostValue = Rc<dyn Any>;
+pub type HostValue = Rc<dyn std::any::Any>;
 
 /// How a query uses the query result cache
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,8 +98,6 @@ pub enum QueryTarget {
 
 /// A query to run
 pub struct QueryRequest {
-    /// The id, the host registered the query in the history of the connection already
-    pub query_id: QueryId,
     /// The connection
     pub connection_id: String,
     /// The text of the query
@@ -122,13 +116,8 @@ pub struct QueryRequest {
     pub touches_relations: bool,
     /// Reject with the error of a failed query instead of resolving without a result
     pub throw_on_error: bool,
-    /// Record the query as failed with this error instead of running it
-    pub failure: Option<QueryFailure>,
     /// The details of the log messages of the query, e.g. the workbook
     pub log_details: Vec<(String, String)>,
-    /// What the host keeps of the query, held until the task and its follow-ups ended: the write of the result into
-    /// the cache and the touch of a cached entry run after the query and report into its history
-    pub keep_alive: Option<HostValue>,
 }
 
 /// What kind of failure ended a query
@@ -182,10 +171,10 @@ impl QueryFailure {
         Self::new(FailureKind::Cancelled, "Query was cancelled")
     }
 
-    /// A failed host call, it keeps what the host failed with
+    /// A failed host call, it keeps what the host failed with. A cancelled call cancelled the query.
     pub fn from_host(error: &HostError) -> Self {
         Self {
-            kind: FailureKind::Error,
+            kind: if error.is_cancelled() { FailureKind::Cancelled } else { FailureKind::Error },
             message: error.message().to_string(),
             details: Vec::new(),
             target: LOG_TARGET.to_string(),
@@ -239,9 +228,6 @@ pub enum QueryEvent {
     Running,
     /// The backend reported progress, with the structured progress of the progress model of the query
     Progress(Box<QueryExecutionProgress>),
-    /// The next part of the Arrow IPC stream of the result, in the order of the result. A message may span parts, a
-    /// part may repeat the schema or hold an end-of-stream marker. The host holds the parts until `finish_result`.
-    ResultData(Body),
     /// A batch of the result arrived, with the metrics of the stream so far
     ReceivedBatch(QueryExecutionMetrics),
     /// The result is complete, the host holds its table
@@ -305,23 +291,45 @@ pub enum ChannelMessage {
     End { metrics: QueryExecutionMetrics },
 }
 
-/// What the executor asks of the host
+/// A query as its host keeps it from its registration to the end of its last follow-up
+pub trait ExecutorRun: 'static {
+    /// The id of the query
+    fn query_id(&self) -> QueryId;
+    /// The one cancellation of the query
+    fn token(&self) -> &CancellationToken;
+    /// What the views ask of the query while it runs
+    fn controls(&self) -> &QueryControls;
+}
+
+/// What the executor asks of the host. Every call of a query gets its run.
 pub trait ExecutorHost: HttpHost {
+    /// The run of a query, the host keeps the result of the query with it
+    type Run: ExecutorRun;
+
     /// Apply an event of a query to the history of its connection
-    fn report(&self, query_id: QueryId, event: QueryEvent);
+    fn report(&self, run: &Self::Run, event: QueryEvent);
+
+    /// Keep the next part of the Arrow IPC stream of the result of a query, in the order of the result. A message may
+    /// span parts, a part may repeat the schema or hold an end-of-stream marker. The host holds the parts until
+    /// `finish_result`.
+    fn push_result(&self, run: &Self::Run, part: Body) -> Result<(), HostError>;
+    /// The result of a query streamed to its end: the host builds its table from the parts of the stream or from the
+    /// batches of its channel and holds it as the result of the run.
+    fn finish_result(&self, run: &Rc<Self::Run>) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
 
     /// Look up a result in the query result cache
-    fn cache_lookup(&self, query_id: QueryId, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static;
-    /// Read a cached result, the host holds it as the result of the query
-    fn cache_read(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
+    fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static;
+    /// Read a cached result, the host holds it as the result of the run
+    fn cache_read(&self, run: &Rc<Self::Run>, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
     /// Record that a cached result was used, for the eviction
-    fn cache_touch(&self, query_id: QueryId, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static;
-    /// Write the result of a query into the cache
-    fn cache_write(&self, query_id: QueryId, key: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
+    fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static;
+    /// Write the result of a run into the cache. False if the cache evicted the new file right away to keep its
+    /// limits.
+    fn cache_write(&self, run: &Rc<Self::Run>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static;
 
-    /// Analyze the result of a query on the compute database. A cancellation of the token stops the analysis, the host
-    /// keeps no analysis of a cancelled query and fails with the cancellation.
-    fn analyze_result(&self, query_id: QueryId, cancellation: &CancellationToken) -> impl Future<Output = Result<(), HostError>> + 'static;
+    /// Analyze the result of a run on the compute database. A cancellation of the token of the run stops the analysis,
+    /// the host keeps no analysis of a cancelled query and fails with the cancellation.
+    fn analyze_result(&self, run: &Rc<Self::Run>) -> impl Future<Output = Result<(), HostError>> + 'static;
 
     /// Send a request whose response carries a part of a result. The body of a successful response may stay with the
     /// host (`HttpResponse::host_body`), the module passes it on unread.
@@ -332,22 +340,21 @@ pub trait ExecutorHost: HttpHost {
     ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.fetch(request, cancellation)
     }
-    /// The result of a query streamed to its end: the host builds its table from the parts of the stream or from the
-    /// batches of its channel and holds it as the result of the query.
-    fn finish_result(&self, query_id: QueryId) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
 
-    /// Run a query on the channel of its connection, false if the channel returned no result
-    fn channel_open(&self, query_id: QueryId) -> impl Future<Output = Result<bool, HostError>> + 'static;
+    /// Run a query on the channel of its connection, false if the channel returned no result. A query that is
+    /// cancelled while the channel opens it is cancelled with `channel_cancel`, the open fails or returns a stream
+    /// that the cancel stops.
+    fn channel_open(&self, run: &Rc<Self::Run>) -> impl Future<Output = Result<bool, HostError>> + 'static;
     /// The next message of the result of a query on a channel
-    fn channel_next(&self, query_id: QueryId) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static;
-    /// Cancel the query of a channel at the backend
-    fn channel_cancel(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static;
+    fn channel_next(&self, run: &Self::Run) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static;
+    /// Cancel the query of a channel: one that the channel still opens, or its stream at the backend
+    fn channel_cancel(&self, run: &Self::Run) -> impl Future<Output = Result<(), HostError>> + 'static;
     /// Is the profile of the query shown? A channel fetches the plan and its statistics only then.
-    fn channel_profile_detail(&self, query_id: QueryId, wanted: bool);
+    fn channel_profile_detail(&self, run: &Self::Run, wanted: bool);
 
     /// The auth headers of the channel of a Hyper query over HTTP as they are now, asked before every round of requests
     /// of its result. None keeps the headers that the query started with.
-    fn channel_auth(&self, _query_id: QueryId) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+    fn channel_auth(&self, _run: &Self::Run) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
         std::future::ready(Ok(None))
     }
 
@@ -361,19 +368,8 @@ pub trait ExecutorHost: HttpHost {
     }
 }
 
-/// A query that runs
-struct Running {
-    token: CancellationToken,
-    controls: Controls,
-    /// Was the query cancelled through the executor? The cancel of a channel of the host is sent once.
-    cancel_sent: bool,
-    /// The callers that wait for the end of the query
-    waiters: Vec<Sender<()>>,
-}
-
 #[derive(Default)]
 struct ExecutorState {
-    running: HashMap<QueryId, Running>,
     /// The writes into the query result cache that run
     cache_writes: usize,
     /// The callers that wait for the cache writes
@@ -382,48 +378,8 @@ struct ExecutorState {
     progress_layout: Option<ProfileLayoutConfig>,
 }
 
-/// Change the state of the executor when a guard drops. A guard that drops while the state is borrowed, e.g. a task
-/// that is dropped within a call of the executor, changes it in a task of the host once the borrow ended.
-fn update_later<H: ExecutorHost>(
-    host: &Rc<H>,
-    state: &Rc<RefCell<ExecutorState>>,
-    update: impl FnOnce(&mut ExecutorState) -> Vec<Sender<()>> + 'static,
-) {
-    let waiters = match state.try_borrow_mut() {
-        Ok(mut borrowed) => update(&mut borrowed),
-        Err(_) => {
-            let state = state.clone();
-            host.spawn(Box::pin(async move {
-                let waiters = update(&mut state.borrow_mut());
-                for waiter in waiters {
-                    waiter.send(());
-                }
-            }));
-            return;
-        }
-    };
-    for waiter in waiters {
-        waiter.send(());
-    }
-}
-
-/// Removes a query from the running ones when its task ends
-struct RunningGuard<H: ExecutorHost> {
-    host: Rc<H>,
-    state: Rc<RefCell<ExecutorState>>,
-    query_id: QueryId,
-}
-
-impl<H: ExecutorHost> Drop for RunningGuard<H> {
-    fn drop(&mut self) {
-        let query_id = self.query_id;
-        update_later(&self.host, &self.state, move |state| {
-            state.running.remove(&query_id).map(|running| running.waiters).unwrap_or_default()
-        });
-    }
-}
-
-/// Counts a write into the cache while it runs
+/// Counts a write into the cache while it runs. A guard that drops while the state is borrowed, e.g. a task that is
+/// dropped within a call of the executor, changes it in a task of the host once the borrow ended.
 struct CacheWriteGuard<H: ExecutorHost> {
     host: Rc<H>,
     state: Rc<RefCell<ExecutorState>>,
@@ -431,14 +387,30 @@ struct CacheWriteGuard<H: ExecutorHost> {
 
 impl<H: ExecutorHost> Drop for CacheWriteGuard<H> {
     fn drop(&mut self) {
-        update_later(&self.host, &self.state, |state| {
+        let finish = |state: &mut ExecutorState| {
             state.cache_writes = state.cache_writes.saturating_sub(1);
             if state.cache_writes == 0 {
                 std::mem::take(&mut state.cache_waiters)
             } else {
                 Vec::new()
             }
-        });
+        };
+        let waiters = match self.state.try_borrow_mut() {
+            Ok(mut state) => finish(&mut state),
+            Err(_) => {
+                let state = self.state.clone();
+                self.host.spawn(Box::pin(async move {
+                    let waiters = finish(&mut state.borrow_mut());
+                    for waiter in waiters {
+                        waiter.send(());
+                    }
+                }));
+                return;
+            }
+        };
+        for waiter in waiters {
+            waiter.send(());
+        }
     }
 }
 
@@ -464,68 +436,17 @@ impl<H: ExecutorHost> QueryExecutor<H> {
         &self.host
     }
 
-    /// Run a query with the token of its caller, a token that was cancelled before ends it as cancelled. It counts as
-    /// running right away, the returned future runs it. The future settles once the query ended, a write of its result
-    /// into the cache may still run.
-    pub fn execute(&self, request: QueryRequest, token: CancellationToken) -> impl Future<Output = QueryOutcome> + 'static {
-        let controls = Controls::default();
-        let running = Running { token: token.clone(), controls: controls.clone(), cancel_sent: false, waiters: Vec::new() };
-        self.state.borrow_mut().running.insert(request.query_id, running);
-        let guard = RunningGuard { host: self.host.clone(), state: self.state.clone(), query_id: request.query_id };
-        let task = QueryTask { host: self.host.clone(), state: self.state.clone(), token, controls, request };
-        async move {
-            let outcome = task.run().await;
-            drop(guard);
-            outcome
-        }
+    /// Run a query of a run, a run whose token was cancelled before ends as cancelled. The future settles once the
+    /// query ended, a write of its result into the cache may still run and hold the run.
+    pub fn execute(&self, request: QueryRequest, run: Rc<H::Run>) -> impl Future<Output = QueryOutcome> + 'static {
+        let task = QueryTask { host: self.host.clone(), state: self.state.clone(), run, request };
+        task.run()
     }
 
     /// The layout of the plans of the progress of the queries that start later, none for the default one
     pub fn set_progress_layout(&self, layout: Option<ProfileLayoutConfig>) {
         if let Ok(mut state) = self.state.try_borrow_mut() {
             state.progress_layout = layout;
-        }
-    }
-
-    /// Is a query running?
-    pub fn is_running(&self, query_id: QueryId) -> bool {
-        self.state.borrow().running.contains_key(&query_id)
-    }
-
-    /// Cancel a query. The future settles once the query ended, at once for a query that doesn't run.
-    pub fn cancel(&self, query_id: QueryId) -> impl Future<Output = ()> + 'static {
-        let cancelled = {
-            let mut state = self.state.borrow_mut();
-            state.running.get_mut(&query_id).map(|running| {
-                let first = !running.cancel_sent;
-                running.cancel_sent = true;
-                running.token.cancel();
-                let (sender, receiver) = oneshot();
-                running.waiters.push(sender);
-                (receiver, first.then(|| running.controls.clone()))
-            })
-        };
-        let receiver = cancelled.map(|(receiver, controls)| {
-            // A channel of the host that streams is cancelled at the backend right away, the task waits for it
-            if let Some(controls) = controls.filter(Controls::host_stream) {
-                controls.set_backend_cancel(self.host.channel_cancel(query_id));
-            }
-            receiver
-        });
-        async move {
-            if let Some(receiver) = receiver {
-                receiver.await;
-            }
-        }
-    }
-
-    /// A view starts (`delta` 1) or stops (-1) showing the profile of a running query. A channel of the host that
-    /// streams learns it right away.
-    pub fn watch_profile(&self, query_id: QueryId, delta: i32) {
-        let controls = self.state.borrow().running.get(&query_id).map(|running| running.controls.clone());
-        let Some(controls) = controls else { return };
-        if let Some(shown) = controls.watch_profile(delta) {
-            self.host.channel_profile_detail(query_id, shown);
         }
     }
 
@@ -551,8 +472,7 @@ impl<H: ExecutorHost> QueryExecutor<H> {
 struct QueryTask<H: ExecutorHost> {
     host: Rc<H>,
     state: Rc<RefCell<ExecutorState>>,
-    token: CancellationToken,
-    controls: Controls,
+    run: Rc<H::Run>,
     request: QueryRequest,
 }
 
@@ -565,8 +485,12 @@ struct ResultSummary {
 }
 
 impl<H: ExecutorHost> QueryTask<H> {
+    fn token(&self) -> &CancellationToken {
+        self.run.token()
+    }
+
     fn report(&self, event: QueryEvent) {
-        self.host.report(self.request.query_id, event);
+        self.host.report(&self.run, event);
     }
 
     /// Log a message of the query with the details of the query
@@ -577,18 +501,14 @@ impl<H: ExecutorHost> QueryTask<H> {
     /// The details of the query for the log: the workbook and the id
     fn query_details(&self) -> Vec<(String, String)> {
         let mut details = self.request.log_details.clone();
-        details.push(("query".to_string(), self.request.query_id.to_string()));
+        details.push(("query".to_string(), self.run.query_id().to_string()));
         details
     }
 
     async fn run(self) -> QueryOutcome {
-        if self.token.is_cancelled() {
+        if self.token().is_cancelled() {
             let failure = QueryFailure::cancelled();
             self.report(QueryEvent::Cancelled { failure: failure.clone(), metrics: None });
-            return QueryOutcome::Rejected(failure);
-        }
-        if let Some(failure) = self.request.failure.clone() {
-            self.report(QueryEvent::Failed { failure: failure.clone(), metrics: None });
             return QueryOutcome::Rejected(failure);
         }
         let mut details = self.query_details();
@@ -599,7 +519,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         let summary = match self.fetch_result(&mut metrics).await {
             Ok(summary) => summary,
             Err(failure) => {
-                if self.token.is_cancelled() || failure.kind == FailureKind::Cancelled {
+                if self.token().is_cancelled() || failure.kind == FailureKind::Cancelled {
                     self.log(LogLevel::Warn, "Cancelled query", self.query_details());
                     let failure = failure.with_kind(FailureKind::Cancelled);
                     self.report(QueryEvent::Cancelled { failure: failure.clone(), metrics });
@@ -623,6 +543,10 @@ impl<H: ExecutorHost> QueryTask<H> {
                     self.log(LogLevel::Warn, "Cancelled query during result processing", self.query_details());
                     self.report(QueryEvent::Cancelled { failure: failure.clone(), metrics });
                     return self.fail(failure);
+                }
+                // The result is fine, only its analysis failed: it goes into the cache all the same
+                if !summary.served_from_cache {
+                    self.store_in_cache();
                 }
                 let mut details = self.query_details();
                 details.push(("error".to_string(), failure.message.clone()));
@@ -669,9 +593,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         let progress_layout = self.state.try_borrow().ok().and_then(|state| state.progress_layout);
         let mut stream = connectors::StreamContext::new(
             self.host.clone(),
-            self.request.query_id,
-            self.token.clone(),
-            self.controls.clone(),
+            self.run.clone(),
             self.request.publish_results,
             self.request.log_details.clone(),
             progress_layout,
@@ -687,8 +609,8 @@ impl<H: ExecutorHost> QueryTask<H> {
         let mut stream_metrics = end.metrics;
         let table = if self.request.publish_results {
             // The host builds the table from the parts it holds
-            let table = self.host.finish_result(self.request.query_id).await;
-            if self.token.is_cancelled() {
+            let table = self.host.finish_result(&self.run).await;
+            if self.token().is_cancelled() {
                 return Err(QueryFailure::cancelled());
             }
             let table = table.map_err(|error| QueryFailure::from_host(&error))?;
@@ -719,52 +641,41 @@ impl<H: ExecutorHost> QueryTask<H> {
         let Some(cache) = self.request.cache.as_ref().filter(|cache| !cache.refresh) else {
             return Ok(None);
         };
-        let query_id = self.request.query_id;
-        let entry = match self.host.cache_lookup(query_id, &cache.key).await {
-            Ok(entry) => entry,
-            Err(error) => {
-                let mut details = vec![("query".to_string(), query_id.to_string())];
-                details.push(("error".to_string(), error.message().to_string()));
+        let query_id = self.run.query_id().to_string();
+        // A cancel during the lookup or the read behaves like any other cancel
+        let entry = match self.token().run(self.host.cache_lookup(&cache.key)).await {
+            None => return Err(QueryFailure::cancelled()),
+            Some(Ok(entry)) => entry,
+            Some(Err(error)) => {
+                let details = vec![("query".to_string(), query_id.clone()), ("error".to_string(), error.message().to_string())];
                 self.log(LogLevel::Warn, "Failed to read query cache", details);
                 None
             }
         };
-        // A cancel during the lookup behaves like any other cancel
-        if self.token.is_cancelled() {
+        let Some(entry) = entry else { return Ok(None) };
+        // The read runs to its end, the run owns the table that it read
+        let table = self.host.cache_read(&self.run, &entry).await;
+        if self.token().is_cancelled() {
             return Err(QueryFailure::cancelled());
         }
-        let Some(entry) = entry else { return Ok(None) };
-        let table = match self.host.cache_read(query_id, &entry).await {
+        let table = match table {
             Ok(table) => table,
             Err(error) => {
-                let details = vec![("query".to_string(), query_id.to_string()), ("error".to_string(), error.message().to_string())];
+                let details = vec![("query".to_string(), query_id), ("error".to_string(), error.message().to_string())];
                 self.log(LogLevel::Warn, "Failed to read cached query result", details);
                 return Ok(None);
             }
         };
-        if self.token.is_cancelled() {
-            return Err(QueryFailure::cancelled());
-        }
         // The access counts for the eviction, a failure only makes the entry look colder. The touch holds the run, its
         // warning goes into the log of the query.
-        let touch = self.host.cache_touch(query_id, &entry);
+        let touch = self.host.cache_touch(&entry);
         let host = self.host.clone();
-        let log_details = vec![("query".to_string(), query_id.to_string())];
-        let keep_alive = self.request.keep_alive.clone();
+        let run = self.run.clone();
         self.host.spawn(Box::pin(async move {
-            let _keep_alive = keep_alive;
             if let Err(error) = touch.await {
-                let mut details = log_details;
-                details.push(("error".to_string(), error.message().to_string()));
-                host.report(
-                    query_id,
-                    QueryEvent::Log {
-                        level: LogLevel::Warn,
-                        message: "Failed to record query cache access".to_string(),
-                        details,
-                        target: LOG_TARGET.to_string(),
-                    },
-                );
+                let details = vec![("query".to_string(), run.query_id().to_string()), ("error".to_string(), error.message().to_string())];
+                let message = "Failed to record query cache access".to_string();
+                host.report(&run, QueryEvent::Log { level: LogLevel::Warn, message, details, target: LOG_TARGET.to_string() });
             }
         }));
         let mut details = self.query_details();
@@ -786,11 +697,11 @@ impl<H: ExecutorHost> QueryTask<H> {
     async fn analyze(&self) -> Result<(), QueryFailure> {
         self.report(QueryEvent::ProcessingResults);
         let started_at = self.host.now();
-        let analyzed = self.host.analyze_result(self.request.query_id, &self.token).await;
+        let analyzed = self.host.analyze_result(&self.run).await;
         self.report(QueryEvent::Timing { label: "Postprocess", elapsed_ms: self.host.now() - started_at });
         match analyzed {
             Ok(()) => {}
-            Err(_) if self.token.is_cancelled() => return Err(QueryFailure::cancelled()),
+            Err(error) if self.token().is_cancelled() || error.is_cancelled() => return Err(QueryFailure::cancelled()),
             Err(error) => return Err(QueryFailure::from_host(&error).with_kind(FailureKind::Processing)),
         }
         self.report(QueryEvent::ProcessedResults);
@@ -798,32 +709,26 @@ impl<H: ExecutorHost> QueryTask<H> {
     }
 
     /// Write the result into the cache after the query, the query doesn't wait for it. A failure only logs. The write
-    /// holds the run, so the key and the warning reach the history of the query after the query ended.
+    /// holds the run, so the key and the warning reach the history of the query after the query ended. A file that the
+    /// eviction removed right away is not recorded.
     fn store_in_cache(&self) {
         let Some(cache) = self.request.cache.as_ref() else { return };
-        let query_id = self.request.query_id;
         let key = cache.key.clone();
-        let write = self.host.cache_write(query_id, &key);
+        let write = self.host.cache_write(&self.run, &key);
         let host = self.host.clone();
+        let run = self.run.clone();
         self.state.borrow_mut().cache_writes += 1;
         let guard = CacheWriteGuard { host: self.host.clone(), state: self.state.clone() };
-        let keep_alive = self.request.keep_alive.clone();
         self.host.spawn(Box::pin(async move {
-            let _keep_alive = keep_alive;
+            let query = ("query".to_string(), run.query_id().to_string());
+            let log = |level: LogLevel, message: &str, details: Vec<(String, String)>| {
+                let message = message.to_string();
+                host.report(&run, QueryEvent::Log { level, message, details, target: LOG_TARGET.to_string() });
+            };
             match write.await {
-                Ok(()) => host.report(query_id, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None }),
-                Err(error) => host.report(
-                    query_id,
-                    QueryEvent::Log {
-                        level: LogLevel::Warn,
-                        message: "Failed to write query cache".to_string(),
-                        details: vec![
-                            ("query".to_string(), query_id.to_string()),
-                            ("error".to_string(), error.message().to_string()),
-                        ],
-                        target: LOG_TARGET.to_string(),
-                    },
-                ),
+                Ok(true) => host.report(&run, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None }),
+                Ok(false) => log(LogLevel::Info, "The query result cache evicted the result right away", vec![query]),
+                Err(error) => log(LogLevel::Warn, "Failed to write query cache", vec![query, ("error".to_string(), error.message().to_string())]),
             }
             drop(guard);
         }));

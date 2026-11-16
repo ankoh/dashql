@@ -14,8 +14,8 @@
 //! state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
-//! the search, `cancel_task` the run of a task. A cancelled run drops its future, tells the host to abort its calls and
-//! fails its task.
+//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id. A cancelled run drops its future, tells
+//! the host to abort its calls and fails its task.
 //!
 //! The state sits behind a `RefCell` that no task borrows across an await. A task tells the host after its actions
 //! that the state changed.
@@ -198,6 +198,15 @@ impl<H: ComputeHost> ComputeService<H> {
     pub fn cancel_task(&self, task_id: TaskId) {
         let runs = self.shared.inner.borrow_mut().take_runs(|run| run.task == Some(task_id));
         cancel_runs(&self.shared, runs);
+    }
+
+    /// Cancel a run by its id, e.g. the run of a query of a task that the user stopped: its future is dropped, the host
+    /// aborts its calls and its task fails. False for a run that doesn't run.
+    pub fn cancel_run(&self, run: RunId) -> bool {
+        let taken = self.shared.inner.borrow_mut().runs.remove(&run);
+        let Some(taken) = taken else { return false };
+        cancel_runs(&self.shared, vec![(run, taken)]);
+        true
     }
 
     /// Is a task running?

@@ -65,17 +65,28 @@ pub struct ExternalScriptChange {
 ///
 /// The message describes the failure, the value is what the host failed with (a JavaScript error in the module), it
 /// goes back to the host unchanged. A failure that the runtime decides on, e.g. a script that changed outside the
-/// app, is classified by the host.
+/// app or a call that was cancelled, is classified by the host.
 #[derive(Clone)]
 pub struct HostError {
     message: String,
     external_script_change: Option<ExternalScriptChange>,
+    cancelled: bool,
     value: Option<Rc<dyn Any>>,
 }
 
 impl HostError {
     pub fn new(message: impl Into<String>) -> HostError {
-        HostError { message: message.into(), external_script_change: None, value: None }
+        HostError { message: message.into(), external_script_change: None, cancelled: false, value: None }
+    }
+
+    /// A call that was cancelled, e.g. a request whose token was cancelled
+    pub fn cancelled() -> HostError {
+        HostError { cancelled: true, ..HostError::new(crate::http::host::CANCELLED_MESSAGE) }
+    }
+
+    /// Was the call cancelled?
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled
     }
 
     /// A write that would overwrite a script that changed outside the app
@@ -84,6 +95,7 @@ impl HostError {
         HostError {
             message: format!("script {} of workbook {} changed outside the app", change.file_name, change.workbook_id),
             external_script_change: Some(change),
+            cancelled: false,
             value: None,
         }
     }
@@ -114,6 +126,7 @@ impl fmt::Debug for HostError {
         f.debug_struct("HostError")
             .field("message", &self.message)
             .field("external_script_change", &self.external_script_change)
+            .field("cancelled", &self.cancelled)
             .finish()
     }
 }

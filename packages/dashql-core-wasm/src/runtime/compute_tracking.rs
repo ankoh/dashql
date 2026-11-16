@@ -4,7 +4,8 @@
 //! A task of a computation creates its tables with SELECTs on the compute database. The runtime lists them in the
 //! query history of the connection that ran the query of the result, or in a history without a connection that the
 //! analysis named, e.g. the one of the shell. The query is opened before the call and closed after it; a reset of the
-//! connection stops it like a query of the connection, the call of the run is aborted.
+//! connection or a cancel stops it like a query of the connection: the run of the task is cancelled in Rust, the
+//! calls of the run are aborted and the query ends cancelled.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -31,8 +32,8 @@ struct Inner {
     connections: RefCell<Weak<Connections>>,
     /// The histories without a connection that computations list their queries in, by computation
     histories: RefCell<HashMap<TableId, String>>,
-    /// The tracked queries that run by id, with the run that a stop aborts and whether it was stopped
-    running: RefCell<HashMap<QueryId, (RunId, bool)>>,
+    /// The tracked queries that run by id, with the run that a stop cancels
+    running: RefCell<HashMap<QueryId, RunId>>,
 }
 
 /// The compute host of the runtime, see the module. Clones share the histories.
@@ -69,16 +70,16 @@ impl ComputeTracker {
         histories.insert(table_id, history);
     }
 
-    /// Stop a tracked query: the call of its run is aborted, the query ends cancelled. False for a query that is not
-    /// one of the computations.
+    /// Stop a tracked query: the run of its task is cancelled, which drops the call and aborts it at the platform, the
+    /// query ends cancelled. False for a query that is not one of the computations.
     pub fn stop(&self, query_id: QueryId) -> bool {
-        let run = {
-            let mut running = self.inner.running.borrow_mut();
-            let Some((run, stopped)) = running.get_mut(&query_id) else { return false };
-            *stopped = true;
-            *run
-        };
-        ComputeHost::cancel(&self.inner.platform, run);
+        let Some(run) = self.inner.running.borrow().get(&query_id).copied() else { return false };
+        let connections = self.inner.connections.borrow().upgrade();
+        let cancelled = connections.is_some_and(|connections| connections.computations.cancel_run(run));
+        // A run that the service doesn't know any more still has its calls aborted
+        if !cancelled {
+            ComputeHost::cancel(&self.inner.platform, run);
+        }
         true
     }
 
@@ -103,13 +104,13 @@ impl ComputeTracker {
         for action in [QueryExecutionAction::QuerySending { query_id, now }, QueryExecutionAction::QueryRunning { query_id, now }] {
             let _ = connections.apply_query(owner, action, false);
         }
-        self.inner.running.borrow_mut().insert(query_id, (context.run, false));
+        self.inner.running.borrow_mut().insert(query_id, context.run);
         Some(query_id)
     }
 
     /// Close a query of a history with the outcome of its call
     fn close(&self, connections: &Rc<Connections>, owner: &QueryOwner, query_id: QueryId, outcome: &Result<(), HostError>) {
-        let stopped = self.inner.running.borrow_mut().remove(&query_id).map(|(_, stopped)| stopped).unwrap_or(false);
+        self.inner.running.borrow_mut().remove(&query_id);
         // A reset of the connection drops its queries from the history, there is nothing to close then
         if connections.registry.borrow().query_history(query_id).is_none() {
             return;
@@ -117,10 +118,10 @@ impl ComputeTracker {
         let now = connections.now() as i64;
         let action = match outcome {
             Ok(()) => QueryExecutionAction::QuerySucceeded { query_id, now },
-            Err(error) => {
-                let error = QueryError { message: error.to_string(), details: None };
-                // A stopped query and a cancelled run, e.g. of a computation that is gone, are cancelled
-                if stopped || error.message.contains("cancelled") {
+            Err(failure) => {
+                let error = QueryError { message: failure.to_string(), details: None };
+                // A cancelled run, e.g. of a stopped query or of a computation that is gone, ends its query cancelled
+                if failure.is_cancelled() {
                     QueryExecutionAction::QueryCancelled { query_id, error, metrics: None, now }
                 } else {
                     QueryExecutionAction::QueryFailed { query_id, error, metrics: None, now }
@@ -156,7 +157,7 @@ impl OpenQuery {
 
 impl Drop for OpenQuery {
     fn drop(&mut self) {
-        self.close(&Err(HostError::new("The task was cancelled")));
+        self.close(&Err(HostError::cancelled()));
     }
 }
 

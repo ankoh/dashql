@@ -832,13 +832,7 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn cancel(&self, _connection_id: &str, query_id: QueryId) -> impl Future<Output = ()> + 'static {
-        let cancelled = self.connections.cancel(query_id);
-        // A channel of the host stops at once, also one that still connects: the stream it returns is cancelled then
-        let channel = self.platform.channel_cancel(query_id as f64);
-        self.platform.spawn(Box::pin(async move {
-            let _ = channel.await;
-        }));
-        cancelled
+        self.connections.cancel(query_id)
     }
 
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {

@@ -123,7 +123,7 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query, drop, cancel a run | `compute/compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
-| `channels` | `connect` a setup's channel, `hyperLinkToken`, and the queries of host channels: `describe`, `auth`, `open`, `next`, `cancel`, `profileDetail`, `forget` | `query/query_channels.ts` |
+| `channels` | `connect` a setup's channel, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `auth`, `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
 | `resultCache` | Lookup, read, write, touch, retain, release, import, list, remove, capacity | `query/query_channels.ts` |
 | `mounts` | The files of runs in the compute database and the attachments | `workbook/scripts/run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
@@ -181,8 +181,9 @@ A parent lists the ids of its children, not their revisions: a keystroke changes
 ### Changes and the flush
 
 1. A service that changes a slice marks it on the platform (`JsPlatform::changed` in Rust), which calls
-   `platform.changed(urgent)` once until the store takes the changes. Progress and result batches are not urgent,
-   everything else is.
+   `platform.changed(urgent)` once until the store takes the changes. The events of a query between its start and its
+   end (progress, batches, the result, the analysis, the cache) are not urgent, nor are the computations; everything
+   else is.
 2. The store flushes at the end of the task when urgent, before the next frame otherwise (`RuntimeStore.changed` over
    the `UpdateScheduler`). `flush()` flushes at once, e.g. for the command line tool and the tests.
 3. `takeChanges()` returns the marked slices, `{ kind, id, revision }` with a null revision for a slice that is gone,

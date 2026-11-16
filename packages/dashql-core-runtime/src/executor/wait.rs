@@ -3,10 +3,8 @@
 use std::cell::RefCell;
 use std::future::{poll_fn, Future};
 use std::pin::Pin;
-use std::rc::Rc;
 use std::task::{Context, Poll, Waker};
 
-use crate::host::HostError;
 use crate::http::CancellationToken;
 
 /// A future of the task
@@ -72,71 +70,41 @@ impl<K: PartialEq + Copy, T> TaskSet<K, T> {
     }
 }
 
-/// What the controls of a running query say, changed from outside the task
+/// What the controls of a query say, changed from outside its task
 #[derive(Default)]
-pub(crate) struct ControlState {
+struct ControlState {
     /// The views that show the profile of the query
-    pub(crate) profile_viewers: u32,
-    /// Does a channel of the host stream the result? It learns of the views and the cancellation right away.
-    host_stream: bool,
-    /// The cancellation of the query of a channel of the host at the backend, sent when the query was cancelled
-    backend_cancel: Option<LocalFuture<Result<(), HostError>>>,
+    profile_viewers: u32,
     /// Did the controls change since the task looked?
     changed: bool,
     waker: Option<Waker>,
 }
 
-/// The controls of a running query, shared with the executor
-#[derive(Clone, Default)]
-pub(crate) struct Controls {
-    state: Rc<RefCell<ControlState>>,
+/// The controls of a query: what the views ask of it. The host keeps them with the run of the query from its
+/// registration on, so a view that shows the profile before the query started counts as well.
+#[derive(Default)]
+pub struct QueryControls {
+    state: RefCell<ControlState>,
 }
 
-impl Controls {
+impl QueryControls {
     /// Is the profile of the query shown?
-    pub(crate) fn profile_shown(&self) -> bool {
+    pub fn profile_shown(&self) -> bool {
         self.state.borrow().profile_viewers > 0
     }
 
-    /// A view starts or stops showing the profile. Returns whether the profile is shown if a channel of the host
-    /// streams, the caller tells the channel, otherwise the task learns it.
-    pub(crate) fn watch_profile(&self, delta: i32) -> Option<bool> {
-        let (waker, host_stream) = {
+    /// A view starts (`delta` 1) or stops (-1) showing the profile. The task of the query learns it and tells a channel
+    /// of the host.
+    pub fn watch_profile(&self, delta: i32) {
+        let waker = {
             let mut state = self.state.borrow_mut();
             state.profile_viewers = state.profile_viewers.saturating_add_signed(delta);
-            if state.host_stream {
-                (None, Some(state.profile_viewers > 0))
-            } else {
-                state.changed = true;
-                (state.waker.take(), None)
-            }
+            state.changed = true;
+            state.waker.take()
         };
         if let Some(waker) = waker {
             waker.wake();
         }
-        host_stream
-    }
-
-    /// A channel of the host streams the result, it learns of the views and the cancellation right away from now on
-    pub(crate) fn set_host_stream(&self) {
-        let mut state = self.state.borrow_mut();
-        state.host_stream = true;
-        state.changed = false;
-    }
-
-    /// Does a channel of the host stream the result?
-    pub(crate) fn host_stream(&self) -> bool {
-        self.state.borrow().host_stream
-    }
-
-    /// Keep the cancellation of the query at the backend, the task waits for it
-    pub(crate) fn set_backend_cancel(&self, cancel: impl Future<Output = Result<(), HostError>> + 'static) {
-        self.state.borrow_mut().backend_cancel = Some(Box::pin(cancel));
-    }
-
-    /// The cancellation of the query at the backend that was sent already
-    pub(crate) fn take_backend_cancel(&self) -> Option<LocalFuture<Result<(), HostError>>> {
-        self.state.borrow_mut().backend_cancel.take()
     }
 
     /// Did the controls change since the last look? Registers the task otherwise.
@@ -172,7 +140,7 @@ pub(crate) enum Wake<K, T> {
 pub(crate) async fn next<K: PartialEq + Copy, T>(
     set: &mut TaskSet<K, T>,
     token: &CancellationToken,
-    controls: &Controls,
+    controls: &QueryControls,
 ) -> Wake<K, T> {
     let mut cancelled = token.cancelled();
     poll_fn(move |cx| {

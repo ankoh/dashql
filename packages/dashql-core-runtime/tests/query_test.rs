@@ -125,6 +125,26 @@ fn finished_queries_keep_the_result_of_an_owner_when_a_later_query_fails() {
 }
 
 #[test]
+fn finished_queries_keep_no_result_of_a_query_that_was_cancelled_or_failed_after_its_result_arrived() {
+    let mut history = QueryExecutionHistory::new();
+    let metrics = QueryExecutionMetrics::default;
+    for (query_id, end) in [
+        (1, QueryExecutionAction::QueryCancelled { query_id: 1, error: error("cancelled"), metrics: None, now: NOW }),
+        (2, QueryExecutionAction::QueryFailed { query_id: 2, error: error("analysis failed"), metrics: None, now: NOW }),
+    ] {
+        start(&mut history, query_id, metadata(QueryType::UserProvided, Some("s/1")));
+        let received = QueryExecutionAction::QueryReceivedAllBatches { query_id, table: table(query_id), metrics: metrics(), now: NOW };
+        history.apply(received).unwrap();
+        history.apply(QueryExecutionAction::QueryProcessingResults { query_id, now: NOW }).unwrap();
+        // The host dropped the computation of the result, the history lets go of the table
+        let outcome = history.apply(end).unwrap();
+        assert_eq!(outcome.effects, vec![release(query_id)]);
+        assert!(outcome.superseded.is_empty());
+        assert_eq!(result_of(&history, query_id), None);
+    }
+}
+
+#[test]
 fn finished_queries_keep_a_bounded_history_of_internal_queries() {
     let mut history = QueryExecutionHistory::new();
     succeed(&mut history, 0, metadata(QueryType::UserProvided, None));

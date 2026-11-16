@@ -129,9 +129,9 @@ The cacheable path computes the key before query state is registered.
 On a cache hit, the executor reads the newest file of the key through the mounted cache folder while the file is
 pinned (`QueryResultCache.readTable`), dispatches the same completed-result state used by a streamed query with empty metadata and zeroed stream metrics, then enters the shared analysis and success path. It records the cache key, cached-at timestamp, and `servedFromCache` state for the UI. A cache hit also asynchronously rewrites the empty access marker; it never rewrites the potentially large payload.
 
-On a miss, the executor streams the backend result into an Arrow table as usual. After the query succeeds, the compute database writes the table as new file of the key into the mounted cache folder (`QueryResultCache.writeTable`), then the older files of the key are removed and eviction runs. The caller is not blocked on the write or the eviction scan. A successful write records the cache key on the finished query, while a failed write only produces a log warning.
+On a miss, the executor streams the backend result into an Arrow table as usual. After the query succeeds, or after only the analysis of its result failed, the compute database writes the table as new file of the key into the mounted cache folder (`QueryResultCache.writeTable`, `resultCache.write` resolves with the name of the file), then the older files of the key are removed and eviction runs. The caller is not blocked on the write or the eviction scan. A write whose file survived the eviction records the cache key on the finished query; a file that the eviction removed right away, e.g. a result larger than the cache, and a failed write only produce a log message.
 
-Cancellation during an asynchronous cache read is treated like any other cancellation. Cache lookup, read and write failures are logged and fall back to normal execution where applicable: an entry that cannot be read is a miss.
+Cancellation during an asynchronous cache lookup is treated like any other cancellation, the query ends at once. A read runs to its end, the run of the query owns the table that it read, then the query ends as cancelled. Cache lookup, read and write failures are logged and fall back to normal execution where applicable: an entry that cannot be read is a miss.
 
 ## Script References
 

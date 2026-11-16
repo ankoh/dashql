@@ -47,7 +47,7 @@ class TestPlatform {
     readonly described: string[] = [];
     readonly forgotten: number[] = [];
     /// Describes the channel of a query of the host, a Trino connection owns its channel
-    describe: () => Promise<unknown> = async () => ({ type: 'host' });
+    describe: () => Promise<dashql.RuntimeChannelTarget> = async () => ({ type: 'host' });
     /// The parts of the tables that stream, by handle
     readonly parts = new Map<number, Uint8Array[]>();
     resultBytes = 0;
@@ -524,7 +524,7 @@ describe('The queries of the runtime', () => {
         expect(viewOf(runtime, 'query', failed.queryId)).toMatchObject({ status: dashql.QueryExecutionStatus.FAILED, error: { message: failure.message } });
 
         // A query of a channel of the host that is cancelled while the platform describes it
-        let describe: (target: unknown) => void = () => { };
+        let describe: (target: dashql.RuntimeChannelTarget) => void = () => { };
         platform.describe = () => new Promise(resolve => { describe = resolve; });
         const pending = runtime.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
         await vi.waitFor(() => expect(platform.described).toEqual(['select 1']));
@@ -536,12 +536,106 @@ describe('The queries of the runtime', () => {
         runtime.free();
     });
 
+    it('records a query that the caller failed without describing it', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        const failure = new Error('bar.sql: unknown script :missing');
+        const failed = runtime.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true, analyzeResults: true } }, failure, null);
+        const outcome = await failed.done;
+        expect(outcome.status === 'rejected' && outcome.value).toBe(failure);
+        // Neither the channel nor the compute database is asked
+        expect(platform.described).toEqual([]);
+        expect(viewOf(runtime, 'query', failed.queryId)).toMatchObject({ status: dashql.QueryExecutionStatus.FAILED, error: { message: failure.message } });
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('cancels a query of a channel of the host while the channel still opens it', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        // The channel runs one query at a time, the query waits for its turn until it is cancelled
+        const turns = new Map<number, (error: unknown) => void>();
+        const cancelled: number[] = [];
+        platform.platform.channels.open = queryId => new Promise<boolean>((_resolve, reject) => { turns.set(queryId, reject); });
+        platform.platform.channels.cancel = async queryId => {
+            cancelled.push(queryId);
+            turns.get(queryId)?.(new DOMException('Query was cancelled', 'AbortError'));
+        };
+        const ticket = runtime.executeQuery('main', { text: 'insert into t values (1)', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
+        await vi.waitFor(() => expect(turns.size).toBe(1));
+        // The cancel reaches the channel and resolves once the query ended, it doesn't wait for the turn
+        await runtime.cancelQuery(ticket.queryId);
+        expect(cancelled).toEqual([ticket.queryId]);
+        expect(await ticket.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
+        expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('releases the result of a query that the history no longer takes', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        // The connection goes while the history takes its handle of the result
+        let copy: number | null = null;
+        const duplicate = platform.platform.handles.duplicate;
+        platform.platform.handles.duplicate = handle => {
+            const duplicated = duplicate(handle);
+            if (copy == null) {
+                copy = duplicated;
+                expect(runtime.dispatch({ connection: 'trino' }, { kind: 'deleteConnection' })).toMatchObject({ ok: true });
+            }
+            return duplicated;
+        };
+        runtime.takeChanges();
+        const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, undefined, null);
+        await ticket.done;
+        expect(copy).not.toBeNull();
+        expect(runtime.takeChanges().effects).toContainEqual({ type: 'release', handle: copy });
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('records a result in the cache only if the eviction kept its file', async () => {
+        for (const evicted of [false, true]) {
+            const platform = new TestPlatform();
+            const files: { name: string; size: number; mtimeMs: number; lastAccessMs: number }[] = [];
+            const resultCache = {
+                lookup: async () => null,
+                read: () => Promise.reject(new Error('no file')),
+                touch: async () => { },
+                write: async (key: string) => {
+                    const name = `${key}-${files.length}.parquet`;
+                    files.push({ name, size: 100, mtimeMs: 1, lastAccessMs: 1 });
+                    return name;
+                },
+                capacity: () => ({ maxBytes: evicted ? 10 : 1000, maxFiles: 10 }),
+                files: async () => files,
+                remove: async (name: string) => {
+                    files.splice(files.findIndex(file => file.name === name), 1);
+                    return true;
+                },
+            } as unknown as dashql.RuntimeResultCache;
+            Object.assign(platform.platform, { resultCache, mounts: {} as dashql.RuntimeMounts });
+            const runtime = createRuntime(platform);
+            await setupTrino(runtime, platform);
+            const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { cache: { signature: 'sig' } } }, undefined, null);
+            expect((await ticket.done).status).toBe('resolved');
+            await runtime.flushCacheWrites();
+            // The eviction removed the new file right away, the query names no cached result
+            expect(files).toHaveLength(evicted ? 0 : 1);
+            expect(viewOf(runtime, 'query', ticket.queryId)!.cacheKey).toEqual(evicted ? null : expect.any(String));
+            runtime.destroy();
+            runtime.free();
+        }
+    });
+
     it('cancels a call of a client function while its spec loads, the call never starts', async () => {
         const platform = new TestPlatform();
         let loads = 0;
         let load: (spec: string) => void = () => { };
         platform.platform.extensions = { loadSpec: () => { ++loads; return new Promise(resolve => { load = resolve; }); } };
-        platform.describe = async () => ({ type: 'host', tokens: null });
+        platform.describe = async () => ({ type: 'host' });
         const runtime = createRuntime(platform);
         runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'sf', connectorType: dashql.ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: {} } });
         const call = { namespace: 'cdp', function: 'query', effect: 'read' };

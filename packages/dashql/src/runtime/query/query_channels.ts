@@ -22,14 +22,15 @@ const LOG_CTX = 'query_executor';
 /// A message of a channel of the host, what the stream produced. The batches stay in the table of the query.
 type ChannelMessage = core.RuntimeChannelMessage | { type: 'error'; error: unknown };
 
-/// What the platform keeps of a query of the runtime: the channel of its connection, its stream and the cancellation
-/// of its caller
+/// What the platform keeps of a query of a channel: the channel of its connection, its stream and its cancellation.
+/// The runtime describes the query first (`describe`), which creates the record, and forgets it when its run ends
+/// (`forget`), which deletes it.
 interface QueryRecord {
     /// The query on the channel as the runtime described it, null until then
     query: core.RuntimeChannelQuery | null;
     /// The channel of the connection
     channel: unknown;
-    /// Aborted by a cancel of the runtime, it stops the stream of a channel of the host
+    /// Aborted by a cancel of the runtime, it stops a query that the channel still opens and the stream of the channel
     cancellation: AbortController;
     /// The stream of a channel of the host and its messages
     stream: QueryExecutionResponseStream | null;
@@ -105,7 +106,7 @@ export class QueryChannels {
     /// The channels of the platform by query
     readonly channels: Pick<core.RuntimeChannels, 'describe' | 'auth' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
         describe: async (queryId, handle, query) => {
-            const record = this.records.get(queryId) ?? newRecord();
+            const record = newRecord();
             this.records.set(queryId, record);
             const channel: unknown = this.deps.handles.get(handle) ?? null;
             record.query = query;
@@ -175,7 +176,7 @@ export class QueryChannels {
             },
             read: async name => {
                 const table = await cache.readTable(await database(), name);
-                return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols };
+                return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols } satisfies core.RuntimeCachedTable;
             },
             touch: name => cache.touch(name),
             retain: async key => {
@@ -214,6 +215,7 @@ export class QueryChannels {
                     } finally {
                         await release();
                     }
+                    return name;
                 })();
             },
         };
@@ -259,9 +261,6 @@ export class QueryChannels {
             },
         );
         const queryId = ticket.queryId;
-        // The runtime describes the query once the call returned, the record of the caller is there by then
-        const record = this.records.get(queryId) ?? newRecord();
-        this.records.set(queryId, record);
         // An abort of the caller cancels the query in the runtime, the runtime cancels the channel
         const cancelFromCaller = () => {
             void runtime.cancelQuery(queryId).catch(() => { });
@@ -281,17 +280,16 @@ export class QueryChannels {
         if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
         const execution = ticket.done.then(outcome => {
             if (outcome.status === 'resolved') return outcome.hasResult ? outcome.table as arrow.Table : null;
-            throw this.errorOf(record, args, outcome.failure, outcome.value);
+            throw this.errorOf(args, outcome.failure, outcome.value);
         }).finally(() => {
             args.abortSignal?.removeEventListener('abort', cancelFromCaller);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
-            this.records.delete(queryId);
         });
         return [queryId, execution];
     }
 
     /// The error of a failure. What the host failed with stays, the cancellation of the caller is its reason.
-    private errorOf(record: QueryRecord, args: QueryExecutionArgs, failure: core.QueryRunFailure, value: unknown): unknown {
+    private errorOf(args: QueryExecutionArgs, failure: core.QueryRunFailure, value: unknown): unknown {
         if (failure.hostValue) {
             if (failure.kind === 'processing') {
                 return value instanceof LoggableException
@@ -304,7 +302,7 @@ export class QueryChannels {
             case 'cacheMiss':
                 return new QueryCacheMissError();
             case 'cancelled':
-                return args.abortSignal?.reason ?? (record.cancellation.signal.aborted ? record.cancellation.signal.reason : null) ?? abortError();
+                return args.abortSignal?.reason ?? abortError();
             default:
                 return new LoggableException(failure.message, failure.details, failure.target);
         }

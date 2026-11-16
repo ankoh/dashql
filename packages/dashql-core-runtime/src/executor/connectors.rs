@@ -15,10 +15,10 @@ use arrow_array::RecordBatch;
 use arrow_schema::SchemaRef;
 
 use super::ipc::IpcStreamWriter;
-use super::wait::{next, Controls, TaskSet, Wake};
+use super::wait::{next, TaskSet, Wake};
 use super::{
-    ChannelMessage, ClientFunctionTarget, ExecutorHost, FailureKind, QueryEvent, QueryFailure, QueryId, QueryTarget,
-    LOG_TARGET,
+    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, QueryEvent, QueryFailure,
+    QueryTarget, LOG_TARGET,
 };
 use crate::clfn::{
     start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
@@ -45,9 +45,9 @@ pub struct StreamEnd {
 /// What a connector reports to while it streams a result
 pub struct StreamContext<H: ExecutorHost> {
     host: Rc<H>,
-    query_id: QueryId,
+    run: Rc<H::Run>,
+    /// The token of the run
     token: CancellationToken,
-    controls: Controls,
     publish: bool,
     log_details: Vec<(String, String)>,
     /// Did the result start to stream?
@@ -66,18 +66,16 @@ pub struct StreamContext<H: ExecutorHost> {
 impl<H: ExecutorHost> StreamContext<H> {
     pub(crate) fn new(
         host: Rc<H>,
-        query_id: QueryId,
-        token: CancellationToken,
-        controls: Controls,
+        run: Rc<H::Run>,
         publish: bool,
         log_details: Vec<(String, String)>,
         progress_layout: Option<ProfileLayoutConfig>,
     ) -> Self {
+        let token = run.token().clone();
         Self {
             host,
-            query_id,
+            run,
             token,
-            controls,
             publish,
             log_details,
             started: false,
@@ -95,12 +93,17 @@ impl<H: ExecutorHost> StreamContext<H> {
     }
 
     fn report(&self, event: QueryEvent) {
-        self.host.report(self.query_id, event);
+        self.host.report(&self.run, event);
+    }
+
+    /// Hand the next part of the result stream to the host
+    fn push(&self, part: Body) -> Result<(), QueryFailure> {
+        self.host.push_result(&self.run, part).map_err(|error| QueryFailure::from_host(&error))
     }
 
     fn log(&self, level: LogLevel, message: &str, details: Vec<(String, String)>, target: &str) {
         let mut all = self.log_details.clone();
-        all.push(("query".to_string(), self.query_id.to_string()));
+        all.push(("query".to_string(), self.run.query_id().to_string()));
         all.extend(details);
         self.report(QueryEvent::Log { level, message: message.to_string(), details: all, target: target.to_string() });
     }
@@ -162,21 +165,22 @@ impl<H: ExecutorHost> StreamContext<H> {
         self.log(LogLevel::Debug, "Received result batch", details, LOG_TARGET);
         let part = self.writer(batch.schema())?.write(&batch).map_err(write_failure)?;
         drop(batch);
-        self.report(QueryEvent::ResultData(Body::Bytes(part)));
+        self.push(Body::Bytes(part))?;
         self.report(QueryEvent::ReceivedBatch(self.metrics.clone()));
         Ok(())
     }
 
     /// A part of the Arrow IPC stream of the result arrived, the metrics count it already. It goes to the host as it
     /// is.
-    fn part(&mut self, body: Body) {
+    fn part(&mut self, body: Body) -> Result<(), QueryFailure> {
         if !self.publish {
-            return;
+            return Ok(());
         }
         let details = vec![("bytes".to_string(), body.len().to_string())];
         self.log(LogLevel::Debug, "Received result chunk", details, LOG_TARGET);
-        self.report(QueryEvent::ResultData(body));
+        self.push(body)?;
         self.report(QueryEvent::ReceivedBatch(self.metrics.clone()));
+        Ok(())
     }
 
     /// A batch arrived at the host, the metrics count it already
@@ -191,7 +195,7 @@ impl<H: ExecutorHost> StreamContext<H> {
         if self.publish {
             if let Some(schema) = self.schema.clone() {
                 let part = self.writer(schema)?.finish().map_err(write_failure)?;
-                self.report(QueryEvent::ResultData(Body::Bytes(part)));
+                self.push(Body::Bytes(part))?;
             }
         }
         self.writer = None;
@@ -332,8 +336,8 @@ async fn stream_trino<H: ExecutorHost>(
     let now = || host.now() as i64;
     let mut queue: VecDeque<StreamOutput> = outputs.into();
     // The profile is fetched while a view shows it, the statement asks for it once the stages exist
-    context.controls.clear_changed();
-    queue.extend(query.set_profile_detail(context.controls.profile_shown(), now()));
+    context.run.controls().clear_changed();
+    queue.extend(query.set_profile_detail(context.run.controls().profile_shown(), now()));
     let mut pending: TaskSet<TrinoKey, TrinoCompletion> = TaskSet::new();
     let mut statement: Option<u32> = None;
     loop {
@@ -390,9 +394,9 @@ async fn stream_trino<H: ExecutorHost>(
                 }
             }
         }
-        match next(&mut pending, &context.token, &context.controls).await {
+        match next(&mut pending, &context.token, context.run.controls()).await {
             Wake::Cancelled => return Err(QueryFailure::cancelled()),
-            Wake::Control => queue.extend(query.set_profile_detail(context.controls.profile_shown(), now())),
+            Wake::Control => queue.extend(query.set_profile_detail(context.run.controls().profile_shown(), now())),
             Wake::Done(TrinoKey::Request(id), TrinoCompletion::Response(result)) => {
                 let outputs = query.on_response(id, &fetch_outcome(result), now());
                 // The answer to the statement opens the result stream
@@ -465,7 +469,7 @@ async fn stream_hyper<H: ExecutorHost>(
     loop {
         // The auth headers of the channel may change while a result streams, e.g. a token that is refreshed. The
         // requests of every round ask for them again.
-        match context.token.run(host.channel_auth(context.query_id)).await {
+        match context.token.run(host.channel_auth(&context.run)).await {
             None => return Err((QueryFailure::cancelled(), true)),
             Some(Ok(Some(headers))) => *auth = headers,
             Some(Ok(None)) => {}
@@ -482,7 +486,7 @@ async fn stream_hyper<H: ExecutorHost>(
                 // The chunks count as the batches until the host counts the batches of the result
                 ResultEvent::Chunk(body) => {
                     context.metrics.total_batches_received += 1;
-                    context.part(body);
+                    context.part(body).map_err(|failure| (failure, true))?;
                 }
             }
         }
@@ -496,7 +500,7 @@ async fn stream_hyper<H: ExecutorHost>(
         if poll.done {
             return context.end().map_err(|failure| (failure, false));
         }
-        match next(&mut pending, &context.token, &context.controls).await {
+        match next(&mut pending, &context.token, context.run.controls()).await {
             Wake::Cancelled => return Err((QueryFailure::cancelled(), true)),
             Wake::Control => {}
             Wake::Done(id, Ok(response)) => reader.receive(id, response, host.now() as i64).map_err(broken)?,
@@ -591,22 +595,27 @@ fn start_without_spec(target: &ClientFunctionTarget) -> QueryFailure {
 // Channels of the host
 // ---------------------------------------------------------------------------------------------------------------------
 
-/// Cancel the query of a channel at the backend once, or wait for the cancellation that was sent. A failure is logged.
+/// Cancel the query of a channel: one that the channel still opens, or its stream at the backend. A failure is logged.
 async fn cancel_host_channel<H: ExecutorHost>(context: &StreamContext<H>) {
-    let cancel = match context.controls.take_backend_cancel() {
-        Some(cancel) => cancel.await,
-        None => context.host.channel_cancel(context.query_id).await,
-    };
-    if let Err(error) = cancel {
+    if let Err(error) = context.host.channel_cancel(&context.run).await {
         context.cancel_failed(error.message());
     }
 }
 
 async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Result<Option<StreamEnd>, QueryFailure> {
     let host = context.host.clone();
-    let query_id = context.query_id;
-    // The channel runs the query even if it is cancelled meanwhile, a stream that arrives is cancelled then
-    let opened = host.channel_open(query_id).await;
+    let run = context.run.clone();
+    // A cancel while the channel opens the query, e.g. while it waits for the query before it, stops it there: the open
+    // fails, or it returns a stream that is cancelled below
+    let mut open = Box::pin(host.channel_open(&run));
+    let opened = context.token.run(&mut open).await;
+    let opened = match opened {
+        Some(opened) => opened,
+        None => {
+            cancel_host_channel(context).await;
+            open.await
+        }
+    };
     let has_stream = match opened {
         Ok(has_stream) => has_stream,
         Err(error) => return Err(context.request_failure(&error)),
@@ -622,21 +631,21 @@ async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Re
         return Err(QueryFailure::cancelled());
     }
     context.running();
-    context.controls.set_host_stream();
-    host.channel_profile_detail(query_id, context.controls.profile_shown());
+    run.controls().clear_changed();
+    host.channel_profile_detail(&run, run.controls().profile_shown());
     let mut pending: TaskSet<(), Result<ChannelMessage, HostError>> = TaskSet::new();
     loop {
         if pending.is_empty() {
-            pending.push((), host.channel_next(query_id));
+            pending.push((), host.channel_next(&run));
         }
-        match next(&mut pending, &context.token, &context.controls).await {
+        match next(&mut pending, &context.token, run.controls()).await {
             Wake::Cancelled => {
                 cancel_host_channel(context).await;
                 // The query ends with its stream, the channel stops it on the cancellation
                 pending.settle().await;
                 return Err(QueryFailure::cancelled());
             }
-            Wake::Control => host.channel_profile_detail(query_id, context.controls.profile_shown()),
+            Wake::Control => host.channel_profile_detail(&run, run.controls().profile_shown()),
             Wake::Done((), Ok(ChannelMessage::Progress(progress))) => context.progress(*progress),
             Wake::Done((), Ok(ChannelMessage::Batch { metrics })) => {
                 context.metrics = metrics;
