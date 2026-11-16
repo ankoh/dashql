@@ -1480,3 +1480,25 @@ fn restores_an_imported_workbook_against_the_live_connections() {
     let plan = restore(&mut fresh, &remote_only, &["a.sql"]);
     assert!(is_local_hyper_wasm_params(&plan.scripts[0].connection.params));
 }
+
+#[test]
+fn compares_file_names_in_nfc_and_refuses_alternate_data_streams() {
+    // "Café.sql" composed and decomposed
+    let composed = "Caf\u{e9}.sql";
+    let decomposed = "Cafe\u{301}.sql";
+    assert_eq!(file_name_key(composed), file_name_key(decomposed));
+    assert_eq!(file_name_key(&decomposed.to_uppercase()), file_name_key(composed));
+    assert_eq!(nfc(decomposed), composed);
+    // A file and its decomposed name are one script of a workbook file
+    let workbook = test_workbook(json!({ "scripts": [
+        { "name": composed, "connectionId": TEST_CONNECTION_ID },
+        { "name": decomposed, "connectionId": TEST_CONNECTION_ID },
+    ] }));
+    let sanitized = sanitize_workbook_files(&workbook);
+    assert_eq!(sanitized.scripts.len(), 1);
+    assert!(!sanitized.valid);
+    // A colon names an alternate data stream on NTFS
+    assert!(!is_safe_file_name("a.sql:stream"));
+    assert!(!is_script_file_name("a:b.sql"));
+    assert!(is_safe_file_name("a b.sql"));
+}

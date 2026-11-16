@@ -5,7 +5,7 @@ import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
@@ -125,6 +125,9 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
     // The writes of the workbook that failed and what holds them, the writer retries the failed ones
     const storage = useView('storage', 'root');
     const failed = (storage?.failedWrites ?? []).filter(write => write.workbookId === workbookId);
+    // The writes whose target is gone, e.g. a moved workbook folder: the writer stopped retrying them, the user drops them
+    const stopped = failed.filter(write => write.permanent);
+    const discardStopped = React.useCallback(() => storageWriter.discardWrites(stopped.map(write => write.key)), [storageWriter, stopped]);
     const holds = [...new Set((storage?.holds ?? []).filter(hold => hold.workbookId == null || hold.workbookId === workbookId).map(hold => hold.reason))];
 
     // Build sorted entries from the statistics of the active workbook
@@ -219,6 +222,16 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                             <div className={styles.status_failed}>
                                 {failed.length === 1 ? '1 write failed' : `${failed.length} writes failed`}: {failed[0].error}
                             </div>
+                        )}
+                        {stopped.length > 0 && (
+                            <Button
+                                size={ButtonSize.Small}
+                                variant={ButtonVariant.Danger}
+                                aria-label="Discard the failed writes"
+                                onClick={discardStopped}
+                            >
+                                Discard
+                            </Button>
                         )}
                     </div>
                     <div className={styles.header_right_container}>

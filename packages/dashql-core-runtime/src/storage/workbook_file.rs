@@ -15,33 +15,6 @@ pub fn same_file(a: &WorkbookData, b: &WorkbookData) -> bool {
     a.to_json() == b.to_json()
 }
 
-/// The workbook file with the given copies of connections, see `WriteTask::WriteWorkbookManifest`: the name, the
-/// scripts, the attachments and the metadata on disk stay, the given copies win over the copies on disk. An ephemeral
-/// workbook is marked as one, a new file gets its creation time.
-pub fn manifest_file(
-    existing: Option<&WorkbookData>,
-    workbook_id: &str,
-    format_version: i64,
-    connections: &[WorkbookConnection],
-    ephemeral: bool,
-    now: &str,
-) -> WorkbookData {
-    let mut file = existing.cloned().unwrap_or_default();
-    file.format_version = format_version;
-    file.workbook_id = workbook_id.to_string();
-    file.name = file.name.filter(|name| !name.is_empty());
-    if file.metadata.created_at.is_none() {
-        file.metadata.created_at = Some(now.to_string());
-    }
-    if ephemeral {
-        file.metadata.ephemeral = Some(true);
-    }
-    let held = std::mem::take(&mut file.connections);
-    let copies: Vec<WorkbookConnection> = connections.iter().cloned().chain(held).collect();
-    let scripts = std::mem::take(&mut file.scripts);
-    with_workbook_scripts(&file, scripts, &copies)
-}
-
 /// The workbook file with the properties that the user owns, see `WriteTask::WriteWorkbookProperties`: a name or none,
 /// a workbook that is no longer ephemeral loses its marker, a link to a cloud or none.
 pub fn properties_patch(existing: &WorkbookData, name: Option<&str>, ephemeral: bool, cloud: Option<&WorkbookCloudLink>) -> WorkbookData {
@@ -54,28 +27,34 @@ pub fn properties_patch(existing: &WorkbookData, name: Option<&str>, ephemeral: 
     file
 }
 
-/// The workbook file of a workbook that is written as a whole, see `WriteTask::ReplaceWorkbookScripts`: the scripts,
-/// the copies of the connections, the attachments and the creation time on disk stay, a new file holds the given
-/// connection. The name is the given one or the one on disk.
-pub fn replaced_workbook_file(
-    existing: Option<&WorkbookData>,
-    workbook_id: &str,
-    format_version: i64,
-    name: Option<&str>,
-    connection: Option<&WorkbookConnection>,
-    original_file_name: Option<&str>,
-    now: &str,
-) -> WorkbookData {
+/// The workbook file of a new workbook, see `WriteTask::CreateWorkbook`. The scripts, the copies of the connections,
+/// the attachments and the creation time on disk stay, a new file holds the given connection. The name is the given
+/// one or the one on disk, an ephemeral workbook is marked as one.
+pub struct CreatedWorkbook<'a> {
+    pub workbook_id: &'a str,
+    pub format_version: i64,
+    pub name: Option<&'a str>,
+    pub connection: Option<&'a WorkbookConnection>,
+    pub ephemeral: bool,
+    pub original_file_name: Option<&'a str>,
+    pub now: &'a str,
+}
+
+/// The workbook file of a new workbook over the one on disk, see `CreatedWorkbook`
+pub fn created_workbook_file(existing: Option<&WorkbookData>, created: &CreatedWorkbook) -> WorkbookData {
     let mut file = match existing {
         Some(existing) => existing.clone(),
-        None => WorkbookData { connections: connection.into_iter().cloned().collect(), ..WorkbookData::default() },
+        None => WorkbookData { connections: created.connection.into_iter().cloned().collect(), ..WorkbookData::default() },
     };
-    file.format_version = format_version;
-    file.workbook_id = workbook_id.to_string();
-    file.name = name.filter(|name| !name.is_empty()).map(str::to_string).or(file.name.filter(|name| !name.is_empty()));
-    file.metadata.original_file_name = original_file_name.map(str::to_string);
+    file.format_version = created.format_version;
+    file.workbook_id = created.workbook_id.to_string();
+    file.name = created.name.filter(|name| !name.is_empty()).map(str::to_string).or(file.name.filter(|name| !name.is_empty()));
+    file.metadata.original_file_name = created.original_file_name.map(str::to_string);
     if file.metadata.created_at.is_none() {
-        file.metadata.created_at = Some(now.to_string());
+        file.metadata.created_at = Some(created.now.to_string());
+    }
+    if created.ephemeral {
+        file.metadata.ephemeral = Some(true);
     }
     let scripts = std::mem::take(&mut file.scripts);
     with_workbook_scripts(&file, scripts, &[])
@@ -135,15 +114,19 @@ mod tests {
         assert_eq!(next["nativePath"], json!("/a"));
         assert_eq!(next["metadata"], json!({ "createdAt": "t", "tag": "kept" }));
         assert_eq!(next["name"], json!("m"));
-        let manifest = manifest_file(Some(&existing), "w", 11, &[], false, NOW).to_json();
-        assert_eq!(manifest["custom"], json!({ "x": 1 }));
-        assert_eq!(manifest["metadata"]["createdAt"], json!("t"));
+        let created = created_workbook_file(Some(&existing), &creation(None, None, false)).to_json();
+        assert_eq!(created["custom"], json!({ "x": 1 }));
+        assert_eq!(created["metadata"]["createdAt"], json!("t"));
+    }
+
+    fn creation<'a>(name: Option<&'a str>, connection: Option<&'a WorkbookConnection>, ephemeral: bool) -> CreatedWorkbook<'a> {
+        CreatedWorkbook { workbook_id: "w", format_version: 11, name, connection, ephemeral, original_file_name: None, now: NOW }
     }
 
     #[test]
-    fn writes_a_new_manifest_with_its_creation_time_and_marker() {
+    fn writes_a_new_workbook_file_with_its_creation_time_and_marker() {
         let copy = WorkbookConnection::new("c", json!({ "hyper": {} }));
-        let created = manifest_file(None, "w", 11, &[copy.clone()], true, NOW);
+        let created = created_workbook_file(None, &creation(None, Some(&copy), true));
         assert_eq!(created.connections, vec![copy]);
         assert_eq!(created.metadata.created_at.as_deref(), Some(NOW));
         assert!(created.metadata.is_ephemeral());
@@ -161,12 +144,13 @@ mod tests {
             "connections": [{ "connectionId": "c", "params": {} }], "scripts": [{ "name": "a.sql", "connectionId": "c" }],
             "attachments": [{ "name": "x.parquet" }], "metadata": { "createdAt": "t", "originalFileName": "old" },
         }));
-        let next = replaced_workbook_file(Some(&existing), "w", 11, None, None, None, NOW);
+        let next = created_workbook_file(Some(&existing), &creation(None, None, false));
         assert_eq!(next.name.as_deref(), Some("on disk"));
         assert_eq!(next.scripts, vec![WorkbookScript::new("a.sql", "c")]);
         assert_eq!(next.metadata.original_file_name, None);
         assert_eq!(next.attachments.len(), 1);
-        let fresh = replaced_workbook_file(None, "w", 11, Some("New"), Some(&WorkbookConnection::new("c", json!({}))), Some(""), NOW);
+        let connection = WorkbookConnection::new("c", json!({}));
+        let fresh = created_workbook_file(None, &CreatedWorkbook { original_file_name: Some(""), ..creation(Some("New"), Some(&connection), false) });
         assert_eq!(fresh.to_json()["connections"], json!([{ "connectionId": "c", "params": {} }]));
         assert_eq!(fresh.metadata.original_file_name.as_deref(), Some(""));
     }

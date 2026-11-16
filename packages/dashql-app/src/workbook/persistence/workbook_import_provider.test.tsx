@@ -465,8 +465,8 @@ describe('WorkbookImportProvider', () => {
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select 1');
             expect(registry.workbooks.get(WORKBOOK_ID)?.name).toBe('Imported');
             expect(reload).toHaveBeenCalledOnce();
-            // The writer holds no writes after the replacement, the runtime held the workbook while it imported
-            expect(api.writer.getPendingKeysForWorkbook(WORKBOOK_ID)).toEqual([]);
+            // The workbook of the runtime is the replaced version until the app reloads, its writes stay held
+            expect(api.writer.isWorkbookHeld(WORKBOOK_ID)).toBe(true);
             // The staged copy is gone again
             expect(registry.manifest.map(entry => entry.path)).toEqual([WORKBOOK_ID]);
         });

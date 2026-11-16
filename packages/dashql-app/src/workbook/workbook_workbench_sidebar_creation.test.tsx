@@ -21,7 +21,6 @@ const state = {
     openGreeter: vi.fn(),
     ensureEphemeralWorkbook: vi.fn(),
     modifyWorkbookScripts: vi.fn(),
-    write: vi.fn<() => Promise<boolean>>(),
     refreshCatalog: vi.fn(),
     newConnectionFromParams: vi.fn(),
     deleteWorkbook: vi.fn(),
@@ -94,10 +93,8 @@ const storageReader = {
     getWorkbookTree: () => ({ name: '', path: [], folders: [], workbooks: [] }),
 };
 const storageWriter = {
-    write: state.write,
     deleteWorkbook: state.deleteWorkbook,
     backend: {},
-    cancelPendingWritesForWorkbook: vi.fn(),
     isWorkbookHeld: () => false,
 };
 
@@ -184,7 +181,6 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.createWorkbook.mockReset().mockReturnValue({ workbookId: '00000000-0000-4000-8000-000000000001' });
         state.openGreeter.mockReset();
         state.ensureEphemeralWorkbook.mockReset();
-        state.write.mockReset().mockResolvedValue(true);
         state.refreshCatalog.mockReset();
         state.newConnectionFromParams.mockReset().mockReturnValue({ type: 'remote' });
         state.deleteWorkbook.mockReset();

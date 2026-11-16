@@ -3,9 +3,10 @@
 //! holds a write because a script changed on disk.
 //!
 //! A check holds the writes of the workbook (`HoldReason::Reload`), compares the stamps of the scripts and of the
-//! workbook file (size and modification time) with what the storage of the platform wrote or acknowledged, reads the
-//! files only when a stamp differs and resolves the scripts of the folder against the connections of the runtime. A
-//! check that settled the disk releases the hold of a write that found a changed file (`HoldReason::ExternalChange`).
+//! workbook file (size and modification time) with what the app wrote or acknowledged (`FolderStamps`, the restore
+//! acknowledged what it read), reads the files only when a stamp differs and resolves the scripts of the folder against
+//! the connections of the runtime. A check that settled the disk releases the hold of a write that found a changed file
+//! (`HoldReason::ExternalChange`).
 //! A workbook file that changed outside the app is asked about like a script when its scripts or its name differ from
 //! what the app shows; the app never overwrites it unasked. A connection that only the workbook file names joins the
 //! runtime from its copy and leaves it again unless the reload is applied. When the scripts differ from what the app
@@ -14,7 +15,7 @@
 //! the disk. The checks run one at a time, a check of a workbook that is queued already is dropped.
 
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use dashql_core::error::Result;
@@ -24,15 +25,15 @@ use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::restore::connection_state;
 use dashql_core_runtime::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
-use dashql_core_runtime::storage::{HoldReason, WriteTask};
+use dashql_core_runtime::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
 use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_runtime::workbook_format::data::{WorkbookConnection, WorkbookData};
+use dashql_core_runtime::workbook_format::files::nfc;
 use dashql_core_runtime::workbook_format::restore::RestoreConnection;
 use dashql_core_runtime::workbook_format::script_connections::{
     resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection,
 };
 use dashql_core_runtime::workbook_format::validation::is_local_hyper_wasm_params;
-use js_sys::{Array, JsString};
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
@@ -41,10 +42,9 @@ use super::changes::Slice;
 use super::connections::Connections;
 use super::runs::Runs;
 use super::storage::restore_view::RestoreScriptFile;
-use super::storage::{JsStorage, StorageState};
+use super::storage::{listing_of, load_workbook, JsStorage, StorageState};
 use super::workbooks::{StoredScriptRef, Workbooks};
-use crate::host::{call_method, field, JsPlatform};
-use crate::views::JsonValue;
+use crate::host::{call_method, JsPlatform};
 
 /// The target of the log of the checks
 const LOG_TARGET: &str = "native_workbook_sync";
@@ -53,28 +53,11 @@ const DEBOUNCE_MS: f64 = 100.0;
 /// How long a check waits before it checks a workbook again that another task holds
 const BUSY_RETRY_MS: f64 = 100.0;
 
-/// The attachments of a stamp of a folder as a comparable text: name, size and modification time, sorted
-fn attachment_listing(stamps: &JsValue) -> String {
-    let mut files: Vec<(String, f64, f64)> = if Array::is_array(stamps) {
-        Array::from(stamps)
-            .iter()
-            .filter_map(|stamp| {
-                let name = field(&stamp, "name")?.as_string()?;
-                let size = field(&stamp, "size").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                let mtime = field(&stamp, "mtimeMs").and_then(|v| v.as_f64()).unwrap_or(0.0);
-                Some((name, size, mtime))
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
-    files.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)).then(a.2.total_cmp(&b.2)));
+/// The attachments of a listing of a folder as a comparable text: name, size and modification time, sorted
+fn attachment_listing(listing: &FolderListing) -> String {
+    let mut files: Vec<(&str, f64, f64)> = listing.attachments.iter().map(|file| (file.name.as_str(), file.stamp.size, file.stamp.mtime_ms)).collect();
+    files.sort_by(|a, b| a.0.cmp(b.0).then(a.1.total_cmp(&b.1)).then(a.2.total_cmp(&b.2)));
     files.iter().map(|(name, size, mtime)| format!("{name}\u{0}{size}\u{0}{mtime}")).collect::<Vec<_>>().join("\u{1}")
-}
-
-/// A name in NFC, as the workbook file lists it
-fn nfc(name: &str) -> String {
-    String::from(JsString::from(name).normalize("NFC"))
 }
 
 /// The scripts of a folder resolved against the connections of the runtime
@@ -151,8 +134,6 @@ pub(crate) struct ExternalChanges {
     queue: RefCell<VecDeque<String>>,
     /// Does a task check the queue?
     running: Cell<bool>,
-    /// The workbooks that were checked once, the first check acknowledges the disk that the restore just read
-    checked: RefCell<BTreeSet<String>>,
     /// The attachments of a workbook at its last check
     attachments: RefCell<BTreeMap<String, String>>,
     /// The questions that wait for their answers, by workbook
@@ -172,7 +153,6 @@ impl ExternalChanges {
             runs,
             queue: RefCell::new(VecDeque::new()),
             running: Cell::new(false),
-            checked: RefCell::new(BTreeSet::new()),
             attachments: RefCell::new(BTreeMap::new()),
             waiting: RefCell::new(BTreeMap::new()),
             prompts: Cell::new(0),
@@ -309,14 +289,15 @@ impl ExternalChanges {
 
     async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<Checked, HostError> {
         let writer = self.workbooks.writer.clone();
+        let stamps = writer.stamps().clone();
         // A write that started before the check must finish before the stable disk read
         writer.settle().await;
-        let stamps = call_method(folder, "stampFolder", &[]).await?;
+        let listing = listing_of(&call_method(folder, "stampFolder", &[]).await?);
 
         // Loading the workbook file mirrors the attachments of the folder for the embedded Hyper. The restore loaded it
         // already, later checks load it when the attachments changed.
         let mut workbook_file: Option<Value> = None;
-        let attachments = attachment_listing(&field(&stamps, "attachments").unwrap_or(JsValue::NULL));
+        let attachments = attachment_listing(&listing);
         let previous = self.attachments.borrow().get(workbook_id).cloned();
         if previous.as_ref().is_some_and(|previous| *previous != attachments) {
             workbook_file = Some(self.load_workbook(workbook_id).await?);
@@ -326,13 +307,9 @@ impl ExternalChanges {
         // A change is remembered once it was handled, a failed read is retried by the next check
         self.attachments.borrow_mut().insert(workbook_id.to_string(), attachments);
 
-        if self.checked.borrow_mut().insert(workbook_id.to_string()) {
-            // The restore read the scripts and the workbook file moments ago, they are what the app shows
-            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
-            return Ok(Checked::Settled);
-        }
-        let changes = call_method(folder, "findExternalChanges", &[stamps.clone()]).await?;
-        if !Array::is_array(&changes) || Array::from(&changes).length() == 0 {
+        // The restore acknowledged the folder as it read it, the stamps of the app's own writes are recorded since. A
+        // folder that was never acknowledged differs in every file and is compared with what the app shows.
+        if stamps.changes(workbook_id, &listing, WORKBOOK_FILE).is_empty() {
             return Ok(Checked::Settled);
         }
 
@@ -368,7 +345,7 @@ impl ExternalChanges {
         };
         if matches {
             // Only the stamps changed, or the disk changed to what the app shows
-            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
+            stamps.acknowledge(workbook_id, &listing);
             return Ok(Checked::Settled);
         }
 
@@ -389,7 +366,7 @@ impl ExternalChanges {
         }
         if !reload {
             // The version of the app wins, it replaces the version on disk
-            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
+            stamps.acknowledge(workbook_id, &listing);
             self.write_kept_scripts(workbook_id, &scripts);
             return Ok(Checked::Settled);
         }
@@ -401,7 +378,7 @@ impl ExternalChanges {
         if discard {
             writer.cancel_pending_writes(&self.reloaded_pending(workbook_id));
         }
-        call_method(folder, "acknowledgeFolder", &[stamps]).await?;
+        stamps.acknowledge(workbook_id, &listing);
 
         // The connections that the workbook file brought along joined the runtime, the scripts use them now. Their
         // entries join the app manifest.
@@ -436,13 +413,9 @@ impl ExternalChanges {
         Ok(Checked::Settled)
     }
 
-    /// The workbook file of a workbook
+    /// The workbook file of a workbook, migrated like every read of the runtime
     async fn load_workbook(&self, workbook_id: &str) -> std::result::Result<Value, HostError> {
-        let workbook = self.platform.storage_await("loadWorkbook", &[JsValue::from_str(workbook_id)]).await?;
-        if !workbook.is_object() {
-            return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));
-        }
-        Ok(JsonValue::of(&workbook).0)
+        load_workbook(&self.platform, &self.storage.stamps, workbook_id).await
     }
 
     /// List the attachments of a workbook again, e.g. after files changed on disk

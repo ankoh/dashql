@@ -90,10 +90,11 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
     const owner = isWorkbookRegistryBackend(backend) ? backend : null;
     return {
         loadWorkbook: async workbookId => backend.loadWorkbook(workbookId),
-        saveWorkbook: async (workbookId, workbook) => backend.saveWorkbookManifest(workbookId, workbook as WorkbookData),
-        saveScript: async (workbookId, fileName, text) => backend.saveScript(workbookId, fileName, text),
-        deleteScript: async (workbookId, fileName) => backend.deleteScript(workbookId, fileName),
-        renameScript: async (workbookId, from, to) => backend.renameScript(workbookId, from, to),
+        // The runtime passes the stamps that the writes expect and records the stamps they return
+        saveWorkbook: async (workbookId, workbook, expected) => backend.saveWorkbookManifest(workbookId, workbook as WorkbookData, expected),
+        saveScript: async (workbookId, fileName, text, expected) => backend.saveScript(workbookId, fileName, text, expected),
+        deleteScript: async (workbookId, fileName, expected) => backend.deleteScript(workbookId, fileName, expected),
+        renameScript: async (workbookId, from, to, expectedFrom, expectedTo) => backend.renameScript(workbookId, from, to, expectedFrom, expectedTo),
         listAttachments: async workbookId => (await backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC')),
         updateConnections: async update => registry().updateConnections(connections => update(connections ?? null) as ConnectionEntry[] | null),
         saveConnectionFile: async (connectionId, fileName, text) => registry().saveConnectionFile(connectionId, fileName, text),
@@ -138,11 +139,12 @@ export class StorageWriter {
         return this.runtime.module;
     }
 
-    /// Run every pending write right away and wait until all writes ended. Writes past a hold of the writer, never past
-    /// the hold of a workbook, e.g. a file that changed outside the app.
-    async flush(): Promise<void> {
+    /// Run every pending write right away and wait until all writes ended. Writes past a pause of the writer, never past
+    /// another hold, e.g. a file that changed outside the app or the handover to another tab. While the window closes
+    /// (`closing`) the scripts that a change outside the app holds are kept as recovery copies next to them.
+    async flush(options: { closing?: boolean } = {}): Promise<void> {
         if (this.runtime.destroyed) return;
-        await this.module.storage({ kind: 'flush' });
+        await this.module.storage({ kind: 'flush', closing: options.closing ?? false });
     }
 
     /// Wait for the writes that started without running the pending ones
@@ -171,14 +173,21 @@ export class StorageWriter {
         this.release('pause');
     }
 
-    /// Another tab took over the app: nothing is written any more, a flush still writes what is pending
-    handOver(): void {
-        this.hold('handover');
+    /// Another tab takes over the app: the pending writes are written, then nothing is written any more, not even by a
+    /// flush when the page hides
+    async handOver(): Promise<void> {
+        this.pause();
+        try {
+            await this.flush();
+            this.hold('handover');
+        } finally {
+            this.resume();
+        }
     }
 
-    /// Accept writes of a workbook id again after the workbook was deleted, e.g. an import of the same workbook
-    reviveWorkbook(workbookId: string): void {
-        this.module.storageReviveWorkbook(workbookId);
+    /// Discard the writes of keys and their failures, e.g. a write that failed because its workbook folder is gone
+    discardWrites(keys: string[]): void {
+        this.module.storageDiscardWrites(keys);
     }
 
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage. A
@@ -197,30 +206,6 @@ export class StorageWriter {
         return this.module.isWorkbookHeld(workbookId);
     }
 
-    /// The pending keys below a workbook in the order they were scheduled
-    getPendingKeysForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): string[] {
-        return this.module.storagePendingKeys(workbookId).filter(include);
-    }
-
-    /// The pending keys in the order they were scheduled
-    getPendingKeys(): string[] {
-        return this.module.storagePendingKeys(null);
-    }
-
-    /// Discard pending writes of a workbook, e.g. after the user chose a version on disk over the edits of the app
-    cancelPendingWritesForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): void {
-        this.module.storageCancelPendingWrites(workbookId, this.getPendingKeysForWorkbook(workbookId, include));
-    }
-
-    /// The latest generation of the keys of a workbook
-    getWorkbookWriteGeneration(workbookId: string, include: (key: string) => boolean = () => true): number {
-        let generation = 0;
-        for (const [key, value] of this.module.storageWriteGenerations(workbookId)) {
-            if (include(key)) generation = Math.max(generation, value);
-        }
-        return generation;
-    }
-
     /// The statistics of the writes of a workbook by key, read when shown
     getStatistics(workbookId: string): StorageKeyStatistics[] {
         return this.module.storageStatistics(workbookId).map(({ key, label, statistics: value }) => ({
@@ -234,17 +219,5 @@ export class StorageWriter {
                 lastWrite: value.lastWriteMs == null ? null : new Date(value.lastWriteMs),
             },
         }));
-    }
-
-    /// Schedule a debounced write that no state of the runtime describes under the key that the task names, resolves
-    /// true when the task was executed
-    async write(task: core.StorageWriteTask, debounceFor: number = 0): Promise<boolean> {
-        const outcome = await this.module.storageWrite(null, task, debounceFor, false);
-        return outcome.status === 'written';
-    }
-
-    /// Write right away and wait until the content is persisted. A paused writer or workbook defers it.
-    async writeDurable(key: string, task: core.StorageWriteTask): Promise<StorageWriteResult> {
-        return writeResultOf(await this.module.storageWrite(key, task, 0, true));
     }
 }

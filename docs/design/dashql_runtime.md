@@ -268,7 +268,7 @@ than the module returns: the flush of the store after the command, handles for t
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript` | Runs |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
-| `storage` | The `StorageWriter` facade: flush, holds, handover, pending keys, statistics |
+| `storage` | The `StorageWriter` facade: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
 | `flush`, `destroy` | Take the changes now; stop runs and the catalog loader, write what is pending, free the module, abort fetches and OAuth flows |
 
 Everything else the app and the CLI call on the module directly (`runtime.module`): `stopRun`, `cancelSetup`,
@@ -316,7 +316,8 @@ through `applyEditorEvent`; a session outside a workbook (the composer, the shel
 
 - **`RuntimeProvider`** (`packages/dashql-app/src/runtime/runtime_provider.tsx`) creates the runtime over the
   providers of the app once the core is there and shows the loading page until then. It flushes the storage writer when
-  the page hides and when Electron closes a window, hands over to another tab (`storage.handOver()`), and destroys the
+  the page hides and when Electron closes a window (a page that goes away flushes with `closing`), hands over to another
+  tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any more), and destroys the
   runtime with the component.
 - **`StandaloneRuntime`** (`runtime_hooks.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.

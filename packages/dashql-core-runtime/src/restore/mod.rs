@@ -28,7 +28,7 @@ use crate::host::{HostError, LogLevel};
 use crate::storage::keys::{
     connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
 };
-use crate::storage::{StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
+use crate::storage::{FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
 use crate::workbook::{new_catalog, CloudLink, ScriptConnection, Workbook};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
 use crate::workbook_format::storage_migration::iso_timestamp;
@@ -54,6 +54,11 @@ pub trait RestoreHost: StorageHost {
     async fn list_data_files(&self, workbook_id: &str) -> std::result::Result<Vec<DataFile>, HostError>;
     /// A file of a connection, none if it doesn't exist
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> std::result::Result<Option<String>, HostError>;
+    /// The stamps of the files of a workbook folder that may change outside the app, none for the workbooks of the
+    /// storage root
+    async fn stamp_folder(&self, _workbook_id: &str) -> std::result::Result<Option<FolderListing>, HostError> {
+        Ok(None)
+    }
     /// The progress of the restore changed
     fn restore_progress(&self, progress: &RestoreProgress);
 }
@@ -344,6 +349,14 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         self.log(LogLevel::Info, "Restoring connection", &[("workbookId", workbook_id)]);
         self.progress.connections.started += 1;
         self.report();
+        // A folder that may change outside the app holds what the restore reads: the stamps are taken before the reads,
+        // a file that changes in between has a newer stamp and is checked again. A migration of the folder records its
+        // own writes.
+        match self.host.stamp_folder(workbook_id).await {
+            Ok(Some(listing)) => self.writer.stamps().acknowledge(workbook_id, &listing),
+            Ok(None) => {}
+            Err(error) => self.log(LogLevel::Warn, "Failed to stamp the workbook folder", &[("workbookId", workbook_id), ("error", error.message())]),
+        }
         let stored = match self.host.load_workbook(workbook_id).await {
             Ok(stored) => Some(stored),
             Err(error) => {

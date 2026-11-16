@@ -30,12 +30,15 @@ export async function relocateWorkbookToNative(
         return false;
     }
 
+    // 2. Write the pending edits of the workbook. A write that failed or that a hold keeps would be lost with the OPFS
+    //    copy, the workbook is not moved then.
+    if (!(await writer.flushWorkbook(workbookId))) {
+        throw new Error('The changes of the workbook are not saved yet, it is not moved');
+    }
     try {
-        // 2. Stop the debounced writer so OPFS isn't mutated mid-copy, then drain pending writes.
+        // 3. Stop the writer so OPFS isn't mutated mid-copy, then copy + verify + flip the registry + delete the OPFS
+        //    copy.
         writer.pause();
-        await writer.flush();
-
-        // 3. Copy + verify + flip the registry + delete the OPFS copy.
         await backend.relocateWorkbookToNative(workbookId, folder);
         logger.info('relocated workbook to native storage', { workbookId, target: folder }, LOG_CTX);
 

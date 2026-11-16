@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use dashql_core::error::{Error, Result};
 
 use crate::host::HostError;
+use crate::storage::stamps::{FileStamp, FolderStamps};
 use crate::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use crate::workbook_format::json::{to_pretty_text, JsonObject};
 
@@ -222,8 +223,8 @@ fn read_metadata(folder: &MigrationFolder) -> Option<(&'static str, Option<JsonO
 pub trait FolderHost {
     /// The text of a file, None if the folder doesn't hold it
     async fn read_text(&self, name: &str) -> std::result::Result<Option<String>, HostError>;
-    /// Write a file
-    async fn write_text(&self, name: &str, text: &str) -> std::result::Result<(), HostError>;
+    /// Write a file, returns its stamp if the folder keeps stamps
+    async fn write_text(&self, name: &str, text: &str) -> std::result::Result<Option<FileStamp>, HostError>;
     /// Remove a file, a missing file is ignored
     async fn remove(&self, name: &str) -> std::result::Result<(), HostError>;
 }
@@ -242,6 +243,29 @@ pub async fn read_current_workbook_file<F: FolderHost>(folder: &F) -> std::resul
 /// write back what changed, the writes first, then the removals. A folder whose workbook file is at the current version
 /// is only read.
 pub async fn migrate_folder<F: FolderHost>(folder: &F, target_version: i64) -> std::result::Result<WorkbookMigrationResult, HostError> {
+    migrate_folder_with(folder, target_version, |_, _| {}).await
+}
+
+/// Bring the folder of a workbook that may change outside the app to the current format. The workbook file that the
+/// migration writes is the app's own, its stamp is recorded.
+pub async fn migrate_stamped_folder<F: FolderHost>(
+    folder: &F,
+    workbook_id: &str,
+    stamps: &FolderStamps,
+) -> std::result::Result<WorkbookMigrationResult, HostError> {
+    migrate_folder_with(folder, WORKBOOK_FORMAT_VERSION, |name, stamp| {
+        if name == WORKBOOK_METADATA_FILES[0] {
+            stamps.wrote_workbook(workbook_id, stamp);
+        }
+    })
+    .await
+}
+
+async fn migrate_folder_with<F: FolderHost>(
+    folder: &F,
+    target_version: i64,
+    mut written: impl FnMut(&str, Option<FileStamp>),
+) -> std::result::Result<WorkbookMigrationResult, HostError> {
     if target_version == WORKBOOK_FORMAT_VERSION && read_current_workbook_file(folder).await?.is_some() {
         return Ok(WorkbookMigrationResult::Current);
     }
@@ -255,7 +279,10 @@ pub async fn migrate_folder<F: FolderHost>(folder: &F, target_version: i64) -> s
     let result = migrate_workbook_folder_to(&mut memory, target_version, &WORKBOOK_MIGRATION_STEPS).map_err(|error| HostError::new(error.message))?;
     for change in memory.changes() {
         match change {
-            FolderChange::Write { name, text } => folder.write_text(&name, &text).await?,
+            FolderChange::Write { name, text } => {
+                let stamp = folder.write_text(&name, &text).await?;
+                written(&name, stamp);
+            }
             FolderChange::Remove { name } => folder.remove(&name).await?,
         }
     }

@@ -1,10 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
-import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
-import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
+import type { ConnectionParams } from '@ankoh/dashql/platform/storage/storage_backend';
+import { TEST_CONNECTION_ID, WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { createTestRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
-import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
 
 /// A browsing context of the origin that stands in for a tab, it has its own locks and channels
 interface TestTab {
@@ -106,37 +105,31 @@ describe('AppOwnership', () => {
         expect(await AppOwnership.tryAcquire(c.environment, stopNothing)).not.toBeNull();
     });
 
-    it('writes the pending changes of the owner before the next tab reads them', async () => {
+    it('writes the pending changes of the owner before the next tab reads them, and nothing after', async () => {
         const [a, b] = [openTab(), openTab()];
-        const workbookId = crypto.randomUUID();
-        const backend = new OPFSStorageBackend();
-        await backend.initialize();
+        const backend = new WorkbookTestBackend();
         // The writer of a runtime on the storage of the tab
         const runtime = await createTestRuntime({ storage: backend });
         const writer = runtime.storage;
         try {
-            const owner = await AppOwnership.tryAcquire(a.environment, async () => {
-                writer.pause();
-                await writer.flush();
-            });
+            const owner = await AppOwnership.tryAcquire(a.environment, () => writer.handOver());
             expect(owner).not.toBeNull();
 
-            // The write is debounced far beyond the takeover
-            const write = writer.write({
-                type: 'writeScript',
-                workbookId,
-                fileName: 'a.sql',
-                text: 'SELECT 42',
-            }, 60_000);
+            // The edits wait for their debounce at the takeover
+            await runtime.addConnection({ connectionId: TEST_CONNECTION_ID, params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams });
+            const workbook = runtime.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'SELECT 42']]);
+            const { workbookId } = workbook;
+            expect(backend.scripts.get(workbookId)?.get('a.sql')).toBeUndefined();
 
             await AppOwnership.takeOver(b.environment, stopNothing, 5_000);
-            expect((await backend.loadScript(workbookId, 'a.sql')).sql).toBe('SELECT 42');
-            expect(await write).toBe(true);
+            expect(backend.scripts.get(workbookId)?.get('a.sql')).toBe('SELECT 42');
+
+            // An edit after the handover stays with the tab, also when its page hides
+            runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptText', value: { scriptKey: workbook.scriptKeys[0], text: 'SELECT 43' } });
+            await writer.flush({ closing: true });
+            expect(backend.scripts.get(workbookId)?.get('a.sql')).toBe('SELECT 42');
         } finally {
             await runtime.destroy();
-            const root = await getOPFSRoot();
-            const workbooks = await root.getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER);
-            await workbooks.removeEntry(workbookId, { recursive: true });
         }
     });
 });

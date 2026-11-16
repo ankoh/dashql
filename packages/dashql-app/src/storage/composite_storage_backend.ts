@@ -10,6 +10,7 @@ import {
     type AppSettings,
     type ConnectionEntry,
     type StorageManifest,
+    type ExpectedStamp,
     StorageBackendType,
     validateDataFileName,
 } from '@ankoh/dashql/platform/storage/storage_backend';
@@ -246,9 +247,15 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         }
     }
 
-    async saveWorkbookManifest(workbookId: string, data: WorkbookData): Promise<void> {
+    async saveWorkbookManifest(workbookId: string, data: WorkbookData, expected?: ExpectedStamp): Promise<FileStamp | null> {
         const backend = await this.backendFor(workbookId);
-        await backend.saveWorkbookManifest(workbookId, data);
+        const stamp = await backend.saveWorkbookManifest(workbookId, data, expected) ?? null;
+        await this.registerSavedWorkbook(workbookId);
+        return stamp;
+    }
+
+    /// Keep the registry entry of a workbook whose workbook file was written in sync
+    private async registerSavedWorkbook(workbookId: string): Promise<void> {
         const loc = this.locationOf(workbookId);
         if (loc.type === StorageBackendType.Native && loc.nativePath) {
             // The native backend does not touch the registry, so keep its OPFS entry in sync here.
@@ -294,14 +301,14 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
         return (await this.backendFor(workbookId)).loadScript(workbookId, scriptName);
     }
-    async saveScript(workbookId: string, scriptName: string, sql: string): Promise<void> {
-        return (await this.backendFor(workbookId)).saveScript(workbookId, scriptName, sql);
+    async saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp | null> {
+        return await (await this.backendFor(workbookId)).saveScript(workbookId, scriptName, sql, expected) ?? null;
     }
-    async deleteScript(workbookId: string, scriptName: string): Promise<void> {
-        return (await this.backendFor(workbookId)).deleteScript(workbookId, scriptName);
+    async deleteScript(workbookId: string, scriptName: string, expected?: ExpectedStamp): Promise<void> {
+        return (await this.backendFor(workbookId)).deleteScript(workbookId, scriptName, expected);
     }
-    async renameScript(workbookId: string, oldScriptName: string, newScriptName: string): Promise<void> {
-        return (await this.backendFor(workbookId)).renameScript(workbookId, oldScriptName, newScriptName);
+    async renameScript(workbookId: string, oldScriptName: string, newScriptName: string, expectedFrom?: ExpectedStamp, expectedTo?: ExpectedStamp): Promise<void> {
+        return (await this.backendFor(workbookId)).renameScript(workbookId, oldScriptName, newScriptName, expectedFrom, expectedTo);
     }
     async listDataFiles(workbookId: string): Promise<DataFile[]> {
         return (await this.backendFor(workbookId)).listDataFiles(workbookId);

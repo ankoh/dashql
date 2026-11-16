@@ -1,8 +1,23 @@
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { NODE_FILE_SYSTEM } from './node_file_system.js';
+
+/// Runs right after the next rename of a file, e.g. a write of another program
+const afterRename: { next: (() => Promise<void>) | null } = vi.hoisted(() => ({ next: null }));
+vi.mock('node:fs/promises', async importOriginal => {
+    const original = await importOriginal<typeof import('node:fs/promises')>();
+    return {
+        ...original,
+        rename: async (from: string, to: string) => {
+            await original.rename(from, to);
+            const next = afterRename.next;
+            afterRename.next = null;
+            await next?.();
+        },
+    };
+});
 import { NativeStorageBackend } from '../storage/native_storage_backend.js';
 import { TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
 
@@ -40,6 +55,15 @@ describe('a workbook folder on the file system of Node', () => {
         expect(await NODE_FILE_SYSTEM.fileStamp(path)).toEqual(stamp);
         expect(await NODE_FILE_SYSTEM.listFiles(dir)).toEqual([{ name: 'a.sql', ...stamp }]);
         expect(await NODE_FILE_SYSTEM.listFiles(join(dir, 'missing'))).toEqual([]);
+    });
+
+    it('returns the stamp of its own write, not of a write of another program right after it', async () => {
+        const path = join(dir, 'a.sql');
+        afterRename.next = () => writeFile(path, 'select 2 from another program');
+        const stamp = await NODE_FILE_SYSTEM.writeTextFile(path, 'select 1');
+        expect(stamp.size).toBe(8);
+        // The file on disk is not what the app wrote, its stamp differs
+        expect(await NODE_FILE_SYSTEM.fileStamp(path)).not.toEqual(stamp);
     });
 
     it('replaces a file atomically and leaves no temporary file', async () => {

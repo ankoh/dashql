@@ -71,12 +71,14 @@ pub struct HostError {
     message: String,
     external_script_change: Option<ExternalScriptChange>,
     cancelled: bool,
+    /// The target of the call is gone, e.g. a folder that was moved; another attempt fails the same way
+    unavailable: bool,
     value: Option<Rc<dyn Any>>,
 }
 
 impl HostError {
     pub fn new(message: impl Into<String>) -> HostError {
-        HostError { message: message.into(), external_script_change: None, cancelled: false, value: None }
+        HostError { message: message.into(), external_script_change: None, cancelled: false, unavailable: false, value: None }
     }
 
     /// A call that was cancelled, e.g. a request whose token was cancelled
@@ -89,6 +91,11 @@ impl HostError {
         self.cancelled
     }
 
+    /// A call whose target is gone, e.g. a workbook folder that was moved or deleted
+    pub fn unavailable(message: impl Into<String>) -> HostError {
+        HostError { unavailable: true, ..HostError::new(message) }
+    }
+
     /// A write that would overwrite a script that changed outside the app
     pub fn external_script_change(workbook_id: impl Into<String>, file_name: impl Into<String>) -> HostError {
         let change = ExternalScriptChange { workbook_id: workbook_id.into(), file_name: file_name.into() };
@@ -96,6 +103,7 @@ impl HostError {
             message: format!("script {} of workbook {} changed outside the app", change.file_name, change.workbook_id),
             external_script_change: Some(change),
             cancelled: false,
+            unavailable: false,
             value: None,
         }
     }
@@ -115,6 +123,11 @@ impl HostError {
         self.external_script_change.as_ref()
     }
 
+    /// Is the target of the call gone?
+    pub fn is_unavailable(&self) -> bool {
+        self.unavailable
+    }
+
     /// The value the host failed with
     pub fn value(&self) -> Option<&Rc<dyn Any>> {
         self.value.as_ref()
@@ -127,6 +140,7 @@ impl fmt::Debug for HostError {
             .field("message", &self.message)
             .field("external_script_change", &self.external_script_change)
             .field("cancelled", &self.cancelled)
+            .field("unavailable", &self.unavailable)
             .finish()
     }
 }

@@ -1,28 +1,36 @@
 //! The file lists of a workbook file: the scripts in feed order and the attachments, reconciled with the files that
 //! exist. Ported from `storage/workbook_files.ts`.
 //!
-//! File names are compared without case, like on a case-insensitive file system. The host normalizes the names of its
-//! listings to NFC, the crate doesn't normalize Unicode.
+//! File names are compared in NFC and without case, like on a case-insensitive file system that normalizes Unicode
+//! (`file_name_key`): the names of a listing, of a workbook file and of the workbook tables of an archive alike.
 
 use std::collections::{HashMap, HashSet};
+
+use unicode_normalization::UnicodeNormalization;
 
 use crate::workbook_format::data::{WorkbookAttachment, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::layout::{is_attachment_file_name, DRAFT_SCRIPT_FILE, MAX_WORKBOOK_FILES};
 use crate::workbook_format::natural::sort_naturally;
 use crate::workbook_format::validation::is_valid_uuid;
 
-/// Is a name a plain file name that can't escape its folder?
+/// Is a name a plain file name that can't escape its folder? A `:` would name an alternate data stream on NTFS.
 pub fn is_safe_file_name(name: &str) -> bool {
     !name.is_empty()
         && name.encode_utf16().count() <= 255
         && name != "."
         && name != ".."
-        && !name.contains(['/', '\\', '\0'])
+        && !name.contains(['/', '\\', '\0', ':'])
 }
 
-/// The key under which two file names denote the same file on a case-insensitive file system
+/// The key under which two file names denote the same file: in NFC and in lower case, as on a case-insensitive file
+/// system that normalizes Unicode
 pub fn file_name_key(name: &str) -> String {
-    name.to_lowercase()
+    nfc(name).to_lowercase()
+}
+
+/// A name in NFC
+pub fn nfc(name: &str) -> String {
+    name.nfc().collect()
 }
 
 /// Is a name the name of a script file?

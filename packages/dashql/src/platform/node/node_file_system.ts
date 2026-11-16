@@ -12,14 +12,25 @@ function isNotFound(error: unknown): boolean {
     return (error as { code?: string } | null)?.code === 'ENOENT';
 }
 
-/// Write a file atomically: a temporary file next to it, renamed over it. A reader sees the old file or the new one,
-/// never a part, and a failed write leaves the old file as it was.
-async function writeAtomically(path: string, data: string | Uint8Array): Promise<void> {
+/// Write a file atomically and durably: a temporary file next to it, synced to the disk and renamed over it. A reader
+/// sees the old file or the new one, never a part, and a failed write leaves the old file as it was. Returns the stamp
+/// of the temporary file, which the file keeps when it is renamed: a stamp taken after the rename could be the one of
+/// a write of another program in between.
+export async function writeAtomically(path: string, data: string | Uint8Array): Promise<FileStamp> {
     const slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
     const temporary = `${path.slice(0, slash + 1)}.${path.slice(slash + 1)}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
     try {
-        await fs.writeFile(temporary, data);
+        const file = await fs.open(temporary, 'w');
+        let stamp: FileStamp;
+        try {
+            await file.writeFile(data);
+            await file.sync();
+            stamp = stampOf(await file.stat());
+        } finally {
+            await file.close();
+        }
         await fs.rename(temporary, path);
+        return stamp;
     } catch (error) {
         await fs.rm(temporary, { force: true });
         throw error;
@@ -98,7 +109,6 @@ export const NODE_FILE_SYSTEM: FileSystem = {
         await writeAtomically(path, data);
     },
     async writeTextFile(path, data) {
-        await writeAtomically(path, data);
-        return stampOf(await fs.stat(path));
+        return await writeAtomically(path, data);
     },
 };

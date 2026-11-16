@@ -67,9 +67,9 @@ with `StorageBackendType.Native` and a `nativePath` are checked.
 
 ```mermaid
 flowchart TD
-    F[Window focus] --> RC[NativeWorkbookSync coordinator]
+    F[Window focus] --> RC[Checks of the runtime]
     W[StorageWriter holds a script write] --> RC
-    RC --> NB[NativeStorageBackend stamps]
+    RC --> NB[FolderStamps of the runtime]
     RC --> SB[StorageBackend snapshot reads]
     RC --> NS[Workbook scripts reconciliation]
     NS --> UI[Live application state]
@@ -82,26 +82,33 @@ size and modification time of a file. The Electron bridge returns them without r
 
 - `listFiles(dir)` lists the files of a directory with their stamps in one round trip.
 - `fileStamp(path)` returns the stamp of one file, null if it does not exist.
-- `writeTextFile(path, text)` resolves with the stamp of the written file.
+- `writeTextFile(path, text)` resolves with the stamp of the written file, taken from the temporary file before it is
+  renamed over the file: a stamp taken after the rename could be the one of another program that wrote in between.
 
-`NativeStorageBackend` records, per script and for `dashql-workbook.json`, the stamp of its own last write or of the
-last acknowledged check (`acknowledgeFolder`). A script without a stamp is known to be absent. DashQL's own writes
-therefore never look like external changes, and no event correlation is needed. Every write of a file is atomic: the
-bridge writes a temporary file next to it and renames it over the file, a reader never sees a part of it.
+The runtime keeps the stamps (`FolderStamps` of `packages/dashql-core-runtime/src/storage/stamps.rs`): per script, by
+its name in NFC and lower case, and for `dashql-workbook.json`, the stamp of its own last write or of the last
+acknowledgement. A script without a stamp is known to be absent. DashQL's own writes therefore never look like external
+changes, and no event correlation is needed. The restore acknowledges the folder: it takes the stamps before it reads
+the files, a file that changes in between has a newer stamp and is checked again. A migration of the folder records
+the workbook file it writes. Every write of a file is atomic and synced: the bridge writes a temporary file next to it,
+syncs it and renames it over the file, a reader never sees a part of it.
 
-Once the folder is acknowledged, `saveScript`, `deleteScript`, `renameScript` and `saveWorkbookManifest` take the stamp
-of the target file before touching it: one `fileStamp` call. A rename checks its source and its destination, so it
-neither moves an external version nor replaces an external file. When the stamp differs the operation fails with
+Once the folder is acknowledged, a write of a script or of the workbook file passes the stamp it expects to
+`NativeStorageBackend` (`saveScript`, `deleteScript`, `renameScript`, `saveWorkbookManifest`), which takes the stamp of
+the target file before touching it: one `fileStamp` call. A rename checks its source and its destination, so it neither
+moves an external version nor replaces an external file; a rename that only changes the case or the Unicode form of a
+name moves the file onto itself and checks its source only. When the stamp differs the operation fails with
 `ExternalScriptChangeError` (its `fileName` is the script or `dashql-workbook.json`) and the storage writer of the
 runtime:
 
-- keeps the task pending (a newer task with the same key supersedes it),
+- keeps the task at its place (a newer task with the same key supersedes it),
 - holds the workbook for the change (`HoldReason::ExternalChange`), so no further write of the workbook runs,
-- lists the workbook in `heldWorkbooks` of the `storage` view.
+- lists the hold in `holds` of the `storage` view.
 
 The task is executed once the hold is released, after the coordinator decided between the disk and the app. Files that
 were never acknowledged are not checked; OPFS workbooks never are. A script write never creates a missing workbook
-folder, e.g. one that was moved: it fails and the writer retries it.
+folder, e.g. one that was moved: it fails with `WorkbookFolderMissingError`, the writer stops retrying it and the
+storage writer view of the app offers to discard it.
 
 ### Coordinator
 
@@ -119,7 +126,7 @@ in the desktop app. It asks the runtime to check
 
 - once for every workbook that enters the list of the workbooks,
 - every workbook when the window gets the focus,
-- a workbook whose script write the writer holds (`heldWorkbooks` of the `storage` view),
+- a workbook whose script write the writer holds (the `externalChange` holds of the `storage` view),
 
 and shows every question of the view once as a native dialog. A dialog that fails answers nothing, the version of the
 app stays and the next check asks again.
@@ -150,14 +157,12 @@ flowchart TD
     S --> T[List stamps of scripts, attachments and workbook file]
     T --> A{Attachment stamps changed?}
     A -->|yes| M[Reload workbook file, mirror attachments, refresh list]
-    A -->|no| B
-    M --> B{First check?}
-    B -->|yes| K[Acknowledge stamps]
-    B -->|no| X{Stamps differ?}
+    A -->|no| X
+    M --> X{Stamps differ from the recorded ones?}
     X -->|no| Z[Release the hold]
     X -->|yes| R[Read scripts]
     R --> Q{Disk matches live state?}
-    Q -->|yes| K
+    Q -->|yes| K[Acknowledge stamps]
     Q -->|no| D{User chooses Reload?}
     D -->|no| KP[Acknowledge stamps, write app version]
     D -->|yes| G{Write generation unchanged?}
@@ -178,27 +183,32 @@ A check of the runtime follows these steps for one workbook at a time:
 4. When the attachment stamps changed since the previous check, load the workbook file, which mirrors
    the attachments into the workbook's OPFS namespace for embedded HyperDB-WASM, and refresh the
    attachment list of the workbook file.
-5. The first check of a workbook acknowledges the stamps: the restoration read the scripts and the
-   workbook file moments before, they are what the app shows.
-6. Compare the stamps with the recorded ones. No difference ends the check. Otherwise read the scripts
+5. Compare the stamps with the recorded ones: those of the restore, which stamped the folder before it read it, and of
+   the writes of the app since. The first check after the restore therefore finds a file that changed in between, and a
+   `scripts/` folder that was missing while the restore read it and came back. A folder that was never acknowledged
+   differs in every file. No difference ends the check. Otherwise read the scripts
    and the workbook file and compare the scripts and the name with the live state. If they match, e.g.
    because a tool only touched a file or changed another field of the workbook file, acknowledge the
    stamps and end the check. A scripts folder that is gone or empty while the workbook file lists
    scripts decides nothing, a later check reads it again. A workbook that another task holds is checked
    again a moment later instead of being taken as changed.
-7. Ask the user whether to reload: the `storage` view holds the question until the app answers. When
+6. Ask the user whether to reload: the `storage` view holds the question until the app answers. When
    relevant local writes are pending, the dialog explicitly says that reloading discards them. A local
    edit that arrives while a question without pending writes is open asks again with that warning.
-8. **Keep current** acknowledges the stamps and writes the app version of every script that differs.
+7. **Keep current** acknowledges the stamps and writes the app version of every script that differs.
    Scripts that exist only on disk are left alone.
-9. **Reload** rechecks the relevant write generation after the dialog. The editor remains
+8. **Reload** rechecks the relevant write generation after the dialog. The editor remains
    interactive while a native dialog is open; if another local edit was scheduled, the old decision
    is stale and the workbook is requeued for a fresh snapshot and decision.
-10. Cancel only conflicting pending workbook writes when the user accepted that consequence,
-    acknowledge the stamps, and reconcile the workbook, its name included.
-11. Release the hold of the check at the end of every check, also a failed one. A check that settled the disk also
+9. Cancel only conflicting pending workbook writes when the user accepted that consequence,
+   acknowledge the stamps, and reconcile the workbook, its name included.
+10. Release the hold of the check at the end of every check, also a failed one. A check that settled the disk also
     releases the hold of a write that found a changed file. A held write runs now: after Keep current it overwrites
     the acknowledged disk version, after Reload it was cancelled.
+
+The question may stay open while the window closes. The flush then keeps every held edit of a script as a recovery
+copy next to it (`<name> (recovered).sql`, see [storage_layout.md](storage_layout.md)), it never overwrites the disk
+version.
 
 ## Writer Coordination
 
@@ -208,16 +218,16 @@ scoped capabilities:
 - **Holds with reasons:** a hold of the writer or of one workbook carries a reason (external change, reload, import,
   handover, pause) and is counted, each is released on its own. A check releases the hold it took, not the one of an
   open question.
-- **Scoped pending writes:** callers can inspect or cancel keys selected by a predicate.
+- **Scoped pending writes:** the checks read and cancel the pending keys that a reload replaces.
 - **Write generations:** every scheduled key receives a monotonic generation used to invalidate a
   conflict decision made while a dialog was open.
-- **Held writes:** a write that fails with `ExternalScriptChangeError` stays pending in a held
+- **Held writes:** a write that fails with `ExternalScriptChangeError` stays pending at its place in a held
   workbook, see above.
 
-Global `flush()` (when the page hides, before a window closes, on a handover) writes past a hold of the writer, never
-past the hold of a workbook: a write that a change outside the app, a reload or an import holds stays pending. A
-failed write stays pending as well and runs again after a backoff, the `storage` view lists it with its last error
-(`failedWrites`).
+Global `flush()` (when the page hides, before a window closes) writes past a pause of the writer and past no other
+hold: a write that a change outside the app, a reload, an import or the handover to another tab holds stays pending. A
+failed write stays pending as well and runs again after a backoff, one whose workbook folder is gone stops; the
+`storage` view lists it with its last error (`failedWrites`).
 
 Storage write keys are workbook-rooted logical paths, so conflict cancellation cannot affect
 `dashql-workbook.json` or another workbook.
@@ -287,7 +297,7 @@ bazel build //packages/dashql-native:compile
 
 - `dashql-workbook.json` changes to connections require reopening the workbook.
 - Reload is snapshot replacement, not a three-way merge or per-file conflict UI.
-- Stamps are process-local. The first check after a restart acknowledges whatever the folder holds.
+- Stamps are process-local. The restore after a restart reads the folder as it is and stamps it.
 - A stamp misses an external edit that keeps the size and lands within the modification time
   resolution of the file system after DashQL's own write (coarse on FAT and some network shares).
 - An external change made while DashQL has the focus appears on the next focus or on the next write
@@ -297,10 +307,10 @@ bazel build //packages/dashql-native:compile
 ## Implementation References
 
 - Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
-- Stamps and refused script writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
+- Stamps: `packages/dashql-core-runtime/src/storage/stamps.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
 - Holds, held and failed writes: `packages/dashql-core-runtime/src/storage/writer.rs`
 - Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-runtime/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Stamp tests: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
+- Stamp tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs` and `restore_test.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs`
 - Workbook scripts reconciliation tests: `packages/dashql-core-runtime/tests/workbook_test.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync.test.tsx`

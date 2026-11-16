@@ -19,8 +19,8 @@ use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
-use dashql_core_runtime::storage::keys::{workbook_connection_copy_key, workbook_file_key, workbook_scripts_key};
-use dashql_core_runtime::storage::{TextSource, WriteResult, WriteTask};
+use dashql_core_runtime::storage::keys::workbook_connection_copy_key;
+use dashql_core_runtime::storage::{WriteResult, WriteTask};
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts, BACKGROUND_ANALYSIS_DELAY_MS};
 use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
@@ -499,18 +499,16 @@ impl Workbooks {
             metadata_revision: next_revision(),
         });
 
-        // The workbook as a whole, then its script list, then its first manifest
-        let replace = WriteTask::ReplaceWorkbookScripts {
+        // The workbook file right away, then its script list. The later writes of the workbook file wait for it.
+        let created = WriteTask::CreateWorkbook {
             workbook_id: workbook_id.clone(),
             name: new.name,
-            scripts: Vec::<(String, TextSource)>::new(),
-            connection: list.connections.first().map(|c| connection_copy(&c.connection_id, Some(&c.params))),
+            connection: Some(copy),
+            ephemeral: new.ephemeral,
             original_file_name: new.original_file_name,
         };
-        drop(self.writer.write(&workbook_scripts_key(&workbook_id), replace, DEBOUNCE_MS));
+        drop(self.writer.write(&created.key(), created, 0.0));
         self.write_effects(&workbook_id, vec![WorkbookEffect::WriteScriptList(list)]);
-        let manifest = WriteTask::WriteWorkbookManifest { workbook_id: workbook_id.clone(), connections: vec![copy], ephemeral: new.ephemeral };
-        drop(self.writer.write(&workbook_file_key(&workbook_id), manifest, 0.0));
         self.sync_references();
         self.platform.changed(Slice::Workbook(&workbook_id), true);
         Ok(workbook_id)

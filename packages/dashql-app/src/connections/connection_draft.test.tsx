@@ -96,8 +96,8 @@ describe('durable connection drafts', () => {
             expect(globalDraft(backend)).toBeUndefined();
             expect(backend.connections?.map(entry => entry.id)).toEqual([TEST_CONNECTION_ID]);
             await act(async () => { await Promise.resolve(); });
-            expect(writer.getPendingKeysForWorkbook(TEST_WORKBOOK_ID)).toEqual([]);
-            expect(writer.getPendingKeys()).toEqual([]);
+            // Nothing of the workbook waits, is held or failed
+            expect(await writer.flushWorkbook(TEST_WORKBOOK_ID)).toBe(true);
             expect(current.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
         } finally {
             act(() => root.unmount());

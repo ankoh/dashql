@@ -11,7 +11,8 @@ use std::task::{Context, Poll, Wake, Waker};
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
-use dashql_core_runtime::workbook_format::migration::{migrate_folder, FolderHost, WorkbookMigrationResult};
+use dashql_core_runtime::storage::{Expect, FileStamp, FolderListing, FolderStamps};
+use dashql_core_runtime::workbook_format::migration::{migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
 use dashql_core_runtime::workbook_format::storage_migration::{
     migrate_storage, plan_connection_migration, run_storage_migration_step, DirEntry, MigratingSession, StorageMigrationSummary,
     StorageRootHost, STORAGE_MIGRATION_STEPS,
@@ -131,7 +132,7 @@ impl FolderHost for FakeFolder {
         Ok(if self.native { fs.native_files.get(&path).cloned() } else { fs.files.get(&path).cloned() })
     }
 
-    async fn write_text(&self, name: &str, text: &str) -> Result<(), HostError> {
+    async fn write_text(&self, name: &str, text: &str) -> Result<Option<FileStamp>, HostError> {
         let mut fs = self.fs.borrow_mut();
         fs.change()?;
         let path = format!("{}/{name}", self.dir);
@@ -140,7 +141,7 @@ impl FolderHost for FakeFolder {
         } else {
             fs.files.insert(path, text.to_string());
         }
-        Ok(())
+        Ok(None)
     }
 
     async fn remove(&self, name: &str) -> Result<(), HostError> {
@@ -970,19 +971,35 @@ impl FolderHost for MemoryFolder {
         Ok(self.files.borrow().iter().find(|(n, _)| n == name).map(|(_, text)| text.clone()))
     }
 
-    async fn write_text(&self, name: &str, text: &str) -> Result<(), HostError> {
+    async fn write_text(&self, name: &str, text: &str) -> Result<Option<FileStamp>, HostError> {
         let mut files = self.files.borrow_mut();
         match files.iter_mut().find(|(n, _)| n == name) {
             Some(file) => file.1 = text.to_string(),
             None => files.push((name.to_string(), text.to_string())),
         }
-        Ok(())
+        Ok(Some(FileStamp { size: text.len() as f64, mtime_ms: 2.0 }))
     }
 
     async fn remove(&self, name: &str) -> Result<(), HostError> {
         self.files.borrow_mut().retain(|(n, _)| n != name);
         Ok(())
     }
+}
+
+#[test]
+fn records_the_stamp_of_the_workbook_file_that_a_migration_of_an_acknowledged_folder_writes() {
+    let old = json!({ "formatVersion": 10, "sessionId": SESSION_A, "sessionPath": "opfs://sessions/x", "name": "n" }).to_string();
+    let folder = MemoryFolder::with(&[("dashql-session.json", old)]);
+    let stamps = FolderStamps::default();
+    let before = FileStamp { size: 1.0, mtime_ms: 1.0 };
+    stamps.acknowledge(SESSION_A, &FolderListing { workbook: Some(before), ..FolderListing::default() });
+    assert_eq!(block_on(migrate_stamped_folder(&folder, SESSION_A, &stamps)).unwrap(), WorkbookMigrationResult::Migrated);
+    // The migration wrote the workbook file, the app's own write is no change outside the app
+    let written = folder.files.borrow().iter().find(|(name, _)| name == "dashql-workbook.json").map(|(_, text)| text.len() as f64);
+    let stamp = FileStamp { size: written.unwrap(), mtime_ms: 2.0 };
+    assert_eq!(stamps.expect_workbook(SESSION_A), Expect::Stamp(stamp));
+    let listing = FolderListing { workbook: Some(stamp), ..FolderListing::default() };
+    assert!(stamps.changes(SESSION_A, &listing, "dashql-workbook.json").is_empty());
 }
 
 #[test]

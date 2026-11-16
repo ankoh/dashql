@@ -9,6 +9,7 @@ use std::cell::RefCell;
 
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::HostError;
+use dashql_core_runtime::storage::FolderStamps;
 use dashql_core_runtime::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
 use dashql_core_runtime::workbook_format::data::WorkbookData;
 use dashql_core_runtime::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
@@ -21,7 +22,6 @@ use wasm_bindgen::prelude::*;
 use crate::host::{field, JsPlatform};
 use crate::runtime::storage::restore_view::RestoreScriptFile;
 use crate::runtime::workbooks::view::WorkbookDataFile;
-use crate::views::JsonValue;
 
 /// A file of the host by handle: an attachment, a cached query result or an entry of an archive
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -83,15 +83,12 @@ pub(crate) fn items<T: DeserializeOwned>(value: JsValue, what: &str) -> Result<V
 /// lists, its scripts, its attachments by handle and, if asked for, the catalogs of its connections
 pub(crate) async fn read_stored_bundle(
     platform: &JsPlatform,
+    stamps: &FolderStamps,
     files: &HostFiles,
     workbook_id: &str,
     with_catalog: bool,
 ) -> Result<WorkbookBundle<HostFile>, HostError> {
-    let stored = platform.storage_await("loadWorkbook", &[text(workbook_id)]).await?;
-    if !stored.is_object() {
-        return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));
-    }
-    let stored = WorkbookData::from_json(&JsonValue::of(&stored).0);
+    let stored = WorkbookData::from_json(&super::storage::load_workbook(platform, stamps, workbook_id).await?);
     let scripts: Vec<RestoreScriptFile> = items(platform.storage_await("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
     let scripts = scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
     let listed: Vec<WorkbookDataFile> = items(platform.storage_await("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;

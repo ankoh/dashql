@@ -634,8 +634,9 @@ if (!hasSingleInstanceLock) {
             }
             case "stat": { const value = await stat(target); return {size: value.size, mtime: value.mtime.toISOString(), isFile: value.isFile(), isDirectory: value.isDirectory(), isSymlink: value.isSymbolicLink()}; }
             // Writes are atomic, a reader of the folder (git, an editor, a sync client) never sees a part of a file
-            case "writeFile": return await writeFileAtomically(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
-            case "writeTextFile": if (typeof args[1] === "string") { await writeFileAtomically(target, args[1]); return await stampOf(target); } break;
+            case "writeFile": await writeFileAtomically(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array)); return;
+            // The stamp of the write itself, a stamp taken after it could be the one of another program
+            case "writeTextFile": if (typeof args[1] === "string") return await writeFileAtomically(target, args[1]); break;
         }
         throw new Error("Rejected filesystem operation");
     });

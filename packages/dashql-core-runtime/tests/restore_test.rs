@@ -16,7 +16,7 @@ use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::restore::{
     script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
-use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, StorageWriter, WriteStatistics};
+use dashql_core_runtime::storage::{ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics};
 use dashql_core_runtime::workbook_format::restore::RestoreConnection;
 use dashql_core_runtime::workbook_format::validation::WorkbookValidationError;
 use serde_json::{json, Value};
@@ -88,6 +88,10 @@ struct Store {
     unreadable_scripts: Vec<String>,
     /// The storage calls that changed something, in order
     calls: Vec<String>,
+    /// The stamps of the workbook folders that may change outside the app
+    listings: BTreeMap<String, FolderListing>,
+    /// The reads of the workbook folders, in order
+    reads: Vec<String>,
     logs: Vec<(LogLevel, String, Vec<(String, String)>)>,
     progress: Vec<RestoreProgress>,
 }
@@ -119,6 +123,7 @@ impl Host for FakeHost {
 
 impl StorageHost for FakeHost {
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        self.store.borrow_mut().reads.push(format!("workbook:{workbook_id}"));
         let store = self.store.borrow();
         if store.unreadable.iter().any(|id| id == workbook_id) {
             return Err(HostError::new("missing files"));
@@ -126,22 +131,22 @@ impl StorageHost for FakeHost {
         store.workbooks.get(workbook_id).cloned().ok_or_else(|| HostError::new(format!("No workbook {workbook_id}")))
     }
 
-    async fn save_workbook(&self, workbook_id: &str, workbook: &Value) -> Result<(), HostError> {
+    async fn save_workbook(&self, workbook_id: &str, workbook: &Value, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
         let mut store = self.store.borrow_mut();
         store.calls.push(format!("manifest:{workbook_id}"));
         store.workbooks.insert(workbook_id.to_string(), workbook.clone());
+        Ok(None)
+    }
+
+    async fn save_script(&self, _workbook_id: &str, _file_name: &str, _text: &str, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
+        Ok(None)
+    }
+
+    async fn delete_script(&self, _workbook_id: &str, _file_name: &str, _expect: Expect) -> Result<(), HostError> {
         Ok(())
     }
 
-    async fn save_script(&self, _workbook_id: &str, _file_name: &str, _text: &str) -> Result<(), HostError> {
-        Ok(())
-    }
-
-    async fn delete_script(&self, _workbook_id: &str, _file_name: &str) -> Result<(), HostError> {
-        Ok(())
-    }
-
-    async fn rename_script(&self, _workbook_id: &str, _from: &str, _to: &str) -> Result<(), HostError> {
+    async fn rename_script(&self, _workbook_id: &str, _from: &str, _to: &str, _expect_from: Expect, _expect_to: Expect) -> Result<(), HostError> {
         Ok(())
     }
 
@@ -191,6 +196,7 @@ impl RestoreHost for FakeHost {
     }
 
     async fn load_scripts(&self, workbook_id: &str) -> Result<Vec<(String, String)>, HostError> {
+        self.store.borrow_mut().reads.push(format!("scripts:{workbook_id}"));
         let store = self.store.borrow();
         if store.unreadable_scripts.iter().any(|id| id == workbook_id) {
             return Err(HostError::new("unreadable scripts"));
@@ -205,6 +211,12 @@ impl RestoreHost for FakeHost {
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {
         Ok(self.store.borrow().connection_files.get(&format!("{connection_id}/{file_name}")).cloned())
+    }
+
+    async fn stamp_folder(&self, workbook_id: &str) -> Result<Option<FolderListing>, HostError> {
+        let mut store = self.store.borrow_mut();
+        store.reads.push(format!("stamps:{workbook_id}"));
+        Ok(store.listings.get(workbook_id).cloned())
     }
 
     fn restore_progress(&self, progress: &RestoreProgress) {
@@ -326,6 +338,30 @@ fn relation_tables(state: &ConnectionState) -> usize {
 }
 
 // The tests
+
+#[test]
+fn acknowledges_the_stamps_of_a_folder_that_it_reads_before_the_reads() {
+    let fixture = Fixture::new();
+    let copies = json!([{ "connectionId": CONNECTION, "params": hyper_wasm() }]);
+    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, json!([])), &[]);
+    let stamp = |size: f64| FileStamp { size, mtime_ms: 1.0 };
+    // The scripts folder is missing while the restore reads it
+    let at_restore = FolderListing { workbook: Some(stamp(10.0)), ..FolderListing::default() };
+    fixture.host.store.borrow_mut().listings.insert(WORKBOOK.to_string(), at_restore.clone());
+    let writer = StorageWriter::new(fixture.host.clone(), 11);
+    let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
+    let restore = AppRestore::new(fixture.host.clone(), writer.clone(), options);
+    let restored = fixture.run(restore.restore());
+    assert_eq!(restored.workbooks.len(), 1);
+    let reads = fixture.host.store.borrow().reads.clone();
+    assert_eq!(reads.get(..3), Some(&[format!("stamps:{WORKBOOK}"), format!("workbook:{WORKBOOK}"), format!("scripts:{WORKBOOK}")][..]));
+    assert!(writer.stamps().changes(WORKBOOK, &at_restore, "dashql-workbook.json").is_empty());
+    // The folder comes back before the first check, its scripts are new to the app
+    let back = FolderListing { scripts: vec![NamedStamp { name: "a.sql".to_string(), stamp: stamp(3.0) }], ..at_restore };
+    assert_eq!(writer.stamps().changes(WORKBOOK, &back, "dashql-workbook.json"), ["a.sql"]);
+    // A workbook of the storage root has no stamps
+    assert!(!writer.stamps().is_acknowledged(OTHER_WORKBOOK));
+}
 
 #[test]
 fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {

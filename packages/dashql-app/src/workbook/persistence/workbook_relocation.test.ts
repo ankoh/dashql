@@ -13,7 +13,7 @@ function pickFolder(folder: string | null) {
     globalThis.dashqlElectron = { openDirectory: vi.fn(async () => folder) } as unknown as DashQLElectronBridge;
 }
 
-const fakeWriter = () => ({ pause: vi.fn(), resume: vi.fn(), flush: vi.fn(async () => { }) });
+const fakeWriter = (flushed = true) => ({ pause: vi.fn(), resume: vi.fn(), flushWorkbook: vi.fn(async () => flushed) });
 
 afterEach(() => {
     delete globalThis.dashqlElectron;
@@ -35,8 +35,18 @@ describe('relocateWorkbookToNative', () => {
         const backend = { relocateWorkbookToNative: vi.fn(async () => { throw new Error('copy failed'); }) } as unknown as CompositeStorageBackend;
         await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageWriter, new TestLogger())).rejects.toThrow('copy failed');
         expect(writer.pause).toHaveBeenCalledOnce();
-        expect(writer.flush).toHaveBeenCalledOnce();
+        expect(writer.flushWorkbook).toHaveBeenCalledWith('s1');
         expect(backend.relocateWorkbookToNative).toHaveBeenCalledWith('s1', '/Users/me/workbook');
         expect(writer.resume).toHaveBeenCalledOnce();
+    });
+
+    it('refuses to move a workbook whose changes are not saved', async () => {
+        pickFolder('/Users/me/workbook');
+        // A write of the workbook failed or a hold keeps it, it would be lost with the copy in the origin private file system
+        const writer = fakeWriter(false);
+        const backend = { relocateWorkbookToNative: vi.fn() } as unknown as CompositeStorageBackend;
+        await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageWriter, new TestLogger())).rejects.toThrow('not saved');
+        expect(backend.relocateWorkbookToNative).not.toHaveBeenCalled();
+        expect(writer.pause).not.toHaveBeenCalled();
     });
 });

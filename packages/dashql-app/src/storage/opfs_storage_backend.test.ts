@@ -173,6 +173,15 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         await expect(backend.renameScript('ffffffff-0000-4000-8000-000000000000', 'a.sql', 'b.sql')).resolves.toBeUndefined();
     });
 
+    it('deletes a script that is gone without a failure, the writer retries deletions', async () => {
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        await backend.deleteScript(TEST_WORKBOOK_ID, '01_query.sql');
+        await expect(backend.deleteScript(TEST_WORKBOOK_ID, '01_query.sql')).resolves.toBeUndefined();
+        await expect(backend.deleteScript('ffffffff-0000-4000-8000-000000000000', 'a.sql')).resolves.toBeUndefined();
+        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([]);
+    });
+
     it('clears the app folders, the clouds and the workbook tree but no other storage', async () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await backend.saveScript(TEST_WORKBOOK_ID, '01.sql', 'SELECT 1');

@@ -2,6 +2,7 @@ import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 import type { WorkbookEntry as WorkbookTreeEntry, WorkbookTreeFolder } from './workbook_tree.js';
 
+import type { FileStamp } from '../platform/file_system.js';
 import { hyperOPFSRoot } from '../platform/opfs_root.js';
 
 // Storage file and folder naming conventions
@@ -99,8 +100,9 @@ export interface StorageBackend {
     saveAppSettings(settings: AppSettings): Promise<void>;
     /// Load a workbook by UUID
     loadWorkbook(workbookId: string): Promise<WorkbookData>;
-    /// Save a workbook
-    saveWorkbookManifest(workbookId: string, data: WorkbookData): Promise<void>;
+    /// Save a workbook. The writes of the workbook file and of the scripts take what they expect on disk (`ExpectedStamp`),
+    /// a backend that keeps stamps resolves with the stamp of what it wrote.
+    saveWorkbookManifest(workbookId: string, data: WorkbookData, expected?: ExpectedStamp): Promise<FileStamp | null | void>;
     /// Delete a workbook
     deleteWorkbook(workbookId: string): Promise<void>;
 
@@ -110,12 +112,12 @@ export interface StorageBackend {
     /// Load a workbook script
     loadScript(workbookId: string, scriptName: string): Promise<ScriptData>;
     /// Save a workbook script
-    saveScript(workbookId: string, scriptName: string, sql: string): Promise<void>;
-    /// Delete a workbook script
-    deleteScript(workbookId: string, scriptName: string): Promise<void>;
-    /// Rename a script file, preserving its contents (no rewrite from memory). Callers must
-    /// guarantee `oldScriptName` exists and `newScriptName` does not.
-    renameScript(workbookId: string, oldScriptName: string, newScriptName: string): Promise<void>;
+    saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp | null | void>;
+    /// Delete a workbook script, a missing script is deleted already
+    deleteScript(workbookId: string, scriptName: string, expected?: ExpectedStamp): Promise<void>;
+    /// Rename a script file, preserving its contents and its stamp (no rewrite from memory). A missing source is renamed
+    /// already.
+    renameScript(workbookId: string, oldScriptName: string, newScriptName: string, expectedFrom?: ExpectedStamp, expectedTo?: ExpectedStamp): Promise<void>;
 
     listDataFiles(workbookId: string): Promise<DataFile[]>;
     loadDataFile(workbookId: string, name: string): Promise<Uint8Array>;
@@ -179,7 +181,27 @@ export function isWorkbookRegistryBackend(backend: StorageBackend): backend is W
     return typeof (backend as Partial<WorkbookRegistryBackend>).updateConnections === 'function';
 }
 
-/// A script file or the workbook file changed outside the app since the storage last wrote or acknowledged it.
+/// What a write expects of the file it replaces, as the runtime recorded it: `undefined` for any file, `null` for no
+/// file, else its stamp. A backend that keeps stamps refuses a write whose file differs (`ExternalScriptChangeError`).
+export type ExpectedStamp = FileStamp | null | undefined;
+
+/// Does the stamp of a file on disk match what a write expects?
+export function matchesExpectedStamp(actual: FileStamp | null, expected: ExpectedStamp): boolean {
+    if (expected === undefined) return true;
+    if (actual == null || expected == null) return actual == expected;
+    return actual.size === expected.size && actual.mtimeMs === expected.mtimeMs;
+}
+
+/// The folder of a workbook is gone, e.g. a native folder that was moved or deleted. A write into it fails the same way
+/// until it is back, the runtime stops retrying it.
+export class WorkbookFolderMissingError extends Error {
+    constructor(dir: string) {
+        super(`The workbook folder ${dir} is missing`);
+        this.name = 'WorkbookFolderMissingError';
+    }
+}
+
+/// A script file or the workbook file changed outside the app since the runtime last wrote or acknowledged it.
 /// Thrown instead of overwriting the external version.
 export class ExternalScriptChangeError extends Error {
     /// The workbook id

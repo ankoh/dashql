@@ -102,12 +102,16 @@ describe('NativeWorkbookSync', () => {
         await backend.upsertWorkbookEntry({ path: WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: DIR });
     }
 
-    /// Restore and render the app, resolves once the first check of the workbook acknowledged the disk
+    /// Restore and render the app, resolves once the first check of the workbook compared the folder with what the
+    /// restore read
     async function renderApp(options: { waitForFirstCheck?: boolean; afterRestore?: () => void } = {}): Promise<void> {
         const folder = backend.nativeWorkbookFolder(WORKBOOK_ID);
-        const acknowledged = folder == null ? null : vi.spyOn(folder, 'acknowledgeFolder');
+        const stamped = folder == null ? null : vi.spyOn(folder, 'stampFolder');
+        // The restore stamps the folder as well, the first check stamps it once more
+        let stampsOfRestore = 0;
         const restore = async (runtime: Runtime) => {
             const restored = await runtime.restore();
+            stampsOfRestore = stamped?.mock.calls.length ?? 0;
             options.afterRestore?.();
             return restored;
         };
@@ -124,9 +128,11 @@ describe('NativeWorkbookSync', () => {
             );
         });
         await vi.waitFor(() => expect(api).not.toBeNull());
-        if (options.waitForFirstCheck !== false && acknowledged != null) {
-            await vi.waitFor(() => expect(acknowledged).toHaveBeenCalledOnce());
+        if (options.waitForFirstCheck !== false && stamped != null) {
+            await vi.waitFor(() => expect(stamped.mock.calls.length).toBeGreaterThan(stampsOfRestore));
             await settled();
+            // A test counts the stamps of the checks after the first one
+            stamped.mockClear();
         }
     }
 
@@ -156,32 +162,42 @@ describe('NativeWorkbookSync', () => {
     };
 
     describe('the first check', () => {
-        it('acknowledges the disk without asking, the restoration just read it', async () => {
+        it('finds the folder as the restoration read it, without asking or reading it again', async () => {
             await seedFolder();
-            await renderApp();
+            const load = vi.spyOn(backend, 'loadScripts');
+            await renderApp({ afterRestore: () => load.mockClear() });
             expect(confirm).not.toHaveBeenCalled();
+            expect(load).not.toHaveBeenCalled();
             expect(scriptText()).toBe('select app');
+        });
+
+        it('asks about a script that changed between the restoration and the check', async () => {
+            await seedFolder();
+            await renderApp({ waitForFirstCheck: false, afterRestore: () => changeOnDisk(SCRIPT_PATH, 'select external') });
+            await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+            await vi.waitFor(() => expect(scriptText()).toBe('select external'));
+            await settled();
         });
 
         it('is retried on the next focus when it failed', async () => {
             await seedFolder();
             const folder = backend.nativeWorkbookFolder(WORKBOOK_ID)!;
             const stamp = vi.spyOn(folder, 'stampFolder');
-            const acknowledge = vi.spyOn(folder, 'acknowledgeFolder');
             // The restoration reads the stamps as well, only the check fails
             await renderApp({
                 waitForFirstCheck: false,
                 afterRestore: () => {
                     stamp.mockClear();
                     stamp.mockRejectedValueOnce(new Error('folder is gone'));
+                    changeOnDisk(SCRIPT_PATH, 'select external');
                 },
             });
             await vi.waitFor(() => expect(stamp).toHaveBeenCalledOnce());
             await settled();
-            expect(acknowledge).not.toHaveBeenCalled();
-            await focusWindow();
-            await vi.waitFor(() => expect(acknowledge).toHaveBeenCalledOnce());
             expect(confirm).not.toHaveBeenCalled();
+            await focusWindow();
+            await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+            await settled();
         });
     });
 
@@ -263,7 +279,6 @@ describe('NativeWorkbookSync', () => {
             await checkFolder();
             expect(confirm.mock.calls[0][0].message).toContain('local changes waiting to be saved');
             await vi.waitFor(() => expect(scriptText()).toBe('select external'));
-            expect(api.writer.getPendingKeysForWorkbook(WORKBOOK_ID)).toEqual([]);
             await flush();
             expect(fsStore.files.get(SCRIPT_PATH)).toBe('select external');
         });
@@ -344,7 +359,6 @@ describe('NativeWorkbookSync', () => {
             await vi.waitFor(() => expect(confirm).toHaveBeenCalledTimes(3));
             await vi.waitFor(() => expect(scriptText()).toBe('select newer'));
             await settled();
-            expect(api.writer.getPendingKeysForWorkbook(WORKBOOK_ID)).toEqual([]);
             await flush();
             expect(fsStore.files.get(SCRIPT_PATH)).toBe('select newer');
         });
@@ -430,9 +444,11 @@ describe('NativeWorkbookSync', () => {
             await seedFolder();
             await renderApp();
             addAttachment('data.parquet');
-            const load = vi.spyOn(backend, 'loadWorkbook').mockRejectedValueOnce(new Error('workbook file is locked'));
+            // A failed read of the workbook file tries a migration of the folder and reads it once more
+            const locked = new Error('workbook file is locked');
+            const load = vi.spyOn(backend, 'loadWorkbook').mockRejectedValueOnce(locked).mockRejectedValueOnce(locked);
             await focusWindow();
-            await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
+            await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2));
             await settled();
             await focusWindow();
             await vi.waitFor(() => expect(attachmentNames()).toEqual(['data.parquet']));

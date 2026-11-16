@@ -6,6 +6,9 @@
 //! its host is state of the runtime: the holds and the failed writes are the `storage` view, the statistics of the keys
 //! are read from the writer when the app shows them (`storageStatistics`), they change with every write. A rejected
 //! call fails the write with the value the platform rejected with, the outcome of a write hands it back.
+//!
+//! The stamps of the folders that change outside the app are state of the runtime as well (`FolderStamps`): the writes
+//! of scripts and of workbook files pass what they expect on disk to the platform and record the stamps it returns.
 
 pub(crate) mod restore_view;
 pub(crate) mod view;
@@ -18,23 +21,27 @@ use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::restore::{RestoreHost, RestoreProgress};
-use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, StorageWriter, WriteOutcome, WriterStatus};
+use dashql_core_runtime::storage::{
+    ConnectionsUpdate, Expect, FileStamp, FolderListing, FolderStamps, NamedStamp, StorageHost, StorageWriter, WriterStatus,
+};
 use dashql_core_runtime::workbook::next_revision;
 use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
-use js_sys::{Array, Function, Reflect};
+use dashql_core_runtime::workbook_format::files::{is_script_file_name, nfc};
+use dashql_core_runtime::workbook_format::layout::is_attachment_file_name;
+use js_sys::{Array, Function, Object, Reflect};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::host::{message_of, JsPlatform};
+use crate::host::{call_method, field, message_of, JsPlatform};
 use crate::runtime::changes::Read;
 use crate::runtime::migrations::migrate_workbook_folder;
 use crate::runtime::workbooks::view::WorkbookDataFile;
 use crate::views::{to_js, JsonValue};
 use restore_view::{RestoreProgress as ProgressView, RestoreScriptFile};
-use view::{FailedStorageWriteView, StorageHoldView, StorageWriteOutcome};
+use view::{FailedStorageWriteView, StorageHoldView};
 
 /// The storage writer of the runtime
 pub(crate) type RuntimeWriter = StorageWriter<JsStorage>;
@@ -47,14 +54,17 @@ fn string_field(value: &JsValue, name: &str) -> Option<String> {
     Reflect::get(value, &JsValue::from_str(name)).ok().and_then(|v| v.as_string())
 }
 
-/// A host error that keeps what the storage failed with. A script that changed outside the app is named by the error.
+/// A host error that keeps what the storage failed with. A file that changed outside the app is named by the error, a
+/// missing workbook folder makes the call unavailable.
 pub(crate) fn host_error(value: JsValue) -> HostError {
-    let error = if string_field(&value, "name").as_deref() == Some("ExternalScriptChangeError") {
-        let workbook_id = string_field(&value, "workbookId").unwrap_or_default();
-        let file_name = string_field(&value, "fileName").unwrap_or_default();
-        HostError::external_script_change(workbook_id, file_name)
-    } else {
-        HostError::new(message_of(&value))
+    let error = match string_field(&value, "name").as_deref() {
+        Some("ExternalScriptChangeError") => {
+            let workbook_id = string_field(&value, "workbookId").unwrap_or_default();
+            let file_name = string_field(&value, "fileName").unwrap_or_default();
+            HostError::external_script_change(workbook_id, file_name)
+        }
+        Some("WorkbookFolderMissingError") => HostError::unavailable(message_of(&value)),
+        _ => HostError::new(message_of(&value)),
     };
     error.with_value(Rc::new(value))
 }
@@ -68,9 +78,73 @@ pub(crate) fn error_value(error: &HostError) -> JsValue {
         .unwrap_or_else(|| JsError::new(error.message()).into())
 }
 
-/// The outcome of a write for JS
-pub(crate) fn outcome_value(outcome: WriteOutcome) -> Result<JsValue, JsValue> {
-    to_js(&StorageWriteOutcome::from(outcome)).map(JsValue::from).map_err(JsValue::from)
+/// A stamp of the platform, `{ size, mtimeMs }`, none for anything else
+pub(crate) fn stamp_of(value: &JsValue) -> Option<FileStamp> {
+    let size = field(value, "size")?.as_f64()?;
+    let mtime_ms = field(value, "mtimeMs")?.as_f64()?;
+    Some(FileStamp { size, mtime_ms })
+}
+
+/// What a write expects on disk for the platform: undefined for any file, null for none, else the stamp
+fn expect_value(expect: Expect) -> JsValue {
+    match expect {
+        Expect::Any => JsValue::UNDEFINED,
+        Expect::Absent => JsValue::NULL,
+        Expect::Stamp(stamp) => {
+            let object = Object::new();
+            let _ = Reflect::set(&object, &JsValue::from_str("size"), &JsValue::from_f64(stamp.size));
+            let _ = Reflect::set(&object, &JsValue::from_str("mtimeMs"), &JsValue::from_f64(stamp.mtime_ms));
+            object.into()
+        }
+    }
+}
+
+/// The files of a listing of the platform with their stamps, the names in NFC
+fn named_stamps(value: Option<JsValue>, keep: impl Fn(&str) -> bool) -> Vec<NamedStamp> {
+    let Some(value) = value.filter(Array::is_array) else { return Vec::new() };
+    Array::from(&value)
+        .iter()
+        .filter_map(|file| Some(NamedStamp { name: nfc(&field(&file, "name")?.as_string()?), stamp: stamp_of(&file)? }))
+        .filter(|file| keep(&file.name))
+        .collect()
+}
+
+/// The stamps of a workbook folder as the platform lists them (`stampFolder`)
+pub(crate) fn listing_of(value: &JsValue) -> FolderListing {
+    FolderListing {
+        scripts: named_stamps(field(value, "scripts"), is_script_file_name),
+        attachments: named_stamps(field(value, "attachments"), is_attachment_file_name),
+        workbook: field(value, "workbook").and_then(|workbook| stamp_of(&workbook)),
+    }
+}
+
+/// The stamps of the folder of a workbook that may change outside the app, none for the workbooks of the storage root
+pub(crate) async fn stamp_folder(platform: &JsPlatform, workbook_id: &str) -> Result<Option<FolderListing>, HostError> {
+    let Some(folder) = platform.workbook_folder(workbook_id) else { return Ok(None) };
+    Ok(Some(listing_of(&call_method(&folder, "stampFolder", &[]).await?)))
+}
+
+/// The workbook file of a workbook, the one way the runtime reads it. A workbook in a folder of its own that an older
+/// version of the app wrote, e.g. a native folder after a checkout of an older commit, is brought to the current
+/// workbook format first; the migration records its own writes in the stamps. The format version of the file decides
+/// on every load, a current file is read once. The folders of the storage root were migrated with the storage.
+pub(crate) async fn load_workbook(platform: &JsPlatform, stamps: &FolderStamps, workbook_id: &str) -> Result<Value, HostError> {
+    let loaded = load_workbook_file(platform, workbook_id).await;
+    let current = loaded.as_ref().is_ok_and(|workbook| workbook.get("formatVersion").and_then(Value::as_i64).is_some_and(|version| version >= WORKBOOK_FORMAT_VERSION));
+    if current || platform.workbook_folder(workbook_id).is_none() {
+        return loaded;
+    }
+    migrate_workbook_folder(platform, stamps, workbook_id).await?;
+    load_workbook_file(platform, workbook_id).await
+}
+
+/// The workbook file of a workbook as the storage holds it
+async fn load_workbook_file(platform: &JsPlatform, workbook_id: &str) -> Result<Value, HostError> {
+    let workbook = platform.storage_await("loadWorkbook", &[text(workbook_id)]).await?;
+    if !workbook.is_object() {
+        return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));
+    }
+    Ok(JsonValue::of(&workbook).0)
 }
 
 /// What the writer told its host, the `storage` view
@@ -84,6 +158,8 @@ pub(crate) struct StorageState {
     progress: RefCell<Option<Function>>,
     /// The workbooks that changed outside the app and wait for the answer of the user, in the order they were asked
     questions: RefCell<Vec<ExternalChangeView>>,
+    /// The stamps of the folders that may change outside the app, shared by the writer, the restore and the checks
+    pub stamps: Rc<FolderStamps>,
 }
 
 impl StorageState {
@@ -96,7 +172,6 @@ impl StorageState {
     pub fn view(&self) -> Read<StorageView> {
         let (Ok(status), Ok(questions)) = (self.status.try_borrow(), self.questions.try_borrow()) else { return Read::Busy };
         Read::Value(StorageView {
-            held_workbooks: status.externally_changed().map(str::to_string).collect(),
             holds: status.holds.iter().map(StorageHoldView::from).collect(),
             failed_writes: status.failed.iter().map(FailedStorageWriteView::from).collect(),
             external_changes: questions.clone(),
@@ -127,7 +202,6 @@ impl StorageState {
         }
     }
 
-
     /// Hear the progress of the restore that runs, none stops
     pub fn set_progress(&self, listener: Option<Function>) {
         *self.progress.borrow_mut() = listener;
@@ -135,16 +209,15 @@ impl StorageState {
 }
 
 /// The storage of the runtime: what holds the writes, the writes that failed, and the questions about workbook folders
-/// that changed outside the app
+/// that changed outside the app. The workbooks whose writes a change outside the app holds are the holds with the
+/// reason `externalChange`.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct StorageView {
-    /// The workbooks whose writes are held because one of their files changed outside the app
-    pub held_workbooks: Vec<String>,
     /// The holds of the writer (no workbook) and of the workbooks, with their reasons
     pub holds: Vec<StorageHoldView>,
-    /// The writes that failed and run again after a backoff, with their last errors
+    /// The writes that failed, with their last errors
     pub failed_writes: Vec<FailedStorageWriteView>,
     /// The workbooks whose scripts changed on disk, the app asks the user whether to reload them
     /// (`answerExternalChange`)
@@ -164,14 +237,19 @@ pub struct ExternalChangeView {
 }
 
 /// A command of the storage writer that waits for writes. The commands that change the writer right away are methods
-/// of the runtime (`storageHold`, `storageRelease`, `storageReviveWorkbook`, `storageCancelPendingWrites`).
+/// of the runtime (`storageHold`, `storageRelease`, `storageDiscardWrites`).
 #[derive(Clone, Debug, Deserialize, Tsify)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
 pub enum StorageCommand {
-    /// Run every pending write right away and wait until all writes ended. Writes past a hold of the writer, never
-    /// past a hold of a workbook.
-    Flush,
+    /// Run every pending write right away and wait until all writes ended. Writes past a pause of the writer, never
+    /// past another hold. A flush while the window closes also keeps the scripts that a change outside the app holds as
+    /// recovery copies next to them.
+    Flush {
+        #[serde(default)]
+        #[tsify(optional)]
+        closing: bool,
+    },
     /// Wait for the writes that started, without running the pending ones
     Settle,
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage
@@ -196,7 +274,6 @@ impl JsStorage {
             wasm_bindgen_futures::JsFuture::from(js_sys::Promise::resolve(&value)).await.map_err(host_error)
         }
     }
-
 }
 
 impl Host for JsStorage {
@@ -221,47 +298,27 @@ fn text(value: &str) -> JsValue {
     JsValue::from_str(value)
 }
 
-impl JsStorage {
-    /// The workbook file of a workbook as the storage holds it
-    async fn load_workbook_file(&self, workbook_id: &str) -> Result<Value, HostError> {
-        let workbook = self.call("loadWorkbook", &[text(workbook_id)]).await?;
-        if workbook.is_null() || workbook.is_undefined() {
-            return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));
-        }
-        Ok(JsonValue::of(&workbook).0)
-    }
-}
-
 impl StorageHost for JsStorage {
-    /// A workbook in a folder of its own that an older version of the app wrote, e.g. a native folder after a checkout
-    /// of an older commit, is brought to the current workbook format before its workbook file is read. The format
-    /// version of the file decides on every load, a current file is read once. The folders of the storage root were
-    /// migrated with the storage.
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
-        let loaded = self.load_workbook_file(workbook_id).await;
-        let current = loaded.as_ref().is_ok_and(|workbook| workbook.get("formatVersion").and_then(Value::as_i64).is_some_and(|version| version >= WORKBOOK_FORMAT_VERSION));
-        if current || self.platform.workbook_folder(workbook_id).is_none() {
-            return loaded;
-        }
-        migrate_workbook_folder(&self.platform, workbook_id).await?;
-        self.load_workbook_file(workbook_id).await
+        load_workbook(&self.platform, &self.state.stamps, workbook_id).await
     }
 
-    async fn save_workbook(&self, workbook_id: &str, workbook: &Value) -> Result<(), HostError> {
+    async fn save_workbook(&self, workbook_id: &str, workbook: &Value, expect: Expect) -> Result<Option<FileStamp>, HostError> {
         let workbook = JsonValue(workbook.clone()).to_js().map_err(|e| HostError::new(e.to_string()))?;
-        self.call("saveWorkbook", &[text(workbook_id), workbook]).await.map(|_| ())
+        Ok(stamp_of(&self.call("saveWorkbook", &[text(workbook_id), workbook, expect_value(expect)]).await?))
     }
 
-    async fn save_script(&self, workbook_id: &str, file_name: &str, script: &str) -> Result<(), HostError> {
-        self.call("saveScript", &[text(workbook_id), text(file_name), text(script)]).await.map(|_| ())
+    async fn save_script(&self, workbook_id: &str, file_name: &str, script: &str, expect: Expect) -> Result<Option<FileStamp>, HostError> {
+        Ok(stamp_of(&self.call("saveScript", &[text(workbook_id), text(file_name), text(script), expect_value(expect)]).await?))
     }
 
-    async fn delete_script(&self, workbook_id: &str, file_name: &str) -> Result<(), HostError> {
-        self.call("deleteScript", &[text(workbook_id), text(file_name)]).await.map(|_| ())
+    async fn delete_script(&self, workbook_id: &str, file_name: &str, expect: Expect) -> Result<(), HostError> {
+        self.call("deleteScript", &[text(workbook_id), text(file_name), expect_value(expect)]).await.map(|_| ())
     }
 
-    async fn rename_script(&self, workbook_id: &str, from: &str, to: &str) -> Result<(), HostError> {
-        self.call("renameScript", &[text(workbook_id), text(from), text(to)]).await.map(|_| ())
+    async fn rename_script(&self, workbook_id: &str, from: &str, to: &str, expect_from: Expect, expect_to: Expect) -> Result<(), HostError> {
+        let args = [text(workbook_id), text(from), text(to), expect_value(expect_from), expect_value(expect_to)];
+        self.call("renameScript", &args).await.map(|_| ())
     }
 
     async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError> {
@@ -352,6 +409,10 @@ impl RestoreHost for JsStorage {
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {
         Ok(self.call("loadConnectionFile", &[text(connection_id), text(file_name)]).await?.as_string())
+    }
+
+    async fn stamp_folder(&self, workbook_id: &str) -> Result<Option<FolderListing>, HostError> {
+        stamp_folder(&self.platform, workbook_id).await
     }
 
     fn restore_progress(&self, progress: &RestoreProgress) {

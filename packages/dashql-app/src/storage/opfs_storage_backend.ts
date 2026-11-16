@@ -282,10 +282,18 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         await writable.close();
     }
 
+    /// Delete a script, a script that is gone is deleted already: the writer retries a deletion that failed
     async deleteScript(workbookId: string, scriptName: string): Promise<void> {
-        const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false);
-        const scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
-        await scriptsDir.removeEntry(scriptName);
+        try {
+            const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false);
+            const scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
+            await scriptsDir.removeEntry(scriptName);
+        } catch (error) {
+            if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
+                return;
+            }
+            throw error;
+        }
     }
 
     async renameScript(workbookId: string, oldScriptName: string, newScriptName: string): Promise<void> {

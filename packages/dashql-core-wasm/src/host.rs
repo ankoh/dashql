@@ -77,11 +77,18 @@ export interface RuntimePlatform {
 export interface RuntimeStorage {
     /** The workbook file, rejects if there is none */
     loadWorkbook(workbookId: string): Promise<unknown>;
-    saveWorkbook(workbookId: string, workbook: unknown): Promise<void>;
-    /** Rejects with an `ExternalScriptChangeError` (by its name, with `workbookId` and `fileName`) if the file changed outside the app */
-    saveScript(workbookId: string, fileName: string, text: string): Promise<void>;
-    deleteScript(workbookId: string, fileName: string): Promise<void>;
-    renameScript(workbookId: string, from: string, to: string): Promise<void>;
+    /**
+     * The writes of the workbook file and of the scripts take what they expect on disk: `undefined` for any file, `null` for none, else the stamp that the
+     * runtime recorded. A storage with stamps rejects a write whose file differs with an `ExternalScriptChangeError` (by its name, with `workbookId` and
+     * `fileName`) and resolves with the stamp of what it wrote; a storage without stamps ignores the expectation and resolves with nothing. A write into a
+     * workbook folder that is gone rejects with a `WorkbookFolderMissingError` (by its name), the runtime stops retrying it.
+     */
+    saveWorkbook(workbookId: string, workbook: unknown, expected?: RuntimeFileStamp | null): Promise<RuntimeFileStamp | null | void>;
+    saveScript(workbookId: string, fileName: string, text: string, expected?: RuntimeFileStamp | null): Promise<RuntimeFileStamp | null | void>;
+    /** A missing file is deleted already */
+    deleteScript(workbookId: string, fileName: string, expected?: RuntimeFileStamp | null): Promise<void>;
+    /** The file keeps its stamp, a missing source is renamed already */
+    renameScript(workbookId: string, from: string, to: string, expectedFrom?: RuntimeFileStamp | null, expectedTo?: RuntimeFileStamp | null): Promise<void>;
     /** The names of the attachments in NFC, the runtime orders them naturally */
     listAttachments(workbookId: string): Promise<string[]>;
     /** Update the connection entries of the app manifest exclusively. The update gets the entries, null before the connections were migrated, and returns the new ones, null if nothing changed. */
@@ -125,27 +132,30 @@ export interface RuntimeStorage {
 export interface RuntimeFolder {
     /** A file, null if the folder doesn't hold it */
     readText(name: string): Promise<string | null>;
-    writeText(name: string, text: string): Promise<void>;
+    /** Write a file, resolves with its stamp if the folder keeps stamps */
+    writeText(name: string, text: string): Promise<RuntimeFileStamp | null | void>;
     /** Remove a file, a missing file is ignored */
     remove(name: string): Promise<void>;
 }
 
-/** The stamps of the files of a workbook folder: size and modification time */
-export interface RuntimeFolderStamps {
-    scripts: { name: string; size: number; mtimeMs: number }[];
-    attachments: { name: string; size: number; mtimeMs: number }[];
-    /** The workbook file, null if there is none */
-    workbook: { size: number; mtimeMs: number } | null;
+/** The stamp of a file: size and modification time */
+export interface RuntimeFileStamp {
+    size: number;
+    mtimeMs: number;
 }
 
-/** A workbook folder that may change outside the app, e.g. a native workbook folder */
+/** The stamps of the files of a workbook folder */
+export interface RuntimeFolderStamps {
+    scripts: ({ name: string } & RuntimeFileStamp)[];
+    attachments: ({ name: string } & RuntimeFileStamp)[];
+    /** The workbook file, null if there is none */
+    workbook: RuntimeFileStamp | null;
+}
+
+/** A workbook folder that may change outside the app, e.g. a native workbook folder. The runtime keeps the stamps of what it wrote and acknowledged. */
 export interface RuntimeWorkbookFolder extends RuntimeFolder {
     /** The stamps of the scripts, the attachments and the workbook file of the folder */
     stampFolder(): Promise<RuntimeFolderStamps>;
-    /** The scripts and the workbook file are as the app shows them, later writes check the disk against these stamps */
-    acknowledgeFolder(stamps: RuntimeFolderStamps): void;
-    /** The scripts whose stamps differ from the acknowledged ones, then `dashql-workbook.json` when its stamp differs */
-    findExternalChanges(stamps: RuntimeFolderStamps): string[];
 }
 
 /** The storage root of the app for its migrations: files and directories by their paths below the root, `/` separated */

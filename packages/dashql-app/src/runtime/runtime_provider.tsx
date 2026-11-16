@@ -100,20 +100,22 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
     // window and waits for them.
     React.useEffect(() => {
         const writer = runtime.storage;
-        const flush = async () => {
+        // A page that goes away keeps the scripts that a change outside the app holds as recovery copies next to them,
+        // a page that goes to the back-forward cache comes back with them pending
+        const flush = async (closing: boolean) => {
             try {
-                await writer.flush();
+                await writer.flush({ closing });
             } catch (error) {
                 logger.error("Failed to flush the storage writer", { error: stringifyError(error) }, "runtime");
             }
         };
         const flushIfHidden = () => {
-            if (document.visibilityState === 'hidden') void flush();
+            if (document.visibilityState === 'hidden') void flush(false);
         };
-        const flushOnPageHide = () => void flush();
+        const flushOnPageHide = (event: PageTransitionEvent) => void flush(!event.persisted);
         window.addEventListener('pagehide', flushOnPageHide);
         document.addEventListener('visibilitychange', flushIfHidden);
-        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(flush);
+        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(() => flush(true));
         return () => {
             window.removeEventListener('pagehide', flushOnPageHide);
             document.removeEventListener('visibilitychange', flushIfHidden);
@@ -123,8 +125,7 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
 
     // Another tab takes over the app, the pending writes finish first and nothing is written after
     useAppHandOver(async () => {
-        runtime.storage.handOver();
-        await runtime.storage.flush();
+        await runtime.storage.handOver();
     });
 
     React.useEffect(() => () => {

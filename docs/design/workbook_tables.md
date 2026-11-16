@@ -20,7 +20,10 @@ Parquet files (`storage/workbook_archives.ts` of `packages/dashql/src/runtime`),
 Every way imports through the import of the runtime (`readImport` and `commitImport`, the app asks its questions in
 `workbook_import_provider.tsx`): the connections of the workbook are matched with the registered ones, and a workbook
 whose id is registered already asks to be replaced or copied. A replacement writes a staged copy first and verifies it
-before the registered workbook changes.
+before the registered workbook changes, and copies the files of the registered workbook aside as they are, whatever
+their format: a failure after the registered workbook changed writes them back. The catalogs of the connections are a
+cache, a failure to seed them leaves the import alone. The names of the scripts and attachments of the tables are taken
+in NFC.
 
 ## Tables
 

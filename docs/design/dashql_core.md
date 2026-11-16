@@ -282,12 +282,32 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 
 - **The storage writer** (`storage/writer.rs`) decides the keys (all formats in `storage/keys.rs`), debouncing and
   coalescing, flushing, statistics and generations. The tasks that patch the workbook file read it as `WorkbookData` and
-  keep fields the schema doesn't know (`storage/workbook_file.rs`).
+  keep fields the schema doesn't know (`storage/workbook_file.rs`). A new workbook is one task (`CreateWorkbook`, the
+  workbook file with its connection and the ephemeral marker) under a key of its own, a rename in the same turn doesn't
+  replace it.
+- **One order per file.** Every task names the files it touches (`WriteTask::files`): a write, a delete and a rename of
+  a script file share the file, two names of the same file in another case or Unicode form too; the creation and the
+  patches of a workbook file share it. A task waits for the earlier pending tasks of its files, a newer task takes the
+  place of a pending one of its key only when no task of the same files came in between, and a task that failed keeps
+  its place, the later tasks of its files wait behind it. A new task kind adds its files there.
 - **Holds with reasons.** A hold of the writer or of a workbook has a `HoldReason` (external change, reload, import,
-  handover, pause) and is counted. A flush writes past a hold of the writer, never past the hold of a workbook.
-- **Failed writes are state.** A failed task stays pending and runs again after a backoff (one second, doubled, at most
-  a minute) until a write of its key succeeds or it is cancelled. The `storage` view lists the holds and the failed
-  writes; an export refuses a workbook whose writes failed or are held.
+  handover, pause) and is counted. A flush writes past a pause of the writer and past no other hold: a handover keeps
+  the writes of a tab that another tab took over. A task may pass the hold of its caller (`write_past`), e.g. the
+  writes of an import into the workbook it replaces. A replaced workbook stays held until the app reloads.
+- **Failed writes are state.** A task that failed for a moment stays pending and runs again after a backoff (one
+  second, doubled, at most a minute). A task whose target is gone (`WriteError::is_permanent`: a workbook file or a
+  workbook folder that is not available) stops, a newer task of its key tries again and the app may discard it
+  (`storageDiscardWrites`). The `storage` view lists the holds and the failed writes (`permanent` for the stopped ones);
+  an export refuses a workbook whose writes failed or are held. A deleted workbook takes its pending tasks, holds,
+  failures and stamps along, a task that ran meanwhile is dropped whatever it failed with.
+- **Stamps.** The writer records the stamps (size and modification time) of the scripts and workbook files it writes
+  (`storage/stamps.rs`), the restore acknowledges what it reads of a folder that may change outside the app before it
+  reads it, and the checks of `external.rs` compare the listings of the folder with them. A write passes what it expects
+  on disk to the host (`Expect`), the host refuses it with an external change when the file differs and returns the
+  stamp it wrote. A migration of such a folder records the workbook file it writes. See
+  [native_file_sync.md](native_file_sync.md).
+- **One read of the workbook file.** The runtime reads a workbook file only through `storage::load_workbook` of the
+  module, which migrates a folder of an older format first: the writer, the restore, the checks, imports and exports.
 - **The restore** (`restore/`) runs as `restore` and `restoreWorkbook` over `RestoreHost`: the connections of the app
   manifest with the catalogs of their files, then the workbooks of the tree, validated and resolved to their connections
   by `RestorePlanner`. The runtime adopts the Rust objects as they are. A workbook that fails validation or whose

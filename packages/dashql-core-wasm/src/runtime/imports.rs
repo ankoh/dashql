@@ -16,7 +16,7 @@ use std::rc::Rc;
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
-use dashql_core_runtime::storage::HoldReason;
+use dashql_core_runtime::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
 use dashql_core_runtime::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle, describe_workbook_bundle_difference, filter_invalid_workbook_catalogs,
     prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData,
@@ -45,6 +45,7 @@ use wasm_bindgen::JsCast;
 use super::archives::{items, HostFile, HostFiles};
 use super::connections::Connections;
 use super::storage::restore_view::RestoreScriptFile;
+use super::storage::{load_workbook, RuntimeWriter};
 use super::workbooks::view::WorkbookDataFile;
 use super::Restorer;
 use crate::host::{call_method, field, JsPlatform};
@@ -681,7 +682,7 @@ impl Imports {
             }
         }
         steps.report("workbook", None);
-        let writer = Writer { platform: self.platform.clone(), steps: &steps };
+        let writer = Writer { platform: self.platform.clone(), steps: &steps, storage: restorer.workbooks.writer.clone() };
         let conflict = self.find_workbook(&bundle.workbook.workbook_id).await?;
         match &pending.native_path {
             Some(dir) => {
@@ -702,10 +703,15 @@ impl Imports {
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
                         let storage = &restorer.workbooks.writer;
-                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_native(&bundle, dir, &conflict)).await?;
-                        if connection_refs_changed(&original, &bundle.workbook) {
-                            writer.write_connection_refs(&conflict.workbook_id, &bundle.workbook).await?;
-                        }
+                        let refs_changed = connection_refs_changed(&original, &bundle.workbook);
+                        let replace = async {
+                            writer.replace_with_native(&bundle, dir, &conflict).await?;
+                            if refs_changed {
+                                writer.write_connection_refs(&conflict.workbook_id, &bundle.workbook).await?;
+                            }
+                            Ok(())
+                        };
+                        held_replacement(storage, &conflict.workbook_id, replace).await?;
                         conflict.workbook_id
                     }
                     (Some(conflict), None) => return Err(HostError::new(format!("Workbook {} is already registered", conflict.workbook_id))),
@@ -728,7 +734,8 @@ impl Imports {
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
                         let storage = &restorer.workbooks.writer;
                         let staging = self.new_uuid()?;
-                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_bundle(&bundle, &conflict, staging)).await?;
+                        let backup = self.new_uuid()?;
+                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_bundle(&bundle, &conflict, staging, backup)).await?;
                         conflict.workbook_id
                     }
                     (Some(_), None) => {
@@ -846,12 +853,12 @@ fn with_fresh_identity(bundle: &WorkbookBundle<HostFile>, workbook_id: &str) -> 
     copy
 }
 
-/// The writes of an import through the storage of the platform
 /// Replace a registered workbook while an import holds its writes (`HoldReason::Import`): the pending writes of the
 /// workbook reach the storage first, a rollback keeps them; the hold keeps later writes off the files that the
-/// replacement writes, a replacement that succeeded discards them, they belong to the replaced version.
+/// replacement writes. A replacement that succeeded discards them and keeps the hold: the workbook of the runtime is the
+/// replaced version until the app reloads, nothing of it is written any more, not even by a flush when the page hides.
 async fn held_replacement(
-    storage: &super::storage::RuntimeWriter,
+    storage: &RuntimeWriter,
     workbook_id: &str,
     replace: impl std::future::Future<Output = Result<(), HostError>>,
 ) -> Result<(), HostError> {
@@ -861,21 +868,63 @@ async fn held_replacement(
     storage.hold(Some(workbook_id), HoldReason::Import);
     storage.settle().await;
     let replaced = replace.await;
-    if replaced.is_ok() {
-        storage.cancel_pending_writes_for_workbook(workbook_id);
+    match replaced {
+        Ok(()) => storage.cancel_pending_writes_for_workbook(workbook_id),
+        Err(_) => storage.release(Some(workbook_id), HoldReason::Import),
     }
-    storage.release(Some(workbook_id), HoldReason::Import);
     replaced
 }
 
+/// The outcome of a write of an import, which waits for it
+fn write_result(outcome: WriteOutcome, what: &str) -> Result<(), HostError> {
+    match outcome {
+        WriteOutcome::Written => Ok(()),
+        WriteOutcome::Failed(WriteError::Host(error) | WriteError::WorkbookUnavailable { cause: error, .. }) => Err(error),
+        _ => Err(HostError::new(format!("the write of {what} did not run"))),
+    }
+}
+
+/// The writes of an import through the storage of the platform. The writes of a registered workbook file go through the
+/// storage writer, they keep their order with the other writes of the workbook.
 struct Writer<'a> {
     platform: JsPlatform,
     steps: &'a Steps,
+    storage: RuntimeWriter,
 }
 
 impl Writer<'_> {
     fn storage(&self, name: &str, args: &[JsValue]) -> impl std::future::Future<Output = Result<JsValue, HostError>> + 'static {
         self.platform.storage_await(name, args)
+    }
+
+    /// The workbook file of a workbook, migrated like every read of the runtime
+    async fn load_workbook(&self, workbook_id: &str) -> Result<WorkbookData, HostError> {
+        Ok(WorkbookData::from_json(&load_workbook(&self.platform, self.storage.stamps(), workbook_id).await?))
+    }
+
+    /// Patch a registered workbook file through the writer, past the hold of an import that replaces the workbook
+    async fn patch(&self, task: WriteTask, what: &str) -> Result<(), HostError> {
+        write_result(self.storage.write_past(&task.key(), task, HoldReason::Import).await, what)
+    }
+
+    /// Copy the files of a workbook of the storage as they are: the workbook file, of any format, the scripts and the
+    /// attachments
+    async fn copy_workbook_files(&self, from: &str, to: &str) -> Result<(), HostError> {
+        let workbook = self.storage("loadWorkbook", &[text(from)]).await?;
+        if !workbook.is_object() {
+            return Err(HostError::new(format!("the workbook file of {from} is missing")));
+        }
+        self.storage("saveWorkbook", &[text(to), workbook]).await?;
+        let scripts: Vec<RestoreScriptFile> = items(self.storage("loadScripts", &[text(from)]).await?, "the scripts")?;
+        for script in &scripts {
+            self.storage("saveScript", &[text(to), text(&script.name), text(&script.sql)]).await?;
+        }
+        let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(from)]).await?, "the data files")?;
+        for file in &listed {
+            let content = self.storage("loadDataFile", &[text(from), text(&file.name)]).await?;
+            self.storage("saveDataFile", &[text(to), text(&file.name), content]).await?;
+        }
+        Ok(())
     }
 
     /// Write a bundle as workbook `target`: the workbook file, the scripts, the attachments. A write of a fresh target
@@ -926,8 +975,7 @@ impl Writer<'_> {
         let mut workbook = WorkbookData { workbook_id: target.to_string(), workbook_path: None, storage_type: None, native_path: None, ..source.workbook.clone() };
         workbook = assemble_workbook_bundle(workbook, Vec::new(), source.scripts.clone(), sized(&source.data)).workbook;
         let expected = assemble_workbook_bundle(workbook, Vec::new(), sorted(&source.scripts), sized(&source.data));
-        let stored = self.storage("loadWorkbook", &[text(target)]).await?;
-        let stored = WorkbookData::from_json(&JsonValue::of(&stored).0);
+        let stored = self.load_workbook(target).await?;
         let scripts: Vec<RestoreScriptFile> = items(self.storage("loadScripts", &[text(target)]).await?, "the scripts")?;
         let scripts: Vec<ScriptData> = scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
         let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(target)]).await?, "the data files")?;
@@ -941,8 +989,16 @@ impl Writer<'_> {
     }
 
     /// Seed the catalogs of the connections from a bundle. A connection that has a catalog keeps it, the catalog of a
-    /// bundle only describes a connection that is new to the app.
-    async fn seed_catalogs(&self, bundle: &WorkbookBundle<HostFile>) -> Result<(), HostError> {
+    /// bundle only describes a connection that is new to the app. The catalogs are a cache of the connections: a
+    /// failure is logged, the import stands.
+    async fn seed_catalogs(&self, bundle: &WorkbookBundle<HostFile>) {
+        if let Err(error) = self.seed_catalog_files(bundle).await {
+            let details = [("workbookId", bundle.workbook.workbook_id.as_str()), ("error", error.message())];
+            self.platform.log_on(LogLevel::Warn, "Failed to seed the catalogs of an imported workbook", &details, "workbook_import");
+        }
+    }
+
+    async fn seed_catalog_files(&self, bundle: &WorkbookBundle<HostFile>) -> Result<(), HostError> {
         if !self.platform.storage_call("ownsConnections", &[]).is_ok_and(|owns| owns.is_truthy()) {
             return Ok(());
         }
@@ -966,82 +1022,93 @@ impl Writer<'_> {
         }
         let written = async {
             self.write_bundle(bundle, target, true, true).await?;
-            self.verify(bundle, target).await?;
-            self.seed_catalogs(bundle).await
+            self.verify(bundle, target).await
         }
         .await;
         if written.is_err() {
             // The error of the import is kept when the cleanup fails as well
             let _ = self.storage("deleteWorkbook", &[text(target)]).await;
+            return written;
         }
-        written
+        self.seed_catalogs(bundle).await;
+        Ok(())
     }
 
-    /// Replace a registered workbook with a bundle through a verified staged copy. The target is changed only after the
-    /// copy is verified, a failure after that writes the old workbook back.
-    async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, staging: String) -> Result<(), HostError> {
+    /// Replace a registered workbook with a bundle, staged and swapped: the bundle is written and verified as a staged
+    /// copy, the files of the target are copied aside as they are, then the target is written and verified. A failure
+    /// after the target changed writes the files that were copied aside back, whatever their format: a replacement is
+    /// also the recovery of a workbook that the format can no longer read.
+    async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, staging: String, backup: String) -> Result<(), HostError> {
         let target = conflict.workbook_id.as_str();
         if bundle.workbook.workbook_id.to_lowercase() != target.to_lowercase() {
             return Err(HostError::new(format!("Source workbook {} does not match replacement {target}", bundle.workbook.workbook_id)));
         }
         let old_entry = JsonValue(conflict.entry.0.clone()).to_js().map_err(|e| HostError::new(e.to_string()))?;
+        // A native folder of the user is never changed, the files of the target in the origin private file system are
+        // only its mirror
         let old_native = conflict.entry.0.get("storageType").and_then(Value::as_str) == Some("native");
-        // A replacement is also the recovery of a workbook that the format can no longer read, the old workbook is kept
-        // for a rollback when it can be read
-        let old_files = HostFiles::new(self.platform.clone());
-        let old_bundle = super::archives::read_stored_bundle(&self.platform, &old_files, target, false).await.ok();
-        if string_field(&self.storage("findWorkbook", &[text(&staging)]).await?, "path").is_some() {
-            return Err(HostError::new(format!("Staging workbook {staging} is already registered")));
+        for id in [&staging, &backup] {
+            if string_field(&self.storage("findWorkbook", &[text(id)]).await?, "path").is_some() {
+                return Err(HostError::new(format!("Staging workbook {id} is already registered")));
+            }
         }
-        let mut mutated = false;
+        let mut copied = false;
+        let mut swapped = false;
         let replaced = async {
             self.write_bundle(bundle, &staging, true, false).await?;
             self.verify(bundle, &staging).await?;
-            // The entry first keeps the place of the workbook and routes it to the origin private file system, the
-            // files of the target go at once
+            if !old_native {
+                copied = true;
+                self.copy_workbook_files(target, &backup).await?;
+            }
+            // The entry first keeps the place of the workbook and routes it to the origin private file system
             let entry = crate::runtime::archives::object(&[("path", text(target)), ("storageType", text("opfs"))]);
             self.storage("upsertWorkbookEntry", &[entry]).await?;
-            mutated = true;
+            swapped = true;
             self.storage("deleteWorkbookFiles", &[text(target)]).await?;
             self.write_bundle(bundle, target, false, false).await?;
-            self.verify(bundle, target).await?;
-            self.seed_catalogs(bundle).await
+            self.verify(bundle, target).await
         }
         .await;
-        if replaced.is_err() && mutated {
+        if replaced.is_err() && swapped {
             let _ = self.storage("deleteWorkbookFiles", &[text(target)]).await;
-            if let (false, Some(old_bundle)) = (old_native, &old_bundle) {
-                let _ = self.write_bundle(old_bundle, target, false, false).await;
+            if !old_native {
+                let _ = self.copy_workbook_files(&backup, target).await;
             }
             let _ = self.storage("upsertWorkbookEntry", &[old_entry]).await;
         }
         let cleanup = self.storage("deleteWorkbook", &[text(&staging)]).await;
+        if copied {
+            let _ = self.storage("deleteWorkbook", &[text(&backup)]).await;
+        }
         replaced?;
+        self.seed_catalogs(bundle).await;
         cleanup.map(|_| ())
     }
 
     /// Register a native folder in place: the catalogs of the folder seed the connections that are new to the app, the
-    /// platform adds the folder to the workbook tree and the runtime migrates it
+    /// platform adds the folder to the workbook tree and the runtime migrates it when it reads it
     async fn register_native(&self, bundle: &WorkbookBundle<HostFile>, dir: &str, workbook_id: &str) -> Result<(), HostError> {
         if let Err(error) = validate_workbook_data(&bundle.workbook) {
             return Err(HostError::new(format!("Workbook in {dir} is invalid: {}", error.describe())));
         }
-        self.seed_catalogs(bundle).await?;
+        self.seed_catalogs(bundle).await;
         self.storage("registerNativeWorkbook", &[text(dir), text(workbook_id)]).await?;
-        // A folder of an older version of the app is brought to the current format before it is read
-        crate::runtime::migrations::migrate_workbook_folder(&self.platform, workbook_id).await?;
+        // The same workbook may have been deleted before
+        self.storage.revive_workbook(workbook_id);
         // The file lists of the workbook file follow the files of the folder, the workbook file is written only when
         // they changed
-        let stored = self.storage("loadWorkbook", &[text(workbook_id)]).await?;
-        let stored = WorkbookData::from_json(&JsonValue::of(&stored).0);
+        let stored = self.load_workbook(workbook_id).await?;
         let scripts: Vec<RestoreScriptFile> = items(self.storage("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
         let scripts: Vec<String> = scripts.into_iter().map(|script| script.name).collect();
         let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
         let data: Vec<String> = listed.into_iter().map(|file| file.name).collect();
         let reconciled = reconcile_stored_workbook_files(&stored, &scripts, &data);
         if reconciled.write {
-            let workbook = JsonValue(reconciled.workbook.to_json()).to_js().map_err(|e| HostError::new(e.to_string()))?;
-            self.storage("saveWorkbook", &[text(workbook_id), workbook]).await?;
+            let workbook = reconciled.workbook;
+            let task = WriteTask::WriteWorkbookScripts { workbook_id: workbook_id.to_string(), scripts: workbook.scripts, connections: workbook.connections };
+            self.patch(task, "the script list").await?;
+            self.patch(WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, "the attachment list").await?;
         }
         Ok(())
     }
@@ -1062,14 +1129,15 @@ impl Writer<'_> {
         self.register_native(bundle, dir, target).await
     }
 
-    /// Write the resolved connection references into a registered workbook
+    /// Write the resolved connection references into a registered workbook: its script list with the copies of the
+    /// connections it uses
     async fn write_connection_refs(&self, workbook_id: &str, resolved: &WorkbookData) -> Result<(), HostError> {
-        let stored = self.storage("loadWorkbook", &[text(workbook_id)]).await?;
-        let mut workbook = WorkbookData::from_json(&JsonValue::of(&stored).0);
-        workbook.connections = resolved.connections.clone();
-        workbook.scripts = resolved.scripts.clone();
-        let workbook = JsonValue(workbook.to_json()).to_js().map_err(|e| HostError::new(e.to_string()))?;
-        self.storage("saveWorkbook", &[text(workbook_id), workbook]).await.map(|_| ())
+        let task = WriteTask::WriteWorkbookScripts {
+            workbook_id: workbook_id.to_string(),
+            scripts: resolved.scripts.clone(),
+            connections: resolved.connections.clone(),
+        };
+        self.patch(task, "the connection references").await
     }
 }
 

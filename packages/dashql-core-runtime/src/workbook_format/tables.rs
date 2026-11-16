@@ -19,6 +19,7 @@ use crate::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
 use crate::workbook_format::catalog::{CatalogColumn, CatalogFunction, CatalogFunctionParam, CatalogSql, CatalogStructure, CatalogTable};
+use crate::workbook_format::files::nfc;
 use crate::workbook_format::json::{to_text, JsonObject};
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
 use crate::workbook_format::migration::MigrationFolder;
@@ -663,10 +664,13 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     };
     let mut connections = tables.connections.clone();
     connections.sort_by_key(|row| row.position);
+    // The file names in NFC, like the names of the entries of an archive
     let mut scripts = tables.scripts.clone();
     scripts.sort_by_key(|row| row.position);
+    scripts.iter_mut().for_each(|script| script.name = nfc(&script.name));
     let mut attachments = tables.attachments.clone();
     attachments.sort_by_key(|row| row.position);
+    attachments.iter_mut().for_each(|attachment| attachment.name = nfc(&attachment.name));
 
     let mut workbook = JsonObject::new();
     workbook.insert("formatVersion".into(), json!(row.format_version));

@@ -11,8 +11,9 @@
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use wasm_bindgen::JsCast;
+use dashql_core_runtime::storage::{FileStamp, FolderStamps};
 use dashql_core_runtime::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
-use dashql_core_runtime::workbook_format::migration::{migrate_folder, FolderHost, WorkbookMigrationResult};
+use dashql_core_runtime::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
 use dashql_core_runtime::workbook_format::storage_migration::{migrate_storage, DirEntry, StorageRootHost, StorageMigrationSummary};
 use js_sys::{Array, Function, Promise, Reflect};
 use serde::Serialize;
@@ -20,6 +21,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use crate::host::{call_method, details_value, field, message_of, JsPlatform};
+use crate::runtime::storage::stamp_of;
 
 /// What a migration of the storage changed, with the versions it migrated to
 #[derive(Clone, Debug, Serialize, Tsify)]
@@ -93,9 +95,9 @@ impl FolderHost for JsFolder {
         Ok(call_method(&object, "readText", &[text(&path)]).await?.as_string())
     }
 
-    async fn write_text(&self, name: &str, content: &str) -> Result<(), HostError> {
+    async fn write_text(&self, name: &str, content: &str) -> Result<Option<FileStamp>, HostError> {
         let (object, path) = self.target(name);
-        call_method(&object, "writeText", &[text(&path), text(content)]).await.map(|_| ())
+        Ok(stamp_of(&call_method(&object, "writeText", &[text(&path), text(content)]).await?))
     }
 
     async fn remove(&self, name: &str) -> Result<(), HostError> {
@@ -235,11 +237,15 @@ pub(crate) async fn migrate(root: JsValue, log: Option<Function>) -> Result<Stor
 }
 
 /// Bring the folder of a workbook of the storage to the current workbook format, if the platform keeps it in a folder of
-/// its own, e.g. a native workbook folder that was registered. Returns the outcome, none for a workbook of the storage
-/// root.
-pub(crate) async fn migrate_workbook_folder(platform: &JsPlatform, workbook_id: &str) -> Result<Option<WorkbookMigrationResult>, HostError> {
+/// its own, e.g. a native workbook folder that was registered. The workbook file it writes is the app's own (`stamps`).
+/// Returns the outcome, none for a workbook of the storage root.
+pub(crate) async fn migrate_workbook_folder(
+    platform: &JsPlatform,
+    stamps: &FolderStamps,
+    workbook_id: &str,
+) -> Result<Option<WorkbookMigrationResult>, HostError> {
     match platform.workbook_folder(workbook_id) {
-        Some(folder) => Ok(Some(migrate_folder(&JsFolder::Object(folder), WORKBOOK_FORMAT_VERSION).await?)),
+        Some(folder) => Ok(Some(migrate_stamped_folder(&JsFolder::Object(folder), workbook_id, stamps).await?)),
         None => Ok(None),
     }
 }

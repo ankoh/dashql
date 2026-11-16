@@ -95,7 +95,9 @@ A workbook folder holds `dashql-workbook.json` (schema `proto/json/dashql/app_wo
 the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it: connections decide
 whether their results are cached.
 
-- `scripts/` holds one file per script, named by the script.
+- `scripts/` holds one file per script, named by the script. Names compare in NFC and without case: two names that
+  differ only there denote the same file. A name holds no `/`, `\`, NUL or `:` (an alternate data stream on NTFS).
+  `<name> (recovered).sql` is a recovery copy, see below.
 - `attachments/` holds the attachments, Parquet files that queries read in place: `a.parquet` is the table parameter
   `:a`. A workbook attaches Parquet files only (`validateDataFileName`): adding or importing another file fails, a
   listing of the folder leaves other files out, and a workbook file that lists one is sanitized.
@@ -182,6 +184,18 @@ tool copies them into its own storage. The Web Locks of its query result cache s
 The native app keeps a workbook in a directory that the user chose, the entry of the workbook tree has `storageType: native`
 and `nativePath`. The directory has the layout of an OPFS workbook folder (`dashql-workbook.json`, `scripts/`,
 `attachments/`), and users may edit its files, see [native file synchronization](native_file_sync.md).
+
+### Recovery copies
+
+The writes of a native workbook wait while the app asks whether to reload a folder that changed outside the app, or
+while a check reads it. When the window closes meanwhile (`pagehide` of a page that goes away, the flush of Electron
+before a window closes), the pending edits of its scripts would be lost. The flush keeps each of them as a recovery
+copy next to its script, `scripts/<name> (recovered).sql` (`(recovered 2)` and on when the name is taken). A copy never
+replaces a file, the disk version of the script stays. The next launch restores the copy as a script of its own, the
+user keeps one of the two versions. Pending deletions and renames of such a workbook are not kept, the files stay as
+they are on disk.
+
+### Mirrored attachments
 
 hyperdb-wasm can only read OPFS. When a native workbook loads, its attachments are mirrored into
 `workbooks/<id>/attachments/` in OPFS, so the attachments of the workbook read the same in both storage types.

@@ -52,6 +52,11 @@ pub fn workbook_file_key(workbook_id: &str) -> String {
     format!("{workbook_id}/{}", super::WORKBOOK_FILE)
 }
 
+/// The key of the creation of a workbook, apart from its properties so that a rename in the same turn doesn't replace it
+pub fn workbook_creation_key(workbook_id: &str) -> String {
+    format!("{}:create", workbook_file_key(workbook_id))
+}
+
 /// The key of the copy of a connection in a workbook file
 pub fn workbook_connection_copy_key(workbook_id: &str, connection_id: &str) -> String {
     format!("{}:connection/{connection_id}", workbook_file_key(workbook_id))
@@ -78,8 +83,13 @@ pub fn attachment_rename_key(workbook_id: &str, from: &str) -> String {
     format!("{}:rename", attachment_key(workbook_id, from))
 }
 
-/// The key of a workbook that is written as a whole, `<workbookId>/scripts`
-pub fn workbook_scripts_key(workbook_id: &str) -> String {
+/// The file of an attachment that the tasks of a workbook keep their order on: two names of the same file share it
+pub fn attachment_file(workbook_id: &str, file_name: &str) -> String {
+    attachment_key(workbook_id, &crate::workbook_format::files::file_name_key(file_name))
+}
+
+/// The folder of the scripts of a workbook, `<workbookId>/scripts`
+fn workbook_scripts_key(workbook_id: &str) -> String {
     format!("{workbook_id}/{}", super::SCRIPTS_FOLDER)
 }
 
@@ -102,7 +112,12 @@ pub fn script_rename_key(workbook_id: &str, from: &str) -> String {
 /// Does a write replace what a reload from disk replaces: the script list or a script of the workbook?
 pub fn is_reloaded_key(key: &str, workbook_id: &str) -> bool {
     let scripts = workbook_scripts_key(workbook_id);
-    key == workbook_script_list_key(workbook_id) || key == scripts || key.strip_prefix(&scripts).is_some_and(|rest| rest.starts_with('/'))
+    key == workbook_script_list_key(workbook_id) || key.strip_prefix(&scripts).is_some_and(|rest| rest.starts_with('/'))
+}
+
+/// The file of a script that the tasks of a workbook keep their order on: two names of the same file share it
+pub fn script_file(workbook_id: &str, file_name: &str) -> String {
+    script_key(workbook_id, &crate::workbook_format::files::file_name_key(file_name))
 }
 
 /// A key without the prefix of its workbook for display, e.g. `scripts/a.sql:delete`, other keys as they are
@@ -130,7 +145,8 @@ mod tests {
         assert_eq!(attachment_key(id, "a.parquet"), "w/attachments/a.parquet");
         assert_eq!(connection_entry_key("c"), "@manifest/connections/c");
         assert_eq!(connection_file_key("c", "f.sql"), "@connections/c/f.sql");
-        assert!(is_reloaded_key(&script_key(id, "a.sql"), id) && is_reloaded_key(&workbook_scripts_key(id), id));
+        assert!(is_reloaded_key(&script_key(id, "a.sql"), id) && !is_reloaded_key(&workbook_creation_key(id), id));
+        assert_eq!(script_file(id, "Query.SQL"), "w/scripts/query.sql");
         assert!(is_reloaded_key(&workbook_script_list_key(id), id) && is_reloaded_key(&script_deletion_key(id, "a.sql"), id));
         assert!(!is_reloaded_key(&workbook_file_key(id), id) && !is_reloaded_key("w/scriptsx", id));
         assert_eq!(key_within_workbook(&script_key(id, "a.sql"), id), "scripts/a.sql");

@@ -275,7 +275,8 @@ impl Exports {
             preserve_uuids: options.preserve_uuids.unwrap_or(false),
             connection_names: HashMap::new(),
         };
-        let bundle = super::archives::read_stored_bundle(&self.platform, files, workbook_id, shared.with_catalog(link)).await?;
+        let stamps = self.workbooks.writer.stamps().clone();
+        let bundle = super::archives::read_stored_bundle(&self.platform, &stamps, files, workbook_id, shared.with_catalog(link)).await?;
         let (results, counts) = if !link && options.results.unwrap_or(false) {
             self.retain_results(workbook_id, files, retained).await?
         } else {

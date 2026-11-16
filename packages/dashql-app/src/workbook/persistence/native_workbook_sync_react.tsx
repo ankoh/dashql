@@ -19,7 +19,7 @@ async function confirmExternalReload(appName: string, hasPendingWrites: boolean)
 
 /// Native-only synchronization boundary. Workbook folders are not watched, the runtime checks them
 /// (`checkWorkbookFolders`) when the window gets the focus, when the storage writer holds a write because a script
-/// changed outside the app, and once for every workbook to acknowledge what the restore read. When the scripts on disk
+/// changed outside the app, and once for every workbook that enters the list. When the scripts on disk
 /// differ from the app, the `storage` view asks the question: the component shows it and answers it.
 export const NativeWorkbookSync: React.FC = () => {
     const logger = useLogger();
@@ -27,7 +27,11 @@ export const NativeWorkbookSync: React.FC = () => {
     const runtime = useRuntime();
     const workbooks = useWorkbooks();
     const storage = useView('storage', 'root');
-    const heldWorkbooks = storage?.heldWorkbooks;
+    // The workbooks whose writes a change outside the app holds, as a stable key of their ids
+    const heldKey = (storage?.holds ?? [])
+        .filter(hold => hold.reason === 'externalChange' && hold.workbookId != null)
+        .map(hold => hold.workbookId!)
+        .join('\n');
     const externalChanges = storage?.externalChanges;
     const workbooksRef = React.useRef(workbooks);
     workbooksRef.current = workbooks;
@@ -73,10 +77,10 @@ export const NativeWorkbookSync: React.FC = () => {
         if (!isDesktopHost()) {
             return;
         }
-        check([...(heldWorkbooks ?? [])]);
-    }, [heldWorkbooks]);
+        check(heldKey.length > 0 ? heldKey.split('\n') : []);
+    }, [heldKey]);
 
-    // The first check of a workbook acknowledges its scripts, the writer checks the disk from then on
+    // The first check of a workbook compares the folder with what the restore read, e.g. a file edited in between
     React.useEffect(() => {
         if (!isDesktopHost()) {
             return;

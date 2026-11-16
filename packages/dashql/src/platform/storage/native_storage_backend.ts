@@ -1,5 +1,5 @@
 import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
-import { type DataFile, type DataFileContent, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from './storage_backend.js';
+import { type DataFile, type DataFileContent, type ExpectedStamp, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, WorkbookFolderMissingError, isAttachmentFileName, matchesExpectedStamp, validateDataFileName } from './storage_backend.js';
 
 import { joinPath, type FileStamp, type FileSystem } from '../platform/file_system.js';
 
@@ -7,6 +7,8 @@ import { joinPath, type FileStamp, type FileSystem } from '../platform/file_syst
 const GITIGNORE_FILE = '.gitignore';
 /// The entries of the workbook-level .gitignore: the former query result cache of the workbook and Hyper database files.
 const GITIGNORE_ENTRIES = ['cache/', '*.hyper'];
+/// The draft script of an older layout, no script of the workbook
+const DRAFT_SCRIPT_FILE = 'dashql-draft.sql';
 
 /// A file of a workbook folder with its stamp
 export type NamedFileStamp = FileStamp & { name: string };
@@ -17,10 +19,6 @@ export interface WorkbookFolderStamps {
     attachments: NamedFileStamp[];
     /// The workbook file, null if there is none
     workbook: FileStamp | null;
-}
-
-function sameStamp(a: FileStamp | null, b: FileStamp | null): boolean {
-    return a == null || b == null ? a == b : a.size === b.size && a.mtimeMs === b.mtimeMs;
 }
 
 /// A storage backend for a single workbook in a folder of a file system, the one of the desktop app or of Node.
@@ -34,18 +32,15 @@ function sameStamp(a: FileStamp | null, b: FileStamp | null): boolean {
 /// The workbook *registry* (which workbooks exist, and where each lives) is owned by the OPFS root
 /// manifest, not here. The registry-level methods on this backend are therefore inert; the
 /// composite backend always routes those to OPFS.
+///
+/// The folder may change outside the app. The runtime keeps the stamps of what it wrote and acknowledged and passes the
+/// stamp that a write expects: the backend takes the stamp of the file and refuses the write with an
+/// `ExternalScriptChangeError` when it differs, and returns the stamp of what it wrote.
 export class NativeStorageBackend implements StorageBackend {
     /// The absolute directory on disk that holds this workbook's files
     private readonly dir: string;
     /// Whether the .gitignore was already checked by this backend
     private gitignoreChecked = false;
-    /// The stamps of the scripts as this backend last wrote or acknowledged them, null for a deleted script
-    private readonly scriptStamps = new Map<string, FileStamp | null>();
-    /// The stamp of the workbook file as this backend last wrote or acknowledged it
-    private workbookStamp: FileStamp | null = null;
-    /// Was the folder acknowledged? From then on a script without a stamp is known to be absent, and writes of
-    /// scripts and of the workbook file fail with an `ExternalScriptChangeError` when the stamp on disk differs.
-    private scriptsAcknowledged = false;
 
     constructor(dir: string, protected readonly fs: FileSystem) {
         this.dir = dir;
@@ -120,10 +115,10 @@ export class NativeStorageBackend implements StorageBackend {
         return await this.readWorkbookFile(path);
     }
 
-    /// Write a top-level file of the folder
-    async writeText(name: string, text: string): Promise<void> {
+    /// Write a top-level file of the folder, returns its stamp: the runtime records the writes of a migration as its own
+    async writeText(name: string, text: string): Promise<FileStamp> {
         await this.ensureDir('');
-        await this.fs.writeTextFile(await this.abs(name), text);
+        return await this.fs.writeTextFile(await this.abs(name), text);
     }
 
     /// Remove a top-level file of the folder, a missing file is ignored
@@ -158,20 +153,15 @@ export class NativeStorageBackend implements StorageBackend {
         this.gitignoreChecked = true;
     }
 
-    /// Write the workbook file atomically and keep its stamp. A file that changed outside the app since this backend
-    /// wrote or acknowledged it is not overwritten, the write fails with an `ExternalScriptChangeError` for the file.
-    async saveWorkbookManifest(workbookId: string, data: WorkbookData): Promise<void> {
+    /// Write the workbook file atomically if it is what the write expects, returns its stamp
+    async saveWorkbookManifest(workbookId: string, data: WorkbookData, expected?: ExpectedStamp): Promise<FileStamp> {
         await this.ensureDir('');
         // Keep generated files out of version control as soon as the workbook folder is written
         await this.ensureGitignore();
         const metaFile = await this.abs(STORAGE_WORKBOOK_FILE);
-        if (this.scriptsAcknowledged && !sameStamp(await this.fs.fileStamp(metaFile), this.workbookStamp)) {
-            throw new ExternalScriptChangeError(workbookId, STORAGE_WORKBOOK_FILE);
-        }
-        this.workbookStamp = await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));
+        await this.checkStamp(workbookId, STORAGE_WORKBOOK_FILE, metaFile, expected);
+        return await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));
     }
-
-
 
     async deleteWorkbook(_workbookId: string): Promise<void> {
         // No-op: a native workbook lives in a user-owned folder on disk. Deleting the workbook in
@@ -180,25 +170,22 @@ export class NativeStorageBackend implements StorageBackend {
         // folder can be re-loaded later (and so we never destroy data the user put there).
     }
 
+    /// The script files of the folder in natural order. A folder in `scripts/`, the draft script of an older layout and
+    /// other files are no scripts of the workbook, they are left alone.
     async loadScripts(_workbookId: string): Promise<ScriptData[]> {
         const scriptsDir = await this.abs(STORAGE_SCRIPTS_FOLDER);
         if (!(await this.fs.exists(scriptsDir))) {
             return [];
         }
-
         const entries = await this.fs.readDir(scriptsDir);
         const scripts: ScriptData[] = [];
         for (const entry of entries) {
-            if (entry.isDirectory) {
-                throw new Error(`Invalid V2 workbook layout: nested scripts directory ${entry.name}`);
+            const name = entry.name.toLowerCase();
+            if (!entry.isFile || name === DRAFT_SCRIPT_FILE || !name.endsWith('.sql')) {
+                continue;
             }
-            if (entry.isFile && entry.name.toLowerCase() === 'dashql-draft.sql') {
-                throw new Error('Invalid V2 workbook layout: dashql-draft.sql is not supported');
-            }
-            if (entry.isFile && entry.name.toLowerCase().endsWith('.sql')) {
-                const sql = await this.fs.readTextFile(await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`));
-                scripts.push({ name: entry.name, sql });
-            }
+            const sql = await this.fs.readTextFile(await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${entry.name}`));
+            scripts.push({ name: entry.name, sql });
         }
         scripts.sort((a, b) => this.naturalSort(a.name, b.name));
         return scripts;
@@ -213,52 +200,44 @@ export class NativeStorageBackend implements StorageBackend {
         return { name: scriptName, sql };
     }
 
-    async saveScript(
-        workbookId: string,
-        scriptName: string,
-        sql: string
-    ): Promise<void> {
+    async saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp> {
         await this.ensureScriptsDir();
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
-        await this.checkScriptUnchanged(workbookId, scriptName, scriptFile);
-        this.scriptStamps.set(scriptName, await this.fs.writeTextFile(scriptFile, sql));
+        await this.checkStamp(workbookId, scriptName, scriptFile, expected);
+        return await this.fs.writeTextFile(scriptFile, sql);
     }
 
-    async deleteScript(workbookId: string, scriptName: string): Promise<void> {
+    async deleteScript(workbookId: string, scriptName: string, expected?: ExpectedStamp): Promise<void> {
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
-        await this.checkScriptUnchanged(workbookId, scriptName, scriptFile);
+        await this.checkStamp(workbookId, scriptName, scriptFile, expected);
         if (await this.fs.exists(scriptFile)) {
             await this.fs.remove(scriptFile);
         }
-        this.scriptStamps.set(scriptName, null);
     }
 
-    async renameScript(workbookId: string, oldScriptName: string, newScriptName: string): Promise<void> {
+    async renameScript(workbookId: string, oldScriptName: string, newScriptName: string, expectedFrom?: ExpectedStamp, expectedTo?: ExpectedStamp): Promise<void> {
         if (oldScriptName === newScriptName) {
             return;
         }
         const oldFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${oldScriptName}`);
         const newFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${newScriptName}`);
         // The rename must neither move an external version nor replace an external file
-        await this.checkScriptUnchanged(workbookId, oldScriptName, oldFile);
-        await this.checkScriptUnchanged(workbookId, newScriptName, newFile);
+        await this.checkStamp(workbookId, oldScriptName, oldFile, expectedFrom);
+        await this.checkStamp(workbookId, newScriptName, newFile, expectedTo);
         // A missing source means the script hasn't been flushed yet; the pending write under the new
         // name will create it, so there is nothing to move here.
         if (!(await this.fs.exists(oldFile))) {
             return;
         }
-        // Atomic file rename. The new clean base is disambiguated unique within the folder, so the
-        // destination is free. The file keeps its stamp.
+        // Atomic file rename, the file keeps its stamp
         await this.fs.rename(oldFile, newFile);
-        this.scriptStamps.set(newScriptName, this.scriptStamps.get(oldScriptName) ?? null);
-        this.scriptStamps.set(oldScriptName, null);
     }
 
     /// The scripts folder of the workbook, created when missing. A missing workbook folder is not created again, e.g.
     /// a native folder that was moved or deleted: the write fails instead.
     private async ensureScriptsDir(): Promise<void> {
         if (!(await this.fs.exists(this.dir))) {
-            throw new Error(`The workbook folder ${this.dir} is missing`);
+            throw new WorkbookFolderMissingError(this.dir);
         }
         await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
     }
@@ -278,35 +257,11 @@ export class NativeStorageBackend implements StorageBackend {
         };
     }
 
-    /// Acknowledge the scripts and the workbook file as they are on disk, writes check the disk from now on
-    acknowledgeFolder(stamps: WorkbookFolderStamps): void {
-        this.scriptStamps.clear();
-        for (const script of stamps.scripts) {
-            this.scriptStamps.set(script.name, { size: script.size, mtimeMs: script.mtimeMs });
-        }
-        this.workbookStamp = stamps.workbook == null ? null : { size: stamps.workbook.size, mtimeMs: stamps.workbook.mtimeMs };
-        this.scriptsAcknowledged = true;
-    }
-
-    /// The scripts whose stamps differ from what this backend wrote or acknowledged, sorted by name, and the workbook
-    /// file last when its stamp differs. Every file differs before the folder was acknowledged.
-    findExternalChanges(stamps: WorkbookFolderStamps): string[] {
-        const disk = new Map(stamps.scripts.map(script => [script.name, script]));
-        const names = new Set(disk.keys());
-        for (const [name, stamp] of this.scriptStamps) {
-            if (stamp != null) names.add(name);
-        }
-        if (!this.scriptsAcknowledged) {
-            return [...[...names].sort(), ...(stamps.workbook != null ? [STORAGE_WORKBOOK_FILE] : [])];
-        }
-        const scripts = [...names].filter(name => !sameStamp(disk.get(name) ?? null, this.scriptStamps.get(name) ?? null)).sort();
-        return sameStamp(stamps.workbook, this.workbookStamp) ? scripts : [...scripts, STORAGE_WORKBOOK_FILE];
-    }
-
-    /// Fail with an `ExternalScriptChangeError` when an acknowledged script changed on disk
-    private async checkScriptUnchanged(workbookId: string, scriptName: string, scriptFile: string): Promise<void> {
-        if (this.scriptsAcknowledged && !sameStamp(await this.fs.fileStamp(scriptFile), this.scriptStamps.get(scriptName) ?? null)) {
-            throw new ExternalScriptChangeError(workbookId, scriptName);
+    /// Fail with an `ExternalScriptChangeError` when a file is not what a write expects. Only a missing file counts as
+    /// absent, any other error of the stamp fails the write.
+    private async checkStamp(workbookId: string, fileName: string, path: string, expected: ExpectedStamp): Promise<void> {
+        if (expected !== undefined && !matchesExpectedStamp(await this.fs.fileStamp(path), expected)) {
+            throw new ExternalScriptChangeError(workbookId, fileName);
         }
     }
 

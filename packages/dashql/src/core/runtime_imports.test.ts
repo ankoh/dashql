@@ -150,7 +150,6 @@ describe('The imports and exports of the runtime', () => {
         await runtime.restore(null);
         const scriptKey = (runtime.views('workbook', [WB])[0] as { scriptKeys: number[] }).scriptKeys[0];
         expect(runtime.dispatch({ workbook: WB }, { kind: 'setScriptText', value: { scriptKey, text: 'select 42' } }).changed).toBe(true);
-        expect(runtime.storagePendingKeys(WB).length).toBeGreaterThan(0);
         expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
 
         // The writes of the script in order; an edit while the replacement writes is held
@@ -174,10 +173,62 @@ describe('The imports and exports of the runtime', () => {
         expect(writes.slice(0, 2)).toEqual(['select 42', 'select 1']);
         expect(laterEdit).toMatchObject({ ok: true, changed: true });
         // The edit during the replacement belongs to the replaced version, it is discarded
-        expect(runtime.storagePendingKeys(WB)).toEqual([]);
-        await runtime.storage({ kind: 'flush' });
+        await runtime.storage({ kind: 'flush', closing: true });
         expect(writes).not.toContain('select 43');
+        // Until the app reloads, the workbook of the runtime is the replaced version: an edit after the import is never
+        // written, not even when the page hides
+        expect(runtime.dispatch({ workbook: WB }, { kind: 'setScriptText', value: { scriptKey, text: 'select 44' } }).changed).toBe(true);
+        await new Promise(resolve => setTimeout(resolve, 150));
+        await runtime.storage({ kind: 'flush', closing: true });
+        expect(writes).not.toContain('select 44');
         expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('roll back the replacement of a workbook that the format can no longer read', async () => {
+        const { runtime, storage } = createRuntime();
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
+        // A newer version of the app wrote the registered workbook, the import is its recovery
+        const newer = { ...(structuredClone(storage.workbooks.get(WB)) as object), formatVersion: 99, future: 'kept' };
+        storage.workbooks.set(WB, newer);
+
+        // The first write of a script of the target fails, after its files were copied aside and removed
+        const saveScript = storage.saveScript;
+        let failed = false;
+        storage.saveScript = async (workbookId, fileName, text) => {
+            if (workbookId === WB && !failed) {
+                failed = true;
+                throw new Error('disk full');
+            }
+            await saveScript(workbookId, fileName, text);
+        };
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        await expect(runtime.commitImport(preview.importId, { conflict: 'replace' }, null)).rejects.toThrow(/disk full/);
+        expect(failed).toBe(true);
+
+        // The files of the newer version are back as they were, the staged copies are gone
+        expect(storage.workbooks.get(WB)).toEqual(newer);
+        expect(storage.scripts.get(WB)).toEqual(new Map([['a.sql', 'select 1']]));
+        expect(storage.dataFiles.get(WB)).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
+        expect(storage.order).toEqual([WB]);
+        expect([...storage.workbooks.keys()]).toEqual([WB]);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('import a workbook whose catalogs can not be seeded', async () => {
+        const { runtime, storage } = createRuntime();
+        storage.connectionFiles.set(`${CONNECTION}/dashql-catalog-relations.sql`, 'CREATE TABLE db.public.t (id integer);');
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true, withCatalog: true }, null);
+        storage.connectionFiles.clear();
+        // The catalogs are a cache of the connections, a failure to seed them leaves the import alone
+        storage.saveConnectionFile = async () => { throw new Error('quota exceeded'); };
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        const outcome = await runtime.commitImport(preview.importId, { conflict: 'replace' }, null);
+        expect(outcome).toMatchObject({ workbookId: WB, restored: false });
+        expect(storage.scripts.get(WB)).toEqual(new Map([['a.sql', 'select 1']]));
+        expect(storage.order).toEqual([WB]);
         runtime.destroy();
         runtime.free();
     });
