@@ -15,6 +15,9 @@ class Fixture {
     readonly rewrites: [number, string][] = [];
     readonly created: [string, string][] = [];
     readonly writes: string[] = [];
+    readonly imported: string[] = [];
+    /// The results of the runs of the agent on the copy
+    results: SessionWorkbook['results'] = [];
     private listeners = new Set<() => void>();
     private clock = 1;
     private nextKey = 1;
@@ -38,7 +41,7 @@ class Fixture {
     /// The state of the session that names the copy
     state(): AgentSessionState {
         const files: JournalFile[] = [...this.copy].map(([path, file]) => ({ path, size: file.text.length, mtimeMs: file.mtimeMs }));
-        return { ...createAgentSessionState('claude', '/work'), workbooks: [{ path: '.dashql/workbooks/w1', workbookId: 'w1', files, results: [], running: null }] };
+        return { ...createAgentSessionState('claude', '/work'), workbooks: [{ path: '.dashql/workbooks/w1', workbookId: 'w1', files, results: this.results, running: null }] };
     }
 
     readonly host: AgentSessionCopyHost = {
@@ -74,6 +77,10 @@ class Fixture {
             const scriptKey = this.nextKey++;
             this.page.set(`${base}.sql`, { scriptKey, text });
             return scriptKey;
+        },
+        importResult: async key => {
+            this.imported.push(key);
+            return true;
         },
         delay: async () => { },
     };
@@ -173,6 +180,21 @@ describe('the copies of the workbooks of a page in a session', () => {
         await copies.settled();
         expect(fixture.writes).toEqual(['scripts/a.sql']);
         expect(fixture.copy.get('scripts/b.sql')?.text).toBe('select 22');
+    });
+
+    it('takes the results of the runs of the agent into the query result cache once', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        const key = 'a'.repeat(64);
+        fixture.results = [
+            { script: 'a.sql', key, rows: 1, error: null, cached: false },
+            { script: 'b.sql', key: null, rows: null, error: 'failed', cached: false },
+            { script: 'c.sql', key: 'not-a-key', rows: 1, error: null, cached: false },
+        ];
+        await copies.update(fixture.state());
+        await copies.update(fixture.state());
+        expect(fixture.imported).toEqual([key]);
     });
 
     it('copies nothing of a workbook without a folder in OPFS and leaves other workbook folders alone', async () => {

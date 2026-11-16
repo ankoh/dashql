@@ -655,6 +655,22 @@ describe('the runs of scripts of the runtime', () => {
         });
     });
 
+    it('shows a result that the command line tool wrote once it is imported into the cache', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        const [key] = await f.core.module.resultKeys(f.workbookId);
+        await pause();
+        expect(f.script('foo.sql').cachedResult).toBeNull();
+        // The file of the key, as the session of an agent hands it out
+        expect(await f.core.importCachedResult(key!, new Blob([new Uint8Array([0x50, 0x41, 0x52, 0x31])]))).toBe(true);
+        expect(await f.cache!.has(key!)).toBe(true);
+        await vi.waitFor(() => {
+            f.core.flush();
+            expect(f.script('foo.sql').cachedResult?.key).toBe(key);
+        });
+        // A key that is cached keeps its file
+        expect(await f.core.importCachedResult(key!, new Blob([new Uint8Array([1])]))).toBe(false);
+    });
+
     it('keeps the query result cache within its limits, the least recently read files go first', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
         f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };

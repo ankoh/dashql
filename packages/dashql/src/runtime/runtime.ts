@@ -646,6 +646,19 @@ export class Runtime {
         return outcome.results;
     }
 
+    /// Add a result of a key to the query result cache, e.g. one that a run of the command line tool wrote. A key that is
+    /// cached already keeps its files. The workbooks look up the cached results of their scripts again, a script whose
+    /// key it is shows the result. Resolves whether the file was added.
+    async importCachedResult(key: string, data: Blob): Promise<boolean> {
+        const module = this.live();
+        const file = this.handles.register(data);
+        try {
+            return await module.importCachedResult(key, file);
+        } finally {
+            this.handles.release(file);
+        }
+    }
+
     /// Read a workbook to import: nothing is written until `commitImport`, `dropImport` of the module lets go of it.
     /// Resolves with the workbook, the registered workbook with the same id and the questions about its connections.
     async readImport(source: ImportSource): Promise<core.ImportPreview> {

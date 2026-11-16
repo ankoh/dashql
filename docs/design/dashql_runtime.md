@@ -304,7 +304,7 @@ than the module returns: the flush of the store after the command, handles for t
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript`, `stopRun`, `setUpOpenedWorkbook` | Runs, and the setups of the connections of an opened workbook |
-| `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
+| `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport`, `importCachedResult` | Imports and exports, a result of the command line tool into the query result cache |
 | `storage` | `StorageCommands`, the commands of the storage writer: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
 | `computeDatabase` | The compute database of the platform and whether it is ready |
 | `flush`, `destroy` | Take the changes now; shut the runtime down, see below |

@@ -59,6 +59,9 @@ export interface AgentSessionCopyHost {
     rewriteScript: (workbookId: string, scriptKey: number, text: string) => void;
     /// Create a script with a text, returns its key
     createScript: (workbookId: string, base: string, text: string) => number | null;
+    /// Fetch the result of a key from the session and add it to the query result cache of the page, resolves whether
+    /// it was added
+    importResult: (key: string) => Promise<boolean>;
     /// Wait for a time, the tests run it at once
     delay: (ms: number) => Promise<void>;
 }
@@ -118,6 +121,12 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
             runtime.flush();
             return refsOf(workbookId).find(ref => !before.has(ref.scriptId))?.scriptId ?? null;
         },
+        importResult: async key => {
+            const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`the session answered the result ${key} with ${response.status}`);
+            return await runtime.importCachedResult(key, await response.blob());
+        },
         delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
     };
 }
@@ -139,15 +148,21 @@ interface Copy {
     adopted: boolean;
 }
 
+/// The key of a result in the query result cache, as the journal names it
+const RESULT_KEY = /^[0-9a-f]{64}$/;
+
 /// The copies of the workbooks of a page in a session (docs/wip/agent_session.md). The page writes a workbook into the
 /// folder of the session once, then both sides change it: the scripts that the agent changes in the copy come into the
 /// workbook of the page, a changed script staged as a rewrite that the user accepts or rejects, a new script as a
 /// script of the workbook; the scripts that the user changes in the page go into the copy, the page stays the truth.
-/// Not yet: scripts that the agent deletes or renames, the workbook file and the attachments of the copy.
+/// The results of the runs of the agent go into the query result cache of the page. Not yet: scripts that the agent
+/// deletes or renames, the workbook file and the attachments of the copy.
 export class AgentSessionCopies {
     private readonly copies = new Map<string, Copy>();
     /// The workbooks that were copied or adopted, also the ones without a copy
     private readonly known = new Set<string>();
+    /// The keys of the results of the agent that the page imported or is importing
+    private readonly results = new Set<string>();
     /// The changes apply one after the other, in both directions
     private queue: Promise<void> = Promise.resolve();
     private disposed = false;
@@ -199,6 +214,16 @@ export class AgentSessionCopies {
         for (const workbook of state.workbooks ?? []) {
             const copy = this.copies.get(workbook.workbookId);
             if (copy == null || workbook.path !== workbookCopyPath(workbook.workbookId)) continue;
+            // The results of the runs of the agent go into the query result cache of the page, the scripts with
+            // their keys show them
+            for (const result of workbook.results ?? []) {
+                const key = result.key;
+                if (key == null || !RESULT_KEY.test(key) || this.results.has(key)) continue;
+                this.results.add(key);
+                void this.enqueue('take a result of the agent', workbook.workbookId, async () => {
+                    await this.host.importResult(key);
+                });
+            }
             const seen = copy.seen;
             copy.seen = stampsOf(workbook);
             if (seen == null && copy.adopted) {

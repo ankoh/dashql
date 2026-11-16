@@ -1066,6 +1066,28 @@ impl Runtime {
         })
     }
 
+    /// Add a result of a key to the query result cache, e.g. one that a run of the command line tool wrote, from a file of
+    /// the handle table that the caller keeps and releases. A key that is cached already keeps its files. An added file
+    /// is followed by the eviction of a written one, and the workbooks look up the cached results of their scripts
+    /// again. Resolves whether the file was added.
+    #[wasm_bindgen(js_name = importCachedResult, unchecked_return_type = "Promise<boolean>")]
+    pub fn import_cached_result(&self, key: String, file: f64) -> Result<Promise, JsError> {
+        let file = integer(file, "file handle")?;
+        let platform = self.platform.clone();
+        let runs = Rc::downgrade(&self.runs);
+        let import = platform.cache_call("import", &[JsValue::from_str(&key), JsValue::from_f64(file as f64), JsValue::NULL]);
+        Ok(future_to_promise(async move {
+            let added = import.await.map_err(|error| JsValue::from(JsError::new(error.message())))?.is_truthy();
+            if added {
+                platform.evict_cache().await;
+                if let Some(runs) = runs.upgrade() {
+                    runs.forget_cached_results();
+                }
+            }
+            Ok(JsValue::from_bool(added))
+        }))
+    }
+
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, then the params
     /// are committed and the copies of the workbooks that use the connection are written. The view of the connection
     /// shows the save while it runs.

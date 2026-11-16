@@ -116,9 +116,11 @@ goes through a `dashql` command, so the commands tell what they changed.
   journal of a session of its own; the copy of the workbook of a page (writes, replacement, the stamps after a tool,
   paths it refuses).
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts, the edits of the
-  user into the copy, a copy adopted after a reload.
+  user into the copy, a copy adopted after a reload, the results of the agent once.
+- `runtime/workbook/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
-  not again after a reload, that an edit reaches the copy and that a rewrite of the agent is staged to accept.
+  not again after a reload, that an edit reaches the copy, that a rewrite of the agent is staged to accept and that
+  the page fetches a result that the journal names.
 
 ## Plan: the workbook, the connections and the logins of a session
 
@@ -171,8 +173,16 @@ journal and the query result cache that the server hands out, as it does today.
   differs from what the copy holds, removes the ones it deleted and, when the list of scripts changed, writes its
   workbook file. A script that it took from the agent counts as held by the copy, a rejected rewrite goes back. Both
   directions run one after the other (`AgentSessionCopies`).
+- **The results of the agent's runs come into the page.** A result of the journal of a copy names its key in the query
+  result cache: the page fetches its file from `/v1/results/<token>/<key>` once and adds it to its own cache with
+  `importCachedResult` of the runtime, which makes the workbooks look up the cached results of their scripts again. A
+  script of the page with the same key shows the result. The keys are equal when the connection signatures are
+  (`docs/design/query_cache.md`): Trino with basic auth needs the same user on both sides (`DASHQL_TRINO_USER`), and a
+  script that reads attachments has another key, the copy's attachments have other stamps. A key that the page has
+  cached keeps its file, a run of the agent with `--refresh` doesn't replace it. Not checked end to end yet: the keys of
+  a run of `dashql run` against the keys of the same scripts in the page.
 - Not yet: scripts that the agent deletes or renames, the workbook file of the copy that the agent changes (the order,
-  the connections), the attachments, and the results of the agent's runs in the page.
+  the connections), the attachments.
 - When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
   next session faster.
 - **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
@@ -259,8 +269,8 @@ To check before the runs over the server:
 ### Order
 
 1. The tab sends its workbook to `.dashql/workbooks/<id>/` and follows it; one journal per session; the channel from
-   the page to the server. Built: one journal per session, the copy, the scripts in both directions. Open: the rest of
-   the copy (see above), the results of the agent's runs in the tab.
+   the page to the server. Built: one journal per session, the copy, the scripts in both directions, the results of the
+   agent's runs. Open: the rest of the copy (see above).
 2. The parameters of connections from the folder in `dashql run` and in the app.
 3. The output of the hook at the start and `dashql describe`. Built, without the connections of the agent.
 4. Logins through the page, runs of connections with a login in the process of `dashql connect`.

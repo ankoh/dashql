@@ -179,10 +179,13 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
     // The copy, the state names it once it has its workbook file, like the server of dashql
     const files = new Map();
+    let results = [];
+    // The requests for results, the page fetches them for its query result cache
+    const resultRequests = [];
     let clock = 0;
     const announce = workbookId => {
         const named = files.has('dashql-workbook.json')
-            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })), results: [], running: null }]
+            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })), results, running: null }]
             : [];
         state = { ...state, workbooks: named, version: state.version + 1 };
         broadcast();
@@ -214,6 +217,10 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
             });
             return;
         }
+        if (request.method === 'GET' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
+            resultRequests.push(request.url.split('/').pop());
+            return response.writeHead(404).end();
+        }
         if (request.method === 'GET' && request.url.startsWith(copy)) {
             const file = files.get(request.url.slice(copy.length).split('/').slice(1).map(decodeURIComponent).join('/'));
             return file == null ? response.writeHead(404).end() : response.writeHead(200).end(file.body);
@@ -228,6 +235,7 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     return {
         port: server.address().port,
         writes,
+        resultRequests,
         push: next => {
             state = { ...state, ...next, version: state.version + 1 };
             broadcast();
@@ -235,6 +243,11 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
         /// The agent writes a file of the copy
         agentWrites: (workbookId, path, body) => {
             files.set(path, { body, mtimeMs: ++clock });
+            announce(workbookId);
+        },
+        /// The agent ran the copy, the journal names the results
+        agentRan: (workbookId, ran) => {
+            results = ran;
             announce(workbookId);
         },
         close: () => {
@@ -317,6 +330,11 @@ async function testAppAgentSession(page, navigate) {
         connected.agentWrites(script.workbookId, script.path, 'select 7 as from_agent');
         await page.getByTestId('diff-accept').click();
         await scriptEditor(page, 'from_agent').waitFor();
+
+        // The agent ran the workbook, the page fetches the result for its query result cache
+        const key = 'ab'.repeat(32);
+        connected.agentRan(script.workbookId, [{ script: script.path.split('/').pop(), key, rows: 1, error: null, cached: false }]);
+        await waitUntil(() => connected.resultRequests.includes(key));
     } finally {
         await connected.close();
     }
