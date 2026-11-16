@@ -27,10 +27,9 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    pub(super) fn format_create(&self, node_id: usize) -> FmtReg {
+    pub(super) fn format_create(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let node: &'a Node = &self.ast[node_id];
-        if !self.node_states[node_id].is_statement_root {
+        if !self.state(node).is_statement_root {
             return self.format_unimplemented(node);
         }
         let [name, elements, if_not_exists, temp, on_commit] = attrs!(self.children(node), [

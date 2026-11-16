@@ -36,9 +36,8 @@ fn trim_whitespace(mut text: &[u8]) -> &[u8] {
 
 /// `std::string_view::substr`, clamped to the text
 fn substr(text: &[u8], offset: usize, length: usize) -> &[u8] {
-    let begin = offset.min(text.len());
-    let end = begin + length.min(text.len() - begin);
-    &text[begin..end]
+    let rest = text.get(offset..).unwrap_or_default();
+    rest.get(..length).unwrap_or(rest)
 }
 
 fn comment_text<'a>(input: &'a [u8], comment: &TextSpan) -> &'a [u8] {
@@ -86,9 +85,9 @@ fn append_wrapped_comment_paragraph(output: &mut Vec<u8>, words: &[&[u8]], max_w
     let content_width = if max_width > prefix_width { max_width - prefix_width } else { 1 };
     let mut line: Vec<u8> = Vec::new();
     for word in words {
-        let mut offset = 0;
-        while offset < word.len() {
-            let remaining = word.len() - offset;
+        let mut rest: &[u8] = word;
+        while !rest.is_empty() {
+            let remaining = rest.len();
             if !line.is_empty() && line.len() + 1 + remaining > content_width {
                 append_comment_line(output, &line, max_width);
                 line.clear();
@@ -100,15 +99,17 @@ fn append_wrapped_comment_paragraph(output: &mut Vec<u8>, words: &[&[u8]], max_w
                 if !line.is_empty() {
                     line.push(b' ');
                 }
-                line.extend_from_slice(&word[offset..]);
-                offset = word.len();
+                line.extend_from_slice(rest);
+                rest = &[];
             } else {
                 let available = content_width - line.len() - separator;
                 if !line.is_empty() {
                     line.push(b' ');
                 }
-                line.extend_from_slice(&word[offset..offset + available]);
-                offset += available;
+                // `available` is below the length of the rest
+                let (head, tail) = rest.split_at_checked(available).unwrap_or((rest, &[]));
+                line.extend_from_slice(head);
+                rest = tail;
                 append_comment_line(output, &line, max_width);
                 line.clear();
             }
@@ -123,20 +124,21 @@ fn append_wrapped_line_comments(output: &mut Vec<u8>, input: &[u8], comments: &[
     let mut normalized_lines: Vec<&[u8]> = Vec::new();
     for comment in comments {
         let mut text = comment_text(input, comment);
-        if text.starts_with(b"--") {
-            text = &text[2..];
+        if let Some(rest) = text.strip_prefix(b"--") {
+            text = rest;
         }
         loop {
             let line_end = find_first_of(text, b"\r\n");
-            let line = trim_whitespace(&text[..line_end.unwrap_or(text.len())]);
-            normalized_lines.push(line);
-
-            let Some(line_end) = line_end else { break };
-            let mut next = line_end + 1;
-            if text[line_end] == b'\r' && next < text.len() && text[next] == b'\n' {
-                next += 1;
+            let (line, rest) = text.split_at_checked(line_end.unwrap_or(text.len())).unwrap_or((text, &[]));
+            normalized_lines.push(trim_whitespace(line));
+            if line_end.is_none() {
+                break;
             }
-            text = &text[next..];
+            // `rest` starts with the line break, `\r\n` is one
+            text = match rest {
+                [b'\r', b'\n', tail @ ..] | [_, tail @ ..] => tail,
+                [] => rest,
+            };
         }
     }
 
@@ -165,12 +167,15 @@ fn append_wrapped_line_comments(output: &mut Vec<u8>, input: &[u8], comments: &[
         let mut remaining = line;
         while !remaining.is_empty() {
             let word_end = find_first_of(remaining, b" \t\r\n\x0c");
-            let word = &remaining[..word_end.unwrap_or(remaining.len())];
+            let (word, rest) = remaining.split_at_checked(word_end.unwrap_or(remaining.len())).unwrap_or((remaining, &[]));
             if !word.is_empty() {
                 words.push(word);
             }
-            let Some(word_end) = word_end else { break };
-            remaining = trim_whitespace(&remaining[word_end + 1..]);
+            if word_end.is_none() {
+                break;
+            }
+            // `rest` starts with the separator
+            remaining = trim_whitespace(rest.get(1..).unwrap_or_default());
         }
     }
     if !words.is_empty() {
@@ -190,15 +195,12 @@ fn read_comment_tag<'a>(input: &'a [u8], comment: &TextSpan) -> Option<CommentTa
     let text = comment_text(input, comment);
     let text = trim_whitespace(text.strip_prefix(b"--")?);
     let text = text.strip_prefix(COMMENT_TAG_PREFIX.as_bytes())?;
-    let name_end = find_first_of(text, b" \t\r\n\x0c");
-    let name = &text[..name_end.unwrap_or(text.len())];
+    let name_end = find_first_of(text, b" \t\r\n\x0c").unwrap_or(text.len());
+    let (name, rest) = text.split_at_checked(name_end).unwrap_or((text, &[]));
     if !is_comment_tag(name) {
         return None;
     }
-    let alone = match name_end {
-        None => true,
-        Some(end) => trim_whitespace(&text[end..]).is_empty(),
-    };
+    let alone = trim_whitespace(rest).is_empty();
     Some(CommentTag { name, alone })
 }
 
@@ -317,29 +319,31 @@ fn comment_units(input: &[u8], comments: &[TextSpan]) -> Vec<Unit> {
     let closes = |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name == COMMENT_TAG_END.as_bytes() && t.alone);
     let mut units = Vec::new();
     let mut i = 0;
-    while i < comments.len() {
-        if is_block_comment(input, &comments[i]) {
-            units.push(Unit { comments: i..i + 1, tagged: block_comment_has_tag(input, comments[i]) });
+    while let Some(&comment) = comments.get(i) {
+        if is_block_comment(input, &comment) {
+            units.push(Unit { comments: i..i + 1, tagged: block_comment_has_tag(input, comment) });
             i += 1;
             continue;
         }
         let mut run_end = i + 1;
-        while run_end < comments.len() && !is_block_comment(input, &comments[run_end]) {
-            let gap = gap_between(input, &comments[run_end - 1], &comments[run_end]);
+        let mut previous = comment;
+        while let Some(&next) = comments.get(run_end).filter(|c| !is_block_comment(input, c)) {
+            let gap = gap_between(input, &previous, &next);
             if !is_whitespace(gap) || count_line_breaks(gap) > 1 {
                 break;
             }
+            previous = next;
             run_end += 1;
         }
         let mut pending = i;
         let mut j = i;
         while j < run_end {
-            if !opens(&comments[j]) {
+            if !comments.get(j).is_some_and(opens) {
                 j += 1;
                 continue;
             }
             let mut close = j + 1;
-            while close < run_end && !closes(&comments[close]) {
+            while close < run_end && !comments.get(close).is_some_and(closes) {
                 close += 1;
             }
             let end = (close + 1).min(run_end);
@@ -389,40 +393,45 @@ pub(super) fn append_comments(
     following: Option<usize>,
 ) {
     let units = comment_units(input, comments);
+    // The units are non-empty ranges of the comments
+    let unit_comments = |unit: &Unit| comments.get(unit.comments.clone()).unwrap_or_default();
     let mut u = 0;
-    while u < units.len() {
-        let unit = &units[u];
+    while let Some(unit) = units.get(u) {
         if !unit.tagged {
-            let slice = &comments[unit.comments.clone()];
-            if is_block_comment(input, &slice[0]) {
+            let slice = unit_comments(unit);
+            if slice.first().is_some_and(|c| is_block_comment(input, c)) {
                 append_verbatim(output, input, slice);
             } else {
                 append_wrapped_line_comments(output, input, slice, max_width);
             }
-            if unit.comments.end == comments.len() {
-                keep_blank_line(output, input, comments[comments.len() - 1].end() as usize, following);
+            if let Some(last) = comments.last().filter(|_| unit.comments.end == comments.len()) {
+                keep_blank_line(output, input, last.end() as usize, following);
             }
             u += 1;
             continue;
         }
         // The tagged units that follow after whitespace only
         let mut last = u;
-        while last + 1 < units.len()
-            && units[last + 1].tagged
-            && is_whitespace(gap_between(input, &comments[units[last].comments.end - 1], &comments[units[last + 1].comments.start]))
-        {
+        let mut last_unit = unit;
+        while let Some(next) = units.get(last + 1).filter(|next| {
+            next.tagged
+                && matches!((unit_comments(last_unit).last(), unit_comments(next).first()),
+                    (Some(previous), Some(first)) if is_whitespace(gap_between(input, previous, first)))
+        }) {
             last += 1;
+            last_unit = next;
         }
-        let range = unit.comments.start..units[last].comments.end;
+        let range = unit.comments.start..last_unit.comments.end;
         if !output.is_empty() && !ends_with_line_break(output) {
             output.push(b'\n');
         }
-        match print_tagged_comment(input, &comments[range.clone()], max_width) {
+        let merged = comments.get(range.clone()).unwrap_or_default();
+        match print_tagged_comment(input, merged, max_width) {
             Some(block) => output.extend_from_slice(&block),
             // Units that cannot be merged are printed one by one
             None => {
-                for unit in &units[u..=last] {
-                    let slice = &comments[unit.comments.clone()];
+                for unit in units.get(u..=last).unwrap_or_default() {
+                    let slice = unit_comments(unit);
                     if !output.is_empty() && !ends_with_line_break(output) {
                         output.push(b'\n');
                     }
@@ -434,7 +443,9 @@ pub(super) fn append_comments(
             }
         }
         let next = comments.get(range.end).map(|c| c.offset as usize).or(following);
-        keep_blank_line(output, input, comments[range.end - 1].end() as usize, next);
+        if let Some(last) = merged.last() {
+            keep_blank_line(output, input, last.end() as usize, next);
+        }
         u = last + 1;
     }
 }
@@ -466,7 +477,10 @@ pub(super) fn append_description(output: &mut Vec<u8>, input: &[u8], comments: &
         output.push(b'\n');
     }
     output.extend_from_slice(&block);
-    keep_blank_line(output, input, comments[comments.len() - 1].end() as usize, following);
+    // A printed annotation has comments
+    if let Some(last) = comments.last() {
+        keep_blank_line(output, input, last.end() as usize, following);
+    }
 }
 
 #[cfg(test)]

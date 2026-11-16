@@ -173,9 +173,9 @@ impl<'a> FormattingProgram<'a> {
         self.len() <= 1
     }
 
-    /// A copy of an operation
+    /// A copy of an operation, the empty document for a register outside of the program
     pub fn get(&self, reg: FmtReg) -> FormattingOperation<'a> {
-        self.program.borrow()[reg as usize].clone()
+        self.program.borrow().get(reg as usize).cloned().unwrap_or_default()
     }
 
     pub fn empty(&self) -> FmtReg {
@@ -197,13 +197,12 @@ impl<'a> FormattingProgram<'a> {
     /// Concatenate documents, skipping empty ones
     pub fn concat(&self, parts: &[FmtReg]) -> FmtReg {
         let parts: Vec<FmtReg> = parts.iter().copied().filter(|&p| p != 0).collect();
-        match parts.len() {
-            0 => self.empty(),
-            1 => parts[0],
-            _ => {
-                self.push(FormattingOperation { code: FormattingOpCode::Concat, children: parts, ..Default::default() })
-            }
+        match parts.as_slice() {
+            [] => return self.empty(),
+            &[part] => return part,
+            _ => {}
         }
+        self.push(FormattingOperation { code: FormattingOpCode::Concat, children: parts, ..Default::default() })
     }
 
     pub fn indented(&self, child: FmtReg) -> FmtReg {
@@ -269,9 +268,9 @@ impl<'a> FormattingProgram<'a> {
         indent_after_breaks: bool,
     ) -> FmtReg {
         let filtered: Vec<FmtReg> = items.iter().copied().filter(|&i| i != 0).collect();
-        match filtered.len() {
-            0 => return self.empty(),
-            1 => return filtered[0],
+        match filtered.as_slice() {
+            [] => return self.empty(),
+            &[item] => return item,
             _ => {}
         }
         let selected_policy = join_policy.unwrap_or(if self.config.mode == FormattingMode::PRETTY {
@@ -351,9 +350,10 @@ impl RenderCommand {
     }
 }
 
-fn get_only_child(doc: &FormattingOperation) -> FmtReg {
-    debug_assert_eq!(doc.children.len(), 1);
-    doc.children[0]
+/// The child of an indent, parentheses or brackets, None if it has none
+fn get_only_child(doc: &FormattingOperation) -> Option<FmtReg> {
+    debug_assert!(doc.children.len() <= 1);
+    doc.children.first().copied()
 }
 
 fn push_inline_children(stack: &mut Vec<InlineRenderCommand>, children: &[FmtReg], indentation: usize) {
@@ -369,9 +369,9 @@ fn push_docs(stack: &mut Vec<RenderCommand>, children: &[FmtReg], indentation: u
 }
 
 fn push_inline_join(stack: &mut Vec<InlineRenderCommand>, doc: &FormattingOperation, indentation: usize) {
-    for i in (1..=doc.children.len()).rev() {
-        stack.push(InlineRenderCommand { doc: doc.children[i - 1], indentation });
-        if i > 1 && doc.inline_separator != 0 {
+    for (i, &child) in doc.children.iter().enumerate().rev() {
+        stack.push(InlineRenderCommand { doc: child, indentation });
+        if i > 0 && doc.inline_separator != 0 {
             stack.push(InlineRenderCommand { doc: doc.inline_separator, indentation });
         }
     }
@@ -383,9 +383,9 @@ fn push_rendered_join(
     indentation: usize,
     separator: FmtReg,
 ) {
-    for i in (1..=doc.children.len()).rev() {
-        stack.push(RenderCommand::format(doc.children[i - 1], indentation));
-        if i > 1 && separator != 0 {
+    for (i, &child) in doc.children.iter().enumerate().rev() {
+        stack.push(RenderCommand::format(child, indentation));
+        if i > 0 && separator != 0 {
             stack.push(RenderCommand::format(separator, indentation));
         }
     }
@@ -394,7 +394,8 @@ fn push_rendered_join(
 /// The width of the text that a document starts with, up to its first possible line break.
 /// Returns the width and whether a line break could follow.
 fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize, bool) {
-    let doc = &program[reg as usize];
+    // A register outside of the program is the empty document
+    let Some(doc) = program.get(reg as usize) else { return (0, false) };
     match doc.code {
         FormattingOpCode::Empty => (0, false),
         FormattingOpCode::Text => (doc.text.len(), false),
@@ -435,8 +436,7 @@ fn trailing_inline_width(stack: &[RenderCommand], program: &[FormattingOperation
             // The next item of a join follows its separator, which may break. The safety buffer of the remaining
             // width covers a separator that stays on the line.
             RendererOpCode::JoinNextBreakOnOverflow => {
-                let doc = &program[command.reg as usize];
-                (0, command.next_index < doc.children.len())
+                (0, program.get(command.reg as usize).is_some_and(|doc| command.next_index < doc.children.len()))
             }
         };
         width += command_width;
@@ -456,7 +456,8 @@ fn dry_run_inline(
 ) -> bool {
     while remaining >= 0 {
         let Some(command) = stack.pop() else { break };
-        let doc = &program[command.doc as usize];
+        // A register outside of the program is the empty document
+        let Some(doc) = program.get(command.doc as usize) else { continue };
         match doc.code {
             FormattingOpCode::Empty => {}
             FormattingOpCode::Text => remaining -= doc.text.len() as isize,
@@ -469,17 +470,17 @@ fn dry_run_inline(
                 push_inline_join(&mut stack, doc, command.indentation);
             }
             FormattingOpCode::Indent => {
-                if !doc.children.is_empty() {
+                if let Some(child) = get_only_child(doc) {
                     stack.push(InlineRenderCommand {
-                        doc: get_only_child(doc),
+                        doc: child,
                         indentation: command.indentation + options.indentation_width,
                     });
                 }
             }
             FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
                 remaining -= 2;
-                if !doc.children.is_empty() {
-                    stack.push(InlineRenderCommand { doc: get_only_child(doc), indentation: command.indentation });
+                if let Some(child) = get_only_child(doc) {
+                    stack.push(InlineRenderCommand { doc: child, indentation: command.indentation });
                 }
             }
         }
@@ -507,10 +508,8 @@ fn can_inline_join_step(
     program: &[FormattingOperation],
     options: &FormattingRenderOptions,
 ) -> bool {
-    if next_index >= doc.children.len() {
-        return true;
-    }
-    let mut stack = vec![InlineRenderCommand { doc: doc.children[next_index], indentation }];
+    let Some(&child) = doc.children.get(next_index) else { return true };
+    let mut stack = vec![InlineRenderCommand { doc: child, indentation }];
     if doc.inline_separator != 0 {
         stack.push(InlineRenderCommand { doc: doc.inline_separator, indentation });
     }
@@ -528,8 +527,8 @@ fn parenthesis_fits_inline(
         return false;
     }
     let mut stack = Vec::new();
-    if !doc.children.is_empty() {
-        stack.push(InlineRenderCommand { doc: get_only_child(doc), indentation });
+    if let Some(child) = get_only_child(doc) {
+        stack.push(InlineRenderCommand { doc: child, indentation });
     }
     dry_run_inline(remaining - 2, stack, program, options)
 }
@@ -548,27 +547,18 @@ fn append_line_break(output: &mut String, current_line_width: &mut usize, indent
 /// Append generated text, upper-casing the words that are keywords
 fn append_generated_text(output: &mut String, text: &str) {
     let is_word = |ch: u8| ch.is_ascii_alphanumeric() || ch == b'_';
-    let bytes = text.as_bytes();
-    let mut pos = 0;
-    while pos < bytes.len() {
-        let start = pos;
-        if !is_word(bytes[pos]) {
-            // Words are ASCII, so runs of other bytes end at char boundaries
-            while pos < bytes.len() && !is_word(bytes[pos]) {
-                pos += 1;
-            }
-            output.push_str(text.get(start..pos).unwrap_or(""));
-            continue;
-        }
-        while pos < bytes.len() && is_word(bytes[pos]) {
-            pos += 1;
-        }
-        let word = text.get(start..pos).unwrap_or("");
-        if Keyword::find(word.as_bytes()).is_none() {
-            output.push_str(word);
+    let mut rest = text;
+    while let Some(first) = rest.bytes().next() {
+        // Words are ASCII, so runs of other bytes end at char boundaries
+        let in_word = is_word(first);
+        let end = rest.bytes().position(|ch| is_word(ch) != in_word).unwrap_or(rest.len());
+        let (run, tail) = rest.split_at_checked(end).unwrap_or((rest, ""));
+        if in_word && Keyword::find(run.as_bytes()).is_some() {
+            output.push_str(&run.to_ascii_uppercase());
         } else {
-            output.push_str(&word.to_ascii_uppercase());
+            output.push_str(run);
         }
+        rest = tail;
     }
 }
 
@@ -592,17 +582,14 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 continue;
             }
             RendererOpCode::JoinNextBreakOnOverflow => {
-                let doc = &program[command.reg as usize];
-                if command.next_index >= doc.children.len() {
-                    continue;
-                }
+                let Some(doc) = program.get(command.reg as usize) else { continue };
+                let Some(&child) = doc.children.get(command.next_index) else { continue };
                 let next = RenderCommand {
                     kind: RendererOpCode::JoinNextBreakOnOverflow,
                     reg: command.reg,
                     indentation: command.indentation,
                     next_index: command.next_index + 1,
                 };
-                let child = doc.children[command.next_index];
                 // The last item is followed by the text after the join
                 let trailing = if command.next_index + 1 >= doc.children.len() {
                     trailing_inline_width(&stack, program)
@@ -623,8 +610,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                         stack.push(RenderCommand::format(doc.inline_separator, command.indentation));
                     }
                 } else {
-                    let next_is_parenthesis = (child as usize) < program.len()
-                        && program[child as usize].code == FormattingOpCode::Parenthesis;
+                    let next_is_parenthesis =
+                        program.get(child as usize).is_some_and(|c| c.code == FormattingOpCode::Parenthesis);
                     let use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
                     stack.push(next);
                     stack.push(RenderCommand::format(child, command.indentation));
@@ -638,7 +625,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
             RendererOpCode::Format => {}
         }
 
-        let doc = &program[command.reg as usize];
+        // A register outside of the program is the empty document
+        let Some(doc) = program.get(command.reg as usize) else { continue };
         match doc.code {
             FormattingOpCode::Empty => {}
             FormattingOpCode::Text => {
@@ -674,7 +662,7 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                             push_rendered_join(&mut stack, doc, indent, doc.break_separator);
                         }
                         FormattingJoinPolicy::BreakOnOverflow => {
-                            if !doc.children.is_empty() {
+                            if let Some(&first) = doc.children.first() {
                                 if doc.children.len() > 1 {
                                     stack.push(RenderCommand {
                                         kind: RendererOpCode::JoinNextBreakOnOverflow,
@@ -683,18 +671,15 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                                         next_index: 1,
                                     });
                                 }
-                                stack.push(RenderCommand::format(doc.children[0], indent));
+                                stack.push(RenderCommand::format(first, indent));
                             }
                         }
                     }
                 }
             }
             FormattingOpCode::Indent => {
-                if !doc.children.is_empty() {
-                    stack.push(RenderCommand::format(
-                        get_only_child(doc),
-                        command.indentation + options.indentation_width,
-                    ));
+                if let Some(child) = get_only_child(doc) {
+                    stack.push(RenderCommand::format(child, command.indentation + options.indentation_width));
                 }
             }
             FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
@@ -722,15 +707,15 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                     RendererOpCode::CloseAfterBreak(close)
                 };
                 stack.push(RenderCommand { kind: close, reg: 0, indentation: command.indentation, next_index: 0 });
-                if !doc.children.is_empty() {
-                    let child = get_only_child(doc);
+                if let Some(child) = get_only_child(doc) {
                     let indentation = command.indentation + options.indentation_width;
-                    let list = &program[child as usize];
-                    if doc.break_list
-                        && !render_flat
-                        && list.code == FormattingOpCode::Join
-                        && list.join_policy == FormattingJoinPolicy::BreakAllOrNone
-                    {
+                    let list = program.get(child as usize).filter(|list| {
+                        doc.break_list
+                            && !render_flat
+                            && list.code == FormattingOpCode::Join
+                            && list.join_policy == FormattingJoinPolicy::BreakAllOrNone
+                    });
+                    if let Some(list) = list {
                         let indentation = indentation + if list.indent_after_breaks { options.indentation_width } else { 0 };
                         push_rendered_join(&mut stack, list, indentation, list.break_separator);
                     } else {

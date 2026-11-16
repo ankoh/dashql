@@ -37,36 +37,32 @@ impl Lines<'_> {
 
     /// The `key=value` args of a board placement
     fn args(&mut self, begin: usize, end: usize) {
-        let text = self.script;
-        let mut i = begin;
-        while i < end {
-            while i < end && text[i].is_ascii_whitespace() {
-                i += 1;
-            }
-            let arg_begin = i;
-            while i < end && !text[i].is_ascii_whitespace() {
-                i += 1;
-            }
-            if let Some(eq) = text[arg_begin..i].iter().position(|&c| c == b'=') {
+        // A span outside of the script has no args
+        let Some(text) = self.script.get(begin..end) else { return };
+        let mut arg_begin = begin;
+        for arg in text.split(u8::is_ascii_whitespace) {
+            if let Some(eq) = arg.iter().position(|&c| c == b'=') {
                 self.push(arg_begin, arg_begin + eq, ScannerTokenType::IDENTIFIER);
-                self.push(arg_begin + eq + 1, i, ScannerTokenType::LITERAL_INTEGER);
+                self.push(arg_begin + eq + 1, arg_begin + arg.len(), ScannerTokenType::LITERAL_INTEGER);
             }
+            arg_begin += arg.len() + 1;
         }
     }
 
     /// The `{{field}}` placeholders of a Markdown template
     fn placeholders(&mut self, begin: usize, end: usize) {
-        let text = self.script;
-        let mut i = begin;
-        while i + 1 < end {
-            if &text[i..i + 2] != b"{{" {
+        // A span outside of the script has no placeholders
+        let Some(text) = self.script.get(begin..end) else { return };
+        let mut i = 0;
+        while let Some(rest) = text.get(i..).filter(|rest| rest.len() >= 2) {
+            let Some(inner) = rest.strip_prefix(b"{{") else {
                 i += 1;
                 continue;
-            }
-            match text[i + 2..end].windows(2).position(|w| w == b"}}") {
+            };
+            match inner.windows(2).position(|w| w == b"}}") {
                 Some(close) => {
                     let close = i + 2 + close + 2;
-                    self.push(i, close, ScannerTokenType::IDENTIFIER);
+                    self.push(begin + i, begin + close, ScannerTokenType::IDENTIFIER);
                     i = close;
                 }
                 None => break,
@@ -77,7 +73,8 @@ impl Lines<'_> {
 
 /// The tokens of the JSON of a tag, from `body` in the tag text, and the spans of its outermost objects
 fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerTokenType)>, mut objects: Option<&mut Vec<TextSpan>>) {
-    let json = &tag.text.as_bytes()[body..];
+    // A body past the tag text has no tokens
+    let Some(json) = tag.text.as_bytes().get(body..) else { return };
     let mut object_begin = None;
     for token in JsonScanner::new(json) {
         let (begin, end) = (body + token.begin, body + token.end);
@@ -94,11 +91,11 @@ fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerToken
             }
             JsonTokenKind::String { .. } if token.slot == Some(JsonSlot::Key) => ScannerTokenType::IDENTIFIER,
             JsonTokenKind::String { .. } => ScannerTokenType::LITERAL_STRING,
-            JsonTokenKind::Number if json[token.begin..token.end].iter().any(|c| matches!(c, b'.' | b'e' | b'E')) => {
+            JsonTokenKind::Number if json.get(token.begin..token.end).is_some_and(|t| t.iter().any(|c| matches!(c, b'.' | b'e' | b'E'))) => {
                 ScannerTokenType::LITERAL_FLOAT
             }
             JsonTokenKind::Number => ScannerTokenType::LITERAL_INTEGER,
-            JsonTokenKind::Literal if &json[token.begin..token.end] == b"null" => ScannerTokenType::KEYWORD,
+            JsonTokenKind::Literal if json.get(token.begin..token.end) == Some(b"null".as_slice()) => ScannerTokenType::KEYWORD,
             JsonTokenKind::Literal => ScannerTokenType::LITERAL_BOOLEAN,
             _ => continue,
         };
@@ -109,17 +106,18 @@ fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerToken
 /// The `@end` of a line comment that closes a tagged region, as script offsets
 fn end_tag(script: &[u8], comment: TextSpan) -> Option<(usize, usize)> {
     let (begin, end) = (comment.offset as usize, comment.end() as usize);
-    let text = &script[begin..end];
+    let text = script.get(begin..end)?;
     let dashes = text.iter().take_while(|&&c| c == b'-').count();
     if dashes < 2 {
         return None;
     }
-    let trimmed = text[dashes..].trim_ascii();
+    let rest = text.get(dashes..)?;
+    let trimmed = rest.trim_ascii();
     let end_tag = [COMMENT_TAG_PREFIX.as_bytes(), COMMENT_TAG_END.as_bytes()].concat();
     if trimmed != end_tag.as_slice() {
         return None;
     }
-    let at = begin + dashes + (text[dashes..].len() - text[dashes..].trim_ascii_start().len());
+    let at = begin + dashes + (rest.len() - rest.trim_ascii_start().len());
     Some((at, at + end_tag.len()))
 }
 
@@ -134,15 +132,16 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             continue;
         }
         let tag = block.tag_span;
-        let name = &script[tag.offset as usize..tag.end() as usize];
+        // A tag outside of the script is not highlighted
+        let Some(name) = script.get(tag.offset as usize..tag.end() as usize) else { continue };
         let mut lines = Lines { script, out: &mut out };
         // The tag with its `@`, and the end line of a region of line comments
         lines.push(tag.offset as usize - 1, tag.end() as usize, ScannerTokenType::KEYWORD);
-        let last = parsed.scanned.comments[(block.comments_begin + block.comments_count - 1) as usize];
-        if let Some((begin, end)) = end_tag(script, last) {
+        let last = ((block.comments_begin + block.comments_count) as usize).checked_sub(1).and_then(|i| parsed.scanned.comments.get(i));
+        if let Some((begin, end)) = last.and_then(|&last| end_tag(script, last)) {
             lines.push(begin, end, ScannerTokenType::KEYWORD);
         }
-        let content = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+        let content = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize).unwrap_or_default();
         // `@board` and `@flow` are args
         if name == BOARD_TAG || name == FLOW_TAG {
             if let Some(first) = content.first() {
@@ -155,12 +154,10 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         }
         let Some(first) = content.first() else { continue };
         let first_begin = first.offset as usize;
-        let mut kind_end = first_begin;
-        while kind_end < first.end() as usize && !script[kind_end].is_ascii_whitespace() {
-            kind_end += 1;
-        }
+        let first_line = script.get(first_begin..first.end() as usize).unwrap_or_default();
+        let kind = first_line.split(u8::is_ascii_whitespace).next().unwrap_or_default();
+        let kind_end = first_begin + kind.len();
         lines.push(first_begin, kind_end, ScannerTokenType::KEYWORD);
-        let kind = &script[first_begin..kind_end];
         if kind == b"vegalite" {
             let text = TagText::new(&parsed.scanned.text, content, block.text_span);
             json_tokens(&text, kind_end - first_begin, &mut out, Some(&mut objects));
@@ -186,21 +183,17 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
 pub fn comment_syntax_spans(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<TextSpan>) {
     let (tokens, objects) = tag_tokens(parsed);
     let mut out = Vec::with_capacity(parsed.scanned.comments.len() + tokens.len() * 2);
-    let mut next = 0;
+    let mut tokens = tokens.iter().peekable();
     for &comment in &parsed.scanned.comments {
         let mut at = comment.offset as usize;
         let end = comment.end() as usize;
-        while next < tokens.len() && (tokens[next].0.offset as usize) < at {
-            next += 1;
-        }
-        while next < tokens.len() && (tokens[next].0.end() as usize) <= end {
-            let (span, token) = tokens[next];
+        while tokens.next_if(|(span, _)| (span.offset as usize) < at).is_some() {}
+        while let Some(&(span, token)) = tokens.next_if(|(span, _)| (span.end() as usize) <= end) {
             if span.offset as usize > at {
                 out.push((TextSpan::new(at as u32, span.offset - at as u32), ScannerTokenType::COMMENT));
             }
             out.push((span, token));
             at = span.end() as usize;
-            next += 1;
         }
         if end > at {
             out.push((TextSpan::new(at as u32, (end - at) as u32), ScannerTokenType::COMMENT));

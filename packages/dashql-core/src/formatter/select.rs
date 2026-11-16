@@ -42,9 +42,8 @@ impl<'a> Formatter<'a> {
         child < parent || (child == parent && index > 0)
     }
 
-    pub(super) fn format_select(&self, node_id: usize) -> FmtReg {
+    pub(super) fn format_select(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let node: &'a Node = &self.ast[node_id];
         #[rustfmt::skip]
         let [
             select_all, select_distinct, select_targets, select_into, select_from, select_where, select_groups,
@@ -107,9 +106,9 @@ impl<'a> Formatter<'a> {
             }
             // The AST does not keep the parentheses of the inputs, add those that the operands need
             let operation = CombineOperation(super::value_u8(combine_operation));
-            for (i, input) in self.children(combine_input).iter().enumerate() {
+            for (i, (input, reg)) in self.children(combine_input).iter().zip(inputs.iter_mut()).enumerate() {
                 if self.combine_input_needs_parentheses(input, operation, i) {
-                    inputs[i] = f.parenthesized(inputs[i]);
+                    *reg = f.parenthesized(*reg);
                 }
             }
             query = f.join(&inputs, separator, break_separator, Some(FormattingJoinPolicy::BreakAllOrNone), false);

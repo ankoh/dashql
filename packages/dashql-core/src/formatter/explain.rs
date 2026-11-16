@@ -5,9 +5,8 @@ use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::Node;
 
 impl<'a> Formatter<'a> {
-    pub(super) fn format_explain(&self, node_id: usize) -> FmtReg {
+    pub(super) fn format_explain(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let node: &'a Node = &self.ast[node_id];
         let [statement, options] = attrs!(self.children(node), [K::EXT_EXPLAIN_STATEMENT, K::EXT_EXPLAIN_OPTIONS]);
         let Some(statement) = statement else { return self.format_unimplemented(node) };
         let stmt_reg = self.reg(statement);

@@ -304,7 +304,8 @@ impl<'a> Formatter<'a> {
             self.identify_parentheses(self.ast.len() - 1 - i);
         }
         self.build_docs();
-        self.render(self.node_states[node_id].reg)
+        // There is a state per node
+        self.render(self.node_states.get(node_id).map_or(0, |state| state.reg))
     }
 
     fn prepare(&mut self, config: &FormattingConfigT) {
@@ -319,22 +320,22 @@ impl<'a> Formatter<'a> {
 
     fn mark_statement_roots(&mut self) {
         for statement in &self.parsed.statements {
-            if (statement.root as usize) < self.node_states.len() {
-                self.node_states[statement.root as usize].is_statement_root = true;
+            if let Some(state) = self.node_states.get_mut(statement.root as usize) {
+                state.is_statement_root = true;
                 self.mark_explain_inner_statement_root(statement.root as usize);
             }
         }
     }
 
     fn mark_explain_inner_statement_root(&mut self, root_id: usize) {
-        let root_node = &self.ast[root_id];
+        let Some(root_node) = self.ast.get(root_id) else { return };
         if root_node.node_type() != NodeType::OBJECT_EXT_EXPLAIN {
             return;
         }
         if let Some(child) = self.children(root_node).iter().find(|c| c.attribute_key() == K::EXT_EXPLAIN_STATEMENT) {
             let inner_id = self.node_id(child);
-            if inner_id < self.node_states.len() {
-                self.node_states[inner_id].is_statement_root = true;
+            if let Some(state) = self.node_states.get_mut(inner_id) {
+                state.is_statement_root = true;
             }
         }
     }
@@ -348,8 +349,9 @@ impl<'a> Formatter<'a> {
         (node as *const Node as usize - self.ast.as_ptr() as usize) / std::mem::size_of::<Node>()
     }
 
-    fn state(&self, node: &Node) -> &FormattingNodeState {
-        &self.node_states[self.node_id(node)]
+    /// The state of a node, there is one per node
+    fn state(&self, node: &Node) -> FormattingNodeState {
+        self.node_states.get(self.node_id(node)).copied().unwrap_or_default()
     }
 
     /// The document of a node
@@ -364,7 +366,7 @@ impl<'a> Formatter<'a> {
             return &[];
         }
         let begin = node.children_begin_or_value() as usize;
-        &self.ast[begin..begin + count]
+        self.ast.get(begin..begin + count).unwrap_or_default()
     }
 
     /// The documents of the elements of an array
@@ -374,7 +376,8 @@ impl<'a> Formatter<'a> {
             return Vec::new();
         }
         let begin = node.children_begin_or_value() as usize;
-        self.node_states[begin..begin + count].iter().map(|s| s.reg).collect()
+        // Elements outside of the AST have no documents, like `children`
+        self.node_states.get(begin..begin + count).unwrap_or_default().iter().map(|s| s.reg).collect()
     }
 
     /// Look up attributes of an object.
@@ -423,8 +426,8 @@ impl<'a> Formatter<'a> {
     // -----------------------------------------------------------------------------------------
 
     fn prepare_precedence(&mut self) {
-        for i in 0..self.ast.len() {
-            let node = &self.ast[i];
+        let ast = self.ast;
+        for (i, node) in ast.iter().enumerate() {
             if node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION {
                 continue;
             }
@@ -438,28 +441,23 @@ impl<'a> Formatter<'a> {
             } else {
                 continue;
             };
-            let state = &mut self.node_states[i];
-            state.precedence = precedence;
-            state.associativity = associativity;
-            if let Some(args_node) = args_node {
-                let args_id = self.node_id(args_node);
-                let args_state = &mut self.node_states[args_id];
-                args_state.precedence = precedence;
-                args_state.associativity = associativity;
+            let args_id = args_node.map(|args_node| self.node_id(args_node));
+            for id in std::iter::once(i).chain(args_id) {
+                if let Some(state) = self.node_states.get_mut(id) {
+                    state.precedence = precedence;
+                    state.associativity = associativity;
+                }
             }
         }
     }
 
     fn identify_parentheses(&mut self, node_id: usize) {
-        let node = &self.ast[node_id];
+        let Some(node) = self.ast.get(node_id) else { return };
         if node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION {
             return;
         }
         let parent_id = node.parent() as usize;
-        if parent_id >= self.ast.len() {
-            return;
-        }
-        let parent = &self.ast[parent_id];
+        let Some(parent) = self.ast.get(parent_id) else { return };
         if parent.node_type() != NodeType::ARRAY {
             return;
         }
@@ -470,8 +468,9 @@ impl<'a> Formatter<'a> {
         }
 
         let arg_index = node_id - args_begin;
-        let parent_state = self.node_states[parent_id];
-        let state = &mut self.node_states[node_id];
+        // There is a state per node
+        let Some(parent_state) = self.node_states.get(parent_id).copied() else { return };
+        let Some(state) = self.node_states.get_mut(node_id) else { return };
         let need_parens = if args_count == 1 {
             true
         } else {
@@ -689,14 +688,11 @@ impl<'a> Formatter<'a> {
                 self.comma_join_on_overflow(&values, true)
             }
             K::SQL_WINDOW_FRAME_BOUNDS => {
-                let bounds = self.array_regs(node);
-                if bounds.len() == 1 && bounds[0] != 0 {
-                    return bounds[0];
+                match *self.array_regs(node).as_slice() {
+                    [bound] if bound != 0 => bound,
+                    [from, to] if from != 0 && to != 0 => f.concat(&[f.text("between "), from, f.text(" and "), to]),
+                    _ => self.format_unimplemented(node),
                 }
-                if bounds.len() == 2 && bounds[0] != 0 && bounds[1] != 0 {
-                    return f.concat(&[f.text("between "), bounds[0], f.text(" and "), bounds[1]]);
-                }
-                self.format_unimplemented(node)
             }
             K::SQL_SELECT_VALUES => {
                 let rows = self.array_regs(node);
@@ -904,12 +900,13 @@ impl<'a> Formatter<'a> {
         let [inputs, join_type, join_on, join_using] =
             attrs!(self.children(node), [K::SQL_JOIN_INPUT, K::SQL_JOIN_TYPE, K::SQL_JOIN_ON, K::SQL_JOIN_USING]);
         let (Some(inputs), Some(join_type)) = (inputs, join_type) else { return self.format_unimplemented(node) };
-        if inputs.node_type() != NodeType::ARRAY || inputs.children_count() != 2 {
+        if inputs.node_type() != NodeType::ARRAY {
             return self.format_unimplemented(node);
         }
+        let [left, right] = self.children(inputs) else { return self.format_unimplemented(node) };
 
-        let left_reg = self.reg(&self.ast[inputs.children_begin_or_value() as usize]);
-        let right_reg = self.reg(&self.ast[inputs.children_begin_or_value() as usize + 1]);
+        let left_reg = self.reg(left);
+        let right_reg = self.reg(right);
         if left_reg == 0 || right_reg == 0 {
             return self.format_unimplemented(node);
         }
@@ -946,15 +943,13 @@ impl<'a> Formatter<'a> {
         let join_clause = self.space_join(&join_clause_parts, FormattingJoinPolicy::BreakOnOverflow, true);
 
         let clause_policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
-        let mut is_left_nested_join = false;
         let table_ref_id = node.parent() as usize;
-        if table_ref_id < self.ast.len() {
-            let parent_id = self.ast[table_ref_id].parent() as usize;
-            is_left_nested_join = parent_id < self.ast.len()
-                && self.ast[parent_id].node_type() == NodeType::ARRAY
-                && self.ast[parent_id].attribute_key() == K::SQL_JOIN_INPUT
-                && table_ref_id == self.ast[parent_id].children_begin_or_value() as usize;
-        }
+        let is_left_nested_join =
+            self.ast.get(table_ref_id).and_then(|table_ref| self.ast.get(table_ref.parent() as usize)).is_some_and(|parent| {
+                parent.node_type() == NodeType::ARRAY
+                    && parent.attribute_key() == K::SQL_JOIN_INPUT
+                    && table_ref_id == parent.children_begin_or_value() as usize
+            });
         self.space_join(&[left_reg, join_clause], clause_policy, !is_left_nested_join)
     }
 
@@ -1239,8 +1234,10 @@ impl<'a> Formatter<'a> {
 
         let name_text = self.text_at(name.symbol_span());
         if name_text.eq_ignore_ascii_case("array") {
-            if let Some(modifiers) = modifiers.filter(|m| m.node_type() == NodeType::ARRAY && m.children_count() == 1) {
-                let element_node = &self.ast[modifiers.children_begin_or_value() as usize];
+            let element_node = modifiers
+                .filter(|m| m.node_type() == NodeType::ARRAY && m.children_count() == 1)
+                .and_then(|m| self.children(m).first());
+            if let Some(element_node) = element_node {
                 let element = self.reg(element_node);
                 // Hyper does not accept row(...)[], only array(row(...))
                 let [element_type] = attrs!(self.children(element_node), [K::SQL_TYPENAME_TYPE]);
@@ -2269,9 +2266,9 @@ impl<'a> Formatter<'a> {
         }
         parts.push(f.text("end"));
 
-        if self.is_pretty() {
-            let body = self.space_join(&parts[..parts.len() - 1], FormattingJoinPolicy::ForceBreak, true);
-            return self.space_join(&[body, parts[parts.len() - 1]], FormattingJoinPolicy::ForceBreak, false);
+        if let Some((&end, body)) = parts.split_last().filter(|_| self.is_pretty()) {
+            let body = self.space_join(body, FormattingJoinPolicy::ForceBreak, true);
+            return self.space_join(&[body, end], FormattingJoinPolicy::ForceBreak, false);
         }
         self.space_join(&parts, FormattingJoinPolicy::BreakOnOverflow, true)
     }
@@ -2549,8 +2546,8 @@ impl<'a> Formatter<'a> {
     fn is_in_insert_values(&self, node: &Node) -> bool {
         let mut parent_id = node.parent() as usize;
         let mut depth = 0;
-        while parent_id < self.ast.len() && depth < self.ast.len() {
-            let parent = &self.ast[parent_id];
+        while depth < self.ast.len() {
+            let Some(parent) = self.ast.get(parent_id) else { break };
             if parent.attribute_key() == K::SQL_INSERT_SOURCE {
                 let [values] = attrs!(self.children(parent), [K::SQL_SELECT_VALUES]);
                 return parent.node_type() == NodeType::OBJECT_SQL_SELECT && values.is_some();
@@ -2568,10 +2565,9 @@ impl<'a> Formatter<'a> {
         false
     }
 
-    fn format_expression(&self, node_id: usize) -> FmtReg {
+    fn format_expression(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let node = &self.ast[node_id];
-        let state = self.node_states[node_id];
+        let state = self.state(node);
 
         let [op_node, args_node] = attrs!(self.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
         if let (Some(op_node), None) = (op_node, args_node) {
@@ -2607,10 +2603,10 @@ impl<'a> Formatter<'a> {
         }
 
         use ExpressionOperator as O;
-        let mut reg = if args.len() == 1 && known_operator {
-            match op {
-                O::NEGATE => f.concat(&[op_reg, args[0]]),
-                O::NOT => f.concat(&[op_reg, f.text(" "), args[0]]),
+        let mut reg = match *args.as_slice() {
+            [arg] if known_operator => match op {
+                O::NEGATE => f.concat(&[op_reg, arg]),
+                O::NOT => f.concat(&[op_reg, f.text(" "), arg]),
                 O::IS_NULL
                 | O::NOT_NULL
                 | O::IS_TRUE
@@ -2618,37 +2614,40 @@ impl<'a> Formatter<'a> {
                 | O::IS_UNKNOWN
                 | O::IS_NOT_TRUE
                 | O::IS_NOT_FALSE
-                | O::IS_NOT_UNKNOWN => f.concat(&[args[0], f.text(" "), op_reg]),
-                _ => f.concat(&[op_reg, f.text(" "), args[0]]),
+                | O::IS_NOT_UNKNOWN => f.concat(&[arg, f.text(" "), op_reg]),
+                _ => f.concat(&[op_reg, f.text(" "), arg]),
+            },
+            [value, low, high]
+                if known_operator
+                    && matches!(
+                        op,
+                        O::BETWEEN_ASYMMETRIC | O::NOT_BETWEEN_ASYMMETRIC | O::BETWEEN_SYMMETRIC | O::NOT_BETWEEN_SYMMETRIC
+                    ) =>
+            {
+                f.concat(&[value, f.text(" "), op_reg, f.text(" "), low, f.text(" and "), high])
             }
-        } else if args.len() == 3
-            && known_operator
-            && matches!(
-                op,
-                O::BETWEEN_ASYMMETRIC | O::NOT_BETWEEN_ASYMMETRIC | O::BETWEEN_SYMMETRIC | O::NOT_BETWEEN_SYMMETRIC
-            )
-        {
-            f.concat(&[args[0], f.text(" "), op_reg, f.text(" "), args[1], f.text(" and "), args[2]])
-        } else if args.len() == 2 && known_operator && matches!(op, O::IN | O::NOT_IN) {
-            let mut rhs = args[1];
-            let rhs_node = &self.ast[args_node.children_begin_or_value() as usize + 1];
-            if rhs_node.node_type() == NodeType::ARRAY {
-                let list = self.format_comma_list(rhs_node, true);
-                rhs = f.parenthesized(list);
+            [lhs, mut rhs] if known_operator && matches!(op, O::IN | O::NOT_IN) => {
+                // The args are the documents of the children of the args node
+                if let Some(rhs_node) = self.children(args_node).get(1).filter(|n| n.node_type() == NodeType::ARRAY) {
+                    let list = self.format_comma_list(rhs_node, true);
+                    rhs = f.parenthesized(list);
+                }
+                f.concat(&[lhs, f.text(" "), op_reg, f.text(" "), rhs])
             }
-            f.concat(&[args[0], f.text(" "), op_reg, f.text(" "), rhs])
-        } else if args.len() == 2 && known_operator && matches!(op, O::IS_DISTINCT_FROM | O::IS_NOT_DISTINCT_FROM) {
-            f.concat(&[args[0], f.text(" "), op_reg, f.text(" "), args[1]])
-        } else {
-            let is_boolean_chain = known_operator && matches!(op, O::AND | O::OR);
-            let inline_separator = f.concat(&[f.text(" "), op_reg, f.text(" ")]);
-            let break_separator = if breaks_before_operator(op) {
-                f.concat(&[f.break_(), op_reg, f.text(" ")])
-            } else {
-                f.concat(&[f.text(" "), op_reg, f.break_()])
-            };
-            let policy = if is_boolean_chain { None } else { Some(FormattingJoinPolicy::BreakOnOverflow) };
-            f.join(&args, inline_separator, break_separator, policy, true)
+            [lhs, rhs] if known_operator && matches!(op, O::IS_DISTINCT_FROM | O::IS_NOT_DISTINCT_FROM) => {
+                f.concat(&[lhs, f.text(" "), op_reg, f.text(" "), rhs])
+            }
+            _ => {
+                let is_boolean_chain = known_operator && matches!(op, O::AND | O::OR);
+                let inline_separator = f.concat(&[f.text(" "), op_reg, f.text(" ")]);
+                let break_separator = if breaks_before_operator(op) {
+                    f.concat(&[f.break_(), op_reg, f.text(" ")])
+                } else {
+                    f.concat(&[f.text(" "), op_reg, f.break_()])
+                };
+                let policy = if is_boolean_chain { None } else { Some(FormattingJoinPolicy::BreakOnOverflow) };
+                f.join(&args, inline_separator, break_separator, policy, true)
+            }
         };
 
         if state.needs_parentheses {
@@ -2661,15 +2660,14 @@ impl<'a> Formatter<'a> {
     // Dispatch
     // -----------------------------------------------------------------------------------------
 
-    fn format_node(&self, node_id: usize) -> FmtReg {
-        let node: &'a Node = &self.ast[node_id];
+    fn format_node(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         match node.node_type() {
             NodeType::ARRAY => self.format_array(node),
-            NodeType::OBJECT_SQL_SELECT => self.format_select(node_id),
+            NodeType::OBJECT_SQL_SELECT => self.format_select(node),
             NodeType::OBJECT_SQL_INSERT => self.format_insert(node),
             NodeType::OBJECT_SQL_DELETE => self.format_delete(node),
-            NodeType::OBJECT_SQL_CREATE => self.format_create(node_id),
+            NodeType::OBJECT_SQL_CREATE => self.format_create(node),
             NodeType::OBJECT_SQL_CREATE_AS => self.format_create_as(node),
             NodeType::OBJECT_SQL_VIEW => self.format_view(node),
             NodeType::OBJECT_SQL_CREATE_FUNCTION => self.format_create_function(node),
@@ -2689,7 +2687,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_FUNCTION_PARAM => self.format_function_param(node),
             NodeType::OBJECT_EXT_SET => self.format_set(node),
             NodeType::OBJECT_EXT_VARARG_FIELD => self.format_vararg_field(node),
-            NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node_id),
+            NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node),
             NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS => self.format_explain_expressions(node),
             NodeType::OBJECT_SQL_CALL => self.format_call(node),
             NodeType::OBJECT_SQL_TABLEREF => self.format_table_ref(node),
@@ -2789,7 +2787,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => self.format_const_interval_cast(node),
             NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => self.format_const_function_cast(node),
             NodeType::ENUM_SQL_EXPRESSION_OPERATOR => self.format_expression_operator_type(node),
-            NodeType::OBJECT_SQL_NARY_EXPRESSION => self.format_expression(node_id),
+            NodeType::OBJECT_SQL_NARY_EXPRESSION => self.format_expression(node),
             NodeType::OBJECT_EXT_VARARG_ARRAY => self.format_vararg_array(node),
             NodeType::LITERAL_NULL
             | NodeType::LITERAL_INTEGER
@@ -2804,9 +2802,12 @@ impl<'a> Formatter<'a> {
     }
 
     fn build_docs(&mut self) {
-        for node_id in 0..self.ast.len() {
-            let reg = self.format_node(node_id);
-            self.node_states[node_id].reg = reg;
+        let ast = self.ast;
+        for (node_id, node) in ast.iter().enumerate() {
+            let reg = self.format_node(node);
+            if let Some(state) = self.node_states.get_mut(node_id) {
+                state.reg = reg;
+            }
         }
     }
 
@@ -2826,6 +2827,12 @@ impl<'a> Formatter<'a> {
 
     fn render(&self, reg: FmtReg) -> String {
         self.fmt.render(reg, &self.render_options())
+    }
+
+    /// The document of a statement, empty if its root is outside of the AST
+    fn statement_reg(&self, statement: usize) -> FmtReg {
+        let root = self.parsed.statements.get(statement).map(|s| s.root as usize);
+        root.and_then(|root| self.node_states.get(root)).map_or(0, |state| state.reg)
     }
 
     /// The parts of the script in text order.
@@ -2854,21 +2861,22 @@ impl<'a> Formatter<'a> {
         let mut damaged = vec![false; chunks.len()];
         for error in &self.parsed.errors {
             let symbol = (error.location.offset() as usize).min(symbols.len().saturating_sub(1));
-            if let Some(chunk) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)) {
-                damaged[chunk] = true;
+            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c)) {
+                *flag = true;
             }
         }
         for error in &self.scanned.errors {
             let offset = error.location.offset;
             let symbol = symbols.partition_point(|s| s.location.end() <= offset);
-            if let Some(chunk) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)) {
-                damaged[chunk] = true;
+            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c)) {
+                *flag = true;
             }
         }
 
         let mut next_statement = 0;
-        for (chunk, &(begin, end)) in chunks.iter().enumerate() {
-            let chunk_symbols = &symbols[begin..end];
+        for (&(begin, end), &damaged) in chunks.iter().zip(&damaged) {
+            // The chunks are ranges of the symbols
+            let chunk_symbols = symbols.get(begin..end).unwrap_or_default();
             let begin_offset = chunk_symbols.first().map_or(0, |s| s.location.offset);
             // The last statement may end in text that the scanner dropped, like an unterminated string
             let end_offset = match chunk_symbols.last() {
@@ -2876,8 +2884,8 @@ impl<'a> Formatter<'a> {
                 _ => self.scanned.text.trim_end().len() as u32,
             };
             let mut in_chunk = Vec::new();
-            while next_statement < statements.len() {
-                let root = self.ast[statements[next_statement].root as usize];
+            // A statement root outside of the AST ends the statements, the rest of the text is copied as written
+            while let Some(root) = statements.get(next_statement).and_then(|s| self.ast.get(s.root as usize)) {
                 let root_offset = resolve_text_span(&self.scanned.text, symbols, *root.symbol_span()).offset;
                 if root_offset >= end_offset {
                     break;
@@ -2885,8 +2893,8 @@ impl<'a> Formatter<'a> {
                 in_chunk.push(next_statement);
                 next_statement += 1;
             }
-            let only_separator = chunk_symbols.len() == 1 && chunk_symbols[0].kind == S_SEMICOLON;
-            if !damaged[chunk] && (!in_chunk.is_empty() || only_separator) {
+            let only_separator = matches!(chunk_symbols, [only] if only.kind == S_SEMICOLON);
+            if !damaged && (!in_chunk.is_empty() || only_separator) {
                 parts.extend(in_chunk.into_iter().map(OutputPart::Statement));
             } else if !only_separator {
                 parts.push(OutputPart::Damaged(TextSpan::new(begin_offset, end_offset - begin_offset)));
@@ -2909,7 +2917,8 @@ impl<'a> Formatter<'a> {
         }
 
         let input = self.scanned.text.as_bytes();
-        let damaged_text = |span: &TextSpan| &input[span.offset as usize..span.end() as usize];
+        // The damaged spans lie in the text
+        let damaged_text = |span: &TextSpan| input.get(span.offset as usize..span.end() as usize).unwrap_or_default();
         if parts.iter().any(|p| matches!(p, OutputPart::Damaged(_))) {
             self.copied_damaged_text.set(true);
         }
@@ -2918,8 +2927,7 @@ impl<'a> Formatter<'a> {
             for (i, part) in parts.iter().enumerate() {
                 match part {
                     OutputPart::Statement(statement) => {
-                        let root = statements[*statement].root as usize;
-                        output.extend_from_slice(self.fmt.render(self.node_states[root].reg, &options).as_bytes());
+                        output.extend_from_slice(self.fmt.render(self.statement_reg(*statement), &options).as_bytes());
                         output.push(b';');
                     }
                     OutputPart::Damaged(span) => output.extend_from_slice(damaged_text(span)),
@@ -2931,7 +2939,13 @@ impl<'a> Formatter<'a> {
             return output;
         }
 
-        let comments = &self.scanned.comments[..];
+        let comments = self.scanned.comments.as_slice();
+        // The comments from `begin` to `end`, the callers keep `begin <= end <= comments.len()`
+        let comment_range = |begin: usize, end: usize| comments.get(begin..end).unwrap_or_default();
+        // The end of the comments from `begin` that start before an offset
+        let comments_before = |begin: usize, offset: usize| {
+            begin + comments.get(begin..).unwrap_or_default().iter().take_while(|c| (c.offset as usize) < offset).count()
+        };
         let max_width = self.config.max_width as usize;
         let descriptions = self.parsed.associate_descriptions();
         let ensure_line_break = |output: &mut Vec<u8>| {
@@ -2949,47 +2963,41 @@ impl<'a> Formatter<'a> {
                 OutputPart::Statement(statement) => *statement,
                 OutputPart::Damaged(span) => {
                     // Comments inside the damaged text are part of it
-                    let mut before_end = comment_begin;
-                    while before_end < comments.len() && comments[before_end].offset < span.offset {
-                        before_end += 1;
-                    }
+                    let before_end = comments_before(comment_begin, span.offset as usize);
                     comments::append_comments(
                         &mut output,
                         input,
-                        &comments[comment_begin..before_end],
+                        comment_range(comment_begin, before_end),
                         max_width,
                         Some(span.offset as usize),
                     );
                     ensure_line_break(&mut output);
                     output.extend_from_slice(damaged_text(span));
-                    comment_begin = before_end;
-                    while comment_begin < comments.len() && comments[comment_begin].offset < span.end() {
-                        comment_begin += 1;
-                    }
+                    comment_begin = comments_before(before_end, span.end() as usize);
                     continue;
                 }
             };
-            let root = statements[statement].root as usize;
-            let description = &descriptions[statement];
-            let root_span = resolve_text_span(&self.scanned.text, &self.scanned.symbols, *self.ast[root].symbol_span());
-            let mut before_end = comment_begin;
-            while before_end < comments.len() && comments[before_end].offset < root_span.offset {
-                before_end += 1;
-            }
+            // There is a description and a root per statement, a statement without them has no comments of its own
+            let description = descriptions.get(statement).copied().unwrap_or_default();
+            let root = statements.get(statement).and_then(|s| self.ast.get(s.root as usize));
+            let root_span = root.map_or(TextSpan::default(), |root| {
+                resolve_text_span(&self.scanned.text, &self.scanned.symbols, *root.symbol_span())
+            });
+            let before_end = comments_before(comment_begin, root_span.offset as usize);
             let description_begin = description.description_begin as usize;
             if description.description_count > 0 && description_begin >= comment_begin {
                 let leading_end = description_begin + description.description_count as usize;
                 comments::append_comments(
                     &mut output,
                     input,
-                    &comments[comment_begin..description_begin],
+                    comment_range(comment_begin, description_begin),
                     max_width,
-                    Some(comments[description_begin].offset as usize),
+                    comments.get(description_begin).map(|c| c.offset as usize),
                 );
                 comments::append_description(
                     &mut output,
                     input,
-                    &comments[description_begin..leading_end],
+                    comment_range(description_begin, leading_end),
                     max_width,
                     Some(root_span.offset as usize),
                 );
@@ -2997,25 +3005,21 @@ impl<'a> Formatter<'a> {
                 comments::append_comments(
                     &mut output,
                     input,
-                    &comments[comment_begin..before_end],
+                    comment_range(comment_begin, before_end),
                     max_width,
                     Some(root_span.offset as usize),
                 );
             }
 
             ensure_line_break(&mut output);
-            output.extend_from_slice(self.fmt.render(self.node_states[root].reg, &options).as_bytes());
+            output.extend_from_slice(self.fmt.render(self.statement_reg(statement), &options).as_bytes());
             output.push(b';');
 
-            let statement_end = description.source_span.end() as usize;
-            let mut within_end = before_end;
-            while within_end < comments.len() && (comments[within_end].offset as usize) < statement_end {
-                within_end += 1;
-            }
-            comments::append_comments(&mut output, input, &comments[before_end..within_end], max_width, None);
+            let within_end = comments_before(before_end, description.source_span.end() as usize);
+            comments::append_comments(&mut output, input, comment_range(before_end, within_end), max_width, None);
             comment_begin = within_end;
         }
-        comments::append_comments(&mut output, input, &comments[comment_begin..], max_width, None);
+        comments::append_comments(&mut output, input, comment_range(comment_begin, comments.len()), max_width, None);
         output
     }
 }
