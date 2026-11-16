@@ -48,7 +48,7 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
-| `//packages/dashql:source_package` | `@ankoh/dashql`, linked as `//:node_modules/@ankoh/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/wip/dashql_runtime.md` |
+| `//packages/dashql:source_package` | `@ankoh/dashql`, linked as `//:node_modules/@ankoh/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/design/dashql_runtime.md` |
 | `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@ankoh/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@ankoh/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
@@ -58,7 +58,7 @@ bazel build //...
 | `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@ankoh/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
-| `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, computations, see `docs/wip/core_runtime.md` |
+| `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, effect protocol |
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
@@ -265,8 +265,9 @@ bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 catches non-linear scaling.
 `bench_session` applies cursor moves and typed characters to an editor session and packs the updates like
 the wasm module.
-`bench_typing` types a script of 40 lines next to two others on the runtime of the module, the way the editor does, and
-prints the 10th percentile and the median of the steps per keystroke, see "Typing" in `docs/wip/core_runtime.md`.
+`bench_typing` types a script of 40 lines next to two and next to 19 other scripts on the runtime of the module, the way
+the editor does, and prints the 10th percentile and the median of the steps per keystroke, see "The typing benchmark" in
+`docs/design/dashql_runtime.md`.
 `bench_hyperdb_wasm_backend` runs the same queries on the experimental wasm backend of hyperdb-wasm
 (`experimental_wasm_backend`) and on its default backend, checks that the results are equal and prints the
 slowdown of every case. A hyperdb-wasm without the backend only reports that.

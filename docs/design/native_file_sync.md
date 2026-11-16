@@ -18,7 +18,7 @@ overwrites a script, which is the moment an external change would be lost.
 - Preserve active connection state, query history, focus, and script identity where possible.
 - Never overwrite an external change of a script without asking.
 - Avoid silently discarding local debounced edits.
-- Keep native concepts out of generic storage backends and workbook reducers.
+- Keep native concepts out of generic storage backends and the workbook of the runtime.
 
 ## Non-Goals
 
@@ -299,8 +299,8 @@ bazel build //packages/dashql-native:compile
 - Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
 - Stamps and refused script writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
 - Holds, held and failed writes: `packages/dashql-core-runtime/src/storage/writer.rs`
-- Workbook scripts reconciliation: `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`
+- Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-runtime/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
 - Stamp tests: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs`
-- Workbook scripts reconciliation tests: `packages/dashql/src/runtime/workbook/scripts/workbook_scripts.test.ts`
+- Workbook scripts reconciliation tests: `packages/dashql-core-runtime/tests/workbook_test.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync.test.tsx`

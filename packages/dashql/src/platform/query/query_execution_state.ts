@@ -115,7 +115,7 @@ export interface PlannedStatement {
     after: Array<{ node: number; reason: string }>;
 }
 
-/// A query, the view of the slice `query` of the runtime (docs/wip/runtime_api.md). The points in time are
+/// A query, the view of the slice `query` of the runtime (docs/design/dashql_runtime.md). The points in time are
 /// milliseconds since epoch, the result table is a handle of the handle table of the runtime (`useTable`).
 export type QueryExecutionState = Omit<core.QueryView, 'queryMetadata'> & {
     queryMetadata: QueryMetadata;

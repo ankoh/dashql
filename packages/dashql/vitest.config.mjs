@@ -1,7 +1,7 @@
 // The tests of the package in Node, a project per folder of src: `vitest run --project core|runtime|platform`, see
-// docs/wip/dashql_runtime.md. The browser tests of the app run the tests of the runtime and of the platform as well, those
-// that need a browser (*.browser.test.ts) only run there. The browser tests of the bindings are in test/browser. The
-// generated packages are folders of Bazel (BUILD.bazel).
+// docs/design/dashql_runtime.md. The browser tests of the app run the tests of the runtime and of the platform as well,
+// those that need a browser (*.browser.test.ts) only run there. The browser tests of the bindings are in test/browser.
+// The generated packages are folders of Bazel (BUILD.bazel).
 import path from 'node:path';
 
 const root = import.meta.dirname;

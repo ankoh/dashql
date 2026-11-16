@@ -5,7 +5,7 @@ link or through the line of the AI side of its prompt (`dashql connect`). The fi
 workbook of the page.
 
 An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
-(`docs/wip/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
+(`docs/design/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
 access per workbook and no prompt in natural language.
 
 ## Connecting from the page

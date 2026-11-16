@@ -137,8 +137,8 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
     return new Runtime(platform);
 }
 
-/// The runtime of DashQL (docs/wip/runtime_api.md): the `Runtime` class of the core module with its platform object,
-/// and the store that the app reads its views from. The one object that the app and the command line tool hold.
+/// The runtime of DashQL (docs/design/dashql_runtime.md): the `Runtime` class of the core module with its platform
+/// object, and the store that the app reads its views from. The one object that the app and the command line tool hold.
 ///
 /// The module holds the state and the services: the computations, the connections with the histories of their queries,
 /// the histories without a connection, the query executor with the description of its queries and the keys of the query

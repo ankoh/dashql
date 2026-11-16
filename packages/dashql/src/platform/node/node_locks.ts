@@ -1,6 +1,6 @@
 // The Web Locks of one process: what the query result cache and the instances of the embedded Hyper use of `LockManager`.
 // In the browser the locks of the origin span the windows of the app. In Node they span only the process, so a folder
-// that another process uses at the same time is not protected (docs/wip/dashql_runtime.md).
+// that another process uses at the same time is not protected (docs/design/dashql_runtime.md).
 
 type LockMode = 'exclusive' | 'shared';
 

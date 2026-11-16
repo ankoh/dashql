@@ -1,5 +1,5 @@
-//! The platform of the runtime: one JavaScript object that the runtime calls for its I/O (docs/wip/runtime_api.md),
-//! and `JsPlatform`, the host of the services of the crate over it.
+//! The platform of the runtime: one JavaScript object that the runtime calls for its I/O
+//! (docs/design/dashql_runtime.md), and `JsPlatform`, the host of the services of the crate over it.
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
 //! the channels of the host, the descriptions of the queries that the runtime runs itself, the query result cache, the
@@ -39,7 +39,7 @@ use crate::runtime::computation::ComputeCallContext;
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_PLATFORM: &str = r#"
-/** The I/O of the runtime, one object of the host (docs/wip/runtime_api.md). The members return promises where the runtime awaits them. */
+/** The I/O of the runtime, one object of the host (docs/design/dashql_runtime.md). The members return promises where the runtime awaits them. */
 export interface RuntimePlatform {
     /** The clock in milliseconds since epoch, and timers */
     clock: { now(): number; sleep(ms: number): Promise<void> };

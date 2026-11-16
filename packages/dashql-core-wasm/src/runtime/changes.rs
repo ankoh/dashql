@@ -1,4 +1,4 @@
-//! The changes of the runtime that the host takes (docs/wip/runtime_api.md, "The change set and the flush").
+//! The changes of the runtime that the host takes (docs/design/dashql_runtime.md, "Changes and the flush").
 //!
 //! A service that changes a slice marks it on the platform where it tells the host (`JsPlatform::changed`), and the
 //! host takes only the marked slices: `takeChanges` reads them and nothing else, no change rescans the state. A marked

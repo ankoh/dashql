@@ -17,10 +17,10 @@ import {
     type FileEntry,
 } from '../../platform/workbook/persistence/workbook_zip.js';
 
-// The `.dashql` archives of the imports and exports of the runtime (`archives` of the platform, docs/wip/runtime_api.md,
-// docs/design/workbook_tables.md). The runtime decides what an archive holds and reads, the platform keeps the ZIP
-// container (zip.js) and the Parquet files of the workbook tables (the embedded Hyper). The rows of a workbook table
-// cross as Arrow IPC, the attachments and results by handle.
+// The `.dashql` archives of the imports and exports of the runtime (`archives` of the platform,
+// docs/design/dashql_runtime.md, docs/design/workbook_tables.md). The runtime decides what an archive holds and reads,
+// the platform keeps the ZIP container (zip.js) and the Parquet files of the workbook tables (the embedded Hyper). The
+// rows of a workbook table cross as Arrow IPC, the attachments and results by handle.
 
 /// A database that reads Parquet files: the embedded Hyper mounts a file and scans it
 export type ParquetReadDatabase = ParquetExportDatabase & EmbeddedExternalFileDatabase;

@@ -1,6 +1,6 @@
 //! The views of the runs of workbooks: the options of a run, the `run` slice of a workbook with the state of its last
 //! run, the events of the scripts and how a run ended, as JS objects with generated declarations
-//! (docs/wip/runtime_projection.md).
+//! (docs/design/dashql_core.md).
 
 use std::collections::BTreeMap;
 

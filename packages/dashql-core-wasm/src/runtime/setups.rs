@@ -1,4 +1,4 @@
-//! The setups of the connections and the logins of the runtime (docs/wip/runtime_api.md): the commands
+//! The setups of the connections and the logins of the runtime (docs/design/dashql_core.md): the commands
 //! `setupConnection`, `authenticateSalesforce` and `cancelSetup`.
 //!
 //! A setup drives the setup of the connector of its connection (`dashql_core_runtime::connection_setup`) on a host of

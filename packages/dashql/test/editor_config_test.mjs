@@ -1,6 +1,7 @@
-// Editors resolve every import of the package, see docs/wip/dashql_runtime.md. An editor checks a module of the package with the
-// tsconfig.json of the package, which extends the root tsconfig.json: every package that a module imports must be a
-// dependency of the root package.json or a path of the root tsconfig.json. Bazel checks with tsconfig.bazel.json.
+// Editors resolve every import of the package, see docs/design/dashql_runtime.md. An editor checks a module of the
+// package with the tsconfig.json of the package, which extends the root tsconfig.json: every package that a module
+// imports must be a dependency of the root package.json or a path of the root tsconfig.json. Bazel checks with
+// tsconfig.bazel.json.
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

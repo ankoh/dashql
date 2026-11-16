@@ -1,5 +1,6 @@
-/// The runtime of DashQL, a class of the module (`packages/dashql-core-wasm/src/runtime.rs`, docs/wip/runtime_api.md):
-/// the state of DashQL and its services on one platform object. `DashQL.createRuntime(platform)` creates it.
+/// The runtime of DashQL, a class of the module (`packages/dashql-core-wasm/src/runtime.rs`,
+/// docs/design/dashql_runtime.md): the state of DashQL and its services on one platform object.
+/// `DashQL.createRuntime(platform)` creates it.
 ///
 /// The host reads the state as views by revision: the runtime calls `platform.changed(urgent)`, the store of the host
 /// takes the changed slices with `takeChanges()` and reads their views once per kind with `views(kind, ids)`. Writes are

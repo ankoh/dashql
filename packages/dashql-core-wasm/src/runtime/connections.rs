@@ -1,5 +1,5 @@
 //! The connections of the runtime with the histories of their queries, the query executor that runs the queries, the
-//! setups, the catalog loader and the saves of the connections (docs/wip/runtime_api.md).
+//! setups, the catalog loader and the saves of the connections (docs/design/dashql_core.md).
 //!
 //! `Connections` is shared by the runtime and the hosts of the executor (`queries.rs`), the setups (`setups.rs`) and the
 //! catalog loader (`catalog.rs`): the registry of the crate holds the connections and the histories, the executor

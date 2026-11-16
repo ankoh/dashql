@@ -7,8 +7,8 @@ import { NativeStorageBackend } from '../../platform/storage/native_storage_back
 import { markWorkbookAttachmentsChanged } from '../../platform/workbook/attachments/attachment_mounts.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
-/// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/wip/runtime_api.md). The writer
-/// decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
+/// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/design/dashql_runtime.md). The
+/// writer decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
 /// statistics. The workbooks and the connections of the runtime write through it.
 
 /// The key of a write. Writes with the same key coalesce, the latest task wins. The keys are built by the module

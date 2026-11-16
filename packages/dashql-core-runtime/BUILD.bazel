@@ -1,5 +1,5 @@
 # The state of DashQL in Rust on top of the core, linked into the core module: the scripts of a workbook, the
-# connections, the computations and the services on a host, e.g. the storage writer. See docs/wip/core_runtime.md.
+# connections, the computations and the services on a host, e.g. the storage writer. See docs/design/dashql_core.md.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

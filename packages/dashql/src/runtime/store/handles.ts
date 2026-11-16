@@ -1,4 +1,4 @@
-/// The handles of the JavaScript objects that the Rust runtime names by a number (docs/wip/runtime_projection.md): the
+/// The handles of the JavaScript objects that the Rust runtime names by a number (docs/design/dashql_runtime.md): the
 /// channels of the connections, the records of catalog updates and of the queries that the host runs, the Arrow tables
 /// of results and computations, the lifetimes of computations. The handle table is the one of the platform of the
 /// runtime (`Runtime.handles`).

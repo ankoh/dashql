@@ -1,4 +1,4 @@
-//! The runtime of DashQL as one class of the module (docs/wip/runtime_api.md).
+//! The runtime of DashQL as one class of the module (docs/design/dashql_core.md).
 //!
 //! `Runtime` owns the state of DashQL and its services on one platform object (`JsPlatform`). The host reads the state
 //! as views by revision: the runtime tells the platform that it changed, the store of the host takes the changed slices
@@ -9,8 +9,8 @@
 //! The runtime owns the computations of result tables, the connections with the histories of their queries, the
 //! histories without a connection (the shell), the query executor, the setups and the health checks of the
 //! connections, the catalog loader, the saves of the connections, the workbooks with their scripts, the runs of the
-//! workbooks, the storage writer and the restore of the stored state. The other domains join it step by step: a domain adds its state to `Runtime`,
-//! its slices to `ViewKind`, its targets and actions to the unions.
+//! workbooks, the storage writer and the restore of the stored state. A new domain adds its state to `Runtime`, its
+//! slices to `ViewKind`, its targets and actions to the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
 //! call into the platform. The services mark the slices they change, `takeChanges` reads only those (`changes.rs`).

@@ -105,10 +105,11 @@ with sales as (select * from external('/mnt/external/attachments/<workbook>/sale
 select region, sum(amount) from sales group by region
 ```
 
-The app lists the attachments of a workbook when it loads the workbook, after the feed adds or removes one, and when a
-native folder changed (`WorkbookScripts.attachments`, `SET_WORKBOOK_ATTACHMENTS`). The stamp of an attachment is the
-size and the modification time of its file. The app reads the columns of a new or changed Parquet attachment with the
-embedded Hyper (`readAttachmentColumns`, `SET_ATTACHMENT_COLUMNS`). Until then completion doesn't offer it and its
+The runtime lists the attachments of a workbook when it loads the workbook, after the feed adds or removes one
+(`attachFiles`, `refreshAttachments`), and when a native folder changed (`WorkbookScripts.attachments`). The stamp of an attachment is the
+size and the modification time of its file. The runtime reads the columns of a new or changed Parquet attachment with the
+embedded Hyper (`mounts.attachmentColumns` of the platform over `readAttachmentColumns`, then `SetAttachmentColumns` of
+the workbook). Until then completion doesn't offer it and its
 columns stay unresolved, a plan scans it all the same.
 The plan requests of a workbook hold its Parquet attachments and the mount of its attachments as prefix
 (`/mnt/external/attachments/<workbook>`, `storage_layout.md`), a run mounts them before a statement scans one.

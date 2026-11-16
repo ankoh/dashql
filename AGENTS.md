@@ -29,31 +29,22 @@ Please consult relevant docs in that directory before making changes.
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
-- DashQL in TypeScript (`packages/dashql`, `@ankoh/dashql`: one source package, shared by the app and the Node
-  `dashql`, with three folders of `src/`: `core/`, the bindings of the core module (`@ankoh/dashql`, `/buffers`,
-  `/browser-worker`); `platform/` (`@ankoh/dashql/platform/<path>`), the platforms of the runtime, the browser, the
-  desktop app and Node with a root folder in the layout of OPFS and the embedded Hyper of Node, storage backends, the
-  query result cache, archives, OAuth, the connector clients and channels, the UI helpers that more than the app uses,
-  the SQL and session support of the CLI; `runtime/` (`@ankoh/dashql/runtime/<path>`), `createRuntime(platform)` with
-  the one `Runtime` facade over the runtime of the core module, the store of its views, the view projections and the
-  adapters that build the platform of the core from the objects of the platform. `core/` imports neither `runtime/` nor
-  `platform/`, `platform/` never imports `runtime/`, `//packages/dashql:boundary_test` checks it. Consumers read the
-  TypeScript sources, the generated parts (the Wasm with its glue, the FlatBuffers, protobuf, jsonschema) are folders of
-  Bazel wired by path; `:npm_tarball` bundles it for npm. The hooks of the app over the runtime are `useView`,
-  `useDispatch`, `useTable` and their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where tests go:
-  `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers, a test that creates a runtime goes in
-  `runtime/`)
-    - `docs/wip/dashql_runtime.md` (The package, what goes where)
+- The DashQL runtime (`packages/dashql`, `@ankoh/dashql`: the TypeScript side of the runtime, one source package with
+  `src/core` (the bindings of the core module), `src/runtime` (`createRuntime(platform)`, the `Runtime` facade, the
+  store of its views, the adapters of its platform) and `src/platform` (browser, desktop app and Node, storage, OAuth,
+  connector clients); the folder rules and `//packages/dashql:boundary_test`; views, `takeChanges`, `dispatch`, handles;
+  the hooks of the app in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; Node, the package on npm; where tests go:
+  `*.node.test.ts`, `*.browser.test.ts`, a test that creates a runtime goes in `src/runtime`; the typing benchmark)
+    - `docs/design/dashql_runtime.md`
 
-- The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state and the services of DashQL in
-  Rust, linked into the core module; the app runs its workbook scripts, connections, queries with their descriptions and
-  the keys of the query result cache, computations, catalog loader, connection setups, workbook runs, restore, storage
-  writes, imports and exports and workbook format on it; services are async on a `Host` the platform implements;
-  `dashql-core-script` is the per-script session of the core)
-    - `docs/wip/core_runtime.md`
+- The DashQL core (the Rust crates and how they fit, the core module and its release build, the runtime in Rust:
+  workbooks, connections with setup epochs, channels and tokens, queries and the executor, computations, the catalog
+  loader, runs, the storage writer, restore, the workbook format; the `Host` traits and `JsPlatform`; async without
+  `Send`, no borrow across an await, no panics, enforced by `clippy_test` and `//bazel:rust_safety_lints`)
+    - `docs/design/dashql_core.md`
 
 - The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the
-  embedded Hyper, and `session`)
+  embedded Hyper, `connect` and `session`)
     - `packages/dashql-cli/README.md`
 
 - Storage layout (the origin private file system of the app, the root of Node, native workbook folders, migrations)

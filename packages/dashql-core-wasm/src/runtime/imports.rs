@@ -1,5 +1,5 @@
 //! The imports of workbooks: `.dashql` archives (files, drops and `?zip=` links), workbook folders (native folders,
-//! folders of the browser, hosted workbooks) and the workbook tables of a cloud (docs/wip/runtime_api.md,
+//! folders of the browser, hosted workbooks) and the workbook tables of a cloud (docs/design/dashql_core.md,
 //! docs/design/workbook_tables.md).
 //!
 //! An import has two steps. `read` reads the source into a pending import of the runtime: the bundle with its

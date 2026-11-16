@@ -1,6 +1,6 @@
 //! The views of the persistence of connections: the persisted fields before a change, the change and the outcomes of a
 //! save, as JS objects (`serde-wasm-bindgen`) with TypeScript declarations in the generated `.d.ts` (`tsify`). See
-//! docs/wip/runtime_projection.md.
+//! docs/design/dashql_core.md.
 
 use dashql_core_runtime::storage::WriteOutcome;
 use serde::Serialize;

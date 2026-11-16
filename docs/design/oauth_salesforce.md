@@ -16,16 +16,16 @@ code from Salesforce, encodes it into an app event, and hands it back to the ori
 ## Shared setup (all paths)
 
 The setup of the Rust runtime (`connection_setup/salesforce.rs` over `SalesforceSetup` of `salesforce/setup.rs`) runs
-these steps. The connection setup (`setupSalesforceConnection` of `salesforce_connection_setup.ts`) and the login of the
-shell (`authenticateSalesforce` of `salesforce_authentication.ts`) of `@ankoh/dashql` are adapters over it. The
-`OAuthFlow` that they pass in (`oauth/oauth_flow.ts` of the runtime, `oauth/app_oauth_flow.ts` in the app) opens the
-authorization page and waits for the redirect page, the platform generates the PKCE challenge and the flow id.
+these steps. The connection setup (`setupConnection`) and the login of the shell (`authenticateSalesforce`) are commands of the
+runtime (`packages/dashql/src/runtime/runtime.ts`). The `OAuthFlow` of the platform (`oauth/oauth_flow.ts` of the
+platform of `@ankoh/dashql`, `oauth/app_oauth_flow.ts` in the app) opens the authorization page and waits for the
+redirect page, the platform generates the PKCE challenge and the flow id.
 
 1. Generate a PKCE challenge (`code_verifier` + `code_challenge` via S256).
 2. Take `flowVariant` from the `OAuthFlow`, by platform type:
    - `WEB_OPENER_FLOW` — `PlatformType.WEB`, i.e. the web app, including the localhost dev server
    - `NATIVE_LINK_FLOW` — otherwise, i.e. the Electron desktop app
-3. Serialise the `OAuthState` (`oauth/oauth_types.ts` of the runtime) → JSON → base64url → `state` query param:
+3. Serialise the `OAuthState` (`oauth/oauth_types.ts` of the platform) → JSON → base64url → `state` query param:
    ```
    OAuthState {
      flowId,                // random UUID of this flow

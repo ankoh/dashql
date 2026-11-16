@@ -1,5 +1,5 @@
 //! The views of the scripts of a workbook: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`)
-//! with TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/wip/runtime_projection.md.
+//! with TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/design/dashql_core.md.
 //!
 //! The workbook lists its scripts with their revisions, a script crosses with its plain fields and its payloads: the
 //! editor update, the staged diff, the visualization and the processing statistics, each a packed FlatBuffer with a

@@ -1,5 +1,5 @@
 //! The views of a connection: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`) with TypeScript
-//! declarations in the generated `.d.ts` (`tsify`). See docs/wip/runtime_projection.md.
+//! declarations in the generated `.d.ts` (`tsify`). See docs/design/dashql_core.md.
 //!
 //! The channels, the catalog updates and the queries are named by their ids. Times are milliseconds since epoch, a
 //! missing value is null. The params of a connector and the access tokens are opaque JSON: the params cross as plain

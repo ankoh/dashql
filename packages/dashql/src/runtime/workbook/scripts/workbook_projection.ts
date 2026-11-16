@@ -9,7 +9,7 @@ import { readScriptReferenceReports } from '../../../platform/workbook/scripts/s
 import { createScriptRef, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from '../../../platform/workbook/scripts/script_types.js';
 import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../../../platform/workbook/scripts/workbook_scripts.js';
 
-/// The projections of the views of the workbooks into what the app reads (docs/wip/runtime_projection.md): a script
+/// The projections of the views of the workbooks into what the app reads (docs/design/dashql_runtime.md): a script
 /// with its payloads read once per key and the session handle of its session, the workbook with its scripts by file
 /// name, the derived views with their FlatBuffers read.
 

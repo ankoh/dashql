@@ -6,8 +6,8 @@ import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
 import type { LoggerLike } from '../platform/logger/logger.js';
 
 // The computation of a result as the app reads it: the view of the runtime (`ComputationView` of the module, see
-// docs/wip/runtime_api.md) with the tables of the handle table, and the summaries of the columns that the plots draw,
-// formatted like the cells of the grid.
+// docs/design/dashql_runtime.md) with the tables of the handle table, and the summaries of the columns that the plots
+// draw, formatted like the cells of the grid.
 
 /// The kinds of the column groups, the tags of `ComputationColumnGroup`
 export const ORDINAL_COLUMN = 'ORDINAL';

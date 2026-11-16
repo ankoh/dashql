@@ -27,7 +27,7 @@ A run is an async task on a `RunHost`. It analyzes the scripts on the workbook, 
 query result cache holds, plans again with their files and runs the nodes: a node starts when its predecessors released
 it, at most a number of statements of a connection run at once, a failed statement cancels the running ones. The run
 registers the queries, the results and the visualizations of the scripts on the workbook. See
-`docs/wip/core_runtime.md`, The runs of workbooks.
+`docs/design/dashql_core.md`, Runs of workbooks.
 
 The host keeps what is a JavaScript value: the result tables, the files of the query result cache and the mounts of the
 embedded Hyper, the abort signals of the queries, the holds of workbooks and the state that the hooks of the app read.

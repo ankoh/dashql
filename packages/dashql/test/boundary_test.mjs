@@ -1,5 +1,5 @@
-// The folders of the package and what they may reach, see docs/wip/dashql_runtime.md. Reads every module of src/ and fails
-// with each import that breaks a rule:
+// The folders of the package and what they may reach, see docs/design/dashql_runtime.md. Reads every module of src/ and
+// fails with each import that breaks a rule:
 //
 // - The folders of src/: core/ (the bindings of the core module) imports neither runtime/ nor platform/, platform/
 //   doesn't import runtime/, runtime/ imports both. The package imports itself relatively, never by its name, and no

@@ -4,7 +4,7 @@ import { ConnectionHealth, ConnectionStatus } from '../../core/index.js';
 import { CONNECTOR_INFOS, type ConnectorInfo, type ConnectorType } from './connector_info.js';
 import type { ConnectionParams } from './connection_params.js';
 
-/// A connection, the view of the slice `connection` of the runtime (docs/wip/runtime_api.md). The params are the
+/// A connection, the view of the slice `connection` of the runtime (docs/design/dashql_runtime.md). The params are the
 /// connection params of the app.
 export type ConnectionState = Omit<core.ConnectionView, 'params' | 'paramsDraft' | 'setupAttemptParams' | 'setupAttemptDraft'> & {
     /// The params of the last successful setup, the initial ones until then

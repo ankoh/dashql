@@ -1,6 +1,6 @@
 //! The views of the storage writer: the tasks that the host hands over, the outcomes of the writes and the statistics
 //! of a key, as JS objects (`serde-wasm-bindgen`) with TypeScript declarations in the generated `.d.ts` (`tsify`). See
-//! docs/wip/runtime_projection.md.
+//! docs/design/dashql_core.md.
 //!
 //! Workbook files, connection entries and connections are opaque JSON (`JsonValue`). A text of a task is a string or a
 //! function that reads it when the write runs, it crosses as the JS value. A failed write hands back the value that the

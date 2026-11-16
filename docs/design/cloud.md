@@ -214,7 +214,7 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **The link.** A local workbook knows the published workbook it came from or was published to, `metadata.cloud` of
   its workbook file: the cloud connection, the id of the published workbook and of the version that was opened or
   published last (`WorkbookCloudLink`). The properties of the workbook write it with its name
-  (`SET_WORKBOOK_CLOUD_LINK`). A `.dashql` file, a link and a publish never carry it (`sharedWorkbookTables`), whoever
+  (`setCloudLink`). A `.dashql` file, a link and a publish never carry it (`shared_workbook_tables`), whoever
   reads the workbook links it again.
 - **Previews.** A click on a published workbook opens its latest version, a click on a version that version
   (`useCloudWorkbooks().open`). A preview is a local workbook like any other, under a fresh id with `preview` in its
@@ -239,10 +239,10 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **Read-only.** A preview changes nothing until it is imported. The feed page provides `WorkbookReadOnlyContext`: the
   cards have a dashed border and a lock where the run button is, no connection and no actions, the editors are
   read-only, and there is no composer, no adding of scripts or attachments, no agent and no dashboard or dataflow view.
-  A single script doesn't run (`runScript`), and the reducer refuses what changes the scripts, the names, the
-  inputs or the connections of the scripts (`isRefusedByCloudPreview`). The bar says Read-only preview next to Execute
-  All and offers Import instead of Share and Export.
-- **Importing.** Import in the bar promotes a preview: it drops `preview` (`SET_WORKBOOK_CLOUD_LINK`), the workbook
+  A single script doesn't run (`runScript`), and the workbook refuses what changes the scripts, the names, the
+  inputs or the connections of the scripts (`Workbook::is_cloud_preview` of the core runtime). The bar says Read-only
+  preview next to Execute All and offers Import instead of Share and Export.
+- **Importing.** Import in the bar promotes a preview: it drops `preview` (`setCloudLink`), the workbook
   stays where it is with its results and is listed in Local from then on. A preview whose connections used an existing
   one that a regular import asks about, or a preview that outlived the page, is imported again instead, now with the
   questions, and the preview is discarded. Import in the menu of a published workbook or a version imports it with the

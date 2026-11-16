@@ -87,7 +87,7 @@ keys of the scripts that reference it follow it (`query_cache.md`).
 
 ## Running
 
-`SET_WORKBOOK_INPUT` writes the value into the scripts that use the input. A mounted editor applies the rewrite as a
+`setWorkbookInput` writes the value into the scripts that use the input. A mounted editor applies the rewrite as a
 change (`ScriptData.externalChanges`), it keeps its cursor and undoes it as one step.
 `useApplyWorkbookInput` then starts a run of the workbook with `inputs` (`runWorkbook` of the runtime): the run analyzes the
 scripts, derives the dataflow and plans the scripts that the change affects as targets (`affected_scripts` in `workbook_run/plan.rs` of the core runtime), the
@@ -99,8 +99,9 @@ workbook is free, with the inputs of every change since.
 
 ## The App
 
-`deriveWorkbookInputs` (`workbook/inputs/workbook_inputs.ts` of the runtime) collects the inputs of a workbook, the app
-derives them again when a script or its analysis changes. `WorkbookInputCard` shows an
+The runtime collects the inputs of a workbook with the planner (`planner/session_inputs.rs`) in the derived view of the
+workbook, which moves when they change; `readSessionInputs` (`workbook/inputs/workbook_inputs.ts` of the platform of
+`@ankoh/dashql`) reads them. `WorkbookInputCard` shows an
 input: the name, the type and a control that follows the type, a number field, a boolean select, a date or a datetime
 field, a number field with a unit select for an interval, and text otherwise. The control shows the value without its
 SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: a typed draft that rests

@@ -72,7 +72,7 @@ export interface QueryChannelsDependencies {
     resultCache: QueryResultCache | null;
 }
 
-/// The half of the queries of the runtime that touches the objects of the platform (docs/wip/runtime_api.md). The
+/// The half of the queries of the runtime that touches the objects of the platform (docs/design/dashql_runtime.md). The
 /// runtime describes a query itself: the target on the channel of its connection, the key of its result and what the
 /// executor does around it; a Trino connection owns its channel and a Salesforce connection its tokens. This class
 /// describes the channel object (a Hyper channel over HTTP that the runtime speaks with the auth headers of the channel,

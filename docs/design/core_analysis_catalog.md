@@ -449,29 +449,29 @@ the connection, the statements it follows, the files on disk and when a full ref
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of
   the editor compare the arrays they read, so a cursor move rebuilds only the focus decorations.
 
-**App flow per keystroke** (`packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`)
-1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and
-   analyzes.
-2. `UPDATE_FROM_PROCESSOR`: if the text or analysis changed, derive annotations (compile), then
-   `loadIntoCatalog()`, which publishes into the session layer.
-3. Only if that publish changed the catalog revision, `markOtherScriptsOutdatedInPlace` flags the other
-   scripts of the same connection catalog.
-4. `script_editor.tsx` analyzes flagged scripts: the selected one immediately, others after
-   `BACKGROUND_ANALYSIS_DELAY_MS`, through `analyzeScriptData` (analyze, compile, `loadIntoCatalog`).
-   If that publish changes the catalog revision, e.g. a view over a table whose columns changed
-   (`CREATE VIEW v AS SELECT * FROM a`), the other scripts are flagged again.
+**App flow per keystroke** (`Workbook` of `packages/dashql-core-runtime/src/workbook.rs`, see
+[dashql_runtime.md](dashql_runtime.md#per-keystroke))
+1. The CodeMirror processor packs an `EditorEvent` and calls `Runtime.applyEditorEvent`; the workbook applies it to the
+   session of the script, which analyzes.
+2. If the text or the analysis changed, the workbook publishes the declarations into the session layer
+   (`load_into_catalog`) and compiles the visualization of the script.
+3. Only if that publish changed the catalog version, `mark_others_outdated` flags the other scripts on the same
+   catalog.
+4. The editors tell the runtime which scripts they show (`showScript`, `hideScript`). `visible_scripts.rs` analyzes
+   flagged scripts: the selected one at once, the other shown ones once the changes pause for
+   `BACKGROUND_ANALYSIS_DELAY_MS` (analyze, compile, publish). If that publish changes the catalog version, e.g. a view
+   over a table whose columns changed (`CREATE VIEW v AS SELECT * FROM a`), the other scripts are flagged again.
 
-A failed analysis stays on the script as an update without available analysis, and the script is no
-longer flagged: the same text against the same catalog fails again. A reducer that throws anyway is
-logged and dropped by the workbook-scripts dispatch, and `UpdateQueue.flush` skips a throwing update
-so the rest of the batch applies.
+A failed analysis stays on the script as an update without available analysis, and the script is no longer flagged:
+the same text against the same catalog fails again (`WorkbookScript::is_analysis_outdated`). A failed action leaves the
+workbook as it was.
 
-**Lazy analysis.** Restoring a workbook loads script text only; scripts stay outdated until first
-use. Connection catalogs are restored and published before workbooks open. Executions (feed, details,
-commands) go through `ensureWorkbookScriptAnalyzed` (`workbook_scripts_registry_state.ts`), and mounted editors
-analyze as in step 4. Passive rendering never analyzes. `CATALOG_DID_UPDATE` marks the scripts of that
-connection outdated; a native reload that adds, removes, moves or changes any script marks every script
-of the workbook outdated.
+**Lazy analysis.** Restoring a workbook loads script text only; scripts stay outdated until first use. Connection
+catalogs are restored and published before workbooks open. Runs analyze the outdated scripts first
+(`Workbook::analyze_for_run`), shown scripts analyze as in step 4, and `analyzeOutdatedScript` analyzes one on request.
+Passive rendering never analyzes. A catalog update of a connection (`CatalogDidUpdate`) marks the scripts on that
+connection outdated; a reload from disk that adds, removes, moves or changes any script
+(`Workbook::replace_from_storage`) marks every script of the workbook outdated.
 
 **Planning and execution** (`packages/dashql-core-runtime/src/workbook_run/`, for a run of the workbook and of one script)
 analyzes and publishes every script, re-analyzes them at the final catalog version, then calls

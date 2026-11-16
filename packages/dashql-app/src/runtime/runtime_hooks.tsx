@@ -17,9 +17,9 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
 
-// The hooks of the runtime (docs/wip/runtime_api.md). A component reads the view of a slice, which renders it again
-// when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by their
-// handles. The views come from the store of the runtime, never from the module. The commands are methods of the
+// The hooks of the runtime (docs/design/dashql_runtime.md). A component reads the view of a slice, which renders it
+// again when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by
+// their handles. The views come from the store of the runtime, never from the module. The commands are methods of the
 // runtime (`useRuntime()`), the hooks below that call them resolve the runtime when their function is called: a test
 // may render a component without a runtime as long as it doesn't call them.
 

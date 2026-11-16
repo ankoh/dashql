@@ -5,8 +5,9 @@
 //! `query`, its computations on `compute` and its storage writes on `storage`. It restores the stored state with
 //! `restore`, decides the writes of connections with `connection_persistence` and the storage format of workbooks with
 //! `workbook_format`. It runs its queries on `executor`, the scripts of workbooks with `workbook_run`, loads its
-//! catalogs with `catalog_loader` and sets up its connections with `connection_setup`, see `docs/wip/core_runtime.md`.
-//! The services of the runtime are async functions on a `host::Host`, the platform they run on.
+//! catalogs with `catalog_loader` and sets up its connections with `connection_setup`, see
+//! `docs/design/dashql_core.md`. The services of the runtime are async functions on a `host::Host`, the platform they
+//! run on.
 
 pub mod attachments;
 pub mod catalog_loader;

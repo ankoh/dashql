@@ -1,6 +1,6 @@
 # Client functions
 
-Status: proposed, with [the core](#the-core), [the runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) implemented. On a Salesforce connection a script gets checks and completion, a call runs in the app, and a script of the embedded Hyper reads the result of a call that reads. A script with a call that writes runs only when someone runs it, see [Writes](#writes). Nothing has run against a real service.
+Status: built. [The core](#the-core), [the runtime](#the-runtime) and [the first spec](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source) are implemented. On a Salesforce connection a script gets checks and completion, a call runs in the app, and a script of the embedded Hyper reads the result of a call that reads. A script with a call that writes runs only when someone runs it, see [Writes](#writes). Nothing has run against a real service.
 
 A **client function** (`clfn` in paths) lets a DashQL script reach a remote REST service. `CALL <name>(<option> => <value>, ...)` is a generic statement, and client functions shadow one namespace on a connection: a call in that namespace runs in the client as an HTTP request and never reaches the connection's SQL backend. **Any other `CALL` goes to the backend as written.**
 
@@ -694,7 +694,7 @@ a bundled spec as a chunk of its own, for `loadSpec` of a binding.
 
 **The runtime doesn't gate writes.** Which runs include a write is decided before, by the planner, see [Writes](#writes). `EXPLAIN` works for every call, since it sends nothing, though the app's run controls still need the connection to be online.
 
-**The tests use a fake host,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_test.rs` runs calls against made-up specs and responses, `clfn_spec_test.rs` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, and `query_executor.test.tsx` runs a call through the executor without touching the backend.
+**The tests use a fake host,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_test.rs` runs calls against made-up specs and responses, `clfn_spec_test.rs` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, `workbook_shell_page.test.tsx` of the app checks the call that the shell hands to the executor, and `runtime_connections.test.ts` of `packages/dashql/src/core` cancels a call while the spec of its connection loads.
 
 ## What was checked
 

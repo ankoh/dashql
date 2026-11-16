@@ -48,7 +48,7 @@ export type StoreView<K extends core.ViewKind> = K extends keyof ProjectedViews 
 /// The projections of the kinds, the others are shared with their previous view
 type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
 
-/// The views of the runtime as the app reads them (docs/wip/runtime_api.md).
+/// The views of the runtime as the app reads them (docs/design/dashql_runtime.md).
 ///
 /// The runtime tells the store that its state changed (`changed`). The store flushes at the end of the task when the
 /// change is urgent, before the next frame otherwise: it takes the changed slices and the effects on handles, applies

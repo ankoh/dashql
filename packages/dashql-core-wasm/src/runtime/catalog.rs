@@ -1,5 +1,5 @@
-//! The catalog loader of the runtime (docs/wip/runtime_api.md, docs/design/catalog_updates.md): the service of the crate
-//! (`dashql_core_runtime::catalog_loader::service`) on the connections and the executor of the runtime.
+//! The catalog loader of the runtime (docs/design/dashql_core.md, docs/design/catalog_updates.md): the service of the
+//! crate (`dashql_core_runtime::catalog_loader::service`) on the connections and the executor of the runtime.
 //!
 //! The loader follows the registry of the connections, a change of the registry asks it to follow again at the end of
 //! the task. The start and the end of an update are actions of the connection, the metadata queries are queries of the

@@ -5,8 +5,8 @@ import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connec
 import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
-// Saving a connection is a command of the runtime (docs/wip/runtime_api.md), the view of the connection shows the save
-// while it runs. This module turns the outcomes into what the settings show.
+// Saving a connection is a command of the runtime (docs/design/dashql_runtime.md), the view of the connection shows the
+// save while it runs. This module turns the outcomes into what the settings show.
 
 /// The outcome of writing a workbook's copy of the connection params
 export interface WorkbookCopySaveResult {

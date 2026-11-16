@@ -1,4 +1,4 @@
-//! The files of the imports and exports of workbooks on the platform (docs/wip/runtime_api.md).
+//! The files of the imports and exports of workbooks on the platform (docs/design/dashql_core.md).
 //!
 //! The attachments, the cached query results and the entries of `.dashql` archives stay with the host: the module names
 //! them by a handle of the handle table and knows their sizes, result data never enters it. The module reads and writes

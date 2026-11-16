@@ -1,5 +1,5 @@
-//! The runs of workbooks of the runtime (docs/wip/runtime_api.md): the service that starts and stops them, and the host
-//! of the run of the crate (`dashql_core_runtime::workbook_run`) on the runtime.
+//! The runs of workbooks of the runtime (docs/design/dashql_core.md): the service that starts and stops them, and the
+//! host of the run of the crate (`dashql_core_runtime::workbook_run`) on the runtime.
 //!
 //! A workbook has one run at a time: a run of the whole workbook, of the scripts that a change of inputs affects, or of
 //! one script with the scripts it references. The run holds the workbook until it ended, the `run` slice of the

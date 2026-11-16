@@ -1,5 +1,5 @@
 //! The storage of the runtime: the storage writer of the crate and the restore over `storage` of the platform
-//! (docs/wip/runtime_api.md).
+//! (docs/design/dashql_core.md).
 //!
 //! `JsStorage` is the host of the writer and of the restore over the platform object: every storage operation is a call
 //! of `storage` of the platform, the clock, the timers and the log are the ones of the platform. What the writer tells

@@ -1,4 +1,4 @@
-/// The projection of the Rust state into the objects that the app reads, see docs/wip/runtime_projection.md.
+/// The projection of the Rust state into the objects that the app reads, see docs/design/dashql_runtime.md.
 ///
 /// A view of a slice of the Rust state is a fresh JS object with every read. `share` keeps the objects of the previous
 /// view where the next one is equal, so a part of a view that didn't change keeps its identity, and so does every

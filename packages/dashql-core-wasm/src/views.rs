@@ -1,4 +1,4 @@
-//! What the views of the module share, see docs/wip/runtime_projection.md.
+//! What the views of the module share, see docs/design/dashql_core.md.
 //!
 //! A view crosses as a JS object (`serde-wasm-bindgen`), its TypeScript declaration is generated (`tsify`). A packed
 //! FlatBuffer of the core in a view crosses as a `Uint8Array` that the host reads with the generated accessors of

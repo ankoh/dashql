@@ -1,5 +1,5 @@
 //! The handles of the host: the JavaScript objects that a state names by a number, e.g. the channel of a connection,
-//! the result table of a query or the lifetime of a computation. See docs/wip/runtime_projection.md.
+//! the result table of a query or the lifetime of a computation. See docs/design/dashql_runtime.md.
 //!
 //! The host keeps the objects in one table and hands a handle over with the action that gives the object to a state.
 //! From then on the state owns the handle: it keeps it where it keeps the object and releases it with an effect when

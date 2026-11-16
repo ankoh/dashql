@@ -54,7 +54,7 @@ Exit codes: 0 ok, 1 a statement failed, 2 usage, an unsupported runtime or a dat
   and `describe` says how. Only what SQL can't do is an option: which database to open, the engine settings, the
   output.
 - **Statements, not queries.** `run` takes any statement, so nothing is named after queries. `run` is the name of
-  DuckDB's call for any statement and of the planned `dashql run` ([dashql_runtime.md](dashql_runtime.md)). `-c, --command`
+  DuckDB's call for any statement and of `dashql run` ([dashql_runtime.md](../design/dashql_runtime.md)). `-c, --command`
   and `-f, --file` are the options of `psql`, `-c` the one of DuckDB, the tools agents know best. ClickHouse and
   SnowSQL say `-q, --query` for any statement, mysql and Trino `--execute`.
 - **Several statements.** The engine runs one statement per call (`select 1; select 2` is a syntax error), so `run`
@@ -148,7 +148,7 @@ What the command works around, and `hyperdb-wasm` should fix (checked on 0.0.273
 - apache-arrow returns a decimal as its unscaled digits, a timestamp as fractional milliseconds and an interval as
   four 32-bit integers; `src/values.ts` formats them.
 - `engines: node >=24`, but V8 has exnref without a flag only from Node 24.15 on (see
-  [Runtimes for the embedded Hyper](dashql_runtime.md#runtimes-for-the-embedded-hyper)). The runtime check sets the flag
+  [Node and the command line tool](../design/dashql_runtime.md#node-and-the-command-line-tool)). The runtime check sets the flag
   itself, see below.
 
 ## The runtime check
@@ -314,8 +314,8 @@ overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 | Code | Today | Goes to |
 |---|---|---|
 | One call for any statement, quoting | `@ankoh/hyperdb-edge` | Built |
-| Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, planned for the Node CLI in [dashql_runtime.md](dashql_runtime.md) |
-| Arrow tables that Hyper reads | `packages/dashql-app/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
+| Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, the platform of Node runs the check before the engine starts (`packages/dashql/src/platform/node/node_hyperdb.ts`) |
+| Arrow tables that Hyper reads | `packages/dashql/src/platform/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
 | The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@ankoh/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
 | `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@ankoh/hyperdb-edge` |
 | `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |

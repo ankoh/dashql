@@ -4,10 +4,10 @@ import type * as core from '../../core/index.js';
 import type { HandleTable } from './handles.js';
 import { QueryResultStream } from '../query/query_result_stream.js';
 
-/// The Arrow tables of the platform by handle (docs/wip/runtime_api.md): result data never enters the module, a table
-/// is an object of the handle table. A table begins with an Arrow IPC stream, its schema and maybe batches, takes the
-/// batches of more streams and is a table of the handle table once it finished. The result of a query streams into a
-/// table that was opened: the parts of one Arrow IPC stream as they arrive, or the record batches of a channel of the
+/// The Arrow tables of the platform by handle (docs/design/dashql_runtime.md): result data never enters the module, a
+/// table is an object of the handle table. A table begins with an Arrow IPC stream, its schema and maybe batches, takes
+/// the batches of more streams and is a table of the handle table once it finished. The result of a query streams into
+/// a table that was opened: the parts of one Arrow IPC stream as they arrive, or the record batches of a channel of the
 /// host (`stream`). The runtime reads the small tables that it parses back as Arrow IPC streams, of the others it
 /// learns the rows and the schema (`describe`).
 ///

@@ -92,9 +92,6 @@ The catalog loader of the runtime publishes the batches of an update (`catalog_l
 - A forced refresh aborts the running update of the connection. An automatic refresh only describes a connection that
   nothing describes yet (`CatalogUpdates::described`); only a forced refresh replaces a catalog.
 
-`publishCatalogBatchSync` of `packages/dashql/src/runtime/connections/catalog/catalog_batch.ts` prepares and
-publishes catalog SQL on the main thread for tests and tools, with the same checks and the same order.
-
 ## Uses
 
 | Path | Inputs |
@@ -115,8 +112,8 @@ batching does not reconstruct argument metadata the engine does not expose.
 - Core: `packages/dashql-core-script/tests/batch_test.rs`, `packages/dashql-core/tests/catalog_descriptor_test.rs`.
 - Core JS: `packages/dashql/src/core/batch.test.ts`, `batch_worker_client.test.ts`.
 - Runtime: `packages/dashql-core-runtime/tests/catalog_loader_test.rs` (the updates and their batches) and
-  `catalog_loader_service_test.rs` (the loader on a host). `catalog_updates.integration.test.ts` of the TypeScript
-  runtime runs lookups through the loader on the embedded Hyper.
+  `catalog_loader_service_test.rs` (the loader on a host). `catalog_updates.integration.test.ts` of
+  `packages/dashql/src/runtime` runs lookups through the loader on the embedded Hyper.
 
 ## Main Files
 

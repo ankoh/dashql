@@ -421,9 +421,9 @@ export class DashQL {
         return this.bindings.inputLiteral(value, type ?? undefined);
     }
 
-    /// Create the runtime of DashQL on a platform (docs/wip/runtime_api.md), through the instance like a workbook. The
-    /// runtime is a class of the module, its methods take and return the generated views, actions and change sets;
-    /// `free()` frees it after `destroy()`.
+    /// Create the runtime of DashQL on a platform (docs/design/dashql_runtime.md), through the instance like a
+    /// workbook. The runtime is a class of the module, its methods take and return the generated views, actions and
+    /// change sets; `free()` frees it after `destroy()`.
     public createRuntime(platform: glue.RuntimePlatform): glue.Runtime {
         return this.bindings.Runtime.create(platform);
     }

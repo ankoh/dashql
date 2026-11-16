@@ -1,7 +1,7 @@
 # dashql-cli
 
 `dashql`, the command line tool of DashQL on `@ankoh/dashql`. It runs the logic of the app in Node, so an agent in a
-harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
+harness gets the answers of the app (`docs/design/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
@@ -41,7 +41,7 @@ echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 
 ### What it does
 
-Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the runtime), and only the scripts with
+Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the platform of `@ankoh/dashql`), and only the scripts with
 diagnostics are printed. Scripts
 are not executed.
 
@@ -77,7 +77,7 @@ complete them. They are not reported.
 dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
 ```
 
-Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the runtime) in the
+Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the platform of `@ankoh/dashql`) in the
 pretty mode with lowercase
 keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
 `--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where

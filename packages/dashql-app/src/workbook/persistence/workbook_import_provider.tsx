@@ -15,7 +15,7 @@ import { useRuntime } from '../../runtime/runtime_hooks.js';
 
 // The imports of workbooks in the app. The runtime reads a source (a `.dashql` archive, a workbook folder or the
 // workbook tables of a cloud) into an import of its own, maps its connections to the connections of the app and writes
-// it (docs/wip/runtime_api.md). The provider asks the user what the runtime can't decide: whether to replace a
+// it (docs/design/dashql_runtime.md). The provider asks the user what the runtime can't decide: whether to replace a
 // registered workbook with the same id, and which existing connections the connections of the workbook use.
 
 type ImportPresentation =

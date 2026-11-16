@@ -7,7 +7,7 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 # DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
-# docs/wip/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
+# docs/design/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
 #
 # - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-wasm), the generated packages of the
 #   core module (@ankoh/dashql-wasm, @ankoh/dashql-flatbuffers) are folders of Bazel next to them,

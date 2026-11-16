@@ -1,6 +1,6 @@
 //! The computation slice of the runtime: its view, its actions and the context of the calls of the compute platform,
 //! as JS objects (`serde-wasm-bindgen`) with TypeScript declarations in the generated `.d.ts` (`tsify`). See
-//! docs/wip/runtime_api.md.
+//! docs/design/dashql_core.md.
 //!
 //! The view keeps the field names that the app reads (`tableId`, `dataTable`, `columnGroups`, `filterTable`, ...).
 //! It names the Arrow tables by their handles of the platform and the data frames by their ids. Ids, handles,

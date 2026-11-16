@@ -1,5 +1,5 @@
 //! The queries of the runtime: the host of the query executor of the crate, the command that runs a query and the
-//! views of a query (docs/wip/runtime_api.md).
+//! views of a query (docs/design/dashql_core.md).
 //!
 //! A query of a connection is in the history of the connection from the start: `executeQuery` hands out its id from
 //! the registry, registers it and runs it once the runtime described it (`Connections::describe`): the target on the

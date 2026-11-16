@@ -1,5 +1,5 @@
 //! The exports of workbooks: a `.dashql` file, a link that carries the archive, the workbook tables of a cloud, and the
-//! link of a connection (docs/wip/runtime_api.md, docs/design/workbook_tables.md).
+//! link of a connection (docs/design/dashql_core.md, docs/design/workbook_tables.md).
 //!
 //! The runtime reads the workbook from the storage of the platform, the cached results of its scripts from the query
 //! result cache (retained while the export reads them) and the live params and names of its connections from its

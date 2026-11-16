@@ -1,5 +1,5 @@
 //! The views of a query history: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`) with
-//! TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/wip/runtime_projection.md.
+//! TypeScript declarations in the generated `.d.ts` (`tsify`). See docs/design/dashql_core.md.
 //!
 //! The views of the queries are the same for the history of a connection and a history of its own, e.g. the one of
 //! the shell. Ids, revisions and times are numbers, a missing value is null. The counters of the stream metrics cross

@@ -1,4 +1,4 @@
-// The typing benchmark of the runtime (docs/wip/core_runtime.md, "Typing").
+// The typing benchmark of the runtime (docs/design/dashql_runtime.md, "The typing benchmark").
 //
 // A script of 40 lines is typed character by character next to two other scripts, and again next to 19 other scripts
 // (tables, queries over them and scripts that read other scripts as table parameters) so that costs per script show.

@@ -7,7 +7,7 @@ import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import { WebHttpClient } from '../../platform/platform/http/web_http_client.js';
 import { createDashQLCoreSetup } from '../../platform/node/node_core.js';
 
-/// Node has no OAuth flow yet, `dashql auth` brings one (docs/wip/dashql_runtime.md)
+/// Node has no OAuth flow yet, `dashql auth` brings one (docs/design/dashql_runtime.md)
 const NO_OAUTH_FLOW: OAuthFlow = {
     redirectVariant: 'NATIVE_LINK_FLOW',
     redirectCallbackUrl: null,

@@ -65,7 +65,7 @@ import { createNodePlatform } from '@ankoh/dashql/node';
 import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
 import { NODE_FILE_SYSTEM } from '@ankoh/dashql/platform/node/node_file_system';
 
-const runtime = createRuntime(createNodePlatform({ logger, storage: new NativeStorageBackend(folder, NODE_FILE_SYSTEM) }));
+const runtime = createRuntime(await createNodePlatform({ logger, storage: new NativeStorageBackend(folder, NODE_FILE_SYSTEM) }));
 await runtime.restore();
 ```
 
@@ -108,7 +108,7 @@ loading. No application-specific aliases or test globals are required.
 ## Bazel
 
 `packages/dashql` is a source package in the repository: the app, the command line tool and the tests read its
-TypeScript, see `docs/wip/dashql_runtime.md`. Only the package on npm is built:
+TypeScript, see `docs/design/dashql_runtime.md`. Only the package on npm is built:
 
 - `bazel build //packages/dashql:bundle` bundles the modules with their declarations into `dist/` (`npm/build.mjs`).
 - `bazel build //packages/dashql:npm_package` assembles the npm directory with `npm/package.json`.

@@ -175,7 +175,7 @@ session server. The modules of the runtime reach it through the handles of
 so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and
 removes its instance folder when it ends. It is not the root of the app: a viewer that shows results of the command line
 tool copies them into its own storage. The Web Locks of its query result cache span one process, see
-`docs/wip/dashql_runtime.md`.
+`docs/design/dashql_runtime.md`.
 
 ## Native workbooks
 

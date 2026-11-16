@@ -1,5 +1,6 @@
-//! The workbooks of the runtime (docs/wip/runtime_api.md): the scripts of every workbook with their sessions, the index
-//! of the workbooks that use a connection, the promotion of the ephemeral workbook and the writes of their changes.
+//! The workbooks of the runtime (docs/design/dashql_core.md): the scripts of every workbook with their sessions, the
+//! index of the workbooks that use a connection, the promotion of the ephemeral workbook and the writes of their
+//! changes.
 //!
 //! A workbook is a workbook of the crate (`dashql_core_runtime::workbook`) that the runtime shares with the runs of it.
 //! An action changes a workbook in place, its effects go to the storage writer of the runtime right away, an ephemeral
