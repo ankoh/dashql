@@ -11,9 +11,8 @@
 //! - `health_check`: the probe query of a new channel.
 //!
 //! The host is one setup: it applies the actions to one connection and keeps the channels of that setup. The channels
-//! stay objects of the host, the query executor reads them as it did before: a Trino channel names its endpoint, auth
-//! and token, a Hyper channel over HTTP describes itself, the gRPC channel of the desktop app and the embedded Hyper run
-//! their queries in the host.
+//! of Hyper stay objects of the host: a Hyper channel over HTTP describes itself, the gRPC channel of the desktop app and
+//! the embedded Hyper run their queries in the host. A Trino channel is owned by its connection, the host keeps a handle.
 //!
 //! A cancelled setup ends at the next step: the token stops the host call that runs, the state machine reports the
 //! cancellation as an action of the connection. A failed host call keeps what the host failed with, the caller gets it
@@ -25,16 +24,18 @@ pub mod oauth;
 pub mod salesforce;
 pub mod trino;
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::future::Future;
+use std::rc::Rc;
 
 use serde_json::{json, Value};
 
 use crate::connections::{
-    ChannelId, ConnectionAction, ConnectorType, DetailedError, HyperAction, JsonObject, OAuthPkceChallenge, SalesforceAction,
-    TemporaryToken, TrinoAction,
+    ChannelId, ConnectionAction, DetailedError, HyperAction, JsonObject, SalesforceAction, TrinoAction,
 };
 use crate::executor::HostValue;
+use crate::host::signal::oneshot;
 use crate::host::HostError;
 use crate::http::CancellationToken;
 use crate::query::QueryMetadata;
@@ -107,7 +108,8 @@ pub enum ProbeResult {
 pub trait SetupHost: OAuthHost {
     /// Apply an action of the setup to its connection
     fn dispatch(&self, action: &ConnectionAction);
-    /// Keep a Trino channel, returns its id. The executor speaks it with the endpoint, the auth and the token.
+    /// A handle for a Trino channel, returns its id. The connection owns the channel itself (`TrinoAction::ChannelReady`),
+    /// the host keeps only a handle that the connection releases with the channel.
     fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static;
     /// Connect the Hyper channel of a Salesforce connection over HTTP with its tokens, returns its id
     fn connect_salesforce_channel(
@@ -125,6 +127,11 @@ pub trait SetupHost: OAuthHost {
     fn hyper_link_token(&self) -> Option<String>;
     /// Close a channel that the setup doesn't hand out, e.g. one that was ready after the setup was cancelled
     fn close_channel(&self, id: ChannelId);
+    /// The details of what the host failed with, e.g. the key values of an error of Hyper, for the error of the
+    /// connection
+    fn error_details(&self, _error: &HostError) -> BTreeMap<String, String> {
+        BTreeMap::new()
+    }
     /// Run the probe query of a health check on a channel through the query executor, as a query of the connection
     fn run_probe(
         &self,
@@ -161,6 +168,8 @@ pub fn setup_action_json(action: &ConnectionAction) -> Option<Value> {
         ConnectionAction::HealthCheckCancelled => ("connection", "HEALTH_CHECK_CANCELLED", Value::Null),
         ConnectionAction::HealthCheckSucceeded => ("connection", "HEALTH_CHECK_SUCCEEDED", Value::Null),
         ConnectionAction::HealthCheckFailed(error) => ("connection", "HEALTH_CHECK_FAILED", error_json(error)),
+        // Not a step of a setup
+        ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { .. }) => return None,
         ConnectionAction::Trino(action) => {
             let (kind, value) = match action {
                 TrinoAction::OAuthStarted { params } => ("OAUTH_STARTED", params_json(params)),
@@ -179,7 +188,8 @@ pub fn setup_action_json(action: &ConnectionAction) -> Option<Value> {
                 TrinoAction::ChannelSetupStarted { params } => ("TRINO_CHANNEL_SETUP_STARTED", params_json(params)),
                 TrinoAction::ChannelSetupCancelled(error) => ("TRINO_CHANNEL_SETUP_CANCELLED", error_json(error)),
                 TrinoAction::ChannelSetupFailed(error) => ("TRINO_CHANNEL_SETUP_FAILED", error_json(error)),
-                TrinoAction::ChannelReady(channel) => ("TRINO_CHANNEL_READY", json!(channel)),
+                TrinoAction::ChannelReady { channel, .. } => ("TRINO_CHANNEL_READY", json!(channel)),
+                TrinoAction::AccessTokenRefreshed { .. } => return None,
             };
             ("trino", kind, value)
         }
@@ -237,81 +247,51 @@ pub fn setup_action_json(action: &ConnectionAction) -> Option<Value> {
     Some(json!({ "connector": connector, "type": kind, "value": value }))
 }
 
-/// An action of a setup from the name of its type and its value, as `setup_action_json` writes them, for a connection
-/// of a connector: the name of an action is unique per connector. A channel is the id that the host gave the channel of
-/// a ready action, a token the JSON of the token.
-pub fn setup_action_from_json(connector: ConnectorType, kind: &str, value: &Value, channel: Option<ChannelId>) -> Result<ConnectionAction, String> {
-    let error = || -> DetailedError {
-        let message = value.get("message").and_then(Value::as_str).unwrap_or_default().to_string();
-        let data = value
-            .get("data")
-            .and_then(Value::as_object)
-            .map(|data| data.iter().filter_map(|(key, value)| Some((key.clone(), value.as_str()?.to_string()))).collect())
-            .unwrap_or_default();
-        DetailedError { message, data }
-    };
-    let params = || -> JsonObject { value.as_object().cloned().unwrap_or_default() };
-    let text = |key: &str| value.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
-    let pkce = || OAuthPkceChallenge { value: text("value"), verifier: text("verifier") };
-    let code = || TemporaryToken { token: text("token"), created_at: text("createdAt") };
-    // A token is opaque JSON, a string stays the string
-    let token = || match value {
-        Value::String(token) => token.clone(),
-        token => token.to_string(),
-    };
-    let channel = || channel.ok_or_else(|| format!("the action {kind} has no channel"));
-    let action = match (kind, connector) {
-        ("HEALTH_CHECK_STARTED", _) => ConnectionAction::HealthCheckStarted,
-        ("HEALTH_CHECK_CANCELLED", _) => ConnectionAction::HealthCheckCancelled,
-        ("HEALTH_CHECK_SUCCEEDED", _) => ConnectionAction::HealthCheckSucceeded,
-        ("HEALTH_CHECK_FAILED", _) => ConnectionAction::HealthCheckFailed(error()),
-        ("HYPER_CHANNEL_SETUP_STARTED", _) => ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params() }),
-        ("HYPER_CHANNEL_SETUP_CANCELLED", _) => ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error())),
-        ("HYPER_CHANNEL_SETUP_FAILED", _) => ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error())),
-        ("HYPER_CHANNEL_READY", _) => ConnectionAction::Hyper(HyperAction::ChannelReady { channel: channel()?, params: params() }),
-        ("TRINO_CHANNEL_SETUP_STARTED", _) => ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: params() }),
-        ("TRINO_CHANNEL_SETUP_CANCELLED", _) => ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error())),
-        ("TRINO_CHANNEL_SETUP_FAILED", _) => ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(error())),
-        ("TRINO_CHANNEL_READY", _) => ConnectionAction::Trino(TrinoAction::ChannelReady(channel()?)),
-        ("SF_CHANNEL_SETUP_STARTED", _) => ConnectionAction::Salesforce(SalesforceAction::ChannelSetupStarted),
-        ("SF_CHANNEL_SETUP_CANCELLED", _) => ConnectionAction::Salesforce(SalesforceAction::ChannelSetupCancelled(error())),
-        ("SF_CHANNEL_SETUP_FAILED", _) => ConnectionAction::Salesforce(SalesforceAction::ChannelSetupFailed(error())),
-        ("SF_CHANNEL_READY", _) => ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel()?)),
-        (kind, ConnectorType::Trino) => ConnectionAction::Trino(match kind {
-            "OAUTH_STARTED" => TrinoAction::OAuthStarted { params: params() },
-            "OAUTH_CANCELLED" => TrinoAction::OAuthCancelled(error()),
-            "OAUTH_FAILED" => TrinoAction::OAuthFailed(error()),
-            "GENERATING_PKCE_CHALLENGE" => TrinoAction::GeneratingPkceChallenge,
-            "GENERATED_PKCE_CHALLENGE" => TrinoAction::GeneratedPkceChallenge(pkce()),
-            "OAUTH_BROWSER_OPENED" => TrinoAction::OAuthBrowserOpened,
-            "RECEIVED_OAUTH_CODE" => TrinoAction::ReceivedOAuthCode(code()),
-            "REQUESTING_ACCESS_TOKEN" => TrinoAction::RequestingAccessToken,
-            "RECEIVED_ACCESS_TOKEN" => TrinoAction::ReceivedAccessToken(token()),
-            _ => return Err(format!("unknown action {kind} of a Trino connection")),
-        }),
-        (kind, ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom) => ConnectionAction::Salesforce(match kind {
-            "SETUP_STARTED" => SalesforceAction::SetupStarted { params: params() },
-            "SETUP_CANCELLED" => SalesforceAction::SetupCancelled(error()),
-            "SETUP_FAILED" => SalesforceAction::SetupFailed(error()),
-            "GENERATING_PKCE_CHALLENGE" => SalesforceAction::GeneratingPkceChallenge,
-            "GENERATED_PKCE_CHALLENGE" => SalesforceAction::GeneratedPkceChallenge(pkce()),
-            "OAUTH_NATIVE_LINK_OPENED" => SalesforceAction::OAuthNativeLinkOpened,
-            "OAUTH_WEB_WINDOW_OPENED" => SalesforceAction::OAuthWebWindowOpened,
-            "OAUTH_WEB_WINDOW_CLOSED" => SalesforceAction::OAuthWebWindowClosed,
-            "RECEIVED_CORE_AUTH_CODE" => SalesforceAction::ReceivedCoreAuthCode(code()),
-            "REQUESTING_CORE_AUTH_TOKEN" => SalesforceAction::RequestingCoreAuthToken,
-            "RECEIVED_CORE_AUTH_TOKEN" => SalesforceAction::ReceivedCoreAuthToken(token()),
-            "RECEIVED_CORE_USER_INFO" => SalesforceAction::ReceivedCoreUserInfo {
-                preferred_username: value.get("preferredUsername").and_then(Value::as_str).map(str::to_string),
-                email: value.get("email").and_then(Value::as_str).map(str::to_string),
-            },
-            "REQUESTING_DATA_CLOUD_ACCESS_TOKEN" => SalesforceAction::RequestingDataCloudAccessToken,
-            "RECEIVED_DATA_CLOUD_ACCESS_TOKEN" => SalesforceAction::ReceivedDataCloudAccessToken(token()),
-            _ => return Err(format!("unknown action {kind} of a Salesforce connection")),
-        }),
-        (kind, connector) => return Err(format!("unknown action {kind} of a connection of {}", connector.display_name())),
-    };
-    Ok(action)
+/// Connect a channel through the host, the token stops the wait: none if it was cancelled first. The connect runs on in
+/// a task of its own, a channel that it connects after the setup stopped waiting is closed.
+pub(crate) async fn connect_channel<H: SetupHost>(
+    host: &Rc<H>,
+    connect: impl Future<Output = Result<ChannelId, HostError>> + 'static,
+    cancellation: &CancellationToken,
+) -> Option<Result<ChannelId, HostError>> {
+    struct Slot {
+        result: Option<Result<ChannelId, HostError>>,
+        abandoned: bool,
+    }
+    let slot = Rc::new(RefCell::new(Slot { result: None, abandoned: false }));
+    let (sender, connected) = oneshot::<()>();
+    {
+        let slot = slot.clone();
+        let host = host.clone();
+        host.clone().spawn(Box::pin(async move {
+            let result = connect.await;
+            let close = {
+                let Ok(mut slot) = slot.try_borrow_mut() else { return };
+                if slot.abandoned {
+                    result.ok()
+                } else {
+                    slot.result = Some(result);
+                    None
+                }
+            };
+            match close {
+                Some(channel) => host.close_channel(channel),
+                None => sender.send(()),
+            }
+        }));
+    }
+    let _ = cancellation.run(connected).await;
+    let mut slot = slot.borrow_mut();
+    // A channel that is connected already goes to the setup, which closes it if it was cancelled
+    if let Some(result) = slot.result.take() {
+        return Some(result);
+    }
+    slot.abandoned = true;
+    if cancellation.is_cancelled() {
+        None
+    } else {
+        Some(Err(HostError::new("The connect of the channel ended without a channel")))
+    }
 }
 
 /// The outcome of a host call that the token may stop: none if it was cancelled
@@ -323,48 +303,4 @@ pub(crate) async fn cancellable<T>(
         return None;
     }
     cancellation.run(call).await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reads_the_actions_that_it_writes() {
-        let error = DetailedError { message: "nope".into(), data: BTreeMap::from([("status".to_string(), "401".to_string())]) };
-        let params: JsonObject = serde_json::from_value(json!({ "endpoint": "https://trino.example" })).unwrap();
-        let actions = [
-            (ConnectorType::Hyper, ConnectionAction::HealthCheckFailed(error.clone())),
-            (ConnectorType::Hyper, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: 3, params: params.clone() })),
-            (ConnectorType::Trino, ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() })),
-            (ConnectorType::Trino, ConnectionAction::Trino(TrinoAction::ReceivedAccessToken(r#"{"accessToken":"t"}"#.into()))),
-            (ConnectorType::Trino, ConnectionAction::Trino(TrinoAction::ChannelReady(4))),
-            (
-                ConnectorType::Dbcom,
-                ConnectionAction::Salesforce(SalesforceAction::GeneratedPkceChallenge(OAuthPkceChallenge {
-                    value: "v".into(),
-                    verifier: "w".into(),
-                })),
-            ),
-            (
-                ConnectorType::SalesforceDataCloud,
-                ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreUserInfo { preferred_username: Some("me".into()), email: None }),
-            ),
-            (ConnectorType::SalesforceDataCloud, ConnectionAction::Salesforce(SalesforceAction::ChannelSetupFailed(error))),
-        ];
-        for (connector, action) in actions {
-            let json = setup_action_json(&action).unwrap();
-            let kind = json["type"].as_str().unwrap();
-            let channel = match &action {
-                ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. }) => Some(*channel),
-                ConnectionAction::Trino(TrinoAction::ChannelReady(channel)) => Some(*channel),
-                _ => None,
-            };
-            // The channel of a ready action of Hyper comes next to its params
-            let value = if kind == "HYPER_CHANNEL_READY" { json["value"]["params"].clone() } else { json["value"].clone() };
-            assert_eq!(setup_action_from_json(connector, kind, &value, channel), Ok(action));
-        }
-        assert!(setup_action_from_json(ConnectorType::Hyper, "OAUTH_STARTED", &Value::Null, None).is_err());
-        assert!(setup_action_from_json(ConnectorType::Trino, "TRINO_CHANNEL_READY", &Value::Null, None).is_err());
-    }
 }

@@ -34,7 +34,7 @@ function metadata(queryId: number, queryType: QueryType) {
 
 /// A Hyper connection with a finished user query, a finished SQLFrame query and an active query
 function connectionWithQueries(runtime: Runtime): void {
-    addTestConnection(runtime, { connectionId: 'internals-test', params: { hyper: {} } as never });
+    void addTestConnection(runtime, { connectionId: 'internals-test', params: { hyper: {} } as never });
     const target = { connection: 'internals-test' };
     trackTestQuery(runtime, target, 'select 1', metadata(1, QueryType.USER_PROVIDED), true);
     trackTestQuery(runtime, target, 'select 2', metadata(2, QueryType.INTERNAL_SQLFRAME), true);

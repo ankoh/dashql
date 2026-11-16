@@ -15,7 +15,7 @@ import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { newConnectionFromParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -43,7 +43,7 @@ describe('workbook creation', () => {
                 <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
             // The embedded database of the runtime of the test
-            const database = createTestConnection(runtime, { connectionId: TEST_CONNECTION_ID, params });
+            const database = runtime.createConnection(newConnectionFromParams(params), TEST_CONNECTION_ID);
             let workbookId = '';
             await act(async () => { workbookId = createWorkbook(database, 'Default').workbookId; });
             expect(workbooks.get(workbookId)?.name).toBe('Default');
@@ -72,7 +72,7 @@ describe('workbook creation', () => {
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
         let runtime!: Runtime;
         /// A connection of the runtime of the test
-        const connection = (connectionId: string): ConnectionState => createTestConnection(runtime, { connectionId, params });
+        const connection = (connectionId: string): ConnectionState => runtime.createConnection(newConnectionFromParams(params), connectionId);
         let createWorkbook!: WorkbookCreation;
         let ephemeralWorkbook!: ReturnType<typeof useEphemeralWorkbook>;
         let workbooks!: ReadonlyMap<string, WorkbookScripts>;

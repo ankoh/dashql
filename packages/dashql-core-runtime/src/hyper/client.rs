@@ -210,6 +210,7 @@ impl HyperHttpClient {
             url: self.endpoint.origin_url("/api/v3/query", &[]),
             headers: self.headers(auth, extra),
             body: Some(request.to_json().to_string()),
+            sensitive: false,
         }
     }
 
@@ -222,6 +223,7 @@ impl HyperHttpClient {
             url: self.endpoint.origin_url(&Self::query_path(&params.query_id), &query),
             headers: self.headers(auth, None),
             body: None,
+            sensitive: false,
         }
     }
 
@@ -232,6 +234,7 @@ impl HyperHttpClient {
             url: self.endpoint.origin_url(&Self::query_path(query_id), &[]),
             headers: self.headers(auth, None),
             body: None,
+            sensitive: false,
         }
     }
 
@@ -250,6 +253,7 @@ impl HyperHttpClient {
             url: self.endpoint.origin_url(&path, &query),
             headers: self.headers(auth, extra),
             body: None,
+            sensitive: false,
         }
     }
 
@@ -276,6 +280,7 @@ impl HyperHttpClient {
             url: self.endpoint.origin_url(&path, &query),
             headers: self.headers(auth, extra),
             body: None,
+            sensitive: false,
         }
     }
 }

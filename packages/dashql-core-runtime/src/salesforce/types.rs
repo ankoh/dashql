@@ -107,6 +107,19 @@ impl SalesforceTokens {
     pub fn from_json(core: &str, data_cloud: &str) -> Option<Self> {
         Some(Self { core: serde_json::from_str(core).ok()?, data_cloud: serde_json::from_str(data_cloud).ok()? })
     }
+
+    /// The tokens of the OAuth state of a connection, none before the setup received both. Tokens that don't read are
+    /// an error, never a connection without tokens.
+    pub fn of_connection(oauth: Option<&crate::connections::SalesforceOAuthState>) -> Result<Option<Self>, String> {
+        let (Some(core), Some(data_cloud)) =
+            (oauth.and_then(|oauth| oauth.core_access_token.as_deref()), oauth.and_then(|oauth| oauth.data_cloud_access_token.as_deref()))
+        else {
+            return Ok(None);
+        };
+        let core = serde_json::from_str(core).map_err(|e| format!("The Salesforce core access token is invalid: {e}"))?;
+        let data_cloud = serde_json::from_str(data_cloud).map_err(|e| format!("The Data Cloud access token is invalid: {e}"))?;
+        Ok(Some(Self { core, data_cloud }))
+    }
 }
 
 /// The user of the core login

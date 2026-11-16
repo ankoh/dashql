@@ -2,8 +2,8 @@ import type * as core from '@ankoh/dashql';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import type { QueryMetadata } from '@ankoh/dashql/platform/query/query_execution_state';
 import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { ConnectionHealth, setupStepAction, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { createTestConnection, reduceTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { createTestConnection, setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 
 /// A connection of a test of the app, created in the runtime of the app
 export interface TestConnectionSpec {
@@ -19,31 +19,27 @@ export interface TestConnectionSpec {
     channel?: object;
 }
 
-/// Create a connection of a test in the runtime of the app with a health, returns its view
-export function addTestConnection(runtime: Runtime, spec: TestConnectionSpec): ConnectionState {
-    const online = spec.health === ConnectionHealth.ONLINE;
-    const created = createTestConnection(runtime, {
+/// Create a connection of a test in the runtime of the app with a health, returns its view. The runtime sets up a
+/// connection that isn't new with a channel of the test, see `setupTestConnection`.
+export async function addTestConnection(runtime: Runtime, spec: TestConnectionSpec): Promise<ConnectionState> {
+    const created = await createTestConnection(runtime, {
         connectionId: spec.connectionId,
         params: spec.params,
         name: spec.name,
         active: spec.active,
-        channel: online ? (spec.channel ?? { close: () => { } }) : undefined,
     });
-    return setTestConnectionHealth(runtime, created.connectionId, spec.health ?? ConnectionHealth.NOT_STARTED, spec.error) ?? created;
+    return await setTestConnectionHealth(runtime, created.connectionId, spec.health ?? ConnectionHealth.NOT_STARTED, spec.error, spec.channel) ?? created;
 }
 
-/// Bring a connection of a test to a health, returns its view
-export function setTestConnectionHealth(runtime: Runtime, connectionId: string, health: ConnectionHealth, error?: string): ConnectionState | null {
+/// Bring a connection of a test to a health with a setup of the runtime, returns its view
+export async function setTestConnectionHealth(runtime: Runtime, connectionId: string, health: ConnectionHealth, error?: string, channel?: object): Promise<ConnectionState | null> {
     const current = runtime.connection(connectionId);
     if (current == null || current.connectionHealth === health) return current;
-    const state = { connectionId };
     switch (health) {
         case ConnectionHealth.ONLINE:
-            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
         case ConnectionHealth.FAILED:
-            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_FAILED', { message: error ?? 'failed' }));
         case ConnectionHealth.CONNECTING:
-            return reduceTestConnection(runtime, state, setupStepAction('HEALTH_CHECK_STARTED'));
+            return await setupTestConnection(runtime, connectionId, { channel, health, error });
         default:
             return current;
     }
@@ -62,12 +58,16 @@ export function trackTestQuery(runtime: Runtime, target: core.Target, text: stri
 }
 
 /// Add the connections of fakes of a test to the runtime: their ids, params, names and health
-export function addTestConnections(runtime: Runtime, connections: readonly Pick<ConnectionState, 'connectionId' | 'params' | 'connectionHealth' | 'name' | 'active'>[]): ConnectionState[] {
-    return connections.map(connection => addTestConnection(runtime, {
-        connectionId: connection.connectionId,
-        params: connection.params,
-        name: connection.name ?? undefined,
-        active: connection.active,
-        health: connection.connectionHealth,
-    }));
+export async function addTestConnections(runtime: Runtime, connections: readonly Pick<ConnectionState, 'connectionId' | 'params' | 'connectionHealth' | 'name' | 'active'>[]): Promise<ConnectionState[]> {
+    const added: ConnectionState[] = [];
+    for (const connection of connections) {
+        added.push(await addTestConnection(runtime, {
+            connectionId: connection.connectionId,
+            params: connection.params,
+            name: connection.name ?? undefined,
+            active: connection.active,
+            health: connection.connectionHealth,
+        }));
+    }
+    return added;
 }

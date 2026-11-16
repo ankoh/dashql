@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionResponseStreamMock } from './query_execution_mock.js';
 import { HyperDatabaseClientMock } from './hyper/hyperdb_grpc_client_mock.js';
-import { SalesforceAPIClientMock, type SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 import { type QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 
@@ -70,27 +69,5 @@ describe('the mocked connector clients', () => {
         const stream = await channel.executeQuery({} as never);
         expect(stream).toBeInstanceOf(QueryExecutionResponseStreamMock);
         await expect(channel.close()).resolves.toBeUndefined();
-    });
-
-    it('returns the configured Salesforce tokens and metadata after a delay', async () => {
-        vi.useFakeTimers();
-        const config = {
-            enabled: true,
-            pkceChallenge: { value: 'challenge', verifier: 'verifier' },
-            coreAccess: { accessToken: 'core' },
-            coreUserInfo: { userId: 'user' },
-            dataCloudAccess: { accessToken: { token: 'data-cloud' } },
-            dataCloudMetadata: { entities: [] },
-        } as unknown as SalesforceConnectorMockConfig;
-        const client = new SalesforceAPIClientMock(config);
-        const cancel = new AbortController().signal;
-        const pending = Promise.all([
-            client.getCoreAccessToken({} as never, {} as never, 'code', 'verifier', cancel),
-            client.getDataCloudMetadata(config.coreAccess, 'default', cancel),
-            client.getDataCloudAccessToken(config.coreAccess, cancel),
-        ]);
-        await vi.advanceTimersByTimeAsync(200);
-        expect(await pending).toEqual([config.coreAccess, config.dataCloudMetadata, config.dataCloudAccess]);
-        expect(client.executeQuery('select 1', config.dataCloudAccess)).toBeInstanceOf(QueryExecutionResponseStreamMock);
     });
 });

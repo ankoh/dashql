@@ -72,7 +72,7 @@ describe('WorkbookURLShareOverlay', () => {
         );
         await root.render(tree(false));
         await act(async () => {
-            addTestConnections(runtime!, [CONNECTION]);
+            await addTestConnections(runtime!, [CONNECTION]);
             // The workbook uses the connection without a script
             runtime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, undefined, TEST_WORKBOOK_ID);
         });

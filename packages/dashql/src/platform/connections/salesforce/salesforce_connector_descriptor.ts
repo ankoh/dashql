@@ -9,12 +9,7 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     paramsKey: 'salesforce',
     defaultParams: () => ({ instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' }),
     withoutDraftRows: params => params,
-    // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
-    sanitizeForSharing: (params, withLoginHint) => ({ ...params, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) }),
     loginHint: params => params.login || null,
-    maxConcurrentQueries: () => 1,
-    catalogIsDurable: () => true,
-    readsAttachments: () => false,
     clientFunctions: SALESFORCE_CLIENT_FUNCTIONS,
 };
 

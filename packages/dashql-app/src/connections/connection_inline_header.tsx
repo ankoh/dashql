@@ -7,7 +7,7 @@ import * as style from './connection_inline_header.module.css';
 import { PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { ConnectionHealth, ConnectionState, isConnectionOpen } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
@@ -100,7 +100,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     }
 
     // An open connection keeps its protocol, switching it would replace the settings page underneath it
-    const protocolLocked = props.freezeInput || isConnectionOpen(connectionHealth);
+    const protocolLocked = props.freezeInput || (props.connection?.open ?? false);
 
     // Get the connection status
     let statusText: string = props.statusText ?? "";

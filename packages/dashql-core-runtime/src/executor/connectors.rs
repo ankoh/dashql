@@ -29,7 +29,7 @@ use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use dashql_buffers::profile::ProfileLayoutConfig;
-use crate::trino::{StreamOutput, TokenRefresh, TrinoChannel, TrinoQuery, TrinoQueryOptions};
+use crate::trino::{refresh_outcome, SharedTrinoChannel, StreamOutput, TokenCheck, TrinoError, TrinoQuery, TrinoQueryOptions};
 
 /// A failure to write the Arrow IPC stream of a result
 fn write_failure(message: String) -> QueryFailure {
@@ -222,7 +222,7 @@ pub async fn run<H: ExecutorHost>(
 ) -> Result<Option<StreamEnd>, QueryFailure> {
     match target {
         QueryTarget::Host => run_host_channel(context).await,
-        QueryTarget::Trino(channel) => run_trino(context, channel.clone(), text).await.map(Some),
+        QueryTarget::Trino(channel) => run_trino(context, channel, text).await.map(Some),
         QueryTarget::HyperHttp { channel, auth } => run_hyper(context, channel, auth, text).await.map(Some),
         QueryTarget::ClientFunction(target) => run_client_function(context, target).await.map(Some),
     }
@@ -253,14 +253,83 @@ fn fetch_outcome(result: Result<HttpResponse, HostError>) -> FetchOutcome {
     }
 }
 
+/// Make sure that the access token of a shared Trino channel is fresh before a request. A token about to expire is
+/// refreshed once for every query of the channel: the first query starts the refresh in a task of its own that runs to
+/// its end, so a cancelled query never drops a refresh that others wait for, and the connection keeps the new token.
+/// None if the query was cancelled while it waited.
+async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel) -> Option<Result<(), TrinoError>> {
+    let host = context.host.clone();
+    let refreshed = match channel.check_token(host.now() as i64) {
+        TokenCheck::Fresh => return Some(Ok(())),
+        TokenCheck::Pending(refreshed) => refreshed,
+        TokenCheck::Started { request, refreshed } => {
+            let channel = channel.clone();
+            let task_host = host.clone();
+            host.spawn(Box::pin(async move {
+                let response = task_host.fetch(request, &CancellationToken::new()).await;
+                if let Ok(token) = channel.finish_token_refresh(&fetch_outcome(response), task_host.now() as i64) {
+                    task_host.trino_token_refreshed(&channel, &token);
+                }
+            }));
+            refreshed
+        }
+    };
+    context.token.run(refreshed).await.map(refresh_outcome)
+}
+
+/// Cancel a Trino query at the backend by deleting its next URI, e.g. after the query was cancelled or failed while
+/// Trino still runs it. The cancellation is sent with a token of its own, a failure is logged.
+async fn cancel_trino<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel, query: &TrinoQuery) {
+    let Some(cancel) = query.cancel_request() else { return };
+    let result = match channel.http_request(&cancel).map_err(|e| e.message) {
+        Ok(request) => context
+            .host
+            .fetch(request, &CancellationToken::new())
+            .await
+            .map_err(|e| e.message().to_string())
+            .and_then(|response| crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)),
+        Err(message) => Err(message),
+    };
+    if let Err(message) = result {
+        context.cancel_failed(&message);
+    }
+}
+
 async fn run_trino<H: ExecutorHost>(
     context: &mut StreamContext<H>,
-    mut channel: TrinoChannel,
+    channel: &SharedTrinoChannel,
     text: &str,
 ) -> Result<StreamEnd, QueryFailure> {
     let host = context.host.clone();
     let now = || host.now() as i64;
-    let (mut query, outputs) = TrinoQuery::start(text, TrinoQueryOptions::default(), now());
+    let options = TrinoQueryOptions { time_zones: host.time_zones(), ..Default::default() };
+    let (mut query, outputs) = TrinoQuery::start(text, options, now());
+    let streamed = stream_trino(context, channel, &mut query, outputs).await;
+    match &streamed {
+        // A cancelled query or one that failed while Trino may still run it stops at the backend
+        Err(failure) if failure.kind == FailureKind::Cancelled || context.token.is_cancelled() => {
+            cancel_trino(context, channel, &query).await;
+            query.abort();
+            return Err(QueryFailure::cancelled());
+        }
+        Err(_) => {
+            cancel_trino(context, channel, &query).await;
+            query.abort();
+        }
+        Ok(_) => {}
+    }
+    streamed
+}
+
+/// Stream the result of a Trino query to its end
+async fn stream_trino<H: ExecutorHost>(
+    context: &mut StreamContext<H>,
+    channel: &SharedTrinoChannel,
+    query: &mut TrinoQuery,
+    outputs: Vec<StreamOutput>,
+) -> Result<StreamEnd, QueryFailure> {
+    let host = context.host.clone();
+    let now = || host.now() as i64;
     let mut queue: VecDeque<StreamOutput> = outputs.into();
     // The profile is fetched while a view shows it, the statement asks for it once the stages exist
     context.controls.clear_changed();
@@ -273,22 +342,13 @@ async fn run_trino<H: ExecutorHost>(
                 StreamOutput::Send { id, request } => {
                     statement.get_or_insert(id);
                     // An access token about to expire is refreshed before the request
-                    if let TokenRefresh::Started(refresh) = channel.begin_token_refresh(now()) {
-                        let refreshed = match context.token.run(host.fetch(refresh, &context.token)).await {
-                            None => return Err(QueryFailure::cancelled()),
-                            Some(result) => channel.finish_token_refresh(&fetch_outcome(result), now()),
-                        };
-                        match refreshed {
-                            Ok(()) => {
-                                if let Some(token) = channel.access_token.clone() {
-                                    context.report(QueryEvent::TrinoTokenRefreshed(token));
-                                }
-                            }
-                            Err(error) => {
-                                queue.extend(query.on_request_failed(id, error, now()));
-                                continue;
-                            }
+                    match fresh_trino_token(context, channel).await {
+                        None => return Err(QueryFailure::cancelled()),
+                        Some(Err(error)) => {
+                            queue.extend(query.on_request_failed(id, error, now()));
+                            continue;
                         }
+                        Some(Ok(())) => {}
                     }
                     match channel.http_request(&request) {
                         Ok(http) => {
@@ -331,27 +391,7 @@ async fn run_trino<H: ExecutorHost>(
             }
         }
         match next(&mut pending, &context.token, &context.controls).await {
-            Wake::Cancelled => {
-                if let Some(cancel) = query.cancel_request() {
-                    // The cancellation is sent with a token of its own, the one of the query is cancelled
-                    let sent = channel.http_request(&cancel).map_err(|e| e.message);
-                    let result = match sent {
-                        Ok(request) => host
-                            .fetch(request, &CancellationToken::new())
-                            .await
-                            .map_err(|e| e.message().to_string())
-                            .and_then(|response| {
-                                crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)
-                            }),
-                        Err(message) => Err(message),
-                    };
-                    if let Err(message) = result {
-                        context.cancel_failed(&message);
-                    }
-                }
-                query.abort();
-                return Err(QueryFailure::cancelled());
-            }
+            Wake::Cancelled => return Err(QueryFailure::cancelled()),
             Wake::Control => queue.extend(query.set_profile_detail(context.controls.profile_shown(), now())),
             Wake::Done(TrinoKey::Request(id), TrinoCompletion::Response(result)) => {
                 let outputs = query.on_response(id, &fetch_outcome(result), now());
@@ -388,9 +428,50 @@ async fn run_hyper<H: ExecutorHost>(
     };
     let mut reader = channel.open_result(response, host.now() as i64)?;
     context.running();
+    let mut auth = auth.clone();
+    let streamed = stream_hyper(context, &mut reader, &mut auth).await;
+    if let Err((failure, at_backend)) = &streamed {
+        // A cancelled query, or one whose result broke off while Hyper may still run it, stops at the backend
+        let cancelled = failure.kind == FailureKind::Cancelled || context.token.is_cancelled();
+        if cancelled || *at_backend {
+            let result = host.fetch(reader.cancel_request(&auth), &CancellationToken::new()).await;
+            let result = result
+                .map_err(|e| e.message().to_string())
+                .and_then(|response| crate::hyper::read_cancel_response(&response).map_err(|e| e.message()));
+            if let Err(message) = result {
+                context.cancel_failed(&message);
+            }
+        }
+        if cancelled {
+            return Err(QueryFailure::cancelled());
+        }
+    }
+    streamed.map_err(|(failure, _)| failure)
+}
+
+/// Stream the result of a Hyper query to its end. A failure says whether Hyper may still run the query: the result
+/// broke off in the network or the protocol, not with an error of the query.
+async fn stream_hyper<H: ExecutorHost>(
+    context: &mut StreamContext<H>,
+    reader: &mut crate::hyper::HyperResultReader,
+    auth: &mut Headers,
+) -> Result<StreamEnd, (QueryFailure, bool)> {
+    let host = context.host.clone();
+    let broken = |error: crate::hyper::HyperError| {
+        let at_backend = !matches!(error, crate::hyper::HyperError::Query(_));
+        (QueryFailure::from(error), at_backend)
+    };
     let mut pending: TaskSet<u64, Result<HttpResponse, HostError>> = TaskSet::new();
     loop {
-        let poll = reader.poll(auth)?;
+        // The auth headers of the channel may change while a result streams, e.g. a token that is refreshed. The
+        // requests of every round ask for them again.
+        match context.token.run(host.channel_auth(context.query_id)).await {
+            None => return Err((QueryFailure::cancelled(), true)),
+            Some(Ok(Some(headers))) => *auth = headers,
+            Some(Ok(None)) => {}
+            Some(Err(error)) => return Err((context.request_failure(&error), true)),
+        }
+        let poll = reader.poll(auth).map_err(broken)?;
         for event in poll.events {
             context.metrics.total_data_bytes_received = reader.metrics().total_data_bytes_received;
             match event {
@@ -413,24 +494,14 @@ async fn run_hyper<H: ExecutorHost>(
             }
         }
         if poll.done {
-            return context.end();
+            return context.end().map_err(|failure| (failure, false));
         }
         match next(&mut pending, &context.token, &context.controls).await {
-            Wake::Cancelled => {
-                let cancel = reader.cancel_request(auth);
-                let result = host.fetch(cancel, &CancellationToken::new()).await;
-                let result = result.map_err(|e| e.message().to_string()).and_then(|response| {
-                    crate::hyper::read_cancel_response(&response).map_err(|e| e.message())
-                });
-                if let Err(message) = result {
-                    context.cancel_failed(&message);
-                }
-                return Err(QueryFailure::cancelled());
-            }
+            Wake::Cancelled => return Err((QueryFailure::cancelled(), true)),
             Wake::Control => {}
-            Wake::Done(id, Ok(response)) => reader.receive(id, response, host.now() as i64)?,
-            Wake::Done(_, Err(error)) => return Err(context.request_failure(&error)),
-            Wake::Idle => return Err(QueryFailure::new(FailureKind::Error, "The Hyper query stalled")),
+            Wake::Done(id, Ok(response)) => reader.receive(id, response, host.now() as i64).map_err(broken)?,
+            Wake::Done(_, Err(error)) => return Err((context.request_failure(&error), true)),
+            Wake::Idle => return Err((QueryFailure::new(FailureKind::Error, "The Hyper query stalled"), true)),
         }
     }
 }

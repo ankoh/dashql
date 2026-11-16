@@ -1,6 +1,9 @@
 export interface ClientOptions {
     maxRedirections?: number;
     connectTimeout?: number;
+    /// The request or its response carries credentials, e.g. a token request: a log keeps no record of their bodies
+    /// and of the values of their credential headers
+    sensitive?: boolean;
 }
 
 /// A `Response` subset that is also implemented by our native http proxy

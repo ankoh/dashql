@@ -55,8 +55,8 @@ interface TestShellConnection {
     connectionId: string;
     /// The catalog of the connection, once the runtime of the test holds it
     readonly catalog: dashql.DashQLCatalog;
-    /// Create it in the runtime of the test
-    create(runtime: Runtime): void;
+    /// Create it in the runtime of the test, the runtime sets it up
+    create(runtime: Runtime): Promise<void>;
 }
 
 function createConnection(connectionId: string, options: {
@@ -72,10 +72,10 @@ function createConnection(connectionId: string, options: {
             if (catalog == null) throw new Error(`the runtime holds no connection ${connectionId}`);
             return catalog;
         },
-        create(into: Runtime) {
+        async create(into: Runtime) {
             runtime = into;
             if (into.connection(connectionId) != null) return;
-            addTestConnection(into, {
+            await addTestConnection(into, {
                 connectionId,
                 params: { hyper: options.setupParams ?? { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as never,
                 active: false,
@@ -100,7 +100,7 @@ function finishedQuery(runtime: Runtime, connectionId: string): number {
 /// What the tests reach through the providers
 interface Api {
     runtime: Runtime;
-    setConnections(connections: TestShellConnection[]): void;
+    setConnections(connections: TestShellConnection[]): Promise<void>;
     computations(): number[];
     createComputation(queryId: number, table: arrow.Table): void;
     mode(): WorkbookViewMode;
@@ -113,8 +113,8 @@ function Capture(props: { capture: (api: Api) => void; children: React.ReactElem
     const reconfigure = useAppReconfigure();
     props.capture({
         runtime,
-        setConnections: connections => {
-            for (const connection of connections) connection.create(runtime);
+        setConnections: async connections => {
+            for (const connection of connections) await connection.create(runtime);
         },
         computations: () => runtime.store.ids('computation'),
         // The analysis starts the computation of the result, without a compute database it stops after that
@@ -275,7 +275,7 @@ describe('WorkbookShellPage', () => {
     /// Mount the page and wait until its terminal shows the prompt
     async function open(connections: TestShellConnection[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
         render(props);
-        act(() => api.setConnections(connections));
+        await act(async () => api.setConnections(connections));
         await vi.waitFor(() => expect(screen()).toContain(prompt), WAIT);
         await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
     }
@@ -324,14 +324,14 @@ describe('WorkbookShellPage', () => {
             expect(page()?.getAttribute('aria-label')).toBe('Shell');
             expect(input()).toBeNull();
             expect(DashQLShell.create).not.toHaveBeenCalled();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(screen()).toContain('hyper#2> '), WAIT);
         });
 
         it('reports a shell that cannot load', async () => {
             vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
             render();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(status()).toContain('Failed to load shell: shell is broken'), WAIT);
             expect(input()).toBeNull();
         });
@@ -345,7 +345,7 @@ describe('WorkbookShellPage', () => {
                 return shell;
             });
             render();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(DashQLShell.create).toHaveBeenCalled(), WAIT);
             act(() => root.render(<div />));
             finish();
@@ -676,7 +676,7 @@ describe('WorkbookShellPage', () => {
         it('shows one terminal when the inputs change while the terminal opens', async () => {
             await whileTerminalOpens(() => render({ ordinal: 1 }));
             render();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(created.length).toBe(2), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -689,7 +689,7 @@ describe('WorkbookShellPage', () => {
             const { Terminal } = await whileTerminalOpens(() => act(() => root.render(<div />)));
             const dispose = vi.spyOn(Terminal.prototype, 'dispose');
             render();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(created).toHaveLength(1), WAIT);
             await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
             await vi.waitFor(() => expect(dispose).toHaveBeenCalled(), WAIT);
@@ -699,7 +699,7 @@ describe('WorkbookShellPage', () => {
             const { Terminal } = await import('@xterm/xterm');
             vi.spyOn(Terminal.prototype, 'open').mockImplementationOnce(() => { throw new Error('no terminal'); });
             render();
-            act(() => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(status()).toContain('Failed to load shell: no terminal'), WAIT);
             expect(destroyed.has(created[0])).toBe(true);
         });

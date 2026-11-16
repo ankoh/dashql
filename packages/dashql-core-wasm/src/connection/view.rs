@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core_runtime::connections::{
     self as rt, CatalogUpdateTask, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
-    OAuthPkceChallenge, RelationName, SetupTimings, TemporaryToken,
+    RelationName, SetupTimings, TemporaryToken,
 };
 use dashql_core_runtime::connections::registry::ListedConnection;
 use dashql_core_runtime::query::QueryExecutionHistory;
@@ -189,30 +189,40 @@ impl From<ConnectionTableName> for QualifiedTableNameT {
     }
 }
 
-/// The PKCE challenge of an OAuth flow
-#[derive(Clone, Debug, Serialize, Tsify)]
+/// A token of a connection without its secret: the facts around it that the views show, e.g. the instance or the
+/// expiry. The token itself stays in the runtime, `Runtime.revealConnectionSecrets` hands it out on request.
+#[derive(Clone, Debug, Default, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
-pub struct ConnectionOAuthPkce {
-    pub value: String,
-    pub verifier: String,
+pub struct ConnectionTokenSummary {
+    pub token_type: Option<String>,
+    pub scope: Option<String>,
+    /// The instance that the token is for, e.g. the org of Salesforce or the tenant of Data Cloud
+    pub instance_url: Option<String>,
+    /// The tenant or org that the token names, e.g. the audience of the Data Cloud JWT
+    pub tenant_id: Option<String>,
+    pub issued_at: Option<String>,
+    pub expires_at: Option<String>,
 }
 
-fn pkce(pkce: &Option<OAuthPkceChallenge>) -> Option<ConnectionOAuthPkce> {
-    pkce.as_ref().map(|p| ConnectionOAuthPkce { value: p.value.clone(), verifier: p.verifier.clone() })
+/// The summary of opaque token JSON, a token that isn't JSON is summarized as present
+fn token_summary(token: &Option<String>) -> Option<ConnectionTokenSummary> {
+    let token = token.as_ref()?;
+    let value: serde_json::Value = serde_json::from_str(token).unwrap_or_default();
+    let text = |pointer: &str| value.pointer(pointer).and_then(serde_json::Value::as_str).map(str::to_string);
+    Some(ConnectionTokenSummary {
+        token_type: text("/tokenType"),
+        scope: text("/scope"),
+        instance_url: text("/instanceUrl"),
+        tenant_id: text("/jwt/payload/audienceTenantId"),
+        issued_at: text("/issuedAt").or_else(|| text("/createdAt")),
+        expires_at: text("/expiresAt"),
+    })
 }
 
-/// A short-lived token, e.g. the code of an OAuth flow
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct ConnectionTemporaryToken {
-    pub token: String,
-    pub created_at: String,
-}
-
-fn temporary_token(token: &Option<TemporaryToken>) -> Option<ConnectionTemporaryToken> {
-    token.as_ref().map(|t| ConnectionTemporaryToken { token: t.token.clone(), created_at: t.created_at.clone() })
+/// When a code of an OAuth flow arrived, the code stays in the runtime
+fn code_received_at(code: &Option<TemporaryToken>) -> Option<String> {
+    code.as_ref().map(|code| code.created_at.clone())
 }
 
 /// The parameters of the OAuth flow of a Salesforce connection
@@ -226,27 +236,67 @@ pub struct ConnectionSalesforceOAuthParams {
     pub expires_at: f64,
 }
 
-/// The OAuth flow of a Trino connection, the steps that didn't happen yet are null. The access token is opaque JSON.
+/// The OAuth flow of a Trino connection, the steps that didn't happen yet are null. The PKCE verifier, the code and
+/// the token stay in the runtime.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ConnectionTrinoOAuthState {
-    pub oauth_pkce: Option<ConnectionOAuthPkce>,
-    pub auth_code: Option<ConnectionTemporaryToken>,
-    pub access_token: Option<String>,
+    /// Was the PKCE challenge generated?
+    pub pkce_generated: bool,
+    /// When the code arrived
+    pub auth_code_received_at: Option<String>,
+    pub access_token: Option<ConnectionTokenSummary>,
 }
 
-/// The OAuth flow of a Salesforce connection, the steps that didn't happen yet are null. The access tokens are opaque
-/// JSON.
+/// The OAuth flow of a Salesforce connection, the steps that didn't happen yet are null. The PKCE verifier, the code
+/// and the tokens stay in the runtime.
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ConnectionSalesforceOAuthState {
     pub oauth_params: Option<ConnectionSalesforceOAuthParams>,
-    pub oauth_pkce: Option<ConnectionOAuthPkce>,
-    pub core_auth_code: Option<ConnectionTemporaryToken>,
+    /// Was the PKCE challenge generated?
+    pub pkce_generated: bool,
+    /// When the code of the core login arrived
+    pub core_auth_code_received_at: Option<String>,
+    pub core_access_token: Option<ConnectionTokenSummary>,
+    pub data_cloud_access_token: Option<ConnectionTokenSummary>,
+}
+
+/// The tokens of a connection as their JSON, null for a token that the connection doesn't hold. Only
+/// `Runtime.revealConnectionSecrets` hands them out, the views summarize them.
+#[derive(Clone, Debug, Default, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionSecrets {
+    /// The OAuth token of a Trino connection
+    pub access_token: Option<String>,
+    /// The core token of a Salesforce connection
     pub core_access_token: Option<String>,
+    /// The Data Cloud token of a Salesforce connection
     pub data_cloud_access_token: Option<String>,
+}
+
+impl ConnectionSecrets {
+    /// The tokens of the details of a connector
+    pub fn of(details: &ConnectorDetails) -> Self {
+        match details {
+            ConnectorDetails::Hyper => Self::default(),
+            ConnectorDetails::Trino(trino) => Self {
+                access_token: trino.oauth_state.as_ref().and_then(|state| state.access_token.clone()),
+                ..Self::default()
+            },
+            ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
+                let state = salesforce.oauth_state.as_ref();
+                Self {
+                    access_token: None,
+                    core_access_token: state.and_then(|state| state.core_access_token.clone()),
+                    data_cloud_access_token: state.and_then(|state| state.data_cloud_access_token.clone()),
+                }
+            }
+        }
+    }
 }
 
 /// The details that only one connector keeps, Database.com has the ones of Salesforce
@@ -266,9 +316,9 @@ impl From<&ConnectorDetails> for ConnectionConnectorDetails {
             ConnectorDetails::Trino(trino) => Self::Trino {
                 schema_resolution_error: error(&trino.schema_resolution_error),
                 oauth_state: trino.oauth_state.as_ref().map(|state| ConnectionTrinoOAuthState {
-                    oauth_pkce: pkce(&state.oauth_pkce),
-                    auth_code: temporary_token(&state.auth_code),
-                    access_token: state.access_token.clone(),
+                    pkce_generated: state.oauth_pkce.is_some(),
+                    auth_code_received_at: code_received_at(&state.auth_code),
+                    access_token: token_summary(&state.access_token),
                 }),
             },
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => Self::Salesforce {
@@ -280,10 +330,10 @@ impl From<&ConnectorDetails> for ConnectionConnectorDetails {
                         requested_at: p.requested_at,
                         expires_at: p.expires_at,
                     }),
-                    oauth_pkce: pkce(&state.oauth_pkce),
-                    core_auth_code: temporary_token(&state.core_auth_code),
-                    core_access_token: state.core_access_token.clone(),
-                    data_cloud_access_token: state.data_cloud_access_token.clone(),
+                    pkce_generated: state.oauth_pkce.is_some(),
+                    core_auth_code_received_at: code_received_at(&state.core_auth_code),
+                    core_access_token: token_summary(&state.core_access_token),
+                    data_cloud_access_token: token_summary(&state.data_cloud_access_token),
                 }),
             },
         }
@@ -449,6 +499,15 @@ pub struct ConnectionView {
     pub name: Option<String>,
     /// Does the connection cache query results? Null for the default of the connector.
     pub cache_query_results: Option<bool>,
+    /// Does the connection cache query results, the choice of the user or the default of the connector?
+    pub caches_query_results: bool,
+    /// Is the connection connected or connecting? An open connection keeps its protocol and can't be merged.
+    pub open: bool,
+    /// The health as the app prints it, e.g. `Not Started`
+    pub health_label: String,
+    /// Can the queries of the connection read the data files that are attached to a workbook? The embedded Hyper reads
+    /// them.
+    pub reads_attachments: bool,
     pub details: ConnectionDetailsView,
     /// The params of the last successful setup, the initial ones until then
     pub params: JsonParams,
@@ -498,6 +557,10 @@ impl ConnectionView {
             connector_type: state.connector_type().into(),
             name: state.name().map(str::to_string),
             cache_query_results: state.cache_query_results(),
+            caches_query_results: state.caches_query_results(),
+            open: state.health().is_open(),
+            health_label: state.health().to_string(),
+            reads_attachments: dashql_core_runtime::hyper::descriptor::reads_attachments(state.details()),
             details: state.details().into(),
             params: params_object(state.params()),
             params_draft: state.params_draft().map(params_object),

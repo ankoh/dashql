@@ -1,4 +1,4 @@
-//! What the Trino connector says about its params and queries: the params to share, the login hint, the signature of
+//! What the Trino connector says about its params and queries: the login hint, the signature of
 //! cached results and the limits of the executor.
 //!
 //! Ported from `packages/dashql/src/platform/connections/trino/trino_connector_descriptor.ts`. The default params, the
@@ -14,23 +14,6 @@ pub const MAX_CONCURRENT_QUERIES: usize = 1;
 pub const CATALOG_IS_DURABLE: bool = true;
 /// Does a Trino connection read the attachments of a workbook? It doesn't.
 pub const READS_ATTACHMENTS: bool = false;
-
-/// The params to share: the endpoint, the catalogs and the basic-auth user stay, the password goes and so does the
-/// metadata, whose request headers may carry credentials under any name. The user stays only with the login hint.
-/// OAuth params (client id and URLs) carry no secret and stay.
-pub fn sanitize_for_sharing(params: &JsonObject, with_login_hint: bool) -> JsonObject {
-    let mut shared = params.clone();
-    shared.remove("metadata");
-    let mut auth = params.get("auth").and_then(Value::as_object).cloned().unwrap_or_default();
-    if let Some(basic) = auth.get_mut("basic").and_then(Value::as_object_mut) {
-        basic.insert("secret".into(), Value::String(String::new()));
-        if !with_login_hint {
-            basic.insert("username".into(), Value::String(String::new()));
-        }
-    }
-    shared.insert("auth".into(), Value::Object(auth));
-    shared
-}
 
 /// The login hint of the params: the user of basic auth, none if it is empty
 pub fn login_hint(params: &JsonObject) -> Option<String> {

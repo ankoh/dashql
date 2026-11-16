@@ -59,7 +59,7 @@ describe('QueryResultActionMenu', () => {
         const [ready, setReady] = React.useState(false);
         React.useEffect(() => {
             runtime = seeded;
-            createTestConnection(seeded, { connectionId: 'db', params: EMBEDDED });
+            void createTestConnection(seeded, { connectionId: 'db', params: EMBEDDED });
             seeded.createWorkbook('db', 'Orders', false, undefined, 's1');
             seeded.dispatch({ workbook: 's1' }, { kind: 'createScript', value: { text: props.text, base: 'orders' } });
             seeded.flush();

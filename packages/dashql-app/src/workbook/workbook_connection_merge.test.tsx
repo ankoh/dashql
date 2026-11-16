@@ -38,8 +38,8 @@ function connection(connectionId: string) {
         }),
     };
     /// Create the connection in the runtime of the test
-    const database = (runtime: Runtime) => {
-        const state: ConnectionState = createTestConnection(runtime, {
+    const database = async (runtime: Runtime) => {
+        const state: ConnectionState = await createTestConnection(runtime, {
             connectionId,
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
             channel: { executeQuery: async () => stream, close: vi.fn() },
@@ -56,19 +56,23 @@ interface Api {
     connections: ReadonlyMap<string, ConnectionState>;
 }
 
-function Capture(props: { databases: ((runtime: Runtime) => void)[]; capture: (api: Api) => void }) {
+function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; capture: (api: Api) => void }) {
     const connections = useConnections();
     const runtime = useRuntime();
     const execute = runtime.execute;
     const merge = useMergeConnections();
     const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeDatabase();
+    const [created, setCreated] = React.useState(false);
     React.useEffect(() => {
-        for (const create of props.databases) create(runtime);
+        void (async () => {
+            for (const create of props.databases) await create(runtime);
+            setCreated(true);
+        })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runtime]);
     React.useLayoutEffect(() => {
-        if (compute) props.capture({ execute, merge, logMetrics, connections });
+        if (compute && created) props.capture({ execute, merge, logMetrics, connections });
     });
     return null;
 }

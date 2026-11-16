@@ -173,12 +173,21 @@ pub struct HttpRequest {
     pub headers: Headers,
     /// The body, none for a request without one
     pub body: Option<String>,
+    /// Does the request or its response carry credentials, e.g. a token request? The host keeps no record of their
+    /// bodies and headers, e.g. in the log of requests.
+    pub sensitive: bool,
 }
 
 impl HttpRequest {
     /// A request without headers or body
     pub fn new(method: HttpMethod, url: impl Into<String>) -> Self {
-        Self { method, url: url.into(), headers: Headers::new(), body: None }
+        Self { method, url: url.into(), headers: Headers::new(), body: None, sensitive: false }
+    }
+
+    /// The request as one whose bodies and headers carry credentials
+    pub fn sensitive(mut self) -> Self {
+        self.sensitive = true;
+        self
     }
 
     /// Set a header, replacing a header of the same name regardless of its case

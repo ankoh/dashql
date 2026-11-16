@@ -40,12 +40,12 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connection_setup::setup_action_from_json;
 use dashql_core_runtime::connections::registry::{ListedConnection, QueryOwner, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryResultTable};
 use dashql_core_runtime::workbook::next_revision;
+use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -53,7 +53,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
-use crate::connection::view::{ConnectionListView, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
+use crate::connection::view::{ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
@@ -97,11 +97,10 @@ export type ViewId<K extends ViewKind> = RuntimeViews[K]['id'];
 export type ViewOf<K extends ViewKind> = RuntimeViews[K]['view'];
 /** The keys of the payloads that the host holds, they don't cross again */
 export type KnownKeys<K extends ViewKind> = RuntimeViews[K]['known'];
-/** What the caller of a query hears while it runs: the timings, the result before its analysis, a refreshed access token of Trino */
+/** What the caller of a query hears while it runs: the timings and the result before its analysis */
 export type QueryCallerEvent =
     | { type: 'timing'; label: string; elapsedMs: number }
-    | { type: 'resultsReady' }
-    | { type: 'trinoTokenRefreshed'; token: unknown };
+    | { type: 'resultsReady' };
 /** The failure of a query, `hostValue` tells whether `value` is what the host failed with */
 export interface QueryRunFailure {
     kind: 'error' | 'cancelled' | 'cacheMiss' | 'processing';
@@ -310,17 +309,6 @@ pub enum RuntimeAction {
     },
     /// Executed statements touched relations, the names have nulls for the parts that a statement left out
     RelationsTouched { names: Vec<ConnectionTableName> },
-    /// A step of a setup or a health check that the host runs itself, e.g. a mock of a setup, by the name of the action
-    /// of the connector (e.g. `TRINO_CHANNEL_READY`). The channel of a ready step is a handle that the connection takes.
-    SetupStep {
-        step: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        value: Option<JsonValue>,
-        #[serde(default)]
-        #[tsify(optional)]
-        channel: Option<u32>,
-    },
     /// Replace the text of the script with the functions of the connection
     ReplaceFunctionScriptText { text: String },
 
@@ -621,10 +609,9 @@ impl Runtime {
     /// Apply an action to a connection, the actions of its queries included
     fn dispatch_connection(&self, connection_id: String, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
         let connections = &self.connections;
-        let connector = connections.registry.borrow().get(&connection_id).map(|connection| connection.state.borrow().connector_type());
-        let Some(connector) = connector else {
+        if connections.registry.borrow().get(&connection_id).is_none() {
             return Ok(DispatchOutcome::failed(format!("no connection registered with id {connection_id}")));
-        };
+        }
         let params = |params: JsonParams| params.connection_params().map_err(error_text);
         let action = match action {
             RuntimeAction::SetDraft { params: draft } => match params(draft) {
@@ -643,19 +630,6 @@ impl Runtime {
             RuntimeAction::ResetConnection => ConnectionAction::Reset,
             RuntimeAction::SwitchConnectorType { connector_type } => ConnectionAction::SwitchConnectorType(connector_type.into()),
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            RuntimeAction::SetupStep { step, value, channel } => {
-                let value = value.map(|value| value.0).unwrap_or(serde_json::Value::Null);
-                match setup_action_from_json(connector, &step, &value, channel) {
-                    Ok(action) => action,
-                    Err(error) => {
-                        // The connection doesn't take the channel of a step that fails
-                        if let Some(channel) = channel {
-                            self.platform.push_release(channel);
-                        }
-                        return Ok(DispatchOutcome::failed(error));
-                    }
-                }
-            }
             RuntimeAction::ReplaceFunctionScriptText { text } => {
                 let connection = connections.registry.borrow().get(&connection_id).cloned();
                 let replaced = match connection {
@@ -669,18 +643,7 @@ impl Runtime {
             }
             action => return self.dispatch_query(QueryOwner::Connection(connection_id), action),
         };
-        let channel = match &action {
-            ConnectionAction::Hyper(dashql_core_runtime::connections::HyperAction::ChannelReady { channel, .. })
-            | ConnectionAction::Trino(dashql_core_runtime::connections::TrinoAction::ChannelReady(channel))
-            | ConnectionAction::Salesforce(dashql_core_runtime::connections::SalesforceAction::ChannelReady(channel)) => Some(*channel),
-            _ => None,
-        };
         let outcome = connections.apply(&connection_id, action, None);
-        if let (Err(_), Some(channel)) = (&outcome, channel) {
-            // The connection doesn't take the channel of an action that fails
-            self.platform.push_release(channel);
-            self.platform.signal(true);
-        }
         if let Err(error) = &outcome {
             connections.log(LogLevel::Warn, error.what(), &[("connectionId", &connection_id)]);
         }
@@ -1562,6 +1525,16 @@ impl Runtime {
         self.connections.cancel_setup(setup_id);
     }
 
+    /// The tokens of a connection as their JSON, e.g. for the settings of a connection that show them on request. The
+    /// views only summarize them. Null without the connection.
+    #[wasm_bindgen(js_name = revealConnectionSecrets, unchecked_return_type = "ConnectionSecrets | null")]
+    pub fn reveal_connection_secrets(&self, connection_id: &str) -> Result<JsValue, JsError> {
+        let connection = self.connections.registry.borrow().get(connection_id).cloned();
+        let Some(connection) = connection else { return Ok(JsValue::NULL) };
+        let secrets = ConnectionSecrets::of(&connection.state.borrow().details().connector);
+        Ok(to_js(&secrets)?.into())
+    }
+
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. The catalog loader
     /// runs it once the connection is online.
     #[wasm_bindgen(js_name = refreshCatalog)]
@@ -1786,6 +1759,28 @@ impl Runtime {
     #[wasm_bindgen(js_name = workbookTables, unchecked_return_type = "WorkbookTableSchema[]")]
     pub fn workbook_tables() -> Result<JsValue, JsError> {
         views_to_js(&exports::workbook_table_schemas())
+    }
+
+    /// Connection params without their secrets, as a link or a file shares them: the identity stays, the login hint only
+    /// `withLoginHint`, the raw form rows of a draft go. Params of an unknown connector stay as they are.
+    #[wasm_bindgen(js_name = sanitizeConnectionParams, unchecked_return_type = "Record<string, unknown>")]
+    pub fn sanitize_connection_params(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] params: JsValue,
+        with_login_hint: bool,
+    ) -> Result<JsValue, JsError> {
+        let sanitized = sanitize_connection_params_for_sharing(&JsonValue::of(&params).0, with_login_hint);
+        JsonValue(sanitized).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
+    /// Do two connection params describe the same connection, ignoring everything that sharing strips? A shared
+    /// workbook carries the params without secrets and login hints, they still describe the connection of the full
+    /// params.
+    #[wasm_bindgen(js_name = connectionParamsShareEqual)]
+    pub fn connection_params_share_equal(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] left: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] right: JsValue,
+    ) -> bool {
+        sharing::connection_params_share_equal(&JsonValue::of(&left).0, &JsonValue::of(&right).0)
     }
 
     /// Check the folders of workbooks that the platform keeps in folders of their own for changes outside the app, e.g.

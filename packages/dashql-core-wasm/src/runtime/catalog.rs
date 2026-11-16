@@ -18,7 +18,6 @@ use dashql_core_runtime::executor::ipc;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryMetadata;
-use serde_json::Value;
 
 use super::connections::Connections;
 use crate::host::JsPlatform;
@@ -119,14 +118,6 @@ impl CatalogLoaderHost for LoaderHost {
             let Some(bytes) = table else { return Ok(Vec::new()) };
             let (_, batches) = ipc::read_stream(&bytes).map_err(HostError::new)?;
             Ok(batches)
-        }
-    }
-
-    fn salesforce_metadata(&self, connection_id: &str, data_space: &str) -> impl Future<Output = Result<Option<Value>, HostError>> + 'static {
-        let metadata = self.platform.salesforce_metadata(connection_id, data_space);
-        async move {
-            let Some(text) = metadata.await? else { return Ok(None) };
-            serde_json::from_str(&text).map(Some).map_err(|e| HostError::new(format!("invalid Salesforce metadata: {e}")))
         }
     }
 

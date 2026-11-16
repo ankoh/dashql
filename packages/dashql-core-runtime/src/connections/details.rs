@@ -15,6 +15,7 @@ use super::params::{
     HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 use super::ConnectionEffect;
+use crate::trino::SharedTrinoChannel;
 
 /// Milliseconds since the Unix epoch. The host passes the time with an action, the reducer reads no clock.
 pub type Timestamp = f64;
@@ -138,6 +139,8 @@ pub struct TrinoDetails {
     pub schema_resolution_error: Option<DetailedError>,
     /// The OAuth flow
     pub oauth_state: Option<TrinoOAuthState>,
+    /// The channel that the queries of the connection share, with the auth and the access token, once it is ready
+    pub channel: Option<SharedTrinoChannel>,
 }
 
 /// The details of a Salesforce or Database.com connection
@@ -305,7 +308,10 @@ impl ConnectionDetails {
         self.health_check_error = None;
         match &mut self.connector {
             ConnectorDetails::Hyper => {}
-            ConnectorDetails::Trino(trino) => trino.oauth_state = None,
+            ConnectorDetails::Trino(trino) => {
+                trino.oauth_state = None;
+                trino.channel = None;
+            }
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
                 salesforce.setup_error = None
             }

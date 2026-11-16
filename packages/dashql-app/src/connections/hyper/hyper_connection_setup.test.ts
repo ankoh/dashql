@@ -7,7 +7,7 @@ import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metri
 
 /// The clients of a test, none by default
 function clients(overrides: Partial<ChannelClients>): ChannelClients {
-    return { grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforce: null, ...overrides };
+    return { grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: false, ...overrides };
 }
 
 // The runtime sets up the connections and asks the app to connect their channels

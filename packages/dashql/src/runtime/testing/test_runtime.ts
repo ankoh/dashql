@@ -44,8 +44,8 @@ export interface TestRuntimeOptions {
 /// browsers alike
 export interface TestRuntime extends Runtime {
     logger: TestLogger;
-    /// Create a connection in the runtime, with a channel ready and online if the options have one
-    addConnection(options: TestConnectionOptions): ConnectionState;
+    /// Create a connection in the runtime, set up with its channel if the options have one
+    addConnection(options: TestConnectionOptions): Promise<ConnectionState>;
     /// The connection as the runtime holds it now
     connection(connectionId: string): ConnectionState;
     /// Create a workbook on a connection with scripts of names and texts in feed order, every script analyzed with the

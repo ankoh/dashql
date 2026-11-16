@@ -30,7 +30,10 @@ use dashql_buffers::profile as fb;
 use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
 use dashql_core_runtime::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use dashql_core_runtime::salesforce::SalesforceTokens;
-use dashql_core_runtime::trino::{TrinoAuthParams, TrinoAuthType, TrinoChannel};
+use dashql_core_runtime::host::signal::{oneshot, Receiver};
+use dashql_core_runtime::trino::{
+    SharedTrinoChannel, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoOAuthParams,
+};
 
 const TRINO: &str = "https://trino.example.com";
 const HYPER: &str = "https://hyper.example";
@@ -120,6 +123,8 @@ enum Answer {
     Now(Result<HttpResponse, HostError>),
     /// Never, until the request is cancelled
     Hold,
+    /// Once the test sends the answer, a request that is cancelled meanwhile is aborted
+    Later(Receiver<HttpResponse>),
 }
 
 type Server = Box<dyn FnMut(&HttpRequest) -> Answer>;
@@ -155,6 +160,10 @@ struct State {
     cache_read_fails: bool,
     cache_write_fails: bool,
     analysis_fails: bool,
+    /// The access tokens that shared Trino channels refreshed
+    refreshed_tokens: Vec<String>,
+    /// The auth headers of the Hyper channel as they are now, none keeps those of the query
+    hyper_auth: Option<Headers>,
 }
 
 struct FakeHost {
@@ -162,6 +171,8 @@ struct FakeHost {
     clock: Rc<Clock>,
     state: RefCell<State>,
     server: RefCell<Option<Server>>,
+    /// The requests that the host aborted, by their URL
+    aborted: Rc<RefCell<Vec<String>>>,
 }
 
 impl FakeHost {
@@ -171,6 +182,7 @@ impl FakeHost {
             clock: Rc::default(),
             state: RefCell::new(State { channel_stream: true, ..State::default() }),
             server: RefCell::new(None),
+            aborted: Rc::default(),
         })
     }
 
@@ -253,8 +265,39 @@ impl HttpHost for FakeHost {
         let future: Boxed<Result<HttpResponse, HostError>> = match answer {
             Answer::Now(result) => Box::pin(std::future::ready(result)),
             Answer::Hold => aborted(cancellation),
+            Answer::Later(answer) => {
+                let cancelled = cancellation.clone();
+                Box::pin(async move {
+                    match cancelled.run(answer).await {
+                        Some(Some(response)) => Ok(response),
+                        _ => Err(HostError::new("aborted")),
+                    }
+                })
+            }
         };
-        future
+        // Like the module, the host aborts a request whose future is dropped before it completed
+        let guard = AbortGuard { url: request.url.clone(), aborted: self.aborted.clone(), done: false };
+        Box::pin(async move {
+            let mut guard = guard;
+            let result = future.await;
+            guard.done = true;
+            result
+        }) as Boxed<Result<HttpResponse, HostError>>
+    }
+}
+
+/// Records the URL of a request whose future was dropped before it completed
+struct AbortGuard {
+    url: String,
+    aborted: Rc<RefCell<Vec<String>>>,
+    done: bool,
+}
+
+impl Drop for AbortGuard {
+    fn drop(&mut self) {
+        if !self.done {
+            self.aborted.borrow_mut().push(self.url.clone());
+        }
     }
 }
 
@@ -275,7 +318,6 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::TouchRelations => "touch".into(),
         QueryEvent::Timing { label, .. } => format!("timing:{label}"),
         QueryEvent::ResultsReady => "ready".into(),
-        QueryEvent::TrinoTokenRefreshed(_) => "token".into(),
         QueryEvent::Log { .. } => return None,
     })
 }
@@ -399,6 +441,14 @@ impl ExecutorHost for FakeHost {
     fn channel_profile_detail(&self, _query_id: QueryId, wanted: bool) {
         self.state.borrow_mut().channel_calls.push(format!("profile:{wanted}"));
     }
+
+    fn channel_auth(&self, _query_id: QueryId) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+        std::future::ready(Ok(self.state.borrow().hyper_auth.clone()))
+    }
+
+    fn trino_token_refreshed(&self, _channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
+        self.state.borrow_mut().refreshed_tokens.push(token.access_token.clone());
+    }
 }
 
 // Helpers
@@ -464,9 +514,32 @@ fn json_response(value: Value) -> Answer {
     Answer::Now(Ok(HttpResponse::new(200, value.to_string())))
 }
 
-fn trino_channel() -> TrinoChannel {
+fn trino_channel() -> SharedTrinoChannel {
     let auth = TrinoAuthParams { auth_type: TrinoAuthType::Basic, username: "user".into(), secret: "secret".into(), oauth: None };
-    TrinoChannel::new(TRINO, auth, TrinoSessionDefaults::default())
+    SharedTrinoChannel::new(TrinoChannel::new(TRINO, auth, TrinoSessionDefaults::default()))
+}
+
+const TOKEN_URL: &str = "https://idp.example.com/token";
+
+/// A Trino channel with OAuth whose access token expires at a time
+fn oauth_trino_channel(expires_at: i64) -> SharedTrinoChannel {
+    let oauth = TrinoOAuthParams { token_url: TOKEN_URL.into(), client_id: "dashql".into(), ..Default::default() };
+    let auth = TrinoAuthParams { auth_type: TrinoAuthType::OAuth, oauth: Some(oauth), ..Default::default() };
+    let mut channel = TrinoChannel::new(TRINO, auth, TrinoSessionDefaults::default());
+    channel.access_token = Some(TrinoAccessToken {
+        created_at: 0,
+        access_token: "token-1".into(),
+        token_type: "Bearer".into(),
+        refresh_token: Some("refresh-1".into()),
+        expires_at: Some(expires_at),
+        scope: None,
+    });
+    SharedTrinoChannel::new(channel)
+}
+
+/// The answer of the token endpoint with a new access token and a rotated refresh token
+fn token_answer(token: &str) -> HttpResponse {
+    HttpResponse::new(200, json!({ "access_token": token, "refresh_token": format!("refresh-of-{token}"), "expires_in": 3600 }).to_string())
 }
 
 fn next_uri(page: u32) -> String {
@@ -614,6 +687,123 @@ fn trino_fetches_the_profile_while_a_view_shows_it() {
     executor.watch_profile(1, 0);
 }
 
+#[test]
+fn trino_refreshes_an_expiring_token_once_for_all_queries_of_the_channel() {
+    let host = FakeHost::new();
+    let (token_sender, token_answer_later) = oneshot();
+    let mut token_answer_later = Some(token_answer_later);
+    let token_requests = Rc::new(Cell::new(0));
+    let counted = token_requests.clone();
+    host.serve(move |request| {
+        if request.url == TOKEN_URL {
+            counted.set(counted.get() + 1);
+            return token_answer_later.take().map(Answer::Later).unwrap_or(Answer::Hold);
+        }
+        if request.url.ends_with("/v1/statement") {
+            return json_response(json!({ "id": "q1", "columns": [{ "name": "n", "type": "integer" }], "data": [[1]], "stats": { "state": "FINISHED" } }));
+        }
+        Answer::Hold
+    });
+    let executor = QueryExecutor::new(host.clone());
+    // The token expires within the refresh margin, every query of the channel needs a fresh one
+    let channel = oauth_trino_channel(30_000);
+    let first = start(&host, &executor, request(1, QueryTarget::Trino(channel.clone())));
+    let second = start(&host, &executor, request(2, QueryTarget::Trino(channel.clone())));
+    host.advance(0);
+    assert_eq!(token_requests.get(), 1, "one refresh for both queries");
+    // The query that started the refresh is cancelled, the refresh runs on for the other one
+    let cancel = executor.cancel(1);
+    host.executor.spawn(Box::pin(async move { cancel.await }));
+    host.advance(0);
+    assert!(matches!(first.borrow().as_ref(), Some(QueryOutcome::Resolved { has_result: false })));
+    assert!(second.borrow().is_none());
+    token_sender.send(token_answer("token-2"));
+    host.advance(0);
+    assert_eq!(resolved(second.borrow().as_ref().unwrap()), Some(true));
+    assert_eq!(token_requests.get(), 1);
+    // The refresh sent the rotating refresh token once and the connection keeps the new token
+    let sent = host.state.borrow().sent.clone();
+    let refresh = sent.iter().find(|r| r.url == TOKEN_URL).unwrap();
+    assert!(refresh.sensitive);
+    assert!(refresh.body.as_deref().unwrap().contains("refresh_token=refresh-1"));
+    let statements: Vec<_> = sent.iter().filter(|r| r.url.ends_with("/v1/statement")).collect();
+    assert_eq!(statements.len(), 1);
+    assert_eq!(statements[0].header("Authorization"), Some("Bearer token-2"));
+    assert_eq!(host.state.borrow().refreshed_tokens, ["token-2"]);
+    assert_eq!(channel.access_token().unwrap().refresh_token.as_deref(), Some("refresh-of-token-2"));
+    // A later query of the channel needs no refresh
+    let third = run(&host, &executor, request(3, QueryTarget::Trino(channel.clone())));
+    assert_eq!(resolved(&third), Some(true));
+    assert_eq!(token_requests.get(), 1);
+}
+
+#[test]
+fn trino_cancels_the_query_at_the_server_during_a_token_refresh() {
+    let host = FakeHost::new();
+    let mut busy = true;
+    host.serve(move |request| {
+        if request.method == HttpMethod::Delete {
+            return Answer::Now(Ok(HttpResponse::new(204, "")));
+        }
+        if request.url == TOKEN_URL {
+            return Answer::Hold;
+        }
+        if request.url.ends_with("/v1/statement") {
+            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }));
+        }
+        // The first page is retried after a delay
+        if std::mem::take(&mut busy) {
+            return Answer::Now(Ok(HttpResponse::new(503, "")));
+        }
+        Answer::Hold
+    });
+    let executor = QueryExecutor::new(host.clone());
+    // The token is fresh for the statement and the first page, the retry of the page needs a refresh
+    let channel = oauth_trino_channel(60_050);
+    let outcome = start(&host, &executor, request(1, QueryTarget::Trino(channel)));
+    host.advance(0);
+    assert!(!host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL));
+    host.advance(100);
+    assert!(host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL), "the next page waits for a refresh");
+    let cancel = executor.cancel(1);
+    host.executor.spawn(Box::pin(async move { cancel.await }));
+    host.advance(0);
+    assert!(outcome.borrow().is_some());
+    let sent = host.state.borrow().sent.clone();
+    let delete = sent.last().unwrap();
+    assert_eq!((delete.method.clone(), delete.url.clone()), (HttpMethod::Delete, next_uri(1)));
+}
+
+#[test]
+fn trino_cancels_a_query_at_the_server_that_failed_in_the_protocol() {
+    let host = FakeHost::new();
+    // A page with rows but without columns breaks the protocol while Trino still runs the query
+    trino_server(&host, vec![json_response(json!({ "id": "q1", "nextUri": next_uri(2), "data": [[1]], "stats": { "state": "RUNNING" } }))]);
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Trino(trino_channel()));
+    query.throw_on_error = true;
+    let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
+    assert_eq!(failure.message, "Result schema is missing");
+    let sent = host.state.borrow().sent.clone();
+    let delete = sent.iter().find(|r| r.method == HttpMethod::Delete).expect("a cancellation");
+    assert_eq!(delete.url, next_uri(2));
+    // The page that was requested before the failure is aborted
+    assert!(host.aborted.borrow().iter().any(|url| url.starts_with(&next_uri(2))));
+}
+
+#[test]
+fn cancelling_a_query_aborts_the_requests_that_it_waits_for() {
+    let host = FakeHost::new();
+    trino_server(&host, vec![]);
+    let executor = QueryExecutor::new(host.clone());
+    let _outcome = start(&host, &executor, request(1, QueryTarget::Trino(trino_channel())));
+    host.advance(0);
+    let cancel = executor.cancel(1);
+    host.executor.spawn(Box::pin(async move { cancel.await }));
+    host.advance(0);
+    assert_eq!(*host.aborted.borrow(), [format!("{}?targetResultSize=32MB", next_uri(1))]);
+}
+
 // Hyper
 
 #[test]
@@ -699,6 +889,36 @@ fn the_progress_of_a_channel_of_the_host_goes_into_the_progress_model_with_the_l
     let profile = progress[1].profile_progress.clone().unwrap();
     let structure = flatbuffers::root::<fb::QueryProfile>(&profile.structure).unwrap();
     assert_eq!(structure.layout_config().unwrap().input().orientation(), top_down);
+}
+
+#[test]
+fn hyper_asks_for_the_auth_headers_again_and_cancels_a_result_that_breaks_off() {
+    let host = FakeHost::new();
+    host.serve(move |request| {
+        if request.method == HttpMethod::Delete {
+            return Answer::Now(Ok(HttpResponse::new(200, "")));
+        }
+        if request.url.contains("/chunk/") {
+            return Answer::Now(Err(HostError::new("connection reset")));
+        }
+        let status = json!({ "queryId": "h1", "completionStatus": "RESULTS_PRODUCED", "chunkCount": 2, "rowCount": 6 });
+        Answer::Now(Ok(HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())))
+    });
+    // The token of the channel changed after the query started
+    host.state.borrow_mut().hyper_auth = Some(Headers::from_pairs([("Authorization", "Bearer token-2")]));
+    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let auth = Headers::from_pairs([("Authorization", "Bearer token-1")]);
+    let executor = QueryExecutor::new(host.clone());
+    let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
+    assert_eq!(resolved(&outcome), Some(false));
+    let sent = host.state.borrow().sent.clone();
+    assert_eq!(sent[0].header("authorization"), Some("Bearer token-1"));
+    let chunk = sent.iter().find(|r| r.url.contains("/chunk/")).expect("a chunk request");
+    assert_eq!(chunk.header("authorization"), Some("Bearer token-2"));
+    // The result broke off in the network while Hyper may still run the query, it is cancelled there
+    let cancel = sent.iter().find(|r| r.method == HttpMethod::Delete).expect("a cancellation");
+    assert_eq!(cancel.url, format!("{HYPER}/api/v3/query/h1"));
+    assert_eq!(cancel.header("authorization"), Some("Bearer token-2"));
 }
 
 #[test]

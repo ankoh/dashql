@@ -29,6 +29,7 @@ use super::{
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
 use crate::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionState, RelationName};
+use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::http::{CancellationToken, HttpHost, HttpResponse};
 use crate::query::QueryExecutionHistory;
@@ -68,9 +69,6 @@ pub trait CatalogLoaderHost: HttpHost {
         query: &CatalogQuery,
         cancellation: &CancellationToken,
     ) -> impl Future<Output = Result<QueryBatches, HostError>> + 'static;
-    /// The Data Cloud metadata of a data space from an API of the platform, e.g. a mock of Salesforce, as
-    /// `{"metadata": [...]}`. None lets the service fetch it.
-    fn salesforce_metadata(&self, connection_id: &str, data_space: &str) -> impl Future<Output = Result<Option<Value>, HostError>> + 'static;
     /// Load the spec of the client functions of an extension, the JSON text
     fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static;
     /// The catalog of a connection changed outside of an update, e.g. it registered client functions. The scripts that
@@ -118,6 +116,8 @@ struct LoaderState {
     /// The connections by id, in the order of the registry
     connections: Vec<(String, Followed)>,
     registrations: ClientFunctionRegistrations,
+    /// The calls that wait for the spec of a registration that loads, by connection
+    spec_waiters: Vec<(String, Sender<()>)>,
     tasks: HashMap<u32, Task>,
     /// Is a scheduling pass requested?
     scheduled: bool,
@@ -183,6 +183,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             generations: CatalogGenerations::default(),
             connections: Vec::new(),
             registrations: ClientFunctionRegistrations::default(),
+            spec_waiters: Vec::new(),
             tasks: HashMap::new(),
             scheduled: false,
             stopped: true,
@@ -284,11 +285,19 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     /// The spec of a connection arrived or failed to load
     fn spec_loaded(&self, connection_id: &str, ticket: u64, spec: Result<String, HostError>) {
         let connection = self.connection(connection_id);
-        let registered = {
+        let (registered, waiters) = {
             let connection_state = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok());
             let spec = spec.as_deref().map_err(|error| error.message().to_string());
-            self.state.borrow_mut().registrations.spec_loaded_of(connection_id, connection_state.as_deref(), ticket, spec)
+            let mut state = self.state.borrow_mut();
+            let registered = state.registrations.spec_loaded_of(connection_id, connection_state.as_deref(), ticket, spec);
+            let (waiters, others) = std::mem::take(&mut state.spec_waiters).into_iter().partition(|(id, _)| id == connection_id);
+            state.spec_waiters = others;
+            (registered, waiters)
         };
+        let waiters: Vec<(String, Sender<()>)> = waiters;
+        for (_, waiter) in waiters {
+            waiter.send(());
+        }
         match registered {
             Ok(effects) => self.run_registry_effects(effects),
             // It stays unregistered: a script then gets no checks and no completion, and a call goes to the backend.
@@ -298,6 +307,34 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                 "Failed to register client functions",
                 &[("connectionId", connection_id), ("error", &error.message)],
             ),
+        }
+    }
+
+    /// The spec of the client functions that the catalog of a connection registered, the one that its calls run with.
+    /// A spec that loads is awaited. None after its registration failed: the core then describes no calls of the
+    /// connection.
+    pub fn client_function_spec(&self, connection_id: &str) -> impl Future<Output = Option<Rc<crate::clfn::ClientFunctionSpec>>> + 'static {
+        let service = self.clone();
+        let connection_id = connection_id.to_string();
+        async move {
+            loop {
+                let waiting = {
+                    let connection = service.connection(&connection_id)?;
+                    let connection_state = connection.state.try_borrow().ok()?;
+                    let mut state = service.state.borrow_mut();
+                    if let Some(spec) = state.registrations.spec_of(&connection_id, &connection_state) {
+                        return Some(spec);
+                    }
+                    if !state.registrations.loading_of(&connection_id, &connection_state) {
+                        return None;
+                    }
+                    let (sender, receiver) = oneshot();
+                    state.spec_waiters.push((connection_id.clone(), sender));
+                    receiver
+                };
+                // A load that ends wakes the waiters, the registration says how it went
+                waiting.await?;
+            }
         }
     }
 
@@ -494,7 +531,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                     }
                 }
                 CatalogStep::FetchSalesforceMetadata => {
-                    match token.run(self.salesforce_metadata(connection_id, &connection, &token)).await {
+                    match token.run(self.salesforce_metadata(&connection, &token)).await {
                         Some(metadata) if !token.is_cancelled() => update.answer_salesforce_metadata(metadata),
                         _ => update.cancel(&self.reason(task_id)),
                     }
@@ -596,11 +633,10 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         );
     }
 
-    /// The Data Cloud metadata of a Salesforce connection: from the API of the platform if it has one, else from the
-    /// metadata API of the instance, one request per entity type at the same time
+    /// The Data Cloud metadata of a Salesforce connection from the metadata API of the instance, one request per entity
+    /// type at the same time
     async fn salesforce_metadata(
         &self,
-        connection_id: &str,
         connection: &FollowedConnection,
         token: &CancellationToken,
     ) -> Result<Value, String> {
@@ -614,10 +650,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         let data_space = get_salesforce_data_space(&tokens.data_cloud);
         self.host.log(LogLevel::Info, "Resolving Salesforce catalog metadata", &[("dataSpace", &data_space), ("target", SALESFORCE_LOG_TARGET)]);
         let started_at = self.host.now();
-        let metadata = match self.host.salesforce_metadata(connection_id, &data_space).await.map_err(|error| error.message().to_string())? {
-            Some(metadata) => metadata,
-            None => self.fetch_salesforce_metadata(&tokens, &data_space, token).await?,
-        };
+        let metadata = self.fetch_salesforce_metadata(&tokens, &data_space, token).await?;
         let entities = metadata.get("metadata").and_then(Value::as_array).map_or(0, Vec::len).to_string();
         let duration = format!("{:.2}", self.host.now() - started_at);
         self.host.log(

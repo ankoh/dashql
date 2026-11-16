@@ -5,10 +5,10 @@
 import type * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, setupStepAction } from '../../platform/connections/connection_state.js';
+import { ConnectionHealth } from '../../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import type { RunResult, Runtime } from '../runtime.js';
-import { createTestConnection } from '../testing/connection_fixtures.js';
+import { createTestConnection, finishTestSetup, setupTestConnection } from '../testing/connection_fixtures.js';
 import type { EmbeddedComputeDatabase } from '../../platform/platform/database/embedded_database.js';
 import type { HyperDB } from '../../platform/platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
@@ -131,24 +131,18 @@ describe('the runs of workbooks of the runtime', () => {
         };
     }
 
-    /// Change a connection of the runtime, e.g. a connection that drops
-    function act(f: Fixture, step: string, value?: unknown) {
-        runtime!.dispatch({ connection: f.database.connectionId }, setupStepAction(step, value));
-        runtime!.flush();
-    }
-
-    /// Create the connection of a fixture in the runtime: online with a channel, connecting, failed or not started
-    function addConnection(rt: TestRuntime, f: Fixture) {
+    /// Create the connection of a fixture in the runtime, the runtime sets it up: online with a channel, connecting,
+    /// failed or not started
+    async function addConnection(rt: TestRuntime, f: Fixture) {
         const { connectionId, health, protocol } = f.database;
         const params = { hyper: { endpoint: 'http://hyper', ...(protocol == null ? {} : { protocol }) } } as ConnectionParams;
-        createTestConnection(rt, {
+        await createTestConnection(rt, {
             connectionId,
             params,
             channel: health === ConnectionHealth.NOT_STARTED ? undefined : { executeQuery: f.executeQuery },
-            online: health === ConnectionHealth.ONLINE || health === ConnectionHealth.FAILED,
+            health,
+            error: 'down',
         });
-        if (health === ConnectionHealth.FAILED) act(f, 'HEALTH_CHECK_FAILED', { message: 'down' });
-        if (health === ConnectionHealth.CONNECTING) act(f, 'HEALTH_CHECK_STARTED');
         const metadata = { title: null, description: null, issuer: null, userProvided: true };
         for (const queryType of f.database.activeQueries) {
             rt.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
@@ -164,7 +158,7 @@ describe('the runs of workbooks of the runtime', () => {
                 computeDatabase: options.computeDatabase === false ? null : { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase,
             });
             for (const f of fixtures) {
-                addConnection(runtime, f);
+                await addConnection(runtime, f);
                 f.create(runtime);
             }
         }
@@ -360,7 +354,7 @@ describe('the runs of workbooks of the runtime', () => {
         runtime!.flush();
         expect(runtime!.store.get('run', f.workbookId)?.pendingInputs).toEqual(['min']);
         expect(current.state).toBeNull();
-        act(f, 'HEALTH_CHECK_SUCCEEDED');
+        await finishTestSetup(runtime!, f.database.connectionId, ConnectionHealth.ONLINE);
         await vi.waitFor(() => {
             runtime!.flush();
             expect(current.state?.phase).toBe('succeeded');
@@ -372,7 +366,8 @@ describe('the runs of workbooks of the runtime', () => {
         await openWorkbook();
         await start();
         const f = fixtures[0];
-        act(f, 'HEALTH_CHECK_FAILED', { message: 'down' });
+        // A setup of the connection whose health check fails
+        void setupTestConnection(runtime!, f.database.connectionId, { channel: { executeQuery: f.executeQuery }, health: ConnectionHealth.FAILED, error: 'down' });
         await vi.waitFor(() => expect(f.signal?.aborted).toBe(true));
     });
 
@@ -424,7 +419,7 @@ describe('the runs of scripts of the runtime', () => {
             return answer(tableFromArrays({ n: Int32Array.from([statements.length]) }));
         });
         const connectionId = crypto.randomUUID();
-        rt.addConnection({ connectionId, params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams, channel: { executeQuery } });
+        await rt.addConnection({ connectionId, params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams, channel: { executeQuery } });
         if (options.cache) rt.dispatch({ connection: connectionId }, { kind: 'setQueryResultCaching', value: { caching: true } });
         const workbook = rt.addWorkbook(connectionId, entries, { name: 'scripts' });
         const core = rt;

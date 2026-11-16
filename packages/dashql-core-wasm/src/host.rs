@@ -3,7 +3,7 @@
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
 //! the channels of the host, the descriptions of the queries that the runtime runs itself, the query result cache, the
-//! files of the runs of workbooks, the OAuth flows, the specs of the extensions and the API of Salesforce. The runtime
+//! files of the runs of workbooks, the OAuth flows and the specs of the extensions. The runtime
 //! tells it that its state changed (`changed`), the store of the app then takes the changes and reads the views. Every
 //! call into the platform catches: a member that throws or is missing fails the call of the service with a `HostError`
 //! and never unwinds through the module. No borrow of the platform is held while it calls JavaScript, so the platform
@@ -64,8 +64,6 @@ export interface RuntimePlatform {
     oauth: RuntimeOAuth;
     /** The specs of the client functions of the extensions, the JSON text */
     extensions: { loadSpec(extension: string): Promise<string> };
-    /** An API of Salesforce that answers the metadata of the catalog, e.g. the mock of the app. Null lets the runtime fetch it. */
-    readonly salesforce: RuntimeSalesforce | null;
     /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
     readonly storage: RuntimeStorage | null;
     /** The `.dashql` archives of imports and exports: the ZIP container and the Parquet files of the workbook tables. Null without. */
@@ -227,7 +225,6 @@ export interface ExportedTables {
 
 /** A channel that a setup asks the host to connect */
 export type RuntimeChannelRequest =
-    | { type: 'trino'; endpoint: string; auth: unknown; catalog: string | null; schema: string | null; accessToken: unknown | null }
     | { type: 'salesforce'; endpoint: string; requestMetadata: Record<string, string>; attachedDatabases: { path: string; alias: string }[]; tokens: { core: unknown; dataCloud: unknown } }
     | { type: 'hyper'; kind: 'embedded' | 'grpc' | 'http'; params: any };
 
@@ -248,12 +245,6 @@ export interface RuntimeOAuth {
     /** Open the authorization URL and wait for the callback of the redirect page whose state has the flow id */
     authorizeWithRedirectPage(setupId: string, flow: number, url: string, flowId: string, onEvent: (event: string) => void): Promise<unknown>;
     abort(flow: number): void;
-}
-
-/** An API of Salesforce of the platform */
-export interface RuntimeSalesforce {
-    /** The Data Cloud metadata of a data space as JSON, null to fetch it */
-    metadata(connectionId: string, dataSpace: string): Promise<string | null>;
 }
 
 /** The handle table of the host */
@@ -292,6 +283,8 @@ export interface RuntimeHttpRequest {
     url: string;
     headers: [string, string][];
     body: string | null;
+    /** The request or its response carries credentials, e.g. a token request: the host keeps no record of their bodies and headers */
+    sensitive: boolean;
 }
 /** A response of the HTTP client of the host */
 export interface RuntimeHttpResponse {
@@ -329,8 +322,10 @@ export interface RuntimeChannels {
     connect(setupId: string, request: RuntimeChannelRequest): Promise<number>;
     /** The token of the link to a Hyper that the page holds, null without */
     hyperLinkToken(connectionId: string): string | null;
-    /** Describe where a query runs on the channel of its connection (null before its setup): a channel that the runtime speaks itself (`{ type: 'trino', endpoint, auth, accessToken, catalog, schema }`, `{ type: 'hyperHttp', params, clientContext, auth, parallelChunks }`) or one of the host (`{ type: 'host' }`), with the tokens of a Salesforce channel (`tokens: { core, dataCloud }`). The host keeps the channel and the query until `forget`. */
+    /** Describe where a query runs on the channel of its connection (null before its setup): a Hyper channel over HTTP that the runtime speaks itself (`{ type: 'hyperHttp', params, clientContext, auth, parallelChunks }`) or one of the host (`{ type: 'host' }`). The connection of Trino owns its channel and the tokens of Salesforce, the host never describes them. The host keeps the channel and the query until `forget`. */
     describe(queryId: number, channel: number | null, query: RuntimeChannelQuery): Promise<unknown>;
+    /** The auth headers of the Hyper channel over HTTP of a query as they are now, asked before every round of requests of its result. Null keeps the headers of the description. */
+    auth?(queryId: number): Promise<Record<string, string> | null>;
     /** The query ended */
     forget(queryId: number): void;
     /** Run a query on its channel, its batches go into the table that was opened for it. False if the channel returned no result. */
@@ -524,6 +519,7 @@ pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
     set("url", &JsValue::from_str(&request.url));
     set("headers", &headers_value(&request.headers));
     set("body", &request.body.as_deref().map(JsValue::from_str).unwrap_or(JsValue::NULL));
+    set("sensitive", &JsValue::from_bool(request.sensitive));
     object.into()
 }
 
@@ -815,17 +811,6 @@ impl JsPlatform {
         async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
     }
 
-    /// The Data Cloud metadata of a data space from the API of Salesforce of the platform as JSON, none to fetch it
-    pub fn salesforce_metadata(&self, connection_id: &str, data_space: &str) -> impl Future<Output = Result<Option<String>, HostError>> + 'static {
-        let call = member(self.object(), "salesforce")
-            .ok()
-            .map(|salesforce| call(&salesforce, "metadata", &[JsValue::from_str(connection_id), JsValue::from_str(data_space)]));
-        async move {
-            let Some(call) = call else { return Ok(None) };
-            Ok(settled(call).await?.as_string())
-        }
-    }
-
     /// Call a member of the storage of the platform
     pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
         let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;
@@ -907,6 +892,31 @@ impl JsPlatform {
     pub fn channel_cancel(&self, query_id: f64) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.channels("cancel", &[JsValue::from_f64(query_id)]);
         async move { settled(call).await.map(|_| ()) }
+    }
+
+    /// The auth headers of the channel of a query over HTTP as they are now, none if the platform doesn't say
+    pub fn channel_auth(&self, query_id: f64) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+        let asked = member(self.object(), "channels")
+            .ok()
+            .filter(|channels| field(channels, "auth").is_some_and(|auth| auth.is_function()))
+            .map(|channels| call(&channels, "auth", &[JsValue::from_f64(query_id)]));
+        async move {
+            let Some(asked) = asked else { return Ok(None) };
+            let value = settled(asked).await?;
+            if value.is_null() || value.is_undefined() {
+                return Ok(None);
+            }
+            let names = js_sys::Object::keys(&value.clone().unchecked_into::<Object>());
+            let headers = names
+                .iter()
+                .filter_map(|name| {
+                    let name = name.as_string()?;
+                    let header = field(&value, &name)?.as_string()?;
+                    Some((name, header))
+                })
+                .collect::<Vec<_>>();
+            Ok(Some(Headers::from_pairs(headers)))
+        }
     }
 
     /// Is the profile of a query on a channel shown?
@@ -1003,7 +1013,9 @@ impl JsPlatform {
         self.mounts().and_then(|mounts| call(&mounts, name, args))
     }
 
-    /// Send a request with the fetch of the platform, a successful response may keep its body with the host
+    /// Send a request with the fetch of the platform, a successful response may keep its body with the host. The fetch
+    /// is aborted when the token is cancelled or when the future is dropped before it completed, e.g. by a query that
+    /// stopped waiting for it.
     pub fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let id = self.next_id();
         let http = member(self.object(), "http");
@@ -1013,21 +1025,46 @@ impl JsPlatform {
         } else {
             Some(http.clone().and_then(|http| call(&http, "fetch", &[JsValue::from_f64(id), request_value(&request)])))
         };
+        // Aborts a fetch that was sent unless it settled, also when the future is dropped before it was polled
+        let abort = AbortOnDrop { http: sent.as_ref().is_some_and(|sent| sent.is_ok()).then(|| http.ok()).flatten(), id };
         async move {
+            let mut abort = abort;
             let Some(sent) = sent else {
                 return Err(HostError::new(CANCELLED_MESSAGE));
             };
             let promise = Promise::resolve(&sent?);
-            match token.run(JsFuture::from(promise)).await {
-                None => {
-                    if let Ok(http) = http {
-                        let _ = call(&http, "abort", &[JsValue::from_f64(id)]);
-                    }
-                    Err(HostError::new(CANCELLED_MESSAGE))
+            let settled = token.run(JsFuture::from(promise)).await;
+            match settled {
+                None => Err(HostError::new(CANCELLED_MESSAGE)),
+                Some(Ok(value)) => {
+                    abort.disarm();
+                    response_keeping(&value, keep_body)
                 }
-                Some(Ok(value)) => response_keeping(&value, keep_body),
-                Some(Err(value)) => Err(host_error(value)),
+                Some(Err(value)) => {
+                    abort.disarm();
+                    Err(host_error(value))
+                }
             }
+        }
+    }
+}
+
+/// Aborts a fetch of the platform when it is dropped, unless it was disarmed once the fetch settled
+struct AbortOnDrop {
+    http: Option<JsValue>,
+    id: f64,
+}
+
+impl AbortOnDrop {
+    fn disarm(&mut self) {
+        self.http = None;
+    }
+}
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        if let Some(http) = self.http.take() {
+            let _ = call(&http, "abort", &[JsValue::from_f64(self.id)]);
         }
     }
 }
@@ -1181,4 +1218,70 @@ impl ComputeHost for JsPlatform {
 /// computation
 pub fn lifetime_token() -> JsValue {
     Object::new().into()
+}
+
+thread_local! {
+    /// The formatters of the wall clock in named zones with their `formatToParts`, none for a zone that `Intl` doesn't
+    /// know
+    static ZONE_FORMATTERS: RefCell<std::collections::HashMap<String, Option<(JsValue, Function)>>> = RefCell::new(Default::default());
+}
+
+/// The offsets of named time zones from `Intl.DateTimeFormat` of the host, e.g. for the timestamps of Trino with a
+/// named zone. The crate has no time zone database.
+pub struct IntlTimeZones;
+
+impl IntlTimeZones {
+    /// The formatter of the wall clock in a zone and its `formatToParts`, none for an unknown zone
+    fn formatter(zone: &str) -> Option<(JsValue, Function)> {
+        ZONE_FORMATTERS.with(|formatters| {
+            if let Some(formatter) = formatters.borrow().get(zone) {
+                return formatter.clone();
+            }
+            let formatter = (|| {
+                let intl = Reflect::get(&js_sys::global(), &JsValue::from_str("Intl")).ok()?;
+                let constructor = Reflect::get(&intl, &JsValue::from_str("DateTimeFormat")).ok()?.dyn_into::<Function>().ok()?;
+                let options = Object::new();
+                let set = |key: &str, value: &str| Reflect::set(&options, &JsValue::from_str(key), &JsValue::from_str(value)).ok();
+                set("timeZone", zone)?;
+                set("hourCycle", "h23")?;
+                set("era", "short")?;
+                for field in ["year", "month", "day", "hour", "minute"] {
+                    set(field, "numeric")?;
+                }
+                // Throws a RangeError for an unknown zone, `construct` catches it
+                let args = Array::of2(&JsValue::from_str("en-US"), &options);
+                let formatter = Reflect::construct(&constructor, &args).ok()?;
+                let format = Reflect::get(&formatter, &JsValue::from_str("formatToParts")).ok()?.dyn_into::<Function>().ok()?;
+                Some((formatter, format))
+            })();
+            formatters.borrow_mut().insert(zone.to_string(), formatter.clone());
+            formatter
+        })
+    }
+}
+
+impl dashql_core_runtime::trino::TimeZoneOffsets for IntlTimeZones {
+    /// The wall clock in the zone at the instant minus the instant
+    fn offset_ms(&self, zone: &str, instant: i64) -> Option<i64> {
+        let (formatter, format) = Self::formatter(zone)?;
+        let parts = format.call1(&formatter, &JsValue::from_f64(instant as f64)).ok()?;
+        let (mut year, mut month, mut day, mut hour, mut minute, mut bc) = (None, None, None, None, None, false);
+        for part in Array::from(&parts).iter() {
+            let kind = field(&part, "type").and_then(|kind| kind.as_string()).unwrap_or_default();
+            let value = field(&part, "value").and_then(|value| value.as_string()).unwrap_or_default();
+            let number = || value.parse::<i64>().ok();
+            match kind.as_str() {
+                "year" => year = number(),
+                "month" => month = number(),
+                "day" => day = number(),
+                "hour" => hour = number(),
+                "minute" => minute = number(),
+                "era" => bc = value == "BC",
+                _ => {}
+            }
+        }
+        let year = if bc { 1 - year? } else { year? };
+        let wall = dashql_core_runtime::trino::time::utc_ms(year, month?, day?, hour?, minute?, 0, 0)?;
+        Some(wall - instant)
+    }
 }

@@ -8,7 +8,7 @@ import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
-import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
@@ -32,16 +32,16 @@ interface LoginOptions {
     params: connection.SalesforceConnectionParams;
     authConfig: connection.SalesforceOAuthConfig;
     oauthFlow: OAuthFlow;
-    apiClient: SalesforceApiClientInterface;
+    /// The HTTP client of the requests, none for a login that sends none
+    http: HttpClient | null;
     forceReLogin: boolean;
     abortSignal: AbortSignal;
     onProgress?: (progress: SalesforceAuthenticationProgress) => void;
 }
 
-/// The login of the runtime with the HTTP client of the API client: the tokens and the user, a failure throws
+/// The login of the runtime with the HTTP client: the tokens and the user, a failure throws
 async function authenticateSalesforce(options: LoginOptions) {
-    const http = options.apiClient instanceof SalesforceApiClient ? options.apiClient.httpClient : null;
-    const runtime = createRuntime({ logger: options.logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, http, oauthFlow: options.oauthFlow });
+    const runtime = createRuntime({ logger: options.logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, http: options.http, oauthFlow: options.oauthFlow });
     await runtime.ready();
     const cancel = () => runtime.module?.cancelSetup('login');
     options.abortSignal.addEventListener('abort', cancel, { once: true });
@@ -92,11 +92,6 @@ const authConfig: connection.SalesforceOAuthConfig = {
     oauthRedirect: 'https://dashql.app/oauth.html',
 };
 
-/// An API client whose HTTP client answers like Salesforce
-function apiClientOf(options: FakeSalesforceOptions = {}) {
-    const http = fakeSalesforceHttp(options);
-    return { http, apiClient: new SalesforceApiClient(new TestLogger(), http) };
-}
 
 function decodeState(url: URL): OAuthState {
     const encoded = url.searchParams.get('state')!;
@@ -115,7 +110,7 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-// The login runs in the Rust runtime and sends its requests with the HTTP client of the API client. The URL and the
+// The login runs in the Rust runtime and sends its requests with the HTTP client of the platform. The URL and the
 // check of the callback state are tested with the setup of the crate as well (`tests/salesforce_test.rs`).
 describe('authenticateSalesforce', () => {
     it('carries the flavor of the document in the OAuth state', async () => {
@@ -128,7 +123,7 @@ describe('authenticateSalesforce', () => {
                 params,
                 authConfig,
                 oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
-                apiClient: apiClientOf().apiClient,
+                http: fakeSalesforceHttp(),
                 forceReLogin: false,
                 abortSignal: new AbortController().signal,
             });
@@ -143,7 +138,7 @@ describe('authenticateSalesforce', () => {
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
         await authenticateSalesforce({
             logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
-            apiClient: apiClientOf().apiClient, forceReLogin: true, abortSignal: new AbortController().signal,
+            http: fakeSalesforceHttp(), forceReLogin: true, abortSignal: new AbortController().signal,
         });
         const url = new URL(open.mock.calls[0][0]!.toString());
         expect(url.origin + url.pathname).toBe('https://example.my.salesforce.com/services/oauth2/authorize');
@@ -160,7 +155,7 @@ describe('authenticateSalesforce', () => {
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
         const logger = new TestLogger();
         const info = vi.spyOn(logger, 'info');
-        const { http, apiClient } = apiClientOf({ userInfo: { preferred_username: 'user@example.com', organization_id: 'org-1' } });
+        const http = fakeSalesforceHttp({ userInfo: { preferred_username: 'user@example.com', organization_id: 'org-1' } });
         const stages: string[] = [];
 
         const result = await authenticateSalesforce({
@@ -168,7 +163,7 @@ describe('authenticateSalesforce', () => {
             params,
             authConfig,
             oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
-            apiClient,
+            http,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
             onProgress: progress => stages.push(progress.stage),
@@ -220,7 +215,7 @@ describe('authenticateSalesforce', () => {
             params,
             authConfig,
             oauthFlow: new AppOAuthFlow(redirectWith(openExternal) as any, PlatformType.DESKTOP),
-            apiClient: apiClientOf({ userInfo: null }).apiClient,
+            http: fakeSalesforceHttp({ userInfo: null }),
             forceReLogin: false,
             abortSignal: new AbortController().signal,
             onProgress: progress => stages.push(progress.stage),
@@ -245,7 +240,7 @@ describe('authenticateSalesforce', () => {
             params,
             authConfig,
             oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
-            apiClient: {} as SalesforceApiClientInterface,
+            http: null,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
         })).rejects.toThrow('The user denied access');
@@ -258,7 +253,7 @@ describe('authenticateSalesforce', () => {
         const appEvents = redirectWith(open, state => ({ state: { ...state, flowVariant: 'NATIVE_LINK_FLOW' }, code: 'authorization-code' }));
         await expect(authenticateSalesforce({
             logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
-            apiClient: {} as SalesforceApiClientInterface, forceReLogin: false, abortSignal: new AbortController().signal,
+            http: null, forceReLogin: false, abortSignal: new AbortController().signal,
         })).rejects.toThrow('flow variant');
     });
 
@@ -267,7 +262,7 @@ describe('authenticateSalesforce', () => {
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
         const abort = new AbortController();
         const stages: string[] = [];
-        const { apiClient } = apiClientOf({
+        const http = fakeSalesforceHttp({
             exchangeError: outcome === 'failed' ? 'exchange failed' : null,
             onExchange: () => {
                 if (outcome === 'aborted') abort.abort();
@@ -275,7 +270,7 @@ describe('authenticateSalesforce', () => {
         });
         await expect(authenticateSalesforce({
             logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
-            apiClient, forceReLogin: false,
+            http, forceReLogin: false,
             abortSignal: abort.signal, onProgress: progress => stages.push(progress.stage),
         })).rejects.toThrow();
         expect(stages).toContain('REQUESTING_DATA_CLOUD_ACCESS_TOKEN');
@@ -299,7 +294,7 @@ describe('authenticateSalesforce', () => {
             params,
             authConfig,
             oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
-            apiClient: {} as SalesforceApiClientInterface,
+            http: null,
             forceReLogin: false,
             abortSignal: abort.signal,
         })).rejects.toMatchObject({ name: 'AbortError' });

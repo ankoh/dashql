@@ -18,6 +18,7 @@ use dashql_core_runtime::connection_setup::{
     HyperChannelRequest, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
 };
 use dashql_core_runtime::connections::{ChannelId, ConnectionAction, ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge};
+use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::{QueryMetadata, QueryType};
@@ -33,12 +34,27 @@ impl Wake for NoopWaker {
     fn wake(self: Arc<Self>) {}
 }
 
+thread_local! {
+    /// The tasks that the host spawned, `block_on` runs them next to its future
+    static TASKS: RefCell<Vec<LocalTask>> = RefCell::new(Vec::new());
+}
+
 fn block_on<F: Future>(future: F) -> F::Output {
     let waker = Waker::from(Arc::new(NoopWaker));
     let mut cx = Context::from_waker(&waker);
     let mut future = pin!(future);
+    let run_tasks = |cx: &mut Context<'_>| {
+        let mut tasks = TASKS.with(|tasks| std::mem::take(&mut *tasks.borrow_mut()));
+        tasks.retain_mut(|task| task.as_mut().poll(cx).is_pending());
+        TASKS.with(|pending| pending.borrow_mut().extend(tasks));
+    };
     for _ in 0..1000 {
+        run_tasks(&mut cx);
         if let Poll::Ready(output) = future.as_mut().poll(&mut cx) {
+            // The tasks that the future left run until they stall, e.g. a connect that the setup stopped waiting for
+            for _ in 0..10 {
+                run_tasks(&mut cx);
+            }
             return output;
         }
     }
@@ -79,6 +95,10 @@ struct FakeHost {
     link_token: RefCell<Option<String>>,
     probe: RefCell<Option<Result<ProbeResult, HostError>>>,
     probes: RefCell<Vec<(ChannelId, String, QueryMetadata)>>,
+    /// A connect of a Hyper channel that hangs until the test sends the channel, the user cancels meanwhile
+    connect_later: RefCell<Option<Receiver<ChannelId>>>,
+    /// The platform has no random ids
+    no_random_id: Cell<bool>,
 }
 
 impl FakeHost {
@@ -117,7 +137,9 @@ impl Host for FakeHost {
         std::future::ready(())
     }
 
-    fn spawn(&self, _task: LocalTask) {}
+    fn spawn(&self, task: LocalTask) {
+        TASKS.with(|tasks| tasks.borrow_mut().push(task));
+    }
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.logs.borrow_mut().push((level, message.to_string()));
@@ -137,8 +159,11 @@ impl OAuthHost for FakeHost {
         std::future::ready(Ok(OAuthPkceChallenge { value: "challenge".into(), verifier: "verifier".into() }))
     }
 
-    fn random_id(&self) -> String {
-        "state-1".into()
+    fn random_id(&self) -> Result<String, HostError> {
+        if self.no_random_id.get() {
+            return Err(HostError::new("the platform has no crypto"));
+        }
+        Ok("state-1".into())
     }
 
     fn flow_info(&self) -> OAuthFlowInfo {
@@ -190,12 +215,20 @@ impl SetupHost for FakeHost {
 
     fn connect_hyper_channel(&self, channel: &HyperChannelRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
         self.hyper_channels.borrow_mut().push(channel.clone());
+        if let Some(later) = self.connect_later.borrow_mut().take() {
+            let token = cancellation.clone();
+            let connect: std::pin::Pin<Box<dyn Future<Output = Result<ChannelId, HostError>>>> = Box::pin(async move {
+                token.cancel();
+                later.await.ok_or_else(|| HostError::new("no channel"))
+            });
+            return connect;
+        }
         let error = self.connect_error.borrow().clone();
         // A channel that connects while the user cancels
         if self.cancel_in_flow.get() {
             cancellation.cancel();
         }
-        std::future::ready(error.map_or(Ok(9), |error| Err(HostError::new(error))))
+        Box::pin(std::future::ready(error.map_or(Ok(9), |error| Err(HostError::new(error)))))
     }
 
     fn hyper_link_token(&self) -> Option<String> {
@@ -593,6 +626,39 @@ fn hyper_connects_the_channel_of_its_protocol() {
         assert_eq!(ready["params"]["protocol"], protocol);
         assert_eq!(host.hyper_channels.borrow()[0].kind, kind);
     }
+}
+
+#[test]
+fn a_cancelled_setup_stops_waiting_for_a_connect_and_closes_its_channel_later() {
+    let host = Rc::new(FakeHost::default());
+    let (connected, later) = oneshot();
+    *host.connect_later.borrow_mut() = Some(later);
+    let result = block_on(setup_hyper(host.clone(), hyper_params("V3_GRPC"), CancellationToken::new()));
+    // The setup ends at the cancellation while the connect hangs
+    assert!(matches!(result, Err(SetupFailure { cancelled: true, .. })));
+    assert_eq!(host.actions(), ["hyper:HYPER_CHANNEL_SETUP_STARTED", "hyper:HYPER_CHANNEL_SETUP_CANCELLED"]);
+    assert!(host.closed.borrow().is_empty());
+    // The channel that connects later is closed
+    connected.send(11);
+    block_on(async {});
+    assert_eq!(*host.closed.borrow(), [11]);
+}
+
+#[test]
+fn an_oauth_flow_without_a_random_state_fails() {
+    let host = Rc::new(FakeHost::default());
+    host.no_random_id.set(true);
+    let message = failure_message(block_on(setup_trino(host.clone(), trino_oauth_params(), false, CancellationToken::new())));
+    assert_eq!(message, "the platform has no crypto");
+    assert!(host.opened.borrow().is_empty(), "no login without a state that binds its callback");
+    assert_eq!(host.actions().last().map(String::as_str), Some("trino:OAUTH_FAILED"));
+
+    let host = Rc::new(FakeHost::default());
+    host.no_random_id.set(true);
+    *host.redirect.borrow_mut() = Some(Box::new(redirect_callback));
+    let run = setup_salesforce(host.clone(), ConnectorType::SalesforceDataCloud, salesforce_params(), salesforce_config(), false, CancellationToken::new());
+    assert_eq!(failure_message(block_on(run)), "the platform has no crypto");
+    assert!(host.opened.borrow().is_empty());
 }
 
 #[test]

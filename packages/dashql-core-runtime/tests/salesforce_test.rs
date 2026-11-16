@@ -12,6 +12,7 @@ use dashql_core_runtime::salesforce::auth::*;
 use dashql_core_runtime::salesforce::client_functions::*;
 use dashql_core_runtime::salesforce::setup::*;
 use dashql_core_runtime::salesforce::*;
+use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z
@@ -218,6 +219,9 @@ fn exchanges_the_authorization_code_for_an_opaque_core_token_using_pkce() {
     let config = SalesforceOAuthConfig { oauth_redirect: "https://dashql.app/oauth.html".into() };
     let request = core_access_token_request(&config, &params, "code", "verifier");
     assert_eq!(request.url, "https://core.example.com/services/oauth2/token");
+    // The host keeps no record of the code, the verifier and the token
+    assert!(request.sensitive);
+    assert!(data_cloud_access_token_request(&core_token("https://core.example.com")).sensitive);
     let fields = form(request.body.as_deref().unwrap());
     assert_eq!(fields["grant_type"], "authorization_code");
     assert_eq!(fields["code_verifier"], "verifier");
@@ -320,8 +324,10 @@ fn rejects_http_errors_even_without_an_oauth_error_body() {
 #[test]
 fn requests_the_user_info_with_the_core_token_and_maps_the_fields() {
     let request = core_user_info_request(&core_token("https://core.example.com"));
-    assert_eq!(request.url, "https://core.example.com/services/oauth2/userinfo?format=json&access_token=core-token");
+    // The token goes in the bearer header only, never in the URL
+    assert_eq!(request.url, "https://core.example.com/services/oauth2/userinfo?format=json");
     assert_eq!(request.header("authorization"), Some("Bearer core-token"));
+    assert!(request.sensitive);
     let info = read_core_user_info_response(&ok(json!({
         "email": "user@example.com", "email_verified": true, "preferred_username": "user@example.com.org",
         "organization_id": "00D000000000001", "user_id": "005000000000001", "utcOffset": 3_600_000,
@@ -573,9 +579,12 @@ fn fails_without_a_redirect() {
 fn shares_params_without_the_secret() {
     let object = json!({ "instanceUrl": "https://org", "appConsumerKey": "k", "appConsumerSecret": "s", "login": "u" });
     let object = object.as_object().unwrap();
-    let shared = sanitize_params_for_sharing(object, false);
+    let sanitize = |with_login_hint: bool| {
+        sanitize_connection_params_for_sharing(&json!({ "salesforce": object }), with_login_hint)["salesforce"].clone()
+    };
+    let shared = sanitize(false);
     assert_eq!((shared["appConsumerSecret"].as_str(), shared["login"].as_str()), (Some(""), Some("")));
-    assert_eq!(sanitize_params_for_sharing(object, true)["login"], "u");
+    assert_eq!(sanitize(true)["login"], "u");
     assert_eq!(login_hint(object), Some("u"));
     assert_eq!(cache_signature(ConnectorType::SalesforceDataCloud, object), json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" }));
     assert_eq!(cache_signature(ConnectorType::Dbcom, object)["databaseName"], "default");

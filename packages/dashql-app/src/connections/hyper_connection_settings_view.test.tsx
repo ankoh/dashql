@@ -5,9 +5,9 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { createTestConnection, setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 
-import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
@@ -25,7 +25,7 @@ const CONNECTION_ID = 'hyper-settings-test';
 
 type Registry = ReadonlyMap<string, ConnectionState>;
 /// A connection that a test creates in the runtime of the app once it rendered
-type TestConnection = (runtime: Runtime) => ConnectionState;
+type TestConnection = (runtime: Runtime) => Promise<ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -35,8 +35,8 @@ beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PREC
 function hyperDatabase(params: connection.HyperConnectionParams, health = ConnectionHealth.NOT_STARTED): TestConnection {
     const connectionParams: ConnectionParams = { hyper: params };
     const channel = health === ConnectionHealth.ONLINE ? { close: vi.fn() } : undefined;
-    return runtime => {
-        const state = createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
+    return async runtime => {
+        const state = await createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
         expect(state.connectionHealth).toBe(health);
         expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
         return state;
@@ -121,7 +121,7 @@ describe('HyperConnectorSettings', () => {
         };
         await act(async () => root.render(tree(false)));
         if (database != null) {
-            await act(async () => { database(appRuntime!); });
+            await act(async () => { await database(appRuntime!); });
         }
         await act(async () => root.render(tree(true)));
     }
@@ -284,8 +284,9 @@ describe('HyperConnectorSettings', () => {
         });
 
         it('freezes the form while connecting and cancels the setup', async () => {
-            setup.mockImplementation(async (connectionId, options) => {
-                appRuntime!.dispatch({ connection: connectionId }, setupStepAction('HYPER_CHANNEL_SETUP_STARTED', (options?.params as { hyper: unknown }).hyper));
+            // The runtime sets the connection up, its health check runs until the test ends
+            setup.mockImplementation(async connectionId => {
+                void setupTestConnection(appRuntime!, connectionId, { health: ConnectionHealth.CONNECTING });
                 return await new Promise(() => { });
             });
             await render(hyperDatabase(HTTP), { clients: true });

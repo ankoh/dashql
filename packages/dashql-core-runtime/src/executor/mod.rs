@@ -53,7 +53,7 @@ use crate::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpR
 use crate::hyper::{HyperError, HyperHttpChannel};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use crate::salesforce::SalesforceTokens;
-use crate::trino::{TrinoAccessToken, TrinoChannel, TrinoError};
+use crate::trino::{NoTimeZones, SharedTrinoChannel, TimeZoneOffsets, TrinoAccessToken, TrinoError};
 use wait::Controls;
 
 /// The target of the log messages of the executor
@@ -92,8 +92,8 @@ pub struct ClientFunctionTarget {
 pub enum QueryTarget {
     /// The channel of the connection is an object of the host, the host runs the query
     Host,
-    /// A Trino channel
-    Trino(TrinoChannel),
+    /// The Trino channel of the connection, the queries of the connection share it with its access token
+    Trino(SharedTrinoChannel),
     /// The HTTP API of a Hyper, the auth headers go with every request
     HyperHttp { channel: HyperHttpChannel, auth: Headers },
     /// A client function call, it sends its requests to the services of the spec
@@ -266,8 +266,6 @@ pub enum QueryEvent {
     ResultsReady,
     /// A log message of the query
     Log { level: LogLevel, message: String, details: Vec<(String, String)>, target: String },
-    /// The channel refreshed the OAuth access token of a Trino connection
-    TrinoTokenRefreshed(TrinoAccessToken),
 }
 
 /// How a query ended for the caller
@@ -346,6 +344,21 @@ pub trait ExecutorHost: HttpHost {
     fn channel_cancel(&self, query_id: QueryId) -> impl Future<Output = Result<(), HostError>> + 'static;
     /// Is the profile of the query shown? A channel fetches the plan and its statistics only then.
     fn channel_profile_detail(&self, query_id: QueryId, wanted: bool);
+
+    /// The auth headers of the channel of a Hyper query over HTTP as they are now, asked before every round of requests
+    /// of its result. None keeps the headers that the query started with.
+    fn channel_auth(&self, _query_id: QueryId) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+        std::future::ready(Ok(None))
+    }
+
+    /// A shared Trino channel refreshed its OAuth access token, the connection that owns the channel keeps it
+    fn trino_token_refreshed(&self, _channel: &SharedTrinoChannel, _token: &TrinoAccessToken) {}
+
+    /// The offsets of named time zones, e.g. for the timestamps of Trino with a named zone. Without, such a timestamp
+    /// is null.
+    fn time_zones(&self) -> Rc<dyn TimeZoneOffsets> {
+        Rc::new(NoTimeZones)
+    }
 }
 
 /// A query that runs

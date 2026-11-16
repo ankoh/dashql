@@ -117,7 +117,7 @@ describe('The handles of a runtime', () => {
         };
         const channel = { executeQuery: vi.fn(async () => stream), close: vi.fn() };
         const connectionId = 'handles-database';
-        rt.addConnection({
+        await rt.addConnection({
             connectionId,
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams,
             channel,

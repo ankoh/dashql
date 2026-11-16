@@ -8,6 +8,7 @@ use super::details::{
 };
 use super::params::JsonObject;
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
+use crate::trino::SharedTrinoChannel;
 
 /// An action of the setup of a Trino connection
 #[derive(Debug, Clone, PartialEq)]
@@ -36,8 +37,12 @@ pub enum TrinoAction {
     ChannelSetupCancelled(DetailedError),
     /// The channel setup failed
     ChannelSetupFailed(DetailedError),
-    /// The channel is ready, the connection waits for the health check
-    ChannelReady(ChannelId),
+    /// The channel is ready, the connection waits for the health check. The connection owns the channel of Trino
+    /// from now on, the host keeps only a handle for it.
+    ChannelReady { channel: ChannelId, trino: SharedTrinoChannel },
+    /// The channel refreshed its access token, opaque JSON. A refresh of a channel that the connection no longer uses
+    /// changes nothing.
+    AccessTokenRefreshed { channel: SharedTrinoChannel, token: String },
 }
 
 impl TrinoAction {
@@ -57,9 +62,17 @@ impl TrinoAction {
             TrinoAction::ChannelSetupStarted { .. } => (ConnectionStatus::ChannelSetupStarted, Connecting),
             TrinoAction::ChannelSetupCancelled(_) => (ConnectionStatus::ChannelSetupCancelled, Cancelled),
             TrinoAction::ChannelSetupFailed(_) => (ConnectionStatus::ChannelSetupFailed, Failed),
-            TrinoAction::ChannelReady(_) => (ConnectionStatus::ChannelReady, Connecting),
+            TrinoAction::ChannelReady { .. } => (ConnectionStatus::ChannelReady, Connecting),
+            // Not a step of the setup, the connection applies it without `reduce`
+            TrinoAction::AccessTokenRefreshed { .. } => (ConnectionStatus::ChannelReady, Connecting),
         }
     }
+}
+
+/// The connection lets go of its channel, the queries no longer share it
+fn release(channel: &mut Option<ChannelId>, shared: &mut Option<SharedTrinoChannel>, effects: &mut Vec<ConnectionEffect>) {
+    replace_channel(channel, None, effects);
+    *shared = None;
 }
 
 /// Apply an action of the setup to a Trino connection. The caller checked that the connection is one of Trino.
@@ -69,6 +82,9 @@ pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Time
     let ConnectorDetails::Trino(trino) = connector else {
         return;
     };
+    if matches!(action, TrinoAction::AccessTokenRefreshed { .. }) {
+        return;
+    }
     (state.status, state.health) = action.status();
     match action {
         TrinoAction::OAuthStarted { params } => {
@@ -78,16 +94,16 @@ pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Time
             *channel_error = None;
             *health_check_error = None;
             trino.oauth_state = Some(TrinoOAuthState::default());
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
         TrinoAction::OAuthCancelled(_) => {
             timings.oauth_cancelled_at = Some(now);
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
         TrinoAction::OAuthFailed(error) => {
             timings.oauth_failed_at = Some(now);
             *channel_error = Some(error);
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
         TrinoAction::GeneratingPkceChallenge => timings.pkce_gen_started_at = Some(now),
         TrinoAction::GeneratedPkceChallenge(pkce) => {
@@ -110,20 +126,22 @@ pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Time
             *channel_error = None;
             *health_check_error = None;
             trino.schema_resolution_error = None;
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
         TrinoAction::ChannelSetupCancelled(_) => {
             timings.channel_setup_cancelled_at = Some(now);
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
         TrinoAction::ChannelSetupFailed(error) => {
             timings.channel_setup_failed_at = Some(now);
             *channel_error = Some(error);
-            replace_channel(channel, None, effects);
+            release(channel, &mut trino.channel, effects);
         }
-        TrinoAction::ChannelReady(ready) => {
+        TrinoAction::ChannelReady { channel: ready, trino: shared } => {
             timings.channel_ready_at = Some(now);
             replace_channel(channel, Some(ready), effects);
+            trino.channel = Some(shared);
         }
+        TrinoAction::AccessTokenRefreshed { .. } => {}
     }
 }

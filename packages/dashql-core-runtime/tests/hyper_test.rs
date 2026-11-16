@@ -14,9 +14,9 @@ use dashql_core_runtime::connections::health_check::*;
 use dashql_core_runtime::connections::import::*;
 use dashql_core_runtime::connections::label::*;
 use dashql_core_runtime::connections::refresh::can_refresh_connection;
-use dashql_core_runtime::connections::setup_check::*;
+use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
-use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments, sanitize_for_sharing};
+use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments};
 use dashql_core_runtime::hyper::embedded::*;
 use dashql_core_runtime::hyper::link::*;
 use dashql_core_runtime::hyper::local_cloud::*;
@@ -1354,7 +1354,8 @@ fn the_descriptor_of_the_hyper_connector() {
         "queryParameters": { "time_zone": "UTC", "lc_time": "de_DE" },
         "attachedDatabases": [{ "path": "b", "alias": "y" }, { "path": "a", "alias": "x" }],
     }));
-    let shared = sanitize_for_sharing(&params);
+    let shared = sanitize_connection_params_for_sharing(&json!({ "hyper": params }), true);
+    let shared = shared["hyper"].as_object().unwrap();
     assert!(!shared.contains_key("metadata") && !shared.contains_key("queryParameters"));
     assert_eq!(shared["tls"], json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
     assert_eq!(
@@ -1405,48 +1406,6 @@ fn the_health_check_of_a_connection() {
         panic!()
     };
     assert_eq!(failed, error);
-}
-
-fn salesforce_state(error: Option<&str>, data_cloud_token: Value) -> ConnectionState {
-    let params = object(json!({ "appConsumerKey": "consumer-key" }));
-    let details = ConnectionDetails {
-        setup_timings: SetupTimings { auth_started_at: Some(0.0), ..Default::default() },
-        setup_params: Some(params),
-        channel_error: None,
-        health_check_error: None,
-        channel: None,
-        connector: ConnectorDetails::SalesforceDataCloud(SalesforceDetails {
-            setup_error: error.map(DetailedError::new),
-            oauth_state: Some(SalesforceOAuthState {
-                core_access_token: Some(json!({ "accessToken": "opaque-core-token" }).to_string()),
-                data_cloud_access_token: Some(data_cloud_token.to_string()),
-                ..Default::default()
-            }),
-        }),
-    };
-    ConnectionState::new("sf", details, ConnectionStateOptions::default(), 0.0)
-}
-
-#[test]
-fn the_setup_check_requires_an_exchanged_token_and_gives_setup_errors_precedence() {
-    let params = object(json!({ "appConsumerKey": "consumer-key" }));
-    let jwt = json!({ "jwt": { "raw": "data-cloud-jwt", "payload": {} } });
-    for (token, error, expected) in [
-        (json!({}), None, ConnectionSetupCheck::AuthenticationInProgress),
-        (json!({}), Some("OAuth failed"), ConnectionSetupCheck::AuthenticationFailed),
-        (jwt.clone(), None, ConnectionSetupCheck::Authenticated),
-        (jwt.clone(), Some("Setup failed after exchange"), ConnectionSetupCheck::AuthenticationFailed),
-    ] {
-        assert_eq!(check_salesforce_connection_setup(Some(&salesforce_state(error, token)), &params), expected);
-    }
-    assert_eq!(check_salesforce_connection_setup(None, &params), ConnectionSetupCheck::ConnectionNull);
-    let hyper = ConnectionState::from_params("h", ConnectionParams::default_for(ConnectorType::Hyper), 0.0);
-    assert_eq!(check_salesforce_connection_setup(Some(&hyper), &params), ConnectionSetupCheck::ConnectionTypeMismatch);
-    let other = object(json!({ "appConsumerKey": "other" }));
-    assert_eq!(
-        check_salesforce_connection_setup(Some(&salesforce_state(None, jwt)), &other),
-        ConnectionSetupCheck::ClientIdMismatch
-    );
 }
 
 #[test]

@@ -2,9 +2,7 @@ import * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
 
 import type { QueryExecutionArgs } from '../../platform/connections/query_execution_args.js';
-import { TrinoChannel } from '../../platform/connections/trino/trino_channel.js';
 import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hyperdb_grpc_client.js';
-import type { SalesforceDatabaseChannel } from '../../platform/connections/salesforce/salesforce_api_client.js';
 import { queryParam, requireChannel } from '../../platform/connections/query_channel.js';
 import type { HandleTable } from '../store/handles.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
@@ -30,8 +28,6 @@ interface QueryRecord {
     channel: unknown;
     /// Aborted by the caller and by a cancel, it stops the stream of a channel of the host
     cancellation: AbortController;
-    /// The Trino channel that the executor speaks, it keeps a refreshed access token
-    trino: TrinoChannel | null;
     /// The stream of a channel of the host and its messages
     stream: QueryExecutionResponseStream | null;
     /// The cancellation of the stream at the backend, every cancel waits for the same one
@@ -48,7 +44,6 @@ function newRecord(): QueryRecord {
         query: null,
         channel: null,
         cancellation: new AbortController(),
-        trino: null,
         stream: null,
         streamCancel: null,
         producing: false,
@@ -77,10 +72,11 @@ export interface QueryChannelsDependencies {
 
 /// The half of the queries of the runtime that touches the objects of the platform (docs/wip/runtime_api.md). The
 /// runtime describes a query itself: the target on the channel of its connection, the key of its result and what the
-/// executor does around it. This class describes the channel object (a Trino channel or a Hyper channel over HTTP that
-/// the runtime speaks, else a channel of the host), runs the queries of the channels of the host (the gRPC channel of
-/// Hyper, the embedded Hyper, the channels of tests), keeps the query result cache over the compute database, and gives
-/// a caller in TypeScript the result table and the error of a failed query.
+/// executor does around it; a Trino connection owns its channel and a Salesforce connection its tokens. This class
+/// describes the channel object (a Hyper channel over HTTP that the runtime speaks with the auth headers of the channel,
+/// else a channel of the host), runs the queries of the channels of the host (the gRPC channel of Hyper, the embedded
+/// Hyper, the channels of tests), keeps the query result cache over the compute database, and gives a caller in
+/// TypeScript the result table and the error of a failed query.
 export class QueryChannels {
     private readonly records = new Map<number, QueryRecord>();
     /// The files of the cache that the runs keep, by id
@@ -90,32 +86,13 @@ export class QueryChannels {
     constructor(private readonly deps: QueryChannelsDependencies) { }
 
     /// The channels of the platform by query
-    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
+    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'auth' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
         describe: async (queryId, handle, query) => {
             const record = this.records.get(queryId) ?? newRecord();
             this.records.set(queryId, record);
             const channel: unknown = this.deps.handles.get(handle) ?? null;
             record.query = query;
             record.channel = channel;
-            const salesforce = channel as SalesforceDatabaseChannel | null;
-            const tokens = salesforce?.coreToken != null && salesforce.dataCloudToken != null
-                ? { core: salesforce.coreToken, dataCloud: salesforce.dataCloudToken }
-                : null;
-            // A call of a client function sends its requests itself with the tokens of the channel
-            if (query.clientFunction) return { type: 'host', tokens };
-            // A Trino channel whose requests go over the HTTP client of the platform
-            if (channel instanceof TrinoChannel) {
-                const endpoint = channel.endpoint;
-                record.trino = channel;
-                return {
-                    type: 'trino',
-                    endpoint: endpoint.endpoint,
-                    auth: endpoint.authParams,
-                    accessToken: endpoint.oauthState?.accessToken ?? null,
-                    catalog: channel.defaults.catalog,
-                    schema: channel.defaults.schema,
-                };
-            }
             // A Hyper channel over the HTTP API, also the one of a Salesforce connection
             const hyper = channel as HyperDatabaseChannel | null;
             const described = await hyper?.describeHttp?.() ?? null;
@@ -126,10 +103,15 @@ export class QueryChannels {
                     clientContext: described.clientContext,
                     auth: described.auth,
                     parallelChunks: described.parallelChunks,
-                    tokens,
                 };
             }
-            return { type: 'host', tokens };
+            return { type: 'host' };
+        },
+        auth: async queryId => {
+            // The auth headers of the channel as they are now, e.g. after a refresh of a token
+            const hyper = this.records.get(queryId)?.channel as HyperDatabaseChannel | null | undefined;
+            const described = await hyper?.describeHttp?.() ?? null;
+            return described?.auth ?? null;
         },
         forget: queryId => {
             this.records.delete(queryId);
@@ -255,12 +237,6 @@ export class QueryChannels {
                         case 'resultsReady':
                             args.onResultsReady?.();
                             break;
-                        case 'trinoTokenRefreshed': {
-                            // The channel keeps the refreshed token for the next queries
-                            const oauth = record.trino?.endpoint.oauthState;
-                            if (oauth != null) oauth.accessToken = event.token as typeof oauth.accessToken;
-                            break;
-                        }
                     }
                 } catch {
                     // An observer must not interrupt the query

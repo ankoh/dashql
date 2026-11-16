@@ -36,7 +36,7 @@ use wasm_bindgen::JsCast;
 
 use super::connections::Connections;
 use crate::connection::view::JsonParams;
-use crate::host::{field, JsPlatform};
+use crate::host::{field, host_value, JsPlatform};
 use crate::views::JsonValue;
 
 /// How a setup runs
@@ -118,6 +118,9 @@ pub(crate) struct RuntimeSetupHost {
     setup_id: String,
     /// The connection that the actions go to, none for a login
     connection_id: Option<String>,
+    /// The setup attempt of the connection that the actions belong to, the connection ignores them once a later setup,
+    /// a reset or a delete replaced the attempt
+    epoch: u64,
     /// The params that the connection keeps when the channel connects with others
     kept_params: Option<JsonObject>,
     /// The listener of the steps of a login
@@ -230,8 +233,8 @@ impl OAuthHost for RuntimeSetupHost {
         }
     }
 
-    fn random_id(&self) -> String {
-        self.platform.random_uuid().unwrap_or_default()
+    fn random_id(&self) -> Result<String, HostError> {
+        self.platform.random_uuid()
     }
 
     fn flow_info(&self) -> OAuthFlowInfo {
@@ -295,18 +298,14 @@ impl SetupHost for RuntimeSetupHost {
             return;
         };
         let Some(connections) = self.connections.upgrade() else { return };
-        connections.apply_setup_step(connection_id, self.kept(action));
+        let step = ConnectionAction::SetupStep { epoch: self.epoch, step: Box::new(self.kept(action)) };
+        connections.apply_setup_step(connection_id, step);
     }
 
-    fn connect_trino_channel(&self, channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        self.connect(json!({
-            "type": "trino",
-            "endpoint": channel.endpoint,
-            "auth": channel.auth.to_json(),
-            "catalog": channel.defaults.catalog,
-            "schema": channel.defaults.schema,
-            "accessToken": channel.access_token.as_ref().map(|token| token.to_json()),
-        }))
+    fn connect_trino_channel(&self, _channel: &TrinoChannel) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
+        // The connection owns the channel, the handle table keeps a token of it that the connection releases
+        let handle = self.platform.register(&js_sys::Object::new().into());
+        async move { handle }
     }
 
     fn connect_salesforce_channel(
@@ -339,6 +338,15 @@ impl SetupHost for RuntimeSetupHost {
     fn close_channel(&self, id: ChannelId) {
         self.platform.push_close(id);
         self.platform.signal(true);
+    }
+
+    fn error_details(&self, error: &HostError) -> BTreeMap<String, String> {
+        let value = host_value(error.value());
+        let Some(key_values) = field(&value, "keyValues") else { return BTreeMap::new() };
+        match JsonValue::of(&key_values).0 {
+            Value::Object(values) => values.into_iter().filter_map(|(key, value)| Some((key, value.as_str()?.to_string()))).collect(),
+            _ => BTreeMap::new(),
+        }
     }
 
     fn run_probe(
@@ -382,12 +390,7 @@ fn connector_params(params: JsonParams, connector: ConnectorType) -> Result<Json
 impl Connections {
     /// Apply a step of a setup to its connection. The connection doesn't take the channel of a step that fails.
     pub(crate) fn apply_setup_step(self: &Rc<Self>, connection_id: &str, action: ConnectionAction) {
-        let channel = match &action {
-            ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. })
-            | ConnectionAction::Trino(TrinoAction::ChannelReady(channel))
-            | ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel)) => Some(*channel),
-            _ => None,
-        };
+        let channel = action.ready_channel();
         if let Err(error) = self.apply(connection_id, action, None) {
             if let Some(channel) = channel {
                 self.platform.push_release(channel);
@@ -435,13 +438,19 @@ impl Connections {
         self.setups.borrow().iter().any(|setup| setup.id == setup_id)
     }
 
-    /// A host of a setup
+    /// A host of a setup. The setup of a connection begins a setup attempt of the connection, its steps carry it.
     fn setup_host(self: &Rc<Self>, setup_id: &str, connection_id: Option<String>, kept_params: Option<JsonObject>, events: Option<Function>) -> Rc<RuntimeSetupHost> {
+        let epoch = connection_id
+            .as_deref()
+            .and_then(|connection_id| self.registry.borrow().get(connection_id).cloned())
+            .map(|connection| connection.state.borrow_mut().begin_setup())
+            .unwrap_or_default();
         Rc::new(RuntimeSetupHost {
             connections: Rc::downgrade(self),
             platform: self.platform.clone(),
             setup_id: setup_id.to_string(),
             connection_id,
+            epoch,
             kept_params,
             events,
         })
@@ -465,15 +474,17 @@ impl Connections {
         })();
         let (number, token) = self.start_setup(&connection_id);
         let connections = self.clone();
+        // The attempt begins right away, the steps of the setup that this one cancelled change nothing from now on
+        let kept = prepared.as_ref().ok().and_then(|(_, _, kept)| kept.clone());
+        let host = connections.setup_host(&connection_id, Some(connection_id.clone()), kept, None);
         async move {
-            let (connector, params, kept) = match prepared {
-                Ok(prepared) => prepared,
+            let (connector, params) = match prepared {
+                Ok((connector, params, _)) => (connector, params),
                 Err(message) => {
                     connections.end_setup(&connection_id, number);
                     return SetupOutcome::of(SetupFailure::failed(message));
                 }
             };
-            let host = connections.setup_host(&connection_id, Some(connection_id.clone()), kept, None);
             let force_relogin = options.force_relogin.unwrap_or(false);
             let config = SalesforceOAuthConfig { oauth_redirect: options.oauth_redirect.unwrap_or_default() };
             let channel = match connector {

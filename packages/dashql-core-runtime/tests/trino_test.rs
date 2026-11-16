@@ -23,7 +23,8 @@ use dashql_core_runtime::connections::{
 };
 use dashql_core_runtime::query::progress::EngineProgressPayload;
 use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
-use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint, sanitize_for_sharing};
+use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
+use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::http::base64::{base64_decode, base64_encode};
 use dashql_core_runtime::http::url::{form_encode, set_query_param};
 use dashql_core_runtime::trino::protocol::{
@@ -1160,7 +1161,12 @@ fn sets_up_a_connection_with_basic_auth_and_checks_its_health() {
     assert_eq!(channel.defaults.catalog.as_deref(), Some("hive"));
     assert_eq!(channel.auth.username, "user");
     let out = setup.on_channel_opened();
-    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::ChannelReady(7)), ConnectionAction::HealthCheckStarted]);
+    let dispatched = actions(&out);
+    let [ConnectionAction::Trino(TrinoAction::ChannelReady { channel: 7, trino }), ConnectionAction::HealthCheckStarted] = dispatched.as_slice() else {
+        panic!("unexpected actions {dispatched:?}");
+    };
+    // The connection owns the channel of the setup
+    assert_eq!(trino.channel().auth.username, "user");
     let rest = apply_setup(&mut connection, out);
     assert_eq!(rest, [SetupOutput::RunHealthCheck { channel: 7, query: "select 1" }]);
     assert_eq!(connection.health(), ConnectionHealth::Connecting);
@@ -1253,6 +1259,23 @@ fn sets_up_a_connection_with_oauth() {
 }
 
 #[test]
+fn a_channel_that_fails_after_the_oauth_flow_fails_the_channel() {
+    let connect = || {
+        let (mut setup, _) = TrinoSetup::start(&oauth_params(), 1, TrinoSetupOptions::default());
+        setup.on_pkce(OAuthPkceChallenge { value: "c".into(), verifier: "v".into() }, "state-1".into());
+        setup.on_callback(OAuthCallback { code: Some("code".into()), state: Some("state-1".into()), ..Default::default() }, 0);
+        let out = setup.on_token_response(&json_response(json!({ "access_token": "token-1" })), 0);
+        assert!(matches!(out.last(), Some(SetupOutput::OpenChannel { .. })), "{out:?}");
+        setup
+    };
+    // The flow succeeded, the connect of the channel failed or was cancelled
+    let out = connect().fail("unreachable");
+    assert!(matches!(actions(&out).as_slice(), [ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(error))] if error.message == "unreachable"));
+    let out = connect().abort();
+    assert!(matches!(actions(&out).as_slice(), [ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(_))]), "{out:?}");
+}
+
+#[test]
 fn fails_the_oauth_flow_on_bad_callbacks_and_tokens() {
     let start = || {
         let (mut setup, _) = TrinoSetup::start(&oauth_params(), 1, TrinoSetupOptions::default());
@@ -1285,11 +1308,19 @@ fn fails_the_oauth_flow_on_bad_callbacks_and_tokens() {
     let rejected = FetchOutcome::Response(HttpResponse::new(401, "unauthorized"));
     assert_eq!(failure(&setup.on_token_response(&rejected, 0)), "Token request failed: 401 unauthorized");
 
-    // OAuth without its settings fails before the flow starts
+    // OAuth without its settings fails before the flow starts, the connection shows the error
     let mut params = oauth_params();
     params.insert("auth".into(), json!({ "authType": "AUTH_OAUTH" }));
     let (setup, out) = TrinoSetup::start(&params, 1, TrinoSetupOptions::default());
-    assert!(matches!(out.as_slice(), [SetupOutput::Failed(error)] if error.kind == TrinoErrorKind::OAuth));
+    let message = "OAuth configuration is required for OAuth authentication";
+    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.kind == TrinoErrorKind::OAuth));
+    assert_eq!(
+        actions(&out),
+        [
+            ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() }),
+            ConnectionAction::Trino(TrinoAction::OAuthFailed(DetailedError::new(message))),
+        ]
+    );
     assert!(setup.is_done());
 }
 
@@ -1336,16 +1367,20 @@ fn shares_params_without_secrets() {
         "auth": { "authType": "AUTH_BASIC", "basic": { "username": "user", "secret": "secret" } },
         "metadata": { "X-Token": "secret" },
     }));
-    let shared = sanitize_for_sharing(&params, true);
+    // The params of a connection to share, the live rule of the links and files
+    let sanitize = |params: &JsonObject, with_login_hint: bool| {
+        sanitize_connection_params_for_sharing(&json!({ "trino": params }), with_login_hint)["trino"].clone()
+    };
+    let shared = sanitize(&params, true);
     assert_eq!(
-        Value::Object(shared),
+        shared,
         json!({ "endpoint": ENDPOINT, "catalogs": ["hive"], "auth": { "authType": "AUTH_BASIC", "basic": { "username": "user", "secret": "" } } })
     );
-    let shared = sanitize_for_sharing(&params, false);
+    let shared = sanitize(&params, false);
     assert_eq!(shared["auth"]["basic"]["username"], "");
     // OAuth params stay, params without auth get an empty one
-    assert_eq!(sanitize_for_sharing(&oauth_params(), false), oauth_params());
-    assert_eq!(Value::Object(sanitize_for_sharing(&object(json!({ "endpoint": "e" })), false)), json!({ "endpoint": "e", "auth": {} }));
+    assert_eq!(sanitize(&oauth_params(), false), Value::Object(oauth_params()));
+    assert_eq!(sanitize(&object(json!({ "endpoint": "e" })), false), json!({ "endpoint": "e", "auth": {} }));
 
     assert_eq!(login_hint(&params).as_deref(), Some("user"));
     assert_eq!(login_hint(&oauth_params()), None);

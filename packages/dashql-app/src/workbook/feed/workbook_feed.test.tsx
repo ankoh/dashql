@@ -114,7 +114,7 @@ describe('V2 workbook feed rows', () => {
     it('mentions and renames the table parameter of a Parquet attachment and flags a script of the same name', async () => {
         const onMention = vi.fn();
         const onRename = vi.fn();
-        const wasm = { connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any;
+        const wasm = { connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any;
         act(() => root.render(<LoggerProvider>
             <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }} conn={wasm}
                 storageReader={{ backend: new WorkbookTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
@@ -145,7 +145,7 @@ describe('V2 workbook feed rows', () => {
         try {
             act(() => root.render(<LoggerProvider>
                 <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }}
-                    conn={{ connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
+                    conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
                     storageReader={{ backend } as any} onRemoved={onRemoved} />
             </LoggerProvider>));
             const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');

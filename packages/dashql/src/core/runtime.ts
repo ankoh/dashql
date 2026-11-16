@@ -19,7 +19,6 @@ export type {
     RuntimeChannelQuery,
     RuntimeOAuth,
     RuntimeOAuthFlowInfo,
-    RuntimeSalesforce,
     RuntimeResultCache,
     RuntimeMounts,
     RuntimeStorage,

@@ -3,7 +3,22 @@ import * as wkt from "@bufbuild/protobuf/wkt";
 import * as pb from "../../proto.js";
 
 import { LoggableException } from "../../platform/logger/logger.js";
-import type { QueryErrorResponse } from "./hyperdb_http_client.js";
+
+/// The JSON error body of the HTTP API of Hyper (v3)
+export interface QueryErrorResponse {
+    error: string;
+    message: string;
+    details?: {
+        customerHint?: string;
+        customerDetail?: string;
+        systemDetail?: string;
+        errorSource?: string;
+        position?: {
+            errorBeginCharacterOffset: string;
+            errorEndCharacterOffset: string;
+        };
+    };
+}
 
 /// The gRPC "richer error model" trailer that carries the base64-encoded
 /// google.rpc.Status. This is the same name the wire uses, mirrored by the

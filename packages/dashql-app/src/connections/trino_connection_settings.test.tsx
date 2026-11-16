@@ -5,9 +5,9 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { createTestConnection, setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 
-import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
@@ -23,7 +23,7 @@ const CONNECTION_ID = 'trino-settings-test';
 
 type Registry = ReadonlyMap<string, ConnectionState>;
 /// A connection that a test creates in the runtime of the app once it rendered
-type TestConnection = (runtime: Runtime) => ConnectionState;
+type TestConnection = (runtime: Runtime) => Promise<ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -33,8 +33,8 @@ beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PREC
 function trinoDatabase(params: connection.TrinoConnectionParams, health = ConnectionHealth.NOT_STARTED): TestConnection {
     const connectionParams: ConnectionParams = { trino: params };
     const channel = health === ConnectionHealth.ONLINE ? { close: vi.fn() } : undefined;
-    return runtime => {
-        const state = createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
+    return async runtime => {
+        const state = await createTestConnection(runtime, { connectionId: CONNECTION_ID, params: connectionParams, channel });
         expect(state.connectionHealth).toBe(health);
         expect(state.connectionStatus).toBe(health === ConnectionHealth.ONLINE ? ConnectionStatus.HEALTH_CHECK_SUCCEEDED : ConnectionStatus.NOT_STARTED);
         return state;
@@ -89,7 +89,7 @@ describe('TrinoConnectorSettings', () => {
         );
         await act(async () => root.render(tree(false)));
         if (database != null) {
-            await act(async () => { database(appRuntime!); });
+            await act(async () => { await database(appRuntime!); });
         }
         await act(async () => root.render(tree(true)));
     }
@@ -320,8 +320,9 @@ describe('TrinoConnectorSettings', () => {
     });
 
     it('freezes the form while connecting and cancels the setup', async () => {
-        setup.mockImplementation(async (connectionId, options) => {
-            appRuntime!.dispatch({ connection: connectionId }, setupStepAction('TRINO_CHANNEL_SETUP_STARTED', (options?.params as { trino: unknown }).trino));
+        // The runtime sets the connection up, its health check runs until the test ends
+        setup.mockImplementation(async connectionId => {
+            void setupTestConnection(appRuntime!, connectionId, { health: ConnectionHealth.CONNECTING });
             return await new Promise(() => { });
         });
         await render(trinoDatabase(RESTORED));
@@ -347,11 +348,9 @@ describe('TrinoConnectorSettings', () => {
     });
 
     it('brings the connection online when the health check succeeds', async () => {
+        // The runtime sets the connection up, the probe of its health check succeeds
         setup.mockImplementation(async connectionId => {
-            const channel = appRuntime!.handles.register({ close: async () => { } });
-            appRuntime!.dispatch({ connection: connectionId }, setupStepAction('TRINO_CHANNEL_SETUP_STARTED', RESTORED));
-            appRuntime!.dispatch({ connection: connectionId }, setupStepAction('TRINO_CHANNEL_READY', null, channel));
-            appRuntime!.dispatch({ connection: connectionId }, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
+            await setupTestConnection(appRuntime!, connectionId);
             return { status: 'succeeded', message: null, data: {}, authentication: null };
         });
         await render(trinoDatabase(RESTORED));

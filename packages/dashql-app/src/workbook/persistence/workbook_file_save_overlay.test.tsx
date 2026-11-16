@@ -86,7 +86,7 @@ describe('WorkbookFileSaveOverlay', () => {
         );
         await root.render(tree(false));
         await act(async () => {
-            addTestConnections(runtime!, [CONNECTION]);
+            await addTestConnections(runtime!, [CONNECTION]);
             runtime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, 'orders', TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));

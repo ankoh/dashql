@@ -17,7 +17,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import * as core from '@ankoh/dashql';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { newConnectionFromParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
@@ -34,7 +34,7 @@ const TARGET_PARAMS = { trino: { endpoint: 'http://new' } } as any;
 
 /// A Trino connection without a channel in the runtime of the test
 function connection(runtime: Runtime, connectionId: string, params: any): ConnectionState {
-    const state = createTestConnection(runtime, { connectionId, params, active: true });
+    const state = runtime.createConnection(newConnectionFromParams(params, { active: true }), connectionId);
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     return state;
 }

@@ -654,8 +654,8 @@ The setups of the connections, the health checks and the catalog loader, built o
   the channel of a ready step is the handle that the platform returned. The view of the connection shows whether a
   setup runs (`setupRunning`). `runtimeActionOf` and the action symbols of TypeScript went, the app dispatches the
   generated union (`setDraft`, `discardDraft`, `rename`, `setQueryResultCaching`, `deleteConnection`,
-  `resetConnection`). The action `setupStep` stays for the setups that the host runs itself: the mock of Salesforce of
-  the app config (`salesforce_connection_setup_mock.ts`) and the fixtures of tests (`setupStepAction`).
+  `resetConnection`). No setup runs in the host: the mock of Salesforce of the app config and the fixtures of tests run
+  the setups of the runtime over platforms that answer like the backend, the action `setupStep` went.
 - **The health check is a query of the runtime.** `run_internal` of `runtime/queries.rs` runs a query that the runtime
   issues itself in a task of its own: it is a query of the history of its connection, the platform describes where it
   runs (`queries.describe`, the same description as for `executeQuery`; `queries.forget` when it ended), a cancelled

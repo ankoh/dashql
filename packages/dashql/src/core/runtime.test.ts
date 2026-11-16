@@ -57,7 +57,6 @@ function platform() {
         crypto: { randomUuid: () => 'uuid', sha256: () => Promise.reject(new Error('no digests')) },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
-        salesforce: null,
         storage: null,
         archives: null,
         changed: urgent => {

@@ -7,7 +7,6 @@ import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platfor
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
-import { TrinoChannel } from '@ankoh/dashql/platform/connections/trino/trino_channel';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
@@ -106,9 +105,7 @@ describe('Trino OAuth setup', () => {
         expect(tokenBody.get('code')).toBe('auth-code');
         expect(tokenBody.get('redirect_uri')).toBe('http://localhost:56512/Callback');
         expect(tokenBody.get('code_verifier')).toBeTruthy();
-        const channel = runtime.channel<TrinoChannel>(connection)!;
-        expect(channel.endpoint.oauthState?.accessToken.accessToken).toBe('access-1');
-        // The probe of the health check sends the token
+        // The connection owns the channel with the token, the probe of the health check sends it
         expect(http.requests[1].headers.get('authorization')).toBe('Bearer access-1');
         expect(connection.connectionHealth).toBe(ConnectionHealth.ONLINE);
         runtime.destroy();
@@ -139,13 +136,16 @@ describe('Trino basic setup', () => {
     } as connection.TrinoConnectionParams;
 
     it('creates a channel for the endpoint and the default catalog and schema', async () => {
-        const { outcome, runtime, connection } = await setup(new FakeHttpClient(), BASIC_PARAMS);
+        const http = new FakeHttpClient();
+        const { outcome, runtime, connection } = await setup(http, BASIC_PARAMS);
         expect(outcome.status).toBe('succeeded');
-        const channel = runtime.channel<TrinoChannel>(connection)!;
-        expect(channel).toBeInstanceOf(TrinoChannel);
-        expect(channel.endpoint.endpoint).toBe('https://trino.example.com');
-        expect(channel.endpoint.authParams).toMatchObject({ authType: 'AUTH_BASIC', basic: { username: 'user' } });
-        expect(channel.defaults).toEqual({ catalog: 'hive', schema: 'sales' });
+        // The probe of the health check runs on the channel of the connection with its auth and defaults
+        const [probe] = http.requests;
+        expect(probe.url).toBe('https://trino.example.com/v1/statement');
+        expect(probe.headers.get('authorization')).toBe(`Basic ${btoa('user:secret')}`);
+        expect(probe.headers.get('x-trino-user')).toBe('user');
+        expect(probe.headers.get('x-trino-catalog')).toBe('hive');
+        expect(probe.headers.get('x-trino-schema')).toBe('sales');
         expect(connection.connectionHealth).toBe(ConnectionHealth.ONLINE);
         runtime.destroy();
     });

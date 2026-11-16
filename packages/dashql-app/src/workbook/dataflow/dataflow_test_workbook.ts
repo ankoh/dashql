@@ -29,7 +29,7 @@ export function readTestWorkbook(runtime: TestRuntime, workbookId: string): Test
 /// A workbook of analyzed scripts on one connection, the declarations of every script are in the catalog
 export async function analyzedTestWorkbook(entries: Array<[string, string]>): Promise<TestWorkbook> {
     const runtime = await createTestRuntime();
-    runtime.addConnection({ connectionId: 'main', params: EMBEDDED });
+    await runtime.addConnection({ connectionId: 'main', params: EMBEDDED });
     const workbook = runtime.addWorkbook('main', entries, { name: 'Dataflow' });
     return readTestWorkbook(runtime, workbook.workbookId);
 }

@@ -8,7 +8,8 @@ import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { RuntimeContextProvider } from './runtime_hooks.js';
-import { useSalesforceAPI } from '../connections/salesforce/salesforce_connector.js';
+import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
+import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -47,7 +48,10 @@ function AppRuntime(props: { children?: React.ReactNode }) {
     const setupCore = useDashQLCoreSetup();
     const resultCache = useQueryResultCache();
     const computeDatabase = useComputeDatabase();
-    const salesforce = useSalesforceAPI();
+    // The config may choose the mock of Salesforce after the settings loaded, the requests and the flows read it
+    const salesforceMock = useSalesforceMock();
+    const salesforceMockRef = React.useRef(salesforceMock);
+    salesforceMockRef.current = salesforceMock;
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
     // The imports and exports of `.dashql` archives set the embedded database up when they first need it, through
@@ -59,26 +63,21 @@ function AppRuntime(props: { children?: React.ReactNode }) {
     const [runtime] = React.useState(() => createRuntime({
         logger,
         storage: storage.backend,
-        http: http ?? NO_HTTP,
+        http: mockSalesforceHttp(() => salesforceMockRef.current, http ?? NO_HTTP),
         scheduler: FRAME_UPDATE_SCHEDULER,
-        oauthFlow: new AppOAuthFlow(appEvents, platformType),
+        oauthFlow: mockSalesforceOAuthFlow(() => salesforceMockRef.current, new AppOAuthFlow(appEvents, platformType)),
         setupCore: setupCore ?? NO_CORE,
         computeDatabase,
         resultCache,
-        salesforce: salesforce ?? undefined,
         archives: handles => createRuntimeArchives(handles, context => archiveDatabaseRef.current(context)),
     }));
 
-    // The embedded database starts after the settings loaded and the config may choose the mock of Salesforce. They
-    // are set during the render: a run that a handler of a child starts in the same render reads them.
-    const attached = React.useRef({ computeDatabase, salesforce });
+    // The embedded database starts after the settings loaded. It is set during the render: a run that a handler of a
+    // child starts in the same render reads it.
+    const attached = React.useRef({ computeDatabase });
     if (computeDatabase != null && attached.current.computeDatabase !== computeDatabase) {
         attached.current.computeDatabase = computeDatabase;
         runtime.setComputeDatabase(computeDatabase);
-    }
-    if (salesforce != null && attached.current.salesforce !== salesforce) {
-        attached.current.salesforce = salesforce;
-        runtime.setSalesforce(salesforce);
     }
 
     // Write the pending changes when the page goes away, the writer debounces them. Browsers don't wait for the writes

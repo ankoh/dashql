@@ -207,9 +207,10 @@ impl TrinoAccessToken {
     }
 }
 
-/// A request for a token at an OAuth token endpoint, the fields of the form in order
+/// A request for a token at an OAuth token endpoint, the fields of the form in order. Its body and its response carry
+/// credentials.
 pub fn token_request(token_url: &str, fields: &[(&str, &str)]) -> HttpRequest {
-    let mut request = HttpRequest::new(HttpMethod::Post, token_url);
+    let mut request = HttpRequest::new(HttpMethod::Post, token_url).sensitive();
     request.set_header("Content-Type", "application/x-www-form-urlencoded");
     request.body = Some(form_encode(fields.iter().copied()));
     request

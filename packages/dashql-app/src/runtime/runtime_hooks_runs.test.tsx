@@ -58,13 +58,12 @@ function fixture(workbookId: string, deferStream = false) {
     const database = {
         connectionId: `${workbookId}-database`,
         online: true,
-        create(runtime: Runtime) {
+        async create(runtime: Runtime) {
             if (runtime.connection(this.connectionId) != null) return;
-            const state = createTestConnection(runtime, {
+            const state = await createTestConnection(runtime, {
                 connectionId: this.connectionId,
                 params: { hyper: {} } as any,
                 channel: this.online ? { executeQuery } : undefined,
-                online: this.online,
             });
             runtime.flush();
             expect(state.connectionHealth).toBe(this.online ? ConnectionHealth.ONLINE : ConnectionHealth.NOT_STARTED);
@@ -98,11 +97,13 @@ function SeedRuntime(props: { fixtures: Fixture[]; children: React.ReactNode }) 
     const runtime = useRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
-        for (const f of props.fixtures) {
-            f.database.create(runtime);
-            analyzeWorkbook(runtime, f.workbookId);
-        }
-        setReady(true);
+        void (async () => {
+            for (const f of props.fixtures) {
+                await f.database.create(runtime);
+                analyzeWorkbook(runtime, f.workbookId);
+            }
+            setReady(true);
+        })();
     }, [props.fixtures, runtime]);
     return ready ? props.children : null;
 }

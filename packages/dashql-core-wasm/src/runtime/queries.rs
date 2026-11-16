@@ -30,9 +30,9 @@ use std::task::{Context, Poll};
 
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
-use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription, ClientFunctionSpec};
+use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription};
 use dashql_core_runtime::connections::registry::QueryOwner;
-use dashql_core_runtime::connections::{ConnectionAction, ConnectorType};
+use dashql_core_runtime::connections::{ConnectionAction, ConnectorType, TrinoAction};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::json::{failure_json, target_from_json};
 use dashql_core_runtime::executor::{
@@ -43,7 +43,8 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::host::CANCELLED_MESSAGE;
-use dashql_core_runtime::http::{Body, CancellationToken, HttpHost, HttpRequest, HttpResponse};
+use dashql_core_runtime::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
+use dashql_core_runtime::trino::{SharedTrinoChannel, TimeZoneOffsets, TrinoAccessToken};
 use dashql_core_runtime::salesforce::SalesforceTokens;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
 use js_sys::{Function, Object, Promise, Reflect, Uint8Array};
@@ -53,7 +54,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use super::connections::Connections;
-use crate::host::{field, host_table, host_value, lifetime_token, JsPlatform};
+use crate::host::{field, host_table, host_value, lifetime_token, IntlTimeZones, JsPlatform};
 use crate::query_history::view::{QueryMetadataView, QueryProgressView, QueryStreamMetrics};
 use crate::views::JsonValue;
 
@@ -489,11 +490,6 @@ impl Connections {
                 self.log_query(Some(&run), level, &message, &details, &target);
                 return;
             }
-            QueryEvent::TrinoTokenRefreshed(token) => {
-                let token = JsonValue(token.to_json()).to_js().unwrap_or(JsValue::NULL);
-                Self::notify(&run, event("trinoTokenRefreshed", &[("token", token)]));
-                return;
-            }
         };
         if let Err(error) = self.apply_query(&owner, action, true) {
             self.log_query(Some(&run), LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
@@ -696,6 +692,40 @@ impl ExecutorHost for QueryHost {
     fn channel_profile_detail(&self, query_id: QueryId, wanted: bool) {
         self.platform.channel_profile_detail(query_id as f64, wanted);
     }
+
+    fn channel_auth(&self, query_id: QueryId) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
+        self.platform.channel_auth(query_id as f64)
+    }
+
+    fn trino_token_refreshed(&self, channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
+        if let Some(connections) = self.connections.upgrade() {
+            connections.trino_token_refreshed(channel, token);
+        }
+    }
+
+    fn time_zones(&self) -> Rc<dyn TimeZoneOffsets> {
+        Rc::new(IntlTimeZones)
+    }
+}
+
+impl Connections {
+    /// The Trino channel of a connection refreshed its access token: the connection that owns the channel keeps it
+    fn trino_token_refreshed(self: &Rc<Self>, channel: &SharedTrinoChannel, token: &TrinoAccessToken) {
+        let owns = |state: &dashql_core_runtime::connections::ConnectionState| {
+            state.details().trino().and_then(|trino| trino.channel.as_ref()).is_some_and(|owned| owned.same(channel))
+        };
+        let owner = self
+            .registry
+            .borrow()
+            .connections()
+            .find(|(_, connection)| connection.state.try_borrow().is_ok_and(|state| owns(&state)))
+            .map(|(connection_id, _)| connection_id.to_string());
+        let Some(connection_id) = owner else { return };
+        let action = ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel: channel.clone(), token: token.to_json().to_string() });
+        if let Err(error) = self.apply(&connection_id, action, None) {
+            self.platform.log_on(LogLevel::Warn, "Failed to keep a refreshed access token", &[("connectionId", &connection_id), ("error", error.what())], LOG_TARGET);
+        }
+    }
 }
 
 /// The outcome of a query for the host: `{ status: 'resolved', hasResult, table }` with the result table, or
@@ -801,16 +831,21 @@ impl Connections {
     /// host, which then keeps the channel for the query until the query is forgotten.
     async fn describe(self: &Rc<Self>, query_id: QueryId, description: &QueryDescription) -> Result<QueryRequest, QueryFailure> {
         let connection_id = description.connection_id.as_str();
+        // The connection owns the channel of Trino and the tokens of Salesforce
         let connection = {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
-                Some((state.connector_type(), state.details().channel))
+                let details = state.details();
+                let trino = details.trino().and_then(|trino| trino.channel.clone());
+                let tokens = SalesforceTokens::of_connection(details.salesforce().and_then(|salesforce| salesforce.oauth_state.as_ref()));
+                Some((state.connector_type(), details.channel, trino, tokens))
             })
         };
-        let Some((connector, channel)) = connection else {
+        let Some((connector, channel, trino, tokens)) = connection else {
             return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
         };
+        let tokens = tokens.map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
         let options = &description.options;
         // The executor reads and writes the files of the cache with the compute database, through the mounts
         let cache = match &options.cache {
@@ -827,26 +862,27 @@ impl Connections {
             connector: connector.display_name(),
             client_function: options.client_function_call.is_some(),
         };
-        let query = serde_wasm_bindgen::to_value(&query).map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
-        let described = self.platform.channel_describe(query_id as f64, channel, &query).await.map_err(|error| {
-            let mut failure = QueryFailure::from_host(&error);
-            failure.target = LOG_TARGET.to_string();
-            failure
-        })?;
-        let described = JsonValue::of(&described).0;
-        let target = match &options.client_function_call {
-            // The runtime loads the spec of the connector through the extensions of the platform
-            Some(call) => {
+        let target = match (&options.client_function_call, trino) {
+            // The call runs with the spec that the catalog of the connection registered (`load_spec`) and sends its
+            // requests with the tokens of the connection
+            (Some(call), _) => {
                 let description = ClientFunctionCallDescription::from_value(call.0.clone())
                     .map_err(|error| QueryFailure::new(FailureKind::Error, error.message))?;
-                let tokens = described.get("tokens").and_then(|tokens| {
-                    let core = tokens.get("core")?;
-                    let data_cloud = tokens.get("dataCloud")?;
-                    SalesforceTokens::from_json(&core.to_string(), &data_cloud.to_string())
-                });
                 QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, tokens })
             }
-            None => target_from_json(&described).map_err(|message| QueryFailure::new(FailureKind::Error, message))?,
+            // The queries of a Trino connection share its channel. One without a channel is a channel of the host
+            // without one: a query from the cache needs none, any other fails when it opens the channel.
+            (None, Some(trino)) => QueryTarget::Trino(trino),
+            (None, None) => {
+                let query = serde_wasm_bindgen::to_value(&query).map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
+                let described = self.platform.channel_describe(query_id as f64, channel, &query).await.map_err(|error| {
+                    let mut failure = QueryFailure::from_host(&error);
+                    failure.target = LOG_TARGET.to_string();
+                    failure
+                })?;
+                let described = JsonValue::of(&described).0;
+                target_from_json(&described).map_err(|message| QueryFailure::new(FailureKind::Error, message))?
+            }
         };
         // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
         let mut log_details = Vec::new();
@@ -930,26 +966,22 @@ impl Connections {
         outcome.await
     }
 
-    /// The spec of the client functions of a call, from the extension of its connector. A connector without a binding
-    /// has no spec, starting the call names it.
+    /// The spec of the client functions of a call: the one that the catalog of its connection registered, so a call
+    /// runs only with the spec that the core checked it against. A connector without a binding has no spec, starting
+    /// the call names it.
     async fn load_spec(&self, request: &mut QueryRequest) -> Result<(), String> {
         let QueryTarget::ClientFunction(target) = &mut request.target else { return Ok(()) };
-        if target.spec.is_some() {
+        if target.spec.is_some() || ClientFunctionBinding::of_connector(target.connector).is_none() {
             return Ok(());
         }
-        let Some(binding) = ClientFunctionBinding::of_connector(target.connector) else { return Ok(()) };
-        let extension = binding.extension();
-        let cached = self.specs.borrow().iter().find(|(name, _)| *name == extension).map(|(_, spec)| spec.clone());
-        let spec = match cached {
-            Some(spec) => spec,
-            None => {
-                let text = self.platform.load_spec(extension).await.map_err(|error| error.message().to_string())?;
-                let spec = Rc::new(ClientFunctionSpec::from_json(&text).map_err(|error| error.message)?);
-                let mut specs = self.specs.borrow_mut();
-                specs.retain(|(name, _)| *name != extension);
-                specs.push((extension, spec.clone()));
-                spec
-            }
+        // A spec that the registration still loads is awaited
+        let spec = self.loader.borrow().as_ref().map(|loader| loader.client_function_spec(&request.connection_id));
+        let spec = match spec {
+            Some(spec) => spec.await,
+            None => None,
+        };
+        let Some(spec) = spec else {
+            return Err(format!("The client functions of {} connections are not registered", target.connector.display_name()));
         };
         target.spec = Some(spec);
         Ok(())

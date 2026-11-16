@@ -384,7 +384,7 @@ describe('WorkbookImportProvider', () => {
             // The manifest still has the old endpoint, only the live connection matches the workbook
             registry.connections = [{ id: KNOWN_TRINO_ID, params: { trino: { endpoint: 'https://old.example' } }, name: 'Production' } as never];
             await renderProvider();
-            await act(async () => { addTestConnection(api.runtime, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS as never }); });
+            await act(async () => { await addTestConnection(api.runtime, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS as never }); });
             let result!: Promise<string | null>;
             await act(async () => { result = importBundle(trinoSession(), CENTERED); });
             await vi.waitFor(() => expect(document.body.textContent).toContain('Use Production'));

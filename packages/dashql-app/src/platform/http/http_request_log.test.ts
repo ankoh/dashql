@@ -101,6 +101,36 @@ describe('RecordingHttpClient', () => {
         expect(recorded.responseBody).toEqual({ kind: 'text', text: '{"id":"q1"}', byteLength: 11, truncated: false });
     });
 
+    it('keeps no bodies and no credential headers of sensitive requests', async () => {
+        const log = new HttpRequestLog();
+        const token = '{"access_token":"secret-token","refresh_token":"secret-refresh"}';
+        const client = new RecordingHttpClient(fakeClient(async () => fakeResponse(200, token)), log);
+        const response = await client.fetch('https://login.example.com/services/oauth2/token', {
+            method: 'POST',
+            headers: { 'content-type': 'application/x-www-form-urlencoded', Authorization: 'Basic c2VjcmV0' },
+            body: 'grant_type=authorization_code&code=secret-code&code_verifier=secret-verifier',
+            sensitive: true,
+        });
+        // The caller reads the body as it arrived
+        expect(await response.text()).toEqual(token);
+        const [recorded] = log.getSnapshot();
+        expect(recorded.requestBody).toEqual({ kind: 'redacted' });
+        expect(recorded.responseBody).toEqual({ kind: 'redacted' });
+        expect(Object.fromEntries(recorded.requestHeaders).authorization).toEqual('••••••••');
+        expect(JSON.stringify(recorded)).not.toContain('secret');
+        expect(formatCurlCommand(recorded)).not.toContain('secret');
+    });
+
+    it('keeps no body of a sensitive error response', async () => {
+        const log = new HttpRequestLog();
+        const client = new RecordingHttpClient(fakeClient(async () => fakeResponse(400, '{"error":"invalid_grant","refresh_token":"secret"}')), log);
+        const response = await client.fetch('https://idp.example.com/token', { method: 'POST', body: 'refresh_token=secret', sensitive: true });
+        expect(response.status).toEqual(400);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(JSON.stringify(log.getSnapshot()[0])).not.toContain('secret');
+        expect(await response.text()).toContain('invalid_grant');
+    });
+
     it('reads the body of an error response that the caller does not read', async () => {
         const log = new HttpRequestLog();
         const fake = fakeResponse(404, 'no such path', 'text/plain');

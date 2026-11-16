@@ -11,7 +11,7 @@ import { useConnectionDraft } from './connection_draft.js';
 import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
-import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
@@ -93,10 +93,10 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     {currentConnectorType === ConnectorType.DBCOM && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.DBCOM} onClose={saving ? undefined : props.onClose} />}
                 </div>
                 <QueryResultCachingRow
-                    caching={conn != null && connectionCachesQueryResults(conn)}
+                    caching={conn?.cachesQueryResults ?? false}
                     disabled={conn == null}
                     toggle={() => {
-                        if (conn != null) modifyConn({ kind: 'setQueryResultCaching', value: { caching: !connectionCachesQueryResults(conn) } });
+                        if (conn != null) modifyConn({ kind: 'setQueryResultCaching', value: { caching: !conn.cachesQueryResults } });
                     }}
                 />
                 <ConnectionSaveBar

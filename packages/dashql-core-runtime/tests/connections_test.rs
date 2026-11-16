@@ -599,6 +599,12 @@ fn timing(timing: Timing) -> Timing {
     timing
 }
 
+/// The ready step of a Trino setup with a channel of the params
+fn trino_ready(channel: ChannelId) -> TrinoAction {
+    let trino = dashql_core_runtime::trino::SharedTrinoChannel::new(dashql_core_runtime::trino::TrinoChannel::from_params(&trino_params()));
+    TrinoAction::ChannelReady { channel, trino }
+}
+
 fn trino_params() -> JsonObject {
     object(json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_OAUTH" }, "catalogName": "hive" }))
 }
@@ -651,7 +657,7 @@ fn trino_actions_set_the_status_health_and_timing() {
             timing(|t| t.channel_setup_cancelled_at),
         ),
         (TrinoAction::ChannelSetupFailed(error("boom")), S::ChannelSetupFailed, H::Failed, timing(|t| t.channel_setup_failed_at)),
-        (TrinoAction::ChannelReady(1), S::ChannelReady, H::Connecting, timing(|t| t.channel_ready_at)),
+        (trino_ready(1), S::ChannelReady, H::Connecting, timing(|t| t.channel_ready_at)),
     ];
     for (action, status, health, timing) in cases {
         let mut connection = trino();
@@ -695,7 +701,7 @@ fn trino_reset_and_delete_close_the_channel_and_clear_the_setup() {
         let mut connection = trino();
         let initial = connection.details().clone();
         apply(&mut connection, ConnectionAction::Trino(TrinoAction::OAuthStarted { params: trino_params() }));
-        apply(&mut connection, ConnectionAction::Trino(TrinoAction::ChannelReady(7)));
+        apply(&mut connection, ConnectionAction::Trino(trino_ready(7)));
         assert_eq!(connection.details().channel, Some(7));
 
         let effects = apply(&mut connection, stop);
@@ -704,6 +710,69 @@ fn trino_reset_and_delete_close_the_channel_and_clear_the_setup() {
         assert_eq!(connection.details().channel, None);
         assert_eq!(connection.details(), &initial);
     }
+}
+
+/// A step of a setup attempt
+fn step(epoch: u64, action: ConnectionAction) -> ConnectionAction {
+    ConnectionAction::SetupStep { epoch, step: Box::new(action) }
+}
+
+#[test]
+fn a_setup_ignores_the_steps_of_the_attempt_that_it_replaced() {
+    let mut connection = trino();
+    let started = || ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() });
+    // The first setup is stuck connecting, a second one replaces it and succeeds
+    let first = connection.begin_setup();
+    apply(&mut connection, step(first, started()));
+    let second = connection.begin_setup();
+    apply(&mut connection, step(second, started()));
+    apply(&mut connection, step(second, ConnectionAction::Trino(trino_ready(5))));
+    apply(&mut connection, step(second, ConnectionAction::HealthCheckSucceeded));
+    assert_eq!((connection.health(), connection.details().channel), (ConnectionHealth::Online, Some(5)));
+    let revision = connection.revision();
+
+    // The first setup ends late: its cancellation changes nothing, its channel is released
+    let effects = apply(&mut connection, step(first, ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error("cancelled")))));
+    assert!(effects.is_empty());
+    let effects = apply(&mut connection, step(first, ConnectionAction::Trino(trino_ready(6))));
+    assert_eq!(effects, [ConnectionEffect::Release { handle: 6 }]);
+    assert_eq!((connection.health(), connection.details().channel), (ConnectionHealth::Online, Some(5)));
+    assert!(connection.details().trino().unwrap().channel.is_some());
+    assert_eq!(connection.revision(), revision);
+}
+
+#[test]
+fn a_reset_or_delete_ignores_the_late_steps_of_the_setup() {
+    for stop in [ConnectionAction::Reset, ConnectionAction::Delete] {
+        let mut connection = trino();
+        let attempt = connection.begin_setup();
+        apply(&mut connection, step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+        apply(&mut connection, step(attempt, ConnectionAction::Trino(trino_ready(5))));
+        apply(&mut connection, step(attempt, ConnectionAction::HealthCheckStarted));
+        let effects = apply(&mut connection, stop.clone());
+        assert!(effects.contains(&ConnectionEffect::CancelSetup));
+        // The probe of the health check ends after the stop, the setup reports its cancellation
+        apply(&mut connection, step(attempt, ConnectionAction::HealthCheckCancelled));
+        apply(&mut connection, step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error("cancelled")))));
+        assert_eq!((connection.status(), connection.health()), (ConnectionStatus::NotStarted, ConnectionHealth::NotStarted));
+        assert_eq!(connection.details().setup_timings, SetupTimings::default());
+    }
+}
+
+#[test]
+fn trino_keeps_a_refreshed_token_of_the_channel_that_it_uses() {
+    let mut connection = trino();
+    apply(&mut connection, ConnectionAction::Trino(trino_ready(5)));
+    let channel = connection.details().trino().unwrap().channel.clone().unwrap();
+    let token = r#"{"accessToken":"token-2"}"#.to_string();
+    apply(&mut connection, ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel: channel.clone(), token: token.clone() }));
+    assert_eq!(trino_oauth(&connection).and_then(|oauth| oauth.access_token.clone()), Some(token));
+    assert_eq!(connection.status(), ConnectionStatus::ChannelReady);
+    // A refresh of a channel that the connection no longer uses changes nothing
+    apply(&mut connection, ConnectionAction::Trino(trino_ready(6)));
+    let stale = r#"{"accessToken":"stale"}"#.to_string();
+    apply(&mut connection, ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel, token: stale.clone() }));
+    assert_ne!(trino_oauth(&connection).and_then(|oauth| oauth.access_token.clone()), Some(stale));
 }
 
 #[test]
@@ -719,7 +788,7 @@ fn trino_channel_setup_after_oauth_continues_the_attempt_of_the_flow() {
     apply(&mut connection, ConnectionAction::SetDraft(draft("second")));
     apply(&mut connection, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: draft("first").params }));
     assert_eq!(connection.setup_attempt_draft(), Some(&draft("first")));
-    apply(&mut connection, ConnectionAction::Trino(TrinoAction::ChannelReady(1)));
+    apply(&mut connection, ConnectionAction::Trino(trino_ready(1)));
     apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
     assert_eq!(connection.params(), &draft("first"));
     // The draft changed during the setup
@@ -947,4 +1016,123 @@ fn connections_take_the_catalog_of_the_caller() {
     // The entry ids of the connection come from the shared source
     assert_ne!(connection.relation_entry_id(), taken);
     assert_ne!(function_entry_id(&connection), taken);
+}
+
+// The drafts of the setups of every connector, ported from `connection_draft.test.tsx` of the app
+
+/// The params of a connector with an edited endpoint
+fn edited(connector: ConnectorType, endpoint: &str) -> ConnectionParams {
+    let mut params = ConnectionParams::default_for(connector);
+    match connector {
+        ConnectorType::Hyper => {
+            params.params.insert("protocol".into(), json!("V3_HTTP"));
+            params.params.insert("endpoint".into(), json!(endpoint));
+        }
+        ConnectorType::Trino => {
+            params.params.insert("endpoint".into(), json!(endpoint));
+        }
+        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
+            params.params.insert("instanceUrl".into(), json!(endpoint));
+        }
+    }
+    params
+}
+
+/// The start of the setup of a connector with params
+fn setup_started(params: &ConnectionParams) -> ConnectionAction {
+    let inner = params.params.clone();
+    match params.connector {
+        ConnectorType::Hyper => ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: inner }),
+        ConnectorType::Trino => ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: inner }),
+        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
+            ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: inner })
+        }
+    }
+}
+
+/// The failure or the cancellation of the setup of a connector
+fn setup_ended(connector: ConnectorType, cancelled: bool) -> ConnectionAction {
+    let error = error(if cancelled { "setup cancelled" } else { "setup failed" });
+    match (connector, cancelled) {
+        (ConnectorType::Hyper, false) => ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error)),
+        (ConnectorType::Hyper, true) => ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error)),
+        (ConnectorType::Trino, false) => ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(error)),
+        (ConnectorType::Trino, true) => ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error)),
+        (_, false) => ConnectionAction::Salesforce(SalesforceAction::SetupFailed(error)),
+        (_, true) => ConnectionAction::Salesforce(SalesforceAction::SetupCancelled(error)),
+    }
+}
+
+#[test]
+fn every_connector_keeps_its_params_until_the_health_check_succeeds() {
+    for connector in CONNECTOR_TYPES {
+        let mut connection = connection(ConnectionParams::default_for(connector));
+        let committed = connection.params().clone();
+        let draft = edited(connector, "https://invalid");
+        apply(&mut connection, ConnectionAction::SetDraft(draft.clone()));
+        apply(&mut connection, setup_started(&draft));
+        assert_eq!(connection.params(), &committed, "{connector:?}");
+        assert_eq!(connection.params_draft(), Some(&draft));
+        // A discard while the setup runs keeps the draft
+        assert!(!connection.apply(ConnectionAction::DiscardDraft, NOW).unwrap().changed);
+        let newer = edited(connector, "https://newer");
+        apply(&mut connection, ConnectionAction::SetDraft(newer.clone()));
+        apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
+        assert_eq!(connection.params(), &draft, "{connector:?}");
+        assert_eq!(connection.params_draft(), Some(&newer));
+        apply(&mut connection, setup_started(&newer));
+        apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
+        assert_eq!(connection.params(), &newer);
+        assert_eq!(connection.params_draft(), None);
+    }
+}
+
+#[test]
+fn every_connector_keeps_the_draft_and_the_params_of_a_setup_that_ends_otherwise() {
+    for connector in CONNECTOR_TYPES {
+        let draft = edited(connector, "https://invalid");
+        let mut started = connection(ConnectionParams::default_for(connector));
+        let initial = started.params().clone();
+        apply(&mut started, ConnectionAction::SetDraft(draft.clone()));
+        apply(&mut started, setup_started(&draft));
+        for action in [
+            setup_ended(connector, false),
+            setup_ended(connector, true),
+            ConnectionAction::HealthCheckFailed(error("failed")),
+            ConnectionAction::HealthCheckCancelled,
+            ConnectionAction::Reset,
+        ] {
+            let mut next = connection(ConnectionParams::default_for(connector));
+            apply(&mut next, ConnectionAction::SetDraft(draft.clone()));
+            apply(&mut next, setup_started(&draft));
+            apply(&mut next, action);
+            assert_eq!(next.params(), &initial, "{connector:?}");
+            assert_eq!(next.params_draft(), Some(&draft), "{connector:?}");
+            assert_eq!(next.setup_attempt_params(), None, "{connector:?}");
+        }
+        apply(&mut started, ConnectionAction::HealthCheckFailed(error("failed")));
+        apply(&mut started, ConnectionAction::DiscardDraft);
+        assert_eq!(started.params_draft(), None);
+        assert_eq!(started.params(), &initial);
+        assert_eq!(started.details().health_check_error, None);
+    }
+}
+
+#[test]
+fn edits_of_the_raw_rows_during_a_setup_stay_and_the_promoted_params_drop_them() {
+    let mut connection = hyper();
+    let mut initial = edited(ConnectorType::Hyper, "https://hyper");
+    initial.params.insert("metadata".into(), json!({ "duplicate": "same" }));
+    initial.params.insert("draftRows".into(), json!({ "metadata": [{ "key": "duplicate", "value": "same" }] }));
+    apply(&mut connection, ConnectionAction::SetDraft(initial.clone()));
+    apply(&mut connection, setup_started(&initial));
+    let mut newer = initial.clone();
+    newer.params.insert(
+        "draftRows".into(),
+        json!({ "metadata": [{ "key": "duplicate", "value": "unfinished" }, { "key": "duplicate", "value": "same" }] }),
+    );
+    apply(&mut connection, ConnectionAction::SetDraft(newer.clone()));
+    apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
+    assert_eq!(connection.params_draft(), Some(&newer));
+    assert!(!connection.params().params.contains_key("draftRows"));
 }

@@ -14,6 +14,7 @@ use super::error::{TrinoError, TrinoErrorKind};
 use crate::http::url::form_encode;
 use crate::http::{FetchOutcome, HttpRequest};
 use super::protocol::{read_token_response, token_request, TrinoAuthType, TrinoChannel, TrinoOAuthParams};
+use super::shared::SharedTrinoChannel;
 use super::time::{iso_timestamp, Millis};
 use crate::connections::{ChannelId, ConnectionAction, DetailedError, JsonObject, OAuthPkceChallenge, TemporaryToken, TrinoAction};
 
@@ -109,8 +110,6 @@ pub struct TrinoSetup {
     channel_id: ChannelId,
     /// The options
     options: TrinoSetupOptions,
-    /// Does the connection sign in with OAuth?
-    oauth: bool,
     /// How far the setup got
     phase: Phase,
 }
@@ -123,20 +122,19 @@ impl TrinoSetup {
         params.remove("draftRows");
         let channel = TrinoChannel::from_params(&params);
         let oauth = channel.auth.auth_type == TrinoAuthType::OAuth;
-        let mut setup = Self { params, channel, channel_id, options, oauth, phase: Phase::Done };
+        let mut setup = Self { params, channel, channel_id, options, phase: Phase::Done };
         let mut out = Vec::new();
         if !oauth {
             setup.open_channel(&mut out);
             return (setup, out);
         }
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::OAuthStarted { params: setup.params.clone() })));
         if setup.channel.auth.oauth.is_none() {
-            out.push(SetupOutput::Failed(TrinoError::new(
-                TrinoErrorKind::OAuth,
-                "OAuth configuration is required for OAuth authentication",
-            )));
+            // The connection shows the error of the flow
+            let error = TrinoError::new(TrinoErrorKind::OAuth, "OAuth configuration is required for OAuth authentication");
+            setup.fail_oauth(error, &mut out);
             return (setup, out);
         }
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::OAuthStarted { params: setup.params.clone() })));
         out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::GeneratingPkceChallenge)));
         out.push(SetupOutput::GeneratePkce);
         setup.phase = Phase::GeneratingPkce;
@@ -284,7 +282,9 @@ impl TrinoSetup {
         if self.phase != Phase::OpeningChannel {
             return out;
         }
-        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelReady(self.channel_id))));
+        // The connection owns the channel from now on, its queries share it
+        let trino = SharedTrinoChannel::new(self.channel.clone());
+        out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelReady { channel: self.channel_id, trino })));
         if self.options.health_check {
             out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckStarted));
             out.push(SetupOutput::RunHealthCheck { channel: self.channel_id, query: HEALTH_CHECK_QUERY });
@@ -296,8 +296,8 @@ impl TrinoSetup {
         out
     }
 
-    /// A step of the host failed, e.g. the login page couldn't open. An OAuth setup fails its flow, a setup with
-    /// basic auth its channel.
+    /// A step of the host failed, e.g. the login page couldn't open. A step of the flow fails the flow, the connect fails
+    /// the channel, also after a flow.
     pub fn fail(&mut self, message: &str) -> Vec<SetupOutput> {
         let mut out = Vec::new();
         match std::mem::replace(&mut self.phase, Phase::Done) {
@@ -307,7 +307,7 @@ impl TrinoSetup {
                 out.push(SetupOutput::Dispatch(ConnectionAction::HealthCheckFailed(error.clone())));
                 out.push(SetupOutput::Failed(TrinoError { kind: TrinoErrorKind::HealthCheck, message: error.message, data: error.data }));
             }
-            Phase::OpeningChannel if !self.oauth => {
+            Phase::OpeningChannel => {
                 out.push(SetupOutput::Dispatch(ConnectionAction::Trino(TrinoAction::ChannelSetupFailed(DetailedError::new(message)))));
                 out.push(SetupOutput::Failed(TrinoError::new(TrinoErrorKind::Protocol, message)));
             }
@@ -316,16 +316,16 @@ impl TrinoSetup {
         out
     }
 
-    /// Abort the setup, e.g. the user cancelled it. An OAuth setup cancels its flow, a setup with basic auth its
-    /// channel.
+    /// Abort the setup, e.g. the user cancelled it. A step of the flow cancels the flow, the connect cancels the channel,
+    /// also after a flow.
     pub fn abort(&mut self) -> Vec<SetupOutput> {
         let mut out = Vec::new();
         let action = match std::mem::replace(&mut self.phase, Phase::Done) {
             Phase::Done => return out,
-            Phase::OpeningChannel if !self.oauth => {
+            Phase::OpeningChannel => {
                 ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(DetailedError::new("The setup was aborted")))
             }
-            Phase::GeneratingPkce | Phase::Authorizing { .. } | Phase::RequestingToken | Phase::OpeningChannel => {
+            Phase::GeneratingPkce | Phase::Authorizing { .. } | Phase::RequestingToken => {
                 ConnectionAction::Trino(TrinoAction::OAuthCancelled(DetailedError::new("OAuth flow was aborted")))
             }
             Phase::HealthCheck => ConnectionAction::HealthCheckCancelled,

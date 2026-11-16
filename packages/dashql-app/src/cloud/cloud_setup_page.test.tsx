@@ -107,7 +107,7 @@ describe('cloud setup page', () => {
     };
 
     const setHealth = async (connectionId: string, health: ConnectionHealth) => await act(async () => {
-        setTestConnectionHealth(appRuntime!, connectionId, health);
+        await setTestConnectionHealth(appRuntime!, connectionId, health);
     });
 
     /// Logging in brings the connection online
@@ -163,7 +163,7 @@ describe('cloud setup page', () => {
         await vi.waitFor(() => expect(config).not.toBeNull());
         await act(async () => {
             for (const c of connections) {
-                addTestConnection(appRuntime!, {
+                await addTestConnection(appRuntime!, {
                     connectionId: c.connectionId, params: c.params, name: c.name ?? undefined, active: true,
                     health: c.connectionHealth, error: c.details.healthCheckError?.message,
                 });

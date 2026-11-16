@@ -10,6 +10,7 @@
 //! - `arrow`: the Arrow types of Trino types and the rows of a page as a record batch.
 //! - `stream`: a query, from the statement to the last page, with the QueryInfos of its profile.
 //! - `setup`: the setup of a connection: OAuth, channel, health check.
+//! - `shared`: the channel of a connection that its queries share, with the one refresh of its access token.
 //! - `descriptor`: the params to share, the login hint and the signature of cached results.
 //!
 //! The state of a Trino connection and its setup actions are in `connections`, the catalog loader of Trino is not
@@ -20,6 +21,7 @@ pub mod descriptor;
 pub mod error;
 pub mod protocol;
 pub mod setup;
+pub mod shared;
 pub mod stream;
 pub mod time;
 
@@ -31,5 +33,6 @@ pub use protocol::{
     TrinoOAuthParams, TrinoQueryError, TrinoQueryResult, TrinoRequest, TrinoRetryPolicy, DEFAULT_TRINO_RETRY_POLICY,
     TARGET_RESULT_SIZE,
 };
+pub use shared::{refresh_outcome, SharedTrinoChannel, TokenCheck};
 pub use setup::{HealthCheckOutcome, OAuthCallback, SetupOutput, TrinoSetup, TrinoSetupOptions, HEALTH_CHECK_QUERY};
 pub use stream::{RequestId, StreamOutput, TimerId, TrinoQuery, TrinoQueryOptions};

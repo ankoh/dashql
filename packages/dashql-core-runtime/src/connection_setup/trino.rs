@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use super::{cancellable, OAuthHost, SetupFailure, SetupHost, LOG_TARGET};
+use super::{cancellable, connect_channel, OAuthHost, SetupFailure, SetupHost, LOG_TARGET};
 use crate::connections::{ChannelId, ConnectionAction, JsonObject, TrinoAction};
 use crate::host::{HostError, LogLevel};
 use crate::http::{CancellationToken, FetchOutcome};
@@ -23,7 +23,7 @@ const TRINO_SETUP_CHANNEL: ChannelId = 0;
 /// An action with the id that the host kept the channel under
 fn with_channel(action: ConnectionAction, channel: ChannelId) -> ConnectionAction {
     match action {
-        ConnectionAction::Trino(TrinoAction::ChannelReady(_)) => ConnectionAction::Trino(TrinoAction::ChannelReady(channel)),
+        ConnectionAction::Trino(TrinoAction::ChannelReady { trino, .. }) => ConnectionAction::Trino(TrinoAction::ChannelReady { channel, trino }),
         action => action,
     }
 }
@@ -111,17 +111,20 @@ pub async fn setup_trino<H: SetupHost>(
                 let now = host.now() as i64;
                 setup.borrow_mut().on_token_response(&outcome, now)
             }
-            // A connect runs to its end, a channel that is ready after a cancellation is closed
-            SetupOutput::OpenChannel { channel, .. } => match host.connect_trino_channel(&channel).await {
-                Ok(id) if cancellation.is_cancelled() => {
+            // A cancellation stops the wait for the connect, a channel that is ready after it is closed
+            SetupOutput::OpenChannel { channel, .. } => match connect_channel(&host, host.connect_trino_channel(&channel), &cancellation).await {
+                None => setup.borrow_mut().abort(),
+                Some(Ok(id)) if cancellation.is_cancelled() => {
                     host.close_channel(id);
                     setup.borrow_mut().abort()
                 }
-                Ok(id) => {
+                Some(Ok(id)) => {
                     channel_id = id;
                     setup.borrow_mut().on_channel_opened()
                 }
-                Err(error) => fail(&setup, &error, &mut host_value),
+                // A connect that fails after the cancellation counts as cancelled
+                Some(Err(_)) if cancellation.is_cancelled() => setup.borrow_mut().abort(),
+                Some(Err(error)) => fail(&setup, &error, &mut host_value),
             },
             // The setup doesn't run the health check, the caller runs it on the channel
             SetupOutput::RunHealthCheck { .. } => setup.borrow_mut().fail("The setup doesn't run the health check"),
@@ -134,7 +137,11 @@ pub async fn setup_trino<H: SetupHost>(
 /// The PKCE challenge and the state of the authorization request
 async fn generate<H: OAuthHost>(host: &H) -> Result<(crate::connections::OAuthPkceChallenge, String), HostError> {
     let pkce = host.generate_pkce().await?;
-    Ok((pkce, host.random_id()))
+    let state = host.random_id()?;
+    if state.is_empty() {
+        return Err(HostError::new("The platform generated no random state for the OAuth flow"));
+    }
+    Ok((pkce, state))
 }
 
 /// A step of the host failed, the setup keeps what the host failed with

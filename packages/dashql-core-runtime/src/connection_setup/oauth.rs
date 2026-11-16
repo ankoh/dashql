@@ -21,8 +21,9 @@ pub type OAuthEvents = Rc<dyn Fn(OAuthFlowEvent)>;
 pub trait OAuthHost: HttpHost {
     /// A PKCE challenge: a random verifier and the base64url of its SHA-256 digest
     fn generate_pkce(&self) -> impl Future<Output = Result<OAuthPkceChallenge, HostError>> + 'static;
-    /// A random id, e.g. the state of an authorization request
-    fn random_id(&self) -> String;
+    /// A random id, e.g. the state of an authorization request. A flow never runs without one: an empty id would bind
+    /// the callback to nothing.
+    fn random_id(&self) -> Result<String, HostError>;
     /// How the platform takes the user through the redirect page, it goes into the state of a flow
     fn flow_info(&self) -> OAuthFlowInfo;
     /// Receive the redirect on a loopback server at the callback URL, open the authorization URL and wait for the

@@ -182,7 +182,6 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
         },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
-        salesforce: null,
         storage,
         archives: null,
         changed: urgent => {

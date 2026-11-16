@@ -21,17 +21,6 @@ pub use client_functions::{resolve_salesforce_client_function_host, salesforce_c
 pub use setup::{SalesforceSetup, SalesforceSetupOutput, SalesforceSetupStep};
 pub use types::*;
 
-/// The params that a shared link or file carries: the instance, the connected app and, if asked for, the login hint.
-/// The secret of the connected app never leaves.
-pub fn sanitize_params_for_sharing(params: &JsonObject, with_login_hint: bool) -> JsonObject {
-    let mut out = params.clone();
-    out.insert("appConsumerSecret".to_string(), json!(""));
-    if !with_login_hint {
-        out.insert("login".to_string(), json!(""));
-    }
-    out
-}
-
 /// The login hint of the params, none if empty
 pub fn login_hint(params: &JsonObject) -> Option<&str> {
     params.get("login").and_then(Value::as_str).filter(|l| !l.is_empty())

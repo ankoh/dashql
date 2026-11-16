@@ -5,7 +5,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
 
 import { useConnectionDraftForm } from './connection_draft.js';
-import { useConnection } from '../runtime/runtime_hooks.js';
+import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql/platform/connections/connection_state';
@@ -24,7 +24,6 @@ import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql/platfor
 import type { ConnectionDetailsView } from '@ankoh/dashql';
 import type { DetailedError } from '@ankoh/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { collectSalesforceAuthInfo } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
 import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql/platform/connections/salesforce/salesforce_catalog_update';
 
 const LOG_CTX = "sf_connector";
@@ -413,14 +412,21 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             break;
     }
 
-    // Read the auth info
-    // The tokens are opaque JSON of the runtime
+    // The view summarizes the tokens, the page asks the runtime for them while it shows them. The tokens are opaque
+    // JSON of the runtime.
+    const runtime = useOptionalRuntime();
     const oauthState = salesforceConnection?.connector.kind === 'salesforce' ? salesforceConnection.connector.oauthState : null;
-    const coreAccessToken = oauthState?.coreAccessToken == null ? null : JSON.parse(oauthState.coreAccessToken);
-    const dcAccessToken = oauthState?.dataCloudAccessToken == null ? null : JSON.parse(oauthState.dataCloudAccessToken);
-    const dcAuthInfo = coreAccessToken && dcAccessToken
-        ? collectSalesforceAuthInfo(coreAccessToken, dcAccessToken)
-        : null;
+    const coreSummary = oauthState?.coreAccessToken ?? null;
+    const dcSummary = oauthState?.dataCloudAccessToken ?? null;
+    const summaries = JSON.stringify([coreSummary, dcSummary]);
+    const secrets = React.useMemo(
+        () => props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.module?.revealConnectionSecrets(props.connectionId) ?? null : null,
+        // The summaries change with the tokens
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [runtime, props.connectionId, summaries],
+    );
+    const coreAccessToken = secrets?.coreAccessToken == null ? null : JSON.parse(secrets.coreAccessToken);
+    const dcAccessToken = secrets?.dataCloudAccessToken == null ? null : JSON.parse(secrets.dataCloudAccessToken);
 
     // Lock any changes?
     return (
@@ -434,10 +440,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             login={pageState.login}
             databaseName={pageState.databaseName}
             coreAccessToken={coreAccessToken?.accessToken ?? ''}
-            dataCloudAccessToken={dcAuthInfo?.offcoreRawJwt ?? ''}
-            dataCloudInstanceUrl={dcAuthInfo?.offcoreInstanceUrl ?? ''}
-            coreTenantId={dcAuthInfo?.coreTenantId ?? ''}
-            dataCloudTenantId={dcAuthInfo?.offcoreTenantId ?? ''}
+            dataCloudAccessToken={dcAccessToken?.jwt?.raw ?? ''}
+            dataCloudInstanceUrl={dcSummary?.instanceUrl ?? ''}
+            coreTenantId={dcSummary?.tenantId ?? ''}
+            dataCloudTenantId={dcSummary?.tenantId ?? ''}
             instanceUrlValidation={instanceUrlValidation}
             appConsumerValidation={appConsumerValidation}
             updateInstanceUrl={updateInstanceUrl}

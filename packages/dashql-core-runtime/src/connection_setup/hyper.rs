@@ -11,7 +11,7 @@ use std::rc::Rc;
 
 use serde_json::Value;
 
-use super::{SetupFailure, SetupHost, LOG_TARGET};
+use super::{connect_channel, SetupFailure, SetupHost, LOG_TARGET};
 use crate::connections::{ChannelId, ConnectionAction, DetailedError, HyperAction, JsonObject};
 use crate::host::LogLevel;
 use crate::http::CancellationToken;
@@ -75,7 +75,8 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
     };
     let fail = |host: &H, failure: SetupFailure| {
         host.log(LogLevel::Warn, "Setup failed", &[("target", LOG_TARGET), ("error", &failure.message)]);
-        host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(DetailedError::new(failure.message.clone()))));
+        let error = DetailedError { message: failure.message.clone(), data: failure.data.clone() };
+        host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error)));
         Err(failure)
     };
     if cancellation.is_cancelled() {
@@ -86,11 +87,17 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
         Ok(request) => request,
         Err(message) => return fail(&host, SetupFailure::failed(message)),
     };
-    // A connect runs to its end, a channel that is ready after a cancellation is closed
-    let channel = match host.connect_hyper_channel(&request, &cancellation).await {
-        Err(_) if cancellation.is_cancelled() => return cancel(&host),
-        Err(error) => return fail(&host, SetupFailure::failed(error.message()).with_value(error.value().cloned())),
-        Ok(channel) => channel,
+    // A cancellation stops the wait for the connect, a channel that is ready after it is closed
+    let channel = match connect_channel(&host, host.connect_hyper_channel(&request, &cancellation), &cancellation).await {
+        None => return cancel(&host),
+        Some(Err(_)) if cancellation.is_cancelled() => return cancel(&host),
+        Some(Err(error)) => {
+            // The failure keeps the details of what the host failed with
+            let mut failure = SetupFailure::failed(error.message()).with_value(error.value().cloned());
+            failure.data = host.error_details(&error);
+            return fail(&host, failure);
+        }
+        Some(Ok(channel)) => channel,
     };
     if cancellation.is_cancelled() {
         host.close_channel(channel);

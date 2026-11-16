@@ -15,7 +15,6 @@ use std::rc::{Rc, Weak};
 
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::catalog_loader::CatalogLoaderService;
-use dashql_core_runtime::clfn::ClientFunctionSpec;
 use dashql_core_runtime::compute::service::ComputeService;
 use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationOutcome;
@@ -87,8 +86,6 @@ pub(crate) struct Connections {
     pub runs: RefCell<HashMap<QueryId, Weak<QueryRun>>>,
     /// The executor, its host holds the connections weakly
     pub executor: RefCell<Option<QueryExecutor<QueryHost>>>,
-    /// The specs of the client functions by extension, loaded with the first call
-    pub specs: RefCell<Vec<(&'static str, Rc<ClientFunctionSpec>)>>,
     /// The setups that run, few
     pub setups: RefCell<Vec<RunningSetup>>,
     /// The number of the last setup
@@ -115,7 +112,6 @@ impl Connections {
             saves: RefCell::new(Vec::new()),
             runs: RefCell::new(HashMap::new()),
             executor: RefCell::new(None),
-            specs: RefCell::new(Vec::new()),
             setups: RefCell::new(Vec::new()),
             setup_numbers: Cell::new(0),
             loader: RefCell::new(None),

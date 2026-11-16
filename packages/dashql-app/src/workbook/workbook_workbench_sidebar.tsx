@@ -1095,13 +1095,13 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
 
     /// The number of duplicates of a connection
     const mergeCandidateCount = React.useCallback(
-        (connectionId: string) => connectionMergeCandidates(connections, connectionList, connectionId).length,
-        [connections, connectionList],
+        (connectionId: string) => connectionMergeCandidates(runtime.core, connections, connectionList, connectionId).length,
+        [runtime, connections, connectionList],
     );
     /// Merge the duplicates of a connection into it, their workbooks move to the connection
     const mergeDuplicates = React.useCallback((connectionId: string) => {
         const database = connections.get(connectionId);
-        const duplicates = connectionMergeCandidates(connections, connectionList, connectionId);
+        const duplicates = connectionMergeCandidates(runtime.core, connections, connectionList, connectionId);
         if (database == null || duplicates.length === 0) return;
         const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
         if (!window.confirm(`Merge ${what} into the connection "${connectionLabelText(labelOf(database))}"?`)) return;

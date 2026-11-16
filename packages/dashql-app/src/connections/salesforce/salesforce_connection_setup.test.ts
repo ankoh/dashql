@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { SalesforceApiClient, SalesforceDatabaseChannel } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import type { SalesforceDatabaseChannel } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
@@ -16,6 +16,7 @@ import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
 import { connectChannel } from '../hyper/hyper_connection_setup.js';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
+import { mockSalesforceHttp, mockSalesforceOAuthFlow, type SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
@@ -24,7 +25,6 @@ afterEach(() => vi.unstubAllGlobals());
 
 /// A runtime whose setups send their requests with the HTTP client and connect the Hyper of Salesforce with the client
 function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFlow: AppOAuthFlow) {
-    const salesforce = new SalesforceApiClient(new TestLogger(), http);
     const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
@@ -33,7 +33,7 @@ function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFl
         oauthFlow,
         channels: {
             connect: (connectionId, request) => connectChannel({
-                grpcClient: null, httpClient: client, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforce,
+                grpcClient: null, httpClient: client, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: false,
             }, connectionId, request),
         },
     });
@@ -127,6 +127,72 @@ describe('the setup of Salesforce', () => {
         runtime.module?.cancelSetup('salesforce');
         expect(await setup).toMatchObject({ status: 'cancelled' });
         expect(runtime.connection('salesforce')!.connectionHealth).not.toBe(ConnectionHealth.ONLINE);
+        runtime.destroy();
+    });
+});
+
+describe('the mock of Salesforce of the config', () => {
+    const MOCK: SalesforceConnectorMockConfig = {
+        enabled: true,
+        coreAccess: { createdAt: '2026-01-01T00:00:00Z', accessToken: 'mock-core-token', instanceUrl: 'https://mock.my.salesforce.com', tokenType: 'Bearer' } as connection.SalesforceCoreAccessToken,
+        coreUserInfo: { preferredUsername: 'mock@example.com' } as connection.SalesforceCoreUserInfo,
+        dataCloudAccess: {
+            createdAt: '2026-01-01T00:00:00Z',
+            expiresAt: '2099-01-01T00:00:00Z',
+            instanceUrl: 'https://mock.c360a.salesforce.com',
+            tokenType: 'Bearer',
+            jwt: { raw: '', header: { alg: 'none' }, payload: { exp: 4_070_908_800, audienceTenantId: 'mock-tenant' } },
+        } as connection.SalesforceDataCloudAccessToken,
+        dataCloudMetadata: {
+            metadata: [{ name: 'Account__dlm', displayName: 'Account', category: 'Profile', primaryKeys: [], fields: [{ name: 'Id__c', displayName: 'Id', type: 'Text', businessType: 'Text' }] }],
+        },
+    };
+
+    it('sets a connection up with the setup of the runtime, the requests answered from the config', async () => {
+        const offline = { fetch: vi.fn(() => Promise.reject(new Error('no network'))) };
+        const flow = { authorizeWithRedirectPage: vi.fn(), authorizeWithLoopback: vi.fn() } as unknown as AppOAuthFlow;
+        const runtime = createRuntime({
+            logger: new TestLogger(),
+            scheduler: TASK_UPDATE_SCHEDULER,
+            setupCore: dql,
+            http: mockSalesforceHttp(() => MOCK, offline),
+            oauthFlow: mockSalesforceOAuthFlow(() => MOCK, flow),
+            channels: {
+                connect: (connectionId, request) => connectChannel({
+                    grpcClient: null, httpClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, salesforceMock: true,
+                }, connectionId, request),
+            },
+        });
+        runtime.runCatalogLoader(false);
+        const params = { instanceUrl: 'https://mock.my.salesforce.com', appConsumerKey: 'key', appConsumerSecret: '', login: '' } as connection.SalesforceConnectionParams;
+        const connector = CONNECTOR_DESCRIPTORS[ConnectorType.SALESFORCE_DATA_CLOUD];
+        runtime.createConnection({ connectorType: ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: params, params: connectionParamsOf(connector, params) }, 'salesforce');
+        const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
+
+        // The probe of the health check runs on the mock of the Hyper channel
+        expect(outcome).toMatchObject({ status: 'succeeded' });
+        expect(offline.fetch).not.toHaveBeenCalled();
+        expect(flow.authorizeWithRedirectPage).not.toHaveBeenCalled();
+        const state = runtime.connection('salesforce')!;
+        expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);
+        expect(runtime.channel<SalesforceDatabaseChannel>(state)!.coreToken.accessToken).toBe('mock-core-token');
+
+        // The view summarizes the tokens, the runtime hands them out on request
+        const oauthState = state.details.connector.kind === 'salesforce' ? state.details.connector.oauthState : null;
+        expect(oauthState).toMatchObject({
+            pkceGenerated: true,
+            coreAccessToken: { instanceUrl: 'https://mock.my.salesforce.com', tokenType: 'Bearer' },
+            dataCloudAccessToken: { instanceUrl: 'https://mock.c360a.salesforce.com/', tenantId: 'mock-tenant', tokenType: 'Bearer' },
+        });
+        expect(JSON.stringify(state)).not.toContain('mock-core-token');
+        const secrets = runtime.module!.revealConnectionSecrets('salesforce')!;
+        expect(JSON.parse(secrets.coreAccessToken!).accessToken).toBe('mock-core-token');
+        expect(JSON.parse(secrets.dataCloudAccessToken!).jwt.payload.audienceTenantId).toBe('mock-tenant');
+
+        // The catalog loader fetches the metadata of the mock
+        runtime.runCatalogLoader(true);
+        await vi.waitFor(() => expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished).toHaveLength(1));
+        expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished[0].error).toBeNull();
         runtime.destroy();
     });
 });

@@ -88,14 +88,16 @@ interface Api {
 }
 
 /// Create the connection in the runtime of the test and capture the executor once the compute database is set up
-function Capture(props: { database: (runtime: Runtime) => void; capture: (api: Api) => void }) {
+function Capture(props: { database: (runtime: Runtime) => Promise<void>; capture: (api: Api) => void }) {
     const runtime = useRuntime();
     const execute = runtime.execute;
     const compute = useComputeDatabase();
     const [created, setCreated] = React.useState(false);
     React.useEffect(() => {
-        if (runtime.connection(CONNECTION_ID) == null) props.database(runtime);
-        setCreated(true);
+        void (async () => {
+            if (runtime.connection(CONNECTION_ID) == null) await props.database(runtime);
+            setCreated(true);
+        })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runtime]);
     React.useLayoutEffect(() => {
@@ -108,9 +110,9 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A Hyper connection of the runtime of the test, online with a channel that runs the queries
-function createDatabase(executeQuery: unknown): (runtime: Runtime) => void {
-    return runtime => {
-        const state = createTestConnection(runtime, {
+function createDatabase(executeQuery: unknown): (runtime: Runtime) => Promise<void> {
+    return async runtime => {
+        const state = await createTestConnection(runtime, {
             connectionId: CONNECTION_ID,
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
             channel: { executeQuery, close: vi.fn() },

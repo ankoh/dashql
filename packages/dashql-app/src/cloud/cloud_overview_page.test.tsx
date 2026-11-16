@@ -80,8 +80,8 @@ async function publish(name: string, folderId: string | null = null, sql = 'sele
 }
 
 /// The local cloud as a connection of the runtime
-function cloudConnection(runtime: Runtime, health: ConnectionHealth): void {
-    addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: createLocalCloudParams(), active: true, health });
+async function cloudConnection(runtime: Runtime, health: ConnectionHealth): Promise<void> {
+    await addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: createLocalCloudParams(), active: true, health });
 }
 
 /// The published workbooks of the cloud on the session of the test, every change looks at the cloud again
@@ -169,7 +169,7 @@ describe('CloudOverviewPage', () => {
     async function renderCloud(health: ConnectionHealth) {
         await root.render(tree(null));
         await vi.waitFor(() => expect(config).not.toBeNull());
-        await act(async () => cloudConnection(appRuntime!, health));
+        await act(async () => { await cloudConnection(appRuntime!, health); });
         await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionIds: ['trial'] } }));
         await root.render(tree(page));
     }

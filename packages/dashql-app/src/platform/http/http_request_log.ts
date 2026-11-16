@@ -26,7 +26,9 @@ export type HttpBodyRecord =
     /// A JSON body that the caller parsed, the log does not keep it
     | { kind: 'parsed' }
     /// A body that the log cannot read without consuming it
-    | { kind: 'opaque' };
+    | { kind: 'opaque' }
+    /// A body with credentials, e.g. of a token request, the log does not keep it
+    | { kind: 'redacted' };
 
 /// A recorded http request
 export interface HttpRequestEntry {
@@ -124,13 +126,18 @@ export class RecordingHttpClient implements HttpClient {
         // The content type that fetch derives from the body
         const bodyContentType = init?.body != null ? implicitContentType(init.body) : null;
         if (bodyContentType != null && !headers.has('content-type')) headers.set('content-type', bodyContentType);
+        // A request with credentials keeps neither its bodies nor the values of its credential headers
+        const sensitive = init?.sensitive === true;
+        const hasBody = init?.body != null || request?.body != null;
         const requestId = this.log.add({
             method: (init?.method ?? request?.method ?? 'GET').toUpperCase(),
             url: request?.url ?? input.toString(),
-            requestHeaders: [...headers.entries()],
-            requestBody: init?.body != null
-                ? recordRequestBody(init.body, headers.get('content-type'))
-                : request?.body != null ? { kind: 'opaque' } : null,
+            requestHeaders: sensitive ? maskHeaders([...headers.entries()]) : [...headers.entries()],
+            requestBody: sensitive
+                ? (hasBody ? { kind: 'redacted' } : null)
+                : init?.body != null
+                    ? recordRequestBody(init.body, headers.get('content-type'))
+                    : request?.body != null ? { kind: 'opaque' } : null,
             sentAt: new Date(),
             respondedAt: null,
             bodyReceivedAt: null,
@@ -152,9 +159,9 @@ export class RecordingHttpClient implements HttpClient {
             respondedAt: new Date(),
             status: response.status,
             statusText: response.statusText,
-            responseHeaders: [...response.headers.entries()],
+            responseHeaders: sensitive ? maskHeaders([...response.headers.entries()]) : [...response.headers.entries()],
         });
-        return new RecordedHttpFetchResult(response, this.log, requestId);
+        return new RecordedHttpFetchResult(response, this.log, requestId, sensitive);
     }
 }
 
@@ -163,7 +170,13 @@ class RecordedHttpFetchResult implements HttpFetchResult {
     /// The body of an error response, read right away since callers often throw without reading it
     private readonly bufferedBody: Promise<ArrayBuffer> | null = null;
 
-    constructor(private readonly inner: HttpFetchResult, private readonly log: HttpRequestLog, private readonly requestId: number) {
+    constructor(
+        private readonly inner: HttpFetchResult,
+        private readonly log: HttpRequestLog,
+        private readonly requestId: number,
+        /// Does the body carry credentials? The log records that it arrived, not what it holds.
+        private readonly sensitive: boolean = false,
+    ) {
         if (inner.status >= 400) {
             this.bufferedBody = this.record(inner.arrayBuffer(), buffer => recordBytes(buffer, this.contentType, HTTP_RESPONSE_PREVIEW_BYTES));
             // The caller sees a failed read when it reads the body
@@ -198,7 +211,8 @@ class RecordedHttpFetchResult implements HttpFetchResult {
     private record<T>(body: Promise<T>, toRecord: (body: T) => HttpBodyRecord): Promise<T> {
         return body.then(
             value => {
-                this.log.update(this.requestId, { bodyReceivedAt: new Date(), responseBody: toRecord(value) });
+                const responseBody: HttpBodyRecord = this.sensitive ? { kind: 'redacted' } : toRecord(value);
+                this.log.update(this.requestId, { bodyReceivedAt: new Date(), responseBody });
                 return value;
             },
             (e: unknown) => {
@@ -296,6 +310,9 @@ export function formatCurlCommand(entry: HttpRequestEntry): string {
             break;
         case 'opaque':
             notes.push('# The request body is left out, the log could not read it');
+            break;
+        case 'redacted':
+            notes.push('# The request body and the credential headers are left out, they carry credentials');
             break;
     }
     return [...notes, args.join(' \\\n  ')].join('\n');

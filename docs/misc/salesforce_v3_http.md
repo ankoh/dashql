@@ -1,8 +1,9 @@
 # Salesforce Query Service V3 HTTP API
 
-The client is `packages/dashql/src/platform/connections/hyper/hyperdb_http_client.ts` (requests, status and error types).
-`packages/dashql-app/src/connections/hyper/platform/web_hyperdb_http_client.ts` runs queries on it: polling, chunk
-prefetching and errors.
+The client is `packages/dashql-core-runtime/src/hyper/client.rs` of the runtime (requests, status and error types), the
+query executor of the runtime runs queries on it: polling, chunk prefetching and errors. The channel of the app
+(`packages/dashql-app/src/connections/hyper/platform/web_hyperdb_http_client.ts`) only describes the endpoint and the
+auth headers.
 
 ## Base Path
 

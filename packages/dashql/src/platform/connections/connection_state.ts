@@ -25,31 +25,6 @@ export function connectorInfoOf(connection: Pick<ConnectionState, 'connectorType
     return CONNECTOR_INFOS[connection.connectorType as ConnectorType];
 }
 
-/// Is a connection connected or connecting? An open connection keeps its protocol and can't be merged.
-export function isConnectionOpen(health: ConnectionHealth | undefined): boolean {
-    return health === ConnectionHealth.CONNECTING || health === ConnectionHealth.ONLINE;
-}
-
-export function printConnectionHealth(health: ConnectionHealth) {
-    switch (health) {
-        case ConnectionHealth.NOT_STARTED:
-            return "Not Started";
-        case ConnectionHealth.CONNECTING:
-            return "Connecting";
-        case ConnectionHealth.CANCELLED:
-            return "Cancelled";
-        case ConnectionHealth.ONLINE:
-            return "Online";
-        case ConnectionHealth.FAILED:
-            return "Failed";
-    }
-}
-
-/// Does a connection cache query results? The connector decides unless the user chose.
-export function connectionCachesQueryResults(state: Pick<ConnectionState, 'cacheQueryResults' | 'connectorType'>): boolean {
-    return state.cacheQueryResults ?? connectorInfoOf(state).features.queryResultCaching;
-}
-
 /// A new connection: its connector, the params its setup starts with and what it is created with
 export interface NewConnection {
     connectorType: ConnectorType;
@@ -98,10 +73,4 @@ export function createConnectionAction(connection: NewConnection, connectionId?:
             cacheQueryResults: connection.cacheQueryResults,
         },
     };
-}
-
-/// A step of a setup that the host runs itself, e.g. the mock of a setup, by the name of the action of the connector
-/// (`setup_action_from_json` of the runtime). The channel of a ready step is a handle that the connection takes.
-export function setupStepAction(step: string, value?: unknown, channel?: number): core.RuntimeAction {
-    return { kind: 'setupStep', value: { step, value, channel } };
 }

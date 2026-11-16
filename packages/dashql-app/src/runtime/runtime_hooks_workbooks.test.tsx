@@ -34,7 +34,7 @@ function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; ch
     const runtime = useRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
-        createTestConnection(runtime, { connectionId: 'database', params: EMBEDDED });
+        void createTestConnection(runtime, { connectionId: 'database', params: EMBEDDED });
         const keys = [A, B].map(workbookId => {
             runtime.createWorkbook('database', null, false, undefined, workbookId);
             runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'select 1', base: '1' } });

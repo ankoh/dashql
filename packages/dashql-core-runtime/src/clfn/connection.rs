@@ -227,7 +227,17 @@ impl ClientFunctionRegistrations {
 
     /// The spec of the client functions that a connection has registered
     pub fn spec(&self, connection: &ConnectionState) -> Option<Rc<ClientFunctionSpec>> {
-        self.registration(connection.connection_id(), connection)?.spec.clone()
+        self.spec_of(connection.connection_id(), connection)
+    }
+
+    /// Does the spec of a registration of a connection still load?
+    pub fn loading_of(&self, connection_id: &str, connection: &ConnectionState) -> bool {
+        self.registration(connection_id, connection).is_some_and(|registration| registration.spec.is_none())
+    }
+
+    /// `spec` for a connection that the host knows by an id of its own
+    pub fn spec_of(&self, connection_id: &str, connection: &ConnectionState) -> Option<Rc<ClientFunctionSpec>> {
+        self.registration(connection_id, connection)?.spec.clone()
     }
 
     /// Forget a connection that was deleted

@@ -1,21 +1,12 @@
-//! What the descriptor of the Hyper connector says about params that `connections` doesn't port yet: the params to
-//! share, the signature of the query result cache and whether a connection reads the attachments of a workbook.
+//! What the descriptor of the Hyper connector says about params that `connections` doesn't port yet: the signature
+//! of the query result cache and whether a connection reads the attachments of a workbook. The params to share are
+//! `workbook_format::sharing`.
 //!
 //! Ported from `packages/dashql/src/platform/connections/hyper/hyper_connector_descriptor.ts`.
 
 use serde_json::{json, Map, Value};
 
 use crate::connections::{ConnectionDetails, ConnectorType, JsonObject};
-
-/// The params of a Hyper connection to share in a link or a file. The metadata and the query parameters may carry
-/// credentials under any name, the paths of the TLS files are local.
-pub fn sanitize_for_sharing(params: &JsonObject) -> JsonObject {
-    let mut shared = params.clone();
-    shared.shift_remove("metadata");
-    shared.shift_remove("queryParameters");
-    shared.insert("tls".to_string(), json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
-    shared
-}
 
 /// The params that identify the results of a query in the query result cache. The metadata stays out, its headers may
 /// carry credentials that change with every token. The query parameters are session settings that may change the

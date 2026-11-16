@@ -31,8 +31,6 @@ export interface ConnectorInfo {
         uncolored: string,
         outlines: string,
     }
-    /// The connector features
-    features: ConnectorFeatures;
     /// The connector platforms
     platforms: ConnectorPlatforms;
 }
@@ -42,13 +40,6 @@ export interface ConnectorPlatforms {
     browser: boolean;
     /// Supports the electron app?
     native: boolean;
-}
-
-export interface ConnectorFeatures {
-    /// Do new workbooks cache query results?
-    queryResultCaching: boolean;
-    /// Do connections only run queries, no DDL or DML?
-    readOnly: boolean;
 }
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
@@ -64,10 +55,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             colored: "hyper",
             uncolored: "hyper_nocolor",
             outlines: "hyper_outlines",
-        },
-        features: {
-            queryResultCaching: false,
-            readOnly: false,
         },
         platforms: {
             browser: true,
@@ -87,10 +74,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             uncolored: "salesforce_notext_nocolor",
             outlines: "salesforce_outlines",
         },
-        features: {
-            queryResultCaching: true,
-            readOnly: true,
-        },
         platforms: {
             browser: true,
             native: true,
@@ -108,10 +91,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             colored: "trino",
             uncolored: "trino_nocolor",
             outlines: "trino_outlines",
-        },
-        features: {
-            queryResultCaching: true,
-            readOnly: true,
         },
         platforms: {
             browser: true,
@@ -131,10 +110,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             colored: "hyper_nocolor",
             uncolored: "hyper_nocolor",
             outlines: "hyper_outlines",
-        },
-        features: {
-            queryResultCaching: true,
-            readOnly: false,
         },
         platforms: {
             browser: true,

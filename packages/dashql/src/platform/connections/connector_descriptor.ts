@@ -1,5 +1,3 @@
-import type { ConnectionDetailsView } from '../../core/index.js';
-
 import type { ConnectionParams, HyperConnectionParams, SalesforceConnectionParams, TrinoConnectionParams } from './connection_params.js';
 import { ConnectorType, type ConnectorInfo } from './connector_info.js';
 import type { ClientFunctionSpec } from './clfn/clfn_spec.js';
@@ -42,18 +40,8 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     defaultParams(): ConnectorParamsMap[K];
     /// Remove the raw form rows, they belong only to the local draft
     withoutDraftRows(params: ConnectorParamsMap[K]): ConnectorParamsMap[K];
-    /// Strip the secrets before the params are shared, the login hint only if `withLoginHint` is false
-    sanitizeForSharing(params: ConnectorParamsMap[K], withLoginHint: boolean): ConnectorParamsMap[K];
     /// The login hint (the account username or login) of the params, null if there is none
     loginHint(params: ConnectorParamsMap[K]): string | null;
-    /// The number of statements of a workbook run that a connection executes at once, the details are the ones of the
-    /// view of the connection
-    maxConcurrentQueries(details: ConnectionDetailsView): number;
-    /// Does the catalog of a connection outlive the page? The relations of a database that is created anew with
-    /// every page load and the catalog changes of its statements are neither persisted nor restored.
-    catalogIsDurable(params: ConnectorParamsMap[K]): boolean;
-    /// Can the queries of a connection read the data files that are attached to a workbook?
-    readsAttachments(details: ConnectionDetailsView): boolean;
     /// The client functions of the connections, undefined if they have none
     clientFunctions?: ClientFunctionBinding;
 }
@@ -89,14 +77,4 @@ export function connectorParams(connector: ConnectorDescriptor, params: Connecti
 /// The connection params that hold the params of a connector
 export function connectionParamsOf(connector: ConnectorDescriptor, params: ConnectorParamsMap[ConnectorParamsKey]): ConnectionParams {
     return { [connector.paramsKey]: params } as unknown as ConnectionParams;
-}
-
-/// Can the queries of a connection read the data files that are attached to a workbook?
-export function connectionReadsAttachments(connection: { connectorType: number; details: ConnectionDetailsView } | null | undefined): boolean {
-    return connection != null && connectorOf(connection).readsAttachments(connection.details);
-}
-
-/// The number of statements of a workbook run that a connection executes at once
-export function connectionMaxConcurrentQueries(connection: { connectorType: number; details: ConnectionDetailsView } | null | undefined): number {
-    return connection == null ? 1 : connectorOf(connection).maxConcurrentQueries(connection.details);
 }

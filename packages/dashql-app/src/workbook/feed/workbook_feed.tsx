@@ -25,7 +25,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
@@ -75,7 +75,6 @@ import {
 import { useConnectionLabeler } from '../connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../ui/foundations/symbol_icon.js';
-import { connectionReadsAttachments } from '@ankoh/dashql/platform/connections/connector_descriptor';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
@@ -258,7 +257,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
     // The connections that cache query results, the cache indicators follow them
     const cachingConnections = [...(props.scriptConnections ?? defaultConnections).values()]
-        .filter(connectionCachesQueryResults).map(connection => connection.connectionId).join(',');
+        .filter(connection => connection.cachesQueryResults).map(connection => connection.connectionId).join(',');
     // The composer drafts the next script, on the connection that the script will run on
     const composerConnectionId = props.workbookScripts.nextScriptConnectionId ?? null;
     const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
@@ -306,7 +305,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const pinnedDataFiles = dataFiles?.workbookId === workbookId ? dataFiles.files : [];
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
-    const attachmentsEnabled = !readOnly && connectionReadsAttachments(props.conn);
+    const attachmentsEnabled = !readOnly && (props.conn?.readsAttachments ?? false);
     // The files that are being attached, the status of the workbook tells them
     const [attaching, setAttaching] = React.useState<{ workbookId: string; files: number } | null>(null);
     const reportOutcomes = useReportWorkbookOutcomes();

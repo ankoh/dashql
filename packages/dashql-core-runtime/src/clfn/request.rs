@@ -395,5 +395,5 @@ pub fn http_request(request: &ClientFunctionRequest, target: &ClientFunctionHost
         // A later header replaces an earlier one, as `Headers.set` does
         headers.set(name, value.clone());
     }
-    Ok(HttpRequest { method: HttpMethod::parse(&request.method), url: url.to_string(), headers, body: request.body.clone() })
+    Ok(HttpRequest { method: HttpMethod::parse(&request.method), url: url.to_string(), headers, body: request.body.clone(), sensitive: false })
 }

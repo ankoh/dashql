@@ -27,7 +27,7 @@ export const HyperDatabaseClientProvider: React.FC<Props> = (props: Props) => {
             setGrpcClient(new NativeHyperDatabaseClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger));
         }
         if (httpClient) {
-            setHttpHyperClient(new WebHyperDatabaseClient(httpClient, logger));
+            setHttpHyperClient(new WebHyperDatabaseClient());
         }
     }, [httpClient]);
     return (

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as core from '@ankoh/dashql';
 
-import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import { connectionParamsKey, type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 
 /// The params and the draft of a connection with the actions that edit the draft. Editing dispatches immediately, the
@@ -34,7 +34,7 @@ export function useConnectionDraftForm<T>(
     const editedParamsRef = React.useRef<ConnectionParams | undefined>(undefined);
     if (databaseIdRef.current !== connectionId || sourceRef.current !== source) {
         const ownEdit = databaseIdRef.current === connectionId && paramsDraft != null
-            && connectionParamsEqual(editedParamsRef.current, paramsDraft);
+            && connectionParamsKey(editedParamsRef.current) === connectionParamsKey(paramsDraft);
         databaseIdRef.current = connectionId;
         sourceRef.current = source;
         if (!ownEdit) {

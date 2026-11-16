@@ -123,8 +123,6 @@ struct State {
     events: Vec<String>,
     logs: Vec<(LogLevel, String)>,
     queries: Vec<PendingQuery>,
-    /// The metadata of the API of the platform, none to fetch it
-    metadata: Option<Value>,
     /// The answers of the HTTP server
     responses: VecDeque<HttpResponse>,
     sent: Vec<HttpRequest>,
@@ -326,11 +324,6 @@ impl CatalogLoaderHost for FakeHost {
                 None => Err(HostError::new("Query was cancelled")),
             }
         }
-    }
-
-    fn salesforce_metadata(&self, _connection_id: &str, _data_space: &str) -> impl Future<Output = Result<Option<Value>, HostError>> + 'static {
-        let metadata = self.state.borrow().metadata.clone();
-        async move { Ok(metadata) }
     }
 
     fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
@@ -720,18 +713,6 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
     assert!(host.logged("Salesforce metadata request failed"));
     assert!(relations_text(&host).contains("\"Account__dlm\""));
     assert_eq!(host.query_count(), 0);
-}
-
-#[test]
-fn salesforce_reads_the_metadata_of_the_api_of_the_platform() {
-    let host = setup(ConnectorType::SalesforceDataCloud, json!({ "instanceUrl": "https://example.my.salesforce.com" }));
-    salesforce(&host);
-    host.state.borrow_mut().metadata = Some(metadata("Mocked__dlm"));
-    host.observe();
-    host.service().enqueue("database", true);
-    host.run();
-    assert!(host.state.borrow().sent.is_empty());
-    assert!(relations_text(&host).contains("\"Mocked__dlm\""));
 }
 
 #[test]

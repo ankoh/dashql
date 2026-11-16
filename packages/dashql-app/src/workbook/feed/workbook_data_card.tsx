@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { connectionReadsAttachments } from '@ankoh/dashql/platform/connections/connector_descriptor';
 import type { DataFile } from '@ankoh/dashql/platform/storage/storage_backend';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
@@ -36,7 +35,7 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
     const readOnly = useWorkbookReadOnly();
     const [renaming, setRenaming] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
-    const enabled = connectionReadsAttachments(props.conn);
+    const enabled = props.conn?.readsAttachments ?? false;
     const disabled = !enabled || busy;
     // An attachment is the table parameter of its name, scripts read `sales.parquet` as `:sales`
     const parameter = attachmentParameterName(props.file.name) ?? props.file.name;

@@ -63,7 +63,7 @@ describe('the workbooks of the runtime', () => {
     it('writes the changes of the scripts through the storage writer', async () => {
         const storage = new WorkbookTestBackend();
         const rt = runtime = await createTestRuntime({ storage });
-        rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
         const workbook = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']], { name: 'Writes' });
         const { workbookId } = workbook;
         await rt.storage.flush();
@@ -86,7 +86,7 @@ describe('the workbooks of the runtime', () => {
 
     it('promotes the ephemeral workbook with its first script to a name that no other workbook has', async () => {
         const rt = runtime = await createTestRuntime();
-        rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
         rt.addWorkbook(TEST_CONNECTION_ID, [], { name: 'Untitled' });
         const ephemeral = rt.addWorkbook(TEST_CONNECTION_ID, [], { name: 'New Workbook', ephemeral: true });
         expect(ephemeral.ephemeral).toBe(true);
@@ -98,8 +98,8 @@ describe('the workbooks of the runtime', () => {
 
     it('tells the connections which workbooks use them', async () => {
         const rt = runtime = await createTestRuntime();
-        rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
-        rt.addConnection({ connectionId: OTHER_CONNECTION_ID, params: HYPER });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        await rt.addConnection({ connectionId: OTHER_CONNECTION_ID, params: HYPER });
         const workbook = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;'], ['b.sql', 'select 2;']]);
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([workbook.workbookId]);
         expect(rt.connection(OTHER_CONNECTION_ID).workbooks).toEqual([]);

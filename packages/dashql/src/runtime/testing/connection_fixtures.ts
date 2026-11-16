@@ -1,10 +1,15 @@
-import type * as core from '../../core/index.js';
-
-import { setupStepAction as setupStep, type ConnectionState } from '../../platform/connections/connection_state.js';
+import { ConnectionHealth, type ConnectionState } from '../../platform/connections/connection_state.js';
 import { newConnectionFromParams, type ConnectionParams } from '../../platform/connections/connection_params.js';
-import { connectorOfParams, connectorParams } from '../../platform/connections/connector_descriptor.js';
+import { connectorOfParams } from '../../platform/connections/connector_descriptor.js';
 import { ConnectorType } from '../../platform/connections/connector_info.js';
-import type { Runtime } from '../runtime.js';
+import type { HttpClient, HttpFetchResult } from '../../platform/platform/http/http_client.js';
+import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
+import { tableFromArrays } from '../../platform/testing/arrow_fixtures.js';
+import type { ChannelConnector, Runtime } from '../runtime.js';
+
+// The connections of tests are set up by the runtime (`setupConnection`) like the connections of the app, over a
+// platform that answers like the backend: the channel connector hands back the channel of the test, the probe of the
+// health check ends as the test asks, on the channel of a Hyper and over HTTP for Trino.
 
 /// The options of a connection of a test
 export interface TestConnectionOptions {
@@ -16,41 +21,192 @@ export interface TestConnectionOptions {
     active?: boolean;
     /// The name
     name?: string;
-    /// A channel of the connection, e.g. one with a fake `executeQuery`. The connection is ready with it and online
-    /// unless `online` is false.
+    /// A channel of the connection, e.g. one with a fake `executeQuery`. The runtime sets the connection up with it.
+    /// Without, the connection is not set up.
     channel?: object;
-    /// Is the connection with a channel online? True by default.
-    online?: boolean;
+    /// How the setup with the channel ends: online by default, failed with `error` or connecting until the test ends
+    health?: ConnectionHealth;
+    /// The error of a failed setup
+    error?: string;
 }
 
-/// Apply an action to a connection of a test, returns the connection as the runtime holds it now
-export function reduceTestConnection(runtime: Runtime, state: Pick<ConnectionState, 'connectionId'>, action: core.RuntimeAction): ConnectionState {
-    runtime.dispatch({ connection: state.connectionId }, action);
-    runtime.flush();
-    const next = runtime.connection(state.connectionId);
-    if (next == null) throw new Error(`the runtime has no connection ${state.connectionId}`);
-    return next;
+/// How the setup of a connection of a test ends
+interface TestSetup {
+    channel: object;
+    health: ConnectionHealth;
+    error: string;
+    /// Does the setup check the health of the channel now? The queries on the channel are the probe then.
+    probing: boolean;
+    /// End a probe that runs until the test ends it, see `finishTestSetup`
+    finish: (() => void) | null;
 }
 
-/// A connection of a test in a runtime, with a channel ready and online if the options have one
-export function createTestConnection(runtime: Runtime, options: TestConnectionOptions): ConnectionState {
-    const connector = connectorOfParams(options.params);
-    const setupParams = connectorParams(connector, options.params);
-    let state = runtime.createConnection(newConnectionFromParams(options.params, { active: options.active, name: options.name }), options.connectionId ?? 'test');
-    if (options.channel == null) return state;
-    const channel = runtime.handles.register(options.channel);
-    switch (connector.info.connectorType) {
-        case ConnectorType.HYPER:
-            state = reduceTestConnection(runtime, state, setupStep('HYPER_CHANNEL_READY', setupParams, channel));
-            break;
-        case ConnectorType.TRINO:
-            state = reduceTestConnection(runtime, state, setupStep('TRINO_CHANNEL_READY', null, channel));
-            break;
-        case ConnectorType.SALESFORCE_DATA_CLOUD:
-        case ConnectorType.DBCOM:
-            state = reduceTestConnection(runtime, state, setupStep('SF_CHANNEL_READY', null, channel));
-            break;
+/// The setups of the connections of tests on a runtime: the channel connector and the HTTP client of the platform with
+/// the channels and the probes of the tests, everything else goes to the ones the runtime had
+class TestSetups {
+    readonly setups = new Map<string, TestSetup>();
+    /// The Trino endpoints of the setups
+    private readonly trino = new Map<string, TestSetup>();
+
+    constructor(runtime: Runtime) {
+        const channels = runtime.platform.channels ?? null;
+        const http = runtime.platform.http ?? null;
+        const connector: ChannelConnector = {
+            connect: async (connectionId, request) => {
+                const setup = this.setups.get(connectionId);
+                if (setup == null) {
+                    if (channels == null) throw new Error(`The platform connects no ${request.type} channels`);
+                    return await channels.connect(connectionId, request);
+                }
+                // The embedded Hyper runs no probe, a setup that is connecting or fails does so in the connect
+                if (request.type === 'hyper' && request.kind === 'embedded' && setup.health !== ConnectionHealth.ONLINE) {
+                    if (setup.health === ConnectionHealth.FAILED) throw new Error(setup.error);
+                    return await new Promise(() => { });
+                }
+                return probedChannel(setup);
+            },
+            hyperLinkToken: connectionId => channels?.hyperLinkToken?.(connectionId) ?? null,
+        };
+        runtime.setChannelConnector(connector);
+        const fetch: HttpClient['fetch'] = async (input, init) => {
+            const url = input instanceof Request ? input.url : input.toString();
+            for (const [endpoint, setup] of this.trino) {
+                if (setup.probing && url.startsWith(`${endpoint}/v1/statement`)) return await trinoProbe(setup, init?.method);
+            }
+            if (http == null) throw new Error('the test has no network');
+            return await http.fetch(input, init);
+        };
+        runtime.setHttp({ fetch });
     }
-    if (options.online === false) return state;
-    return reduceTestConnection(runtime, state, setupStep('HEALTH_CHECK_SUCCEEDED'));
+
+    /// Prepare the setup of a connection
+    prepare(connectionId: string, params: ConnectionParams, setup: TestSetup): void {
+        this.setups.set(connectionId, setup);
+        if ('trino' in params) this.trino.set(params.trino.endpoint.replace(/\/+$/, ''), setup);
+    }
+}
+
+const SETUPS = new WeakMap<Runtime, TestSetups>();
+
+/// The setups of the tests on a runtime
+function testSetups(runtime: Runtime): TestSetups {
+    let setups = SETUPS.get(runtime);
+    if (setups == null) {
+        setups = new TestSetups(runtime);
+        SETUPS.set(runtime, setups);
+    }
+    return setups;
+}
+
+/// The result of a probe that succeeds, one row
+function probeResult(): QueryExecutionResponseStream {
+    const table = tableFromArrays({ health: Int32Array.from([1]) });
+    const stream: QueryExecutionResponseStream = {
+        getMetrics: createQueryResponseStreamMetrics,
+        getSchema: async () => table.schema,
+        produce: async batches => {
+            for (const batch of table.batches) batches.resolve(stream, batch);
+        },
+    };
+    return stream;
+}
+
+/// The probe of a setup on a channel: it succeeds, fails or runs until it is cancelled
+async function probe(setup: TestSetup, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+    switch (setup.health) {
+        case ConnectionHealth.FAILED:
+            throw new Error(setup.error);
+        case ConnectionHealth.CONNECTING:
+            await new Promise<void>((resolve, reject) => {
+                setup.finish = resolve;
+                abort?.addEventListener('abort', () => reject(abort.reason), { once: true });
+            });
+            return await probe(setup, abort);
+        default:
+            return probeResult();
+    }
+}
+
+/// The channel of a test whose queries are the probe while the setup checks its health
+function probedChannel(setup: TestSetup): object {
+    return new Proxy(setup.channel, {
+        get(target, property, receiver) {
+            if (property === 'executeQuery' && setup.probing) {
+                return (_query: unknown, abort?: AbortSignal) => probe(setup, abort);
+            }
+            return Reflect.get(target, property, receiver);
+        },
+    });
+}
+
+/// The answer of a Trino to the probe of a setup
+async function trinoProbe(setup: TestSetup, method?: string): Promise<HttpFetchResult> {
+    const json = (body: object) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+    if (method === 'DELETE') return new Response(null, { status: 204 });
+    switch (setup.health) {
+        case ConnectionHealth.FAILED:
+            return json({ id: 'probe', error: { message: setup.error, errorName: 'GENERIC_INTERNAL_ERROR' }, stats: { state: 'FAILED' } });
+        case ConnectionHealth.CONNECTING:
+            return await new Promise(() => { });
+        default:
+            return json({ id: 'probe', columns: [{ name: 'health', type: 'integer' }], data: [[1]], stats: { state: 'FINISHED' } });
+    }
+}
+
+/// Set a connection of a test up with a channel: the runtime connects the channel and checks its health, the setup
+/// ends with the health. A connecting setup runs until the runtime cancels it. Returns the connection as the runtime
+/// holds it after the setup, or once it is connecting.
+export async function setupTestConnection(runtime: Runtime, connectionId: string, options: { channel?: object; health?: ConnectionHealth; error?: string } = {}): Promise<ConnectionState> {
+    const current = runtime.connection(connectionId);
+    if (current == null) throw new Error(`the runtime has no connection ${connectionId}`);
+    const connector = connectorOfParams(current.params).info.connectorType;
+    if (connector === ConnectorType.SALESFORCE_DATA_CLOUD || connector === ConnectorType.DBCOM) {
+        throw new Error('the connections of tests set up no Salesforce');
+    }
+    const setup: TestSetup = {
+        channel: options.channel ?? { close: () => { } },
+        health: options.health ?? ConnectionHealth.ONLINE,
+        error: options.error ?? 'failed',
+        probing: true,
+        finish: null,
+    };
+    testSetups(runtime).prepare(connectionId, current.params, setup);
+    // The setup of the module, a test may replace the one of the runtime to see what the app asks for
+    const module = runtime.module ?? await runtime.ready();
+    const done = module.setupConnection(connectionId, {}).finally(() => { setup.probing = false; });
+    if (setup.health === ConnectionHealth.CONNECTING) {
+        // The setup runs until the runtime cancels it
+        void done.catch(() => { });
+        for (let i = 0; i < 1000 && runtime.connection(connectionId)?.connectionHealth !== ConnectionHealth.CONNECTING; ++i) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    } else {
+        await done;
+    }
+    runtime.flush();
+    return runtime.connection(connectionId)!;
+}
+
+/// End the setup of a connection of a test that is connecting: its probe on the channel of a Hyper ends with the
+/// health. Returns the connection as the runtime holds it after the setup.
+export async function finishTestSetup(runtime: Runtime, connectionId: string, health: ConnectionHealth, error?: string): Promise<ConnectionState> {
+    const setup = SETUPS.get(runtime)?.setups.get(connectionId);
+    if (setup?.finish == null) throw new Error(`the connection ${connectionId} of the test has no probe that runs`);
+    setup.health = health;
+    setup.error = error ?? setup.error;
+    const finish = setup.finish;
+    setup.finish = null;
+    finish();
+    for (let i = 0; i < 1000 && runtime.connection(connectionId)?.connectionHealth === ConnectionHealth.CONNECTING; ++i) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    runtime.flush();
+    return runtime.connection(connectionId)!;
+}
+
+/// A connection of a test in a runtime, set up with its channel if the options have one
+export async function createTestConnection(runtime: Runtime, options: TestConnectionOptions): Promise<ConnectionState> {
+    const state = runtime.createConnection(newConnectionFromParams(options.params, { active: options.active, name: options.name }), options.connectionId ?? 'test');
+    if (options.channel == null) return state;
+    return await setupTestConnection(runtime, state.connectionId, { channel: options.channel, health: options.health, error: options.error });
 }

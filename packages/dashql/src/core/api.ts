@@ -458,6 +458,18 @@ export class DashQL {
         return new FlatBufferPtr(FLAT_QUERY_PROFILE_TYPE, this, bytes, () => new buffers.profile.QueryProfile());
     }
 
+    /// Connection params without their secrets, as a link or a file shares them: the identity stays, the login hint
+    /// only `withLoginHint`, the raw form rows of a draft go
+    public sanitizeConnectionParams<P extends object>(params: P, withLoginHint: boolean = true): P {
+        return this.bindings.Runtime.sanitizeConnectionParams(params as Record<string, unknown>, withLoginHint) as P;
+    }
+
+    /// Do two connection params describe the same connection, ignoring everything that sharing strips? Empty lists
+    /// and maps count as absent.
+    public connectionParamsShareEqual(left: object, right: object): boolean {
+        return this.bindings.Runtime.connectionParamsShareEqual(left as Record<string, unknown>, right as Record<string, unknown>);
+    }
+
     /// The workbook tables of the storage format with their columns, e.g. the schema of a cloud
     public workbookTables(): glue.WorkbookTableSchema[] {
         return this.bindings.Runtime.workbookTables();

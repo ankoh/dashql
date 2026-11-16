@@ -1,3 +1,4 @@
+import * as arrow from 'apache-arrow';
 import * as dashql from './index.js';
 
 import { loadCoreWasm, NO_OAUTH } from './test_fixture.js';
@@ -45,8 +46,8 @@ class TestPlatform {
     /// The queries that the runtime described on their channels, and the ones that ended
     readonly described: string[] = [];
     readonly forgotten: number[] = [];
-    /// Describes the channel of a query, the queries run on Trino
-    describe: () => Promise<unknown> = async () => TRINO_TARGET;
+    /// Describes the channel of a query of the host, a Trino connection owns its channel
+    describe: () => Promise<unknown> = async () => ({ type: 'host' });
     /// The parts of the tables that stream, by handle
     readonly parts = new Map<number, Uint8Array[]>();
     resultBytes = 0;
@@ -115,7 +116,6 @@ class TestPlatform {
         },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
-        salesforce: null,
         storage: null,
         archives: null,
         changed: () => { },
@@ -138,15 +138,27 @@ class TestPlatform {
     }
 }
 
-/// The target of a query on a Trino channel, as the platform of TypeScript describes it
-const TRINO_TARGET = {
-    type: 'trino',
-    endpoint: TRINO,
-    auth: { authType: 'AUTH_BASIC', basic: { username: 'u', secret: 's' } },
-    accessToken: null,
-    catalog: null,
-    schema: null,
-};
+/// The params of a Trino connection with basic auth
+const TRINO_PARAMS = { trino: { endpoint: TRINO, defaultCatalog: 'tpch', auth: { authType: 'AUTH_BASIC', basic: { username: 'u', secret: 's' } } } };
+
+/// Set up the Trino connection, its channel is owned by the connection. The requests of the setup are forgotten.
+async function setupTrino(runtime: dashql.Runtime, platform: TestPlatform, params: unknown = TRINO_PARAMS) {
+    expect(await runtime.setupConnection('trino', { params: params as dashql.JsonParams })).toMatchObject({ status: 'succeeded' });
+    platform.requests.length = 0;
+    platform.described.length = 0;
+}
+
+/// The rows of the result table of a query, from the parts of its Arrow IPC stream
+function resultTable(outcome: unknown): arrow.Table {
+    const parts = (outcome as { table: { parts: Uint8Array[] } }).table.parts;
+    const bytes = new Uint8Array(parts.reduce((n, part) => n + part.byteLength, 0));
+    let offset = 0;
+    for (const part of parts) {
+        bytes.set(part, offset);
+        offset += part.byteLength;
+    }
+    return arrow.tableFromIPC(bytes);
+}
 
 function createRuntime(platform: TestPlatform) {
     const runtime = dql!.createRuntime(platform.platform);
@@ -189,23 +201,21 @@ describe('The connections of the runtime', () => {
         runtime.free();
     });
 
-    it('applies the steps of a setup, the connection takes the channel by its handle', () => {
+    it('shows the rules of the connectors in the views, the tokens only on request', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
-        runtime.takeChanges();
-        const channel = { close: () => { } };
-        const handle = platform.platform.handles.register(channel);
-        expect(runtime.dispatch({ connection: 'main' }, { kind: 'setupStep', value: { step: 'HYPER_CHANNEL_SETUP_STARTED', value: { protocol: 'WASM', endpoint: '' } } }).ok).toBe(true);
-        expect(runtime.dispatch({ connection: 'main' }, { kind: 'setupStep', value: { step: 'HYPER_CHANNEL_READY', value: { protocol: 'WASM', endpoint: '' }, channel: handle } }).changed).toBe(true);
         const main = viewOf(runtime, 'connection', 'main')!;
-        expect(main).toMatchObject({ connectionHealth: dashql.ConnectionHealth.ONLINE, active: true, details: { channel: handle } });
-        // A reset closes the channel
-        runtime.dispatch({ connection: 'main' }, { kind: 'resetConnection' });
-        expect(runtime.takeChanges().effects).toEqual([{ type: 'close', handle }]);
-        // A step that no connector knows fails and releases its channel
-        const other = platform.platform.handles.register({});
-        expect(runtime.dispatch({ connection: 'main' }, { kind: 'setupStep', value: { step: 'UNKNOWN', channel: other } })).toMatchObject({ ok: false });
-        expect(runtime.takeChanges().effects).toEqual([{ type: 'release', handle: other }]);
+        // The embedded Hyper reads the attachments of workbooks and caches no results
+        expect(main).toMatchObject({ open: false, healthLabel: 'Not Started', readsAttachments: true, cachesQueryResults: false, cacheQueryResults: null });
+        expect((await runtime.setupConnection('trino', { params: { trino: { endpoint: TRINO } } })).status).toBe('succeeded');
+        const trino = viewOf(runtime, 'connection', 'trino')!;
+        expect(trino).toMatchObject({ open: true, healthLabel: 'Online', readsAttachments: false, cachesQueryResults: true });
+        // The choice of the user wins over the connector
+        runtime.dispatch({ connection: 'trino' }, { kind: 'setQueryResultCaching', value: { caching: false } });
+        expect(viewOf(runtime, 'connection', 'trino')!.cachesQueryResults).toBe(false);
+        // A connection without OAuth has no tokens
+        expect(runtime.revealConnectionSecrets('trino')).toEqual({ accessToken: null, coreAccessToken: null, dataCloudAccessToken: null });
+        expect(runtime.revealConnectionSecrets('gone')).toBeNull();
         runtime.destroy();
         runtime.free();
     });
@@ -213,15 +223,17 @@ describe('The connections of the runtime', () => {
     it('sets up a connection, its probe is a query of the connection', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
-        const params = { trino: { endpoint: TRINO, defaultCatalog: 'tpch', auth: { authType: 'AUTH_BASIC', basic: { username: 'u', secret: 's' } } } };
+        const params = TRINO_PARAMS;
         const setup = runtime.setupConnection('trino', { params });
         expect(viewOf(runtime, 'connection', 'trino')!.setupRunning).toBe(true);
         expect(await setup).toEqual({ status: 'succeeded', message: null, data: {}, authentication: null });
         const trino = viewOf(runtime, 'connection', 'trino')!;
         expect(trino).toMatchObject({ connectionHealth: dashql.ConnectionHealth.ONLINE, setupRunning: false, params });
-        expect(platform.connected).toEqual([{ type: 'trino', endpoint: TRINO, auth: expect.objectContaining({ authType: 'AUTH_BASIC' }), catalog: 'tpch', schema: null, accessToken: null }]);
-        expect(platform.objects.get(trino.details.channel!)).toMatchObject({ request: { type: 'trino' } });
-        expect(platform.described).toEqual(['select 1']);
+        // The connection owns the Trino channel, the platform keeps only a handle and describes nothing
+        expect(platform.connected).toEqual([]);
+        expect(platform.objects.get(trino.details.channel!)).toEqual({});
+        expect(platform.described).toEqual([]);
+        expect(platform.requests[0].headers).toContainEqual(['X-Trino-Catalog', 'tpch']);
         expect(platform.forgotten).toEqual(trino.queriesFinishedOrdered);
         expect(viewOf(runtime, 'query', trino.queriesFinishedOrdered[0])).toMatchObject({ queryMetadata: { title: 'Health Check', issuer: 'Connection Setup' } });
         // A connection of another connector doesn't take the params
@@ -245,16 +257,65 @@ describe('The connections of the runtime', () => {
         runtime.free();
     });
 
+    it('keeps the channel of a setup that replaced one that was stuck connecting', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        let connects = 0;
+        let finishFirst: (fails: boolean) => void = () => { };
+        platform.platform.channels.connect = async (_setupId, request) => {
+            connects += 1;
+            if (connects === 1) {
+                // The first connect hangs and ends after the second setup
+                const fails = await new Promise<boolean>(resolve => { finishFirst = resolve; });
+                if (fails) throw new Error('the first connect failed late');
+            }
+            return platform.platform.handles.register({ request, close: () => { } });
+        };
+        const first = runtime.setupConnection('main');
+        await vi.waitFor(() => expect(connects).toBe(1));
+        const second = runtime.setupConnection('main');
+        expect(await second).toMatchObject({ status: 'succeeded' });
+        // The second setup cancelled the first one, which stopped waiting for its connect
+        expect(await first).toMatchObject({ status: 'cancelled' });
+        const online = viewOf(runtime, 'connection', 'main')!;
+        expect(online.connectionHealth).toBe(dashql.ConnectionHealth.ONLINE);
+        runtime.takeChanges();
+        // The connect of the first setup ends late, the connection keeps the channel of the second one
+        finishFirst(false);
+        await vi.waitFor(() => expect(runtime.takeChanges().effects).toEqual([{ type: 'close', handle: expect.any(Number) }]));
+        const after = viewOf(runtime, 'connection', 'main')!;
+        expect(after.connectionHealth).toBe(dashql.ConnectionHealth.ONLINE);
+        expect(after.details.channel).toBe(online.details.channel);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('ignores the late steps of a setup after a reset during its probe', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        platform.hold = true;
+        const setup = runtime.setupConnection('trino', { params: TRINO_PARAMS });
+        await vi.waitFor(() => expect(platform.requests).toHaveLength(2));
+        runtime.dispatch({ connection: 'trino' }, { kind: 'resetConnection' });
+        expect(await setup).toMatchObject({ status: 'cancelled' });
+        const trino = viewOf(runtime, 'connection', 'trino')!;
+        // The cancelled probe and the end of the setup don't land after the reset
+        expect(trino.connectionHealth).toBe(dashql.ConnectionHealth.NOT_STARTED);
+        expect(trino.details.channel).toBeNull();
+        expect(trino.setupRunning).toBe(false);
+        runtime.destroy();
+        runtime.free();
+    });
+
     it('describes a connection that comes online with the catalog loader', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
-        expect((await runtime.setupConnection('trino', { params: { trino: { endpoint: TRINO } } })).status).toBe('succeeded');
-        platform.described.length = 0;
+        await setupTrino(runtime, platform, { trino: { endpoint: TRINO } });
         runtime.runCatalogLoader(true);
         await vi.waitFor(() => expect(viewOf(runtime, 'connection', 'trino')!.catalogUpdates.tasksFinished).toHaveLength(1));
         const trino = viewOf(runtime, 'connection', 'trino')!;
         // The metadata query is a query of the connection that the update registered, the catalogs of Trino come first
-        expect(platform.described).toEqual([expect.stringContaining('system.metadata.catalogs')]);
+        expect(platform.requests.filter(r => r.url.endsWith('/v1/statement')).map(r => r.body)).toEqual([expect.stringContaining('system.metadata.catalogs')]);
         expect(trino.catalogUpdates.tasksFinished[0].queries).toEqual([trino.queriesFinishedOrdered.at(-1)]);
         runtime.destroy();
         runtime.free();
@@ -335,6 +396,8 @@ describe('The queries of the runtime', () => {
     it('runs a Trino query into the history of its connection, the parts of the result stay with the host', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        const before = viewOf(runtime, 'connection', 'trino')!;
         runtime.takeChanges();
         const events: string[] = [];
         const ticket = runtime.executeQuery('trino', { text: 'create table t as select 1', metadata: USER_QUERY, traceId: 7, options: { throwOnError: true } }, undefined, event => events.push(event.type));
@@ -345,8 +408,8 @@ describe('The queries of the runtime', () => {
         expect(events).toEqual(['timing', 'resultsReady']);
         expect(platform.requests[0].headers).toContainEqual(['X-Trino-User', 'u']);
         const connection = viewOf(runtime, 'connection', 'trino')!;
-        expect(connection.queriesFinishedOrdered).toEqual([ticket.queryId]);
-        expect(connection.metrics.successfulQueries.totalQueries).toBe(1);
+        expect(connection.queriesFinishedOrdered).toEqual([...before.queriesFinishedOrdered, ticket.queryId]);
+        expect(connection.metrics.successfulQueries.totalQueries).toBe(before.metrics.successfulQueries.totalQueries + 1);
         // The statement touched a relation that the catalog loader asks about
         expect(connection.catalogUpdates.touchedRelations).toMatchObject([{ databaseName: 'tpch', tableName: 't' }]);
         expect(viewOf(runtime, 'query', ticket.queryId)).toMatchObject({
@@ -362,14 +425,17 @@ describe('The queries of the runtime', () => {
 
     it('cancels a query at the server and aborts its requests', async () => {
         const platform = new TestPlatform();
-        platform.hold = true;
         const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        platform.hold = true;
         const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
         await vi.waitFor(() => expect(platform.requests).toHaveLength(2));
         await runtime.cancelQuery(ticket.queryId);
         const outcome = await ticket.done;
         expect(outcome.status === 'rejected' && outcome.failure.kind).toBe('cancelled');
         expect(platform.requests.at(-1)?.method).toBe('DELETE');
+        // The fetch of the page that the query waited for is aborted
+        expect(platform.aborted).toHaveLength(1);
         expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
         runtime.destroy();
         runtime.free();
@@ -381,18 +447,20 @@ describe('The queries of the runtime', () => {
         const unknown = runtime.executeQuery('gone', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
         expect(await unknown.done).toMatchObject({ status: 'rejected', failure: { message: "Couldn't find a connection with id gone" } });
 
+        await setupTrino(runtime, platform);
         const failure = new Error('bar.sql: unknown script :missing');
         const failed = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, failure, null);
         const outcome = await failed.done;
         expect(outcome.status === 'rejected' && outcome.value).toBe(failure);
         expect(viewOf(runtime, 'query', failed.queryId)).toMatchObject({ status: dashql.QueryExecutionStatus.FAILED, error: { message: failure.message } });
 
+        // A query of a channel of the host that is cancelled while the platform describes it
         let describe: (target: unknown) => void = () => { };
         platform.describe = () => new Promise(resolve => { describe = resolve; });
-        const pending = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
-        await vi.waitFor(() => expect(platform.described).toEqual(['select 1', 'select 1']));
+        const pending = runtime.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
+        await vi.waitFor(() => expect(platform.described).toEqual(['select 1']));
         await runtime.cancelQuery(pending.queryId);
-        describe(TRINO_TARGET);
+        describe({ type: 'host' });
         expect(await pending.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
         expect(platform.requests).toHaveLength(0);
         runtime.destroy();
@@ -409,8 +477,8 @@ describe('The queries of the runtime', () => {
         runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'sf', connectorType: dashql.ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: {} } });
         const call = { namespace: 'cdp', function: 'query', effect: 'read' };
         const ticket = runtime.executeQuery('sf', { text: 'call cdp.query()', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true, clientFunctionCall: call } }, undefined, null);
-        // The registration of the client functions of the connection loads the spec as well
-        await vi.waitFor(() => expect(loads).toBe(2));
+        // The call waits for the spec that the registration of the client functions of the connection loads, one load
+        await vi.waitFor(() => expect(loads).toBe(1));
         // The cancel resolves once the query ended, it doesn't wait for the spec
         await runtime.cancelQuery(ticket.queryId);
         expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
@@ -437,6 +505,8 @@ describe('The queries of the runtime', () => {
             return encoder.encode(`{"id":"q1","columns":${columns},"data":${data}${next},"stats":{"state":"${state}"}}`);
         };
         const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
         platform.fetch = async request => {
             const ok = (body: Uint8Array) => ({ status: 200, statusText: 'OK', headers: [] as [string, string][], body });
             if (request.url.endsWith('/v1/statement')) {
@@ -446,7 +516,6 @@ describe('The queries of the runtime', () => {
         };
         // The parts are counted, not kept
         platform.platform.tables.push = (_table, part) => { platform.resultBytes += part.byteLength; };
-        const runtime = createRuntime(platform);
         const before = dashql.DashQL.moduleMemoryBytes();
         const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
         expect((await ticket.done).status).toBe('resolved');
@@ -460,6 +529,7 @@ describe('The queries of the runtime', () => {
     it('keeps the structured progress of a query, its recording and its followers', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
         const layout = new dashql.buffers.profile.ProfileLayoutConfigT();
         layout.orientation = dashql.buffers.profile.ProfileLayoutOrientation.LEFT_TO_RIGHT;
         runtime.setProgressLayout(layout);
@@ -492,14 +562,109 @@ describe('The queries of the runtime', () => {
 
     it('stops the queries of a connection that is reset', async () => {
         const platform = new TestPlatform();
-        platform.hold = true;
         const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        platform.hold = true;
         const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
         await vi.waitFor(() => expect(platform.requests).toHaveLength(2));
         runtime.dispatch({ connection: 'trino' }, { kind: 'resetConnection' });
         expect(viewOf(runtime, 'connection', 'trino')!.queriesActiveOrdered).toEqual([]);
         expect((await ticket.done).status).toBe('rejected');
         expect(viewOf(runtime, 'query', ticket.queryId)).toBeNull();
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('aborts the fetches of a query that fails and cancels it at the server', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        platform.fetch = async request => {
+            const json = (body: object) => ({ status: 200, statusText: 'OK', headers: [] as [string, string][], body: new TextEncoder().encode(JSON.stringify(body)) });
+            if (request.method === 'DELETE') return { status: 204, statusText: 'No Content', headers: [], body: new Uint8Array() };
+            if (request.url.endsWith('/v1/statement')) {
+                return json({ id: 'q1', nextUri: `${TRINO}/v1/statement/executing/q1/y/1`, stats: { state: 'QUEUED', queued: true } });
+            }
+            // The first page breaks the protocol while the next one downloads
+            if (request.url.includes('/y/1')) {
+                return json({ id: 'q1', nextUri: `${TRINO}/v1/statement/executing/q1/y/2`, data: [[1]], stats: { state: 'RUNNING' } });
+            }
+            return await new Promise(() => { });
+        };
+        const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
+        expect(await ticket.done).toMatchObject({ status: 'rejected', failure: { message: 'Result schema is missing' } });
+        // The download of the next page stops and Trino stops the query
+        expect(platform.aborted).toHaveLength(1);
+        expect(platform.requests.at(-1)).toMatchObject({ method: 'DELETE', url: `${TRINO}/v1/statement/executing/q1/y/2` });
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('reads the timestamps of Trino in named time zones with the zones of the host', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        platform.fetch = async request => {
+            const json = (body: object) => ({ status: 200, statusText: 'OK', headers: [] as [string, string][], body: new TextEncoder().encode(JSON.stringify(body)) });
+            if (request.url.endsWith('/v1/statement')) {
+                return json({ id: 'q1', nextUri: `${TRINO}/v1/statement/executing/q1/y/1`, stats: { state: 'QUEUED', queued: true } });
+            }
+            return json({
+                id: 'q1',
+                columns: [{ name: 'ts', type: 'timestamp(3) with time zone' }],
+                // Winter and summer time in Berlin, an offset, UTC and a zone that the host doesn't know
+                data: [['2024-01-15 12:00:00.000 Europe/Berlin'], ['2024-07-15 12:00:00.000 Europe/Berlin'], ['2024-07-15 12:00:00.000 +02:00'], ['2024-07-15 12:00:00.000 UTC'], ['2024-07-15 12:00:00.000 Mars/Olympus']],
+                stats: { state: 'FINISHED' },
+            });
+        };
+        const ticket = runtime.executeQuery('trino', { text: 'select ts', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
+        const outcome = await ticket.done;
+        expect(outcome.status).toBe('resolved');
+        const column = resultTable(outcome).getChild('ts')!;
+        const ms = Array.from({ length: column.length }, (_, i) => column.get(i)).map(value => value == null ? null : Number(value));
+        expect(ms).toEqual([Date.UTC(2024, 0, 15, 11), Date.UTC(2024, 6, 15, 10), Date.UTC(2024, 6, 15, 10), Date.UTC(2024, 6, 15, 12), null]);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('refreshes the token of a Trino connection once for the queries of the connection and keeps it', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        const tokenUrl = 'https://idp.example.com/token';
+        const params = { trino: { endpoint: TRINO, auth: { authType: 'AUTH_OAUTH', oauth: { authorizationUrl: 'https://idp.example.com/auth', tokenUrl, clientId: 'dashql' } } } };
+        // The login answers at once, the first token expires right away
+        let tokens = 0;
+        platform.platform.oauth = {
+            ...NO_OAUTH,
+            pkce: async () => ({ value: 'challenge', verifier: 'verifier' }),
+            authorizeWithLoopback: async (_setupId, _id, url) => ({ code: 'code', state: new URL(url).searchParams.get('state') ?? undefined }),
+        };
+        const defaultFetch = platform.fetch;
+        let answerRefresh: () => void = () => { };
+        platform.fetch = async request => {
+            if (request.url === tokenUrl) {
+                tokens += 1;
+                const body = new TextEncoder().encode(JSON.stringify({ access_token: `token-${tokens}`, refresh_token: `refresh-${tokens}`, expires_in: tokens === 1 ? 1 : 3600 }));
+                if (tokens > 1) await new Promise<void>(resolve => { answerRefresh = resolve; });
+                return { status: 200, statusText: 'OK', headers: [], body };
+            }
+            return await defaultFetch(request);
+        };
+        // The probe of the setup refreshes the token that expires
+        const setup = runtime.setupConnection('trino', { params });
+        await vi.waitFor(() => expect(tokens).toBe(2));
+        answerRefresh();
+        expect(await setup).toMatchObject({ status: 'succeeded' });
+        platform.requests.length = 0;
+        // A query of the user and one of the catalog loader share the channel with its fresh token, no further refresh
+        const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true } }, undefined, null);
+        runtime.runCatalogLoader(true);
+        expect((await ticket.done).status).toBe('resolved');
+        await vi.waitFor(() => expect(viewOf(runtime, 'connection', 'trino')!.catalogUpdates.tasksFinished).toHaveLength(1));
+        expect(tokens).toBe(2);
+        const statements = platform.requests.filter(r => r.url.endsWith('/v1/statement'));
+        expect(statements.length).toBeGreaterThanOrEqual(2);
+        for (const statement of statements) expect(statement.headers).toContainEqual(['Authorization', 'Bearer token-2']);
         runtime.destroy();
         runtime.free();
     });

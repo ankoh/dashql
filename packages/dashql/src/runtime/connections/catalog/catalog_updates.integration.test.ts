@@ -5,7 +5,7 @@ import type * as pb from '../../../platform/proto.js';
 import { openTestHyperDB } from '../../../platform/testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../../../platform/platform/database/embedded_database.js';
 import { ConnectorType } from '../../../platform/connections/connector_info.js';
-import { setupStepAction } from '../../../platform/connections/connection_state.js';
+import { setupTestConnection } from '../../testing/connection_fixtures.js';
 import { createRuntime, type Runtime } from '../../runtime.js';
 import type { ConnectionParams } from '../../../platform/storage/storage_backend.js';
 import { STORAGE_CATALOG_RELATIONS } from '../../../platform/storage/storage_backend.js';
@@ -83,8 +83,8 @@ describe('the catalog of a connection follows statements', () => {
             close: async () => { },
         };
         queries = [];
-        runtime.dispatch({ connection: 'connection' }, setupStepAction('HYPER_CHANNEL_READY', params, runtime.handles.register(channel)));
-        runtime.dispatch({ connection: 'connection' }, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
+        // The runtime sets the connection up with the channel, its probe doesn't reach the session
+        await setupTestConnection(runtime, 'connection', { channel });
         catalog = runtime.catalog('connection')!;
         relations = state.catalogRelationEntryId;
         queries.length = 0;

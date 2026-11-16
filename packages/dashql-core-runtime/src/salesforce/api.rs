@@ -234,13 +234,14 @@ pub fn parse_core_user_info(obj: &Value) -> SalesforceCoreUserInfo {
     }
 }
 
-/// A POST with a form body that accepts JSON
+/// A POST of a token request with a form body that accepts JSON. Its body and its response carry credentials.
 fn form_post(url: String, pairs: &[(&str, &str)]) -> HttpRequest {
     HttpRequest {
         method: HttpMethod::Post,
         url,
         headers: Headers::from_pairs([("Accept", "application/json"), ("Content-Type", "application/x-www-form-urlencoded")]),
         body: Some(form_encode(pairs.iter().copied())),
+        sensitive: true,
     }
 }
 
@@ -386,14 +387,14 @@ fn core_headers(access: &SalesforceCoreAccessToken) -> Headers {
     Headers::from_pairs([("authorization", format!("Bearer {}", access.access_token).as_str()), ("accept", "application/json")])
 }
 
-/// The request of the user info of the core login
+/// The request of the user info of the core login, the token goes in the bearer header only
 pub fn core_user_info_request(access: &SalesforceCoreAccessToken) -> HttpRequest {
-    let query = form_encode([("format", "json"), ("access_token", access.access_token.as_str())]);
     HttpRequest {
         method: HttpMethod::Get,
-        url: format!("{}/services/oauth2/userinfo?{query}", access.instance_url.as_deref().unwrap_or("")),
+        url: format!("{}/services/oauth2/userinfo?format=json", access.instance_url.as_deref().unwrap_or("")),
         headers: core_headers(access),
         body: None,
+        sensitive: true,
     }
 }
 
@@ -525,6 +526,7 @@ impl SalesforceMetadataLoad {
                 url: format!("{endpoint}?{}", form_encode([("dataspace", data_space), ("entityType", entity_type)])),
                 headers: core_headers(access),
                 body: None,
+                sensitive: false,
             })
             .collect();
         let progress = SALESFORCE_METADATA_ENTITY_TYPES

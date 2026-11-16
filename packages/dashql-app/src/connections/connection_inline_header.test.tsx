@@ -103,6 +103,8 @@ describe('ConnectionInlineHeader', () => {
             connectionHealth: health,
             connectionStatus: ConnectionStatus.NOT_STARTED,
             details: { type: Symbol('test'), value: null },
+            // The runtime decides whether a connection is open
+            open: health === ConnectionHealth.CONNECTING || health === ConnectionHealth.ONLINE,
         } as unknown as ConnectionState;
         const changes: string[] = [];
 

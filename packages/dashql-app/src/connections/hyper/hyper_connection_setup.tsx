@@ -4,7 +4,8 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { ChannelConnector } from '@ankoh/dashql/runtime/runtime';
 import { HyperDatabaseClient, type HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { SalesforceDatabaseChannel, type SalesforceApiClientInterface } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import { SalesforceDatabaseChannel } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import { HyperDatabaseChannelMock } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client_mock';
 import { connectEmbeddedHyper } from '@ankoh/dashql/platform/connections/embedded/embedded_database_channel';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
@@ -13,7 +14,7 @@ import { useHyperLogMetrics } from './hyper_log_metrics_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
-import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
+import { useSalesforceMock } from '../salesforce/salesforce_connector.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 // The runtime sets up the connections (`connection_setup/` of the Rust runtime): it picks the channel of the params and
@@ -26,7 +27,8 @@ export interface ChannelClients {
     httpClient: HyperDatabaseClient | null;
     setupEmbeddedDatabase: EmbeddedDatabaseSetupFn;
     logMetrics: HyperLogMetrics | null;
-    salesforce: SalesforceApiClientInterface | null;
+    /// Does the config choose the mock of Salesforce? Its channel is a mock of Hyper.
+    salesforceMock: boolean;
 }
 
 /// The params of the Hyper channel of a Salesforce connection over HTTP
@@ -64,7 +66,9 @@ export async function connectChannel(clients: ChannelClients, connectionId: stri
             return channel;
         }
         case 'salesforce': {
-            if (!clients.httpClient || !clients.salesforce) throw new Error(`No client available for protocol V3_HTTP`);
+            const { core: coreToken, dataCloud: dataCloudToken } = request.tokens as { core: never; dataCloud: never };
+            if (clients.salesforceMock) return new SalesforceDatabaseChannel(coreToken, dataCloudToken, new HyperDatabaseChannelMock());
+            if (!clients.httpClient) throw new Error(`No client available for protocol V3_HTTP`);
             // The database name, the audience header and the bearer token go with every request
             const context: HyperDatabaseConnectionContext = {
                 getAttachedDatabases: () => request.attachedDatabases,
@@ -72,10 +76,8 @@ export async function connectChannel(clients: ChannelClients, connectionId: stri
                 getQueryParameters: () => ({}),
             };
             const hyperChannel = await clients.httpClient.connect(salesforceChannelParams(request.endpoint), context);
-            return new SalesforceDatabaseChannel(clients.salesforce, request.tokens.core as never, request.tokens.dataCloud as never, hyperChannel);
+            return new SalesforceDatabaseChannel(coreToken, dataCloudToken, hyperChannel);
         }
-        case 'trino':
-            throw new Error('The runtime keeps the Trino channels itself');
     }
 }
 
@@ -90,16 +92,16 @@ export const ChannelConnectorProvider: React.FC<Props> = (props: Props) => {
     const httpClient = useHyperHttpClient();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const logMetrics = useHyperLogMetrics();
-    const salesforce = useSalesforceAPI();
+    const salesforceMock = useSalesforceMock() != null;
 
     const connector = React.useMemo<ChannelConnector>(() => {
-        const clients: ChannelClients = { grpcClient, httpClient, setupEmbeddedDatabase, logMetrics, salesforce };
+        const clients: ChannelClients = { grpcClient, httpClient, setupEmbeddedDatabase, logMetrics, salesforceMock };
         return {
             connect: (connectionId, request) => connectChannel(clients, connectionId, request),
             // The Hyper of a link is reached with the token of the link, it is never stored
             hyperLinkToken: connectionId => getHyperLinkTabState().tokens[connectionId] ?? null,
         };
-    }, [grpcClient, httpClient, setupEmbeddedDatabase, logMetrics, salesforce]);
+    }, [grpcClient, httpClient, setupEmbeddedDatabase, logMetrics, salesforceMock]);
 
     // Set during the render: a setup that a handler of a child starts in the same render connects with the clients
     const attached = React.useRef<ChannelConnector | null>(null);

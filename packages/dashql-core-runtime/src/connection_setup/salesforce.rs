@@ -11,7 +11,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use super::{cancellable, SetupFailure, SetupHost, CANCELLED_MESSAGE};
+use super::{cancellable, connect_channel, SetupFailure, SetupHost, CANCELLED_MESSAGE};
 use crate::connections::{ConnectionAction, ConnectorType, JsonObject, SalesforceAction};
 use crate::executor::HostValue;
 use crate::host::LogLevel;
@@ -144,10 +144,15 @@ async fn run<H: SetupHost>(
                         cancelled = true;
                         setup.borrow_mut().cancel(CANCELLED_MESSAGE)
                     }
-                    Some(Ok(pkce)) => {
-                        let flow_id = host.random_id();
-                        setup.borrow_mut().on_pkce(pkce, &flow_id, now)
-                    }
+                    // The flow id binds the callback to this flow, a flow without one fails
+                    Some(Ok(pkce)) => match host.random_id() {
+                        Ok(flow_id) if !flow_id.is_empty() => setup.borrow_mut().on_pkce(pkce, &flow_id, now),
+                        Ok(_) => setup.borrow_mut().on_host_failed("The platform generated no flow id for the OAuth flow"),
+                        Err(error) => {
+                            host_value = error.value().cloned();
+                            setup.borrow_mut().on_host_failed(error.message())
+                        }
+                    },
                     Some(Err(error)) => {
                         host_value = error.value().cloned();
                         setup.borrow_mut().on_host_failed(error.message())
@@ -201,19 +206,23 @@ async fn run<H: SetupHost>(
                 }
             }
             SalesforceSetupStep::ConnectChannel(channel) => {
-                // A connect runs to its end, a channel that is ready after a cancellation is closed
-                match host.connect_salesforce_channel(&channel, &cancellation).await {
-                    Ok(id) if cancellation.is_cancelled() => {
+                // A cancellation stops the wait for the connect, a channel that is ready after it is closed
+                match connect_channel(&host, host.connect_salesforce_channel(&channel, &cancellation), &cancellation).await {
+                    None => {
+                        cancelled = true;
+                        setup.borrow_mut().cancel(CANCELLED_MESSAGE)
+                    }
+                    Some(Ok(id)) if cancellation.is_cancelled() => {
                         host.close_channel(id);
                         cancelled = true;
                         setup.borrow_mut().cancel(CANCELLED_MESSAGE)
                     }
-                    Err(_) if cancellation.is_cancelled() => {
+                    Some(Err(_)) if cancellation.is_cancelled() => {
                         cancelled = true;
                         setup.borrow_mut().cancel(CANCELLED_MESSAGE)
                     }
-                    Ok(id) => setup.borrow_mut().on_channel_ready(id),
-                    Err(error) => {
+                    Some(Ok(id)) => setup.borrow_mut().on_channel_ready(id),
+                    Some(Err(error)) => {
                         host_value = error.value().cloned();
                         setup.borrow_mut().on_channel_failed(error.message())
                     }

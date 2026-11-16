@@ -1,7 +1,6 @@
 import * as core from '../core/index.js';
 import * as flatbuffers from 'flatbuffers';
 import type * as arrow from 'apache-arrow';
-import type * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { clientContextJson, createComputePlatform, type CreateComputeQueryExecution } from './compute/compute_platform.js';
@@ -18,11 +17,7 @@ import { createProgressLayoutConfig } from '../platform/query/profile/profile_la
 import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
 import { createConnectionAction, type ConnectionState, type NewConnection } from '../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../platform/connections/connection_params.js';
-import { ConnectorType } from '../platform/connections/connector_info.js';
 import { loadClientFunctionSpec } from '../platform/connections/clfn/clfn_specs.js';
-import { SalesforceApiClient, type SalesforceApiClientInterface } from '../platform/connections/salesforce/salesforce_api_client.js';
-import { TrinoApiEndpoint } from '../platform/connections/trino/trino_api_client.js';
-import { TrinoChannel } from '../platform/connections/trino/trino_channel.js';
 import type { OAuthFlow, OAuthFlowEvent } from '../platform/oauth/oauth_flow.js';
 import type { OAuthRedirectData } from '../platform/oauth/oauth_types.js';
 import { generatePKCEChallenge } from '../platform/utils/pkce.js';
@@ -59,9 +54,6 @@ export interface RuntimePlatform {
     computeDatabase?: EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
-    /// The API of Salesforce of the platform. One that isn't the client over the HTTP client, e.g. the mock of the app,
-    /// answers the metadata of the catalog.
-    salesforce?: SalesforceApiClientInterface | null;
     /// The `.dashql` archives over the handle table of the runtime, e.g. `createRuntimeArchives` of
     /// `storage/workbook_archives.ts`. Without, the runtime imports and exports no archives.
     archives?: RuntimeArchivesFactory | null;
@@ -184,7 +176,6 @@ export class Runtime {
     /// The OAuth flows that run, by id
     private readonly flows = new Map<number, AbortController>();
     private channelConnector: ChannelConnector | null;
-    private salesforce: SalesforceApiClientInterface | null;
     private readonly storageBackend: StorageBackend | null;
     private runtimeStorage: core.RuntimeStorage | null = null;
     private readonly archivesFactory: RuntimeArchivesFactory | null;
@@ -207,7 +198,6 @@ export class Runtime {
         this.resultCache = platform.resultCache ?? null;
         this.oauthFlow = platform.oauthFlow ?? null;
         this.channelConnector = platform.channels ?? null;
-        this.salesforce = platform.salesforce ?? null;
         this.storageBackend = platform.storage ?? null;
         this.archivesFactory = platform.archives ?? null;
         this.storage = new StorageWriter(this);
@@ -271,9 +261,6 @@ export class Runtime {
             },
             oauth: this.oauth(),
             extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
-            get salesforce() {
-                return runtime.salesforceMetadata();
-            },
             get storage() {
                 return runtime.storagePlatform();
             },
@@ -284,14 +271,9 @@ export class Runtime {
         };
     }
 
-    /// Connect a channel of a setup: a Trino channel holds what the executor speaks, the connector of the platform
-    /// connects the others
+    /// Connect a channel of a setup with the connector of the platform. A Trino connection owns its channel in the
+    /// runtime, it never asks the platform.
     private async connectChannel(connectionId: string, request: core.RuntimeChannelRequest): Promise<unknown> {
-        if (request.type === 'trino') {
-            const endpoint = new TrinoApiEndpoint(request.endpoint, request.auth as auth.TrinoAuthParams);
-            if (request.accessToken != null) endpoint.oauthState = { accessToken: request.accessToken } as connection.TrinoOAuthState;
-            return new TrinoChannel(endpoint, { catalog: request.catalog, schema: request.schema });
-        }
         const connector = this.channelConnector;
         if (connector == null) throw new Error(`The platform connects no ${request.type} channels`);
         return await connector.connect(connectionId, request);
@@ -343,23 +325,6 @@ export class Runtime {
         };
     }
 
-    /// The metadata of Salesforce from an API of the platform that isn't the client over the HTTP client, e.g. the
-    /// mock of the app. Null lets the runtime fetch it.
-    private salesforceMetadata(): core.RuntimeSalesforce | null {
-        const api = this.salesforce;
-        if (api == null || api instanceof SalesforceApiClient) return null;
-        return {
-            metadata: async (connectionId, dataSpace) => {
-                const conn = this.connection(connectionId);
-                if (conn?.connectorType !== ConnectorType.SALESFORCE_DATA_CLOUD || conn.details.connector.kind !== 'salesforce') return null;
-                const token = conn.details.connector.oauthState?.coreAccessToken;
-                if (token == null) throw new Error('Salesforce core access token is missing');
-                const metadata = await api.getDataCloudMetadata(JSON.parse(token), dataSpace, new AbortController().signal);
-                return JSON.stringify(metadata);
-            },
-        };
-    }
-
     /// Send a request of the runtime with the HTTP client of the platform
     private async fetch(id: number, request: core.RuntimeHttpRequest): Promise<core.RuntimeHttpResponse> {
         const http = this.http;
@@ -372,6 +337,7 @@ export class Runtime {
                 headers: request.headers,
                 body: request.body ?? undefined,
                 signal: abort.signal,
+                sensitive: request.sensitive === true,
             });
             const headers: [string, string][] = [];
             response.headers.forEach((value, name) => headers.push([name, value]));
@@ -497,11 +463,6 @@ export class Runtime {
     /// Set what connects the channels of the setups, e.g. once the clients of the app are there
     setChannelConnector(connector: ChannelConnector | null): void {
         this.channelConnector = connector;
-    }
-
-    /// Set the API of Salesforce of the platform, e.g. the mock that the config of the app chose
-    setSalesforce(api: SalesforceApiClientInterface | null): void {
-        this.salesforce = api;
     }
 
     /// Track the queries of the tasks, e.g. in the query history of the connection of a computation

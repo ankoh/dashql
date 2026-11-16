@@ -1,14 +1,18 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as core from '@ankoh/dashql';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@ankoh/dashql';
 
 import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from '@ankoh/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -65,7 +69,7 @@ describe('connectionMergeCandidates', () => {
             // Inactive connections that no workbook uses are not listed
             database('unlisted', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false),
         ]);
-        expect(connectionMergeCandidates(connections, list, 'target').map(db => db.connectionId)).toEqual(['same']);
+        expect(connectionMergeCandidates(dql, connections, list, 'target').map(db => db.connectionId)).toEqual(['same']);
     });
 
     it('lists the embedded database of an imported workbook next to the default one', () => {
@@ -74,13 +78,13 @@ describe('connectionMergeCandidates', () => {
             // Exported workbooks carry every list and map, even when empty
             database('example', wasm(), ConnectionHealth.ONLINE),
         ]);
-        expect(connectionMergeCandidates(connections, list, 'default').map(db => db.connectionId)).toEqual(['example']);
+        expect(connectionMergeCandidates(dql, connections, list, 'default').map(db => db.connectionId)).toEqual(['example']);
     });
 
     it('lists unlisted connections once workbooks use them', () => {
         const { connections, list } = views([database('target', grpc('http://hyper')), database('used', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false)], ['used']);
-        expect(connectionMergeCandidates(connections, list, 'target').map(db => db.connectionId)).toEqual(['used']);
-        expect(connectionMergeCandidates(connections, list, 'missing')).toEqual([]);
+        expect(connectionMergeCandidates(dql, connections, list, 'target').map(db => db.connectionId)).toEqual(['used']);
+        expect(connectionMergeCandidates(dql, connections, list, 'missing')).toEqual([]);
     });
 });
 

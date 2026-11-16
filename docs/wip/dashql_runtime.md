@@ -342,10 +342,11 @@ Built. One `RuntimeProvider` (`packages/dashql-app/src/runtime/runtime_provider.
 CLI wire the services in one place, and the tests of `runtime.ts` cover the wiring of the app.
 
 - **The platform of the app.** The provider sits below the providers of the storage, the http client, the core, the
-  embedded database, the query result cache and Salesforce, and passes them to `createRuntime`; the storage writer is
-  the one of the runtime (`runtime.storage`): the app flushes it when the page hides and stops it when another tab
-  takes over. The compute database starts after the settings loaded and the config may choose the mock of Salesforce,
-  so the runtime takes them later (`setComputeDatabase`, `setSalesforce`). `createRuntime` is synchronous, the core is
+  embedded database, the query result cache and the mock of Salesforce, and passes them to `createRuntime`; the storage
+  writer is the one of the runtime (`runtime.storage`): the app flushes it when the page hides and stops it when another
+  tab takes over. The compute database starts after the settings loaded, so the runtime takes it later
+  (`setComputeDatabase`). The config may choose the mock of Salesforce after the settings loaded: the HTTP client and
+  the OAuth flow of the runtime read it when they are called. `createRuntime` is synchronous, the core is
   instantiated when the runtime needs it.
 - **One object.** The app holds one `Runtime`, the same class as the command line tool and the tests. A component gets
   it with `useRuntime()` (`useOptionalRuntime()` where a test may render it without a provider) and calls its commands

@@ -22,7 +22,6 @@ mod params;
 pub mod refresh;
 pub mod registry;
 mod salesforce;
-pub mod setup_check;
 mod trino;
 
 use std::cell::RefCell;
@@ -195,6 +194,23 @@ pub enum ConnectionAction {
     Trino(TrinoAction),
     /// A step of the setup of a Salesforce or Database.com connection
     Salesforce(SalesforceAction),
+
+    /// A step of a setup attempt (`begin_setup`): a health check or an action of the connector. A step of an attempt
+    /// that a later setup, a reset or a delete replaced changes nothing, the channel of a ready step is released.
+    SetupStep { epoch: u64, step: Box<ConnectionAction> },
+}
+
+impl ConnectionAction {
+    /// The channel that a ready step hands to the connection, none for other actions
+    pub fn ready_channel(&self) -> Option<ChannelId> {
+        match self {
+            ConnectionAction::Hyper(HyperAction::ChannelReady { channel, .. })
+            | ConnectionAction::Trino(TrinoAction::ChannelReady { channel, .. })
+            | ConnectionAction::Salesforce(SalesforceAction::ChannelReady(channel)) => Some(*channel),
+            ConnectionAction::SetupStep { step, .. } => step.ready_channel(),
+            _ => None,
+        }
+    }
 }
 
 /// What an action did
@@ -254,6 +270,8 @@ pub struct ConnectionState {
     function_script: Option<Script>,
     /// The revision of the connection, it changes with every change
     revision: u64,
+    /// The setup attempt whose steps the connection takes, a new setup, a reset and a delete start the next one
+    setup_epoch: u64,
 }
 
 /// The header of the script with the functions of a connection
@@ -338,6 +356,7 @@ impl ConnectionState {
             relation_entry_id,
             function_script: Some(function_script),
             revision: 0,
+            setup_epoch: 0,
         };
         state.refresh_script_connection();
         state
@@ -424,6 +443,16 @@ impl ConnectionState {
     }
     pub fn revision(&self) -> u64 {
         self.revision
+    }
+    pub fn setup_epoch(&self) -> u64 {
+        self.setup_epoch
+    }
+
+    /// Begin a setup attempt: the steps of earlier attempts change nothing from now on. Returns the epoch that the
+    /// steps of the attempt carry (`ConnectionAction::SetupStep`).
+    pub fn begin_setup(&mut self) -> u64 {
+        self.setup_epoch += 1;
+        self.setup_epoch
     }
 
     /// Does the connection cache query results? The connector decides unless the user chose.
@@ -542,6 +571,23 @@ impl ConnectionState {
             ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error } => {
                 outcome.changed =
                     self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::PartiallySucceeded, Some(error), now);
+            }
+            ConnectionAction::SetupStep { epoch, step } => {
+                if epoch == self.setup_epoch && !matches!(*step, ConnectionAction::SetupStep { .. }) {
+                    return self.apply(*step, now);
+                }
+                // A step of an attempt that was replaced, e.g. the failure of a setup that a newer one cancelled
+                if let Some(handle) = step.ready_channel() {
+                    outcome.effects.push(ConnectionEffect::Release { handle });
+                }
+                return Ok(outcome);
+            }
+            ConnectionAction::Trino(TrinoAction::AccessTokenRefreshed { channel, token }) => {
+                // Only the channel that the connection uses updates its token
+                if let Some(trino) = self.details.trino_mut().filter(|trino| trino.channel.as_ref().is_some_and(|c| c.same(&channel))) {
+                    trino.oauth_state.get_or_insert_with(Default::default).access_token = Some(token);
+                    outcome.changed = true;
+                }
             }
             action @ (ConnectionAction::HealthCheckStarted
             | ConnectionAction::HealthCheckCancelled
@@ -690,6 +736,8 @@ impl ConnectionState {
     /// Stop a connection that is reset or deleted: cancel the setup, the catalog updates and the queries, close the
     /// channel. The catalog updates release their handles.
     fn stop(&mut self, reason: &'static str, effects: &mut Vec<ConnectionEffect>) {
+        // The steps of the setup that runs change nothing anymore
+        self.setup_epoch += 1;
         effects.push(ConnectionEffect::CancelSetup);
         effects.push(ConnectionEffect::InvalidateCatalogBatch);
         let updates = std::mem::take(&mut self.catalog_updates);

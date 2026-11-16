@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
@@ -134,7 +134,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                             connectionAttention.request(workbookScripts.workbookId);
                             logger.warn("Cannot execute query command with an unhealthy connection", {
                                 workbookId,
-                                status: printConnectionHealth(scriptConnection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
+                                status: scriptConnection?.healthLabel ?? 'Not Started',
                             }, LOG_CTX);
                         } else if (!entry) {
                             logger.warn("Ignoring Ctrl+E because no committed script is selected", {
