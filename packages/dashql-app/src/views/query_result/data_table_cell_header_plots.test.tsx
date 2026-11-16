@@ -175,6 +175,10 @@ describe('HeaderPlotsCell', () => {
         const failed = await render({ ...props, columnAggregationTasks: [null, tracked(TaskStatus.TASK_FAILED), null, null] });
         expect(failed.textContent).toBe('Failed');
 
+        // A stopped query ends its task cancelled, not failed
+        const cancelled = await render({ ...props, columnAggregationTasks: [null, tracked(TaskStatus.TASK_CANCELLED), null, null] });
+        expect(cancelled.textContent).toBe('Cancelled');
+
         // An aggregate without a task shows nothing
         const unscheduled = await render({ ...props, columnAggregationTasks: [null, null, null, null] });
         expect(unscheduled.className).toBe(styles.plots_cell);

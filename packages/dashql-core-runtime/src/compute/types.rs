@@ -429,6 +429,8 @@ pub enum TaskStatus {
     Succeeded = 2,
     /// The task failed
     Failed = 3,
+    /// The task was cancelled, e.g. its query was stopped
+    Cancelled = 4,
 }
 
 /// The progress of a task
@@ -440,9 +442,9 @@ pub struct TaskProgress {
     pub started_at: Timestamp,
     /// When the task succeeded
     pub completed_at: Option<Timestamp>,
-    /// When the task failed
+    /// When the task failed or was cancelled
     pub failed_at: Option<Timestamp>,
-    /// The error of a failed task
+    /// The error of a failed task, the message of a cancelled one
     pub failed_with_error: Option<String>,
 }
 

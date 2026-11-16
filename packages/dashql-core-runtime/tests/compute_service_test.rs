@@ -86,6 +86,8 @@ struct Database {
     changes: Vec<Vec<ComputationEffect>>,
     /// Holds the next creation of a table of a title until the test releases it
     gates: BTreeMap<&'static str, Receiver<()>>,
+    /// The titles whose creations of tables the host cancels, e.g. a compute database that went away
+    cancels: BTreeSet<&'static str>,
     /// The handles that the host keeps: the tables that the tasks handed over and the ones of the analyses
     handles: BTreeSet<u32>,
     /// The tables of the handles that the host keeps as tables: the results and the tables that the tasks read
@@ -172,6 +174,9 @@ impl ComputeHost for FakeHost {
         let gate = self.database.borrow_mut().gates.remove(context.title);
         if let Some(gate) = gate {
             gate.await;
+        }
+        if self.database.borrow().cancels.contains(context.title) {
+            return Err(HostError::cancelled());
         }
         let table = (self.answer)(context.title, sql).map_err(HostError::new)?;
         self.database.borrow_mut().tables.insert(table_name.to_string(), table);
@@ -589,6 +594,31 @@ fn a_run_that_is_cancelled_by_its_id_drops_its_future() {
     assert_eq!(setup.database.borrow().cancelled, [run]);
     let error = output.borrow_mut().take().expect("the task ended").unwrap_err();
     assert!(error.to_string().contains("cancelled"), "{error}");
+    // The task ends cancelled, not failed
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        let search = computation.tasks.data_search.as_ref().expect("the task");
+        assert_eq!(search.progress.status, TaskStatus::Cancelled);
+        assert!(search.progress.failed_at.is_some());
+        assert_eq!(state.scheduler_tasks().count(), 0);
+    });
+}
+
+#[test]
+fn a_task_whose_call_the_host_cancelled_ends_cancelled() {
+    let setup = setup(analysis_answer);
+    setup.database.borrow_mut().cancels.insert("Column aggregation");
+    let error = setup.analyze().unwrap_err();
+    assert!(error.to_string().contains("cancelled"), "{error}");
+    setup.executor.run_until_stalled();
+    setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        let cancelled = computation.tasks.column_aggregation.get(1).and_then(Option::as_ref).expect("the task");
+        assert_eq!(cancelled.progress.status, TaskStatus::Cancelled);
+        assert_eq!(state.scheduler_tasks().count(), 0);
+    });
+    // Its data frame goes like the one of a failed task
+    assert_eq!(setup.data_frame_tables(), setup.state_data_frame_tables());
 }
 
 #[test]

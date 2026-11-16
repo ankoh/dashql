@@ -245,9 +245,10 @@ table. The app sends requests (`orderBy`, `histogramFilter`, `mostFrequentValueF
 `requestFilteredColumnAggregation`, ...); the service derives the tasks from the state and runs them, a request that the
 state answers runs nothing. The SELECTs of the tasks are listed in the query history of the connection of the result,
 or in the history that the analysis names (`compute_tracking.rs`). A reset of the connection or a cancel of such a query
-cancels the run of its task in Rust (`ComputeService::cancel_run`), which aborts its calls; the query ends cancelled
-and the task fails. The tables
-stay with the host by handle; formatting of values stays with the host. The one read of rows besides the small tables
+cancels the run of its task in Rust (`ComputeService::cancel_run`), which aborts its calls; the query and the task end
+cancelled (`TaskStatus::Cancelled`), as does a task whose call the host cancelled (`HostError::is_cancelled`). A
+filtering or an ordering that failed or was cancelled runs again only for other rows. The tables stay with the host by
+handle; formatting of values stays with the host. The one read of rows besides the small tables
 that tasks parse is the preview of a result (`ComputeService::preview`, `previewResult` of the facade): its first rows
 from the data frame of the computation, bounded by a limit, for the tables of the shell. See
 [vegalite_crossfilter.md](vegalite_crossfilter.md).

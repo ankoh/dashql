@@ -5,7 +5,7 @@
 //! query history of the connection that ran the query of the result, or in a history without a connection that the
 //! analysis named, e.g. the one of the shell. The query is opened before the call and closed after it; a reset of the
 //! connection or a cancel stops it like a query of the connection: the run of the task is cancelled in Rust, the
-//! calls of the run are aborted and the query ends cancelled.
+//! calls of the run are aborted, and the query and the task end cancelled.
 
 use std::cell::RefCell;
 use std::collections::HashMap;

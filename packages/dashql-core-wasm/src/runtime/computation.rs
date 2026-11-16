@@ -26,6 +26,7 @@ pub enum TaskStatus {
     TASK_RUNNING = 1,
     TASK_SUCCEEDED = 2,
     TASK_FAILED = 3,
+    TASK_CANCELLED = 4,
 }
 
 impl From<rt::TaskStatus> for TaskStatus {
@@ -34,6 +35,7 @@ impl From<rt::TaskStatus> for TaskStatus {
             rt::TaskStatus::Running => TaskStatus::TASK_RUNNING,
             rt::TaskStatus::Succeeded => TaskStatus::TASK_SUCCEEDED,
             rt::TaskStatus::Failed => TaskStatus::TASK_FAILED,
+            rt::TaskStatus::Cancelled => TaskStatus::TASK_CANCELLED,
         }
     }
 }

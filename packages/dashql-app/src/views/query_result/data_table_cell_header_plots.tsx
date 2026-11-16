@@ -147,6 +147,14 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
                         Failed
                     </div>
                 );
+            case TaskStatus.TASK_CANCELLED:
+                return (
+                    <div className={classNames(styles.plots_cell, {
+                        [styles.plots_cell_rightmost]: isRightmost
+                    })} style={props.style}>
+                        Cancelled
+                    </div>
+                );
             case TaskStatus.TASK_SUCCEEDED:
                 switch (columnAggregate?.type) {
                     case ORDINAL_COLUMN:

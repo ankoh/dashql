@@ -279,6 +279,10 @@ describe('The computations of the runtime', () => {
         });
         expect(runtime.store.get('query', queryId)).toMatchObject({ error: { message: 'The request was cancelled' } });
         expect(await analysis).not.toBeNull();
+        // The task of the query ends cancelled too, not failed
+        runtime.flush();
+        const task = runtime.store.get('computation', 1)?.tasks.tableAggregationTask;
+        expect(task?.progress.status).toBe(TaskStatus.TASK_CANCELLED);
     }, 60_000);
 
     it('analyzes nothing without columns and dispatches nothing once destroyed', async () => {

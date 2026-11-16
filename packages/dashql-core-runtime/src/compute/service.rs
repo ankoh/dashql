@@ -14,8 +14,9 @@
 //! state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
-//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id. A cancelled run drops its future, tells
-//! the host to abort its calls and fails its task.
+//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id. A cancelled run drops its future and tells
+//! the host to abort its calls, its task ends cancelled. A task whose call the host cancelled
+//! (`HostError::is_cancelled`) ends cancelled too.
 //!
 //! The state sits behind a `RefCell` that no task borrows across an await. A task tells the host after its actions
 //! that the state changed.
@@ -193,14 +194,14 @@ impl<H: ComputeHost> ComputeService<H> {
         apply(&self.shared, action, false)
     }
 
-    /// Cancel the run of a task, it fails
+    /// Cancel the run of a task, it ends cancelled
     pub fn cancel_task(&self, task_id: TaskId) {
         let runs = self.shared.inner.borrow_mut().take_runs(|run| run.task == Some(task_id));
         cancel_runs(&self.shared, runs);
     }
 
     /// Cancel a run by its id, e.g. the run of a query of a task that the user stopped: its future is dropped, the host
-    /// aborts its calls and its task fails. False for a run that doesn't run.
+    /// aborts its calls and its task ends cancelled. False for a run that doesn't run.
     pub fn cancel_run(&self, run: RunId) -> bool {
         let taken = self.shared.inner.borrow_mut().runs.remove(&run);
         let Some(taken) = taken else { return false };
@@ -345,6 +346,42 @@ fn cancelled_error(title: &str) -> Error {
     Error::invalid_argument(format!("{title} was cancelled"))
 }
 
+/// Why a run ended without its value
+enum RunError {
+    /// Its token or a call of the host was cancelled
+    Cancelled,
+    /// It failed
+    Failed(Error),
+}
+
+type RunResult<T> = std::result::Result<T, RunError>;
+
+impl From<Error> for RunError {
+    fn from(error: Error) -> Self {
+        RunError::Failed(error)
+    }
+}
+
+impl RunError {
+    /// The error of a run of a title
+    fn into_error(self, title: &str) -> Error {
+        match self {
+            RunError::Cancelled => cancelled_error(title),
+            RunError::Failed(error) => error,
+        }
+    }
+}
+
+/// The error of a call of the host in a run: cancelled if the host cancelled the call, else the error that `failed`
+/// makes of it
+fn host_failed(error: HostError, failed: impl FnOnce(HostError) -> Error) -> RunError {
+    if error.is_cancelled() {
+        RunError::Cancelled
+    } else {
+        RunError::Failed(failed(error))
+    }
+}
+
 /// What a run runs for: a task, a data search or a search of the columns
 #[derive(Clone, Copy, Default)]
 struct RunOf {
@@ -353,7 +390,8 @@ struct RunOf {
     column_search: Option<u64>,
 }
 
-/// Run a future as a run of a computation that can be cancelled. The future gets the context of the run.
+/// Run a future as a run of a computation that can be cancelled. The future gets the context of the run. A run whose
+/// token was cancelled ends cancelled.
 async fn in_run<H, F, T>(
     shared: &Rc<Shared<H>>,
     table_id: TableId,
@@ -361,10 +399,10 @@ async fn in_run<H, F, T>(
     title: &'static str,
     of: RunOf,
     future: impl FnOnce(ComputeContext) -> F,
-) -> Result<T>
+) -> RunResult<T>
 where
     H: ComputeHost,
-    F: Future<Output = Result<T>>,
+    F: Future<Output = RunResult<T>>,
 {
     let run = shared.inner.borrow_mut().allocate();
     let context = ComputeContext {
@@ -379,14 +417,15 @@ where
     shared.inner.borrow_mut().runs.insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, cancel });
     let result = future.await;
     shared.inner.borrow_mut().runs.remove(&run);
-    result.unwrap_or_else(|| Err(cancelled_error(title)))
+    result.unwrap_or(Err(RunError::Cancelled))
 }
 
 /// Create the table of a query and keep the rows of its read with the host, the state names them by their handle
-async fn run_query_kept<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> Result<ArrowTable> {
+async fn run_query_kept<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> RunResult<ArrowTable> {
     let host = &shared.host;
-    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(|e| query.failed(e))?;
-    let KeptTable { handle, shape } = host.query_table(&query.read_sql, context).await.map_err(|e| query.failed(e))?;
+    let failed = |e: HostError| host_failed(e, |e| query.failed(e));
+    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
+    let KeptTable { handle, shape } = host.query_table(&query.read_sql, context).await.map_err(failed)?;
     Ok(ArrowTable::new(handle, shape.rows, shape.schema))
 }
 
@@ -395,10 +434,11 @@ async fn run_query<H: ComputeHost>(
     shared: &Shared<H>,
     query: &TaskQuery,
     context: &ComputeContext,
-) -> Result<ReadTable> {
+) -> RunResult<ReadTable> {
     let host = &shared.host;
-    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(|e| query.failed(e))?;
-    let ipc = host.query(&query.read_sql, context).await.map_err(|e| query.failed(e))?;
+    let failed = |e: HostError| host_failed(e, |e| query.failed(e));
+    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
+    let ipc = host.query(&query.read_sql, context).await.map_err(failed)?;
     let table = ResultTable::from_ipc_stream(&ipc).map_err(|e| query.failed(e))?;
     Ok(ReadTable { table, ipc })
 }
@@ -439,7 +479,7 @@ async fn execute<H: ComputeHost>(
     schema: &SchemaRef,
     output: DataFrameId,
     context: &ComputeContext,
-) -> Result<(ComputationAction, TaskOutput)> {
+) -> RunResult<(ComputationAction, TaskOutput)> {
     let table_id = task.table_id();
     match task {
         ComputationTask::TableFiltering(task) => {
@@ -571,11 +611,11 @@ async fn execute<H: ComputeHost>(
     }
 }
 
-/// The progress of a task that starts or fails
+/// The progress of a task that starts, fails or ends cancelled
 fn progress(shared: &Shared<impl ComputeHost>, status: TaskStatus, error: Option<String>) -> TaskProgressUpdate {
     let now = now(shared);
     match status {
-        TaskStatus::Failed => TaskProgressUpdate {
+        TaskStatus::Failed | TaskStatus::Cancelled => TaskProgressUpdate {
             status: Some(status),
             failed_at: Some(now),
             failed_with_error: error,
@@ -623,9 +663,19 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
         }
         Err(error) => {
             drop_data_frame(shared, output);
-            let message = error.to_string();
             let table = table_id.to_string();
-            shared.host.log(LogLevel::Warn, &format!("{title} failed"), &[("table", &table), ("error", &message)]);
+            let status = match &error {
+                RunError::Cancelled => {
+                    shared.host.log(LogLevel::Info, &format!("{title} was cancelled"), &[("table", &table)]);
+                    TaskStatus::Cancelled
+                }
+                RunError::Failed(error) => {
+                    shared.host.log(LogLevel::Warn, &format!("{title} failed"), &[("table", &table), ("error", &error.to_string())]);
+                    TaskStatus::Failed
+                }
+            };
+            let error = error.into_error(title);
+            let message = error.to_string();
             if let ComputationTask::DataSearch(search) = &task {
                 let failed = ComputationAction::DataSearchFailed {
                     table_id,
@@ -635,8 +685,8 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
                 };
                 apply(shared, failed, true)?;
             }
-            let failed = progress(shared, TaskStatus::Failed, Some(message));
-            apply(shared, ComputationAction::UpdateSchedulerTask { task_id, progress: failed, now: now(shared) }, true)?;
+            let ended = progress(shared, status, Some(message));
+            apply(shared, ComputationAction::UpdateSchedulerTask { task_id, progress: ended, now: now(shared) }, true)?;
             unregister(shared)?;
             Err(error)
         }
@@ -699,10 +749,11 @@ async fn analyze<H: ComputeHost>(
         let name = import.table_name.clone();
         async move {
             let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
-            shared.host.import_table(input, &name, handles.table, &row_number_field, &context).await.map_err(failed)
+            shared.host.import_table(input, &name, handles.table, &row_number_field, &context).await.map_err(|e| host_failed(e, failed))
         }
     })
-    .await;
+    .await
+    .map_err(|error| error.into_error(IMPORT_TITLE));
     if let Err(error) = imported {
         drop_data_frame(shared, input);
         return Err(error);
@@ -909,13 +960,14 @@ impl<H: ComputeHost> ComputeService<H> {
                 let shared = shared.clone();
                 async move {
                     let failed = |e: HostError| Error::invalid_argument(format!("counting the selected rows failed: {e}"));
-                    let ipc = shared.host.query(&sql, &context).await.map_err(failed)?;
+                    let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
                     let table = ResultTable::from_ipc_stream(&ipc)?;
                     let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
                     Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
                 }
             })
-            .await;
+            .await
+            .map_err(|error| error.into_error("Filtered column aggregation"));
             shared.inner.borrow_mut().counting.remove(&(table_id, column_id));
             let error = match counted {
                 Ok(rows) => start_task(&shared, task.with_selection(rows), true).err(),
@@ -956,10 +1008,11 @@ impl<H: ComputeHost> ComputeService<H> {
                 let shared = shared.clone();
                 async move {
                     let failed = |e: HostError| Error::invalid_argument(format!("reading the preview failed: {e}"));
-                    shared.host.query(&sql, &context).await.map_err(failed)
+                    shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))
                 }
             })
             .await
+            .map_err(|error| error.into_error(PREVIEW_TITLE))
         }
     }
 }
@@ -1039,8 +1092,8 @@ fn filtered_aggregation_request(computation: &TableComputation, column_id: u32) 
     Some(FilteredAggregationRequest { task, count })
 }
 
-/// The filtering of the cross filters, none if the filter is current, a filtering runs or failed for the same
-/// selection, or there is nothing to filter
+/// The filtering of the cross filters, none if the filter is current, a filtering runs, failed or was cancelled for the
+/// same selection, or there is nothing to filter
 fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
     let input_data_frame = computation.data_frame?;
     let row_number_column_name = computation.row_number_column_name.clone()?;
@@ -1051,7 +1104,7 @@ fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
         }
         if tracked.task.filters == filters {
             let current = computation.filter_table.as_ref().is_none_or(|filter| filter.version.filter_matches(computation.version));
-            if tracked.progress.status == TaskStatus::Failed || current {
+            if matches!(tracked.progress.status, TaskStatus::Failed | TaskStatus::Cancelled) || current {
                 return None;
             }
         }
@@ -1070,8 +1123,8 @@ fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
 }
 
 /// The ordering of the rows: by the constraints, or by the ones that the computation orders by. None if the ordering
-/// is current, an ordering runs or failed for the same rows, a filter or a data search still runs, or there is no
-/// ordering.
+/// is current, an ordering runs, failed or was cancelled for the same rows, a filter or a data search still runs, or
+/// there is no ordering.
 fn ordering_task(computation: &TableComputation, constraints: Option<&[OrderByConstraint]>) -> Option<ComputationTask> {
     let tracked = computation.tasks.ordering.as_ref();
     let constraints = match constraints {
@@ -1099,7 +1152,7 @@ fn ordering_task(computation: &TableComputation, constraints: Option<&[OrderByCo
             && task.data_search_table.as_ref().map(|search| search.request_id) == search
             && same_ordering(&task.ordering_constraints, constraints);
         let done = match tracked.progress.status {
-            TaskStatus::Running | TaskStatus::Failed => true,
+            TaskStatus::Running | TaskStatus::Failed | TaskStatus::Cancelled => true,
             TaskStatus::Succeeded => computation.ordering_table.is_some(),
         };
         if same && done {
@@ -1234,11 +1287,12 @@ fn start_column_search<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId
             let shared = shared.clone();
             async move {
                 let failed = |e: HostError| Error::invalid_argument(format!("the column search failed: {e}"));
-                let ipc = shared.host.query(&sql, &context).await.map_err(failed)?;
-                parse_column_search_matches(&ResultTable::from_ipc_stream(&ipc)?)
+                let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
+                Ok(parse_column_search_matches(&ResultTable::from_ipc_stream(&ipc)?)?)
             }
         })
-        .await;
+        .await
+        .map_err(|error| error.into_error("Column search"));
         let action = match searched {
             Ok(matching_column_groups) => ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups },
             Err(error) => {
