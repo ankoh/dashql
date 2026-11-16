@@ -8,6 +8,8 @@ import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger
 import { createAgentSessionState, reduceAgentSessionEvent, reduceAgentSessionJournal, type AgentSessionEvent, type AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
 import {
     isWorkbookCopyId,
+    parseSessionConnections,
+    SESSION_CONNECTIONS_FILE,
     JOURNAL_KEYS,
     JOURNAL_TARGET,
     journalFilePaths,
@@ -70,7 +72,7 @@ function decodePart(part: string): string | null {
 /// The token in the path of the routes of files, null for other routes
 function pathToken(url: URL): string | null {
     const parts = url.pathname.split('/');
-    return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results') ? decodePart(parts[3] ?? '') : null;
+    return parts[1] === 'v1' && (parts[2] === 'workbooks' || parts[2] === 'results' || parts[2] === 'connections') ? decodePart(parts[3] ?? '') : null;
 }
 
 /// A workbook folder of the journal, only inside the folder of the session: the server hands out no other files
@@ -294,6 +296,29 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 for (const stream of streams) send(stream);
                 response.writeHead(204).end();
                 if (state.ended) options.onEnd?.();
+            });
+            return;
+        }
+        if (request.method === 'PUT' && url.pathname.split('/').length === 4 && url.pathname.startsWith('/v1/connections/')) {
+            // /v1/connections/<token>: the connections that the tab lets the agent use, next to the journal, where
+            // the commands of the session read them
+            let body = '';
+            request.setEncoding('utf8');
+            request.on('data', chunk => { body += chunk; });
+            request.on('end', () => {
+                const connections = parseSessionConnections(body);
+                if (connections == null) {
+                    response.writeHead(400).end();
+                    return;
+                }
+                try {
+                    if (journal == null) throw new Error('the session has no folder');
+                    writeFileSync(path.join(path.dirname(journal), SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
+                } catch {
+                    response.writeHead(500).end();
+                    return;
+                }
+                response.writeHead(204).end();
             });
             return;
         }

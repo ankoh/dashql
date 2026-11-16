@@ -341,19 +341,24 @@ describe('Workbook composer', () => {
         type Session = React.ComponentProps<typeof WorkbookComposer>['session'];
 
         /// The composer with the connect state of a provider
-        const Connected: React.FC<{ initial: ComposerMode; session?: Session }> = ({ initial, session }) => {
+        const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean }> = ({ initial, session, pickers }) => {
             const [mode, setMode] = React.useState(initial);
             const [harness, setHarness] = React.useState<ConnectHarness>('claude');
             const [target, setTarget] = React.useState(TARGET);
-            const connect: AgentConnect = { mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED) };
+            const connect: AgentConnect = {
+                mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED),
+                excludedConnections: new Set(), toggleConnection: () => { },
+            };
             return (
                 <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}
+                    connectionPicker={pickers ? <span data-testid="sql-picker" /> : undefined}
+                    agentConnectionsPicker={pickers ? <span data-testid="agent-picker" /> : undefined}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={buildSnippetRegistry(dql, {})}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             );
         };
-        async function renderConnected(initial: ComposerMode, session?: Session) {
-            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} /></LoggerProvider>));
+        async function renderConnected(initial: ComposerMode, session?: Session, pickers = false) {
+            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} pickers={pickers} /></LoggerProvider>));
             await vi.waitFor(() => expect(view).not.toBeNull());
             return view!;
         }
@@ -413,6 +418,15 @@ describe('Workbook composer', () => {
             act(() => type(editor, 'select 2'));
             act(() => press(editor, 'Enter'));
             expect(onSend).toHaveBeenCalledWith('select 2');
+        });
+
+        it('shows the connections of the agent in place of the connection picker in AI', async () => {
+            await renderConnected(ComposerMode.Ai, undefined, true);
+            expect(container.querySelector('[data-testid="agent-picker"]')).not.toBeNull();
+            expect(container.querySelector('[data-testid="sql-picker"]')).toBeNull();
+            act(() => mode('sql').click());
+            expect(container.querySelector('[data-testid="agent-picker"]')).toBeNull();
+            expect(container.querySelector('[data-testid="sql-picker"]')).not.toBeNull();
         });
 
         it('has no switch without the connect state', async () => {

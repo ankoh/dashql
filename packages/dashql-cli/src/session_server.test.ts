@@ -5,7 +5,7 @@ import path from 'node:path';
 import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
 import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql/platform/session/workbook_journal';
 
-import { writeAgentSessionWorkbook } from '@ankoh/dashql/platform/session/agent_session_client';
+import { writeAgentSessionConnections, writeAgentSessionWorkbook } from '@ankoh/dashql/platform/session/agent_session_client';
 
 import { startSessionServer, type SessionServer } from './session_server.js';
 
@@ -175,6 +175,21 @@ describe('the session server', () => {
         expect((await fetch(base, { method: 'DELETE' })).status).toBe(204);
         expect(existsSync(copy)).toBe(false);
         expect(server.state().workbooks).toEqual([]);
+    });
+
+    it('keeps the connections that the tab lets the agent use next to the journal of the session', async () => {
+        const folder = temp('dashql-session-');
+        server = await startSessionServer({ harness: 'claude', folder, session: '51005' });
+        const target = { endpoint: `http://127.0.0.1:${server.port}`, token: server.token };
+        await writeAgentSessionConnections(target, { connections: [{ connectionId: 'c1', name: 'Trino prod' }] });
+        const file = path.join(folder, '.dashql', 'sessions', '51005', 'connections.json');
+        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [{ connectionId: 'c1', name: 'Trino prod' }] });
+        const base = `http://127.0.0.1:${server.port}/v1/connections`;
+        expect((await fetch(`${base}/${server.token}`, { method: 'PUT', body: '{"connections":7}' })).status).toBe(400);
+        expect((await fetch(`${base}/wrong`, { method: 'PUT', body: '{"connections":[]}' })).status).toBe(401);
+        // None is a choice as well
+        await writeAgentSessionConnections(target, { connections: [] });
+        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [] });
     });
 
     it('serves the state only with the token and to the pages of DashQL', async () => {

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { DESCRIBE_TEXT, DESCRIBE_USAGE, runDescribe } from './describe_command.js';
 import { runWith, testFiles } from './test_process.js';
 
-const describeIn = (cwd: string, args: string[] = []) => runWith(async (a, cli) => runDescribe(a, cli), cwd, args);
+const describeIn = (cwd: string, args: string[] = [], session: string | null = null) => runWith(async (a, cli) => runDescribe(a, cli, session), cwd, args);
 
 describe('dashql describe', () => {
     it('tells how to work on workbooks and lists the workbooks that the tabs copied', async () => {
@@ -37,5 +37,22 @@ describe('dashql describe', () => {
         const wrong = await describeIn(testFiles([]), ['orders']);
         expect(wrong.code).toBe(2);
         expect(wrong.stderr).toBe(`error: unexpected argument orders\n\n${DESCRIBE_USAGE}\n`);
+    });
+
+    it('lists the connections that the tab of the session lets the agent use', async () => {
+        const allowed = { connections: [{ connectionId: 'c1', name: 'Trino prod' }, { connectionId: 'hyper', name: 'Hyper' }] };
+        const workspace = testFiles([
+            ['.dashql/sessions/51001/connections.json', JSON.stringify(allowed)],
+            ['.dashql/sessions/51002/connections.json', '{"connections":[]}'],
+        ]);
+        expect((await describeIn(workspace, [], '51001')).stdout.endsWith(`
+Connections that the tab of DashQL lets you use, dashql run refuses the others:
+  Trino prod (c1)
+  Hyper (hyper)
+`)).toBe(true);
+        expect((await describeIn(workspace, [], '51002')).stdout).toContain('Connections: the tab of DashQL lets you use none');
+        // Before the tab told them, and outside a session, nothing is said about them
+        expect((await describeIn(workspace, [], '51003')).stdout).not.toContain('Connections');
+        expect((await describeIn(workspace)).stdout).not.toContain('Connections');
     });
 });

@@ -26,7 +26,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { JournalRunReporter } from './run_journal.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
-import { openSessionJournal, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { openSessionJournal, readSessionConnections, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
@@ -346,7 +346,11 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             const label = connectionLabel(conn);
             const started = performance.now();
             emit({ type: 'connection_setup', connection: label });
-            const failure = await setupConnection(runtime, conn, env, hyper, stop.signal);
+            // The tab of the session lets the agent use the connections that the user picked
+            const allowed = readSessionConnections(workspace, env.session ?? null);
+            const failure = allowed != null && !allowed.connections.some(other => other.connectionId === connectionId)
+                ? 'the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt'
+                : await setupConnection(runtime, conn, env, hyper, stop.signal);
             if (failure != null) {
                 emit({ type: 'connection_failed', connection: label, error: stop.signal.aborted ? 'interrupted' : failure });
                 throw new Error(failure);

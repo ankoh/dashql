@@ -7,6 +7,7 @@ import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@ankoh/dashql/p
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
+import { readSessionConnections, SESSION_NAME_ENV } from './session_journal.js';
 
 export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir>]
 
@@ -98,8 +99,21 @@ export function describeCopiedWorkbooks(workbooks: CopiedWorkbook[]): string {
 ${lines.join('\n')}`;
 }
 
+/// The section of the connections that the tab lets the agent use, null outside a session of `dashql connect` and before
+/// the tab told them
+export function describeSessionConnections(workspace: string, session: string | null): string | null {
+    const allowed = readSessionConnections(workspace, session);
+    if (allowed == null) return null;
+    if (allowed.connections.length === 0) {
+        return 'Connections: the tab of DashQL lets you use none, dashql run runs no script. The user can allow them in the prompt.';
+    }
+    const lines = allowed.connections.map(connection => `  ${connection.name} (${connection.connectionId})`);
+    return `Connections that the tab of DashQL lets you use, dashql run refuses the others:
+${lines.join('\n')}`;
+}
+
 /// Run `describe` with the arguments after it, returns the exit code
-export function runDescribe(args: string[], cli: CliProcess): number {
+export function runDescribe(args: string[], cli: CliProcess, session: string | null = process.env[SESSION_NAME_ENV] || null): number {
     let workspace = cli.cwd;
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
@@ -114,6 +128,7 @@ export function runDescribe(args: string[], cli: CliProcess): number {
         cli.stderr(`error: unexpected argument ${arg}\n\n${DESCRIBE_USAGE}\n`);
         return EXIT_USAGE;
     }
-    cli.stdout(`${DESCRIBE_TEXT}\n\n${describeCopiedWorkbooks(copiedWorkbooks(workspace))}\n`);
+    const connections = describeSessionConnections(workspace, session);
+    cli.stdout(`${DESCRIBE_TEXT}\n\n${describeCopiedWorkbooks(copiedWorkbooks(workspace))}\n${connections == null ? '' : `\n${connections}\n`}`);
     return EXIT_OK;
 }

@@ -30,3 +30,11 @@ button.trigger > span {
     flex-shrink: 0;
 }
 
+
+/* The checkbox of a menu that ticks connections, only a visual: the item takes the click */
+.check {
+    flex-shrink: 0;
+    margin: 0;
+    pointer-events: none;
+    accent-color: var(--color_accent_fg);
+}

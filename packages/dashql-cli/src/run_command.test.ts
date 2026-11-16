@@ -309,6 +309,21 @@ describe('dashql run', () => {
         expect(lines('journal.jsonl')).toBe('');
     });
 
+    it('runs only on the connections that the tab of the session lets the agent use', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        withHyperScripts(dir, [['02_one.sql', 'select 1 as one\n']]);
+        mkdirSync(path.join(dir, '.dashql', 'sessions', '51003'), { recursive: true });
+        writeFileSync(path.join(dir, '.dashql', 'sessions', '51003', 'connections.json'), JSON.stringify({ connections: [{ connectionId: HYPER_ID, name: 'Hyper' }] }));
+        const output = await run(dir, ['.'], { ...PASSWORD, session: '51003' });
+        expect(output.code).toBe(1);
+        expect(output.stdout).toContain(`trino ${trino.endpoint}  failed\n  the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt\n`);
+        expect(output.stdout).toMatch(/^02_one\.sql {2}ok {2}1 row /m);
+        expect(output.stdout).toContain('01_orders.sql  not run  its connection could not be set up\n');
+        expect(trino.statements).toEqual([]);
+        // Another session, or none, lets the agent use every connection
+        expect((await run(dir, ['.'], { ...PASSWORD, session: '51004' })).code).toBe(0);
+    });
+
     it('reports the progress of a running script to the journal', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
         mkdirSync(path.join(dir, '.dashql'));

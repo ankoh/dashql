@@ -115,12 +115,15 @@ goes through a `dashql` command, so the commands tell what they changed.
 - `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given; the
   journal of a session of its own; the copy of the workbook of a page (writes, replacement, the stamps after a tool,
   paths it refuses).
+- `//packages/dashql-cli:test` also: the connections of the agent next to the journal, `dashql run` that refuses
+  the others, `dashql describe` that lists them.
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts, the edits of the
   user into the copy, a copy adopted after a reload, the results of the agent once.
 - `runtime/workbook/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
   not again after a reload, that an edit reaches the copy, that a rewrite of the agent is staged to accept and that
-  the page fetches a result that the journal names.
+  the page fetches a result that the journal names, and that the menu of the connections of the agent sends the
+  connections that stay ticked.
 
 ## Plan: the workbook, the connections and the logins of a session
 
@@ -205,10 +208,15 @@ matched by `connectionId`. They travel both ways with the workbook: `dashql run`
 app takes them when it opens a folder. A connection that works in the tab has the same address on disk, and one that
 the agent set up appears in the tab.
 
-**The connections of the agent.** The connection picker of the page becomes, in AI, a menu `2 / 4 connections`: the list
-of connections without the attach entry, with a checkbox as the trailing visual of each. The page sends the selection
-to the server, `dashql run` refuses a connection that is not in it, and the output of the hook at the start names
-them for the agent.
+**The connections of the agent** (built). The connection picker of the prompt becomes, in AI, a menu
+`2 / 4 connections` (`agent/agent_connections_picker.tsx`): the list of connections of the connection picker with a
+checkbox as the trailing visual of each. Every connection is allowed until the user unticks it, also a new one; the
+tab keeps the unticked ones per target in the storage of the tab. Once the server answers and after every change, the
+page sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them next to
+the journal, `.dashql/sessions/<port>/connections.json`. `dashql run` with `DASHQL_SESSION` reads that file and treats
+a connection that is not in it like one that can't be set up: its scripts are not run, with the reason. A result that
+the cache serves needs no connection and is still served. `dashql describe` lists the allowed connections. The file
+is guidance for the agent, not a boundary: the agent can write it.
 
 ### Logins go through the page
 
@@ -235,14 +243,15 @@ login of a connection of the session goes through the page, the command line too
 ### What the page sends to the server
 
 One channel from the page to the server, requests with the token of the session, for three things: the workbook of
-case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections, the code of a login. The
+case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections (built, `PUT
+/v1/connections/<token>`), the code of a login. The
 server stays the one place the page talks to.
 
 ### How the agent learns DashQL
 
 - **The output of the hook at the start** goes into the context of the agent with both harnesses. Built: the hook of
   `dashql connect` says that DashQL shows the session, that the tab copies its workbook into `.dashql/workbooks/<id>/`
-  and to run `dashql describe` first. Nothing is installed. Not yet: the connections the agent may use.
+  and to run `dashql describe` first. Nothing is installed.
 - **`dashql describe`** (built) prints the layout of a workbook folder, the commands, how the tab takes the changes of
   the agent and the workbooks that the tabs copied into the folder, like `hyperdb-edge describe`
   (`docs/wip/hyperdb_edge.md`). The text lives in the command, it fits the installed version. It reads the copies from
@@ -274,7 +283,7 @@ To check before the runs over the server:
 2. The parameters of connections from the folder in `dashql run` and in the app.
 3. The output of the hook at the start and `dashql describe`. Built, without the connections of the agent.
 4. Logins through the page, runs of connections with a login in the process of `dashql connect`.
-5. The menu of the connections of the agent.
+5. The menu of the connections of the agent. Built.
 
 ## Next
 

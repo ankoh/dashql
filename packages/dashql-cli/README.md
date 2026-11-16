@@ -244,7 +244,9 @@ The server also creates the journal of the session, `.dashql/journal.jsonl` in i
 connect` is `.dashql/sessions/<port>/journal.jsonl`). `dashql run` appends the files of a workbook folder below it and
 every result, the server folds them into its state and hands out the files of the workbook folders and the results of
 its `.dashql/cache` to the page (`docs/wip/agent_session.md`). The page writes the copy of its workbook with `PUT` and
-`DELETE` on the routes of the files of the workbooks.
+`DELETE` on the routes of the files of the workbooks, and the connections that the agent may use with `PUT
+/v1/connections/<token>`: the server writes them into `connections.json` next to the journal. `dashql run` in a session
+of `dashql connect` (`DASHQL_SESSION`) reads that file and runs no script on a connection that is not in it.
 
 Claude Code, in its settings (`.claude/settings.json`):
 

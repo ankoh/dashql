@@ -1,5 +1,6 @@
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
 import type { AgentSessionState } from './agent_session_state.js';
+import type { SessionConnections } from './workbook_journal.js';
 
 /// Where a page finds the server of a session: `dashql session serve` on this machine
 export interface AgentSessionTarget {
@@ -131,4 +132,10 @@ export async function readWorkbookFolderFiles(folder: FileSystemDirectoryHandle)
         for (const [name, handle] of entries) files.push({ path: `${sub}/${name}`, content: await handle.getFile() });
     }
     return [{ path: STORAGE_WORKBOOK_FILE, content: workbook }, ...files];
+}
+
+/// Tell the session which connections the agent may use, `dashql run` refuses the others
+export async function writeAgentSessionConnections(target: AgentSessionTarget, connections: SessionConnections, signal?: AbortSignal): Promise<void> {
+    const url = new URL(`/v1/connections/${encodeURIComponent(target.token)}`, target.endpoint);
+    await expectOk(await fetch(url, { method: 'PUT', body: JSON.stringify(connections), signal }), 'the connections of the agent');
 }

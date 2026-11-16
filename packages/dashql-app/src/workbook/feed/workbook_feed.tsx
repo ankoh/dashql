@@ -75,6 +75,7 @@ import { WorkbookConnectionAttentionContext } from '../workbook_connection_atten
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
 import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
+import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
@@ -961,6 +962,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                                 onPick={pickPendingConnection}
                                 testId="composer-connection-picker"
                             />
+                        )}
+                        agentConnectionsPicker={agentConnect == null ? undefined : (
+                            <AgentConnectionsPicker workbookId={props.workbookScripts.workbookId} connect={agentConnect} />
                         )}
                     />}
                 </div>

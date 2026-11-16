@@ -12,6 +12,36 @@ export const SESSION_JOURNAL_FILE = 'journal.jsonl';
 /// The folder of the sessions of `dashql connect` in that folder, one folder per session with its own journal
 export const SESSION_JOURNAL_SESSIONS = 'sessions';
 
+/// The file of the connections that the tab lets the agent use, in the folder of a session of `dashql connect`
+export const SESSION_CONNECTIONS_FILE = 'connections.json';
+
+/// A connection that the agent may use
+export interface SessionConnection {
+    connectionId: string;
+    /// The label of the connection in the tab
+    name: string;
+}
+
+/// The connections that the agent may use, the contents of SESSION_CONNECTIONS_FILE
+export interface SessionConnections {
+    connections: SessionConnection[];
+}
+
+/// The connections of a text of SESSION_CONNECTIONS_FILE, null if it holds none
+export function parseSessionConnections(text: string): SessionConnections | null {
+    try {
+        const value = JSON.parse(text) as { connections?: unknown };
+        if (!Array.isArray(value?.connections)) return null;
+        const connections = value.connections.flatMap((connection: { connectionId?: unknown; name?: unknown }) =>
+            typeof connection?.connectionId === 'string' && connection.connectionId.length > 0
+                ? [{ connectionId: connection.connectionId, name: typeof connection.name === 'string' ? connection.name : connection.connectionId }]
+                : []);
+        return { connections };
+    } catch {
+        return null;
+    }
+}
+
 /// The folder of the copies of the workbooks of pages in that folder, `.dashql/workbooks/<workbook id>/`: a page that
 /// connects writes its workbook there for the agent
 export const SESSION_WORKBOOK_COPIES = 'workbooks';

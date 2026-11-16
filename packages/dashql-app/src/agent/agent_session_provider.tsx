@@ -1,6 +1,7 @@
 import * as React from 'react';
 
-import { followAgentSession, parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import { followAgentSession, parseAgentSessionTarget, writeAgentSessionConnections, type AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
@@ -9,6 +10,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
+import { agentConnections } from './agent_connections.js';
 
 const LOG_CTX = 'agent_session';
 
@@ -18,6 +20,8 @@ const TAB_STORAGE_KEY = 'dashql.agent_session';
 const TAB_CONNECT_KEY = 'dashql.agent_connect';
 /// The key of the workbooks that the tab copied into the session of its target, a reload copies them not again
 const TAB_COPIES_KEY = 'dashql.agent_session_copies';
+/// The key of the connections that the user unticked for the agent of the session of a target
+const TAB_AGENT_CONNECTIONS_KEY = 'dashql.agent_session_connections';
 /// The time between the attempts to reach a session that the page lost or waits for
 const RECONNECT_DELAY_MS = 2000;
 
@@ -66,6 +70,26 @@ function writeTabCopies(target: AgentSessionTarget, workbooks: Set<string>): voi
     }
 }
 
+/// The connections that the user unticked for the agent of the session of a target before a reload
+function readTabExcluded(target: AgentSessionTarget | null): ReadonlySet<string> {
+    if (target == null) return new Set();
+    try {
+        const stored = JSON.parse(tabStorage()?.getItem(TAB_AGENT_CONNECTIONS_KEY) ?? 'null');
+        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || !Array.isArray(stored.excluded)) return new Set();
+        return new Set(stored.excluded.filter((id: unknown) => typeof id === 'string'));
+    } catch {
+        return new Set();
+    }
+}
+
+function writeTabExcluded(target: AgentSessionTarget, excluded: ReadonlySet<string>): void {
+    try {
+        tabStorage()?.setItem(TAB_AGENT_CONNECTIONS_KEY, JSON.stringify({ ...target, excluded: [...excluded] }));
+    } catch {
+        // Without storage, a reload allows every connection again
+    }
+}
+
 /// The mode of the prompt and the harness of the line, as the tab left them before a reload
 function readTabConnect(): { mode: ComposerMode; harness: ConnectHarness } {
     let stored: { mode?: unknown; harness?: unknown } | null = null;
@@ -100,6 +124,10 @@ export interface AgentConnect {
     target: AgentSessionTarget | null;
     /// Wait on a new port and secret, e.g. when the port is taken
     renewTarget: () => void;
+    /// The connections that the user unticked for the agent, every other connection is allowed
+    excludedConnections: ReadonlySet<string>;
+    /// Allow or forbid a connection for the agent
+    toggleConnection: (connectionId: string) => void;
 }
 
 /// The workbooks that the page shows, a session gets a copy of each once its server answers
@@ -172,6 +200,45 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         copied.current.copies?.dispose();
         copied.current = { target: null, workbooks: new Set(), copies: null };
     }, []);
+    // The connections of the agent, per target. The session gets them once its server answers and after every change.
+    const [agentSelection, setAgentSelection] = React.useState(() => ({ target, excluded: readTabExcluded(target) }));
+    const excluded = agentSelection.target === target ? agentSelection.excluded : readTabExcluded(target);
+    const excludedRef = React.useRef(excluded);
+    excludedRef.current = excluded;
+    const toggleConnection = React.useCallback((connectionId: string) => {
+        if (target == null) return;
+        setAgentSelection(prev => {
+            const next = new Set(prev.target === target ? prev.excluded : readTabExcluded(target));
+            if (!next.delete(connectionId)) next.add(connectionId);
+            writeTabExcluded(target, next);
+            return { target, excluded: next };
+        });
+    }, [target]);
+    const sentConnections = React.useRef<{ target: AgentSessionTarget | null; text: string | null }>({ target: null, text: null });
+    const sendConnections = React.useCallback(() => {
+        const followed = store.current;
+        if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
+        const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
+        const { allowed } = agentConnections(connections, runtime.store.get('connectionList', 'root'), excludedRef.current);
+        const text = JSON.stringify(allowed);
+        if (sentConnections.current.target === target && sentConnections.current.text === text) return;
+        sentConnections.current = { target, text };
+        writeAgentSessionConnections(target, allowed).catch(error => {
+            // The next state tries again
+            if (sentConnections.current.text === text) sentConnections.current = { target: null, text: null };
+            logger.warn('Cannot tell the session the connections of the agent', { error: stringifyError(error) }, LOG_CTX);
+        });
+    }, [runtime, target, store, logger]);
+    React.useEffect(() => sendConnections(), [excluded, sendConnections]);
+    React.useEffect(() => {
+        if (runtime == null) return;
+        const connections = runtime.store.subscribeKind('connection', sendConnections);
+        const list = runtime.store.subscribe('connectionList', 'root', sendConnections);
+        return () => {
+            connections();
+            list();
+        };
+    }, [runtime, sendConnections]);
     const shownValue = React.useMemo<ShownWorkbooks>(() => ({
         show: workbookId => {
             shown.current.set(workbookId, (shown.current.get(workbookId) ?? 0) + 1);
@@ -200,6 +267,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             // The copies never end the stream of the session
             try {
                 copyShown();
+                sendConnections();
                 void copies?.update(state);
                 // An ended session takes no edits of the page
                 if (state.ended) copies?.dispose();
@@ -226,7 +294,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             }
         })();
         return () => controller.abort();
-    }, [target, store, logger, updateConnect, copyShown, copiesOf]);
+    }, [target, store, logger, updateConnect, copyShown, copiesOf, sendConnections]);
     const connectValue = React.useMemo<AgentConnect>(() => ({
         mode: connect.mode,
         setMode: mode => updateConnect({ mode }),
@@ -234,7 +302,9 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         setHarness: harness => updateConnect({ harness }),
         target,
         renewTarget: () => follow(newAgentConnectTarget()),
-    }), [connect, target, updateConnect, follow]);
+        excludedConnections: excluded,
+        toggleConnection,
+    }), [connect, target, updateConnect, follow, excluded, toggleConnection]);
     return (
         <FOLLOWED_CTX.Provider value={store}>
             <SHOWN_CTX.Provider value={shownValue}>

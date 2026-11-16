@@ -182,6 +182,8 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     let results = [];
     // The requests for results, the page fetches them for its query result cache
     const resultRequests = [];
+    // The connections that the page let the agent use, in the order it sent them
+    const connectionLists = [];
     let clock = 0;
     const announce = workbookId => {
         const named = files.has('dashql-workbook.json')
@@ -217,6 +219,15 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
             });
             return;
         }
+        if (request.method === 'PUT' && request.url === `/v1/connections/${encodeURIComponent(token)}`) {
+            const chunks = [];
+            request.on('data', chunk => chunks.push(chunk));
+            request.on('end', () => {
+                connectionLists.push(JSON.parse(Buffer.concat(chunks).toString('utf8')).connections);
+                response.writeHead(204).end();
+            });
+            return;
+        }
         if (request.method === 'GET' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
             resultRequests.push(request.url.split('/').pop());
             return response.writeHead(404).end();
@@ -236,6 +247,7 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
         port: server.address().port,
         writes,
         resultRequests,
+        connectionLists,
         push: next => {
             state = { ...state, ...next, version: state.version + 1 };
             broadcast();
@@ -335,6 +347,20 @@ async function testAppAgentSession(page, navigate) {
         const key = 'ab'.repeat(32);
         connected.agentRan(script.workbookId, [{ script: script.path.split('/').pop(), key, rows: 1, error: null, cached: false }]);
         await waitUntil(() => connected.resultRequests.includes(key));
+
+        // The agent may use every connection, the user unticks one
+        await waitUntil(() => connected.connectionLists.length > 0);
+        const every = connected.connectionLists[connected.connectionLists.length - 1];
+        assert.ok(every.length > 0);
+        const picker = page.getByTestId('composer-agent-connections');
+        await picker.getByText(`${every.length} / ${every.length} connections`).waitFor();
+        await picker.click();
+        await page.locator(`[data-connection="${every[0].connectionId}"]`).click();
+        await waitUntil(() => {
+            const last = connected.connectionLists[connected.connectionLists.length - 1];
+            return last.length === every.length - 1 && !last.some(connection => connection.connectionId === every[0].connectionId);
+        });
+        await picker.getByText(`${every.length - 1} / ${every.length} connections`).waitFor();
     } finally {
         await connected.close();
     }

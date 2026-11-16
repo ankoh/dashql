@@ -1,10 +1,17 @@
 // The journal of the session of a workspace (@ankoh/dashql/platform/session/workbook_journal): dashql
 // commands append their log records, `dashql session serve` reads them.
-import { appendFileSync, existsSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
-import { isSessionName, sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platform/session/workbook_journal';
+import {
+    isSessionName,
+    parseSessionConnections,
+    sessionJournalPath,
+    SESSION_CONNECTIONS_FILE,
+    SESSION_JOURNAL_FOLDER,
+    type SessionConnections,
+} from '@ankoh/dashql/platform/session/workbook_journal';
 import type { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
 
@@ -50,4 +57,16 @@ export async function workbookFolderPaths(storage: NativeStorageBackend): Promis
         ...stamps.scripts.map(file => `${STORAGE_SCRIPTS_FOLDER}/${file.name}`),
         ...stamps.attachments.map(file => `${STORAGE_ATTACHMENTS_FOLDER}/${file.name}`),
     ];
+}
+
+/// The connections that the tab of a session of `dashql connect` lets the agent use, null outside such a session and
+/// before the tab told them: every connection then
+export function readSessionConnections(workspace: string, session: string | null): SessionConnections | null {
+    if (session == null || !isSessionName(session)) return null;
+    const file = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_CONNECTIONS_FILE);
+    try {
+        return parseSessionConnections(readFileSync(file, 'utf8'));
+    } catch {
+        return null;
+    }
 }

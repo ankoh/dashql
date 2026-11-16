@@ -89,6 +89,8 @@ export interface WorkbookComposerProps {
     renameScriptRef?: React.RefObject<((from: string, to: string) => void) | null>;
     /// Picks the connection that the draft runs on
     connectionPicker?: React.ReactNode;
+    /// Picks the connections that the agent may use, in place of the connection picker in AI
+    agentConnectionsPicker?: React.ReactNode;
     /// The workbook of the draft, set while the connection of the draft is not connected.
     /// A SQL draft is not sent then, the connections of the workbook ask for attention instead.
     offlineWorkbookId?: string | null;
@@ -368,7 +370,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                         </SegmentedControl>
                     )}
                     <div className={styles.composer_trailing_actions}>
-                        {props.connectionPicker}
+                        {ai && props.agentConnectionsPicker != null ? props.agentConnectionsPicker : props.connectionPicker}
                         {props.snippetConnector != null && (
                             <SnippetsOverlay
                                 scriptName="the prompt"

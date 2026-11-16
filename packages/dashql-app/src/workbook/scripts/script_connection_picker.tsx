@@ -159,6 +159,8 @@ interface MenuProps {
     connectionId: string | null;
     /// Pick a connection
     onPick: (connectionId: string) => void;
+    /// A menu that ticks connections: is a connection ticked? A pick toggles it, the trailing visual is a checkbox.
+    checked?: (connectionId: string) => boolean;
 }
 
 /// The connections a script or a shell can run on, the connections of the workbook first.
@@ -182,7 +184,9 @@ export function ConnectionMenu(props: MenuProps) {
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}
-            aria-current={connection.connectionId === props.connectionId ? 'true' : undefined}
+            aria-current={props.checked == null && connection.connectionId === props.connectionId ? 'true' : undefined}
+            aria-pressed={props.checked?.(connection.connectionId)}
+            data-connection={connection.connectionId}
             onClick={() => props.onPick(connection.connectionId)}
         >
             <ActionList.Leading>
@@ -193,7 +197,11 @@ export function ConnectionMenu(props: MenuProps) {
                     <ConnectionLabelView parts={connectionLabelParts(connection, ordinals.get(connection.connectionId) ?? null)} />
                 </ActionList.ItemTextTitle>
             </ActionList.ItemText>
-            <ActionList.Trailing><HealthDot health={connection.connectionHealth} /></ActionList.Trailing>
+            <ActionList.Trailing>
+                {props.checked == null
+                    ? <HealthDot health={connection.connectionHealth} />
+                    : <input type="checkbox" className={styles.check} checked={props.checked(connection.connectionId)} readOnly tabIndex={-1} aria-hidden="true" />}
+            </ActionList.Trailing>
         </ActionList.ListItem>
     );
     return (
