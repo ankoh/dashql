@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
 import {
     STORAGE_WORKBOOK_FILE,
     STORAGE_ATTACHMENTS_FOLDER,

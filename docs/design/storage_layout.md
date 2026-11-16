@@ -207,7 +207,7 @@ Connections, the manifest, the workbook tree, the shell files and the instances 
 
 The embedded Hyper reads the attachments of a workbook from its OPFS folder `workbooks/<id>/attachments/` (of a
 native workbook, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
-(`workbook/attachments/attachment_mounts.ts`). The app mounts the folder before a plan scans an attachment and before it
+(`platform/workbook/attachment_mounts.ts` of `@ankoh/dashql`). The app mounts the folder before a plan scans an attachment and before it
 reads the columns of a Parquet attachment. A change of the attachments, in the app or in a native folder, marks the
 mount stale, its next use refreshes it so Hyper looks up the files again. Closing the workbook removes the mount.
 
@@ -228,7 +228,7 @@ tests share its OPFS. They keep every file in `tests/` instead of the OPFS root:
 `setOPFSAppFolder('tests')` before it loads a test, `getOPFSRoot()` then returns `tests/` and `hyperOPFSRoot()`
 returns `/mnt/fs/tests`, the test engine logs to `tests/logs/`. App code never calls
 `navigator.storage.getDirectory()` or writes `/mnt/fs` itself, it goes through these two functions of
-`src/platform/platform/opfs_root.ts`. Test databases live in an instance folder of the frame, see `testDatabasePath()`. The
+`src/platform/opfs_root.ts`. Test databases live in an instance folder of the frame, see `testDatabasePath()`. The
 cleanup of the app lists `tests/` as files of the browser tests.
 
 ## Versions and migrations

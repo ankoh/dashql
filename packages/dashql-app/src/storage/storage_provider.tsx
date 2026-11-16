@@ -5,7 +5,7 @@ import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { type WorkbookLocation } from './workbook_locator.js';
 import { type WorkbookTreeFolder, emptyWorkbookTree } from '@ankoh/dashql/platform/storage/workbook_tree';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';

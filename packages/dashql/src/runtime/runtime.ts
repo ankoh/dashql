@@ -3,11 +3,11 @@ import * as flatbuffers from 'flatbuffers';
 import type * as arrow from 'apache-arrow';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { clientContextJson, createComputePlatform } from './compute/compute_platform.js';
-import { ComputeDatabase, type ComputeDatabaseProvider } from './compute/compute_database.js';
-import type { EmbeddedClientContext } from '../platform/platform/database/embedded_database.js';
-import type { HttpClient } from '../platform/platform/http/http_client.js';
-import { stringifyError, type Logger } from '../platform/platform/logger/logger.js';
+import { clientContextJson, createComputePlatform } from './compute_platform.js';
+import { ComputeDatabase, type ComputeDatabaseProvider } from './compute_database.js';
+import type { EmbeddedClientContext } from '../platform/embedded_database.js';
+import type { HttpClient } from '../platform/http_client.js';
+import { stringifyError, type Logger } from '../platform/logger/logger.js';
 import { HandleTable } from './store/handles.js';
 import { RuntimeStore } from './store/runtime_store.js';
 import { createRuntimeTables, isArrowTable, type PlatformTables } from './store/runtime_tables.js';
@@ -15,20 +15,20 @@ import type { UpdateScheduler } from './store/update_scheduler.js';
 import { QueryChannels } from './query/query_channels.js';
 import { createQueryProjection } from './query/query_projection.js';
 import type { QueryResultCache } from '../platform/query/query_result_cache.js';
-import { createProgressLayoutConfig } from '../platform/query/profile/profile_layout_config.js';
+import { createProgressLayoutConfig } from '../platform/query/profile_layout_config.js';
 import type { CancelQuery, QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
 import { createConnectionAction, type ConnectionState, type NewConnection } from '../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../platform/connections/connection_params.js';
-import { loadClientFunctionSpec } from '../platform/connections/clfn/clfn_specs.js';
-import type { OAuthFlow } from '../platform/oauth/oauth_flow.js';
+import { loadClientFunctionSpec } from '../platform/connections/clfn_specs.js';
+import type { OAuthFlow } from '../platform/oauth_flow.js';
 import { PlatformRequests } from './platform_requests.js';
-import { createRuntimeStorage, StorageCommands } from './storage/runtime_storage.js';
+import { createRuntimeStorage, StorageCommands } from './runtime_storage.js';
 import type { StorageBackend } from '../platform/storage/storage_backend.js';
-import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook/scripts/workbook_projection.js';
-import type { ScriptData, WorkbookScripts } from '../platform/workbook/scripts/workbook_scripts.js';
-import { createRunMounts } from './workbook/scripts/run_mounts.js';
+import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook_projection.js';
+import type { ScriptData, WorkbookScripts } from '../platform/workbook/workbook_scripts.js';
+import { createRunMounts } from './run_mounts.js';
 import { CachePins } from './query/cache_pins.js';
-import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/scripts/workbook_execution.js';
+import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
 import { emptyWorkbookTables, provideWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 import { provideStorageVersions } from '../platform/storage/storage_versions.js';
 
@@ -67,7 +67,7 @@ export interface RuntimeOptions {
     /// The cache of query results, null without one
     resultCache?: QueryResultCache | null;
     /// The `.dashql` archives over the handle table of the runtime, e.g. `createRuntimeArchives` of
-    /// `storage/workbook_archives.ts`. Without, the runtime imports and exports no archives.
+    /// `workbook_archives.ts`. Without, the runtime imports and exports no archives.
     archives?: RuntimeArchivesFactory | null;
     /// Run the catalog loader, true by default. A run of the command line tool and most tests don't describe their
     /// connections.

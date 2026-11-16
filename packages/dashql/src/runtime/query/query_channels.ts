@@ -9,11 +9,11 @@ import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
 import { QueryCacheMissError, type QueryResultCache } from '../../platform/query/query_result_cache.js';
 import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
-import { createTrace } from '../../platform/platform/logger/trace_context.js';
-import { LoggableException, stringifyError, type Logger } from '../../platform/platform/logger/logger.js';
-import type { LogRecord } from '../../platform/platform/logger/log_buffer.js';
-import type { EmbeddedComputeDatabase } from '../../platform/platform/database/embedded_database.js';
-import { supportsParquet, type ParquetDatabase } from '../../platform/platform/hyperdb/hyperdb_parquet_export.js';
+import { createTrace } from '../../platform/logger/trace_context.js';
+import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
+import type { LogRecord } from '../../platform/logger/log_buffer.js';
+import type { EmbeddedComputeDatabase } from '../../platform/embedded_database.js';
+import { supportsParquet, type ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 
 /// The compute database of the platform, it resolves once the platform set it up
 type ComputeDatabase = () => Promise<EmbeddedComputeDatabase>;

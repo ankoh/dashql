@@ -14,11 +14,11 @@ import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
-import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from './script_selection.js';
 import { ScriptEditor } from './script_editor.js';
 import type { RenameDraftReferences } from './script_rename.js';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 
 export interface ScriptEditorDialogProps {
     workbookScripts: WorkbookScripts;

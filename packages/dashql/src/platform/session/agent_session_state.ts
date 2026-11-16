@@ -1,5 +1,5 @@
-import type { OAuthRedirectData } from '../oauth/oauth_types.js';
-import type { LogRecord } from '../platform/logger/log_buffer.js';
+import type { OAuthRedirectData } from '../oauth_types.js';
+import type { LogRecord } from '../logger/log_buffer.js';
 import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
 
 /// The events of a harness that its hooks send to `dashql session serve`, docs/wip/agent_session.md

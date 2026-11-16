@@ -15,10 +15,10 @@ import http from 'node:http';
 import type * as dashql from '@ankoh/dashql';
 import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import type { OAuthFlow, OAuthLoopbackCallback } from '@ankoh/dashql/platform/oauth/oauth_flow';
-import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
-import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
-import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { OAuthFlow, OAuthLoopbackCallback } from '@ankoh/dashql/platform/oauth_flow';
+import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth_types';
+import type { HttpClient } from '@ankoh/dashql/platform/http_client';
+import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import type {
     AgentSessionLogin,
     AgentSessionLoginAnswer,

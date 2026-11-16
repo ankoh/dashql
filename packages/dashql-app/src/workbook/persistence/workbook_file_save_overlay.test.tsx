@@ -10,7 +10,7 @@ import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { createTestRoot } from '../../tests/react_root.js';
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import type { QueryResultCache } from '@ankoh/dashql/platform/query/query_result_cache';

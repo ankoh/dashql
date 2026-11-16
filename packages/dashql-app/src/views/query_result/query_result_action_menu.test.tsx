@@ -6,7 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { scriptResultOwner } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { scriptResultOwner } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';

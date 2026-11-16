@@ -1,5 +1,5 @@
 import { STORAGE_SHELL_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
-import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
+import { getOPFSRoot } from '@ankoh/dashql/platform/opfs_root';
 
 const HISTORY_FILE = 'salesforce-login-history.json';
 const HISTORY_LOCK = 'dashql-salesforce-login-history';

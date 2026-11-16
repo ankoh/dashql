@@ -3,7 +3,7 @@ import * as styles from './workbook_shell_page.module.css';
 
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import {
     DashQLShell,
 } from '../../shell/api.js';

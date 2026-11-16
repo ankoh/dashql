@@ -9,7 +9,7 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import type { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
 import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
-import type { ModifyWorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';

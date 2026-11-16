@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { LogLevel } from '@ankoh/dashql/platform/platform/logger/log_buffer';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { LogLevel } from '@ankoh/dashql/platform/logger/log_buffer';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../platform/logger/logger_provider.js';
 import { testLogRecord } from '@ankoh/dashql/platform/testing/test_logger';
 import { ROW_HEIGHT } from '../ui/logs/log_viewer.js';

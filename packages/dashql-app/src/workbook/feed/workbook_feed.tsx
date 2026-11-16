@@ -28,7 +28,7 @@ import {
 import { ConnectionHealth, ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
-import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import {
     useCatalog,
@@ -42,7 +42,7 @@ import {
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { renameAttachment } from '../attachments/attachment_rename.js';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
@@ -56,7 +56,7 @@ import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './workbook_feed_drag.js';
 import { ATTACHMENT_EXTENSION } from '@ankoh/dashql/platform/storage/storage_backend';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';

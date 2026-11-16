@@ -9,10 +9,10 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { exportArrowTableAsParquet, supportsParquetExport } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
+import { exportArrowTableAsParquet, supportsParquetExport } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 
 const enum DownloadFormat {

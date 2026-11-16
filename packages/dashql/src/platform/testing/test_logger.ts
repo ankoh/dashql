@@ -1,6 +1,6 @@
-import type { LogRecord } from '../platform/logger/log_buffer.js';
-import { LogLevel } from '../platform/logger/log_buffer.js';
-import { Logger } from '../platform/logger/logger.js';
+import type { LogRecord } from '../logger/log_buffer.js';
+import { LogLevel } from '../logger/log_buffer.js';
+import { Logger } from '../logger/logger.js';
 
 /// A log record for tests, an info message unless overridden
 export function testLogRecord(fields: Partial<LogRecord> = {}): LogRecord {

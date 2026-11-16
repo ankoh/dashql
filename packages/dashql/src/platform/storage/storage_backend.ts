@@ -2,8 +2,8 @@ import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
 import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
 import type { WorkbookEntry as WorkbookTreeEntry, WorkbookTreeFolder } from './workbook_tree.js';
 
-import type { FileStamp } from '../platform/file_system.js';
-import { hyperOPFSRoot } from '../platform/opfs_root.js';
+import type { FileStamp } from '../file_system.js';
+import { hyperOPFSRoot } from '../opfs_root.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';

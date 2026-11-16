@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
 import { formatCurlCommand, HttpRequestEntry, HttpRequestLog, maskHeaders, RecordingHttpClient } from './http_request_log.js';
 
 /// A response with a body that can be read once, like a fetch Response

@@ -2,16 +2,16 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as core from '@ankoh/dashql';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
+import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
-import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
+import type { HttpClient } from '@ankoh/dashql/platform/http_client';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
-import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
+import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp, type FakeSalesforceOptions } from './salesforce_test_http.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

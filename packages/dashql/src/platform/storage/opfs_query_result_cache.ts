@@ -1,8 +1,8 @@
 import type * as arrow from 'apache-arrow';
 
 import type { CacheFileStat, QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
-import { copyArrowTableAsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
-import { getOPFSRoot } from '../platform/opfs_root.js';
+import { copyArrowTableAsParquet, type ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
+import { getOPFSRoot } from '../opfs_root.js';
 import { crc32CheckStream } from '../utils/crc32.js';
 
 /// The folder of the query result cache in the origin private file system

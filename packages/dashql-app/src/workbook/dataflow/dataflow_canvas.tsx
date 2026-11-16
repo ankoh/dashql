@@ -9,15 +9,15 @@ import type { ConnectionState } from '@ankoh/dashql/platform/connections/connect
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
-import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowGraph, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
-import type { SessionInput } from '@ankoh/dashql/platform/workbook/inputs/workbook_inputs';
+import type { SessionInput } from '@ankoh/dashql/platform/workbook/workbook_inputs';
 import {
     buildDataflowScene,
     dataflowRouteKey,

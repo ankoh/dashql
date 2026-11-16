@@ -5,7 +5,7 @@ import '@ankoh/dashql-ui/styles/colors.css';
 import '@ankoh/dashql-ui/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import '../connections/clfn/bundled_clfn_specs.js';
-import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql/platform/platform/opfs_root';
+import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql/platform/opfs_root';
 import { provideWorkbookTables } from '@ankoh/dashql/platform/storage/workbook_tables';
 import { provideStorageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
 import * as core from '@ankoh/dashql';

@@ -23,7 +23,7 @@ import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_colu
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
-import { collectSearchableResultColumns } from '@ankoh/dashql/platform/compute/sql/query_result_search_sql';
+import { collectSearchableResultColumns } from '@ankoh/dashql/platform/compute/query_result_search_sql';
 
 const LOG_CTX = 'data_table';
 

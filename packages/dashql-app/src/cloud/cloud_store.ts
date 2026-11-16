@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 
 import { DASHQL_VERSION } from '../globals.js';
-import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
-import { prepareHyperArrowInsert } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_arrow_insert';
+import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
+import { prepareHyperArrowInsert } from '@ankoh/dashql/platform/hyperdb/hyperdb_arrow_insert';
 import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
-import type { ParquetReadDatabase } from '@ankoh/dashql/runtime/storage/workbook_archives';
+import type { ParquetReadDatabase } from '@ankoh/dashql/runtime/workbook_archives';
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,

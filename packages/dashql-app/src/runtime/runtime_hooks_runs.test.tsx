@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql/platform/query/query_execution_state';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';

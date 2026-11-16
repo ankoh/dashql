@@ -3,7 +3,7 @@
 // the target `workbook_journal` are markers that tell what changed: the files of a workbook folder, a script that
 // started, its progress and its result. The server folds the markers into the workbooks of the session and keeps the
 // latest other records as the log of the commands; the page fetches the files and the results that it lacks.
-import type { LogKeyValues, LogRecord, LogValue } from '../platform/logger/log_buffer.js';
+import type { LogKeyValues, LogRecord, LogValue } from '../logger/log_buffer.js';
 
 /// The folder of the journal in the folder of a session
 export const SESSION_JOURNAL_FOLDER = '.dashql';

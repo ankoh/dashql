@@ -43,7 +43,7 @@ const { createRuntime } = await load('runtime/runtime.js');
 const { createNodePlatform } = await load('runtime/node/node_platform.js');
 const { NativeStorageBackend } = await load('platform/storage/native_storage_backend.js');
 const { NODE_FILE_SYSTEM } = await load('platform/node/node_file_system.js');
-const { Logger } = await load('platform/platform/logger/logger.js');
+const { Logger } = await load('platform/logger/logger.js');
 const { newDefaultHyperWasmConnection } = await load('platform/connections/connection_params.js');
 
 class SilentLogger extends Logger {

@@ -1,8 +1,8 @@
 import type * as core from '@ankoh/dashql';
 
-import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction } from '../scripts/script_creation.js';
-import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql/platform/workbook/script_types';
 import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 
 /// The placement of the `@flow` tag of a script, null without a tag

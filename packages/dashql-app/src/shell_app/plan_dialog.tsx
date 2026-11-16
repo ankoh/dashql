@@ -7,7 +7,7 @@ import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
-import { rotateProfileLayoutOrientation } from '@ankoh/dashql/platform/query/profile/profile_layout_config';
+import { rotateProfileLayoutOrientation } from '@ankoh/dashql/platform/query/profile_layout_config';
 import { ProfileExecutionState } from '@ankoh/dashql/platform/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';

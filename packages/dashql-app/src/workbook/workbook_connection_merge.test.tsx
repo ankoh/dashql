@@ -7,7 +7,7 @@ import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_f
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql/platform/query/query_execution_state';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';

@@ -1,7 +1,7 @@
 import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
 import { type DataFile, type DataFileContent, type ExpectedStamp, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, WorkbookFolderMissingError, isAttachmentFileName, matchesExpectedStamp, validateDataFileName } from './storage_backend.js';
 
-import { joinPath, type FileStamp, type FileSystem } from '../platform/file_system.js';
+import { joinPath, type FileStamp, type FileSystem } from '../file_system.js';
 
 /// The name of the workbook-level .gitignore that keeps generated files out of version control.
 const GITIGNORE_FILE = '.gitignore';

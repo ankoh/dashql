@@ -4,8 +4,8 @@ import * as styles from './script_diagnostics.module.css';
 
 import { AlertIcon, XCircleFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 
-import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
 import { formattingDialectForConnector } from './script_format.js';
 import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';

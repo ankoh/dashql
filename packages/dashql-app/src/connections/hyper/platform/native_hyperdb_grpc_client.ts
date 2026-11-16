@@ -22,9 +22,9 @@ import {
     QueryExecutionProgress,
     QueryExecutionResponseStream, QueryExecutionMetrics,
 } from '@ankoh/dashql/platform/query/query_execution_state';
-import { ChannelArgs, ChannelError } from '@ankoh/dashql/platform/platform/channel_common';
+import { ChannelArgs, ChannelError } from '@ankoh/dashql/platform/channel_common';
 import { decodeGrpcErrorHeaders, HyperQueryError } from '@ankoh/dashql/platform/connections/hyper/hyper_error_info';
-import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { AsyncConsumer } from '@ankoh/dashql/platform/utils/async_consumer';
 import { AsyncValue } from '@ankoh/dashql/platform/utils/async_value';
 import { yieldToBrowser } from '@ankoh/dashql/platform/utils/yield_to_browser';

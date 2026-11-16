@@ -1,4 +1,4 @@
-import type { OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
+import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
 import { AppFlavor, findFlavor } from '../config/flavors.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
 

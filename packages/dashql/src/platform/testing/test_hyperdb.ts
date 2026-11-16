@@ -1,4 +1,4 @@
-import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB } from '../hyperdb/hyperdb_wasm.js';
 
 declare global {
     /// Creates a HyperDB with compute, default and snippets databases of its own on the engine that the tests of a

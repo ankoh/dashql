@@ -2,7 +2,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as wkt from "@bufbuild/protobuf/wkt";
 import * as pb from "../../proto.js";
 
-import { LoggableException } from "../../platform/logger/logger.js";
+import { LoggableException } from "../../logger/logger.js";
 
 /// The JSON error body of the HTTP API of Hyper (v3)
 export interface QueryErrorResponse {

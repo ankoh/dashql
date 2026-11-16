@@ -129,7 +129,7 @@ goes through a `dashql` command, so the commands tell what they changed.
   `agent/agent_session_logins.test.ts`: the tab sends the password of a connection that the agent may use only.
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts, the edits of the
   user into the copy, a copy adopted after a reload, the results of the agent once.
-- `runtime/workbook/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
+- `runtime/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
   not again after a reload, that an edit reaches the copy, that a rewrite of the agent is staged to accept and that
   the page fetches a result that the journal names, and that the menu of the connections of the agent sends the

@@ -1,10 +1,10 @@
 import type * as core from '../../core/index.js';
-import type { Logger } from '../../platform/platform/logger/logger.js';
+import type { Logger } from '../../platform/logger/logger.js';
 import type { RuntimeOptions } from '../runtime.js';
 import type { StorageBackend } from '../../platform/storage/storage_backend.js';
-import type { OAuthFlow } from '../../platform/oauth/oauth_flow.js';
+import type { OAuthFlow } from '../../platform/oauth_flow.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
-import { WebHttpClient } from '../../platform/platform/http/web_http_client.js';
+import { WebHttpClient } from '../../platform/web_http_client.js';
 import { createDashQLCoreSetup } from '../../platform/node/node_core.js';
 
 /// Node has no OAuth flow yet, `dashql auth` brings one (docs/design/dashql_runtime.md)

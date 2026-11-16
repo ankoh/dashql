@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { isWorkbookBusy, pickWorkbookStatus, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { WORKBOOK_LOG_KEY } from './workbook_log.js';
 
 /// The status of a workbook as the bars of Wobble show it

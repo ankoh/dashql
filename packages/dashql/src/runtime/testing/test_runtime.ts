@@ -2,18 +2,18 @@ import * as dashql from '../../core/index.js';
 
 import type { ConnectionState } from '../../platform/connections/connection_state.js';
 import { createTestConnection, type TestConnectionOptions } from './connection_fixtures.js';
-import type { OAuthFlow } from '../../platform/oauth/oauth_flow.js';
-import type { EmbeddedComputeDatabase } from '../../platform/platform/database/embedded_database.js';
-import type { HttpClient } from '../../platform/platform/http/http_client.js';
+import type { OAuthFlow } from '../../platform/oauth_flow.js';
+import type { EmbeddedComputeDatabase } from '../../platform/embedded_database.js';
+import type { HttpClient } from '../../platform/http_client.js';
 import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
 import { createRuntime, type Runtime, type RuntimeOptions } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import type { StorageBackend, WorkbookData } from '../../platform/storage/storage_backend.js';
 import { storageVersions } from '../../platform/storage/storage_versions.js';
-import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/scripts/workbook_scripts.js';
+import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/workbook_scripts.js';
 import { TestLogger } from '../../platform/testing/test_logger.js';
 import { WorkbookTestBackend } from '../../platform/testing/workbook_test_backend.js';
-import { createRuntimeArchives, type ParquetReadDatabase } from '../storage/workbook_archives.js';
+import { createRuntimeArchives, type ParquetReadDatabase } from '../workbook_archives.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -43,8 +43,8 @@ const SEAMS = [
 ];
 /// The modules that still use a seam, each needs another way to what it does before Node can use it
 const KNOWN_SEAMS = new Map([
-    ['platform/platform/electron_fs.ts', ['the Electron bridge']],
-    ['platform/platform/opfs_root.ts', ['the origin private file system']],
+    ['platform/electron_fs.ts', ['the Electron bridge']],
+    ['platform/opfs_root.ts', ['the origin private file system']],
 ]);
 
 const IMPORT = /(?:^|[\n;])\s*(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;

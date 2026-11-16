@@ -24,7 +24,7 @@ import {
     type WorkbookImportProgressConsumer,
 } from '../workbook/persistence/workbook_import_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 import {
@@ -32,7 +32,7 @@ import {
     workbookCloudLink,
     type WorkbookAction,
     type WorkbookScripts,
-} from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { useDeleteWorkbook } from '../workbook/workbook_lifecycle.js';
 import { useClouds, type CloudState } from './cloud_state.js';
 import { useCloudQueries } from './cloud_query.js';

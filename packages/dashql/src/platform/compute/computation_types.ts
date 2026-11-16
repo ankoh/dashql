@@ -2,8 +2,8 @@ import * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
 
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { parseDataSearchMatches } from './sql/query_result_search_sql.js';
-import type { LoggerLike } from '../platform/logger/logger.js';
+import { parseDataSearchMatches } from './query_result_search_sql.js';
+import type { LoggerLike } from '../logger/logger.js';
 
 // The computation of a result as the app reads it: the view of the runtime (`ComputationView` of the module, see
 // docs/design/dashql_runtime.md) with the tables of the handle table, and the summaries of the columns that the plots

@@ -3,9 +3,9 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import * as arrow from 'apache-arrow';
 
-import type { HttpClient, HttpFetchResult } from '../../platform/http/http_client.js';
-import type { OAuthFlow } from '../../oauth/oauth_flow.js';
-import type { OAuthRedirectData } from '../../oauth/oauth_types.js';
+import type { HttpClient, HttpFetchResult } from '../../http_client.js';
+import type { OAuthFlow } from '../../oauth_flow.js';
+import type { OAuthRedirectData } from '../../oauth_types.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 
 // The mock of Salesforce that the config of the app chooses: the setup of the runtime runs as it does against an org,

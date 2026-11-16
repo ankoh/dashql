@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HandleTable } from './handles.js';
 import { appendRowNumbers, createRuntimeTables } from './runtime_tables.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
-import type { HyperDB } from '../../platform/platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
 import { vectorFromArray } from '../../platform/testing/arrow_fixtures.js';
 import { openTestHyperDB } from '../../platform/testing/test_hyperdb.js';

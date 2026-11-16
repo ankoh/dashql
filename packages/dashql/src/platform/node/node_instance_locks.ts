@@ -4,7 +4,7 @@
 import { readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-import type { InstanceLocks } from '../platform/hyperdb/hyperdb_opfs_instance.js';
+import type { InstanceLocks } from '../hyperdb/hyperdb_opfs_instance.js';
 
 /// Does a process live?
 function alive(pid: number): boolean {

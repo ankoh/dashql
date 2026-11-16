@@ -5,7 +5,7 @@ table as a Parquet file, `<table>.parquet`. The cloud keeps published workbooks 
 versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter, the workbook format of
 the core runtime (`workbook_format/tables.rs`); only the sink differs. The runtime of the module exports and imports them
 (`runtime/exports.rs` and `runtime/imports.rs` of `dashql-core-wasm`), the platform keeps the ZIP container and the
-Parquet files (`storage/workbook_archives.ts` of `packages/dashql/src/runtime`), and a cloud writes and reads the rows itself
+Parquet files (`workbook_archives.ts` of `packages/dashql/src/runtime`), and a cloud writes and reads the rows itself
 (`storage/workbook_tables.ts` has their types). The tables hold exactly one workbook, so no row names its workbook.
 
 ## Sharing a Workbook

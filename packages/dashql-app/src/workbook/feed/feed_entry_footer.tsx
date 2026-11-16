@@ -8,7 +8,7 @@ import { QueryResultView } from '../../views/query_result/query_result_view.js';
 import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
-import { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/script_types';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import { hasQueryProgress, QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
 import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';

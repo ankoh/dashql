@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { renameAttachment } from './attachment_rename.js';
 
 function workbook(fileName: string, name: string): Pick<WorkbookScripts, 'workbookId' | 'attachments'> {

@@ -1,5 +1,5 @@
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
+import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
 import type { AgentSessionLogin, AgentSessionLoginAnswer, AgentSessionOAuth } from '@ankoh/dashql/platform/session/agent_session_state';
 
 // The logins that runs of the agent wait for (docs/wip/agent_session.md, "Logins go through the page"): the process of

@@ -1,4 +1,4 @@
-import { LogLevel, type LogKeyValues, type LogRecord } from '../platform/logger/log_buffer.js';
+import { LogLevel, type LogKeyValues, type LogRecord } from '../logger/log_buffer.js';
 import { reduceAgentSessionJournal, createAgentSessionState } from './agent_session_state.js';
 import {
     JOURNAL_FILES,

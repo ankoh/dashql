@@ -10,7 +10,7 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { scriptResultOwner, type ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { scriptResultOwner, type ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { useRuntime, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';

@@ -19,8 +19,8 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/c
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
@@ -39,7 +39,7 @@ import { ResultTableOverlay } from '../../views/query_result/result_table_overla
 import { FeedEntryHeader } from './feed_entry_header.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { FEED_TOP_PADDING } from './workbook_feed_layout.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 

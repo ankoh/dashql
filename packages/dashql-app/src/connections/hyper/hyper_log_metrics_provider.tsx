@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@ankoh/dashql/platform/storage/storage_backend';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import {

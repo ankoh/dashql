@@ -8,7 +8,7 @@ import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } fro
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
+import { testRuntime } from '@ankoh/dashql/runtime/testing/connector_state';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

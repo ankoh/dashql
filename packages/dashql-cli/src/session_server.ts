@@ -4,7 +4,7 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync
 import { open } from 'node:fs/promises';
 import path from 'node:path';
 
-import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
+import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
 import {
     createAgentSessionState,
     parseAgentSessionOAuth,

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/script_types';
 import { authoredChartSpec, ChartBuilderOverlay, type ChartBuilderOverlayDependencies } from './chart_builder_overlay.js';
 import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';

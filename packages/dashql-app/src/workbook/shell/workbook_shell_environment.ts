@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql';
 
-import type { ClientFunctionCallDescription } from '@ankoh/dashql/platform/connections/clfn/clfn_spec';
+import type { ClientFunctionCallDescription } from '@ankoh/dashql/platform/connections/clfn_spec';
 import type { CancelQuery, QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import type { DashQLShellEnvironment } from '../../shell/api.js';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../../shell/shell_result.js';

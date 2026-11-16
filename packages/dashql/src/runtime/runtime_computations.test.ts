@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { createRuntime, type Runtime } from './runtime.js';
 import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from '../platform/compute/computation_types.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
-import type { HyperDB } from '../platform/platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/testing/test_logger.js';
 import { newDefaultHyperWasmConnection } from '../platform/connections/connection_params.js';
 import { QueryExecutionStatus, QueryType } from '../platform/query/query_execution_state.js';

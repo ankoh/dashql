@@ -75,7 +75,7 @@ The query of a connector selects the relations with `relation_filter` (`catalog_
 
 The standalone shell runs its statements on the session of a connection of its runtime to the embedded Hyper and tells
 the catalog loader about the relations they touched, the prompt returns once the loader answered
-(`runtime/connections/catalog/embedded_session.ts`).
+(`runtime/embedded_session.ts`).
 
 ## Relations that are gone
 

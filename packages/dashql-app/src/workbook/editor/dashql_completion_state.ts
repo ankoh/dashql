@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql';
 
-import type { ScriptSessionUpdate } from '@ankoh/dashql/platform/workbook/scripts/script_editor_state';
+import type { ScriptSessionUpdate } from '@ankoh/dashql/platform/workbook/script_editor_state';
 import { VariantKind } from '@ankoh/dashql/platform/utils/variant';
 
 /// The state of a completion in the editor. The editor owns it, the workbook scripts never see it.

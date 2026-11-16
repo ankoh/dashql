@@ -1,8 +1,8 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
-import { ChannelMetadataProvider } from '../../platform/channel_common.js';
-import type { EmbeddedClientContext } from '../../platform/database/embedded_database.js';
+import { ChannelMetadataProvider } from '../../channel_common.js';
+import type { EmbeddedClientContext } from '../../embedded_database.js';
 import { QueryExecutionResponseStream } from "../../query/query_execution_state.js";
 
 export interface AttachedDatabase {

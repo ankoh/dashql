@@ -6,7 +6,7 @@ import type {
     EmbeddedComputeDatabase,
     EmbeddedConnection,
     EmbeddedTableImportConnection,
-} from '@ankoh/dashql/platform/platform/database/embedded_database';
+} from '@ankoh/dashql/platform/embedded_database';
 
 /// A column of a query result or table.
 export interface HyperDBExtractColumn {

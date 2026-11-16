@@ -10,7 +10,7 @@ import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info
 import { useConnectionDraft } from './connection_draft.js';
 import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';

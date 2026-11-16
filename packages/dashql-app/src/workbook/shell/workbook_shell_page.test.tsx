@@ -13,9 +13,9 @@ import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { addTestConnection, runTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
-import { loadClientFunctionSpec } from '@ankoh/dashql/platform/connections/clfn/clfn_specs';
+import { loadClientFunctionSpec } from '@ankoh/dashql/platform/connections/clfn_specs';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';

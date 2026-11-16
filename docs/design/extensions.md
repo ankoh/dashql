@@ -26,7 +26,7 @@ A folder is named for the API, which needn't equal the namespace of its client f
 
 | Path | Read by |
 |---|---|
-| `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`connections/clfn/clfn_specs.ts`), for the binding of a connector. Every spec is a chunk of its own, so a connection only loads it when it needs it |
+| `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`connections/clfn_specs.ts`), for the binding of a connector. Every spec is a chunk of its own, so a connection only loads it when it needs it |
 | `<extension>/snippets/**/*.sql` | The snippet registry (`workbook/snippets/snippet_registry.ts`) |
 
 ## Snippets

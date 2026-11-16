@@ -16,7 +16,7 @@ import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_tes
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
-import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { CONNECTOR_INFOS } from '@ankoh/dashql/platform/connections/connector_info';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean } from '../persistence/query_result_cache_controls.js';

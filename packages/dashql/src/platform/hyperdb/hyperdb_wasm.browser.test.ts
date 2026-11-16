@@ -1,0 +1,961 @@
+// The adapter over the browser build of hyperdb-wasm with a fake client of its worker: files and directory handles are
+// mounted as the browser build mounts them. The adapter over the build of Node runs in node/node_hyperdb.node.test.ts.
+import * as arrow from 'apache-arrow';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// The engine class of the platform's build: the test drives it with a fake client of the engine worker
+import { HyperDB as HyperDBEngineClass } from 'hyperdb-wasm';
+
+import {
+    HyperDB,
+    type HyperDBEngine,
+    type HyperDBClient,
+    type HyperDBOptions,
+    type HyperDBResult,
+    type HyperDBSettings,
+} from './hyperdb_wasm.js';
+import { tableFromArrays } from '../testing/arrow_fixtures.js';
+
+type MountSource = Parameters<HyperDBClient['mount']>[0];
+/// A scripted poll result, hold answers pending while the client holds queries
+type ScriptedPoll = HyperDBResult | 'hold';
+
+function handle(value: number): HyperDBResult {
+    const payload = new Uint8Array(4);
+    new DataView(payload.buffer).setUint32(0, value, true);
+    return { state: 'ok', payload };
+}
+
+function ipc(table: arrow.Table): Uint8Array {
+    return arrow.tableToIPC(table, 'stream');
+}
+
+/// The query information the engine reports when finishing a query
+const QUERY_INFO = {
+    version: 1,
+    status: 'succeeded',
+    started: true,
+    statementKind: null,
+    producesRows: false,
+    rowCount: null,
+    columnCount: null,
+    cancellationRequestedByUser: false,
+    queryPlan: null,
+    dependencies: [],
+    timings: {
+        elapsedSeconds: null,
+        parsingSeconds: null,
+        compilationSeconds: null,
+        executionSeconds: null,
+        commitSeconds: null,
+        timeToScheduleSeconds: null,
+        timeToFirstResultSeconds: null,
+        cancellationSeconds: null,
+    },
+    preExecutionMetrics: null,
+    executionMetrics: null,
+};
+
+function createDatabase(client: HyperDBClient, options?: HyperDBOptions): Promise<HyperDB> {
+    return HyperDB.create(new HyperDBEngineClass(client) as unknown as HyperDBEngine, options);
+}
+
+/// A directory handle that already holds the permissions of the requested mode
+function directoryHandle(name: string): FileSystemDirectoryHandle {
+    return {
+        kind: 'directory',
+        name,
+        queryPermission: async () => 'granted',
+        requestPermission: async () => 'granted',
+    } as unknown as FileSystemDirectoryHandle;
+}
+
+class FakeHyperDBEngineClient implements HyperDBClient {
+    readonly calls: string[] = [];
+    readonly queryResults = new Map<string, Uint8Array>();
+    readonly temporaryFiles = new Map<string, Uint8Array>();
+    readonly externalFiles = new Map<string, File>();
+    readonly externalDirectories = new Map<string, { handle: FileSystemDirectoryHandle; mode: 'read' | 'readwrite' }>();
+    readonly insertedTables = new Map<string, arrow.Table>();
+    /// The column descriptors of the external scans by target table
+    readonly insertedColumns = new Map<string, string>();
+
+    connectCount = 0;
+    disconnectCount = 0;
+    terminateCount = 0;
+    activeOperationCount = 0;
+    maximumActiveOperationCount = 0;
+    failStartQuery = false;
+    failFinishQuery = false;
+    failExternalFileRemoval = false;
+    /// Scripted polls hold the query pending while set
+    holdQueries = true;
+    /// Scripted poll results by SQL text, they take precedence over queryResults
+    readonly scriptedQueries = new Map<string, ScriptedPoll[]>();
+
+    private nextConnection = 7;
+    private nextQuery = 100;
+    private nextFile = 1;
+    private readonly queries = new Map<number, ScriptedPoll[]>();
+
+    ready(): Promise<void> {
+        this.calls.push('ready');
+        return Promise.resolve();
+    }
+
+    initialize(settings: HyperDBSettings): Promise<HyperDBResult> {
+        this.calls.push(`initialize:${JSON.stringify(settings)}`);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    connect(settings?: Record<string, string>): Promise<HyperDBResult> {
+        const connection = this.nextConnection++;
+        this.calls.push(`connect:${connection}${settings == null ? '' : `:${JSON.stringify(settings)}`}`);
+        this.connectCount++;
+        return Promise.resolve(handle(connection));
+    }
+
+    disconnect(connection: number): Promise<HyperDBResult> {
+        this.calls.push(`disconnect:${connection}`);
+        this.disconnectCount++;
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+
+    async startQuery(connection: number, sql: string): Promise<HyperDBResult> {
+        const external = /^(CREATE TABLE|INSERT INTO) (.+?) (?:AS )?SELECT \* FROM external\('([^']+)', format => 'arrowstream', columns => descriptor\((.*)\)\)$/s.exec(sql);
+        if (external) {
+            const [, statement, target, path, columns] = external;
+            this.beginOperation();
+            this.calls.push(`insert:${connection}:${target}:${statement === 'CREATE TABLE'}`);
+            const query = this.nextQuery++;
+            const file = this.externalFiles.get(path);
+            if (!file) {
+                this.queries.set(query, [{ state: 'error', error: `missing external file: ${path}` }]);
+                return handle(query);
+            }
+            const table = arrow.tableFromIPC(new Uint8Array(await file.arrayBuffer()));
+            const previous = this.insertedTables.get(target);
+            if (statement === 'INSERT INTO' && !previous) {
+                this.queries.set(query, [{ state: 'error', error: `missing table: ${target}` }]);
+                return handle(query);
+            }
+            this.insertedTables.set(target, previous && statement === 'INSERT INTO' ? previous.concat(table) : table);
+            this.insertedColumns.set(target, columns);
+            this.queries.set(query, [{ state: 'done' }]);
+            return handle(query);
+        }
+        const sessionStatement = /^(?:CREATE|DROP|ATTACH|DETACH) DATABASE\b/.test(sql);
+        if (sessionStatement) {
+            this.beginOperation();
+            this.calls.push(`query:${connection}:${sql}`);
+            const query = this.nextQuery++;
+            this.queries.set(query, [{ state: 'done' }]);
+            return Promise.resolve(handle(query));
+        }
+        if (this.failStartQuery) {
+            return Promise.resolve({ state: 'busy', error: 'start failed' });
+        }
+        this.beginOperation();
+        this.calls.push(`query:${connection}:${sql}`);
+        const query = this.nextQuery++;
+        const scripted = this.scriptedQueries.get(sql);
+        const result = this.queryResults.get(sql);
+        this.queries.set(query, scripted
+            ? [...scripted]
+            : result
+                ? [{ state: 'chunk', payload: result }, { state: 'done' }]
+                : [{ state: 'error', error: `unexpected query: ${sql}` }]);
+        return Promise.resolve(handle(query));
+    }
+
+    insertArrowIPCFromPath(
+        connection: number,
+        path: string,
+        name: string,
+        schema: string | null,
+        create: boolean,
+        internal: boolean,
+    ): Promise<HyperDBResult> {
+        this.beginOperation();
+        this.calls.push(`insert:${connection}:${path}:${schema ?? ''}:${name}:${create}:${internal}`);
+        const query = this.nextQuery++;
+        const bytes = this.temporaryFiles.get(path);
+        if (!bytes) {
+            this.queries.set(query, [{ state: 'error', error: `missing temporary file: ${path}` }]);
+        } else {
+            const table = arrow.tableFromIPC(bytes);
+            const key = schema ? `${schema}.${name}` : name;
+            if (create) {
+                this.insertedTables.set(key, table);
+            } else {
+                const previous = this.insertedTables.get(key);
+                if (!previous) {
+                    this.queries.set(query, [{ state: 'error', error: `missing table: ${key}` }]);
+                    return Promise.resolve(handle(query));
+                }
+                this.insertedTables.set(key, previous.concat(table));
+            }
+            this.queries.set(query, [{ state: 'done' }]);
+        }
+        return Promise.resolve(handle(query));
+    }
+
+    createTemporaryFile(bytes: Uint8Array): Promise<HyperDBResult> {
+        const path = `/tmp/hyperdb/test-${this.nextFile++}.arrows`;
+        this.calls.push(`create-file:${path}`);
+        this.temporaryFiles.set(path, bytes.slice());
+        return Promise.resolve({ state: 'ok', payload: new TextEncoder().encode(path) });
+    }
+
+    removeFile(path: string): Promise<HyperDBResult> {
+        this.calls.push(`remove-file:${path}`);
+        this.temporaryFiles.delete(path);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    mount(source: MountSource, path: string, mode: 'read' | 'readwrite'): Promise<HyperDBResult> {
+        this.calls.push(`mount:${path}:${mode}`);
+        if (source.kind === 'browser-file') {
+            this.externalFiles.set(path, source.file);
+        } else if (source.kind === 'browser-directory') {
+            this.externalDirectories.set(path, { handle: source.handle as FileSystemDirectoryHandle, mode });
+        }
+        return Promise.resolve({ state: 'ok', payload: new TextEncoder().encode(path) });
+    }
+
+    unmount(path: string): Promise<HyperDBResult> {
+        this.calls.push(`unmount:${path}`);
+        if (this.failExternalFileRemoval) return Promise.resolve({ state: 'busy', error: 'External file has active readers' });
+        this.externalFiles.delete(path);
+        this.externalDirectories.delete(path);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    refreshMount(path: string): Promise<HyperDBResult> {
+        this.calls.push(`refresh:${path}`);
+        if (!this.externalDirectories.has(path)) return Promise.resolve({ state: 'error', error: 'External directory registration was not found' });
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    listMount(path: string): Promise<HyperDBResult> {
+        this.calls.push(`list:${path}`);
+        return Promise.resolve({ state: 'error', error: 'Listing a mount is not faked' });
+    }
+
+    readMountFile(path: string, file: string): Promise<HyperDBResult> {
+        this.calls.push(`read:${path}/${file}`);
+        return Promise.resolve({ state: 'error', error: 'Reading a mounted file is not faked' });
+    }
+
+    pollQuery(query: number): Promise<HyperDBResult> {
+        this.calls.push(`poll:${query}`);
+        const results = this.queries.get(query);
+        if (results?.[0] === 'hold') {
+            if (this.holdQueries) return Promise.resolve({ state: 'pending' });
+            results.shift();
+        }
+        const result = results?.shift();
+        return Promise.resolve(result === undefined || result === 'hold' ? { state: 'error', error: `missing query: ${query}` } : result);
+    }
+
+    cancelQuery(query: number): Promise<HyperDBResult> {
+        this.calls.push(`cancel:${query}`);
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    finishQuery(query: number): Promise<HyperDBResult> {
+        this.calls.push(`finish:${query}`);
+        if (this.failFinishQuery) return Promise.resolve({ state: 'error', error: 'finish failed' });
+        this.queries.delete(query);
+        this.activeOperationCount--;
+        return Promise.resolve({ state: 'ok', payload: new TextEncoder().encode(JSON.stringify(QUERY_INFO)) });
+    }
+
+    shutdown(): Promise<HyperDBResult> {
+        this.calls.push('shutdown');
+        return Promise.resolve({ state: 'ok', payload: new Uint8Array() });
+    }
+
+    terminate(): Promise<void> {
+        this.calls.push('terminate');
+        this.terminateCount++;
+        return Promise.resolve();
+    }
+
+    private beginOperation(): void {
+        this.activeOperationCount++;
+        this.maximumActiveOperationCount = Math.max(this.maximumActiveOperationCount, this.activeOperationCount);
+    }
+}
+
+function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
+    return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));
+}
+
+describe('HyperDB embedded database adapter', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('mounts and removes browser files', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+        expect(path).toBe('/mnt/external/data.csv');
+        expect(client.calls).toContain(`mount:${path}:read`);
+        const file = client.externalFiles.get(path);
+        expect(file?.name).toBe('data.csv');
+        expect(await file?.text()).toBe('id\n1\n');
+
+        await database.removeExternalFile(path);
+        expect(client.calls).toContain(`unmount:${path}`);
+        expect(client.externalFiles.has(path)).toBe(false);
+        await database.terminate();
+    });
+
+    it('registers and removes browser directories at the requested path and mode', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const handle = directoryHandle('exports');
+
+        const path = await database.registerExternalDirectory(handle, '/mnt/external/exports', 'readwrite');
+
+        expect(path).toBe('/mnt/external/exports');
+        expect(client.externalDirectories.get(path)).toEqual({ handle, mode: 'readwrite' });
+        await database.removeExternalDirectory(path);
+        expect(client.externalDirectories.has(path)).toBe(false);
+        await database.terminate();
+    });
+
+    it('refreshes registered browser directories and refuses unknown ones', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const path = await database.registerExternalDirectory(directoryHandle('cache'), '/mnt/external/cache', 'readwrite');
+
+        await database.refreshExternalDirectory(path);
+        expect(client.calls).toContain(`refresh:${path}`);
+        await expect(database.refreshExternalDirectory('/mnt/external/other')).rejects.toThrow('external directory is not registered');
+        await database.removeExternalDirectory(path);
+        await expect(database.refreshExternalDirectory(path)).rejects.toThrow('external directory is not registered');
+        await database.terminate();
+    });
+
+    it('registers directory handles without permission methods like the OPFS handles of Firefox', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const handle = { kind: 'directory', name: 'exports' } as FileSystemDirectoryHandle;
+
+        const path = await database.registerExternalDirectory(handle, '/mnt/external/exports', 'readwrite');
+
+        expect(client.externalDirectories.get(path)).toEqual({ handle, mode: 'readwrite' });
+        await database.terminate();
+    });
+
+    it('registers browser directories at a path derived from the directory name', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const handle = directoryHandle('exports');
+
+        await expect(database.registerExternalDirectory(handle, undefined, 'read'))
+            .resolves.toBe('/mnt/external/exports');
+        await database.terminate();
+    });
+
+    it('rejects invalid browser directory mount paths before sending a request', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const handle = directoryHandle('exports');
+
+        await expect(database.registerExternalDirectory(handle, '/foo', 'read'))
+            .rejects.toThrow('external mount path must be below /mnt/external/');
+        expect(client.externalDirectories.size).toBe(0);
+        await database.terminate();
+    });
+
+    it('sanitizes generated file paths while preserving explicit directory paths', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const first = await createDatabase(client, { terminateEngine: false });
+        const second = await createDatabase(client, { terminateEngine: false });
+        const name = 'a folder/with spaces/'.repeat(20) + 'data.csv';
+        const filePath = await first.registerExternalFile(name, new Blob(['1']));
+        const directoryPath = await second.registerExternalDirectory(
+            directoryHandle(name), '/mnt/external/directory', 'read',
+        );
+        const anotherPath = await second.registerExternalFile('another.csv', new Blob(['2']));
+
+        expect(directoryPath).toBe('/mnt/external/directory');
+        for (const path of [filePath, anotherPath]) {
+            expect(path).toMatch(/^\/mnt\/external\/[a-zA-Z0-9._-]+$/);
+            expect(new TextEncoder().encode(path.slice('/mnt/external/'.length)).length).toBeLessThanOrEqual(200);
+        }
+        await first.terminate();
+        expect(client.externalFiles.has(anotherPath)).toBe(true);
+        expect(client.externalDirectories.has(directoryPath)).toBe(true);
+        await second.terminate();
+    });
+
+    it('rejects when mounting fails', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.mount = async () => ({ state: 'error', error: 'mount failed' });
+        const database = await createDatabase(client);
+
+        await expect(database.registerExternalFile('data.csv', new Blob(['1']))).rejects.toThrow('mount failed');
+        expect(client.externalFiles.size).toBe(0);
+        await database.terminate();
+    });
+
+    it('unmounts files when cancellation arrives during mounting', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const abort = new AbortController();
+        const mount = client.mount.bind(client);
+        client.mount = async (...args) => {
+            const result = await mount(...args);
+            abort.abort();
+            return result;
+        };
+        const database = await createDatabase(client);
+
+        await expect(database.registerExternalFile('data.csv', new Blob(['1']), undefined, abort.signal))
+            .rejects.toThrow('aborted');
+        expect(client.externalFiles.size).toBe(0);
+        await database.terminate();
+    });
+
+    it('cleans external directories during termination', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const path = await database.registerExternalDirectory(
+            directoryHandle('exports'), '/mnt/external/exports',
+            'read',
+        );
+
+        await database.terminate();
+
+        expect(client.calls).toContain(`unmount:${path}`);
+        expect(client.externalDirectories.has(path)).toBe(false);
+    });
+
+    it('keeps external files mounted when removal is busy', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+        client.failExternalFileRemoval = true;
+
+        await expect(database.removeExternalFile(path)).rejects.toThrow('External file has active readers');
+        expect(client.externalFiles.has(path)).toBe(true);
+
+        client.failExternalFileRemoval = false;
+        await database.terminate();
+        expect(client.externalFiles.has(path)).toBe(false);
+    });
+
+    it('cleans external files during wrapper termination with a shared client', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { terminateEngine: false });
+        const path = await database.registerExternalFile('data.csv', new Blob(['id\n1\n']));
+
+        await database.terminate();
+
+        expect(client.calls).toContain(`unmount:${path}`);
+        expect(client.externalFiles.has(path)).toBe(false);
+        expect(client.terminateCount).toBe(0);
+    });
+
+    it('opens and closes physical connections', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const first = await database.connect();
+        const second = await database.connect();
+
+        await first.close();
+        const third = await database.connect();
+
+        expect(client.connectCount).toBe(3);
+        expect(client.disconnectCount).toBe(1);
+
+        await second.close();
+        await third.close();
+        await database.terminate();
+
+        expect(client.disconnectCount).toBe(3);
+        expect(client.terminateCount).toBe(1);
+        expect(client.calls).toContain('shutdown');
+    });
+
+    it('reuses closed pooled connections without attaching again', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { computeDatabasePath: '/mnt/fs/compute.hyper' });
+        const setupConnects = client.connectCount;
+
+        for (let i = 0; i < 3; ++i) {
+            const connection = await database.connect({ pooled: true });
+            await connection.close();
+        }
+
+        expect(client.connectCount - setupConnects).toBe(1);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/compute.hyper"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE/.test(call))).toHaveLength(0);
+
+        await database.terminate();
+
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(1);
+        expect(client.disconnectCount).toBe(client.connectCount);
+    });
+
+    it('connects with the client context and pools the sessions per client context', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { computeDatabasePath: '/mnt/fs/compute.hyper' });
+        const setupConnects = client.connectCount;
+        const clientContext = { dashql: { connectionId: "it's", queryType: 'sqlframe' } };
+
+        for (let i = 0; i < 2; ++i) {
+            const connection = await database.connect({ pooled: true, clientContext });
+            await connection.close();
+        }
+        const plain = await database.connect({ pooled: true });
+        await plain.close();
+        const other = await database.connect({ pooled: true, clientContext: { dashql: { connectionId: 'other', queryType: 'sqlframe' } } });
+        await other.close();
+
+        expect(client.connectCount - setupConnects).toBe(3);
+        const connects = client.calls.filter(call => call.startsWith('connect:')).slice(-3).map(call => call.replace(/^connect:\d+/, ''));
+        expect(connects).toEqual([
+            `:${JSON.stringify({ external_client_context: '{"dashql":{"connectionId":"it\'s","queryType":"sqlframe"}}' })}`,
+            '',
+            `:${JSON.stringify({ external_client_context: '{"dashql":{"connectionId":"other","queryType":"sqlframe"}}' })}`,
+        ]);
+        expect(client.calls.some(call => call.includes('external_client_context') && call.startsWith('query:'))).toBe(false);
+        await database.terminate();
+    });
+
+    it('does not reuse connections without opting into pooling', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { computeDatabasePath: '/mnt/fs/compute.hyper' });
+        const setupConnects = client.connectCount;
+
+        for (let i = 0; i < 2; ++i) {
+            const connection = await database.connect();
+            await connection.close();
+        }
+        const pooled = await database.connect({ pooled: true });
+
+        expect(client.connectCount - setupConnects).toBe(3);
+        expect(client.calls.filter(call => /query:\d+:.*DETACH DATABASE "__dashql_compute"/.test(call))).toHaveLength(2);
+        await pooled.close();
+        await database.terminate();
+    });
+
+    it('pools connections separately per default database', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, {
+            computeDatabasePath: '/mnt/fs/compute.hyper',
+            defaultDatabasePath: '/mnt/fs/user.hyper',
+        });
+        const setupConnects = client.connectCount;
+
+        const compute = await database.connect({ pooled: true });
+        await compute.close();
+        const hyper = await database.connect({ pooled: true, defaultDatabase: 'hyper' });
+        await hyper.close();
+        const computeAgain = await database.connect({ pooled: true });
+        const hyperAgain = await database.connect({ pooled: true, defaultDatabase: 'hyper' });
+
+        expect(client.connectCount - setupConnects).toBe(2);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/compute.hyper" AS "__dashql_compute"/.test(call))).toHaveLength(1);
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/user.hyper" AS "hyper"/.test(call))).toHaveLength(1);
+
+        await computeAgain.close();
+        await hyperAgain.close();
+        await database.terminate();
+    });
+
+    it('creates, attaches and drops the snippet database', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, {
+            computeDatabasePath: '/mnt/fs/compute.hyper',
+            snippetsDatabasePath: '/mnt/fs/snippets.hyper',
+        });
+        expect(client.calls.filter(call => /query:\d+:CREATE DATABASE "\/mnt\/fs\/snippets.hyper"/.test(call))).toHaveLength(1);
+
+        const snippets = await database.connect({ defaultDatabase: '__dashql_snippets' });
+        expect(client.calls.filter(call => /query:\d+:.*ATTACH DATABASE "\/mnt\/fs\/snippets.hyper" AS "__dashql_snippets"/.test(call))).toHaveLength(1);
+        await snippets.close();
+        await database.terminate();
+        expect(client.calls.filter(call => /query:\d+:DROP DATABASE "\/mnt\/fs\/snippets.hyper"/.test(call))).toHaveLength(1);
+    });
+
+    it('attaches databases with or without the default one, creates them once and keeps them', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, {
+            computeDatabasePath: '/mnt/fs/compute.hyper',
+            defaultDatabasePath: '/mnt/fs/user.hyper',
+        });
+        const attachedDatabases = [{ path: '/mnt/fs/clouds/local.hyper', alias: 'dashql' }];
+        const creates = () => client.calls.filter(call => /query:\d+:CREATE DATABASE IF NOT EXISTS "\/mnt\/fs\/clouds\/local.hyper"/.test(call));
+        expect(creates()).toHaveLength(0);
+
+        const [first, second] = await Promise.all([
+            database.connect({ defaultDatabase: 'hyper', attachedDatabases }),
+            database.connect({ defaultDatabase: null, attachedDatabases }),
+        ]);
+        expect(creates()).toHaveLength(1);
+        const attaches = client.calls.filter(call => /query:\d+:.*ATTACH DATABASE/.test(call));
+        // A session attaches its default database first, a session without one only the attached databases
+        expect(attaches.filter(call => call.includes('ATTACH DATABASE "/mnt/fs/user.hyper" AS "hyper"'))).toHaveLength(1);
+        expect(attaches.filter(call => call.includes('ATTACH DATABASE "/mnt/fs/clouds/local.hyper" AS "dashql"'))).toHaveLength(2);
+        await Promise.all([first.close(), second.close()]);
+        await database.terminate();
+        expect(client.calls.some(call => call.includes('DROP DATABASE "/mnt/fs/clouds/local.hyper"'))).toBe(false);
+        expect(client.calls.filter(call => /query:\d+:DROP DATABASE "\/mnt\/fs\/user.hyper"/.test(call))).toHaveLength(1);
+    });
+
+    it('pools sessions separately per attached databases', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client, { defaultDatabasePath: '/mnt/fs/user.hyper' });
+        const attachedDatabases = [{ path: '/mnt/fs/clouds/local.hyper', alias: 'dashql' }];
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true })).close();
+        const withoutAttached = client.connectCount;
+        // A session without the attached database doesn't serve one with it
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true, attachedDatabases })).close();
+        expect(client.connectCount).toBeGreaterThan(withoutAttached);
+        const withAttached = client.connectCount;
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true, attachedDatabases })).close();
+        await (await database.connect({ defaultDatabase: 'hyper', pooled: true })).close();
+        expect(client.connectCount).toBe(withAttached);
+        await database.terminate();
+    });
+
+    it('gives concurrent pooled connections separate sessions and reuses both', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+
+        const [first, second] = await Promise.all([database.connect({ pooled: true }), database.connect({ pooled: true })]);
+        await Promise.all([first.close(), second.close()]);
+        const [third, fourth] = await Promise.all([database.connect({ pooled: true }), database.connect({ pooled: true })]);
+
+        expect(client.connectCount).toBe(2);
+        expect(client.disconnectCount).toBe(0);
+
+        await Promise.all([third.close(), fourth.close()]);
+        await database.terminate();
+        expect(client.disconnectCount).toBe(2);
+    });
+
+    it('closes pooled sessions beyond the idle limit', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+
+        const connections = await Promise.all(Array.from({ length: 6 }, () => database.connect({ pooled: true })));
+        for (const connection of connections) {
+            await connection.close();
+        }
+
+        expect(client.connectCount).toBe(6);
+        expect(client.disconnectCount).toBe(2);
+        await database.terminate();
+        expect(client.disconnectCount).toBe(6);
+    });
+
+    it('rejects a closed connection while its session serves the next connection', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
+        const database = await createDatabase(client);
+        const first = await database.connect({ pooled: true });
+        await first.close();
+        const second = await database.connect({ pooled: true });
+
+        await expect(first.query('SELECT 1 AS value')).rejects.toThrow('connection is closed');
+        await expect(second.query('SELECT 1 AS value')).resolves.toBeDefined();
+        expect(client.connectCount).toBe(1);
+
+        await second.close();
+        await database.terminate();
+    });
+
+    it('does not reuse a pooled session whose query could not be finished', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
+        const database = await createDatabase(client);
+        const first = await database.connect({ pooled: true });
+
+        client.failFinishQuery = true;
+        await expect(first.query('SELECT 1 AS value')).rejects.toThrow('finish failed');
+        client.failFinishQuery = false;
+        await first.close();
+        const second = await database.connect({ pooled: true });
+
+        expect(client.connectCount).toBe(2);
+        expect(client.disconnectCount).toBe(1);
+
+        await second.close();
+        await database.terminate();
+    });
+
+    it('creates shared Arrow tables in the attached database', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const writer = await database.connect();
+
+        await writer.insertArrowTable(tableFromArrays({
+            id: new Int32Array([1, 2, 3]),
+            label: ['alpha', 'beta', 'gamma'],
+        }), { name: '__frame', create: true });
+        await writer.close();
+
+        const inserted = client.insertedTables.get('"__frame"');
+        expect(inserted).toBeDefined();
+        expect(client.insertedColumns.get('"__frame"')).toBe('"id" integer, "label" text');
+        client.queryResults.set('SELECT * FROM "__frame"', ipc(inserted!));
+
+        const reader = await database.connect();
+        const result = await reader.query('SELECT * FROM "__frame"');
+
+        expect(toPlainObjects(result)).toEqual([
+            { id: 1, label: 'alpha' },
+            { id: 2, label: 'beta' },
+            { id: 3, label: 'gamma' },
+        ]);
+        expect(client.calls.some(call => /^insert:\d+:"__frame":true$/.test(call))).toBe(true);
+        expect(client.externalFiles.size).toBe(0);
+        expect(client.connectCount).toBe(2);
+
+        await reader.close();
+        await database.terminate();
+    });
+
+    it('materializes dictionary columns for the external scan', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        await connection.insertArrowTable(tableFromArrays({ label: ['first', 'second'] }), {
+            name: 'labels',
+            create: true,
+        });
+
+        const inserted = client.insertedTables.get('"labels"');
+        expect(inserted?.schema.fields[0]?.type.toString()).toBe('Utf8');
+        expect(client.insertedColumns.get('"labels"')).toBe('"label" text');
+        expect(client.externalFiles.size).toBe(0);
+
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('preserves schema and append options while cleaning up the mounted IPC', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        await connection.insertArrowTable(tableFromArrays({ value: new Int32Array([1]) }), {
+            schema: 'pg_temp',
+            name: 'values',
+        });
+        await connection.insertArrowTable(tableFromArrays({ value: new Int32Array([2]) }), {
+            schema: 'pg_temp',
+            name: 'values',
+            create: false,
+        });
+
+        expect(toPlainObjects(client.insertedTables.get('"pg_temp"."values"')!)).toEqual([
+            { value: 1 },
+            { value: 2 },
+        ]);
+        expect(client.calls.some(call => /^insert:\d+:"pg_temp"\."values":true$/.test(call))).toBe(true);
+        expect(client.calls.some(call => /^insert:\d+:"pg_temp"\."values":false$/.test(call))).toBe(true);
+        expect(client.externalFiles.size).toBe(0);
+
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('creates derived relations in the attached database with quoted names', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+        client.queryResults.set(
+            'CREATE TABLE "derived""rows" AS SELECT 1',
+            ipc(tableFromArrays({})),
+        );
+
+        await connection.createTableAs('derived"rows', 'SELECT 1');
+
+        expect(client.calls.some(call => /query:\d+:CREATE TABLE "derived""rows" AS SELECT 1/.test(call))).toBe(true);
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('submits operations through separate physical connections without a global lock', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const firstResult = ipc(tableFromArrays({ value: new Int32Array([1]) }));
+        const secondResult = ipc(tableFromArrays({ value: new Int32Array([2]) }));
+        client.queryResults.set('SELECT 1 AS value', firstResult);
+        client.queryResults.set('SELECT 2 AS value', secondResult);
+        const database = await createDatabase(client);
+        const first = await database.connect();
+        const second = await database.connect();
+
+        const [one, two] = await Promise.all([
+            first.query('SELECT 1 AS value'),
+            second.query('SELECT 2 AS value'),
+        ]);
+
+        expect(toPlainObjects(one)).toEqual([{ value: 1 }]);
+        expect(toPlainObjects(two)).toEqual([{ value: 2 }]);
+        expect(client.maximumActiveOperationCount).toBe(2);
+        expect(client.calls.some(call => /query:\d+:SELECT 1 AS value/.test(call))).toBe(true);
+        expect(client.calls.some(call => /query:\d+:SELECT 2 AS value/.test(call))).toBe(true);
+
+        await first.close();
+        await second.close();
+        await database.terminate();
+    });
+
+    it('releases failed queries and leaves other connections usable', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.queryResults.set('SELECT 42 AS answer', ipc(tableFromArrays({ answer: new Int32Array([42]) })));
+        const database = await createDatabase(client);
+        const first = await database.connect();
+        const second = await database.connect();
+
+        await expect(first.query('SELECT missing')).rejects.toThrow('unexpected query: SELECT missing');
+        await expect(second.query('SELECT 42 AS answer')).resolves.toBeDefined();
+
+        expect(client.activeOperationCount).toBe(0);
+        expect(client.calls.filter(call => call.startsWith('finish:'))).toHaveLength(2);
+
+        await first.close();
+        await second.close();
+        await database.terminate();
+    });
+
+    it('leaves a connection usable when starting a query fails', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.failStartQuery = true;
+        const database = await createDatabase(client);
+        const first = await database.connect();
+        const second = await database.connect();
+
+        await expect(first.query('SELECT 1')).rejects.toThrow('start failed');
+
+        client.failStartQuery = false;
+        client.queryResults.set('SELECT 2 AS value', ipc(tableFromArrays({ value: new Int32Array([2]) })));
+        await expect(second.query('SELECT 2 AS value')).resolves.toBeDefined();
+
+        await first.close();
+        await second.close();
+        await database.terminate();
+    });
+
+    it('rejects use of a closed connection after closing its physical session', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+        await connection.close();
+
+        await expect(connection.query('SELECT 1')).rejects.toThrow('connection is closed');
+        expect(client.disconnectCount).toBe(1);
+
+        await database.terminate();
+    });
+
+    it('cancels a query in the engine while it is still computing', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.scriptedQueries.set('SELECT slow', ['hold', { state: 'done' }]);
+        client.queryResults.set('SELECT 1 AS value', ipc(tableFromArrays({ value: new Int32Array([1]) })));
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+        const abort = new AbortController();
+
+        const query = connection.query('SELECT slow', abort.signal);
+        await vi.waitFor(() => expect(client.calls.some(call => /^poll:/.test(call))).toBe(true));
+        abort.abort(new Error('stop the query'));
+
+        await expect(query).rejects.toThrow('stop the query');
+        expect(client.calls.some(call => call.startsWith('cancel:'))).toBe(true);
+        expect(client.activeOperationCount).toBe(0);
+        expect(toPlainObjects(await connection.query('SELECT 1 AS value'))).toEqual([{ value: 1 }]);
+
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('streams result batches before the query finished', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const bytes = ipc(tableFromArrays({ value: new Int32Array([7]) }));
+        // The end-of-stream marker is split, Arrow reads ahead when a message ends with a chunk.
+        client.scriptedQueries.set('SELECT 7 AS value', [
+            { state: 'chunk', payload: bytes.subarray(0, bytes.byteLength - 4) },
+            'hold',
+            { state: 'chunk', payload: bytes.subarray(bytes.byteLength - 4) },
+            { state: 'done' },
+        ]);
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        const reader = await connection.queryStream('SELECT 7 AS value');
+        const first = await reader.next();
+        expect(first.done).toBe(false);
+        expect(first.value?.getChild('value')?.get(0)).toBe(7);
+        expect(client.calls.some(call => call.startsWith('finish:'))).toBe(false);
+        await expect(connection.close()).rejects.toThrow('connection has an active operation');
+
+        client.holdQueries = false;
+        expect((await reader.next()).done).toBe(true);
+        await vi.waitFor(() => expect(client.calls.some(call => call.startsWith('finish:'))).toBe(true));
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('cancels a stream that is not read to the end', async () => {
+        const client = new FakeHyperDBEngineClient();
+        const bytes = ipc(tableFromArrays({ value: new Int32Array([7]) }));
+        client.scriptedQueries.set('SELECT 7 AS value', [
+            { state: 'chunk', payload: bytes.subarray(0, bytes.byteLength - 4) },
+            'hold',
+            { state: 'done' },
+        ]);
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        const reader = await connection.queryStream('SELECT 7 AS value');
+        await reader.next();
+        await reader.cancel();
+
+        expect(client.calls.some(call => call.startsWith('cancel:'))).toBe(true);
+        expect(client.activeOperationCount).toBe(0);
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('gives statements without a result an empty table', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.scriptedQueries.set('CREATE TABLE foo(a INT)', [{ state: 'done' }]);
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        const result = await connection.query('CREATE TABLE foo(a INT)');
+
+        expect(result.numCols).toBe(0);
+        expect(result.numRows).toBe(0);
+        await connection.close();
+        await database.terminate();
+    });
+
+    it('cancels running streams when the database terminates', async () => {
+        const client = new FakeHyperDBEngineClient();
+        client.scriptedQueries.set('SELECT slow', ['hold', { state: 'done' }]);
+        const database = await createDatabase(client);
+        const connection = await database.connect();
+
+        const query = connection.query('SELECT slow');
+        await vi.waitFor(() => expect(client.calls.some(call => /^poll:/.test(call))).toBe(true));
+        await database.terminate();
+
+        await expect(query).rejects.toThrow('database is terminating');
+        expect(client.calls.some(call => call.startsWith('cancel:'))).toBe(true);
+        expect(client.terminateCount).toBe(1);
+    });
+});

@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
 import * as pb from '@ankoh/dashql/platform/proto';
 
-import type { EmbeddedClientContext } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedClientContext } from '@ankoh/dashql/platform/embedded_database';
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { consumeQueryResponseStream } from '@ankoh/dashql/platform/connections/query_execution';
 import type { HyperDatabaseChannel } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';

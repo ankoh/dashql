@@ -2,9 +2,9 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql';
 
 import { createRuntime, type QueryCommands, type Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createRuntimeArchives } from '@ankoh/dashql/runtime/storage/workbook_archives';
-import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { createRuntimeArchives } from '@ankoh/dashql/runtime/workbook_archives';
+import type { HttpClient } from '@ankoh/dashql/platform/http_client';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { RuntimeContextProvider, useOwnedRuntime } from './runtime_hooks.js';

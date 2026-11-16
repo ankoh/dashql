@@ -10,8 +10,8 @@ import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backend';
 import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
-import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/platform/electron_fs';
+import { getOPFSRoot } from '@ankoh/dashql/platform/opfs_root';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/electron_fs';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

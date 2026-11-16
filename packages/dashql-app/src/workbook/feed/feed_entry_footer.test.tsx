@@ -8,13 +8,13 @@ import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_executi
 
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
-import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/script_types';
 import * as dashql from '@ankoh/dashql';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider, StandaloneRuntime } from '../../runtime/runtime_hooks.js';
-import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
+import { testRuntime } from '@ankoh/dashql/runtime/testing/connector_state';
 import { projectQueryProgress } from '@ankoh/dashql/platform/query/query_progress';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 

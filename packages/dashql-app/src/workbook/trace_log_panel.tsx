@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './trace_log_panel.module.css';
 
-import { LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
+import { LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { TraceLogViewer } from './trace_log_viewer.js';
 import { TabHeader } from './tab_header.js';

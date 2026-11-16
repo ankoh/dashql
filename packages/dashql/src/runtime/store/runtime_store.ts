@@ -2,7 +2,7 @@ import type * as core from '../../core/index.js';
 
 import type { HandleTable } from './handles.js';
 import type { QueryExecutionState } from '../../platform/query/query_execution_state.js';
-import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../../platform/workbook/scripts/workbook_scripts.js';
+import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../../platform/workbook/workbook_scripts.js';
 import { RevisionCache, share } from './projection.js';
 import type { UpdateScheduler } from './update_scheduler.js';
 

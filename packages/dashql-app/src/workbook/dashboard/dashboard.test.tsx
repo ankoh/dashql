@@ -11,7 +11,7 @@ import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
 import { flushContinuousUpdates } from '../../tests/react_act.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
-import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';

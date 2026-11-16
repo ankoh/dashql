@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import { Int128, Decimal128 } from '../utils/int128.js';
-import { LoggerLike } from '../platform/logger/logger.js';
+import { LoggerLike } from '../logger/logger.js';
 
 const LOG_CTX = 'arrow_formatter';
 

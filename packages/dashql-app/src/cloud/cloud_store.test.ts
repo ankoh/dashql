@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
+import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import {

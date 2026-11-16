@@ -315,7 +315,7 @@ overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 |---|---|---|
 | One call for any statement, quoting | `@ankoh/hyperdb-edge` | Built |
 | Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, the platform of Node runs the check before the engine starts (`packages/dashql/src/platform/node/node_hyperdb.ts`) |
-| Arrow tables that Hyper reads | `packages/dashql/src/platform/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
+| Arrow tables that Hyper reads | `packages/dashql/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
 | The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@ankoh/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
 | `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@ankoh/hyperdb-edge` |
 | `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |

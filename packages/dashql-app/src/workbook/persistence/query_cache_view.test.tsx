@@ -7,7 +7,7 @@ import type { ConnectionState } from '@ankoh/dashql/platform/connections/connect
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';

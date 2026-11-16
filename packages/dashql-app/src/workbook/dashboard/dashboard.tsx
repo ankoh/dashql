@@ -4,11 +4,11 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
-import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import type { DashboardSpec } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { DashboardSpec } from '@ankoh/dashql/platform/workbook/script_types';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
-import type { TracedLogger } from '../platform/logger/logger.js';
+import type { TracedLogger } from '../logger/logger.js';
 import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../query/query_execution_state.js';
 
 interface ConsumeQueryResponseStreamArgs {

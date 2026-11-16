@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
-import type { ScriptRef } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { ScriptRef } from '@ankoh/dashql/platform/workbook/script_types';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../../app/router/router.js';
 import { useConnectionViews, useOptionalRuntime, useScriptRun, useWorkbook } from '../../runtime/runtime_hooks.js';

@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql';
 
-import type { ScriptKey } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptKey } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { VariantKind } from '@ankoh/dashql/platform/utils/variant';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../scripts/catalog_object_id.js';
 import type { DashQLCompletionState } from './dashql_completion_state.js';

@@ -4,9 +4,9 @@
 // connection up as usual: its OAuth flow gets a stand-in code once the process has logged in, its token requests get
 // the stand-in responses of the process, with a token that authorizes nothing, and every request to an endpoint of the
 // connection goes through the relay, which puts the real auth in.
-import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
-import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
-import type { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
+import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
+import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth_types';
+import type { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
 
 import { flowIdOf, loginKind } from './connect_auth.js';
 

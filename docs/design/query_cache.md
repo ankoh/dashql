@@ -255,8 +255,8 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 - OPFS implementation: `packages/dashql/src/platform/storage/opfs_query_result_cache.ts`
 - Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime, the description of a query and its key) and `packages/dashql/src/runtime/query/query_channels.ts` (the files of the platform)
 - Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, run by the runtime after the writes of files of keys (`evict_cache` of `packages/dashql-core-wasm/src/host.rs`) over `files`, `remove` and `capacity` of the cache of the platform
-- Files of runs: `createRunMounts` in `packages/dashql/src/runtime/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
+- Files of runs: `createRunMounts` in `packages/dashql/src/runtime/run_mounts.ts`, the `mounts` of the platform of the runtime
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`
 - Exported and imported results: `packages/dashql-core-wasm/src/runtime/exports.rs` and `imports.rs`, the plan of an
   import in `packages/dashql-core-runtime/src/workbook_format/query_results.rs`
-- Archives: `packages/dashql/src/runtime/storage/workbook_archives.ts` over `workbook/persistence/workbook_zip.ts`
+- Archives: `packages/dashql/src/runtime/workbook_archives.ts` over `platform/workbook/workbook_zip.ts`

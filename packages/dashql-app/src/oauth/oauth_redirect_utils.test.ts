@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
+import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
 import { getOAuthStateFlavor, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
 

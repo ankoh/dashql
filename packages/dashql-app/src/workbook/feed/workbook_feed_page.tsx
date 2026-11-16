@@ -9,7 +9,7 @@ import {
     scriptConnectionIds,
     type ModifyWorkbookScripts,
     type WorkbookScripts,
-} from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';

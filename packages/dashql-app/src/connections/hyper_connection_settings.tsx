@@ -26,7 +26,7 @@ import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { isDesktopHost } from '../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_settings';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql/platform/hyperdb/hyperdb_settings';
 import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql/platform/connections/connection_params';
 import { isHyperWasmConnection } from './connection_label.js';
 import { isLocalCloud } from './cloud_connection.js';

@@ -18,7 +18,7 @@ import {
 } from '../ui/foundations/text_field.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
-import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql/platform/connections/connector_descriptor';
 import type { ConnectionDetailsView } from '@ankoh/dashql';

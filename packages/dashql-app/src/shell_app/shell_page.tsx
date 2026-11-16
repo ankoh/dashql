@@ -3,14 +3,14 @@ import * as React from 'react';
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import { LoggableException, stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { LoggableException, stringifyError } from '@ankoh/dashql/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { useRuntime } from '../runtime/runtime_hooks.js';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
-import { connectEmbeddedSession, type EmbeddedSession } from '@ankoh/dashql/runtime/connections/catalog/embedded_session';
+import { connectEmbeddedSession, type EmbeddedSession } from '@ankoh/dashql/runtime/embedded_session';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';

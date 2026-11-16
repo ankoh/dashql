@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { workbookOnConnection } from './hyper_links.js';
 import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';

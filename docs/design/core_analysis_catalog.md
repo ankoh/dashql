@@ -524,5 +524,5 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
 | JS wrapper | `packages/dashql/src/core/api.ts` |
-| App script state | `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts` |
+| App script state | `packages/dashql/src/platform/workbook/workbook_scripts.ts` |
 | Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-script/tests/script_session_test.rs` |

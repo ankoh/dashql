@@ -1,6 +1,6 @@
 // The local cloud: a connection of the embedded Hyper whose session attaches a database of the clouds folder of the
 // OPFS of the app, like a connection to a Hyper server that attaches the database of DashQL. See docs/design/cloud.md.
-import { HYPER_CLOUDS_DIRECTORY } from '../../platform/hyperdb/hyperdb_opfs_instance.js';
+import { HYPER_CLOUDS_DIRECTORY } from '../../hyperdb/hyperdb_opfs_instance.js';
 
 /// The database file of the local cloud in the OPFS folder of the app, attached as "dashql". Deleting the connection of
 /// the local cloud drops it, the next local cloud starts empty.

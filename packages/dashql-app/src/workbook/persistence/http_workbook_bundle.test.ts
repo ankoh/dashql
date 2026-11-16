@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
 import { readWorkbookFromHttp } from './http_workbook_bundle.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { testStorageRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';

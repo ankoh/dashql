@@ -1,8 +1,8 @@
 import * as core from '@ankoh/dashql';
 
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
-import type { ScriptData, ScriptDataMap, WorkbookDerived } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { readWorkbookInputType, type WorkbookInputType } from '@ankoh/dashql/platform/workbook/inputs/workbook_inputs';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
+import type { ScriptData, ScriptDataMap, WorkbookDerived } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { readWorkbookInputType, type WorkbookInputType } from '@ankoh/dashql/platform/workbook/workbook_inputs';
 
 const StatementType = core.buffers.parser.StatementType;
 

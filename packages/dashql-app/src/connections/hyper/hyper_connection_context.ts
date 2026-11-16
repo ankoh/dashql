@@ -1,7 +1,7 @@
 import * as pb from "@ankoh/dashql/platform/proto";
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { EmbeddedClientContext } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedClientContext } from '@ankoh/dashql/platform/embedded_database';
 import type { HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 
 /// The context of the channels of a remote Hyper connection, whose queries have a client context.

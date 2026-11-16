@@ -1,8 +1,8 @@
 import type * as core from '../core/index.js';
 
-import type { HttpClient } from '../platform/platform/http/http_client.js';
-import type { OAuthFlow, OAuthFlowEvent } from '../platform/oauth/oauth_flow.js';
-import type { OAuthRedirectData } from '../platform/oauth/oauth_types.js';
+import type { HttpClient } from '../platform/http_client.js';
+import type { OAuthFlow, OAuthFlowEvent } from '../platform/oauth_flow.js';
+import type { OAuthRedirectData } from '../platform/oauth_types.js';
 import { generatePKCEChallenge } from '../platform/utils/pkce.js';
 
 /// The requests of the runtime to the platform that run until they end or the runtime aborts them: the fetches with

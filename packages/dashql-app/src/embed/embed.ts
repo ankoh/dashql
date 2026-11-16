@@ -9,7 +9,7 @@
 // cross-origin, so the scripts are fetched or imported with CORS.
 
 import { DashQLBatchWorker } from '@ankoh/dashql/browser-worker';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
 
 import { HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_VERSION } from '../globals.js';

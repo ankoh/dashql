@@ -2,7 +2,7 @@ import { ConnectionHealth, type ConnectionState } from '../../platform/connectio
 import { newConnectionFromParams, type ConnectionParams } from '../../platform/connections/connection_params.js';
 import { connectorOfParams } from '../../platform/connections/connector_descriptor.js';
 import { ConnectorType } from '../../platform/connections/connector_info.js';
-import type { HttpClient, HttpFetchResult } from '../../platform/platform/http/http_client.js';
+import type { HttpClient, HttpFetchResult } from '../../platform/http_client.js';
 import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
 import * as arrow from 'apache-arrow';
 

@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql/platform/embedded_database';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { utf8Vector } from '@ankoh/dashql/platform/utils/arrow_vectors';
 import type { SnippetRegistry } from './snippet_registry.js';

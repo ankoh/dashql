@@ -11,11 +11,11 @@ import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector
 import { queryIsDone, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { useOptionalRuntime, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
-import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';
 import { ScriptStatisticsBar } from '../scripts/script_statistics_bar.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
 import { ScriptActionMenu, type ScriptStorage } from '../scripts/script_action_menu.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';

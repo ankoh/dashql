@@ -24,7 +24,7 @@ root `tsconfig.json` and the Vite config of the app for editors and the dev serv
 |---|---|---|
 | `src/core` | `@ankoh/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
 | `src/runtime` | `@ankoh/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@ankoh/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
+| `src/platform` | `@ankoh/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@ankoh/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
@@ -37,20 +37,25 @@ the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@ank
 - **`src/core`** is the API over the core module and nothing else.
 - **`src/runtime`** is what builds and holds a runtime: `runtime.ts`, `store/` (the store, `projection.ts`, the handle
   table, the Arrow tables by handle, `update_scheduler.ts`), the projections of the workbook and script views
-  (`workbook/scripts/workbook_projection.ts`) and of the query views (`query/query_projection.ts`), and the adapters
+  (`workbook_projection.ts`) and of the query views (`query/query_projection.ts`), and the adapters
   that turn platform objects into the platform of the core: `query/query_channels.ts` (the channels of the host and the
-  query result cache), `query/query_result_stream.ts`, `compute/compute_platform.ts`, `compute/compute_database.ts`
-  (the compute database of the platform and whether it is ready), `workbook/scripts/run_mounts.ts`,
+  query result cache), `query/query_result_stream.ts`, `compute_platform.ts`, `compute_database.ts`
+  (the compute database of the platform and whether it is ready), `run_mounts.ts`,
   `query/cache_pins.ts` (the releases of the files of the cache that the runtime keeps, by id),
-  `storage/runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
-  `storage/workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
-  `connections/catalog/embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
+  `runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
+  `workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
+  `embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
   `node/node_platform.ts`. A module belongs here when it names `RuntimeOptions`, the handle table or a platform type of
   the core.
 - **`src/platform`** is everything else that more than the app uses. It never imports the runtime.
 - **The app** keeps what only it uses, at its own paths under `packages/dashql-app/src`: the OPFS and composite
   storage backends, the hooks, the labels of connections, the Hyper links of a tab, the Salesforce mock setup, script
   names and formatting with the app settings, the renames of scripts and attachments, workbook links.
+
+The folders stay flat: a module of the runtime sits in `src/runtime`, one of the platform in `src/platform` or in the
+folder of its area (`connections/`, `workbook/`, `storage/`, ...). A subfolder is for a rule (`node/`, `testing/`) or a
+larger part with a name of its own (`store/`, `query/`, `hyperdb/`, a connector with several modules), not for two or
+three files.
 
 ### The boundary test
 
@@ -66,10 +71,10 @@ breaks a rule:
   modules of Node.
 - In `runtime/` and `platform/`, no module uses a seam that only a browser or a bundler provides (a bundler asset
   `?url`, `?raw` or `.css`, `import.meta.glob`, `navigator.storage`, `new Worker`, the Electron bridge) unless it is
-  listed in `KNOWN_SEAMS`: `platform/platform/opfs_root.ts` (the origin private file system; Node hands a folder of
-  the host through `setOPFSRootProvider`) and `platform/platform/electron_fs.ts` (the file system of the desktop app).
+  listed in `KNOWN_SEAMS`: `platform/opfs_root.ts` (the origin private file system; Node hands a folder of
+  the host through `setOPFSRootProvider`) and `platform/electron_fs.ts` (the file system of the desktop app).
   The specs of the client functions come through `provideClientFunctionSpecs` of
-  `platform/connections/clfn/clfn_specs.ts`: the app passes its `import.meta.glob` in
+  `platform/connections/clfn_specs.ts`: the app passes its `import.meta.glob` in
   `connections/clfn/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
 - The checks of the assets and the seams skip all of `core/` and every `*.test.ts`. The bindings load their Wasm in
   Node and in the browsers on their own, e.g. `core/batch_worker_client.ts` uses `new Worker(`, and a test may stand
@@ -108,9 +113,9 @@ of the module that the runtime builds from it):
 | `http` | no | The `HttpClient` of fetches, the executor and the setups send through it |
 | `oauthFlow` | no | The `OAuthFlow`: opens the authorization page and receives the redirect |
 | `channels` | no | A `ChannelConnector` that connects the channels of the host that setups ask for (the embedded Hyper, Hyper over gRPC), and the token of a Hyper link that the page holds. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself |
-| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up. `runtime.computeDatabase` (`compute/compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
+| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up. `runtime.computeDatabase` (`compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
 | `resultCache` | no | The `QueryResultCache` |
-| `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `storage/workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
+| `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
 | `catalogLoader` | no | Run the catalog loader, true by default. `dashql run` and most tests turn it off |
 | `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
 
@@ -128,15 +133,15 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `clock`, `log` | Time, timers, the log | `runtime.ts` |
 | `handles` | The handle table: `register`, `get`, `duplicate`, `release`, `close`, `abort` | `store/handles.ts` |
 | `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
-| `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute/compute_platform.ts` |
+| `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
 | `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release` (of a retained file or a pin), `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
-| `mounts` | The files of runs in the compute database: `prefix`, `fileName`, `pin`, `write`; and the attachments, unmounted when their workbook is deleted. The runtime keeps the pins of a run and releases them | `workbook/scripts/run_mounts.ts` |
+| `mounts` | The files of runs in the compute database: `prefix`, `fileName`, `pin`, `write`; and the attachments, unmounted when their workbook is deleted. The runtime keeps the pins of a run and releases them | `run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
 | `extensions` | `loadSpec`, the JSON of a client function spec | `loadClientFunctionSpec` |
-| `storage` | The workbook files, scripts, attachments, the app manifest, connection files, native folders | `storage/runtime_storage.ts` |
+| `storage` | The workbook files, scripts, attachments, the app manifest, connection files, native folders | `runtime_storage.ts` |
 | `archives` | The ZIP container and the Parquet files of the workbook tables | the factory of the platform |
 | `changed` | The state changed, `urgent` or not | the store |
 
@@ -152,7 +157,7 @@ platform object no more: a call fails, a timer never fires, and the effects on h
 | Scheduler | `FRAME_UPDATE_SCHEDULER` of the app (`utils/store_hooks.ts`: microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `setTimeout`) |
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
 | Storage | OPFS (composite backend of the app) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
-| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
+| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
 | Core Wasm | URL from the bundler | the same | the file of `@ankoh/dashql/wasm` (`platform/node/node_core.ts`) |
 | OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
 | Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | the CLI connects its embedded Hyper |
@@ -245,7 +250,7 @@ Four kinds are projected into what the app reads (`ProjectedViews`):
 
 A projection may pass the keys of the payloads it holds (`known`), the module leaves their bytes out. The types of the
 views as the app reads them are in `src/platform` (`connections/connection_state.ts`,
-`query/query_execution_state.ts`, `workbook/scripts/workbook_scripts.ts`, `compute/computation_types.ts`).
+`query/query_execution_state.ts`, `workbook/workbook_scripts.ts`, `compute/computation_types.ts`).
 
 A new view kind:
 
@@ -392,7 +397,7 @@ through `applyEditorEvent`; a session outside a workbook (the composer, the shel
 `DashQLScriptSessionReader`, which the editor and the views take.
 
 The shell runs its statements with `runtime.execute` on its connection to the embedded Hyper
-(`connectEmbeddedSession` of `connections/catalog/embedded_session.ts`): the executor analyzes the results and tells the
+(`connectEmbeddedSession` of `embedded_session.ts`): the executor analyzes the results and tells the
 catalog loader about the relations that a statement touched, and `settleCatalog` waits for the catalog before the
 prompt returns. The session leases the connection (`openSession`, `closeSession` of the module): a later session takes
 it over, and only the latest lease resets the connection when it closes.
@@ -508,7 +513,7 @@ and the package on npm, and the browser tests of the app run the tests of `src/r
   `platform/hyperdb/hyperdb_wasm.browser.test.ts`.
 - **Which folder.** A test that creates a runtime (`createRuntime`, `createTestRuntime`) or imports the facade goes in
   `src/runtime`, also when it tests a module of the platform, e.g.
-  `connections/catalog/catalog_updates.integration.test.ts` or `node/storage_root.node.test.ts`. A test of the platform
+  `catalog_updates.integration.test.ts` or `node/storage_root.node.test.ts`. A test of the platform
   imports only the platform, the bindings and `src/platform/testing/`. The logic in Rust is tested in its crates first,
   see [dashql_core.md](dashql_core.md#tests).
 - **Helpers.** `createTestRuntime()` (`src/runtime/testing/test_runtime.ts`) is a runtime on an in-memory platform

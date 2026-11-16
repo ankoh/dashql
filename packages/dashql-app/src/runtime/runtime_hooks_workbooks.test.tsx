@@ -10,7 +10,7 @@ import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';

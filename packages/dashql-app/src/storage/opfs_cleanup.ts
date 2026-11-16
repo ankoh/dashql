@@ -18,10 +18,10 @@ import {
     HYPER_LEGACY_LOGS_DIRECTORY,
     HYPER_CLOUDS_DIRECTORY,
     isUuid,
-} from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_opfs_instance';
-import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
+} from '@ankoh/dashql/platform/hyperdb/hyperdb_opfs_instance';
+import { PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql/platform/storage/opfs_query_result_cache';
-import { OPFS_TESTS_FOLDER } from '@ankoh/dashql/platform/platform/opfs_root';
+import { OPFS_TESTS_FOLDER } from '@ankoh/dashql/platform/opfs_root';
 
 /// An OPFS entry that the current app version doesn't use
 export interface OPFSCleanupCandidate {

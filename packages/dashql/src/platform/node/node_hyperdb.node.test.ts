@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from '
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { setOPFSRootProvider } from '../platform/opfs_root.js';
+import { setOPFSRootProvider } from '../opfs_root.js';
 import { openNodeComputeDatabase } from './node_hyperdb.js';
 
 /// The instance folders of a root, without the files of their locks

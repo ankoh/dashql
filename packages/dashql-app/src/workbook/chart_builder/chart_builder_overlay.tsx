@@ -9,7 +9,7 @@ import { AlertIcon, BracesIcon, ScreenFullIcon, ScreenNormalIcon, ToolsIcon, XIc
 import { checkVegaLiteSpec } from '../../ui/vegalite/vegalite_check.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { VegaLiteView } from '../../views/visualization/vegalite_view.js';
-import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/script_types';
 import { chartColumns } from './chart_columns.js';
 import { ChartSpecBuilder } from './chart_spec_builder.js';
 import { ChartSpecJsonEditor } from './chart_spec_json_editor.js';

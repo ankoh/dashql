@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql';
 
-import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { AppSettings } from '../../config/app_settings.js';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 

@@ -6,15 +6,15 @@ import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } fr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '../../runtime/runtime_hooks.js';
-import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { getKeywordCase } from './script_format.js';
-import { applyScriptTextChanges } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
+import { applyScriptTextChanges } from '@ankoh/dashql/platform/workbook/script_reference_check';
 import { DashQLScriptReferencesEffect, shownScriptReferences } from '../editor/dashql_script_references.js';
 
 const LOG_CTX = "workbook_editor";

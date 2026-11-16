@@ -23,7 +23,7 @@ import { requiresSwitchingToNative } from './connector_list.js';
 import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
-import { withTrinoCatalogFields } from '@ankoh/dashql/platform/connections/trino/trino_catalogs';
+import { withTrinoCatalogFields } from '@ankoh/dashql/platform/connections/trino_catalogs';
 
 const LOG_CTX = "trino_connector";
 

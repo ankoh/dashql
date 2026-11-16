@@ -8,7 +8,7 @@ import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql/platfor
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
 import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
-import type { ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';

@@ -5,8 +5,8 @@ import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connec
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { answerSalesforceMock, type SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
-import type { OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
-import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
+import { Logger } from '@ankoh/dashql/platform/logger/logger';
 import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 

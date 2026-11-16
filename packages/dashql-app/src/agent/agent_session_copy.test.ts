@@ -1,6 +1,6 @@
 import { createAgentSessionState, type AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
 import type { JournalFile, SessionWorkbook } from '@ankoh/dashql/platform/session/workbook_journal';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 
 import { AgentSessionCopies, changedCopyScripts, type AgentSessionCopyHost, type PageScript } from './agent_session_copy.js';
 

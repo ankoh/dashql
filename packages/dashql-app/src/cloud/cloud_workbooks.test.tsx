@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { WORKBOOK_TABLE } from '@ankoh/dashql/platform/storage/workbook_tables';
 import { createTestRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { findLinkedWorkbook, linkedWorkbookMetadata, previewConnections, useCloudPreviewCleanup } from './cloud_workbooks.js';
 import { TEST_WORKBOOK_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 

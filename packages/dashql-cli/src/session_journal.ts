@@ -3,7 +3,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import type { LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
+import type { LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
 import {
     isSessionName,
     parseSessionConnections,

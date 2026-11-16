@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
 import { getGlobalLogger, LoggerProvider } from '../logger/logger_provider.js';
 
 function SetupConsumer(props: {

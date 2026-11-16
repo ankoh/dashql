@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql';
 import type { ConnectionState, NewConnection } from '@ankoh/dashql/platform/connections/connection_state';
 import { newConnectionFromParams, newDefaultHyperWasmConnection } from '@ankoh/dashql/platform/connections/connection_params';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
+import { testRuntime } from '@ankoh/dashql/runtime/testing/connector_state';
 import {
     bindHyperLink,
     confirmHyperLink,
@@ -15,7 +15,7 @@ import {
     readHyperLinkTabState,
     HyperLinkTabStore,
 } from './hyper_link.js';
-import type { KeyValueStorage } from '@ankoh/dashql/platform/platform/key_value_storage';
+import type { KeyValueStorage } from '@ankoh/dashql/platform/key_value_storage';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

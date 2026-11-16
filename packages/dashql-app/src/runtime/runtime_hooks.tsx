@@ -6,9 +6,9 @@ import { createRuntime, type ChannelConnector, type Runtime } from '@ankoh/dashq
 import type { StoreView } from '@ankoh/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import type { QueryExecutionProgress, QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
-import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { workbookExecutionIsBusy } from '@ankoh/dashql/platform/workbook/scripts/workbook_execution';
+import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { workbookExecutionIsBusy } from '@ankoh/dashql/platform/workbook/workbook_execution';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';

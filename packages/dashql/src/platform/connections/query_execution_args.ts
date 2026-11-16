@@ -1,6 +1,6 @@
 import { QueryMetadata } from "../query/query_execution_state.js";
 import type * as arrow from 'apache-arrow';
-import type { ClientFunctionCallDescription } from "./clfn/clfn_spec.js";
+import type { ClientFunctionCallDescription } from "./clfn_spec.js";
 
 /// The query executor args
 export interface QueryExecutionArgs {

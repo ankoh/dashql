@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 import { arrowValueToJson, ArrowTableFormatter, ArrowTextColumnFormatter, dataTypeToString, isArrowListType, isArrowStructuredType, makeArrowValueFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../testing/test_logger.js';
-import type { LoggerLike } from '../platform/logger/logger.js';
+import type { LoggerLike } from '../logger/logger.js';
 import { tableFromArrays, vectorFromArray } from '../testing/arrow_fixtures.js';
 
 describe('TableFormatter', () => {

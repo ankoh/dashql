@@ -1,5 +1,5 @@
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
 import type { AgentSessionLogin, AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
 
 /// A script that the agent wrote

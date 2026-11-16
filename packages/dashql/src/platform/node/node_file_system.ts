@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 
-import type { FileStamp, FileSystem } from '../platform/file_system.js';
+import type { FileStamp, FileSystem } from '../file_system.js';
 
 /// The stamp of a file, its size and modification time
 function stampOf(stats: { size: number; mtimeMs: number }): FileStamp {

@@ -6,7 +6,7 @@ import { DownloadIcon, FileIcon } from '../../ui/foundations/symbol_icon.js';
 import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
-import { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
 import { classNames } from '../../utils/classnames.js';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
@@ -17,7 +17,7 @@ import { useQueryResultCache } from '../../storage/query_result_cache_provider.j
 import { useOptionalRuntime, useConnectionViews } from '../../runtime/runtime_hooks.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import type { ExportedResults } from '@ankoh/dashql';
-import { stringifyError, type LoggerLike } from '@ankoh/dashql/platform/platform/logger/logger';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'workbook_export';

@@ -8,7 +8,7 @@ import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql/platform/connections/connector_descriptor';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
-import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
+import type { HttpClient } from '@ankoh/dashql/platform/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';

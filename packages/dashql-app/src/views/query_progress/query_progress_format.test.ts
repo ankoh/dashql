@@ -8,7 +8,7 @@ import {
     monotonicFraction,
     workOf,
 } from './query_progress_format.js';
-import { createProfileLayoutConfig } from '@ankoh/dashql/platform/query/profile/profile_layout_config';
+import { createProfileLayoutConfig } from '@ankoh/dashql/platform/query/profile_layout_config';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

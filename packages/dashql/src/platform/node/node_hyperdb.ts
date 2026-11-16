@@ -7,10 +7,10 @@ import path from 'node:path';
 
 import { checkWasmFeatures } from '@ankoh/hyperdb-edge/node/runtime_check';
 
-import { HyperDB, type HyperDBEngine, type MountFile } from '../platform/hyperdb/hyperdb_wasm.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from '../platform/hyperdb/hyperdb_settings.js';
-import { setOPFSRootProvider } from '../platform/opfs_root.js';
-import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance, HYPER_INSTANCES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs_instance.js';
+import { HyperDB, type HyperDBEngine, type MountFile } from '../hyperdb/hyperdb_wasm.js';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '../hyperdb/hyperdb_settings.js';
+import { setOPFSRootProvider } from '../opfs_root.js';
+import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance, HYPER_INSTANCES_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
 import type { QueryResultCache } from '../query/query_result_cache.js';
 import { createOPFSQueryResultCache } from '../storage/opfs_query_result_cache.js';
 import { openNodeRoot } from './node_directory_handle.js';

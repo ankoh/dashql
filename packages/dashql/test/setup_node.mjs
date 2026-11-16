@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { provideClientFunctionSpecs } from '../src/platform/connections/clfn/clfn_specs.ts';
+import { provideClientFunctionSpecs } from '../src/platform/connections/clfn_specs.ts';
 import { startNodeHyperEngine, useNodeRoot } from '../src/platform/node/node_hyperdb.ts';
 import { PROCESS_LOCKS } from '../src/platform/node/node_locks.ts';
 

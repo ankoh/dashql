@@ -1,4 +1,4 @@
-import { LoggableException } from "../platform/logger/logger.js";
+import { LoggableException } from "../logger/logger.js";
 
 const LOG_CTX = 'async_value';
 

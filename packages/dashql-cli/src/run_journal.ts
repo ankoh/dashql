@@ -7,7 +7,7 @@ import {
     type JournalMarker,
     type JournalWorkbookRef,
 } from '@ankoh/dashql/platform/session/workbook_journal';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql/platform/logger/logger';
 
 import type { RunEvent, RunReporter } from './run_events.js';
 

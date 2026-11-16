@@ -9,7 +9,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import { StorageCommands } from '@ankoh/dashql/runtime/runtime_storage';
 import { StorageWriterView } from './storage_writer_view.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
