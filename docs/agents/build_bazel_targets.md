@@ -107,7 +107,7 @@ bazel test //...
 | Target | Purpose |
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test, Clippy with the safety lints |
-| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, the Hyper validation, Clippy with the safety lints but indexing |
+| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, the Hyper validation, Clippy with the safety lints |
 | `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-wasm:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
@@ -304,9 +304,8 @@ Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql
 `dashql-core-profile`, `dashql-core-runtime` and the bindings `dashql-core-wasm`) runs Clippy with the safety lints of
 `//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
 `unimplemented`, `indexing_slicing`, `string_slice` and `await_holding_refcell_ref` are denied outside of tests, a panic
-traps the whole module. `dashql-core` takes `//bazel:rust_safety_lints_without_indexing`. The other lints of Clippy stay
-warnings, but `dashql-core-runtime` and `dashql-core-wasm` deny every warning under Clippy (`lib.rs`). See "The rules"
-in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
+traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-wasm` deny
+every warning under Clippy (`lib.rs`). See "The rules" in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
 (`:clippy_test` of each crate), part of `//packages/...`; the bindings are checked as a host build of the same sources
 (`//packages/dashql-core-wasm:dashql_core_wasm_lint`), they compile on the host.
 

@@ -409,10 +409,12 @@ A panic in any crate of the module traps it, so every crate linked into the core
 that can split a character) and `await_holding_refcell_ref`. The crates are `dashql-parser`, `dashql-core`,
 `dashql-core-script`, `dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-wasm`; each sets
 the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
-`dashql-core-wasm` over `:dashql_core_wasm_lint`, a host build of the same sources. `dashql-core` takes
-`//bazel:rust_safety_lints_without_indexing`: its analyzer, completion, formatter and diff index the arrays of a parsed
-script by the ids that the script holds, about 700 sites; the other lints hold there as well. The generated FlatBuffers
-bindings (`//proto/fb:dashql_buffers_rs`) are not linted. Test code (`#[cfg(test)]`, `tests/`) may index and unwrap.
+`dashql-core-wasm` over `:dashql_core_wasm_lint`, a host build of the same sources. In `dashql-core` the analyzer,
+completion, formatter and diff look up the arrays of a parsed and analyzed script by the ids that the script holds,
+through `AnalyzedScript::{node, children, expression, scope, table_ref}` (with `_mut` forms) and
+`AnalysisState::{node, children}`, which return an `Option` or an empty slice. Such a lookup misses only when an
+invariant of the analysis breaks; the caller then returns an error where it returns a `Result`, and otherwise skips the
+object or returns None. The generated FlatBuffers bindings (`//proto/fb:dashql_buffers_rs`) are not linted. Test code (`#[cfg(test)]`, `tests/`) may index and unwrap.
 
 `dashql-core-runtime` and `dashql-core-wasm` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
 their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,

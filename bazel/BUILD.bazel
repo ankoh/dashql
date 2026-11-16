@@ -30,18 +30,6 @@ rust_lint_config(
     visibility = ["//visibility:public"],
 )
 
-# The safety lints without indexing_slicing, for //packages/dashql-core: its analyzer, completion, formatter and diff
-# index the arrays of the parsed and analyzed script by the ids that the same script holds, about 700 sites
-rust_lint_config(
-    name = "rust_safety_lints_without_indexing",
-    clippy = {
-        lint: level
-        for lint, level in SAFETY_LINTS.items()
-        if lint != "indexing_slicing"
-    },
-    visibility = ["//visibility:public"],
-)
-
 # DuckDB CLI executable, selected per exec platform. Used as a build tool
 # (exec config) by //packages/dashql-datasets for Parquet conversion genrules.
 alias(

@@ -42,7 +42,7 @@ Please consult relevant docs in that directory before making changes.
   loader, runs, the storage writer, restore, the workbook format, `shutdown`; the `Host` traits, `JsPlatform`, `HostError`
   and how to add a host call; async without `Send`, no borrow across an await or a call into JS, no panics: every crate
   of the module denies unwrap, expect, panic, unreachable, indexing and string slices in its `clippy_test` with
-  `//bazel:rust_safety_lints`, dashql-core all but indexing, the runtime crates every warning; the borrow across JS is
+  `//bazel:rust_safety_lints`, the runtime crates every warning; the borrow across JS is
   kept by review)
     - `docs/design/dashql_core.md`
 
