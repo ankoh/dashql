@@ -24,7 +24,7 @@ function realpath(path: string): string {
 
 // The code blocks use the Xcode light theme of the app editor, the colors come from @ankoh/dashql-ui.
 // Node reads the palette when it evaluates the config, Vite has nothing to bundle there.
-const xcode = JSON.parse(readFileSync(join(uiPath, 'src/editor/xcode_palettes.json'), 'utf8')).light;
+const xcode = JSON.parse(readFileSync(join(uiPath, 'src/xcode_palettes.json'), 'utf8')).light;
 const xcodeLightTheme = {
     name: 'dashql-xcode-light',
     type: 'light',

@@ -1,4 +1,4 @@
-import { outlineBounds, springAtRest, stepSpring, type WobbleBrand, type Spring } from '../wobble/wobble_morph.js';
+import { outlineBounds, springAtRest, stepSpring, type WobbleBrand, type Spring } from './wobble_morph.js';
 
 /// What the backdrop shows. The brand, motion, dots and particles are fixed when it is attached, the rest can change.
 export interface LandingBackdropOptions {
