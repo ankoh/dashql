@@ -23,12 +23,10 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import type { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { HyperLogMetricsProvider } from './hyper/hyper_log_metrics_provider.js';
-import type { QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import { useQueryExecutor, useQueryProfileDetail, useQueryState } from './query_executor.js';
-import type { WatchQueryProfile } from '@ankoh/dashql-runtime/query/query_platform';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
+import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { useQuery, useQueryProfileDetail, useRuntime } from './runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -90,9 +88,9 @@ interface Api {
 }
 
 /// Create the connection in the runtime of the test and capture the executor once the compute database is set up
-function Capture(props: { database: (runtime: CoreRuntime) => void; capture: (api: Api) => void }) {
-    const runtime = useCoreRuntime();
-    const execute = useQueryExecutor();
+function Capture(props: { database: (runtime: Runtime) => void; capture: (api: Api) => void }) {
+    const runtime = useRuntime();
+    const execute = runtime.execute;
     const compute = useComputeDatabase();
     const [created, setCreated] = React.useState(false);
     React.useEffect(() => {
@@ -110,7 +108,7 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A Hyper connection of the runtime of the test, online with a channel that runs the queries
-function createDatabase(executeQuery: unknown): (runtime: CoreRuntime) => void {
+function createDatabase(executeQuery: unknown): (runtime: Runtime) => void {
     return runtime => {
         const state = createTestConnection(runtime, {
             connectionId: CONNECTION_ID,
@@ -129,7 +127,7 @@ const argsOf = (overrides: Partial<QueryExecutionArgs> = {}): QueryExecutionArgs
 });
 
 // The behavior of the executor is tested in the runtime, these are the hooks of the app on it
-describe('the query executor of the app', () => {
+describe('the queries of the app', () => {
     let container: HTMLDivElement;
     let root: Root;
     let api: Api | null;
@@ -156,16 +154,16 @@ describe('the query executor of the app', () => {
         return { queryId };
     }
 
-    describe('useQueryState', () => {
-        function QueryStatus(props: { workbookId: string | null; queryId: number | null }) {
-            const state = useQueryState(props.workbookId, props.queryId);
+    describe('useQuery', () => {
+        function QueryStatus(props: { queryId: number | null }) {
+            const state = useQuery(props.queryId);
             return <div data-testid="status">{state == null ? 'none' : String(state.status)}</div>;
         }
         const statusOf = () => container.querySelector('[data-testid="status"]')?.textContent;
 
-        it('finds a query on any connection, and nothing without a query or a workbook', async () => {
+        it('finds a query on any connection, and nothing without a query', async () => {
             const database = createDatabase(vi.fn(async () => new TestStream()));
-            const render = async (workbookId: string | null, queryId: number | null) => {
+            const render = async (queryId: number | null) => {
                 const setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
                 await act(async () => {
                     root.render(<LoggerProvider>
@@ -176,7 +174,7 @@ describe('the query executor of the app', () => {
                                         <HyperLogMetricsProvider>
                                             <>
                                                 <Capture database={database} capture={next => { api = next; }} />
-                                                <QueryStatus workbookId={workbookId} queryId={queryId} />
+                                                <QueryStatus queryId={queryId} />
                                             </>
                                         </HyperLogMetricsProvider>
                                     </TestRuntime>
@@ -187,14 +185,12 @@ describe('the query executor of the app', () => {
                 });
                 await vi.waitFor(() => expect(api).not.toBeNull());
             };
-            await render('workbook', null);
+            await render(null);
             expect(statusOf()).toBe('none');
             const { queryId } = await run(argsOf());
-            await render(null, queryId);
-            expect(statusOf()).toBe('none');
-            await render('workbook', queryId);
+            await render(queryId);
             await vi.waitFor(() => expect(statusOf()).toBe(String(QueryExecutionStatus.SUCCEEDED)));
-            await render('workbook', queryId + 1000);
+            await render(queryId + 1000);
             expect(statusOf()).toBe('none');
         });
     });

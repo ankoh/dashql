@@ -6,7 +6,7 @@ import { Grid, useGridCallbackRef } from 'react-window';
 
 import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@ankoh/dashql-runtime/compute/arrow_formatter';
 import { resolveSummaries, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
-import { useComputationDispatch, useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useComputationDispatch, useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
@@ -97,7 +97,7 @@ export const DataTable = React.memo((props: Props) => {
 function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const config = useAppConfig();
     const logger = useLogger();
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const computationState = props.table;
     const dispatchComputation = useComputationDispatch(computationState.tableId);
     const dataTable = props.dataTable;

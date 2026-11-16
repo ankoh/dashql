@@ -48,7 +48,7 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
-| `//packages/dashql-runtime:npm_package` | `@ankoh/dashql-runtime`: the logic of DashQL without React, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_runtime.md` |
+| `//packages/dashql-runtime:npm_package` | `@ankoh/dashql-runtime`: the `Runtime` facade over the runtime of the core module and the platforms, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_runtime.md` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |

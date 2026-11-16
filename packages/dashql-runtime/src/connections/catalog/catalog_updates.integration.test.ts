@@ -6,7 +6,7 @@ import { openTestHyperDB } from '../../testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
 import { ConnectorType } from '../connector_info.js';
 import { setupStepAction } from '../connection_state.js';
-import { CoreRuntime } from '../../core_runtime.js';
+import { createRuntime, type Runtime } from '../../runtime.js';
 import type { ConnectionParams } from '../../storage/storage_backend.js';
 import { STORAGE_CATALOG_RELATIONS } from '../../storage/storage_backend.js';
 import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
@@ -23,7 +23,7 @@ const CONNECTION = dashql.buffers.catalog.CatalogLayer.CONNECTION;
 describe('the catalog of a connection follows statements', () => {
     let dql: dashql.DashQL;
     let connection: EmbeddedConnection;
-    let runtime: CoreRuntime;
+    let runtime: Runtime;
     let catalog: dashql.DashQLCatalog;
     let relations: number;
     let queries: string[];
@@ -69,7 +69,7 @@ describe('the catalog of a connection follows statements', () => {
         const storage = new WorkbookTestRegistry();
         storage.connections = [{ id: 'connection', params: { hyper: params } as ConnectionParams }];
         storage.connectionFiles.set(`connection/${STORAGE_CATALOG_RELATIONS}`, generateRelationsFile(null));
-        runtime = new CoreRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
         await runtime.restore();
         const state = runtime.connection('connection')!;
         expect(state.connectorType).toBe(ConnectorType.HYPER);
@@ -83,8 +83,8 @@ describe('the catalog of a connection follows statements', () => {
             close: async () => { },
         };
         queries = [];
-        runtime.dispatchConnection('connection', setupStepAction('HYPER_CHANNEL_READY', params, runtime.handles.register(channel)));
-        runtime.dispatchConnection('connection', setupStepAction('HEALTH_CHECK_SUCCEEDED'));
+        runtime.dispatch({ connection: 'connection' }, setupStepAction('HYPER_CHANNEL_READY', params, runtime.handles.register(channel)));
+        runtime.dispatch({ connection: 'connection' }, setupStepAction('HEALTH_CHECK_SUCCEEDED'));
         catalog = runtime.catalog('connection')!;
         relations = state.catalogRelationEntryId;
         queries.length = 0;

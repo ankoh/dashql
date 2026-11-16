@@ -147,15 +147,3 @@ export function createQueryResponseStreamMetrics(): QueryExecutionMetrics {
         durationUntilFirstBatchMs: null,
     };
 }
-
-/// The metrics of the finished queries of a connection without one
-export function createQueryExecutionMetrics(): connection.ConnectionMetrics {
-    const none = () => ({
-        totalQueries: 0,
-        totalBatchesReceived: 0,
-        totalRowsReceived: 0,
-        accumulatedTimeUntilFirstBatch: 0,
-        accumulatedQueryDuration: 0,
-    });
-    return { successfulQueries: none(), canceledQueries: none(), failedQueries: none() };
-}

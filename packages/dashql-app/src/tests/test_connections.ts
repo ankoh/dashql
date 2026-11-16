@@ -1,5 +1,5 @@
 import type * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { QueryMetadata } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { ConnectionHealth, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -20,7 +20,7 @@ export interface TestConnectionSpec {
 }
 
 /// Create a connection of a test in the runtime of the app with a health, returns its view
-export function addTestConnection(runtime: CoreRuntime, spec: TestConnectionSpec): ConnectionState {
+export function addTestConnection(runtime: Runtime, spec: TestConnectionSpec): ConnectionState {
     const online = spec.health === ConnectionHealth.ONLINE;
     const created = createTestConnection(runtime, {
         connectionId: spec.connectionId,
@@ -33,7 +33,7 @@ export function addTestConnection(runtime: CoreRuntime, spec: TestConnectionSpec
 }
 
 /// Bring a connection of a test to a health, returns its view
-export function setTestConnectionHealth(runtime: CoreRuntime, connectionId: string, health: ConnectionHealth, error?: string): ConnectionState | null {
+export function setTestConnectionHealth(runtime: Runtime, connectionId: string, health: ConnectionHealth, error?: string): ConnectionState | null {
     const current = runtime.connection(connectionId);
     if (current == null || current.connectionHealth === health) return current;
     const state = { connectionId };
@@ -51,7 +51,7 @@ export function setTestConnectionHealth(runtime: CoreRuntime, connectionId: stri
 
 /// Track a query of a test in a history of the runtime: a connection or a history without one. A finished query
 /// succeeded. Returns its id.
-export function trackTestQuery(runtime: CoreRuntime, target: core.Target, text: string, metadata: QueryMetadata, finished: boolean): number {
+export function trackTestQuery(runtime: Runtime, target: core.Target, text: string, metadata: QueryMetadata, finished: boolean): number {
     const tracked = runtime.dispatch(target, { kind: 'trackQuery', value: { traceId: 1, text, metadata: metadata as core.QueryMetadataView } });
     if (!tracked.ok || typeof tracked.id !== 'number') throw new Error(tracked.error ?? 'the query was not tracked');
     const queryId = tracked.id;
@@ -62,7 +62,7 @@ export function trackTestQuery(runtime: CoreRuntime, target: core.Target, text: 
 }
 
 /// Add the connections of fakes of a test to the runtime: their ids, params, names and health
-export function addTestConnections(runtime: CoreRuntime, connections: readonly Pick<ConnectionState, 'connectionId' | 'params' | 'connectionHealth' | 'name' | 'active'>[]): ConnectionState[] {
+export function addTestConnections(runtime: Runtime, connections: readonly Pick<ConnectionState, 'connectionId' | 'params' | 'connectionHealth' | 'name' | 'active'>[]): ConnectionState[] {
     return connections.map(connection => addTestConnection(runtime, {
         connectionId: connection.connectionId,
         params: connection.params,

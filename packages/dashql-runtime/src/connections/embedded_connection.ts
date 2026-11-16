@@ -1,5 +1,4 @@
-import type { ConnectionState } from './connection_state.js';
-import type { ConnectionAllocator } from './connection_registry_state.js';
+import type { ConnectionAllocator, ConnectionState } from './connection_state.js';
 import { newDefaultHyperWasmConnection } from './connection_params.js';
 import { isHyperWasmConnection } from './connection_label.js';
 

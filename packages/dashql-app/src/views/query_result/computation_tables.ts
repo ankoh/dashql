@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
 import { resolveMatchingRows, type SummaryTables, type TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 /// The Arrow tables of the view of a computation, resolved by their handles
 export interface ComputationTables {
@@ -32,7 +32,7 @@ export function resolveComputationTables(view: TableComputationState | null, tab
 
 /// The tables of a view, the same object while the tables are the same
 export function useComputationTables(view: TableComputationState | null): ComputationTables {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useMemo(
         () => resolveComputationTables(view, runtime),
         [runtime, view?.dataTable, view?.filterTable, view?.orderingTable, view?.dataSearchTable, view?.dataSearch.hasMatchingRows],

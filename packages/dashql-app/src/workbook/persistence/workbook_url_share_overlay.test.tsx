@@ -3,7 +3,6 @@ import { act } from '@dashql/browser-test-act';
 import { MemoryRouter } from 'react-router-dom';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
@@ -19,11 +18,11 @@ import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { addTestConnections } from '../../tests/test_connections.js';
 
-let coreRuntime: CoreRuntime | null = null;
+let runtime: Runtime | null = null;
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
@@ -48,11 +47,9 @@ const CONNECTION = {
 describe('WorkbookURLShareOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
-    let connections: ReturnType<typeof useConnectionRegistry> | null;
 
     function Capture() {
-        connections = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
+        runtime = useRuntime();
         return null;
     }
 
@@ -75,9 +72,9 @@ describe('WorkbookURLShareOverlay', () => {
         );
         await root.render(tree(false));
         await act(async () => {
-            addTestConnections(coreRuntime!, [CONNECTION]);
+            addTestConnections(runtime!, [CONNECTION]);
             // The workbook uses the connection without a script
-            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, undefined, TEST_WORKBOOK_ID);
+            runtime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, undefined, TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -86,7 +83,6 @@ describe('WorkbookURLShareOverlay', () => {
         root = createTestRoot();
         backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'Orders' }));
-        connections = null;
     });
     afterEach(() => {
         root.unmount();
@@ -106,8 +102,8 @@ describe('WorkbookURLShareOverlay', () => {
         const url = new URL(urlInput()!.value);
         const archive = new Blob([BASE64URL_CODEC.decode(url.searchParams.get('zip')!)]);
         // The runtime reads the archive like the import of the link
-        const preview = await coreRuntime!.readImport({ archive });
-        coreRuntime!.dropImport(preview.importId);
+        const preview = await runtime!.readImport({ archive });
+        runtime!.module?.dropImport(preview.importId);
         return preview.workbook as WorkbookData;
     }
 

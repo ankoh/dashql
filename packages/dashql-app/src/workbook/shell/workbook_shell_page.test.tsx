@@ -6,11 +6,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { ComputeConnectionProvider } from '../../compute/compute_connection_provider.js';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { SALESFORCE_CLIENT_FUNCTIONS } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_client_functions';
@@ -56,7 +56,7 @@ interface TestShellConnection {
     /// The catalog of the connection, once the runtime of the test holds it
     readonly catalog: dashql.DashQLCatalog;
     /// Create it in the runtime of the test
-    create(runtime: CoreRuntime): void;
+    create(runtime: Runtime): void;
 }
 
 function createConnection(connectionId: string, options: {
@@ -64,7 +64,7 @@ function createConnection(connectionId: string, options: {
     relationsSql?: string;
     clientFunctions?: string;
 } = {}): TestShellConnection {
-    let runtime: CoreRuntime | null = null;
+    let runtime: Runtime | null = null;
     return {
         connectionId,
         get catalog() {
@@ -72,7 +72,7 @@ function createConnection(connectionId: string, options: {
             if (catalog == null) throw new Error(`the runtime holds no connection ${connectionId}`);
             return catalog;
         },
-        create(into: CoreRuntime) {
+        create(into: Runtime) {
             runtime = into;
             if (into.connection(connectionId) != null) return;
             addTestConnection(into, {
@@ -91,7 +91,7 @@ function createConnection(connectionId: string, options: {
 }
 
 /// A finished query of a workbook on a connection
-function finishedQuery(runtime: CoreRuntime, connectionId: string): number {
+function finishedQuery(runtime: Runtime, connectionId: string): number {
     return trackTestQuery(runtime, { connection: connectionId }, 'select * from t;', {
         queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId: WORKBOOK_ID,
     }, true);
@@ -99,7 +99,7 @@ function finishedQuery(runtime: CoreRuntime, connectionId: string): number {
 
 /// What the tests reach through the providers
 interface Api {
-    runtime: CoreRuntime;
+    runtime: Runtime;
     setConnections(connections: TestShellConnection[]): void;
     computations(): number[];
     createComputation(queryId: number, table: arrow.Table): void;
@@ -108,18 +108,18 @@ interface Api {
 }
 
 function Capture(props: { capture: (api: Api) => void; children: React.ReactElement }) {
-    const coreRuntime = useCoreRuntime();
+    const runtime = useRuntime();
     const { mode } = useWorkbookViewMode();
     const reconfigure = useAppReconfigure();
     props.capture({
-        runtime: coreRuntime,
+        runtime,
         setConnections: connections => {
-            for (const connection of connections) connection.create(coreRuntime);
+            for (const connection of connections) connection.create(runtime);
         },
-        computations: () => coreRuntime.store.ids('computation'),
+        computations: () => runtime.store.ids('computation'),
         // The analysis starts the computation of the result, without a compute database it stops after that
         createComputation: (queryId, table) => {
-            void coreRuntime.analyzeTable(queryId, table).catch(() => { });
+            void runtime.analyzeTable(queryId, table).catch(() => { });
         },
         mode: () => mode,
         reconfigure: settings => reconfigure(config => ({ ...(config ?? {}), settings } as AppConfig)),

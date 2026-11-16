@@ -30,8 +30,6 @@ export const RESULTS_TABLE = 'workbook_results';
 export const ATTACHMENT_TABLE_PREFIX = 'workbook_attachment_';
 /// The prefix of a table that holds a cached query result
 export const RESULT_TABLE_PREFIX = 'workbook_result_';
-/// The extension of a table in a `.dashql` file
-export const TABLE_FILE_EXTENSION = '.parquet';
 
 /// The workbook tables, the workbook first
 export const WORKBOOK_TABLE_NAMES = [

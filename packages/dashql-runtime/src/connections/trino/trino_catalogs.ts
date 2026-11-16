@@ -24,13 +24,3 @@ export function withTrinoCatalogFields<P extends TrinoCatalogParams>(params: P):
         catalogs: rest.catalogs ?? (catalog.length === 0 ? [] : (schemaNames ?? []).map(schema => `${catalog}.${schema}`)),
     };
 }
-
-/// The default catalog and schema of the params
-export function trinoSessionDefaults(params: TrinoCatalogParams): TrinoSessionDefaults {
-    const fields = withTrinoCatalogFields(params);
-    const catalog = fields.defaultCatalog?.trim() ?? '';
-    const schema = fields.defaultSchema?.trim() ?? '';
-    return catalog.length === 0
-        ? { catalog: null, schema: null }
-        : { catalog, schema: schema.length === 0 ? null : schema };
-}

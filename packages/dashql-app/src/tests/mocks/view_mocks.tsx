@@ -154,35 +154,6 @@ export function fakeKeyEventsModule() {
     };
 }
 
-export interface QueryExecutorMockState {
-    executeQuery: (...args: any[]) => any;
-    queryStates?: ReadonlyMap<number, unknown>;
-    cancelQuery?: (...args: any[]) => any;
-    cacheKey?: string | null;
-}
-
-let activeQueryExecutorMockState: QueryExecutorMockState | null = null;
-
-export function setQueryExecutorMockState(state: QueryExecutorMockState) {
-    activeQueryExecutorMockState = state;
-}
-
-export function fakeQueryExecutorModule() {
-    return {
-        useQueryState: (_workbookId: string | null, queryId: number | null) => {
-            if (queryId == null) return null;
-            return activeQueryExecutorMockState?.queryStates?.get(queryId) ?? null;
-        },
-        useQueryExecutor: () => {
-            if (activeQueryExecutorMockState == null) throw new Error('Query executor mock state is not configured');
-            return activeQueryExecutorMockState.executeQuery;
-        },
-        useCancelQuery: () => activeQueryExecutorMockState?.cancelQuery ?? (async () => {}),
-        computeQueryCacheKeyForConnection: async (_details: unknown, signature: string) =>
-            signature === 'signature:select 1' ? activeQueryExecutorMockState?.cacheKey ?? null : null,
-    };
-}
-
 export function fakeReactWindowModule(
     React: typeof import('react'),
     scrollToRowMock: (...args: any[]) => any,

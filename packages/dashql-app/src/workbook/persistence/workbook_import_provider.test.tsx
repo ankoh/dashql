@@ -4,7 +4,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -14,16 +13,15 @@ import { CompositeStorageBackend } from '../../storage/composite_storage_backend
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend, type WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { StorageProvider, useStorage } from '../../storage/storage_provider.js';
+import { StorageProvider } from '../../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-runtime/testing/test_fs_mock';
-import { useWorkbooks } from '../scripts/workbook_scripts_registry.js';
 import { WorkbookImportProvider, importConflictOf, useWorkbookImport, type ConflictChoice, type WorkbookImportOptions } from './workbook_import_provider.js';
 import { memoryImportFolder } from './import_test_sources.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
-import type { CoreRuntime, ImportSource } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime, ImportSource } from '@ankoh/dashql-runtime/runtime';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useConnections, useRuntime, useWorkbooks } from '../../runtime/runtime_hooks.js';
 import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -88,19 +86,19 @@ interface Api {
     writer: StorageWriter;
     logger: Logger;
     connections: ReadonlyMap<string, ConnectionState>;
-    coreRuntime: CoreRuntime;
+    runtime: Runtime;
     workbooks: ReturnType<typeof useWorkbooks>;
 }
 
 function Capture(props: { capture: (api: Api) => void }) {
     const importer = useWorkbookImport();
-    const [, writer] = useStorage();
     const logger = useLogger();
-    const [registry] = useConnectionRegistry();
-    const coreRuntime = useCoreRuntime();
+    const connections = useConnections();
+    const runtime = useRuntime();
+    const writer = runtime.storage;
     const workbooks = useWorkbooks();
     React.useLayoutEffect(() => {
-        props.capture({ importer, writer, logger, connections: registry.connections, coreRuntime, workbooks });
+        props.capture({ importer, writer, logger, connections, runtime, workbooks });
     });
     return <div data-testid="app-content" />;
 }
@@ -126,7 +124,7 @@ describe('WorkbookImportProvider', () => {
     let registry: Registry;
     let composite: CompositeStorageBackend;
     let reload: ReturnType<typeof vi.fn<() => void>>;
-    let cancelQuery: ReturnType<typeof vi.fn<(connectionId: string, queryId: number) => Promise<void>>>;
+    let cancelQuery: ReturnType<typeof vi.fn<(queryId: number) => Promise<void>>>;
 
     beforeEach(async () => {
         container = document.createElement('div');
@@ -232,7 +230,7 @@ describe('WorkbookImportProvider', () => {
                 expect(api.workbooks.has(WORKBOOK_ID)).toBe(true);
                 expect(api.connections.has(HYPER_ID)).toBe(true);
             });
-            expect(api.coreRuntime.connection(HYPER_ID)?.workbooks).toContain(WORKBOOK_ID);
+            expect(api.runtime.connection(HYPER_ID)?.workbooks).toContain(WORKBOOK_ID);
         });
 
         it('uses the embedded database of the app instead of bringing a second one', async () => {
@@ -386,7 +384,7 @@ describe('WorkbookImportProvider', () => {
             // The manifest still has the old endpoint, only the live connection matches the workbook
             registry.connections = [{ id: KNOWN_TRINO_ID, params: { trino: { endpoint: 'https://old.example' } }, name: 'Production' } as never];
             await renderProvider();
-            await act(async () => { addTestConnection(api.coreRuntime, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS as never }); });
+            await act(async () => { addTestConnection(api.runtime, { connectionId: KNOWN_TRINO_ID, params: TRINO_PARAMS as never }); });
             let result!: Promise<string | null>;
             await act(async () => { result = importBundle(trinoSession(), CENTERED); });
             await vi.waitFor(() => expect(document.body.textContent).toContain('Use Production'));
@@ -538,14 +536,14 @@ describe('WorkbookImportProvider', () => {
             const metadata = (workbookId: string) => ({
                 queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId,
             });
-            queries.push(trackTestQuery(api.coreRuntime, { connection: HYPER_ID }, 'select 1', metadata(WORKBOOK_ID), false));
-            queries.push(trackTestQuery(api.coreRuntime, { connection: HYPER_ID }, 'select 1', metadata(OTHER_WORKBOOK_ID), false));
+            queries.push(trackTestQuery(api.runtime, { connection: HYPER_ID }, 'select 1', metadata(WORKBOOK_ID), false));
+            queries.push(trackTestQuery(api.runtime, { connection: HYPER_ID }, 'select 1', metadata(OTHER_WORKBOOK_ID), false));
         });
         await vi.waitFor(() => expect(api.connections.get(HYPER_ID)?.queriesActiveOrdered).toEqual(queries));
         const { result } = await askConflict(() => importBundle(bundleOf({}, 'select 2'), CENTERED));
         await click(byTestId('workbook-import-replace'));
         expect(await result).toBe(WORKBOOK_ID);
-        expect(cancelQuery.mock.calls).toEqual([[HYPER_ID, queries[0]]]);
+        expect(cancelQuery.mock.calls).toEqual([[queries[0]]]);
     });
 
     describe('the registered workbook of an import', () => {

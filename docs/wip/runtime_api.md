@@ -7,7 +7,9 @@ is built: the connections with their query histories, the query executor and the
 [Step 3 as built](#step-3-as-built). Step 4 is built: the workbooks, the storage writer and the restore, see
 [Step 4 as built](#step-4-as-built). Step 5 is built: the runs of workbooks, see [Step 5 as built](#step-5-as-built).
 Step 6 is built: the imports and exports of workbooks, see [Step 6 as built](#step-6-as-built).
-Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
+Step 7 is built: one facade over the runtime of the module, the hooks over its views and the description of the queries
+in Rust, see [Step 7 as built](#step-7-as-built). The sections before the migration describe the state when this
+document was written. Measured on `a9029aa2f` (the progress model of queries in Rust). It takes as
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
@@ -454,8 +456,8 @@ deletes more than it adds.
    format of the core and the `tables` and `storage` of the platform. Deletes the orchestration of `workbook_import.ts`, `workbook_export.ts`,
    `workbook_connection_import.ts`, `workbook_query_results.ts`, `workbook_format.rs` and its wrapper. TypeScript about
    −1,100.
-7. **The rest.** `runtime.ts` becomes the facade; the old hook names, `storeWithoutRuntime` and the binding modules
-   of the app go.
+7. **The rest** (done, see [Step 7 as built](#step-7-as-built)). `runtime.ts` becomes the facade; the old hook names,
+   `storeWithoutRuntime` and the binding modules of the app go.
 
 ### Step 1 as built
 
@@ -1009,6 +1011,109 @@ the store with its projections, and helpers for the UI (labels, connector infos,
 logic that is left in it: `QueryPlatform` (the description of a query from the view of its connection, the cache key
 of a connection with SHA-256), the query result cache with its eviction, the migrations of workbook folders and of the
 storage, and the binding of the format that they call (`workbook_format.rs`, `DashQLWorkbookFormat`).
+
+### Step 7 as built
+
+The cleanup, built on `9e56c08e7` (step 6): one facade over the runtime of the module, the hooks over its views, the
+description of the queries in Rust.
+
+- **One object.** `Runtime` of `packages/dashql-runtime/src/runtime.ts` is the class that `createRuntime(platform)`
+  returns and that the app, the shell of Hyper, the command line tool and the tests hold. `CoreRuntime`
+  (`core_runtime.ts`) and the interface of the old `Runtime` with its `coreRuntime` went into it. It builds the one
+  platform object of the module, owns the handle table and the store, attaches the module once the core is there
+  (`module`, `ready()`, `setCore`) and has typed commands where a caller needs more than the module returns: the core set
+  up on the first call, the flush of the store after a command, handles for the objects that cross (`execute`,
+  `cancel`, `watchProfile`, `analyzeTable`, `createConnection`, `createWorkbook`, `deleteWorkbook`, the setups, the saves,
+  the restores, the runs, the imports and exports, `reportEditorUpdate`). The wrappers that only forwarded went: the app
+  and the command line tool call the module directly (`runtime.module?.stopRun(id)`, `cancelSetup`, `dropImport`,
+  `flushCacheWrites`, `exportConnection`, `(await runtime.ready()).exportedResults(id)`) and read the store
+  (`runtime.store.get(kind, id)`, `all(kind)`) instead of `registry()`, `connections()`, `workbook()`, `workbookScripts()`
+  and `query()`. `dispatch` logs a refused action, `dispatchConnection`, `dispatchWorkbook` and `deleteComputation` went.
+  `RuntimePlatform` of TypeScript has every member but the logger and the scheduler optional.
+- **The description of a query is Rust.** `executeQuery(connectionId, args, failure, events)` takes the options of the
+  query in its arguments (`QueryOptions`: analyze, publish, throw on error, a call of a client function, the read
+  timeout, the cache with the script signature) instead of a promise of a request from the host. `Connections::describe`
+  of `runtime/queries.rs` builds the request from the connection of the registry: the target, the cache key, whether the
+  statement touches relations (not on Salesforce), the details of the log. The queries that the runtime runs itself, the
+  probes, the metadata queries and the statements of runs, are described the same way. The platform describes only the
+  channel of the connection by its handle (`channels.describe(queryId, channel, query)`: a Trino channel or a Hyper
+  channel over HTTP that the executor speaks, else a channel of the host, the tokens of a Salesforce channel for a call
+  of a client function) and lets go of it with `channels.forget`. `queries.describe` and `queries.forget` of the
+  platform went, `request_from_json` of the crate too.
+- **The key of the query result cache is Rust.** `executor::cache_key` of the crate has the signature of the connector
+  (`connection_cache_signature` over the descriptors of Hyper, Trino and Salesforce that were ported before) and the
+  text that the key hashes (`result_key_input`: the namespace, the signature with its keys sorted and the script
+  signature, each after its length in UTF-16 code units, the text of the TypeScript key so the cached files keep their
+  keys; a test compares it with texts that the TypeScript function wrote). The digest is `crypto.sha256` of the
+  platform, no crate of SHA-256 came. `Connections::result_key` serves the queries and the result keys of the runs;
+  `resultCache.key` of the platform went. The Salesforce signature leaves out missing fields like `JSON.stringify`.
+- **TypeScript of the queries.** `query/query_channels.ts` (`QueryChannels`) is what stays of `QueryPlatform`: the
+  channels of the host by query, the query result cache over the compute database and `execute` for callers in
+  TypeScript (the result table, the error of a failed query, the abort signal of the caller, the log of a trace, the
+  refreshed token of a Trino channel). `query_platform.ts`, `query_result_cache_key.ts`, `createConnectionParamsSignature`
+  and the `cacheSignature` of the connector descriptors went. `CancelQuery` takes the query id only.
+- **The hooks of the app** (`packages/dashql-app/src/runtime/runtime_hooks.tsx`): `useRuntime`, `useOptionalRuntime`,
+  `useView`, `useDispatch`, `useTable`, the aliases `useWorkbook`, `useScript`, `useWorkbookDerived`, `useWorkbookList`,
+  `useConnection`, `useConnectionList`, `useQuery`, `useComputation`, `useComputationDispatch`, the reads of several
+  slices `useWorkbooks`, `useWorkbookScriptMap`, `useConnections`, `useConnectionViews`, `useAllQueries`, and
+  `useQueryProgress`, `useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`, `useScriptRun`,
+  `useScriptResultKey`, `StandaloneRuntime`. The binding modules of the app went: `connection_registry.tsx`,
+  `query_executor.tsx`, `workbook_scripts_registry.tsx`, `use_workbook_execution.ts` and `catalog/catalog_loader.tsx`,
+  with `useConnectionRegistry`, `useConnectionRegistryStore`, `useConnectionReferences`, `useConnectionById`,
+  `useConnectionAllocator`, `useConnectionDispatch`, `useWorkbookConnections`, `useWorkbookScripts`, `useQueryExecutor`,
+  `useCancelQuery`, `useQueryState`, `useQueryReader`, `useCatalogLoaderQueue`, `useCoreRuntime`,
+  `useOptionalCoreRuntime`, `useDeleteComputation`, `useStorageWriter`, `useOptionalStorageWriter`, `useStorage` and
+  `StandaloneCoreRuntime`. What the app adds about the user interface stays in the app: the drafts of the forms of
+  connections (`connection_draft.ts`), the state of a save (`connection_persistence.tsx`), creating and deleting
+  workbooks with the selection and the invalid workbooks (`workbook_lifecycle.ts`). `connection_registry_state.ts` of the
+  runtime went: the list of the connections says which are listed and their ordinals (`connectionOrdinals(list)`,
+  `isListedConnection(list, id)` of `connection_label.ts`), the workbooks of a connection and the connections of a
+  workbook are fields of their views.
+- **Dead code that went.** `catalog_batch.ts` and its test, `trinoSessionDefaults`, `testing/mocks/connection_references.ts`,
+  and the exports that nothing called any more (`channelOf`, `filterMatches`, `createQueryExecutionMetrics`,
+  `isQueryCacheMiss`, `getHyperCloudAttachedDatabase`, `validateWorkbookData`, `loadRuntimeCore`,
+  `orderedWorkbookScripts`, `persistedConnectionId`, `isRefusedByCloudPreview`, ...).
+- **Changed on purpose.** A query whose connection is unknown fails in the runtime without a call of the platform. A
+  query is described when its task first runs, right after `executeQuery` returned, not in the call. The platform
+  forgets the channel of every query when it ends, also of the queries of TypeScript. A refused action of any target is
+  logged. Cancelling a query needs no connection id. A component that asks for the executor no longer gets a new
+  function when the compute database arrives. A runtime is destroyed asynchronously everywhere: it stops its runs and its
+  catalog loader and writes what is pending before it frees the module.
+
+Measured (`git diff HEAD --numstat` with the new files; the test helpers of `testing/` and `tests/` count as tests; a
+moved test file counts as deleted and added):
+
+| Package | Deleted | Added | Tests deleted | Tests added |
+|---|---|---|---|---|
+| `dashql-runtime` | 2,015 | 1,326 | 593 | 300 |
+| `dashql-core-js` | 2 | 3 | 42 | 42 |
+| `dashql-core-wasm` | 127 | 282 | | |
+| `dashql-core-runtime` | 69 | 113 | | |
+| `dashql-app` | 1,281 | 967 | 1,110 | 1,100 |
+| `dashql-cli` | 18 | 20 | | |
+
+TypeScript lost 3,316 lines and gained 2,316 without tests (−1,000 net), and 1,745 lines of tests for 1,442. Rust
+gained 395 and lost 196: the description of a query, the key of the cache and their tests. The release module
+(`--config=release`) grew from 13,628,426 to 13,672,855 bytes (+0.3%), gzip (`-9`) from 3,762,803 to 3,775,707 bytes
+(+0.3%): the description and the key moved in, the reader of the request JSON went. The typing benchmark is unchanged
+(one run of one pass: the editor 79 / 143 µs, the update 29 / 66 µs, the flush 11 / 14 µs, the derivation 24 / 34 µs,
+p10 / p50).
+
+What is left in `packages/dashql-runtime/src` (14,697 lines in 138 files without tests and test helpers, 15,769 with
+the 1,072 lines of `testing/`; 6,772 lines of tests in 60 files):
+
+| Kind | Lines | What |
+|---|---|---|
+| Facade and store | 2,139 | `runtime.ts` (898: the class, its commands and the platform object of the module), `store/` (the store, the projections, the handle table, the tables), the projections of the script and progress views, `runtime_storage.ts` |
+| Platform | 5,256 | the storage backends and the archives, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), the logger, HTTP, OAuth, the compute platform, the files of runs and attachments, `query_channels.ts`, utilities |
+| Connector clients | 2,197 | Hyper over gRPC and HTTP, the API of Salesforce, Trino, the embedded Hyper channel, the result streams, the tracked queries of the host |
+| UI helpers | 2,684 | the Arrow formatter, the types of the computation views, connector infos and descriptors, labels, params, script names and formatting, inputs, the profile symbols |
+| CLI and Node | 1,315 | `node/`, lint, format and reports of SQL, the journal of a session |
+| Remaining logic | 882 | the migrations of folders and of the storage with `workbook_format.ts` and the validation, the eviction of the cache, the restore of connections of a changed native folder, the mock setup of Salesforce, the catalog SQL of the shell |
+| Test helpers in the sources | 224 | `hyperdb_http_client_mock.ts` |
+
+Since the migration started the package went from 32,400 lines without tests to 23,656 when this document was written
+and to 14,697 now.
 
 ### The order
 

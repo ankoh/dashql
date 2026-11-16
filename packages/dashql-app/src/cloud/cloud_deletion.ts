@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connection.js';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { useConnectionReferences } from '../connections/connection_registry.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -16,19 +16,19 @@ import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 /// embedded Hyper, then its connection and its database are deleted. Throws while scripts of workbooks run on it, the
 /// connection stays then.
 export function useDeleteLocalCloud(): (connectionId: string) => Promise<void> {
-    const references = useConnectionReferences();
+    const runtime = useOptionalRuntime();
     const setCloud = useSetCloudConnection();
     const deleteConnection = useDeleteConnection();
     const detach = useDetachConnection();
     return React.useCallback(async (connectionId: string) => {
         await detach(connectionId);
-        const using = references.workbooksOf(connectionId).length;
+        const using = (runtime?.store.get('connection', connectionId)?.workbooks ?? []).length;
         if (using > 0) {
             throw new Error(`${using} ${using === 1 ? 'workbook has' : 'workbooks have'} scripts on the local cloud, move them to another connection first`);
         }
         setCloud(connectionId, false);
         await deleteConnection(connectionId);
-    }, [deleteConnection, detach, references, setCloud]);
+    }, [deleteConnection, detach, runtime, setCloud]);
 }
 
 /// How the menus of a cloud remove it

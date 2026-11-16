@@ -7,7 +7,6 @@ import { WORKBOOK_TABLE } from '@ankoh/dashql-runtime/storage/workbook_tables';
 import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { findLinkedWorkbook, linkedWorkbookMetadata, previewConnections, useCloudPreviewCleanup } from './cloud_workbooks.js';
-import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
 import { TEST_WORKBOOK_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -55,7 +54,7 @@ describe('Cloud workbooks', () => {
         const runtime = await createTestRuntime({ storage });
         try {
             const exported: { metadata: string | null } = { metadata: null };
-            await runtime.coreRuntime.exportTables(TEST_WORKBOOK_ID, { withCatalog: true, withLoginHint: false }, async tables => {
+            await runtime.exportTables(TEST_WORKBOOK_ID, { withCatalog: true, withLoginHint: false }, async tables => {
                 exported.metadata = tables[WORKBOOK_TABLE][0].metadata;
             });
             expect(JSON.parse(exported.metadata!)).toEqual({ originalFileName: 'hyper' });
@@ -102,8 +101,9 @@ describe('Cloud workbooks', () => {
     it('removes with a preview the connections that it registered, also after a reload', () => {
         // The preview uses the cloud, a connection of the manifest it linked to, and two that it registered, one of them
         // used by another workbook as well
-        const references = fixedConnectionReferences({ preview: ['cloud', 'linked', 'own', 'shared'], other: ['shared'] });
+        const workbooks = new Map([['preview', ['cloud', 'linked', 'own', 'shared']], ['other', ['shared']]]);
+        const workbooksOf = (connectionId: string) => [...workbooks].filter(([, connectionIds]) => connectionIds.includes(connectionId)).map(([workbookId]) => workbookId);
         const kept = new Set(['cloud', 'linked']);
-        expect(previewConnections('preview', references.connectionsOf('preview'), kept, references)).toEqual(['own']);
+        expect(previewConnections('preview', workbooks.get('preview')!, kept, workbooksOf)).toEqual(['own']);
     });
 });

@@ -1,4 +1,4 @@
-//! The executor in JSON, as it crosses to the host of the module: requests, events, failures and metrics in the shapes
+//! The executor in JSON, as it crosses to the host of the module: targets, events, failures and metrics in the shapes
 //! of the TypeScript runtime (`QueryExecutionMetrics`). A progress update crosses next to its event, as a value of the
 //! module that the host hands to the query history.
 
@@ -6,9 +6,7 @@ use std::rc::Rc;
 
 use serde_json::{json, Value};
 
-use super::{
-    CacheRequest, ClientFunctionTarget, FailureKind, QueryEvent, QueryFailure, QueryRequest, QueryTarget,
-};
+use super::{ClientFunctionTarget, FailureKind, QueryEvent, QueryFailure, QueryTarget};
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use crate::connections::{ConnectorType, JsonObject, TrinoSessionDefaults};
 use crate::http::Headers;
@@ -111,10 +109,6 @@ fn string(value: &Value, key: &str) -> Option<String> {
     value.get(key).and_then(Value::as_str).map(str::to_string)
 }
 
-fn flag(value: &Value, key: &str, default: bool) -> bool {
-    value.get(key).and_then(Value::as_bool).unwrap_or(default)
-}
-
 /// The connector of its index in the JSON of the host
 fn connector(index: u64) -> Result<ConnectorType, String> {
     Ok(match index {
@@ -196,38 +190,6 @@ impl SpecCache {
     }
 }
 
-/// A request from JSON. The failure of the caller comes as `{"message"}` with what the host failed with next to it.
-pub fn request_from_json(query_id: u64, value: &Value, specs: &mut SpecCache) -> Result<QueryRequest, String> {
-    let target = target_from_json(value.get("target").unwrap_or(&Value::Null), specs)?;
-    let cache = value.get("cache").filter(|cache| cache.is_object()).map(|cache| CacheRequest {
-        key: string(cache, "key").unwrap_or_default(),
-        refresh: flag(cache, "refresh", false),
-    });
-    let failure = value
-        .get("failure")
-        .filter(|failure| failure.is_object())
-        .map(|failure| QueryFailure::new(FailureKind::Error, string(failure, "message").unwrap_or_default()));
-    let log_details = object(value, "logDetails")
-        .map(|details| {
-            details.iter().map(|(key, value)| (key.clone(), value.as_str().map(str::to_string).unwrap_or_else(|| value.to_string()))).collect()
-        })
-        .unwrap_or_default();
-    Ok(QueryRequest {
-        query_id,
-        connection_id: string(value, "connectionId").unwrap_or_default(),
-        text: string(value, "text").unwrap_or_default(),
-        target,
-        publish_results: flag(value, "publishResults", true),
-        analyze_results: flag(value, "analyzeResults", false),
-        cache,
-        cache_only: flag(value, "cacheOnly", false),
-        touches_relations: flag(value, "touchesRelations", false),
-        throw_on_error: flag(value, "throwOnError", false),
-        failure,
-        log_details,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -261,25 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn reads_requests_and_writes_events() {
-        let mut specs = SpecCache::default();
-        let request = json!({
-            "connectionId": "c",
-            "text": "select 1",
-            "target": { "type": "host" },
-            "cache": { "key": "k" },
-            "cacheOnly": true,
-            "failure": { "message": "nope" },
-            "logDetails": { "workbookId": "w" },
-            "publishResults": false,
-        });
-        let request = request_from_json(7, &request, &mut specs).unwrap();
-        assert_eq!(request.cache, Some(CacheRequest { key: "k".into(), refresh: false }));
-        assert!(request.cache_only);
-        assert_eq!(request.failure.map(|f| f.message), Some("nope".to_string()));
-        assert!(!request.publish_results);
-        assert_eq!(request.log_details, [("workbookId".to_string(), "w".to_string())]);
-
+    fn writes_events() {
         let progress = QueryExecutionProgress { is_queued: Some(true), phase: Some("QUEUED".into()), ..Default::default() };
         assert_eq!(event_json(&QueryEvent::Progress(Box::new(progress))), json!({ "type": "progress" }));
         let failure = QueryFailure::new(FailureKind::CacheMiss, "miss");

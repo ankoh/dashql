@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useConnectionById } from '../connections/connection_registry.js';
+import { useConnection } from '../runtime/runtime_hooks.js';
 import { connectionParamsWithoutDraftRows } from '@ankoh/dashql-runtime/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { isLocalCloud } from '../connections/cloud_connection.js';
@@ -24,7 +24,7 @@ export interface CloudLogin {
 }
 
 export function useCloudLogin(connectionId: string | null): CloudLogin {
-    const [connectionState] = useConnectionById(connectionId);
+    const connectionState = useConnection(connectionId);
     const connectionSetup = useConnectionSetup(connectionId);
     const config = useAppConfig();
 

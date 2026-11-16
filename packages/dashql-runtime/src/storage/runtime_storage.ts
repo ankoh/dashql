@@ -2,7 +2,7 @@ import type * as core from '@ankoh/dashql-core';
 
 import { stringifyError } from '../platform/logger/logger.js';
 import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from './storage_backend.js';
-import { STORAGE_CONNECTIONS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from './storage_backend.js';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from './storage_backend.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
 /// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/wip/runtime_api.md). The writer
@@ -15,14 +15,10 @@ export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
 /// The key of a write. Writes with the same key coalesce, the latest task wins. Workbook keys start with the workbook
 /// id, the keys of the app storage with `@`.
 export type StorageWriteKey = string;
-/// The workbook file of a workbook
-export const groupWorkbookManifestWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}`;
 /// A script of a workbook
 export const groupScriptWrites = (workbookId: string, fileName: string) => `${workbookId}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`;
 /// The attachment list of a workbook
 export const groupWorkbookAttachmentListWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}:attachments`;
-/// The files of a connection
-export const groupConnectionFileWrites = (connectionId: string, fileName: string) => `@${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${fileName}`;
 
 /// Whether a key belongs to a workbook: the workbook id itself or a path below it
 export function storageWriteKeyBelongsToWorkbook(key: StorageWriteKey, workbookId: string): boolean {
@@ -135,7 +131,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
 /// What the writer of the storage asks of the runtime
 export interface StorageWriterRuntime {
     /// The runtime of the module, null until the core is there
-    readonly runtime: core.Runtime | null;
+    readonly module: core.Runtime | null;
     /// The runtime of the module, the core is set up with the first call
     ready(): Promise<core.Runtime>;
 }
@@ -146,19 +142,19 @@ export class StorageWriter {
     constructor(private readonly runtime: StorageWriterRuntime) { }
 
     private async command(command: core.StorageCommand): Promise<unknown> {
-        const module = this.runtime.runtime ?? await this.runtime.ready();
+        const module = this.runtime.module ?? await this.runtime.ready();
         return await module.storage(command);
     }
 
     /// Run every pending write right away and wait until all writes ended, also while paused
     async flush(): Promise<void> {
-        if (this.runtime.runtime == null) return;
+        if (this.runtime.module == null) return;
         await this.command({ kind: 'flush' });
     }
 
     /// Wait for the writes that started without running the pending ones
     async settle(): Promise<void> {
-        if (this.runtime.runtime == null) return;
+        if (this.runtime.module == null) return;
         await this.command({ kind: 'settle' });
     }
 
@@ -200,17 +196,17 @@ export class StorageWriter {
 
     /// Are the writes of a workbook held, e.g. after one of its scripts changed outside the app?
     isWorkbookPaused(workbookId: string): boolean {
-        return this.runtime.runtime?.isWorkbookPaused(workbookId) ?? false;
+        return this.runtime.module?.isWorkbookPaused(workbookId) ?? false;
     }
 
     /// The pending keys below a workbook in the order they were scheduled
     getPendingKeysForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): string[] {
-        return (this.runtime.runtime?.storagePendingKeys(workbookId) ?? []).filter(include);
+        return (this.runtime.module?.storagePendingKeys(workbookId) ?? []).filter(include);
     }
 
     /// The pending keys in the order they were scheduled
     getPendingKeys(): string[] {
-        return this.runtime.runtime?.storagePendingKeys(null) ?? [];
+        return this.runtime.module?.storagePendingKeys(null) ?? [];
     }
 
     /// Discard pending writes of a workbook, e.g. after the user chose a version on disk over the edits of the app
@@ -222,7 +218,7 @@ export class StorageWriter {
     /// The latest generation of the keys of a workbook
     getWorkbookWriteGeneration(workbookId: string, include: (key: string) => boolean = () => true): number {
         let generation = 0;
-        for (const [key, value] of this.runtime.runtime?.storageWriteGenerations(workbookId) ?? []) {
+        for (const [key, value] of this.runtime.module?.storageWriteGenerations(workbookId) ?? []) {
             if (include(key)) generation = Math.max(generation, value);
         }
         return generation;
@@ -231,7 +227,7 @@ export class StorageWriter {
     /// The statistics of the writes by key, read when shown
     getStatistics(): Map<StorageWriteKey, StorageWriterStatistics> {
         const statistics = new Map<StorageWriteKey, StorageWriterStatistics>();
-        for (const [key, value] of this.runtime.runtime?.storageStatistics() ?? []) {
+        for (const [key, value] of this.runtime.module?.storageStatistics() ?? []) {
             statistics.set(key, {
                 totalScheduledWrites: value.scheduledWrites,
                 totalWrites: value.writes,
@@ -245,14 +241,14 @@ export class StorageWriter {
 
     /// Schedule a debounced write that no state of the runtime describes, resolves true when the task was executed
     async write(key: string, task: core.StorageWriteTask, debounceFor: number = 0): Promise<boolean> {
-        const module = this.runtime.runtime ?? await this.runtime.ready();
+        const module = this.runtime.module ?? await this.runtime.ready();
         const outcome = await module.storageWrite(key, task, debounceFor, false);
         return outcome.status === 'written';
     }
 
     /// Write right away and wait until the content is persisted. A paused writer or workbook defers it.
     async writeDurable(key: string, task: core.StorageWriteTask): Promise<StorageWriteResult> {
-        const module = this.runtime.runtime ?? await this.runtime.ready();
+        const module = this.runtime.module ?? await this.runtime.ready();
         return writeResultOf(await module.storageWrite(key, task, 0, true));
     }
 }

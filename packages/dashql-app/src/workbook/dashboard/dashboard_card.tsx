@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
-import { useQueryResultTable, useQueryState } from '../../connections/query_executor.js';
+import { useQuery, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { ScriptEditor } from '../scripts/script_editor.js';
@@ -30,14 +30,14 @@ const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
 
 export interface DashboardCardDependencies {
-    useQueryState: typeof useQueryState;
+    useQuery: typeof useQuery;
     QueryResultPanel: typeof QueryResultPanel;
     VisualizationDispatch: typeof VisualizationDispatch;
     ScriptEditor: typeof ScriptEditor;
 }
 
 const DEFAULT_DEPENDENCIES: DashboardCardDependencies = {
-    useQueryState,
+    useQuery,
     QueryResultPanel,
     VisualizationDispatch,
     ScriptEditor,
@@ -81,7 +81,7 @@ interface Props {
 /// A script without a visualization is a collapsed card: a header of one row with the renderers and an editor.
 export const DashboardCard = React.memo(function DashboardCard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const query = dependencies.useQueryState(props.workbookId, props.script.latestQueryId);
+    const query = dependencies.useQuery(props.script.latestQueryId);
     const visualizeQuery: ResolvedVisualizeQuery | null = props.script.annotations.visualizeQuery;
     const collapsed = visualizeQuery == null;
     // A staged rewrite, e.g. of the renderer, shows on the card and waits to be accepted or rejected like in the feed

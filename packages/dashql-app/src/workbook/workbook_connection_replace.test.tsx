@@ -7,19 +7,17 @@ import { ComputeConnectionProvider, useComputeDatabase } from '../compute/comput
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { useWorkbooks } from './scripts/workbook_scripts_registry.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 
@@ -35,14 +33,14 @@ const SOURCE_PARAMS = { trino: { endpoint: 'http://old' } } as any;
 const TARGET_PARAMS = { trino: { endpoint: 'http://new' } } as any;
 
 /// A Trino connection without a channel in the runtime of the test
-function connection(runtime: CoreRuntime, connectionId: string, params: any): ConnectionState {
+function connection(runtime: Runtime, connectionId: string, params: any): ConnectionState {
     const state = createTestConnection(runtime, { connectionId, params, active: true });
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     return state;
 }
 
 /// A workbook of the runtime whose next script runs on a connection
-function workbook(runtime: CoreRuntime, on: ConnectionState): WorkbookScripts {
+function workbook(runtime: Runtime, on: ConnectionState): WorkbookScripts {
     return runtime.createWorkbook(on.connectionId, null, false, undefined, WORKBOOK_ID);
 }
 
@@ -54,19 +52,19 @@ interface Api {
 }
 
 function Capture(props: { capture: (api: Api) => void }) {
-    const [registry] = useConnectionRegistry();
-    const coreRuntime = useCoreRuntime();
+    const connections = useConnections();
+    const runtime = useRuntime();
     const workbooks = useWorkbooks();
     const replace = useReplaceConnection();
-    const writer = useStorageWriter();
+    const writer = runtime.storage;
     const compute = useComputeDatabase();
     React.useEffect(() => {
-        const source = connection(coreRuntime, 'source', SOURCE_PARAMS);
-        connection(coreRuntime, 'target', TARGET_PARAMS);
-        workbook(coreRuntime, source);
-    }, [coreRuntime]);
+        const source = connection(runtime, 'source', SOURCE_PARAMS);
+        connection(runtime, 'target', TARGET_PARAMS);
+        workbook(runtime, source);
+    }, [runtime]);
     React.useLayoutEffect(() => {
-        if (compute) props.capture({ replace, writer, connections: registry.connections, workbooks });
+        if (compute) props.capture({ replace, writer, connections, workbooks });
     });
     return null;
 }

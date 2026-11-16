@@ -11,7 +11,6 @@ import { describeCloudCleanup } from './cloud_cleanup.js';
 import { isCloudLink, useCloudSetupGate } from '../app/loading/cloud_setup_gate.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
@@ -24,15 +23,15 @@ import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_clien
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { createTestRoot } from '../tests/react_root.js';
 import * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 import { addTestConnection, setTestConnectionHealth } from '../tests/test_connections.js';
 
 // The page of the cloud setup on the embedded Hyper of the tests: a Hyper server and a local cloud, each with a session
 // that the query executor runs their statements on, with a database attached as "dashql".
 
-type Registry = ReturnType<typeof useConnectionRegistry>;
-let coreRuntime: CoreRuntime | null = null;
+type Registry = ReadonlyMap<string, ConnectionState>;
+let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let database: HyperDB;
@@ -60,7 +59,7 @@ afterAll(async () => {
     await dispose?.();
 });
 
-/// A Hyper connection of the registry, a server unless a local cloud
+/// A Hyper connection of the runtime, a server unless a local cloud
 function hyperConnection(connectionId: string, health: ConnectionHealth, local = false, setupError?: string): ConnectionState {
     const params = local
         ? createLocalCloudParams() as unknown as { hyper: Record<string, unknown> }
@@ -90,8 +89,8 @@ describe('cloud setup page', () => {
     let logins: string[];
 
     function Capture() {
-        registry = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
+        registry = useConnections();
+        appRuntime = useRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
         clouds = useClouds();
@@ -108,7 +107,7 @@ describe('cloud setup page', () => {
     };
 
     const setHealth = async (connectionId: string, health: ConnectionHealth) => await act(async () => {
-        setTestConnectionHealth(coreRuntime!, connectionId, health);
+        setTestConnectionHealth(appRuntime!, connectionId, health);
     });
 
     /// Logging in brings the connection online
@@ -164,7 +163,7 @@ describe('cloud setup page', () => {
         await vi.waitFor(() => expect(config).not.toBeNull());
         await act(async () => {
             for (const c of connections) {
-                addTestConnection(coreRuntime!, {
+                addTestConnection(appRuntime!, {
                     connectionId: c.connectionId, params: c.params, name: c.name ?? undefined, active: true,
                     health: c.connectionHealth, error: c.details.healthCheckError?.message,
                 });

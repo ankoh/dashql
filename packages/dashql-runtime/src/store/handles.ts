@@ -1,7 +1,7 @@
 /// The handles of the JavaScript objects that the Rust runtime names by a number (docs/wip/runtime_projection.md): the
 /// channels of the connections, the records of catalog updates and of the queries that the host runs, the Arrow tables
 /// of results and computations, the lifetimes of computations. The handle table is the one of the platform of the
-/// runtime (`CoreRuntime.handles`).
+/// runtime (`Runtime.handles`).
 ///
 /// The adapter registers an object and hands its handle over with the action that gives the object to a state. From
 /// then on the state owns the handle: it keeps the handle where it keeps the object and lets go of it with an effect,

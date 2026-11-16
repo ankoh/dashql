@@ -5,7 +5,7 @@ import { Store } from '@ankoh/dashql-runtime/store/store';
 import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
-import { useOptionalRuntime } from '../../runtime/runtime_provider.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { useStoreState } from '../../utils/store_hooks.js';
 
 /// The selected script of every workbook (workbookId -> script key). A state of the app, the workbook scripts of the

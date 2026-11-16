@@ -12,8 +12,7 @@ import { createNodePlatform } from '@ankoh/dashql-runtime/node/node_platform';
 import { NODE_FILE_SYSTEM } from '@ankoh/dashql-runtime/node/node_file_system';
 import { LogLevel, type LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 import { LoggableException, Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
-import type { RunResult } from '@ankoh/dashql-runtime/core_runtime';
+import { createRuntime, type RunResult, type Runtime } from '@ankoh/dashql-runtime/runtime';
 import { JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker } from '@ankoh/dashql-runtime/session/workbook_journal';
 import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-runtime/storage/opfs_query_result_cache';
@@ -203,10 +202,10 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
         };
         options = { channelParams };
     }
-    const cancel = () => rt.coreRuntime.cancelSetup(conn.connectionId);
+    const cancel = () => rt.module?.cancelSetup(conn.connectionId);
     signal.addEventListener('abort', cancel, { once: true });
     try {
-        const outcome = await rt.coreRuntime.setupConnection(conn.connectionId, {
+        const outcome = await rt.setupConnection(conn.connectionId, {
             channelParams: options.channelParams == null ? undefined : { trino: options.channelParams },
         });
         if (outcome.status === 'succeeded') return null;
@@ -228,10 +227,8 @@ function dashqlRootOf(workspace: string): string {
 async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise<WorkbookScripts> {
     // The folder is the workbook, its file names its id
     const { workbookId } = await storage.loadWorkbook('');
-    const core = await rt.platform.setupCore('run');
-    rt.coreRuntime.setCore(core);
-    await rt.coreRuntime.restoreWorkbook(workbookId);
-    const workbook = rt.coreRuntime.workbook(workbookId);
+    await rt.restoreWorkbook(workbookId);
+    const workbook = rt.store.get('workbook', workbookId);
     if (workbook == null) throw new Error(`the workbook ${workbookId} was not restored`);
     return workbook;
 }
@@ -296,7 +293,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     let progressTimer: ReturnType<typeof setInterval> | null = null;
     try {
         // A run doesn't describe the connections, it only runs the scripts
-        runtime.coreRuntime.runCatalogLoader(false);
+        runtime.runCatalogLoader(false);
         let workbook: WorkbookScripts;
         try {
             workbook = await loadWorkbook(runtime, storage);
@@ -340,7 +337,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         // The connections are set up before the first statement, all at once. A failure is reported here, the run
         // leaves out the scripts of the connection.
         const prepareConnection = async (connectionId: string) => {
-            const conn = runtime.coreRuntime.connection(connectionId);
+            const conn = runtime.connection(connectionId);
             if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
             const label = connectionLabel(conn);
             const started = performance.now();
@@ -353,12 +350,17 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             emit({ type: 'connection_ready', connection: label, ms: performance.now() - started });
         };
 
+        // A query as the runtime holds it now
+        const queryOf = (queryId: number) => runtime.module?.views('query', [queryId])[0] ?? null;
         // The progress of the running queries of the scripts, read from the queries of the runtime and sent when it changed
         const lastProgress = new Map<string, string>();
         const sampleProgress = () => {
-            for (const conn of runtime.coreRuntime.connections().values()) {
-                for (const queryId of conn.queriesActiveOrdered) {
-                    const query = runtime.coreRuntime.query(queryId);
+            const module = runtime.module;
+            const list = module?.views('connectionList', ['root'])[0];
+            const ids = list?.connections.map(entry => entry.connectionId) ?? [];
+            for (const conn of ids.length === 0 ? [] : module!.views('connection', ids)) {
+                for (const queryId of conn?.queriesActiveOrdered ?? []) {
+                    const query = queryOf(queryId);
                     const script = scriptOfOwner.get(query?.queryMetadata.resultOwner ?? '');
                     const update = query?.latestProgressUpdate;
                     if (script == null || update == null) continue;
@@ -388,9 +390,9 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         const resultOf = async (script: string, queryId: number | null, key: string | null, cached: boolean): Promise<RunEvent> => {
             const ms = elapsed(script);
             // The history of the connection keeps the result table of the query
-            const table = queryId == null ? null : runtime.coreRuntime.table(runtime.coreRuntime.query(queryId)?.resultTable?.id) ?? null;
+            const table = queryId == null ? null : runtime.table(queryOf(queryId)?.resultTable?.id) ?? null;
             // The executor writes the result into the cache after the query resolved
-            await runtime.coreRuntime.flushCacheWrites();
+            await runtime.module?.flushCacheWrites();
             const entry = hyper == null || key == null ? null : await hyper.resultCache.lookup(key);
             const file = entry == null ? null : path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name);
             return { type: 'script_done', script, ms, table, cached, key: entry?.key ?? null, file };
@@ -415,7 +417,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
                     outcomes.set(script, 'failed');
                     const ms = elapsed(script);
                     // The statement that failed, the error points into it
-                    const statement = event.queryId == null ? null : runtime.coreRuntime.query(event.queryId)?.queryText ?? null;
+                    const statement = event.queryId == null ? null : queryOf(event.queryId)?.queryText ?? null;
                     report(async () => ({ type: 'script_failed', script, ms, error: describeError(event.error), statement }));
                     break;
                 }
@@ -433,12 +435,12 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
 
         // The run stops on an interrupt
-        const stopRun = () => runtime.coreRuntime.stopRun(workbookId);
+        const stopRun = () => runtime.module?.stopRun(workbookId);
         stop.signal.addEventListener('abort', stopRun, { once: true });
         let run: RunResult | null = null;
         try {
             if (!stop.signal.aborted) {
-                run = await runtime.coreRuntime.runWorkbook(workbookId, {
+                run = await runtime.runWorkbook(workbookId, {
                     targets: requested.size === 0 ? undefined : selected.map(file => files.indexOf(file)),
                     refresh: parsed.refresh,
                     // The results are printed, the run doesn't analyze them

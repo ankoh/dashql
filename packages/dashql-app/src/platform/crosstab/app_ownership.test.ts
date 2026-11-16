@@ -114,7 +114,7 @@ describe('AppOwnership', () => {
         await backend.initialize();
         // The writer of a runtime on the storage of the tab
         const runtime = await createTestRuntime({ storage: backend });
-        const writer = runtime.coreRuntime.storage;
+        const writer = runtime.storage;
         try {
             const owner = await AppOwnership.tryAcquire(a.environment, async () => {
                 writer.pause();

@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { useDeleteComputation } from '../runtime/runtime_hooks.js';
+import { useConnectionList, useConnections, useDispatch, useRuntime, useWorkbooks, useConnectionViews } from '../runtime/runtime_hooks.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import * as ActionList from '../ui/foundations/action_list.js';
@@ -49,15 +49,7 @@ import {
 import { classNames } from '../utils/classnames.js';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
-import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import {
-    findWorkbookQueries,
-    useConnectionReferences,
-    useConnectionRegistry,
-    useConnectionAllocator,
-    useWorkbookConnections,
-    useDynamicConnectionDispatch,
-} from '../connections/connection_registry.js';
+import { findWorkbookQueries, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import {
     newConnectionFromParams,
     createAttachedConnectionParamsForConnector,
@@ -77,7 +69,7 @@ import { VerticalSplit } from '../ui/foundations/vertical_split.js';
 import { displayPath } from '../storage/workbook_locator.js';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { WorkbookStorageOverlay } from './persistence/workbook_storage_overlay.js';
-import { useStorageReader, useStorageWriter } from '../storage/storage_provider.js';
+import { useStorageReader } from '../storage/storage_provider.js';
 import { browserWorkbookFolder } from './persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '../storage/workbook_transfer.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
@@ -86,12 +78,7 @@ import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptsOn
 import { useScriptSelection } from './scripts/script_selection.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { renameScript } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
-import {
-    useInvalidWorkbooks,
-    useWorkbookScripts,
-    useWorkbookScriptsDeletion,
-    useWorkbooks,
-} from './scripts/workbook_scripts_registry.js';
+import { useDeleteWorkbook, useInvalidWorkbooks } from './workbook_lifecycle.js';
 import { useEnsureEphemeralWorkbook, useOpenGreeter, useWorkbookCreation } from './workbook_creation.js';
 import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, workbookListRowPadding, startsRowDrag } from './workbook_folder_row.js';
 import {
@@ -120,8 +107,7 @@ import { useDetachConnection } from './workbook_connection_detach.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../connections/connection_merge.js';
 import { connectionReplaceBlocker, connectionReplaceCandidates } from '../connections/connection_replace.js';
-import { connectionLabel, connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
+import { connectionLabel, connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from './persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from './persistence/workbook_file_save_overlay.js';
@@ -132,8 +118,6 @@ import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
-import { useQueryReader } from '../connections/query_executor.js';
 
 interface WorkbookItem {
     workbookId: string;
@@ -224,12 +208,12 @@ interface Props {
 export interface WorkbookWorkbenchSidebarDependencies {
     useRouterNavigate: typeof useRouterNavigate;
     useRouteContext: typeof useRouteContext;
-    useDynamicConnectionDispatch: typeof useDynamicConnectionDispatch;
+    useRuntime: typeof useRuntime;
+    useDispatch: typeof useDispatch;
     useWorkbooks: typeof useWorkbooks;
-    useWorkbookScripts: typeof useWorkbookScripts;
-    useConnectionRegistry: typeof useConnectionRegistry;
-    useConnectionReferences: typeof useConnectionReferences;
-    useConnectionAllocator: typeof useConnectionAllocator;
+    useConnections: typeof useConnections;
+    useConnectionList: typeof useConnectionList;
+    useConnectionViews: typeof useConnectionViews;
     useWorkbookCreation: typeof useWorkbookCreation;
     useOpenGreeter: typeof useOpenGreeter;
     useEnsureEphemeralWorkbook: typeof useEnsureEphemeralWorkbook;
@@ -237,16 +221,13 @@ export interface WorkbookWorkbenchSidebarDependencies {
     useReplaceConnection: typeof useReplaceConnection;
     useDetachConnection: typeof useDetachConnection;
     useDeleteConnection: typeof useDeleteConnection;
-    useWorkbookScriptsDeletion: typeof useWorkbookScriptsDeletion;
-    useDeleteComputation: typeof useDeleteComputation;
+    useDeleteWorkbook: typeof useDeleteWorkbook;
     useStorageReader: typeof useStorageReader;
-    useStorageWriter: typeof useStorageWriter;
     useDashQLCoreSetup: typeof useDashQLCoreSetup;
     useWorkbookImport: typeof useWorkbookImport;
     usePlatformType: typeof usePlatformType;
     useLogger: typeof useLogger;
     useInvalidWorkbooks: typeof useInvalidWorkbooks;
-    useWorkbookConnections: typeof useWorkbookConnections;
     useNewWorkbookConnection: typeof useNewWorkbookConnection;
     newConnectionFromParams: typeof newConnectionFromParams;
     ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
@@ -261,12 +242,12 @@ export interface WorkbookWorkbenchSidebarDependencies {
 const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarDependencies = {
     useRouterNavigate,
     useRouteContext,
-    useDynamicConnectionDispatch,
+    useRuntime,
+    useDispatch,
     useWorkbooks,
-    useWorkbookScripts,
-    useConnectionRegistry,
-    useConnectionReferences,
-    useConnectionAllocator,
+    useConnections,
+    useConnectionList,
+    useConnectionViews,
     useWorkbookCreation,
     useOpenGreeter,
     useEnsureEphemeralWorkbook,
@@ -274,16 +255,13 @@ const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarD
     useReplaceConnection,
     useDetachConnection,
     useDeleteConnection,
-    useWorkbookScriptsDeletion,
-    useDeleteComputation,
+    useDeleteWorkbook,
     useStorageReader,
-    useStorageWriter,
     useDashQLCoreSetup,
     useWorkbookImport,
     usePlatformType,
     useLogger,
     useInvalidWorkbooks,
-    useWorkbookConnections,
     useNewWorkbookConnection,
     newConnectionFromParams,
     ConnectionSettingsOverlay,
@@ -490,7 +468,7 @@ interface WorkbookRowProps {
 
 const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen, onDuplicate, onDelete, dropPosition, expanded, onToggle, onOpenScript, dependencies }) => {
     const title = item.scripts.name?.trim() || null;
-    const [, modifyWorkbookScripts] = dependencies.useWorkbookScripts(item.workbookId);
+    const modifyWorkbookScripts = dependencies.useDispatch({ workbook: item.workbookId });
     // The rename action swaps the name for an input until the edit is committed or abandoned
     const [renaming, setRenaming] = React.useState(false);
     const renameInputRef = React.useRef<HTMLInputElement>(null);
@@ -773,13 +751,10 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES;
     const navigate = dependencies.useRouterNavigate();
     const route = dependencies.useRouteContext();
-    const [databaseRegistry, connectionDispatch] = dependencies.useDynamicConnectionDispatch();
+    const runtime = dependencies.useRuntime();
+    const connections = dependencies.useConnections();
+    const connectionList = dependencies.useConnectionList();
     const scriptsRegistry = dependencies.useWorkbooks();
-    // Only duplicating a workbook needs the runtime, the tests of the sidebar render it without one
-    const coreRuntime = useOptionalCoreRuntime();
-    const readQuery = useQueryReader();
-    const references = dependencies.useConnectionReferences();
-    const allocateConnection = dependencies.useConnectionAllocator();
     const createWorkbook = dependencies.useWorkbookCreation();
     const openGreeterPage = dependencies.useOpenGreeter();
     const ensureEphemeralWorkbook = dependencies.useEnsureEphemeralWorkbook();
@@ -789,18 +764,17 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const mergeConnections = dependencies.useMergeConnections();
     const replaceConnection = dependencies.useReplaceConnection();
     const detachConnectionFromWorkbooks = dependencies.useDetachConnection();
-    const [, modifyCurrentWorkbook] = dependencies.useWorkbookScripts(props.workbookScripts.workbookId);
+    const modifyCurrentWorkbook = dependencies.useDispatch({ workbook: props.workbookScripts.workbookId });
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
-    const deleteWorkbookScripts = dependencies.useWorkbookScriptsDeletion();
-    const deleteComputation = dependencies.useDeleteComputation();
+    const deleteWorkbookFromRuntime = dependencies.useDeleteWorkbook();
     const storageReader = dependencies.useStorageReader();
-    const storageWriter = dependencies.useStorageWriter();
+    const storageWriter = runtime.storage;
     const setupCore = dependencies.useDashQLCoreSetup();
     const workbookImport = dependencies.useWorkbookImport();
     const platform = dependencies.usePlatformType();
     const logger = dependencies.useLogger();
     const { invalidWorkbooks, deleteInvalidWorkbook } = dependencies.useInvalidWorkbooks();
-    const attached = dependencies.useWorkbookConnections(props.workbookScripts.workbookId);
+    const attached = dependencies.useConnectionViews(props.workbookScripts.connectionIds);
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const workbookConnectionRows = React.useMemo(() => attached ?? [], [attached]);
     const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
@@ -827,26 +801,26 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     React.useEffect(() => {
         if (route.workbookSetupStatus !== WorkbookSetupStatus.CONFIGURING
             || route.workbookId !== props.workbookScripts.workbookId) return;
-        const connectionId = references.connectionsOf(route.workbookId)[0] ?? null;
+        const connectionId = scriptsRegistry.get(route.workbookId)?.connectionIds[0] ?? null;
         if (connectionId != null) {
             connectionSettingsAnchorRef.current = document.querySelector('[aria-label="Create workbook"]');
             setConnectionOverlayDatabaseId(connectionId);
         }
-    }, [references, scriptsRegistry, props.workbookScripts.workbookId, route.workbookId, route.workbookSetupStatus]);
+    }, [scriptsRegistry, props.workbookScripts.workbookId, route.workbookId, route.workbookSetupStatus]);
 
     const workbookItems = React.useMemo<Map<string, WorkbookItem>>(() => {
         const items = new Map<string, WorkbookItem>();
         for (const [workbookId, scripts] of scriptsRegistry) {
             // The ephemeral workbook has its own row at the end of the list, a cloud preview shows with the cloud
             if (isEphemeralWorkbook(scripts) || isCloudPreview(scripts)) continue;
-            const connections = references.connectionsOf(workbookId)
-                .map(id => databaseRegistry.connections.get(id))
+            const workbookConnections = scripts.connectionIds
+                .map(id => connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
             const location = storageReader.getWorkbookLocation(workbookId);
             const path = displayPath(workbookId, location);
             items.set(workbookId, {
                 workbookId,
-                connections,
+                connections: workbookConnections,
                 scripts,
                 path,
                 label: scripts.name?.trim() || path,
@@ -854,7 +828,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             });
         }
         return items;
-    }, [databaseRegistry, references, scriptsRegistry, storageReader]);
+    }, [connections, scriptsRegistry, storageReader]);
 
     // The workbooks that the tree doesn't list yet, e.g. new ones before their first write, show where their
     // first write registers them, at the end of the root
@@ -908,30 +882,27 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         };
     }), [invalidWorkbooks, storageReader]);
     const workbookCount = workbooks.length + invalidItems.length;
-    // The references follow the scripts registry
+    // The list of the connections says which are listed, it follows the workbooks that use them
     const connectionRows = React.useMemo(
-        () => listedConnections(databaseRegistry, references, workbookConnectionRows, cloudConnectionIds),
-        [databaseRegistry, references, scriptsRegistry, workbookConnectionRows, cloudConnectionIds],
+        () => listedConnections(connections, connectionList, workbookConnectionRows, cloudConnectionIds),
+        [connections, connectionList, workbookConnectionRows, cloudConnectionIds],
     );
     const workbookConnectionIds = React.useMemo(
         () => new Set(workbookConnectionRows.map(database => database.connectionId)),
         [workbookConnectionRows],
     );
-    const ordinals = React.useMemo(
-        () => connectionOrdinals(databaseRegistry, references),
-        [databaseRegistry, references, scriptsRegistry],
-    );
+    const ordinals = React.useMemo(() => connectionOrdinals(connectionList), [connectionList]);
     const labelOf = React.useCallback(
         (database: ConnectionState) => connectionLabelParts(database, ordinals.get(database.connectionId) ?? null),
         [ordinals],
     );
     const connectionCount = connectionRows.length;
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
-        const workbookIds = references.workbooksOf(connectionId).filter(workbookId => {
+        const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
             const scripts = scriptsRegistry.get(workbookId);
             return scripts == null || (!isEphemeralWorkbook(scripts) && !isCloudPreview(scripts));
         });
-        const database = databaseRegistry.connections.get(connectionId);
+        const database = connections.get(connectionId);
         const scriptsOf = (workbookId: string) => {
             const scripts = scriptsRegistry.get(workbookId);
             return scripts == null ? 0 : scriptsOnConnection(scripts, connectionId);
@@ -944,7 +915,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                 : workbookIds.filter(workbookId => scriptsOf(workbookId) > 0).length,
             usedHere: workbookConnectionRows.some(database => database.connectionId === connectionId),
         };
-    }, [databaseRegistry, props.workbookScripts.workbookId, workbookConnectionRows, references, scriptsRegistry]);
+    }, [connections, workbookConnectionRows, scriptsRegistry]);
     const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
         workbookConnectionRows.includes(database)
         && isConnectionInitiallyExpanded(database, workbookConnectionRows.length)
@@ -1099,21 +1070,21 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        const database = allocateConnection(dependencies.newConnectionFromParams(params, { active: true }));
+        const database = runtime.createConnection(dependencies.newConnectionFromParams(params, { active: true }));
         modifyCurrentWorkbook({ kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
         setConnectionOverlayDatabaseId(database.connectionId);
-    }, [allocateConnection, dependencies, modifyCurrentWorkbook]);
+    }, [runtime, dependencies, modifyCurrentWorkbook]);
 
     /// Rename a connection, a blank name restores the default label
     const renameConnection = React.useCallback((connectionId: string, name: string) => {
-        connectionDispatch(connectionId, { kind: 'rename', value: { name } });
-    }, [connectionDispatch]);
+        runtime.dispatch({ connection: connectionId }, { kind: 'rename', value: { name } });
+    }, [runtime]);
 
     /// Delete a connection that no script uses, other than the embedded Hyper that workbooks fall back to.
     /// The workbooks whose new scripts default to the connection are detached from it first.
     const deleteConnection = React.useCallback((connectionId: string) => {
-        const database = databaseRegistry.connections.get(connectionId);
+        const database = connections.get(connectionId);
         if (database == null || isHyperWasmConnection(database) || describeUsage(connectionId).blockingWorkbookCount > 0) return;
         if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
         detachConnectionFromWorkbooks(connectionId)
@@ -1121,33 +1092,33 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             .catch(error => {
                 logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'workbook_workbench');
             });
-    }, [databaseRegistry, describeUsage, detachConnectionFromWorkbooks, labelOf, logger, shutDownAndDeleteConnection]);
+    }, [connections, describeUsage, detachConnectionFromWorkbooks, labelOf, logger, shutDownAndDeleteConnection]);
 
     /// The number of duplicates of a connection
     const mergeCandidateCount = React.useCallback(
-        (connectionId: string) => connectionMergeCandidates(databaseRegistry, references, connectionId).length,
-        [databaseRegistry, references, scriptsRegistry],
+        (connectionId: string) => connectionMergeCandidates(connections, connectionList, connectionId).length,
+        [connections, connectionList],
     );
     /// Merge the duplicates of a connection into it, their workbooks move to the connection
     const mergeDuplicates = React.useCallback((connectionId: string) => {
-        const database = databaseRegistry.connections.get(connectionId);
-        const duplicates = connectionMergeCandidates(databaseRegistry, references, connectionId);
+        const database = connections.get(connectionId);
+        const duplicates = connectionMergeCandidates(connections, connectionList, connectionId);
         if (database == null || duplicates.length === 0) return;
         const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
         if (!window.confirm(`Merge ${what} into the connection "${connectionLabelText(labelOf(database))}"?`)) return;
         mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
             logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'workbook_workbench');
         });
-    }, [databaseRegistry, labelOf, logger, mergeConnections, references]);
+    }, [connections, connectionList, labelOf, logger, mergeConnections]);
 
     /// What keeps a connection from being replaced, the picker offers every other listed connection
     const replaceBlocker = React.useCallback(
-        (connectionId: string) => connectionReplaceBlocker(databaseRegistry, references, connectionId, workbookId => storageWriter.isWorkbookPaused(workbookId)),
-        [databaseRegistry, references, scriptsRegistry, storageWriter],
+        (connectionId: string) => connectionReplaceBlocker(connections, connectionList, connectionId, workbookId => storageWriter.isWorkbookPaused(workbookId)),
+        [connections, connectionList, storageWriter],
     );
     const replaceCandidates = React.useCallback(
-        (connectionId: string) => connectionReplaceCandidates(databaseRegistry, references, connectionId),
-        [databaseRegistry, references, scriptsRegistry],
+        (connectionId: string) => connectionReplaceCandidates(connections, connectionList, connectionId),
+        [connections, connectionList],
     );
     /// Replace a connection with another one in every workbook, the connection is removed afterwards
     const replaceWith = React.useCallback((connectionId: string, targetId: string) => {
@@ -1170,18 +1141,17 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const duplicateWorkbook = React.useCallback(async (item: WorkbookItem) => {
         const newWorkbookId = crypto.randomUUID();
         try {
-            if (coreRuntime == null) throw new Error('the runtime needs a RuntimeProvider');
             await setupCore('workbook_duplicate');
             await cloneWorkbook(item.workbookId, storageReader.backend, storageReader.backend, newWorkbookId, logger);
             // The runtime restores the copy against its connections and takes it
-            await coreRuntime.restoreWorkbook(newWorkbookId);
+            await runtime.restoreWorkbook(newWorkbookId);
         } catch (error) {
             logger.warn('failed to duplicate workbook', {
                 workbookId: item.workbookId,
                 error: String(error),
             }, 'workbook_workbench');
         }
-    }, [coreRuntime, logger, setupCore, storageReader.backend]);
+    }, [runtime, logger, setupCore, storageReader.backend]);
 
     const openWorkbookFolder = React.useCallback(async () => {
         const workbookFolders = storageReader.workbookFolders;
@@ -1232,12 +1202,13 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             console.error('Failed to delete workbook from storage:', error);
             return;
         }
-        deleteWorkbookScripts(item.workbookId);
+        deleteWorkbookFromRuntime(item.workbookId);
         // Connections outlive the workbooks that reference them, only the workbook's own
         // computations are dropped.
+        const readQuery = (queryId: number) => runtime.store.get('query', queryId);
         for (const database of item.connections) {
             for (const queryId of findWorkbookQueries(database, item.workbookId, readQuery)) {
-                deleteComputation(queryId);
+                runtime.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
             }
         }
 
@@ -1246,7 +1217,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             if (next != null) navigate({ type: OPEN_WORKBOOK, value: next.workbookId });
             else openGreeter();
         }
-    }, [deleteComputation, deleteWorkbookScripts, navigate, openGreeter, readQuery, workbooks, props.workbookScripts.workbookId, storageWriter]);
+    }, [deleteWorkbookFromRuntime, navigate, openGreeter, runtime, workbooks, props.workbookScripts.workbookId, storageWriter]);
 
     const openWorkbook = React.useCallback((item: WorkbookItem) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });

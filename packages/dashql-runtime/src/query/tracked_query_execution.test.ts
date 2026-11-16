@@ -5,17 +5,17 @@ import type * as core from '@ankoh/dashql-core';
 import { QueryExecutionStatus, QueryType } from './query_execution_state.js';
 import { executeTrackedQuery, type QueryTracker } from './tracked_query_execution.js';
 import { testCore } from '../testing/test_runtime.js';
-import { connectorState, testCoreRuntime } from '../testing/mocks/connector_state.js';
-import type { CoreRuntime } from '../core_runtime.js';
+import { connectorState, testRuntime } from '../testing/mocks/connector_state.js';
+import type { Runtime } from '../runtime.js';
 import { ConnectorType } from '../connections/connector_info.js';
 
 let dql: core.DashQL;
-let runtime: CoreRuntime;
+let runtime: Runtime;
 beforeAll(async () => {
     dql = await testCore();
 });
 beforeEach(() => {
-    runtime = testCoreRuntime(dql);
+    runtime = testRuntime(dql);
     runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 100 } });
 });
 afterEach(() => runtime.destroy());

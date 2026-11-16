@@ -13,10 +13,9 @@ import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
-import { useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { useOptionalRuntime, useConnectionViews } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { ExportedResults } from '@ankoh/dashql-core';
 import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -25,7 +24,7 @@ const LOG_CTX = 'workbook_export';
 
 /// Pack the workbook into an archive with the runtime. The cached results go in only if the settings ask for them.
 async function packAndCompressFile(
-    runtime: CoreRuntime,
+    runtime: Runtime,
     workbookId: string,
     settings: WorkbookExportSettings,
     withResults: boolean,
@@ -80,7 +79,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     });
     const cache = useQueryResultCache();
     const logger = useLogger() as LoggerLike | null;
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
 
     // The scripts with cached results, counted when the overlay opens
     const [resultCounts, setResultCounts] = React.useState<ExportedResults | null>(null);
@@ -89,7 +88,8 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         setResultCounts(null);
         if (!props.isOpen || workbookScripts == null || cache == null || runtime == null) return;
         let cancelled = false;
-        runtime.exportedResults(workbookScripts.workbookId)
+        runtime.ready()
+            .then(module => module.exportedResults(workbookScripts.workbookId))
             .then(counts => { if (!cancelled) setResultCounts(counts); })
             .catch(() => {});
         return () => { cancelled = true; };
@@ -99,7 +99,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     // small. The results can be gigabytes, they are streamed into the archive when it is saved. A pack of settings that
     // changed in the meantime is ignored.
     const { withCatalog, withLoginHint, preserveUUIDs, withQueryResults } = settings;
-    const connections = useWorkbookConnections(props.workbookScripts?.workbookId ?? null);
+    const connections = useConnectionViews(props.workbookScripts?.connectionIds);
     const [file, setFile] = React.useState<Blob | null>(null);
     const [packError, setPackError] = React.useState<string | null>(null);
     React.useEffect(() => {

@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { ChannelConnector } from '@ankoh/dashql-runtime/core_runtime';
+import type { ChannelConnector } from '@ankoh/dashql-runtime/runtime';
 import { HyperDatabaseClient, type HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { SalesforceDatabaseChannel, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
@@ -14,7 +14,7 @@ import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 import { useSalesforceAPI } from '../salesforce/salesforce_connector.js';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 // The runtime sets up the connections (`connection_setup/` of the Rust runtime): it picks the channel of the params and
 // resolves the params of a link with its token, the app connects the channel. The embedded Hyper and gRPC through the
@@ -85,7 +85,7 @@ interface Props {
 
 /// Give the runtime the clients of the app that connect the channels of the setups
 export const ChannelConnectorProvider: React.FC<Props> = (props: Props) => {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const grpcClient = useHyperGrpcClient();
     const httpClient = useHyperHttpClient();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();

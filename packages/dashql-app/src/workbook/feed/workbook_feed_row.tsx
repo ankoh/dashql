@@ -2,7 +2,7 @@ import * as React from 'react';
 import { flushSync } from 'react-dom';
 import * as styles from './workbook_feed.module.css';
 import * as dashql from '@ankoh/dashql-core';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useOptionalRuntime, useQuery, useQueryProgress, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '../../ui/foundations/symbol_icon.js';
@@ -18,7 +18,6 @@ import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useCancelQuery, useQueryProgress, useQueryState } from '../../connections/query_executor.js';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
@@ -105,8 +104,7 @@ export interface ScriptCardProps {
 }
 
 export interface ScriptCardDependencies {
-    useQueryState: typeof useQueryState;
-    useCancelQuery: typeof useCancelQuery;
+    useQuery: typeof useQuery;
     ScriptEditor: typeof ScriptEditor;
     ScriptDiagnosticsButton: typeof ScriptDiagnosticsButton;
     ScriptStatisticsBar: typeof ScriptStatisticsBar;
@@ -122,8 +120,7 @@ export interface ScriptCardDependencies {
 }
 
 const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
-    useQueryState,
-    useCancelQuery,
+    useQuery,
     ScriptEditor,
     ScriptDiagnosticsButton,
     ScriptStatisticsBar,
@@ -145,8 +142,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const CheckIcon: Icon = SymbolIcon('check_16');
     const CrossIcon: Icon = SymbolIcon('x_16');
 
-    const queryState = dependencies.useQueryState(props.workbookId, props.scriptData?.latestQueryId ?? null);
-    const cancelQuery = dependencies.useCancelQuery();
+    const queryState = dependencies.useQuery(props.scriptData?.latestQueryId ?? null);
+    const runtime = useOptionalRuntime();
 
     // A staged rewrite waiting to be accepted/rejected. The editable editor renders the
     // in-place diff and these actions provide the same explicit accept/reject alternatives.
@@ -220,9 +217,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const cancelEntryOperation = React.useCallback(() => {
         if (entryStatus?.kind === EntryStatusKind.Query && props.scriptData?.latestQueryId != null) {
             if (workbookExecution.busy) workbookExecution.stop();
-            else if (props.connectionId != null) cancelQuery(props.connectionId, props.scriptData.latestQueryId);
+            else void runtime?.cancel(props.scriptData.latestQueryId);
         }
-    }, [cancelQuery, entryStatus?.kind, props.connectionId, props.scriptData?.latestQueryId, workbookExecution.busy, workbookExecution.stop]);
+    }, [runtime, entryStatus?.kind, props.scriptData?.latestQueryId, workbookExecution.busy, workbookExecution.stop]);
 
     const acceptDiff = React.useCallback(() => {
         if (scriptKey != null) props.onAcceptDiff(scriptKey);

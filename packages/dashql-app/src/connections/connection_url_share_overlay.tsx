@@ -8,7 +8,7 @@ import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 interface Props {
     /// The connection to share
@@ -30,13 +30,14 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
     // The link follows the params and the name of the connection
     const { connectionId, params, name } = database;
     // The row menus render the overlay closed, also in tests without a runtime
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
 
     React.useEffect(() => {
         if (!isOpen || runtime == null) return;
         let cancelled = false;
         setURL(null);
-        runtime.exportConnectionLink(connectionId, process.env.DASHQL_APP_URL!, settings.withLoginHint)
+        runtime.ready()
+            .then(module => module.exportConnection(connectionId, { linkBase: process.env.DASHQL_APP_URL!, withLoginHint: settings.withLoginHint }))
             .then(link => { if (!cancelled) setURL(link); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {

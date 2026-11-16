@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useConnectionAllocator } from './connection_registry.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { createAttachedConnectionParamsForConnector, newConnectionFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 
@@ -10,9 +10,10 @@ export const ATTACHABLE_CONNECTORS = [ConnectorType.HYPER, ConnectorType.DBCOM, 
 
 /// Allocate a new connection that the user attaches, the user configures it in its settings
 export function useConnectionAttach(): (connector: ConnectorType) => ConnectionState {
-    const allocate = useConnectionAllocator();
+    const runtime = useOptionalRuntime();
     return React.useCallback((connector: ConnectorType) => {
+        if (runtime == null) throw new Error('the connections need a RuntimeProvider');
         const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
-        return allocate(newConnectionFromParams(params, { active: true }));
-    }, [allocate]);
+        return runtime.createConnection(newConnectionFromParams(params, { active: true }));
+    }, [runtime]);
 }

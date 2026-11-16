@@ -18,7 +18,7 @@ import { getPlanResultText } from '../../shell/shell_result.js';
 import { detectPlanEngine } from '../../views/query_profile/plan_engine.js';
 import { classNames } from '../../utils/classnames.js';
 import * as styles from './shell_query_result_overlay.module.css';
-import { useQueryResultTable } from '../../connections/query_executor.js';
+import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;

@@ -7,7 +7,7 @@ import * as core from '@ankoh/dashql-core';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { SHELL_QUERY_HISTORY_LIMIT } from './shell_query_history.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
-import { CoreRuntimeProvider } from '../runtime/runtime_hooks.js';
+import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
 import { trackTestQuery } from '../tests/test_connections.js';
 import { testShellHistory, type TestShellHistory } from '../tests/test_shell_history.js';
 
@@ -52,7 +52,7 @@ describe('useShellQueryResult', () => {
             result = useShellQueryResult(release);
             return null;
         };
-        act(() => root.render(<CoreRuntimeProvider value={history.runtime}><Harness /></CoreRuntimeProvider>));
+        act(() => root.render(<RuntimeContextProvider value={history.runtime}><Harness /></RuntimeContextProvider>));
         act(() => result.showResultQuery(first));
         expect(result.resultQuery?.queryId).toBe(first);
 
@@ -85,7 +85,7 @@ describe('useShellQueryResult', () => {
                 result = useShellQueryResult(release);
                 return null;
             };
-            act(() => root.render(<CoreRuntimeProvider value={history.runtime}><Harness /></CoreRuntimeProvider>));
+            act(() => root.render(<RuntimeContextProvider value={history.runtime}><Harness /></RuntimeContextProvider>));
         });
 
         it('has nothing to open again before the first result', () => {

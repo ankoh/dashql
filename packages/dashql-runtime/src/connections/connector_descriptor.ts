@@ -46,8 +46,6 @@ export interface ConnectorDescriptor<K extends ConnectorParamsKey = ConnectorPar
     sanitizeForSharing(params: ConnectorParamsMap[K], withLoginHint: boolean): ConnectorParamsMap[K];
     /// The login hint (the account username or login) of the params, null if there is none
     loginHint(params: ConnectorParamsMap[K]): string | null;
-    /// The params that identify the results of a query in the query result cache
-    cacheSignature(params: ConnectorParamsMap[K]): unknown;
     /// The number of statements of a workbook run that a connection executes at once, the details are the ones of the
     /// view of the connection
     maxConcurrentQueries(details: ConnectionDetailsView): number;

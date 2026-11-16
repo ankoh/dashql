@@ -3,7 +3,7 @@ import type * as core from '@ankoh/dashql-core';
 import { LoggableException } from '../../platform/logger/logger.js';
 
 // The runs of workbooks are a service of the runtime of the module (`packages/dashql-core-wasm/src/runtime/runs.rs` on
-// `packages/dashql-core-runtime/src/workbook_run`): `CoreRuntime.runWorkbook`, `runScript` and `stopRun`, the `run`
+// `packages/dashql-core-runtime/src/workbook_run`): `Runtime.runWorkbook`, `runScript` and `stopRun`, the `run`
 // slice of a workbook. These are the types that the listeners of runs read.
 
 /// The state of a run as the runtime reports it

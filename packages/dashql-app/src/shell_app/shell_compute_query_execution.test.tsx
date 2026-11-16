@@ -7,7 +7,7 @@ import { useCreateComputeQueryExecution } from '../compute/compute_query_executi
 import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
 import { ShellQueryHistoryProvider, useShellQueries } from './shell_query_history.js';
-import { StandaloneCoreRuntime, useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime, useRuntime } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -29,23 +29,23 @@ describe('ShellComputeQueryExecutionProvider', () => {
 
     it('tracks aggregation queries in the shell query history', async () => {
         let createExecution: ReturnType<typeof useCreateComputeQueryExecution> = null;
-        let runtime: ReturnType<typeof useCoreRuntime> | null = null;
+        let runtime: ReturnType<typeof useRuntime> | null = null;
         let queries: QueryExecutionState[] = [];
         const Probe = () => {
             createExecution = useCreateComputeQueryExecution();
-            runtime = useCoreRuntime();
+            runtime = useRuntime();
             queries = useShellQueries();
             return null;
         };
 
         act(() => root.render(
-            <StandaloneCoreRuntime>
+            <StandaloneRuntime>
                 <ShellQueryHistoryProvider>
                     <ShellComputeQueryExecutionProvider>
                         <Probe />
                     </ShellComputeQueryExecutionProvider>
                 </ShellQueryHistoryProvider>
-            </StandaloneCoreRuntime>,
+            </StandaloneRuntime>,
         ));
 
         // The history waits for the core of the shell

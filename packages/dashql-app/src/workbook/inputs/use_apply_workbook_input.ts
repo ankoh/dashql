@@ -1,10 +1,8 @@
 import * as React from 'react';
 
 import type { ModifyWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
-import { useWorkbookDerived } from '../scripts/workbook_scripts_registry.js';
 import { inputConsumerScripts, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbookDerived, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 
 const NO_INPUTS: ReadonlySet<string> = new Set();
 
@@ -30,7 +28,7 @@ export function useApplyWorkbookInput(workbookId: string, modifyWorkbookScripts:
         }
     }, [busy]);
 
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const literalOf = React.useCallback((input: SessionInput, value: string) => {
         const instance = runtime?.core;
         if (instance == null) return { error: 'The runtime has no core' };

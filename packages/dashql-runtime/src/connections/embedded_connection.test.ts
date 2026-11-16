@@ -7,17 +7,17 @@ import { CONNECTOR_INFOS, ConnectorType } from './connector_info.js';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
-import type { CoreRuntime } from '../core_runtime.js';
-import { testCoreRuntime } from '../testing/mocks/connector_state.js';
+import type { Runtime } from '../runtime.js';
+import { testRuntime } from '../testing/mocks/connector_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
-let runtime: CoreRuntime;
+let runtime: Runtime;
 
 beforeAll(async () => {
     dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
-beforeEach(() => { runtime = testCoreRuntime(dql); });
+beforeEach(() => { runtime = testRuntime(dql); });
 afterEach(() => {
     vi.restoreAllMocks();
     runtime.destroy();

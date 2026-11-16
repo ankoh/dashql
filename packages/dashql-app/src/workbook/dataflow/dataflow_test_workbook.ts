@@ -15,14 +15,14 @@ const EMBEDDED: ConnectionParams = { hyper: { endpoint: '', protocol: 'WASM' } }
 
 /// The workbook of a test as the runtime holds it now
 export function readTestWorkbook(runtime: TestRuntime, workbookId: string): TestWorkbook {
-    runtime.coreRuntime.flush();
-    const workbook = runtime.coreRuntime.workbook(workbookId);
+    runtime.flush();
+    const workbook = runtime.store.get('workbook', workbookId);
     if (workbook == null) throw new Error(`the runtime holds no workbook ${workbookId}`);
     return {
         runtime,
         workbook,
-        scripts: runtime.coreRuntime.workbookScripts(workbookId),
-        derived: runtime.coreRuntime.store.get('workbookDerived', workbookId),
+        scripts: runtime.scripts(workbookId),
+        derived: runtime.store.get('workbookDerived', workbookId),
     };
 }
 
@@ -37,7 +37,7 @@ export async function analyzedTestWorkbook(entries: Array<[string, string]>): Pr
 /// A workbook with one more script, analyzed with the catalog of the other scripts
 export function withTestScript(test: TestWorkbook, fileName: string, text: string): TestWorkbook {
     const { runtime, workbook } = test;
-    runtime.coreRuntime.dispatchWorkbook(workbook.workbookId, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
+    runtime.dispatch({ workbook: workbook.workbookId }, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
     analyzeWorkbook(runtime, workbook.workbookId);
     return readTestWorkbook(runtime, workbook.workbookId);
 }

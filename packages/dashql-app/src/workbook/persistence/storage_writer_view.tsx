@@ -10,7 +10,7 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
-import { useStorageWriter } from '../../storage/storage_provider.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { type StorageWriteKey, type StorageWriterStatistics, storageWriteKeyBelongsToWorkbook, storageWriteKeyWithinWorkbook } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
@@ -110,7 +110,7 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
     const { workbookId } = props;
 
     // The statistics change with every write, the view reads them while it shows them
-    const storageWriter = useStorageWriter();
+    const storageWriter = useRuntime().storage;
     const [statsMap, setStatsMap] = React.useState<StorageWriteStatisticsMap | null>(() => storageWriter.getStatistics());
     React.useEffect(() => {
         let signature = statsMap == null ? '' : statisticsSignature(statsMap);

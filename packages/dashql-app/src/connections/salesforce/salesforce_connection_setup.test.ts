@@ -5,7 +5,7 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { SalesforceApiClient, SalesforceDatabaseChannel } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
 import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createRuntime } from '@ankoh/dashql-runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql-runtime/connections/connector_descriptor';
@@ -25,7 +25,7 @@ afterEach(() => vi.unstubAllGlobals());
 /// A runtime whose setups send their requests with the HTTP client and connect the Hyper of Salesforce with the client
 function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFlow: AppOAuthFlow) {
     const salesforce = new SalesforceApiClient(new TestLogger(), http);
-    const runtime = new CoreRuntime({
+    const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
         setupCore: dql,
@@ -124,7 +124,7 @@ describe('the setup of Salesforce', () => {
     it('cancels a setup', async () => {
         const runtime = create(ConnectorType.DBCOM);
         const setup = runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
-        runtime.cancelSetup('salesforce');
+        runtime.module?.cancelSetup('salesforce');
         expect(await setup).toMatchObject({ status: 'cancelled' });
         expect(runtime.connection('salesforce')!.connectionHealth).not.toBe(ConnectionHealth.ONLINE);
         runtime.destroy();

@@ -6,18 +6,17 @@ import * as core from '@ankoh/dashql-core';
 
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { useWorkbooks } from './scripts/workbook_scripts_registry.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -33,15 +32,15 @@ describe('workbook creation', () => {
     it('registers the scripts of a new workbook and writes its workbook file with the default connection', async () => {
         const backend = new WorkbookTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
-        let coreRuntime!: CoreRuntime;
+        let runtime!: Runtime;
         let createWorkbook!: WorkbookCreation;
         let workbooks!: ReadonlyMap<string, WorkbookScripts>;
         let writer!: StorageWriter;
         function Harness() {
-            coreRuntime = useCoreRuntime();
+            runtime = useRuntime();
             createWorkbook = useWorkbookCreation();
             workbooks = useWorkbooks();
-            writer = useStorageWriter();
+            writer = runtime.storage;
             return null;
         }
         const root = createRoot(document.createElement('div'));
@@ -50,7 +49,7 @@ describe('workbook creation', () => {
                 <LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>,
             ));
             // The embedded database of the runtime of the test
-            const database = createTestConnection(coreRuntime, { connectionId: TEST_CONNECTION_ID, params });
+            const database = createTestConnection(runtime, { connectionId: TEST_CONNECTION_ID, params });
             let workbookId = '';
             await act(async () => { workbookId = createWorkbook(database, 'Default').workbookId; });
             expect(workbooks.get(workbookId)?.name).toBe('Default');
@@ -63,7 +62,7 @@ describe('workbook creation', () => {
             });
             expect(workbooks.get(firstId)?.name).toBe('Untitled');
             expect(workbooks.get(secondId)?.name).toBe('Untitled 2');
-            expect(coreRuntime.connection(TEST_CONNECTION_ID)?.workbooks).toEqual([workbookId, firstId, secondId]);
+            expect(runtime.connection(TEST_CONNECTION_ID)?.workbooks).toEqual([workbookId, firstId, secondId]);
             await writer.flush();
             const workbook = backend.workbooks.get(workbookId)!;
             expect(workbook.connections).toEqual([{ connectionId: TEST_CONNECTION_ID, params }]);
@@ -77,19 +76,19 @@ describe('workbook creation', () => {
         sessionStorage.removeItem('dashql.hyper_links');
         const backend = new WorkbookTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;
-        let coreRuntime!: CoreRuntime;
+        let runtime!: Runtime;
         /// A connection of the runtime of the test
-        const connection = (connectionId: string): ConnectionState => createTestConnection(coreRuntime, { connectionId, params });
+        const connection = (connectionId: string): ConnectionState => createTestConnection(runtime, { connectionId, params });
         let createWorkbook!: WorkbookCreation;
         let ephemeralWorkbook!: ReturnType<typeof useEphemeralWorkbook>;
         let workbooks!: ReadonlyMap<string, WorkbookScripts>;
         let writer!: StorageWriter;
         function Harness() {
-            coreRuntime = useCoreRuntime();
+            runtime = useRuntime();
             createWorkbook = useWorkbookCreation();
             ephemeralWorkbook = useEphemeralWorkbook();
             workbooks = useWorkbooks();
-            writer = useStorageWriter();
+            writer = runtime.storage;
             return null;
         }
         const root = createRoot(document.createElement('div'));

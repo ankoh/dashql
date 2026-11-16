@@ -1,10 +1,9 @@
 import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { useConnectionReferences, useConnectionRegistry } from './connection_registry.js';
+import { useConnection, useConnectionList } from '../runtime/runtime_hooks.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { connectionLabelParts, connectionLabelText } from '@ankoh/dashql-runtime/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_label';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
@@ -28,14 +27,13 @@ interface Props {
 /// Closes itself once the connection is deleted.
 export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose }) => {
     const connectorIcon = useConnectorIcon();
-    const [registry] = useConnectionRegistry();
-    const references = useConnectionReferences();
-    const connection = registry.connections.get(connectionId) ?? null;
+    const connection = useConnection(connectionId);
+    const list = useConnectionList();
     React.useEffect(() => {
         if (connection == null) onClose();
     }, [connection == null, onClose]);
     if (connection == null) return null;
-    const label = connectionLabelParts(connection, connectionOrdinals(registry, references).get(connectionId) ?? null);
+    const label = connectionLabelParts(connection, connectionOrdinals(list).get(connectionId) ?? null);
     const labelText = connectionLabelText(label);
     return (
         <div className={styles.container}>

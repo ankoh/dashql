@@ -33,8 +33,7 @@ const dependencies = {
         ? undefined
         : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     scriptCard: {
-        useQueryState: () => state.query,
-        useCancelQuery: () => vi.fn(),
+        useQuery: () => state.query,
         ScriptEditor: (props: any) => {
             React.useEffect(() => props.setView?.({}), [props.setView]);
             return <div data-testid="editor" />;
@@ -494,7 +493,7 @@ describe('Workbook feed composer', () => {
     const storageWriter = { write: () => Promise.resolve({ status: 'written' }) } as any;
     const feedDependencies: WorkbookFeedDependencies = {
         useStorageReader: () => storageReader,
-        useStorageWriter: () => storageWriter,
+        useRuntimeStorage: () => storageWriter,
         usePickScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
         useAttachPendingConnection: () => vi.fn(),

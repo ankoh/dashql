@@ -2,7 +2,6 @@ import * as core from '@ankoh/dashql-core';
 import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-core';
 
 import { CONNECTOR_INFOS, type ConnectorInfo, type ConnectorType } from './connector_info.js';
-import type { HandleTable } from '../store/handles.js';
 import type { ConnectionParams } from './connection_params.js';
 
 /// A connection, the view of the slice `connection` of the runtime (docs/wip/runtime_api.md). The params are the
@@ -24,11 +23,6 @@ export { ConnectionHealth, ConnectionStatus };
 /// The info of the connector of a connection
 export function connectorInfoOf(connection: Pick<ConnectionState, 'connectorType'>): ConnectorInfo {
     return CONNECTOR_INFOS[connection.connectorType as ConnectorType];
-}
-
-/// The channel of a connection, an object of the handle table of the runtime
-export function channelOf<T>(connection: Pick<ConnectionState, 'details'> | null | undefined, handles: HandleTable): T | null {
-    return handles.get<T>(connection?.details.channel) ?? null;
 }
 
 /// Is a connection connected or connecting? An open connection keeps its protocol and can't be merged.
@@ -71,6 +65,22 @@ export interface NewConnection {
     name?: string;
     /// Does the connection cache query results? The default of the connector without.
     cacheQueryResults?: boolean;
+}
+
+/// Create a connection, with a fixed id or a new one, e.g. `Runtime.createConnection`
+export type ConnectionAllocator = (connection: NewConnection, connectionId?: string) => ConnectionState;
+
+/// The queries a workbook issued on a connection, active ones first
+export function findWorkbookQueries(
+    connection: Pick<ConnectionState, 'queriesActiveOrdered' | 'queriesFinishedOrdered'>,
+    workbookId: string,
+    queryOf: (queryId: number) => Pick<core.QueryView, 'queryMetadata'> | null,
+    includeFinished: boolean = true,
+): number[] {
+    const ofWorkbook = (queryId: number) => queryOf(queryId)?.queryMetadata.workbookId === workbookId;
+    const active = connection.queriesActiveOrdered.filter(ofWorkbook);
+    if (!includeFinished) return active;
+    return [...active, ...connection.queriesFinishedOrdered.filter(ofWorkbook)];
 }
 
 /// The action of the runtime that creates a connection, with a fixed id or a new one

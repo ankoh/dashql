@@ -1,29 +1,15 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { connectionLabelParts, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
+import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
+import { useConnectionList } from '../runtime/runtime_hooks.js';
 
-/// The ordinals that tell connections of the same connector apart, see `connectionOrdinals`.
-/// The map keeps its identity while the ordinals are unchanged.
+/// The ordinals that tell connections of the same connector apart, from the list of the connections of the runtime.
+/// The list changes when connections come, go or are used by other workbooks, not with their queries. Views outside of
+/// a runtime (e.g. in tests) number no connections.
 export function useConnectionOrdinals(): ReadonlyMap<string, number> {
-    // Re-number when the workbooks use other connections
-    const references = useConnectionReferences();
-    // The registry changes with every query, the selector returns a string to compare by value
-    const selectKey = React.useCallback(
-        (registry: Parameters<typeof connectionOrdinals>[0]) => [...connectionOrdinals(registry, references)]
-            .map(([connectionId, ordinal]) => `${connectionId}=${ordinal}`)
-            .join(','),
-        [references],
-    );
-    // Views outside of the runtime (e.g. in tests) number no connections
-    const store = useConnectionRegistryStore();
-    const key = React.useSyncExternalStore(store.subscribe, () => store.current == null ? '' : selectKey(store.current));
-    return React.useMemo(() => new Map(key.length === 0 ? [] : key.split(',').map(entry => {
-        const [connectionId, ordinal] = entry.split('=');
-        return [connectionId, Number(ordinal)] as const;
-    })), [key]);
+    const list = useConnectionList();
+    return React.useMemo(() => connectionOrdinals(list), [list]);
 }
 
 /// Label connections after their connectors and their ordinals

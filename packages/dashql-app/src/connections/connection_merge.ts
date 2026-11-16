@@ -1,5 +1,6 @@
 import { connectionParamsShareEqual } from '@ankoh/dashql-runtime/connections/connection_params';
-import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
+import type * as core from '@ankoh/dashql-core';
+import { isListedConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
@@ -9,14 +10,14 @@ import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_st
 /// ignoring secrets, the rule that imports consolidate connections with. Only listed connections
 /// are candidates, the user can't see the others.
 export function connectionMergeCandidates(
-    registry: Pick<ConnectionRegistry, 'connections' | 'connectionsByType'>,
-    references: ConnectionReferences,
+    connections: ReadonlyMap<string, ConnectionState>,
+    list: Pick<core.ConnectionListView, 'connections' | 'connectionsByType'> | null,
     targetId: string,
 ): ConnectionState[] {
-    const target = registry.connections.get(targetId);
+    const target = connections.get(targetId);
     if (target == null) return [];
-    return registry.connectionsByType[target.connectorType]
-        .filter(connectionId => connectionId !== targetId && isListedConnection(registry, references, connectionId))
-        .map(connectionId => registry.connections.get(connectionId)!)
+    return (list?.connectionsByType[target.connectorType] ?? [])
+        .filter(connectionId => connectionId !== targetId && isListedConnection(list, connectionId) && connections.has(connectionId))
+        .map(connectionId => connections.get(connectionId)!)
         .filter(candidate => connectionParamsShareEqual(candidate.params, target.params));
 }

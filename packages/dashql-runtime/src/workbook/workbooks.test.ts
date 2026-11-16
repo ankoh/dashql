@@ -44,17 +44,17 @@ describe('the workbooks of the runtime', () => {
         expect(progress.length).toBeGreaterThan(0);
 
         // The scripts in the order of the workbook file, their texts from their files
-        const workbook = rt.coreRuntime.workbook(TEST_WORKBOOK_ID)!;
+        const workbook = rt.store.get('workbook', TEST_WORKBOOK_ID)!;
         expect(workbook).toMatchObject({ name: 'Sales', scriptOrder: ['2_query.sql', '1_create.sql'], connectionIds: [TEST_CONNECTION_ID] });
         const scripts = rt.scripts(TEST_WORKBOOK_ID);
         expect(workbook.scriptKeys.map(key => scripts[key].scriptSession.getText())).toEqual(['select x from t;', 'create table t (x int);']);
         // The connection knows the workbook that uses it, the list of the workbooks the refused one
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([TEST_WORKBOOK_ID]);
-        expect(rt.coreRuntime.store.get('workbookList', 'root')?.invalidWorkbooks.map(workbook => workbook.workbookId)).toEqual([invalid]);
+        expect(rt.store.get('workbookList', 'root')?.invalidWorkbooks.map(workbook => workbook.workbookId)).toEqual([invalid]);
 
         // Deleting the refused workbook deletes its files and drops it from the list
-        await rt.coreRuntime.deleteInvalidWorkbook(invalid);
-        expect(rt.coreRuntime.store.get('workbookList', 'root')?.invalidWorkbooks).toEqual([]);
+        await rt.deleteInvalidWorkbook(invalid);
+        expect(rt.store.get('workbookList', 'root')?.invalidWorkbooks).toEqual([]);
         expect(storage.workbooks.has(invalid)).toBe(false);
     });
 
@@ -64,20 +64,20 @@ describe('the workbooks of the runtime', () => {
         rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
         const workbook = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']], { name: 'Writes' });
         const { workbookId } = workbook;
-        await rt.coreRuntime.storage.flush();
+        await rt.storage.flush();
         expect(storage.scripts.get(workbookId)).toEqual(new Map([['a.sql', 'select 1;']]));
         expect(storage.workbooks.get(workbookId)).toMatchObject({ name: 'Writes', scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] });
 
         const [key] = workbook.scriptKeys;
-        rt.coreRuntime.dispatchWorkbook(workbookId, { kind: 'setScriptText', value: { scriptKey: key, text: 'select 2;' } });
-        rt.coreRuntime.dispatchWorkbook(workbookId, { kind: 'renameScript', value: { fileName: 'a.sql', newName: 'b' } });
-        rt.coreRuntime.dispatchWorkbook(workbookId, { kind: 'renameWorkbook', value: { name: 'Renamed' } });
-        await rt.coreRuntime.storage.flush();
+        rt.dispatch({ workbook: workbookId }, { kind: 'setScriptText', value: { scriptKey: key, text: 'select 2;' } });
+        rt.dispatch({ workbook: workbookId }, { kind: 'renameScript', value: { fileName: 'a.sql', newName: 'b' } });
+        rt.dispatch({ workbook: workbookId }, { kind: 'renameWorkbook', value: { name: 'Renamed' } });
+        await rt.storage.flush();
         expect(storage.scripts.get(workbookId)).toEqual(new Map([['b.sql', 'select 2;']]));
         expect(storage.workbooks.get(workbookId)).toMatchObject({ name: 'Renamed', scripts: [{ name: 'b.sql', connectionId: TEST_CONNECTION_ID }] });
 
-        rt.coreRuntime.dispatchWorkbook(workbookId, { kind: 'deleteScript', value: { fileName: 'b.sql' } });
-        await rt.coreRuntime.storage.flush();
+        rt.dispatch({ workbook: workbookId }, { kind: 'deleteScript', value: { fileName: 'b.sql' } });
+        await rt.storage.flush();
         expect(storage.scripts.get(workbookId)).toEqual(new Map());
         expect(storage.workbooks.get(workbookId)).toMatchObject({ scripts: [] });
     });
@@ -88,10 +88,10 @@ describe('the workbooks of the runtime', () => {
         rt.addWorkbook(TEST_CONNECTION_ID, [], { name: 'Untitled' });
         const ephemeral = rt.addWorkbook(TEST_CONNECTION_ID, [], { name: 'New Workbook', ephemeral: true });
         expect(ephemeral.ephemeral).toBe(true);
-        rt.coreRuntime.dispatchWorkbook(ephemeral.workbookId, { kind: 'createScript', value: { text: 'select 1', base: 'a' } });
-        rt.coreRuntime.flush();
-        expect(rt.coreRuntime.workbook(ephemeral.workbookId)).toMatchObject({ ephemeral: false, name: 'Untitled 2' });
-        expect(rt.coreRuntime.workbook(ephemeral.workbookId)!.workbookMetadata.ephemeral).toBeUndefined();
+        rt.dispatch({ workbook: ephemeral.workbookId }, { kind: 'createScript', value: { text: 'select 1', base: 'a' } });
+        rt.flush();
+        expect(rt.store.get('workbook', ephemeral.workbookId)).toMatchObject({ ephemeral: false, name: 'Untitled 2' });
+        expect(rt.store.get('workbook', ephemeral.workbookId)!.workbookMetadata.ephemeral).toBeUndefined();
     });
 
     it('tells the connections which workbooks use them', async () => {
@@ -103,17 +103,17 @@ describe('the workbooks of the runtime', () => {
         expect(rt.connection(OTHER_CONNECTION_ID).workbooks).toEqual([]);
 
         // A script moves to the other connection, both connections are used
-        rt.coreRuntime.dispatchWorkbook(workbook.workbookId, { kind: 'setScriptConnection', value: { fileName: 'b.sql', connectionId: OTHER_CONNECTION_ID } });
-        rt.coreRuntime.flush();
-        expect(rt.coreRuntime.workbook(workbook.workbookId)?.connectionIds).toEqual([TEST_CONNECTION_ID, OTHER_CONNECTION_ID]);
+        rt.dispatch({ workbook: workbook.workbookId }, { kind: 'setScriptConnection', value: { fileName: 'b.sql', connectionId: OTHER_CONNECTION_ID } });
+        rt.flush();
+        expect(rt.store.get('workbook', workbook.workbookId)?.connectionIds).toEqual([TEST_CONNECTION_ID, OTHER_CONNECTION_ID]);
         expect(rt.connection(OTHER_CONNECTION_ID).workbooks).toEqual([workbook.workbookId]);
         // A connection that a workbook uses is never deleted
-        expect(rt.coreRuntime.dispatchConnection(OTHER_CONNECTION_ID, { kind: 'deleteConnection' }).ok).toBe(false);
+        expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(false);
 
         // Without the workbook, the connections are free
-        rt.coreRuntime.deleteWorkbook(workbook.workbookId);
-        expect(rt.coreRuntime.workbook(workbook.workbookId)).toBeNull();
+        rt.deleteWorkbook(workbook.workbookId);
+        expect(rt.store.get('workbook', workbook.workbookId)).toBeNull();
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([]);
-        expect(rt.coreRuntime.dispatchConnection(OTHER_CONNECTION_ID, { kind: 'deleteConnection' }).ok).toBe(true);
+        expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(true);
     });
 });

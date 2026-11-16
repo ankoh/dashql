@@ -18,7 +18,8 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
-import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
+import { useConnectionDraftForm } from './connection_draft.js';
+import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -102,7 +103,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
 
     // Wire up the page state
-    const [connectionState] = useConnectionById(props.connectionId);
+    const connectionState = useConnection(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
 

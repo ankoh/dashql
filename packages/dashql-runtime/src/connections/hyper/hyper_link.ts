@@ -1,7 +1,6 @@
 import { newConnectionFromParams, type ConnectionParams } from '../connection_params.js';
-import type { ConnectionAllocator } from '../connection_registry_state.js';
 import type { KeyValueStorage } from '../../platform/key_value_storage.js';
-import type { ConnectionState } from '../connection_state.js';
+import type { ConnectionAllocator, ConnectionState } from '../connection_state.js';
 import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
 
 export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';

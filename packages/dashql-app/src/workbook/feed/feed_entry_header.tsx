@@ -8,10 +8,9 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useCancelQuery } from '../../connections/query_executor.js';
 import { queryIsDone, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useOptionalRuntime, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';
@@ -30,14 +29,12 @@ const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
 const TrashIcon: Icon = SymbolIcon('trash_16');
 
 export interface FeedEntryHeaderDependencies {
-    useCancelQuery: typeof useCancelQuery;
     ScriptDiagnosticsButton: typeof ScriptDiagnosticsButton;
     ScriptStatisticsBar: typeof ScriptStatisticsBar;
     ChartBuilderOverlay: typeof ChartBuilderOverlay;
 }
 
 export const DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES: FeedEntryHeaderDependencies = {
-    useCancelQuery,
     ScriptDiagnosticsButton,
     ScriptStatisticsBar,
     ChartBuilderOverlay,
@@ -95,7 +92,7 @@ export interface FeedEntryHeaderProps {
 export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES;
     const workbookExecution = useWorkbookExecution(props.workbookId);
-    const cancelQuery = dependencies.useCancelQuery();
+    const runtime = useOptionalRuntime();
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const queryState = props.queryState;
     const queryActive = queryState != null && !queryIsDone(queryState.status);
@@ -134,7 +131,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 onClick={() => {
                     if (queryActive && props.scriptData?.latestQueryId != null) {
                         if (workbookExecution.busy) workbookExecution.stop();
-                        else if (connectionId != null) cancelQuery(connectionId, props.scriptData.latestQueryId);
+                        else void runtime?.cancel(props.scriptData.latestQueryId);
                     } else if (needsConnection) {
                         connectionAttention?.request(props.workbookId);
                     } else {

@@ -2,7 +2,6 @@ import * as core from '@ankoh/dashql-core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import type { ConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
@@ -13,7 +12,7 @@ import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@a
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { readStoredWorkbookScripts } from './native_workbook_sync_react.js';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { StorageBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
 import { workbookFormat } from '@ankoh/dashql-runtime/storage/workbook_format';
@@ -69,17 +68,17 @@ describe('Workbook connections', () => {
 
     /// A runtime that restored the storage, every restoration starts a new app
     interface RestoredApp {
-        runtime: CoreRuntime;
+        runtime: Runtime;
     }
     const restore = async (backend: StorageBackend): Promise<RestoredApp> => {
         const testRuntime = await createTestRuntime({ storage: backend });
         await testRuntime.restore();
-        return { runtime: testRuntime.coreRuntime };
+        return { runtime: testRuntime };
     };
 
     /// The restored workbook
     const workbookOf = (restored: RestoredApp, workbookId: string = WORKBOOK_ID): WorkbookScripts => {
-        const workbook = restored.runtime.workbook(workbookId);
+        const workbook = restored.runtime.store.get('workbook', workbookId);
         if (workbook == null) throw new Error(`Workbook ${workbookId} was not restored`);
         return workbook;
     };
@@ -104,12 +103,10 @@ describe('Workbook connections', () => {
 
     /// Run a script on another connection the way the connection picker of the feed does
     const pickConnection = (restored: RestoredApp, fileName: string, connectionId: string): void => {
-        restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'setScriptConnection', value: { fileName, connectionId } });
+        restored.runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'setScriptConnection', value: { fileName, connectionId } });
         restored.runtime.flush();
     };
 
-    /// The connection registry of a restored app state
-    const connectionRegistryOf = (restored: RestoredApp): ConnectionRegistry => restored.runtime.registry();
     /// The workbooks that use a connection
     const workbooksOf = (restored: RestoredApp, connectionId: string): string[] => restored.runtime.connection(connectionId)?.workbooks ?? [];
 
@@ -203,7 +200,7 @@ describe('Workbook connections', () => {
             ]);
             const restored = await restore(backend);
             for (const name of workbookOf(restored).scriptOrder) {
-                restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'analyzeOutdatedScript', value: { scriptKey: scriptOf(restored, name).scriptKey } });
+                restored.runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'analyzeOutdatedScript', value: { scriptKey: scriptOf(restored, name).scriptKey } });
             }
             restored.runtime.flush();
             expect(unresolvedReferences(restored, 'local.sql')).toBe(0);
@@ -243,7 +240,7 @@ describe('Workbook connections', () => {
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts[0]).toEqual({ name: 'query.sql', connectionId: unknownId });
 
             // Other changes of the script list keep the reference
-            restored.runtime.dispatchWorkbook(WORKBOOK_ID, { kind: 'reorderScripts', value: { order: ['other.sql', 'query.sql'] } });
+            restored.runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'reorderScripts', value: { order: ['other.sql', 'query.sql'] } });
             await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.scripts).toEqual([
                 { name: 'other.sql', connectionId: HYPER_ID },
@@ -280,7 +277,7 @@ describe('Workbook connections', () => {
             await seedWorkbook(backend, [['query.sql', HYPER_ID, 'select 1']]);
             backend.connections = backend.connections!.filter(entry => entry.id !== TRINO_ID);
             const restored = await restore(backend);
-            expect(restored.runtime.connection(TRINO_ID)).toBeNull();
+            expect(restored.runtime.module?.views('connection', [TRINO_ID])[0] ?? null).toBeNull();
 
             // A pull adds a script on a connection that the app doesn't know
             const pulled: WorkbookData = {
@@ -288,7 +285,7 @@ describe('Workbook connections', () => {
                 connections: [{ connectionId: HYPER_ID, params: HYPER_PARAMS }, { connectionId: TRINO_ID, params: TRINO_PARAMS }],
                 scripts: [{ name: 'query.sql', connectionId: HYPER_ID }, { name: 'remote.sql', connectionId: TRINO_ID }],
             };
-            const stored = readStoredWorkbookScripts(restored.runtime, connectionRegistryOf(restored), pulled, [
+            const stored = readStoredWorkbookScripts(restored.runtime, pulled, [
                 { name: 'query.sql', sql: 'select 1' },
                 { name: 'remote.sql', sql: 'select 2' },
             ])!;
@@ -336,7 +333,7 @@ describe('Workbook connections', () => {
         const exportAndRead = async () => {
             const app = await createTestRuntime({ storage: backend, archiveDatabase: async () => database });
             await app.restore();
-            const runtime = app.coreRuntime;
+            const runtime = app;
             const { archive } = await runtime.exportArchive(WORKBOOK_ID, { withCatalog: true });
             return { runtime, preview: await runtime.readImport({ archive }) };
         };

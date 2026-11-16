@@ -73,13 +73,13 @@ buffers in between. The boundary moves to what the UI reads.
   `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog updates and
   the queries have numeric enums of the module.
 - **A connection owns its catalog.** The connection holds its catalog with the entry ids of all catalogs of the module.
-  `Runtime.catalog(connectionId)` is a `Catalog` handle that shares it, `CoreRuntime.catalog` keeps one per connection
+  `Runtime.catalog(connectionId)` is a `Catalog` handle that shares it, `catalog` of the TypeScript `Runtime` keeps one per connection
   and the app hands it to the scripts of workbooks, so the scripts publish into the catalog of the connection. The
   script with the functions of the connection stays in Rust, the catalog loader replaces its text through the
   connection.
 - **Channels and tables stay in JavaScript, under handles.** The channels, the result tables and the records of the
   queries that the host runs itself (their abort controllers) are objects of the handle table of the platform of the
-  runtime (`CoreRuntime.handles`, see [runtime_projection.md](runtime_projection.md#handles)). The progress of a query
+  runtime (`Runtime.handles` of the TypeScript runtime, see [runtime_projection.md](runtime_projection.md#handles)). The progress of a query
   is the one of the Rust history. The action that gives an object to the connection hands its handle over, the
   connection keeps the handle where it keeps the object and lets go of it with an effect: `release`, `close` (a
   channel) or `abort` (an active query). A reset or a delete cancels the setup and the catalog updates of the
@@ -195,8 +195,8 @@ The computations are the first domain of `Runtime`, the class of the module of [
 the crate on `JsPlatform` (`src/host.rs`), the host over the one platform object of TypeScript. The app reads a
 computation as a view (`views('computation', ids)`, `ComputationView` of `runtime/computation.rs`), dispatches the
 requests of its components (`dispatch({ computation: id }, action)`) and starts an analysis with a command
-(`analyzeTable`). `CoreRuntime` of the TypeScript runtime (`core_runtime.ts`) builds the platform object, holds the
-store of the views (`store/runtime_store.ts`) and attaches the runtime of the module once the core is there.
+(`analyzeTable`). `Runtime` of the TypeScript runtime (`runtime.ts`) builds the platform object, holds the store of
+the views (`store/runtime_store.ts`) and attaches the runtime of the module once the core is there.
 
 - **An analysis runs in Rust.** `analyzeTable(tableId, table, options)` takes the result by its handle in the handle
   table, reads it as Arrow IPC once (`tables.read` of the platform), registers a token of the lifetime of the
@@ -229,9 +229,9 @@ store of the views (`store/runtime_store.ts`) and attaches the runtime of the mo
   frame of the runtime is the table `__df_<id>`. Runtimes that share a compute database, e.g. of the shell and of
   tests, don't share table names. The service drops the data frames that the state releases; nothing in the host reads
   a data frame any more.
-- **The shell of Hyper** has a runtime of the module of its own (`StandaloneCoreRuntime` of the app) on the database of
-  the shell; no bindings of the computations remain besides `Runtime`.
-- **The core comes with the first command.** The runtime and the shell create `CoreRuntime` before the core is set
+- **The shell of Hyper** has a runtime of its own (`StandaloneRuntime` of the app) on the database of the shell; no
+  bindings of the computations remain besides `Runtime`.
+- **The core comes with the first command.** The app and the shell create their `Runtime` before the core is set
   up. The first command asks the platform for it, the runtime hands its core over on `restore`. A dispatch before the
   core fails: no computation exists without one. A platform without a core instantiates the default one.
 - **Changed on purpose.** The tasks that the app scheduled are requests of the app now; a request that the state
@@ -297,7 +297,7 @@ The writer of the crate (`storage/writer.rs`) is a service of `Runtime`: the wor
 through it, the host runs its commands with `Runtime.storage(command)` (flush, settle, pause and resume the writer or a
 workbook, revive, flush and delete a workbook, discard pending writes) and schedules the writes that no state describes
 with `storageWrite`, e.g. the scripts that the user kept over a change outside the app. `StorageWriter` of
-`storage/runtime_storage.ts` of the TypeScript runtime is the facade of these commands (`CoreRuntime.storage`).
+`storage/runtime_storage.ts` of the TypeScript runtime is the facade of these commands (`Runtime.storage`).
 
 - **Decisions in Rust.** The keys and their chains, debouncing and coalescing (a newer task keeps the timer of the first
   one), pausing the writer and workbooks, flushing, the statistics and the generations of keys, deleted workbooks,
@@ -318,7 +318,7 @@ with `storageWrite`, e.g. the scripts that the user kept over a change outside t
 - **State of the runtime.** The workbooks whose writes a change outside the app holds are the `storage` slice
   (`heldWorkbooks`), resuming a workbook releases it. The statistics of the keys change with every write and are no
   slice, the view of the app reads them when it shows them (`storageStatistics`).
-- **Before the core.** A command before the core waits for it (`CoreRuntime.ready`), a flush and a settle have nothing
+- **Before the core.** A command before the core waits for it (`Runtime.ready`), a flush and a settle have nothing
   to wait for. The app flushes the writer of its runtime when the page hides and pauses it when another tab takes over.
 - **Changed on purpose.** A task starts in a task of the host, the TypeScript writer called the backend within
   `writeDurable`. Written bytes count UTF-8 bytes. A durable write of a deleted workbook resolves as cancelled, the
@@ -443,8 +443,8 @@ tool stops the loader (`runCatalogLoader(false)`).
   update. The text of the function script is replaced in Rust once its descriptor is published. A failed lookup is
   tried again after a wait, the wake-up is a timer of the host.
 - **The queries run on the executor of the runtime.** A metadata query is a query of the history of its connection
-  with the issuer `Catalog Update` (`run_internal` of `runtime/queries.rs`): the platform describes where it runs
-  (`queries.describe`, as for `executeQuery`), the update registers it (`CatalogUpdateRegisterQuery`) and reads its
+  with the issuer `Catalog Update` (`run_internal` of `runtime/queries.rs`): the runtime describes it as every query
+  of `executeQuery`, the update registers it (`CatalogUpdateRegisterQuery`) and reads its
   result as Arrow IPC with `arrow-rs`. A query runs in a task of its own, a cancelled update cancels it at the backend.
 - **The connection keeps the updates.** The start and the end of an update are actions of the connection
   (`UpdateCatalog` and the outcome of the update), so the connection, its persistence and the scripts that use it see
@@ -476,7 +476,7 @@ The setups of the crate (`src/connection_setup/`) are commands of `Runtime` (`ru
 `setupConnection(connectionId, options)` sets up a connection with its connector and checks its health,
 `authenticateSalesforce(setupId, params, options, onStep)` logs in to Salesforce without a connection (the login of the
 shell), `cancelSetup(setupId)` cancels either. The settings pages, the startup, the cloud login, the shell and the
-command line tool call them through `CoreRuntime`.
+command line tool call them through the TypeScript `Runtime`.
 
 - **A setup is known by an id.** The id of its connection or of a login. A new setup of an id cancels the one that runs,
   a reset or a delete of the connection cancels it (`RegistryEffect::CancelSetup`). The view of the connection shows
@@ -511,7 +511,7 @@ command line tool call them through `CoreRuntime`.
 - **The tests.** `tests/connection_setup_test.rs` runs the setups and the health check on a fake host: the flows, the
   token requests, the channels, failures and cancellations. `runtime_connections.test.ts` of `dashql-core-js` runs a
   setup with its probe and a cancelled one on the runtime; the tests of the app run the setups of Trino and Salesforce
-  and the login of Salesforce on `CoreRuntime` with the OAuth flow of the app, the latter against a fake Salesforce over
+  and the login of Salesforce on the TypeScript `Runtime` with the OAuth flow of the app, the latter against a fake Salesforce over
   the HTTP client.
 - **Changed on purpose.** A setup resolves with its outcome instead of rejecting, the error is in the view of the
   connection and in the log; a failure keeps its message and its details, not the error object of the host. The steps
@@ -659,11 +659,20 @@ the context of the connection holds them.
 ## The query executor
 
 The executor of the crate (`src/executor/`) runs the queries of the connections of `Runtime`, its host is Rust
-(`runtime/queries.rs` of the bindings). `executeQuery` registers a query in the history of its connection and runs it
-once the host described where it runs; `QueryPlatform` of the TypeScript runtime (`query/query_platform.ts`) is the
-host half: the description from the view of the connection and the channel of its handle, the channels that the
-module doesn't speak and the query result cache. `CoreRuntime.execute` keeps the signature of the executor of today,
-its callers and the hooks of the app didn't change.
+(`runtime/queries.rs` of the bindings). `executeQuery` registers a query in the history of its connection, describes
+it and runs it. The description is Rust (`Connections::describe`): the connection of the registry, the key of the
+result in the query result cache (below), whether the statement
+touches relations, the details of its log messages and the options of the caller (`QueryOptions`: analyze, publish,
+throw on error, a call of a client function, the read timeout, the cache). The key of a result is the lowercase hex of
+the SHA-256 digest of the signature of the connection (the params of the connector that identify its results,
+`executor::cache_key`) and the semantic signature of the script; the digest comes from `crypto.sha256` of the platform,
+the text that it hashes is the one that the TypeScript runtime hashed, so the files in the cache keep their keys. The
+platform describes only the channel of
+the connection (`channels.describe(queryId, channel, query)`): a Trino channel or a Hyper channel over HTTP that the
+executor speaks itself, else a channel of the host, with the tokens of a Salesforce channel for the calls of client
+functions. `query/query_channels.ts` of the TypeScript runtime is that half of the platform: the channels of the host by
+query, the query result cache, and `execute` for the callers in TypeScript (the result table, the error of a failed
+query, the abort signal of the caller, the log of a trace).
 
 - **One HTTP layer.** `src/http/` holds the request, the response with a body of bytes, the headers that compare names
   without case and the URL module of every connector. `Url` parses as the browsers do where the origin check of client
@@ -728,7 +737,7 @@ holds the structured progress that the app reads, the TypeScript progress model 
   the packed `QueryProfile` with its version, the execution state and the revision. The model ends with the task. A
   malformed payload is logged and changes nothing, the update keeps the structured progress of the previous one.
 - **The update stays in the module.** The executor reports a progress into the history of the connection, nothing of it
-  crosses. `Runtime.setProgressLayout` sets the layout of the plans, `CoreRuntime` sets the left-to-right layout of the
+  crosses. `Runtime.setProgressLayout` sets the layout of the plans, the TypeScript `Runtime` sets the left-to-right layout of the
   progress panels (`createProgressLayoutConfig`).
 - **The view of a query carries it.** `QueryView.latestProgressUpdate` has the plain fields and the structured progress
   (`QueryProfileProgressView`): the packed `QueryProfile` and the execution state as packed `QueryProfileEvents`, one
@@ -748,8 +757,7 @@ holds the structured progress that the app reads, the TypeScript progress model 
 
 ## The query history of the shell
 
-The shell tracks its queries in a history without a connection of its runtime of the module (`StandaloneCoreRuntime`
-of the app): `{ history: 'shell-<n>' }`, created with `createHistory` and dropped with the component. The class
+The shell tracks its queries in a history without a connection of its runtime (`StandaloneRuntime` of the app): `{ history: 'shell-<n>' }`, created with `createHistory` and dropped with the component. The class
 `QueryHistory` of the module and `ShellQueryExecutionTracker` went.
 
 - **The queries that the host runs.** `executeTrackedQuery` of `query/tracked_query_execution.ts` tracks a query that
@@ -772,7 +780,7 @@ The runs of workbooks are a service of `Runtime` (`runtime/runs.rs` of the bindi
 (`src/workbook_run/`): `runWorkbook(workbookId, options, listener)`, `runScript(workbookId, scriptKey, options)`,
 `stopRun(workbookId)` and `resultKeys(workbookId, targets)`, the `run` slice of a workbook
 (`WorkbookRunView`: the run that holds it, the state of its last run of the whole workbook, the inputs whose change
-waits). `CoreRuntime` of the TypeScript runtime has the same commands, the app reads the slice with
+waits). The TypeScript `Runtime` has the same commands, the app reads the slice with
 `useWorkbookExecution` and runs a script with `useScriptRun`.
 
 - **A run is a task on the workbook.** The module shares the workbook with its runs (`Rc<RefCell<Workbook>>`). A run
@@ -782,7 +790,7 @@ waits). `CoreRuntime` of the TypeScript runtime has the same commands, the app r
 - **Plans.** `Workbook::plan_run` plans the scripts with `planner::plan_session`: every script, the targets with what
   they need, or the scripts that a change of inputs affects (`plan::affected_scripts` on the dataflow of the workbook).
   A run of a script needs a statement of its target. The result keys follow the plan (`plan::result_keys`): the
-  platform derives a key from a signature (`resultCache.key`), the run decides whether the key is reusable.
+  runtime derives a key from a signature (`Connections::result_key`), the run decides whether the key is reusable.
   `resultKeys` plans without analyzing and returns the reusable keys, for the cache indicators and the exports.
 - **Cached results.** A script with a reusable key whose file the cache holds and that follows no script that runs is
   served from the cache: the run keeps the file (`resultCache.retain`), the terminal query of the script reads the
@@ -794,9 +802,9 @@ waits). `CoreRuntime` of the TypeScript runtime has the same commands, the app r
   follows them. A failed statement cancels the running ones, the run settles once they ended and then releases its
   files (`mounts.release`).
 - **Statements on the executor.** A statement is a query of the history of its connection that the runtime runs
-  itself (`Connections::run_statement`): the platform describes where it runs with the options of the statement
-  (`queries.describe`: the cache with the signature of its key, whether it publishes and analyzes its result, a call
-  of a client function), the executor reports its result as ready to the run before the analysis and its end after.
+  itself (`Connections::run_statement`): the runtime describes it with the options of the statement (the cache with
+  the signature of its key, whether it publishes and analyzes its result, a call of a client function), the executor
+  reports its result as ready to the run before the analysis and its end after.
   The result table stays in the history, a materialization writes it by its handle. Its failure keeps the query, the
   details and the target of its error.
 - **Writes.** The run registers the queries and the results of the scripts on the workbook and captures the
@@ -898,9 +906,8 @@ p50). The change set crosses the `run` slices as well, a keystroke changes none 
 - The connections of a native workbook that changed on disk are read from the copies of its file in TypeScript
   (`connections/connection_restore.ts`) and created in the runtime, the restore of a single workbook could take them
   over.
-- The query executor reads where a query runs from the host (`QueryPlatform`): the target of the channel of the
-  connection and the key of the query result cache. The key needs the signature of the params of the connector and
-  SHA-256 of the platform.
+- The channels of the host stay objects of the platform: the platform describes the target of a channel by its handle
+  (`channels.describe`), a Trino channel keeps its refreshed token in TypeScript.
 - A profile in the browser: the numbers of "Typing" are Node.
 - The mock setup of Salesforce (`salesforce_connection_setup_mock.ts`, the mock config of the app) stays in TypeScript,
   it answers from `SalesforceAPIClientMock` without requests. The owner of the cancellation of a setup per connection

@@ -24,7 +24,7 @@ import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_la
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useWorkbooks } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useWorkbooks } from '../runtime/runtime_hooks.js';
 import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/workbook_folder_row.js';
 import * as sidebarStyles from '../workbook/workbook_workbench_sidebar.module.css';

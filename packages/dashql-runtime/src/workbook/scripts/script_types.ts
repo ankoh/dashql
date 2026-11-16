@@ -107,15 +107,6 @@ export function createEmptyAnnotations(): ScriptAnnotations {
     };
 }
 
-/// Helper to create empty metadata
-export function createEmptyMetadata(): WorkbookMetadata {
-    return {
-        originType: 'LOCAL',
-        originalFileName: '',
-        originalHttpUrl: '',
-    };
-}
-
 /// Trailing ".sql" extension, stripped for display.
 const SCRIPT_EXTENSION_RE = /\.sql$/i;
 

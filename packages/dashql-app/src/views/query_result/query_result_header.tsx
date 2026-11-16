@@ -12,7 +12,7 @@ import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { fittingRowCount } from './data_table.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
 import { formatBytes } from '../../utils/format.js';
-import { useQueryResultTable } from '../../connections/query_executor.js';
+import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 
 export interface QueryResultHeaderDependencies {
     useQueryResultRowCounts: typeof useQueryResultRowCounts;

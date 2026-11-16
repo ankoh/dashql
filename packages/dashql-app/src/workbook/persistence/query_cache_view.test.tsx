@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryCacheView } from './query_cache_view.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { LoggerProvider, useLogger } from '../../platform/logger/logger_provider.js';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -23,14 +23,15 @@ interface CachedQuery { queryId: number; cacheKey: string; cacheDeleted: boolean
 /// Finished queries of a connection that advertise the results of cache keys. The queries get their keys when the
 /// executor caches their results (tested in the runtime), the runtime of the test lists them on a connection and
 /// marks them when the view deletes their results.
-function withCachedQueries(runtime: CoreRuntime, cacheKeys: string[]): Map<number, CachedQuery> {
+function withCachedQueries(runtime: Runtime, cacheKeys: string[]): Map<number, CachedQuery> {
     const queries = new Map(cacheKeys.map((cacheKey, i): [number, CachedQuery] => [i + 1, { queryId: i + 1, cacheKey, cacheDeleted: false }]));
-    const registry = runtime.registry.bind(runtime);
-    vi.spyOn(runtime, 'registry').mockImplementation(() => {
-        const current = registry();
+    const all = runtime.store.all.bind(runtime.store);
+    vi.spyOn(runtime.store, 'all').mockImplementation(((kind: string) => {
+        const current = (all as (kind: string) => ReadonlyMap<unknown, unknown>)(kind);
+        if (kind !== 'connection') return current;
         const connection = { connectionId: CONNECTION_ID, queriesFinishedOrdered: [...queries.keys()] } as unknown as ConnectionState;
-        return { ...current, connections: new Map([...current.connections, [CONNECTION_ID, connection]]) };
-    });
+        return new Map([...current, [CONNECTION_ID, connection]]);
+    }) as typeof runtime.store.all);
     const get = runtime.store.get.bind(runtime.store);
     vi.spyOn(runtime.store, 'get').mockImplementation(((kind: string, id: unknown) => kind === 'query' && queries.has(id as number)
         ? queries.get(id as number)
@@ -39,7 +40,7 @@ function withCachedQueries(runtime: CoreRuntime, cacheKeys: string[]): Map<numbe
     vi.spyOn(runtime, 'dispatch').mockImplementation((target, action) => {
         if (action.kind === 'queryCacheDeleted' && queries.has(action.value.queryId)) {
             queries.get(action.value.queryId)!.cacheDeleted = true;
-            return { ok: true } as ReturnType<CoreRuntime['dispatch']>;
+            return { ok: true } as ReturnType<Runtime['dispatch']>;
         }
         return dispatch(target, action);
     });
@@ -49,13 +50,13 @@ function withCachedQueries(runtime: CoreRuntime, cacheKeys: string[]): Map<numbe
 describe('QueryCacheView', () => {
     let root: ReturnType<typeof createTestRoot>;
     let cache: ReturnType<typeof memoryQueryResultCache>;
-    let coreRuntime: CoreRuntime | null;
+    let runtime: Runtime | null;
     let cached: Map<number, CachedQuery> | null;
     let logger: Logger;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
-        coreRuntime = useCoreRuntime();
+        runtime = useRuntime();
         logger = useLogger();
         return null;
     }
@@ -76,7 +77,7 @@ describe('QueryCacheView', () => {
             </LoggerProvider>
         );
         await root.render(tree(false));
-        if (cacheKeys != null) cached = withCachedQueries(coreRuntime!, cacheKeys);
+        if (cacheKeys != null) cached = withCachedQueries(runtime!, cacheKeys);
         if (showView) await root.render(tree(true));
     }
 
@@ -94,7 +95,7 @@ describe('QueryCacheView', () => {
         root.container.style.height = '400px';
         root.container.style.display = 'flex';
         cache = memoryQueryResultCache();
-        coreRuntime = null;
+        runtime = null;
         cached = null;
         onClose = vi.fn<() => void>();
     });

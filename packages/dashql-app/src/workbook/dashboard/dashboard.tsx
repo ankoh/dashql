@@ -3,12 +3,10 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useCancelQuery } from '../../connections/query_executor.js';
-import { useScriptRun, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import type { DashboardSpec } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
@@ -234,7 +232,7 @@ export function Dashboard(props: Props): React.ReactElement {
     const closeOverlay = React.useCallback(() => setOverlay(null), []);
     // Run a card like a script in the feed. A run may read cached results, a refresh runs the script and the scripts it
     // references without them.
-    const cancelQuery = useCancelQuery();
+    const runtime = useOptionalRuntime();
     const workbookExecution = useWorkbookExecution(props.workbookScripts.workbookId);
     const workbookId = props.workbookScripts.workbookId;
     const workbookScriptsRef = React.useRef(props.workbookScripts);
@@ -253,8 +251,8 @@ export function Dashboard(props: Props): React.ReactElement {
     const handleStop = React.useCallback((scriptKey: number) => {
         const script = scriptsRef.current[scriptKey];
         if (workbookBusy) stopWorkbook();
-        else if (script?.latestQueryId != null) cancelQuery(script.connectionId, script.latestQueryId);
-    }, [workbookBusy, stopWorkbook, cancelQuery]);
+        else if (script?.latestQueryId != null) void runtime?.cancel(script.latestQueryId);
+    }, [workbookBusy, stopWorkbook, runtime]);
     // Accept or reject a staged rewrite of a card, like in the feed
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
         props.modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });

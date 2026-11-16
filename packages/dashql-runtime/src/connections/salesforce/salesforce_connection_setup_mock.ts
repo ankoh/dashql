@@ -7,12 +7,12 @@ import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './sales
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { setupStepAction } from '../connection_state.js';
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_grpc_client_mock.js';
-import type { CoreRuntime } from '../../core_runtime.js';
+import type { Runtime } from '../../runtime.js';
 
 /// The setup of a Salesforce connection with the mock of the API that the config of the app chose: the steps of a
 /// setup without an OAuth flow and without requests, over a mock of the Hyper channel. The runtime applies the steps.
 export async function setupSalesforceConnectionMock(
-    runtime: CoreRuntime,
+    runtime: Runtime,
     connectionId: string,
     params: connection.SalesforceConnectionParams,
     config: SalesforceConnectorConfig,
@@ -20,7 +20,7 @@ export async function setupSalesforceConnectionMock(
     logger: Logger,
     abortSignal: AbortSignal,
 ): Promise<void> {
-    const step = (name: string, value?: unknown, channel?: number) => runtime.dispatchConnection(connectionId, setupStepAction(name, value, channel));
+    const step = (name: string, value?: unknown, channel?: number) => runtime.dispatch({ connection: connectionId }, setupStepAction(name, value, channel));
     try {
         step('SETUP_STARTED', params);
         abortSignal.throwIfAborted();

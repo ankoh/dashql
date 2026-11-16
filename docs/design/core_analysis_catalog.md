@@ -181,7 +181,7 @@ resolution and in `flatten`, and within a layer against the entry with the older
 
 | Layer | Content | Published by |
 |---|---|---|
-| `CONNECTION` | What the connection reports | Catalog updates (`catalog_loader.tsx`), restored files and functions through batches (`catalog_batch.ts`), the catalog of the standalone shell (`embedded_database_catalog.ts`), the CLI's schema files |
+| `CONNECTION` | What the connection reports | Catalog updates and restored files and functions through batches (the catalog loader and the restore of `dashql-core-runtime`), the catalog of the standalone shell (`embedded_database_catalog.ts`), the CLI's schema files |
 | `SESSION` | The declarations of the scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
 
 The connection is the source of truth: the connection layer only holds what the connection reported,
@@ -509,7 +509,7 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Client function specs | `packages/dashql-core/src/catalog/clfn.rs` |
 | Name search index | `packages/dashql-core/src/catalog/names.rs` |
 | The relations that statements touch | `packages/dashql-core-script/src/touched_relations.rs` |
-| The relations of a connection | `packages/dashql-app/src/connections/catalog/catalog_loader.tsx`, `catalog_sql_generator.ts`, `replace_tables` in `catalog/mod.rs` |
+| The relations of a connection | `packages/dashql-core-runtime/src/catalog_loader/`, `replace_tables` in `catalog/mod.rs` |
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |

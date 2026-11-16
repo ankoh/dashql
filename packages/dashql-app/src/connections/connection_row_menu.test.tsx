@@ -17,7 +17,7 @@ import {
 } from './connection_tree.js';
 
 const dependencies: ConnectionRefreshDependencies = {
-    useCatalogLoaderQueue: () => refreshCatalog,
+    useRefreshCatalog: () => refreshCatalog,
 };
 
 function database(connector: symbol = HYPER_CONNECTOR): ConnectionState {

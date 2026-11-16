@@ -23,7 +23,7 @@ const state = {
 };
 
 const cardDependencies = {
-    useQueryState: (_workbookId: string, queryId: number | null) => queryId == null ? null : state.queries.get(queryId) ?? null,
+    useQuery: (queryId: number | null) => queryId == null ? null : state.queries.get(queryId) ?? null,
     QueryResultPanel: (props: { onShowTable?: () => void }) => <button data-testid="card-table" onClick={props.onShowTable}>table</button>,
     VisualizationDispatch: () => <div data-testid="card-visualization" />,
     ScriptEditor: () => <div data-testid="card-editor" />,
@@ -200,7 +200,7 @@ describe('Dashboard', () => {
         // A running card cancels its query
         expect(cardButton(3, 'dashboard-card-run').getAttribute('data-run-action')).toBe('stop');
         act(() => cardButton(3, 'dashboard-card-run').click());
-        expect(executor.cancel).toHaveBeenCalledWith('db', 30);
+        expect(executor.cancel).toHaveBeenCalledWith(30);
 
         // An offline connection runs nothing
         render(workbook(SETUP, SALES, TREND), { scriptConnections: new Map() });

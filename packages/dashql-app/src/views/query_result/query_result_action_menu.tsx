@@ -9,13 +9,12 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { scriptResultOwner, type ScriptData, type ScriptDataMap } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { scriptResultOwner, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useWorkbookScriptsDispatch } from '../../workbook/scripts/workbook_scripts_registry.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
-import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const ProjectionIcon = SymbolIcon('columns_16');
@@ -31,10 +30,10 @@ function isProjectionError(text: string | ResultProjectionError): text is Result
     return Object.prototype.hasOwnProperty.call(PROJECTION_ERRORS, text);
 }
 
-/// The script of a workbook that owns a query result
-function findResultScript(workbookId: string, scripts: ScriptDataMap, owner: string): ScriptData | null {
-    for (const script of Object.values(scripts)) {
-        if (scriptResultOwner(workbookId, script.scriptKey) === owner) return script;
+/// The script of a workbook that owns a query result, as the store of the runtime holds it
+function findResultScript(runtime: Runtime, workbookId: string, owner: string): ScriptData | null {
+    for (const scriptKey of runtime.store.get('workbook', workbookId)?.scriptKeys ?? []) {
+        if (scriptResultOwner(workbookId, scriptKey) === owner) return runtime.store.get('script', scriptKey);
     }
     return null;
 }
@@ -59,8 +58,7 @@ interface ScriptResultProps extends Props {
 }
 
 function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps): React.ReactElement {
-    const runtime = useCoreRuntime();
-    const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
+    const runtime = useRuntime();
     const config = useAppConfig();
     const [open, setOpen] = React.useState(false);
     // The rewrite is computed when the menu opens, the item says why a script cannot get it
@@ -73,7 +71,7 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
     const openMenu = () => {
         setProjection(null);
         setOpen(true);
-        const script = findResultScript(workbookId, runtime.workbookScripts(workbookId), owner);
+        const script = findResultScript(runtime, workbookId, owner);
         const instance = runtime.core;
         if (instance == null || script == null || resultTable == null) return;
         const formatConfig = createScriptFormatConfig(
@@ -92,7 +90,7 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
         setOpen(false);
         if (projection == null || typeof projection !== 'object') return;
         // Staged as a diff like the formatting, the user accepts or rejects it in the editor
-        dispatchWorkbookScripts(workbookId, {
+        runtime.dispatch({ workbook: workbookId }, {
             kind: 'setScriptText',
             value: { scriptKey: projection.scriptKey, text: projection.text, withDiff: true },
         });

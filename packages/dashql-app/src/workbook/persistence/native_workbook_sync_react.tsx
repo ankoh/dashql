@@ -1,15 +1,13 @@
 import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 
-import { useConnectionRegistry, type ConnectionRegistry } from '../../connections/connection_registry.js';
-import { useCoreRuntime, useView } from '../../runtime/runtime_hooks.js';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useWorkbookScriptsDispatch, useWorkbooks } from '../scripts/workbook_scripts_registry.js';
+import { useRuntime, useView, useWorkbooks } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { useStorage } from '../../storage/storage_provider.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import type { NamedFileStamp } from '@ankoh/dashql-runtime/storage/native_storage_backend';
 import { connectionFromStorage } from '@ankoh/dashql-runtime/connections/connection_restore';
@@ -33,8 +31,9 @@ import {
 
 const LOG_CTX = 'native_workbook_sync';
 
-/// The scripts of a workbook as its folder holds them, resolved like the restore of the runtime does.
-/// A connection that the app doesn't know is created from the copy of the workbook file, e.g. after
+/// The scripts of a workbook as its folder holds them, resolved like the restore of the runtime does against the
+/// connections of the last flush of the store. A connection that the app doesn't know is created from the copy of the
+/// workbook file, e.g. after
 /// pulling a script on a new connection. The runtime holds it right away, it is deleted again unless the reload is
 /// applied.
 export interface StoredWorkbookScripts {
@@ -47,13 +46,13 @@ export interface StoredWorkbookScripts {
 }
 
 export function readStoredWorkbookScripts(
-    runtime: CoreRuntime,
-    registry: ConnectionRegistry,
+    runtime: Runtime,
     workbook: WorkbookData,
     scripts: ScriptData[],
 ): StoredWorkbookScripts | null {
+    const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
     // Scripts on unknown connections run on the embedded database
-    const embedded = findEmbeddedConnection(registry.connections.values());
+    const embedded = findEmbeddedConnection(connections.values());
     if (embedded == null) return null;
     const created: ConnectionState[] = [];
     // The format resolves the scripts, the connections cross as the JSON of their copies
@@ -61,7 +60,7 @@ export function readStoredWorkbookScripts(
     const resolved = workbookFormat().resolveWorkbookScripts(workbook, scripts.map(script => script.name.normalize('NFC')), {
         resolve: (connectionId, copyJson) => {
             const copy = copyJson == null ? null : JSON.parse(copyJson) as WorkbookConnection;
-            const known = registry.connections.get(connectionId)
+            const known = connections.get(connectionId)
                 ?? (copy != null && isLocalHyperWasmParams(copy.params) ? embedded : null);
             if (known != null || copy == null) return known == null ? null : json(known);
             const connection = runtime.createConnection(connectionFromStorage(connectionId, copy), connectionId);
@@ -110,9 +109,11 @@ function attachmentListing(files: NamedFileStamp[]): string {
 
 /// Keep the scripts of the app over the disk: the scripts that differ on disk are written again.
 /// Files that only exist on disk are left alone.
-function writeKeptWorkbookScripts(writer: StorageWriter, runtime: CoreRuntime, workbookId: string, disk: ScriptData[]): void {
+function writeKeptWorkbookScripts(writer: StorageWriter, runtime: Runtime, workbookId: string, disk: ScriptData[]): void {
     const sqlByName = new Map(disk.map(script => [script.name, script.sql]));
-    for (const script of Object.values(runtime.workbookScripts(workbookId))) {
+    for (const scriptKey of runtime.store.get('workbook', workbookId)?.scriptKeys ?? []) {
+        const script = runtime.store.get('script', scriptKey);
+        if (script == null) continue;
         const sql = script.scriptSession.getText();
         if (sqlByName.get(script.fileName) === sql) continue;
         void writer.write(
@@ -131,15 +132,12 @@ function writeKeptWorkbookScripts(writer: StorageWriter, runtime: CoreRuntime, w
 export const NativeWorkbookSync: React.FC = () => {
     const logger = useLogger();
     const appName = useAppFlavor().displayName;
-    const [reader, writer] = useStorage();
-    const [connectionRegistry] = useConnectionRegistry();
-    const coreRuntime = useCoreRuntime();
+    const reader = useStorageReader();
+    const runtime = useRuntime();
+    const writer = runtime.storage;
     const workbooks = useWorkbooks();
-    const dispatchWorkbookScripts = useWorkbookScriptsDispatch();
     const heldWorkbooks = useView('storage', 'root')?.heldWorkbooks;
-    const connectionRegistryRef = React.useRef(connectionRegistry);
     const workbooksRef = React.useRef(workbooks);
-    connectionRegistryRef.current = connectionRegistry;
     workbooksRef.current = workbooks;
     const queuedRef = React.useRef(new Set<string>());
     const processingRef = React.useRef(false);
@@ -172,7 +170,7 @@ export const NativeWorkbookSync: React.FC = () => {
                 // The scripts read the mirrored attachments, the mount looks them up again
                 markWorkbookAttachmentsChanged(workbookId);
                 void reader.backend.listDataFiles(workbookId)
-                    .then(files => dispatchWorkbookScripts(workbookId, { kind: 'setWorkbookAttachments', value: { files } }))
+                    .then(files => runtime.dispatch({ workbook: workbookId }, { kind: 'setWorkbookAttachments', value: { files } }))
                     .catch(error => logger.warn('Listing the attachments failed', { workbookId, error: stringifyError(error) }, LOG_CTX));
                 // The workbook file lists the attachments, the write runs once the workbook resumes
                 void writer.write(groupWorkbookAttachmentListWrites(workbookId), { type: 'refreshWorkbookAttachments', workbookId });
@@ -192,14 +190,14 @@ export const NativeWorkbookSync: React.FC = () => {
             // newer stamp than the acknowledged one and is checked again.
             const scripts = await reader.backend.loadScripts(workbookId);
             workbookFile ??= await reader.backend.loadWorkbook(workbookId);
-            stored = readStoredWorkbookScripts(coreRuntime, connectionRegistryRef.current, workbookFile, scripts);
+            stored = readStoredWorkbookScripts(runtime, workbookFile, scripts);
             if (stored == null) {
                 return;
             }
-            if (coreRuntime.workbook(workbookId) == null) {
+            if (runtime.store.get('workbook', workbookId) == null) {
                 return;
             }
-            if (coreRuntime.matchesStoredScripts(workbookId, stored.scripts)) {
+            if (runtime.module?.matchesStoredScripts(workbookId, stored.scripts) ?? false) {
                 // Only the stamps changed, or the disk changed to what the app shows
                 folder.acknowledgeScripts(stamps.scripts);
                 return;
@@ -218,7 +216,7 @@ export const NativeWorkbookSync: React.FC = () => {
             if (!decision.reload) {
                 // The app version wins, it replaces the external version on disk
                 folder.acknowledgeScripts(stamps.scripts);
-                writeKeptWorkbookScripts(writer, coreRuntime, workbookId, scripts);
+                writeKeptWorkbookScripts(writer, runtime, workbookId, scripts);
                 return;
             }
             if (writer.getWorkbookWriteGeneration(workbookId, isReloadedKey) !== promptGeneration) {
@@ -235,7 +233,7 @@ export const NativeWorkbookSync: React.FC = () => {
             // entries join the app manifest, the runtime writes a connection only when it changes.
             registered = true;
             for (const connection of stored.created) {
-                void coreRuntime.saveConnection(connection.connectionId).catch(error => {
+                void runtime.saveConnection(connection.connectionId).catch(error => {
                     logger.warn('failed to save a connection of the workbook file', {
                         connectionId: connection.connectionId,
                         error: stringifyError(error),
@@ -252,8 +250,8 @@ export const NativeWorkbookSync: React.FC = () => {
                 );
             }
             // A workbook that another operation removed while the native confirmation dialog was open stays removed
-            if (coreRuntime.workbook(workbookId) != null) {
-                dispatchWorkbookScripts(workbookId, { kind: 'replaceFromStorage', value: { scripts: stored.scripts } });
+            if (runtime.store.get('workbook', workbookId) != null) {
+                runtime.dispatch({ workbook: workbookId }, { kind: 'replaceFromStorage', value: { scripts: stored.scripts } });
             }
             logger.info('reloaded externally changed workbook', { workbookId }, LOG_CTX);
         } catch (error) {
@@ -263,7 +261,7 @@ export const NativeWorkbookSync: React.FC = () => {
             }, LOG_CTX);
         } finally {
             if (!registered) {
-                for (const connection of stored?.created ?? []) coreRuntime.dispatch({ connection: connection.connectionId }, { kind: 'deleteConnection' });
+                for (const connection of stored?.created ?? []) runtime.dispatch({ connection: connection.connectionId }, { kind: 'deleteConnection' });
             }
             writer.resumeWorkbook(workbookId);
         }

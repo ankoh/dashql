@@ -13,7 +13,8 @@ import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
 import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { TextField, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
 import { classNames } from '../utils/classnames.js';
-import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
+import { useConnectionDraftForm } from './connection_draft.js';
+import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -73,7 +74,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState] = useConnectionById(props.connectionId);
+    const connectionState = useConnection(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
 

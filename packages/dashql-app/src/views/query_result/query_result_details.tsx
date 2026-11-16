@@ -5,7 +5,7 @@ import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
-import { useComputation, useComputationDispatch } from '../../runtime/runtime_hooks.js';
+import { useComputation, useComputationDispatch, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import * as styles from './query_result_details.module.css';
@@ -13,7 +13,6 @@ import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_tool
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { formatResultDetail } from './query_result_header.js';
-import { useQueryResultTable } from '../../connections/query_executor.js';
 
 export interface QueryResultDetailsDependencies {
     QueryResultToolbar: typeof QueryResultToolbar;

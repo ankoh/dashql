@@ -4,7 +4,8 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
 
-import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
+import { useConnectionDraftForm } from './connection_draft.js';
+import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -129,7 +130,7 @@ export interface SalesforceConnectionAliasField {
 }
 
 interface SalesforceConnectionSettingsPageProps {
-    connectionState: ReturnType<typeof useConnectionById>[0];
+    connectionState: ReturnType<typeof useConnection>;
     /// The connector of the settings, Salesforce Data Cloud if not set
     connector?: SalesforceConnectorType;
     wrongPlatform: boolean;
@@ -328,7 +329,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     // Resolve connection state
-    const [connectionState] = useConnectionById(props.connectionId);
+    const connectionState = useConnection(props.connectionId);
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);

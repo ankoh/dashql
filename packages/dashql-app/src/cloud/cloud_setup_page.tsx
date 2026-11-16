@@ -8,7 +8,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations
 import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
-import { useConnectionAllocator, useConnectionById, useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnection, useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 import { newConnectionFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { useConnectionAttach } from '../connections/attached_connection.js';
@@ -74,8 +74,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { CompactNavBar: NavBar } = dependencies;
     const cloudConnectionIds = useCloudConnectionIds();
-    const [found] = useConnectionById(props.connectionId != null && cloudConnectionIds.includes(props.connectionId) ? props.connectionId : null);
-    const cloud = found ?? null;
+    const cloud = useConnection(props.connectionId != null && cloudConnectionIds.includes(props.connectionId) ? props.connectionId : null);
     const cloudState = useCloudState(cloud?.connectionId);
     const { onChoose } = props;
     const removal = useCloudRemoval(cloud?.connectionId ?? '', cloud?.params, () => onChoose(null));
@@ -211,13 +210,13 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
 
 /// Choose a cloud, make a connection that can be one a cloud, or add a new one
 function ChooseCloudConnection(props: { onChoose: (connectionId: string, configure: boolean) => void }): React.ReactElement {
-    const [registry] = useConnectionRegistry();
+    const connections = useConnections();
     const cloudConnectionIds = useCloudConnectionIds();
     const setCloud = useSetCloudConnection();
     const attach = useConnectionAttach();
-    const allocate = useConnectionAllocator();
+    const runtime = useRuntime();
     const setupCore = useDashQLCoreSetup();
-    const capable = [...registry.connections.values()].filter(connection => isCloudCapable(connection.params));
+    const capable = [...connections.values()].filter(connection => isCloudCapable(connection.params));
     const clouds = capable.filter(connection => cloudConnectionIds.includes(connection.connectionId));
     const others = capable.filter(connection => !cloudConnectionIds.includes(connection.connectionId));
     const use = (connectionId: string, configure: boolean) => {
@@ -231,7 +230,7 @@ function ChooseCloudConnection(props: { onChoose: (connectionId: string, configu
     // There is one local cloud, a connection of the embedded Hyper to the database of the local cloud
     const hasLocalCloud = capable.some(connection => isLocalCloud(connection.params));
     const addLocalCloud = async () => {
-        const connection = allocate(newConnectionFromParams(createLocalCloudParams(), { name: LOCAL_CLOUD_NAME, active: true }));
+        const connection = runtime.createConnection(newConnectionFromParams(createLocalCloudParams(), { name: LOCAL_CLOUD_NAME, active: true }));
         use(connection.connectionId, false);
     };
     return (

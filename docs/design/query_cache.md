@@ -22,7 +22,7 @@ Each entry is addressed by a lowercase SHA-256 digest:
 SHA-256("dashql-query-cache-v3" + framed(stableJson(connectionParamsSignature), scriptAstSignature))
 ```
 
-`createConnectionParamsSignature` produces the connector-specific signature and excludes transient connection state. Before hashing, `computeQueryResultCacheKey` recursively sorts object keys to make serialization independent of insertion order. DashQL core derives the script signature from the parser output: statement order, identifiers, literals, operators, and AST structure participate, while whitespace, comments, source offsets, and parser allocation IDs do not. All statements contribute, including commands preceding the terminal result statement. A cache hit skips the complete script.
+The runtime derives the key in Rust (`executor::cache_key` of `dashql-core-runtime`, `Connections::result_key` of the bindings): `connection_cache_signature` produces the connector-specific signature from the setup params of the connection and excludes transient connection state, `result_key_input` sorts the object keys recursively to make the serialization independent of insertion order and frames both signatures by their lengths in UTF-16 code units, the lengths of the strings of JavaScript that keyed the files before. The platform computes the digest (`crypto.sha256`). DashQL core derives the script signature from the parser output: statement order, identifiers, literals, operators, and AST structure participate, while whitespace, comments, source offsets, and parser allocation IDs do not. All statements contribute, including commands preceding the terminal result statement. A cache hit skips the complete script.
 
 The plan of a script records its AST signature and whether it is cacheable (`ExecutionGraphScript.signature` and
 `cacheable`). A script that references other scripts with table parameters (`:foo`, see `script_references.md`)
@@ -230,10 +230,10 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 
 ## Implementation References
 
-- Key derivation: `packages/dashql-runtime/src/query/query_result_cache_key.ts`
+- Key derivation: `packages/dashql-core-runtime/src/executor/cache_key.rs`, the signatures of the connectors in `hyper/descriptor.rs`, `trino/descriptor.rs` and `salesforce/mod.rs`
 - Cache contract: `packages/dashql-runtime/src/query/query_result_cache.ts`
 - OPFS implementation: `packages/dashql-runtime/src/storage/opfs_query_result_cache.ts`
-- Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime) and `packages/dashql-runtime/src/query/query_platform.ts` (the key and the files of the platform)
+- Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime, the description of a query and its key) and `packages/dashql-runtime/src/query/query_channels.ts` (the files of the platform)
 - Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, driven by `packages/dashql-runtime/src/storage/query_result_cache_eviction.ts`
 - Files of runs: `createRunMounts` in `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`

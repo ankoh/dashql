@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { useComputation, useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useComputation, useRuntime } from '../runtime/runtime_hooks.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -24,7 +24,7 @@ function useQueryComputation(
     clientContext: EmbeddedClientContext | null,
     refreshes: number,
 ): number | null {
-    const runtime = useCoreRuntime();
+    const runtime = useRuntime();
     const database = useComputeDatabase();
     const logger = useLogger();
     const [tableId, setTableId] = React.useState<number | null>(null);
@@ -44,7 +44,7 @@ function useQueryComputation(
         current.unmounted = false;
         return () => {
             current.unmounted = true;
-            if (current.shown != null) runtime.deleteComputation(current.shown);
+            if (current.shown != null) runtime.dispatch({ computation: current.shown }, { kind: 'deleteComputation' });
             current.shown = null;
         };
     }, [runtime]);
@@ -55,8 +55,7 @@ function useQueryComputation(
         current.next = async () => {
             const table = await runQuery(sql);
             // A runtime without the runtime of the app, e.g. of the shell, gets its core with the first command
-            await runtime.ready();
-            const id = runtime.allocateId();
+            const id = (await runtime.ready()).allocateId();
             try {
                 // The table has no connection, the client context attributes the queries of its computation. It is
                 // ordered like the previous one, an ordering of fields that the table doesn't have is skipped.
@@ -65,17 +64,17 @@ function useQueryComputation(
                 runtime.setComputeDatabase(database);
                 await runtime.analyzeTable(id, table, { clientContext, columnAggregates: false, ordering });
             } catch (e) {
-                runtime.deleteComputation(id);
+                runtime.dispatch({ computation: id }, { kind: 'deleteComputation' });
                 throw e;
             }
             if (current.unmounted) {
-                runtime.deleteComputation(id);
+                runtime.dispatch({ computation: id }, { kind: 'deleteComputation' });
                 return;
             }
             const previous = current.shown;
             current.shown = id;
             setTableId(id);
-            if (previous != null) runtime.deleteComputation(previous);
+            if (previous != null) runtime.dispatch({ computation: previous }, { kind: 'deleteComputation' });
         };
         if (current.pumping) return;
         // Run the newest query, one run after another

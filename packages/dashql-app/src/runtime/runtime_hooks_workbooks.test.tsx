@@ -4,16 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
+import type * as dashql from '@ankoh/dashql-core';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
-import { StorageProvider } from '../../storage/storage_provider.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
-import { useScript, useWorkbookScripts } from './workbook_scripts_registry.js';
-import { TestRuntime } from '../../tests/test_runtime.js';
+import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
+import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -29,16 +30,16 @@ const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 
 /// Create the workbooks with the script `1.sql` in the runtime, their keys are the keys that the tests read
-function Seed(props: { onRuntime: (runtime: CoreRuntime, keys: number[]) => void; children: React.ReactNode }) {
-    const runtime = useCoreRuntime();
+function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; children: React.ReactNode }) {
+    const runtime = useRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
         createTestConnection(runtime, { connectionId: 'database', params: EMBEDDED });
         const keys = [A, B].map(workbookId => {
             runtime.createWorkbook('database', null, false, undefined, workbookId);
-            runtime.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'select 1', base: '1' } });
+            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'select 1', base: '1' } });
             runtime.flush();
-            return runtime.workbook(workbookId)!.scriptKeys[0];
+            return runtime.store.get('workbook', workbookId)!.scriptKeys[0];
         });
         props.onRuntime(runtime, keys);
         setReady(true);
@@ -46,24 +47,25 @@ function Seed(props: { onRuntime: (runtime: CoreRuntime, keys: number[]) => void
     return ready ? props.children : null;
 }
 
-type ScriptsHook = ReturnType<typeof useWorkbookScripts>;
+/// A workbook and the dispatch of its actions
+type ScriptsHook = [WorkbookScripts | null, (action: dashql.RuntimeAction) => dashql.DispatchOutcome];
 
 function Consumer(props: { workbookId: string; scriptKey: number; capture: (scripts: ScriptsHook, latestQueryId: number | null) => void }) {
-    const scripts = useWorkbookScripts(props.workbookId);
+    const scripts: ScriptsHook = [useWorkbook(props.workbookId), useDispatch({ workbook: props.workbookId })];
     const script = useScript(props.scriptKey);
     React.useLayoutEffect(() => props.capture(scripts, script?.latestQueryId ?? null));
     return null;
 }
 
-// The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `dashql-core-js`), this is the
-// hook of the app on it
-describe('useWorkbookScripts dispatch', () => {
+// The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `dashql-core-js`), these are the
+// hooks of the app on it
+describe('the dispatch of a workbook', () => {
     it('keeps retained and current modifiers bound to their workbooks when a reused route dispatches', async () => {
         const backend = new WorkbookTestBackend();
         const container = document.createElement('div');
         document.body.appendChild(container);
         const root = createRoot(container);
-        let runtime!: CoreRuntime;
+        let runtime!: Runtime;
         let keys: number[] = [];
         let current!: ScriptsHook;
         let latestQueryId: number | null = null;

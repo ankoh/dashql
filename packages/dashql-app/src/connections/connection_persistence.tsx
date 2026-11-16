@@ -2,13 +2,11 @@ import * as React from 'react';
 
 import type * as core from '@ankoh/dashql-core';
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { ConnectionSaveResult as RuntimeSaveResult } from '@ankoh/dashql-runtime/core_runtime';
 import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
-import { useConnection } from './connection_registry.js';
+import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
-// Saving a connection is a command of the runtime of the module (docs/wip/runtime_api.md), the view of the connection
-// shows the save while it runs. This module binds it to React.
+// Saving a connection is a command of the runtime (docs/wip/runtime_api.md), the view of the connection shows the save
+// while it runs. This module turns the outcomes into what the settings show.
 
 /// The outcome of writing a workbook's copy of the connection params
 export interface WorkbookCopySaveResult {
@@ -47,7 +45,7 @@ export function failedWorkbookCopies(result: ConnectionSaveResult): WorkbookCopy
 }
 
 /// The outcome of a save of the runtime with the write results of the storage
-function saveResultOf(outcome: RuntimeSaveResult | core.ConnectionSaveOutcome): ConnectionSaveResult {
+function saveResultOf(outcome: core.ConnectionSaveOutcome): ConnectionSaveResult {
     return {
         params: outcome.params as ConnectionParams,
         manifest: writeResultOf(outcome.manifest),
@@ -61,7 +59,7 @@ const SAVE_STATES = new WeakMap<core.ConnectionSaveView, ConnectionSaveState>();
 
 /// Save a connection and observe the save state
 export function useConnectionSave(connectionId: string | null) {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const view = useConnection(connectionId)?.save ?? null;
     let state = IDLE_SAVE_STATE;
     if (view != null) {
@@ -82,7 +80,7 @@ export function useConnectionSave(connectionId: string | null) {
 
 /// Save the params of any connection, e.g. of a connection that is not shown
 export function useConnectionSaver(): (connectionId: string, params: ConnectionParams) => Promise<ConnectionSaveResult | null> {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useCallback(async (connectionId: string, params: ConnectionParams) => {
         return runtime == null ? null : saveResultOf(await runtime.saveConnection(connectionId, params));
     }, [runtime]);
@@ -91,7 +89,7 @@ export function useConnectionSaver(): (connectionId: string, params: ConnectionP
 /// Save the draft of a connection before connecting with it.
 /// Resolves false if the connection must not be set up because the draft could not be saved.
 export function useSaveBeforeConnect(connectionId: string | null): () => Promise<boolean> {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useCallback(async () => {
         if (connectionId == null || runtime == null) return true;
         const connection = runtime.connection(connectionId);

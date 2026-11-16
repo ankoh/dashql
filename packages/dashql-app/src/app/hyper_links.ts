@@ -1,12 +1,11 @@
 import * as React from 'react';
 
-import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useConnectionSaver } from '../connections/connection_persistence.js';
 import { connectionLabel } from '@ankoh/dashql-runtime/connections/connection_label';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
 import { isEphemeralWorkbook, workbookConnectionIds, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
@@ -43,25 +42,25 @@ export function useHyperLinks(opened: Promise<void>): void {
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
-    const registryStore = useConnectionRegistryStore();
-    const allocate = useConnectionAllocator();
     const saveConnection = useConnectionSaver();
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const ephemeralWorkbook = useEphemeralWorkbook();
     const navigate = useRouterNavigate();
     const route = useRouteContext();
 
     const follow = React.useEffectEvent(async (target: HyperLinkTarget) => {
         const dql = await setupCore(LOG_CTX);
-        const connections = [...registryStore.current.connections.values()];
+        if (runtime == null) throw new Error('the Hyper links need a RuntimeProvider');
+        const connections = [...runtime.store.all('connection').values()] as ConnectionState[];
         const known = connections.some(connection => isHyperLinkParams(connection.params)
             && 'hyper' in connection.params && connection.params.hyper.endpoint === target.endpoint);
         if (!known && !confirmHyperLink(target)) return;
+        const allocate = runtime.createConnection.bind(runtime);
         const binding = bindHyperLink(target, connections, allocate, getHyperLinkTabState().current,
             connection => confirmReuse(connection, target));
         if (binding.params != null) await saveConnection(binding.connection.connectionId, binding.params);
         setHyperLinkToken(binding.connection.connectionId, target.token);
-        const workbooks = runtime?.store.all('workbook') ?? new Map<string, WorkbookScripts>();
+        const workbooks = runtime.store.all('workbook');
         const workbookId = workbookOnConnection(workbooks, route.workbookId ?? null, binding.connection.connectionId);
         if (workbookId != null) {
             if (workbookId !== route.workbookId) navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });

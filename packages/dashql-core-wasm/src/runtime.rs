@@ -1386,15 +1386,14 @@ impl Runtime {
     }
 
     /// Run a query on a connection. The query is in the history of the connection from the start; it runs once the
-    /// host described where it runs (`request`, a promise of the request as JSON: the target, the cache, whether it
-    /// publishes and analyzes its result). The caller hears the events of the query (`events`). `failure` is what a
-    /// query that the caller failed fails with. Returns the id and the promise of the outcome.
+    /// runtime described it: the target on the channel of the connection, the key of its result in the query result
+    /// cache and what the options of the arguments ask for. The caller hears the events of the query (`events`).
+    /// `failure` is what a query that the caller failed fails with. Returns the id and the promise of the outcome.
     #[wasm_bindgen(js_name = executeQuery, unchecked_return_type = "QueryTicket")]
     pub fn execute_query(
         &self,
         connection_id: &str,
         args: Ts<QueryArgs>,
-        #[wasm_bindgen(unchecked_param_type = "Promise<unknown>")] request: JsValue,
         failure: JsValue,
         #[wasm_bindgen(unchecked_param_type = "((event: QueryCallerEvent) => void) | null")] events: JsValue,
     ) -> Result<JsValue, JsError> {
@@ -1404,7 +1403,7 @@ impl Runtime {
         } else {
             Some(events.dyn_into::<Function>().map_err(|_| JsError::new("the events of a query are no function"))?)
         };
-        let (query_id, done) = self.connections.execute(connection_id, args, Promise::resolve(&request), failure, events);
+        let (query_id, done) = self.connections.execute(connection_id, args, failure, events);
         let ticket = Object::new();
         let _ = Reflect::set(&ticket, &JsValue::from_str("queryId"), &JsValue::from_f64(query_id as f64));
         let _ = Reflect::set(&ticket, &JsValue::from_str("done"), &done);

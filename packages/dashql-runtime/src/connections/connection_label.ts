@@ -1,3 +1,5 @@
+import type * as core from '@ankoh/dashql-core';
+
 import type { ConnectionState } from './connection_state.js';
 import { CONNECTOR_INFOS, ConnectorType, getConnectorInfoForParams } from './connector_info.js';
 import { embeddedCloudDatabases } from './hyper/local_cloud.js';
@@ -33,6 +35,21 @@ export interface ConnectionLabelParts {
 /// The protocol of a connection as the label shows it
 function protocolLabel(protocol: string | undefined): string {
     return protocol === 'V3_GRPC' ? 'gRPC' : protocol === 'V3_HTTP' ? 'Http' : protocol === 'V3_HTTP_LINK' ? 'Link' : 'Wasm';
+}
+
+/// The ordinals that tell the listed connections of a connector apart, 1-based in the order they were registered, from
+/// the list of the connections (`connectionList` of the runtime). A connector with a single listed connection has none.
+export function connectionOrdinals(list: Pick<core.ConnectionListView, 'connections'> | null | undefined): Map<string, number> {
+    const ordinals = new Map<string, number>();
+    for (const entry of list?.connections ?? []) {
+        if (entry.ordinal != null) ordinals.set(entry.connectionId, entry.ordinal);
+    }
+    return ordinals;
+}
+
+/// Is a connection listed next to the workbooks? Connections that workbooks use are, as are active ones.
+export function isListedConnection(list: Pick<core.ConnectionListView, 'connections'> | null | undefined, connectionId: string): boolean {
+    return list?.connections.some(entry => entry.connectionId === connectionId && entry.listed) ?? false;
 }
 
 /// The parts of the label of a connection.

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { type StorageBackend, StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -9,7 +8,6 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { migrateStorage } from './migration/storage_migration.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
-import { useCoreRuntime, useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
 
@@ -139,26 +137,6 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
 /// The status of the migration of the storage at startup
 export function useStorageMigrationStatus(): IndicatorStatus {
     return React.useContext(StorageMigrationStatusContext);
-}
-
-/// The storage writer of the runtime (`CoreRuntime.storage`), the workbooks and connections of the runtime write
-/// through it
-export function useStorageWriter(): StorageWriter {
-    return useCoreRuntime().storage;
-}
-
-/// The writer of the storage of the runtime, null outside of a runtime, e.g. in a view that runs on its own
-export function useOptionalStorageWriter(): StorageWriter | null {
-    return useOptionalCoreRuntime()?.storage ?? null;
-}
-
-export function useStorage(): [StorageReader, StorageWriter] {
-    const reader = React.useContext(StorageReaderContext);
-    const writer = useCoreRuntime().storage;
-    if (!reader) {
-        throw new Error('useStorage must be used within StorageProvider');
-    }
-    return [reader, writer];
 }
 
 export function useStorageReader(): StorageReader {

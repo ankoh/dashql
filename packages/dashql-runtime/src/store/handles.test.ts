@@ -63,7 +63,7 @@ describe('The handles of a runtime', () => {
         database = await openTestHyperDB('handles_test');
         const rt = await createTestRuntime({ computeDatabase: database });
         runtime = rt;
-        const handles = rt.coreRuntime.handles;
+        const handles = rt.handles;
 
         // A connection online with a channel whose statements finish without a result
         const stream: QueryExecutionResponseStream = {
@@ -83,14 +83,14 @@ describe('The handles of a runtime', () => {
         const workbook = rt.addWorkbook(connectionId, [['1_commands.sql', 'create table a (x int);']], { name: 'handles' });
 
         // A run of the workbook executes its statement on the connection, through the query executor of the runtime
-        const run = await rt.coreRuntime.runWorkbook(workbook.workbookId);
+        const run = await rt.runWorkbook(workbook.workbookId);
         expect(run.outcome.refused).toBeNull();
         expect(stream.produce).toHaveBeenCalled();
-        expect(rt.coreRuntime.store.get('run', workbook.workbookId)?.held).toBeNull();
+        expect(rt.store.get('run', workbook.workbookId)?.held).toBeNull();
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
 
         // A query that the host runs with a result and one that stays active
-        const tracker = { runtime: rt.coreRuntime, target: { connection: connectionId } };
+        const tracker = { runtime: rt, target: { connection: connectionId } };
         const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
         const result = new arrow.Table({ n: vectorFromArray([1, 2], new arrow.Int32()) });
         await executeTrackedQuery({ query: 'select 1', metadata, tracker, execute: async context => context.receivedAllBatches(result) });
@@ -98,31 +98,31 @@ describe('The handles of a runtime', () => {
         const pending = executeTrackedQuery({ query: 'select 2', metadata, tracker, cancellation: active, execute: () => new Promise((_resolve, reject) => {
             active.signal.addEventListener('abort', () => reject(active.signal.reason));
         }) });
-        rt.coreRuntime.flush();
+        rt.flush();
         const connection = rt.connection(connectionId);
-        const finished = rt.coreRuntime.store.get('query', connection.queriesFinishedOrdered.at(-1)!);
-        expect(rt.coreRuntime.table(finished?.resultTable?.id)).toBe(result);
+        const finished = rt.store.get('query', connection.queriesFinishedOrdered.at(-1)!);
+        expect(rt.table(finished?.resultTable?.id)).toBe(result);
 
         // A query of the shell
-        rt.coreRuntime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 100 } });
-        await executeTrackedQuery({ query: 'select 3', metadata, tracker: { runtime: rt.coreRuntime, target: { history: 'shell' } }, execute: async context => context.receivedAllBatches(result) });
+        rt.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 100 } });
+        await executeTrackedQuery({ query: 'select 3', metadata, tracker: { runtime: rt, target: { history: 'shell' } }, execute: async context => context.receivedAllBatches(result) });
 
         // A computation of a result, analyzed in the runtime
         const table = new arrow.Table({
             score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
-        await rt.coreRuntime.analyzeTable(1, table, { connectionId });
-        const computation = rt.coreRuntime.store.get('computation', 1);
-        expect(rt.coreRuntime.table(computation?.tableAggregation?.table)?.numRows).toBe(1);
+        await rt.analyzeTable(1, table, { connectionId });
+        const computation = rt.store.get('computation', 1);
+        expect(rt.table(computation?.tableAggregation?.table)?.numRows).toBe(1);
 
         // Everything goes: the computation, the history of the shell, the workbook, the connection, the runtime
-        rt.coreRuntime.deleteComputation(1);
-        rt.coreRuntime.deleteWorkbook(workbook.workbookId);
-        rt.coreRuntime.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
-        rt.coreRuntime.dispatchConnection(connectionId, { kind: 'deleteConnection' });
-        rt.coreRuntime.flush();
-        expect(rt.coreRuntime.store.get('computation', 1)).toBeNull();
+        rt.dispatch({ computation: 1 }, { kind: 'deleteComputation' });
+        rt.deleteWorkbook(workbook.workbookId);
+        rt.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
+        rt.dispatch({ connection: connectionId }, { kind: 'deleteConnection' });
+        rt.flush();
+        expect(rt.store.get('computation', 1)).toBeNull();
         expect(channel.close).toHaveBeenCalledTimes(1);
         expect(active.signal.aborted).toBe(true);
         await expect(pending).rejects.toBeInstanceOf(DOMException);

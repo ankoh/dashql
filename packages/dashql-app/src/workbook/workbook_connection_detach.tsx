@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useEmbeddedConnection } from '../connections/embedded_connection_hooks.js';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 /// Detach a connection from the workbooks
 export type ConnectionDetach = (connectionId: string) => Promise<void>;
@@ -12,13 +12,13 @@ export type ConnectionDetach = (connectionId: string) => Promise<void>;
 /// keep it, see the action `detachConnection` of a workbook.
 export function useDetachConnection(): ConnectionDetach {
     const resolveEmbeddedConnection = useEmbeddedConnection();
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useCallback(async (connectionId: string) => {
         if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
         const embedded = resolveEmbeddedConnection();
         if (embedded.connectionId === connectionId) return;
         for (const workbookId of runtime.connection(connectionId)?.workbooks ?? []) {
-            runtime.dispatchWorkbook(workbookId, { kind: 'detachConnection', value: { from: connectionId, into: embedded.connectionId } });
+            runtime.dispatch({ workbook: workbookId }, { kind: 'detachConnection', value: { from: connectionId, into: embedded.connectionId } });
         }
         runtime.flush();
     }, [resolveEmbeddedConnection, runtime]);

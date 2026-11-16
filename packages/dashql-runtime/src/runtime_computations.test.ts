@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import * as core from '@ankoh/dashql-core';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 
-import { CoreRuntime } from './core_runtime.js';
+import { createRuntime, type Runtime } from './runtime.js';
 import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from './compute/computation_types.js';
 import { openTestHyperDB } from './testing/test_hyperdb.js';
 import type { HyperDB } from './platform/hyperdb/hyperdb_wasm.js';
@@ -18,12 +18,12 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-describe('The core runtime', () => {
+describe('The computations of the runtime', () => {
     let database: HyperDB | null = null;
-    let runtime: CoreRuntime | null = null;
+    let runtime: Runtime | null = null;
 
     afterEach(async () => {
-        runtime?.destroy();
+        await runtime?.destroy();
         runtime = null;
         await database?.terminate();
         database = null;
@@ -44,9 +44,9 @@ describe('The core runtime', () => {
         }
     }
 
-    async function analyzed(): Promise<CoreRuntime> {
-        database = await openTestHyperDB('core_runtime_test');
-        runtime = new CoreRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, computeDatabase: database });
+    async function analyzed(): Promise<Runtime> {
+        database = await openTestHyperDB('runtime_computations_test');
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, computeDatabase: database });
         const table = new arrow.Table({
             score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
@@ -56,7 +56,7 @@ describe('The core runtime', () => {
     }
 
     /// The view of the computation once the runtime is idle
-    async function settled(rt: CoreRuntime, done: (view: core.ComputationView) => boolean): Promise<core.ComputationView> {
+    async function settled(rt: Runtime, done: (view: core.ComputationView) => boolean): Promise<core.ComputationView> {
         await vi.waitFor(() => {
             rt.flush();
             const view = rt.store.get('computation', 1);
@@ -134,7 +134,7 @@ describe('The core runtime', () => {
 
         // Deleting the computation drops its data frames and releases its tables
         expect((await dataFrameTables()).length).toBeGreaterThan(0);
-        rt.deleteComputation(1);
+        rt.dispatch({ computation: 1 }, { kind: 'deleteComputation' });
         rt.flush();
         expect(rt.store.get('computation', 1)).toBeNull();
         expect(rt.handles.size).toBe(0);
@@ -142,7 +142,7 @@ describe('The core runtime', () => {
     }, 60_000);
 
     it('dispatches nothing without a core and analyzes nothing without columns', async () => {
-        runtime = new CoreRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER });
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER });
         expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
         await runtime.analyzeTable(1, new arrow.Table());
         expect(runtime.store.get('computation', 1)).toBeNull();

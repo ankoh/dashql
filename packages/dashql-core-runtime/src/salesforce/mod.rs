@@ -38,16 +38,17 @@ pub fn login_hint(params: &JsonObject) -> Option<&str> {
 }
 
 /// What a cached query result of a connection depends on. The login stays out, another user of the same org reuses
-/// the cached results.
+/// the cached results. Missing fields are left out like `JSON.stringify` leaves out `undefined`.
 pub fn cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
-    let text = |key: &str| params.get(key).cloned().unwrap_or(Value::Null);
-    match connector {
-        ConnectorType::Dbcom => json!({
-            "case": "dbcom",
-            "instanceUrl": text("instanceUrl"),
-            "appConsumerKey": text("appConsumerKey"),
-            "databaseName": SalesforceConnectionParams::from_object(params).hyper_cloud_database(),
-        }),
-        _ => json!({ "case": "salesforce", "instanceUrl": text("instanceUrl"), "appConsumerKey": text("appConsumerKey") }),
+    let mut signature = JsonObject::new();
+    signature.insert("case".into(), json!(if connector == ConnectorType::Dbcom { "dbcom" } else { "salesforce" }));
+    for key in ["instanceUrl", "appConsumerKey"] {
+        if let Some(value) = params.get(key) {
+            signature.insert(key.into(), value.clone());
+        }
     }
+    if connector == ConnectorType::Dbcom {
+        signature.insert("databaseName".into(), json!(SalesforceConnectionParams::from_object(params).hyper_cloud_database()));
+    }
+    Value::Object(signature)
 }

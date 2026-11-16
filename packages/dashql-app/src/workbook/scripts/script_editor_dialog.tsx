@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
 import { type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useCancelQuery, useQueryProgress, useQueryState } from '../../connections/query_executor.js';
+import { useOptionalRuntime, useQuery, useQueryProgress, useScript, useWorkbookDerived, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
@@ -16,11 +16,9 @@ import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from './script_selection.js';
-import { useScript, useWorkbookDerived } from './workbook_scripts_registry.js';
 import { ScriptEditor } from './script_editor.js';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { useWorkbookExecution } from './use_workbook_execution.js';
 
 export interface ScriptEditorDialogProps {
     workbookScripts: WorkbookScripts;
@@ -48,16 +46,16 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     // An expanded dialog fills the window
     const [expanded, setExpanded] = React.useState(false);
     const scriptReferences = useWorkbookDerived(workbookId)?.references.get(scriptKey) ?? null;
-    const queryState = useQueryState(workbookId, script?.latestQueryId ?? null);
+    const queryState = useQuery(script?.latestQueryId ?? null);
     const queryProgress = useQueryProgress(queryState);
     const status = deriveEntryStatus(queryState, queryProgress);
-    const cancelQuery = useCancelQuery();
+    const runtime = useOptionalRuntime();
     const workbookExecution = useWorkbookExecution(workbookId);
     const cancel = React.useCallback(() => {
         if (script?.latestQueryId == null) return;
         if (workbookExecution.busy) workbookExecution.stop();
-        else cancelQuery(script.connectionId, script.latestQueryId);
-    }, [script, workbookExecution.busy, workbookExecution.stop, cancelQuery]);
+        else void runtime?.cancel(script.latestQueryId);
+    }, [script, workbookExecution.busy, workbookExecution.stop, runtime]);
 
     // Escape closes an open completion first, then the dialog
     const onEscape = React.useCallback(() => {

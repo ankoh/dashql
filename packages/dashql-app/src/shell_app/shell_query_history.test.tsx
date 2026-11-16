@@ -12,7 +12,7 @@ import {
     useShellQueries,
     useShellQueryHistory,
 } from './shell_query_history.js';
-import { StandaloneCoreRuntime, useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime, useRuntime } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -34,21 +34,21 @@ describe('ShellQueryHistoryProvider', () => {
 
     it('lists the queries of the shell as entries of the query history', async () => {
         let history: ReturnType<typeof useShellQueryHistory> | null = null;
-        let runtime: ReturnType<typeof useCoreRuntime> | null = null;
+        let runtime: ReturnType<typeof useRuntime> | null = null;
         let queries: QueryExecutionState[] = [];
         const Probe = () => {
             history = useShellQueryHistory();
-            runtime = useCoreRuntime();
+            runtime = useRuntime();
             queries = useShellQueries();
             return null;
         };
 
         act(() => root.render(
-            <StandaloneCoreRuntime>
+            <StandaloneRuntime>
                 <ShellQueryHistoryProvider>
                     <Probe />
                 </ShellQueryHistoryProvider>
-            </StandaloneCoreRuntime>
+            </StandaloneRuntime>
         ));
 
         // The history waits for the core of the shell

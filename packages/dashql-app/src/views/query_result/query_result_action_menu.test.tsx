@@ -7,7 +7,7 @@ import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connect
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { scriptResultOwner } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -15,7 +15,7 @@ import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -43,7 +43,7 @@ function query(columns: Record<string, unknown[]>, owner: string | null, status 
 describe('QueryResultActionMenu', () => {
     let root: ReturnType<typeof createTestRoot> | null = null;
     /// The runtime of the test and the key of the script orders.sql of the workbook s1
-    let runtime: CoreRuntime | null = null;
+    let runtime: Runtime | null = null;
     let scriptKey = 0;
     afterEach(() => {
         root?.unmount();
@@ -55,17 +55,17 @@ describe('QueryResultActionMenu', () => {
 
     /// Create the workbook s1 with the script orders.sql of the text in the runtime of the test
     function Seed(props: { text: string; children: React.ReactElement }) {
-        const coreRuntime = useCoreRuntime();
+        const seeded = useRuntime();
         const [ready, setReady] = React.useState(false);
         React.useEffect(() => {
-            runtime = coreRuntime;
-            createTestConnection(coreRuntime, { connectionId: 'db', params: EMBEDDED });
-            coreRuntime.createWorkbook('db', 'Orders', false, undefined, 's1');
-            coreRuntime.dispatchWorkbook('s1', { kind: 'createScript', value: { text: props.text, base: 'orders' } });
-            coreRuntime.flush();
-            scriptKey = coreRuntime.workbook('s1')!.scriptKeys[0];
+            runtime = seeded;
+            createTestConnection(seeded, { connectionId: 'db', params: EMBEDDED });
+            seeded.createWorkbook('db', 'Orders', false, undefined, 's1');
+            seeded.dispatch({ workbook: 's1' }, { kind: 'createScript', value: { text: props.text, base: 'orders' } });
+            seeded.flush();
+            scriptKey = seeded.store.get('workbook', 's1')!.scriptKeys[0];
             setReady(true);
-        }, [coreRuntime, props.text]);
+        }, [seeded, props.text]);
         return ready ? props.children : null;
     }
 

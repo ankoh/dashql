@@ -1,19 +1,17 @@
 import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 
-import type { ImportSource } from '@ankoh/dashql-runtime/core_runtime';
+import type { ImportSource } from '@ankoh/dashql-runtime/runtime';
 import { StorageBackendType, type WorkbookData, type WorkbookEntry } from '@ankoh/dashql-runtime/storage/storage_backend';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { findWorkbookQueries, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { displayPath, locationFromEntry } from '../../storage/workbook_locator.js';
-import { useStorage } from '../../storage/storage_provider.js';
-import { findWorkbookQueries, useConnectionReferences, useConnectionRegistryStore } from '../../connections/connection_registry.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useCancelQuery, useQueryReader } from '../../connections/query_executor.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 
 // The imports of workbooks in the app. The runtime reads a source (a `.dashql` archive, a workbook folder or the
 // workbook tables of a cloud) into an import of its own, maps its connections to the connections of the app and writes
@@ -176,13 +174,11 @@ const DEFAULT_DEPENDENCIES: WorkbookImportDependencies = {
 export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependencies?: WorkbookImportDependencies }>) {
     const { reload, card } = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const logger = useLogger();
-    const [reader, writer] = useStorage();
-    // Read the registry when importing instead of re-creating the import context for every query event
-    const connectionStore = useConnectionRegistryStore();
-    const references = useConnectionReferences();
-    const coreRuntime = useCoreRuntime();
-    const readQuery = useQueryReader();
-    const cancelQuery = useCancelQuery();
+    const reader = useStorageReader();
+    // The connections are read from the store when importing instead of re-creating the import context for every query
+    // event
+    const runtime = useRuntime();
+    const writer = runtime.storage;
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
     const [connectionDialog, setConnectionDialog] = React.useState<ConnectionDialogState | null>(null);
 
@@ -190,12 +186,12 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
 
     const readImport = React.useCallback(async (source: ImportSource): Promise<core.ImportPreview> => {
         if (backend == null) throw new Error('Workbook imports require composite storage');
-        return await coreRuntime.readImport(source);
-    }, [backend, coreRuntime]);
+        return await runtime.readImport(source);
+    }, [backend, runtime]);
 
     const dropImport = React.useCallback((preview: core.ImportPreview) => {
-        coreRuntime.dropImport(preview.importId);
-    }, [coreRuntime]);
+        runtime.module?.dropImport(preview.importId);
+    }, [runtime]);
 
     /// Map the connections of an imported workbook to the connections of the app. Connections that may consolidate
     /// with existing ones are decided by the user, null if the user cancelled the import.
@@ -222,12 +218,13 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
 
     /// Cancel the queries of a workbook and hold the writes, before a replacement
     const stopWorkbookWork = React.useCallback(async (workbookId: string) => {
-        const databases = references.connectionsOf(workbookId)
-            .map(connectionId => connectionStore.current.connections.get(connectionId))
+        const databases = (runtime.store.get('workbook', workbookId)?.connectionIds ?? [])
+            .map(connectionId => runtime.store.get('connection', connectionId) as ConnectionState | null)
             .filter((database): database is ConnectionState => database != null);
+        const readQuery = (queryId: number) => runtime.store.get('query', queryId);
         // Connections may be shared, only the queries of the workbook are cancelled
         await Promise.all(databases.flatMap(database => findWorkbookQueries(database, workbookId, readQuery, false).map(queryId =>
-            cancelQuery(database.connectionId, queryId)
+            runtime.cancel(queryId)
         )));
         writer.pause();
         try {
@@ -236,7 +233,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             writer.resume();
             throw error;
         }
-    }, [cancelQuery, connectionStore, readQuery, references, writer]);
+    }, [runtime, writer]);
 
     const commitImport = React.useCallback(async (
         prepared: PreparedImport,
@@ -262,7 +259,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         }
         const report = options.onProgress;
         try {
-            const outcome = await coreRuntime.commitImport(preview.importId, {
+            const outcome = await runtime.commitImport(preview.importId, {
                 connections: prepared.connections,
                 preview: prepared.unasked,
                 conflict: choice ?? undefined,
@@ -282,7 +279,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             logger.warn('Importing a workbook failed', { workbookId: importedWorkbook(preview).workbookId, error: String(error) }, 'workbook_import');
             throw error;
         }
-    }, [backend, coreRuntime, logger, reload, stopWorkbookWork, writer]);
+    }, [backend, runtime, logger, reload, stopWorkbookWork, writer]);
 
     const requestConflictChoice = React.useCallback((
         preview: core.ImportPreview,

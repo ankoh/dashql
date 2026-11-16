@@ -26,7 +26,7 @@ const state = {
 };
 
 const dependencies = {
-    useConnectionRegistry: () => [{ connections: state.connections }],
+    useConnections: () => state.connections,
     useConnectionOrdinals: () => state.ordinals,
     ConnectionMenu: ({ onPick }: { onPick: (connectionId: string) => void }) => (
         <div data-testid="connection-menu">

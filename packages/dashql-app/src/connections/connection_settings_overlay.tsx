@@ -7,7 +7,8 @@ import { OverlaySize } from '../ui/foundations/overlay.js';
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useConnectionById, useConnectionDraft, useConnectionReferencesSelector } from './connection_registry.js';
+import { useConnectionDraft } from './connection_draft.js';
+import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -33,7 +34,8 @@ interface Props {
 }
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
-    const [conn, modifyConn] = useConnectionById(props.connectionId);
+    const conn = useConnection(props.connectionId);
+    const modifyConn = useDispatch(props.connectionId == null ? null : { connection: props.connectionId });
     const { paramsDraft, discard } = useConnectionDraft(props.connectionId);
     const { saving, result: saveResult, save, retry } = useConnectionSave(props.connectionId);
     const connecting = conn?.connectionHealth === ConnectionHealth.CONNECTING;
@@ -67,12 +69,8 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         onClose,
     });
 
-    const connectionId = props.connectionId;
-    const workbookIds = useConnectionReferencesSelector(React.useCallback(
-        references => connectionId == null ? '' : references.workbooksOf(connectionId).join(','),
-        [connectionId],
-    ));
-    const workbookCount = workbookIds === '' ? 0 : workbookIds.split(',').length;
+    // The workbooks that use the connection get its saved params as well
+    const workbookCount = conn?.workbooks.length ?? 0;
 
     return (
         <AnchoredOverlay

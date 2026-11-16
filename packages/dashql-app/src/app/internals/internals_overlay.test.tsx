@@ -6,8 +6,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js';
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
@@ -17,12 +17,12 @@ import { memoryQueryResultCache } from '@ankoh/dashql-runtime/testing/memory_que
 import { createTestRoot } from '../../tests/react_root.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime } from '../../runtime/runtime_hooks.js';
 import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
 
-type Registry = ReturnType<typeof useConnectionRegistry>;
-let coreRuntime: CoreRuntime | null = null;
+type Registry = ReadonlyMap<string, ConnectionState>;
+let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -33,7 +33,7 @@ function metadata(queryId: number, queryType: QueryType) {
 }
 
 /// A Hyper connection with a finished user query, a finished SQLFrame query and an active query
-function connectionWithQueries(runtime: CoreRuntime): void {
+function connectionWithQueries(runtime: Runtime): void {
     addTestConnection(runtime, { connectionId: 'internals-test', params: { hyper: {} } as never });
     const target = { connection: 'internals-test' };
     trackTestQuery(runtime, target, 'select 1', metadata(1, QueryType.USER_PROVIDED), true);
@@ -48,8 +48,8 @@ describe('InternalsViewer', () => {
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
-        registry = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
+        registry = useConnections();
+        appRuntime = useRuntime();
         config = useAppConfig();
         return null;
     }
@@ -101,7 +101,7 @@ describe('InternalsViewer', () => {
 
     it('switches between the tabs', async () => {
         await root.render(tree(null));
-        await act(async () => connectionWithQueries(coreRuntime!));
+        await act(async () => connectionWithQueries(appRuntime!));
         await vi.waitFor(() => expect(config).not.toBeNull());
         await root.render(tree(<InternalsViewer workbookId={null} onClose={onClose} />));
 

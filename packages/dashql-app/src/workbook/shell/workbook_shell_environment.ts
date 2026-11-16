@@ -54,7 +54,7 @@ export function createWorkbookShellEnvironment(
                 onTiming: reportTiming,
                 metadata: { ...SHELL_QUERY_METADATA, workbookId },
             });
-            const abort = () => cancelQuery(connectionId, queryId);
+            const abort = () => cancelQuery(queryId);
             if (signal?.aborted) {
                 abort();
             } else {

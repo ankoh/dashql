@@ -9,7 +9,7 @@ import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
 import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createRuntime } from '@ankoh/dashql-runtime/runtime';
 import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
 import type { OAuthFlow } from '@ankoh/dashql-runtime/oauth/oauth_flow';
@@ -41,9 +41,9 @@ interface LoginOptions {
 /// The login of the runtime with the HTTP client of the API client: the tokens and the user, a failure throws
 async function authenticateSalesforce(options: LoginOptions) {
     const http = options.apiClient instanceof SalesforceApiClient ? options.apiClient.httpClient : null;
-    const runtime = new CoreRuntime({ logger: options.logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, http, oauthFlow: options.oauthFlow });
+    const runtime = createRuntime({ logger: options.logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, http, oauthFlow: options.oauthFlow });
     await runtime.ready();
-    const cancel = () => runtime.cancelSetup('login');
+    const cancel = () => runtime.module?.cancelSetup('login');
     options.abortSignal.addEventListener('abort', cancel, { once: true });
     try {
         const outcome = await runtime.authenticateSalesforce('login', options.params, { oauthRedirect: options.authConfig.oauthRedirect, forceRelogin: options.forceReLogin }, {

@@ -4,17 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { testRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnection, useDispatch, useRuntime } from '../runtime/runtime_hooks.js';
 import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useConnectionById, useConnectionDraftForm } from './connection_registry.js';
+import { useConnectionDraftForm } from './connection_draft.js';
 import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import { buildHyperConnectionPageState, buildHyperConnectionSetupParams, type HyperConnectionPageState } from './hyper_connection_settings.js';
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { StorageProvider, useStorageWriter } from '../storage/storage_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { TestRuntime } from '../tests/test_runtime.js';
@@ -29,10 +29,10 @@ let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// The runtime of the last connection of `database`, the actions of `reduce` go to it
-let runtime: CoreRuntime;
+let runtime: Runtime;
 
 /// A new connection of a connector in a runtime, by default a new one
-function database(type: ConnectorType, active = false, into: CoreRuntime = testCoreRuntime(dql)): ConnectionState {
+function database(type: ConnectorType, active = false, into: Runtime = testRuntime(dql)): ConnectionState {
     runtime = into;
     const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[type]);
     const state = createTestConnection(runtime, { connectionId: TEST_CONNECTION_ID, params, active });
@@ -42,8 +42,8 @@ function database(type: ConnectorType, active = false, into: CoreRuntime = testC
 }
 
 /// A workbook of the runtime that uses the connection without a script, the connection knows which workbooks use it
-function workbookOnConnection(coreRuntime: CoreRuntime): void {
-    coreRuntime.createWorkbook(TEST_CONNECTION_ID, null, false, undefined, TEST_WORKBOOK_ID);
+function workbookOnConnection(appRuntime: Runtime): void {
+    appRuntime.createWorkbook(TEST_CONNECTION_ID, null, false, undefined, TEST_WORKBOOK_ID);
 }
 
 function reduce(state: ConnectionState, action: core.RuntimeAction) {
@@ -133,27 +133,28 @@ describe('durable connection drafts', () => {
 
     it.each([false, true])('saves invalid edits with active=%s into the app manifest and does not resurrect a discarded draft', async active => {
         const backend = new WorkbookTestBackend();
-        let coreRuntime!: CoreRuntime;
+        let appRuntime!: Runtime;
         let edit!: React.Dispatch<React.SetStateAction<string>>;
-        let dispatch!: ReturnType<typeof useConnectionById>[1];
+        let dispatch!: ReturnType<typeof useDispatch>;
         let writer!: StorageWriter;
         let current!: ConnectionState;
         let value = '';
         function Harness() {
-            coreRuntime = useCoreRuntime();
-            [current, dispatch] = useConnectionById(TEST_CONNECTION_ID) as [ConnectionState, typeof dispatch];
+            appRuntime = useRuntime();
+            current = useConnection(TEST_CONNECTION_ID) as ConnectionState;
+            dispatch = useDispatch({ connection: TEST_CONNECTION_ID });
             [value, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
                 params => params && 'trino' in params ? params.trino.endpoint : '',
                 endpoint => edited(current.params, endpoint));
-            writer = useStorageWriter();
+            writer = useRuntime().storage;
             return null;
         }
         const root = createRoot(document.createElement('div'));
         try {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
-                database(ConnectorType.TRINO, active, coreRuntime);
-                workbookOnConnection(coreRuntime);
+                database(ConnectorType.TRINO, active, appRuntime);
+                workbookOnConnection(appRuntime);
             });
             await act(async () => edit('not a URL'));
             expect(current.active).toBe(active);
@@ -180,26 +181,26 @@ describe('durable connection drafts', () => {
 
     it('persists and rehydrates incomplete duplicate header rows without flattening the form', async () => {
         const backend = new WorkbookTestBackend();
-        let coreRuntime!: CoreRuntime;
+        let appRuntime!: Runtime;
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
-        let dispatch!: ReturnType<typeof useConnectionById>[1];
+        let dispatch!: ReturnType<typeof useDispatch>;
         let form!: HyperConnectionPageState;
         let writer!: StorageWriter;
         function Harness() {
-            coreRuntime = useCoreRuntime();
-            [, dispatch] = useConnectionById(TEST_CONNECTION_ID);
+            appRuntime = useRuntime();
+            dispatch = useDispatch({ connection: TEST_CONNECTION_ID });
             [form, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
                 params => buildHyperConnectionPageState(params && 'hyper' in params ? params.hyper as any : undefined),
                 value => ({ hyper: { ...buildHyperConnectionSetupParams(value), draftRows: { metadata: value.gRPCMetadata, queryParameters: value.queryParameters } } }));
-            writer = useStorageWriter();
+            writer = useRuntime().storage;
             return null;
         }
         const root = createRoot(document.createElement('div'));
         try {
             await act(async () => root.render(<LoggerProvider><StorageProvider backend={backend}><TestRuntime><Harness /></TestRuntime></StorageProvider></LoggerProvider>));
             await act(async () => {
-                database(ConnectorType.HYPER, false, coreRuntime);
-                workbookOnConnection(coreRuntime);
+                database(ConnectorType.HYPER, false, appRuntime);
+                workbookOnConnection(appRuntime);
             });
             const rows = [{ key: '', value: 'unfinished' }, { key: '', value: '' }];
             await act(async () => edit(prev => ({ ...prev, endpoint: 'invalid', gRPCMetadata: rows })));

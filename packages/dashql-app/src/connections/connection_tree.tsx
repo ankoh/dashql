@@ -28,8 +28,6 @@ import {
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
-import { useCatalogLoaderQueue } from './catalog/catalog_loader.js';
 import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
 import { canRefreshConnection } from '@ankoh/dashql-runtime/connections/connection_refresh';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
@@ -37,6 +35,7 @@ import {
     connectionLabelParts,
     connectionLabelText,
     isHyperWasmConnection,
+    isListedConnection,
     supportsConnectionOverview,
     type ConnectionLabelParts,
 } from '@ankoh/dashql-runtime/connections/connection_label';
@@ -49,7 +48,7 @@ import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 /// No clouds
@@ -655,7 +654,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     onSetCloud,
     catalogOf,
 }) => {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     // The database states change with every query event while the catalogs rarely change.
     // A catalog caches its flat form until its version changes, so its identity tells us when the trees
     // must be rebuilt.
@@ -795,15 +794,15 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
 /// The connections of the current workbook come first, followed by the connections of other
 /// workbooks and active connections that no workbook uses. The clouds are always listed.
 export function listedConnections(
-    registry: Pick<ConnectionRegistry, 'connections'>,
-    references: ConnectionReferences,
+    connections: ReadonlyMap<string, ConnectionState>,
+    list: Pick<core.ConnectionListView, 'connections'> | null,
     currentWorkbookConnections: readonly ConnectionState[],
     cloudConnectionIds: readonly string[] = NO_CLOUDS,
 ): ConnectionState[] {
     const listed = [...currentWorkbookConnections];
     const seen = new Set(listed.map(database => database.connectionId));
-    for (const [connectionId, database] of registry.connections) {
-        if (!seen.has(connectionId) && (cloudConnectionIds.includes(connectionId) || isListedConnection(registry, references, connectionId))) {
+    for (const [connectionId, database] of connections) {
+        if (!seen.has(connectionId) && (cloudConnectionIds.includes(connectionId) || isListedConnection(list, connectionId))) {
             listed.push(database);
         }
     }
@@ -846,11 +845,22 @@ interface ConnectionRowMenuProps {
 }
 
 export interface ConnectionRefreshDependencies {
-    useCatalogLoaderQueue: typeof useCatalogLoaderQueue;
+    /// Request a refresh of the catalog of a connection, `force` to refresh its whole catalog
+    useRefreshCatalog: () => (connectionId: string, force: boolean) => void;
+}
+
+/// Request a refresh of the catalog of a connection from the catalog loader of the runtime. The runtime is resolved
+/// when the function is called.
+function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
+    const runtime = useOptionalRuntime();
+    return React.useCallback((connectionId: string, force: boolean) => {
+        if (runtime == null) throw new Error('the catalog loader needs a RuntimeProvider');
+        runtime.refreshCatalog(connectionId, force);
+    }, [runtime]);
 }
 
 const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
-    useCatalogLoaderQueue,
+    useRefreshCatalog,
 };
 
 export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, isCloud = false, onSetCloud, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
@@ -867,7 +877,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
     // The embedded Hyper is local to the app, a link to it would open an empty workbook on the embedded Hyper of the recipient
     const canShare = !isHyperWasmConnection(database);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const refreshCatalog = dependencies.useCatalogLoaderQueue();
+    const refreshCatalog = dependencies.useRefreshCatalog();
     const isRefreshing = isCatalogRefreshRunning(database);
     const canRefresh = canRefreshConnection(database);
 
@@ -1044,7 +1054,7 @@ interface ConnectionRefreshButtonProps {
 }
 
 export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = ({ database, label, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
-    const refreshCatalog = dependencies.useCatalogLoaderQueue();
+    const refreshCatalog = dependencies.useRefreshCatalog();
     const isRefreshing = isCatalogRefreshRunning(database);
     const canRefresh = canRefreshConnection(database);
 

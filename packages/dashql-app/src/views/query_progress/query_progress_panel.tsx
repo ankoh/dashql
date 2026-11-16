@@ -5,7 +5,6 @@ import * as styles from './query_progress_panel.module.css';
 import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
-import { useQueryProfileDetail, useQueryProgress } from '../../connections/query_executor.js';
 import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@ankoh/dashql-runtime/query/query_progress';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@ankoh/dashql-runtime/query/profile/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
@@ -23,6 +22,7 @@ import {
     workOf,
     type ProgressWork,
 } from './query_progress_format.js';
+import { useQueryProfileDetail, useQueryProgress } from '../../runtime/runtime_hooks.js';
 
 const view = dashql.buffers.profile;
 

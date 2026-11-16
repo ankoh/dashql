@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, setupStepAction } from '../connections/connection_state.js';
 import type { ConnectionParams } from '../connections/connection_params.js';
-import type { RunResult } from '../core_runtime.js';
+import type { RunResult, Runtime } from '../runtime.js';
 import { createTestConnection } from '../testing/connection_fixtures.js';
 import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -26,6 +26,9 @@ function deferred() {
 
 /// Let the runtime and the store take their turns
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+
+/// A query as the runtime holds it now
+const queryView = (runtime: Runtime, queryId: number) => runtime.module?.views('query', [queryId])[0] ?? null;
 
 /// A published workbook that a workbook is a preview of
 const PREVIEW = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };
@@ -59,19 +62,19 @@ function fixture(workbookId: string, deferStream = false) {
     let runtime: TestRuntime | null = null;
     /// The latest query of the script
     const latestQueryId = () => {
-        const core = runtime!.coreRuntime;
+        const core = runtime!;
         core.flush();
-        const scriptKey = core.workbook(workbookId)!.scriptKeys[0];
+        const scriptKey = core.store.get('workbook', workbookId)!.scriptKeys[0];
         return core.store.get('script', scriptKey)?.latestQueryId ?? null;
     };
     /// Create the workbook in a runtime with two commands that don't depend on each other, a connection without a
     /// protocol runs them one at a time
     const create = (rt: TestRuntime) => {
         runtime = rt;
-        const core = rt.coreRuntime;
+        const core = rt;
         core.createWorkbook(database.connectionId, workbookId, false, undefined, workbookId);
-        core.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
-        if (database.preview) core.dispatchWorkbook(workbookId, { kind: 'setCloudLink', value: { link: PREVIEW } });
+        core.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
+        if (database.preview) core.dispatch({ workbook: workbookId }, { kind: 'setCloudLink', value: { link: PREVIEW } });
         core.flush();
     };
     /// The connection of the workbook, the runtime creates it with the health and the protocol of the fixture
@@ -118,27 +121,27 @@ describe('the runs of workbooks of the runtime', () => {
 
     /// The runs of a workbook of the runtime, read from its slice
     function executionOf(rt: TestRuntime, workbookId: string): Execution {
-        const core = rt.coreRuntime;
+        const core = rt;
         return {
             get state() { return core.store.get('run', workbookId)?.state ?? null; },
             get busy() { return workbookExecutionIsBusy(core.store.get('run', workbookId)?.state); },
             get held() { return core.store.get('run', workbookId)?.held != null; },
             start: options => core.runWorkbook(workbookId, { inputs: options?.inputs }),
-            stop: () => core.stopRun(workbookId),
+            stop: () => core.module?.stopRun(workbookId),
         };
     }
 
     /// Change a connection of the runtime, e.g. a connection that drops
     function act(f: Fixture, step: string, value?: unknown) {
-        runtime!.coreRuntime.dispatchConnection(f.database.connectionId, setupStepAction(step, value));
-        runtime!.coreRuntime.flush();
+        runtime!.dispatch({ connection: f.database.connectionId }, setupStepAction(step, value));
+        runtime!.flush();
     }
 
     /// Create the connection of a fixture in the runtime: online with a channel, connecting, failed or not started
     function addConnection(rt: TestRuntime, f: Fixture) {
         const { connectionId, health, protocol } = f.database;
         const params = { hyper: { endpoint: 'http://hyper', ...(protocol == null ? {} : { protocol }) } } as ConnectionParams;
-        createTestConnection(rt.coreRuntime, {
+        createTestConnection(rt, {
             connectionId,
             params,
             channel: health === ConnectionHealth.NOT_STARTED ? undefined : { executeQuery: f.executeQuery },
@@ -148,9 +151,9 @@ describe('the runs of workbooks of the runtime', () => {
         if (health === ConnectionHealth.CONNECTING) act(f, 'HEALTH_CHECK_STARTED');
         const metadata = { title: null, description: null, issuer: null, userProvided: true };
         for (const queryType of f.database.activeQueries) {
-            rt.coreRuntime.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
+            rt.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
         }
-        rt.coreRuntime.flush();
+        rt.flush();
         expect(rt.connection(connectionId).connectionHealth).toBe(health);
     }
 
@@ -226,7 +229,7 @@ describe('the runs of workbooks of the runtime', () => {
         current.stop();
         current.stop();
         await settle();
-        runtime!.coreRuntime.flush();
+        runtime!.flush();
         expect(f.signal?.aborted).toBe(true);
         expect(f.stream.cancel).toHaveBeenCalledTimes(1);
         expect(current.state?.phase).toBe('stopping');
@@ -234,7 +237,7 @@ describe('the runs of workbooks of the runtime', () => {
 
         f[first].resolve();
         await settle();
-        runtime!.coreRuntime.flush();
+        runtime!.flush();
         expect(current.state?.phase).toBe('stopping');
         expect(current.busy).toBe(true);
         expect((await current.start()).outcome.refused).toBe('a run holds the workbook');
@@ -265,7 +268,7 @@ describe('the runs of workbooks of the runtime', () => {
 
         current.stop();
         await settle();
-        runtime!.coreRuntime.flush();
+        runtime!.flush();
         expect(f.signal?.aborted).toBe(true);
         expect(current.state?.phase).toBe('stopping');
         expect(f.stream.cancel).not.toHaveBeenCalled();
@@ -273,7 +276,7 @@ describe('the runs of workbooks of the runtime', () => {
         f.acquisition.resolve();
         await vi.waitFor(() => expect(f.stream.cancel).toHaveBeenCalledTimes(1));
         expect(f.stream.produce).not.toHaveBeenCalled();
-        runtime!.coreRuntime.flush();
+        runtime!.flush();
         expect(current.state?.phase).toBe('stopping');
         expect(current.busy).toBe(true);
 
@@ -354,15 +357,15 @@ describe('the runs of workbooks of the runtime', () => {
         expect((await current.start()).outcome.refused).toBe(`the connection ${f.database.connectionId} is connecting`);
         expect(current.state).toBeNull();
         expect((await current.start({ inputs: ['min'] })).outcome.refused).toBe('the change of inputs waits for the workbook');
-        runtime!.coreRuntime.flush();
-        expect(runtime!.coreRuntime.store.get('run', f.workbookId)?.pendingInputs).toEqual(['min']);
+        runtime!.flush();
+        expect(runtime!.store.get('run', f.workbookId)?.pendingInputs).toEqual(['min']);
         expect(current.state).toBeNull();
         act(f, 'HEALTH_CHECK_SUCCEEDED');
         await vi.waitFor(() => {
-            runtime!.coreRuntime.flush();
+            runtime!.flush();
             expect(current.state?.phase).toBe('succeeded');
         });
-        expect(runtime!.coreRuntime.store.get('run', f.workbookId)?.pendingInputs).toEqual([]);
+        expect(runtime!.store.get('run', f.workbookId)?.pendingInputs).toEqual([]);
     });
 
     it('stops a run once a connection that it runs statements on drops', async () => {
@@ -422,13 +425,13 @@ describe('the runs of scripts of the runtime', () => {
         });
         const connectionId = crypto.randomUUID();
         rt.addConnection({ connectionId, params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams, channel: { executeQuery } });
-        if (options.cache) rt.coreRuntime.dispatchConnection(connectionId, { kind: 'setQueryResultCaching', value: { caching: true } });
+        if (options.cache) rt.dispatch({ connection: connectionId }, { kind: 'setQueryResultCaching', value: { caching: true } });
         const workbook = rt.addWorkbook(connectionId, entries, { name: 'scripts' });
-        const core = rt.coreRuntime;
+        const core = rt;
         /// A script of the workbook as the store holds it now
         const script = (fileName: string) => {
             core.flush();
-            const key = core.workbook(workbook.workbookId)!.scriptRefs[fileName].scriptId;
+            const key = core.store.get('workbook', workbook.workbookId)!.scriptRefs[fileName].scriptId;
             return core.store.get('script', key)!;
         };
         const run = (fileName: string, refresh = false) => core.runScript(workbook.workbookId, script(fileName).scriptKey, { refresh });
@@ -444,7 +447,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.statements[0]).toContain('select 1 as a');
         const queryId = f.script('bar.sql').latestQueryId!;
         expect(run.outcome.outputs[1]).toBe(queryId);
-        const query = f.core.query(queryId)!;
+        const query = queryView(f.core, queryId)!;
         expect(query.status).toBe(QueryExecutionStatus.SUCCEEDED);
         expect(query.queryMetadata).toMatchObject({ queryType: QueryType.USER_PROVIDED, workbookId: f.workbookId, issuer: expect.any(String) });
         expect(f.core.table(query.resultTable?.id)?.numRows).toBe(1);
@@ -463,7 +466,7 @@ describe('the runs of scripts of the runtime', () => {
     it('analyzes an outdated script before it runs', async () => {
         const f = await scripts([]);
         // A restored workbook is not analyzed yet
-        const restored = await restoreTestWorkbook(f.core, f.rt.platform.storage, [['foo.sql', 'select 2 as b;', f.connectionId]]);
+        const restored = await restoreTestWorkbook(f.core, f.rt.platform.storage!, [['foo.sql', 'select 2 as b;', f.connectionId]]);
         const scriptKey = restored.scriptKeys[0];
         expect(f.core.store.get('script', scriptKey)?.analysisOutdated).toBe(true);
         expect((await f.core.runScript(restored.workbookId, scriptKey)).outcome.failure).toBeNull();
@@ -481,7 +484,7 @@ describe('the runs of scripts of the runtime', () => {
         // Nothing runs, the scripts record the errors as failed queries that show where their results would be
         expect(f.executeQuery).not.toHaveBeenCalled();
         for (const [fileName, message] of [['bar.sql', 'bar.sql: unknown script or attachment :missing'], ['empty.sql', 'empty.sql holds no statement']]) {
-            const query = f.core.query(f.script(fileName).latestQueryId!)!;
+            const query = queryView(f.core, f.script(fileName).latestQueryId!)!;
             expect(query.status).toBe(QueryExecutionStatus.FAILED);
             expect(query.error?.message).toBe(message);
             expect(query.queryMetadata.resultOwner).toBe(`${f.workbookId}/${f.script(fileName).scriptKey}`);
@@ -492,14 +495,14 @@ describe('the runs of scripts of the runtime', () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const first = await f.run('foo.sql');
         expect(first.outcome.failure).toBeNull();
-        await f.core.flushCacheWrites();
+        await f.core.module?.flushCacheWrites();
         const [key] = await f.core.resultKeys(f.workbookId);
         expect(key).not.toBeNull();
         expect(await f.cache!.has(key!)).toBe(true);
         // The second run reads the cached result instead of the connection
         await f.run('foo.sql');
         expect(f.executeQuery).toHaveBeenCalledOnce();
-        expect(f.core.query(f.script('foo.sql').latestQueryId!)?.servedFromCache).toBe(true);
+        expect(queryView(f.core, f.script('foo.sql').latestQueryId!)?.servedFromCache).toBe(true);
         // A refresh runs the script again
         await f.run('foo.sql', true);
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
@@ -520,7 +523,7 @@ describe('the runs of scripts of the runtime', () => {
         });
         // Every script shows the query of its statement, the output is the result of the last one
         expect(f.script('10_query.sql').latestResultQueryId).toBe(f.script('10_query.sql').latestQueryId);
-        expect(f.core.query(f.script('1_create.sql').latestQueryId!)?.queryText).toBe('create table items (id int)');
+        expect(queryView(f.core, f.script('1_create.sql').latestQueryId!)?.queryText).toBe('create table items (id int)');
     });
 
     it('shows the last output of a script after its trailing commands', async () => {
@@ -530,7 +533,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.statements[0]).toBe('create table items (id int)');
         expect([...f.statements].sort()).toEqual(['create table items (id int)', 'insert into items values (3)', 'select 1', 'select 2']);
         const script = f.script('1_outputs.sql');
-        expect(f.core.query(script.latestQueryId!)?.queryText).toBe('select 2');
+        expect(queryView(f.core, script.latestQueryId!)?.queryText).toBe('select 2');
         expect(script.latestResultQueryId).toBe(script.latestQueryId);
     });
 
@@ -552,7 +555,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.statements[0]).toBe('create table items (id int)');
         expect([...f.statements].sort()).toEqual(['create table items (id int)', 'delete from items', 'select 2 as value', 'select id from items']);
         const script = f.script('1_visualize.sql');
-        expect(f.core.query(script.latestQueryId!)?.queryText).toBe('select 2 as value');
+        expect(queryView(f.core, script.latestQueryId!)?.queryText).toBe('select 2 as value');
         expect(script.annotations.visualizeQuery).toMatchObject({
             renderer: 'table', sql: 'select 2 as value', statementId: 2, dashboardSpec: { row: 2, column: 4, width: 8, height: 5 },
         });
@@ -583,7 +586,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(run.outcome.failure).toMatchObject({ kind: 'error', message: 'the channel failed' });
         const failed = events.find(([file, event]) => file === '2_bad.sql' && event.type === 'failed')?.[1];
         expect(failed).toMatchObject({ type: 'failed', error: expect.objectContaining({ message: 'the channel failed' }) });
-        expect(f.core.query((failed as { queryId: number }).queryId)?.queryText).toContain('select 2');
+        expect(queryView(f.core, (failed as { queryId: number }).queryId)?.queryText).toContain('select 2');
         expect(events.filter(([, event]) => event.type === 'planned').map(([file]) => file).sort()).toEqual(['1_ok.sql', '2_bad.sql']);
         expect(f.core.store.get('run', f.workbookId)?.state).toMatchObject({ phase: 'failed', error: 'the channel failed' });
     });

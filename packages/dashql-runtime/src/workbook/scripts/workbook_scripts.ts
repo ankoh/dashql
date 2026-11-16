@@ -123,11 +123,6 @@ export function freeWorkbookName(names: Iterable<string | null>): string {
     return `Untitled ${n}`;
 }
 
-/// The scripts of a workbook in feed order, from the scripts by key
-export function orderedWorkbookScripts(state: Pick<WorkbookScripts, 'scriptKeys'>, scripts: ScriptDataMap): ScriptData[] {
-    return state.scriptKeys.flatMap(key => scripts[key] ?? []);
-}
-
 /// The ids of the connections that the scripts of a workbook run on, in the order the scripts first use them. A
 /// workbook run takes exactly these connections.
 export function scriptConnectionIds(state: Pick<WorkbookScripts, 'scriptConnections'>): string[] {
@@ -155,25 +150,9 @@ export function scriptsOnConnection(state: Pick<WorkbookScripts, 'scriptConnecti
     return state.scriptConnections.filter(id => id === connectionId).length;
 }
 
-/// The id of the connection that the workbook file names for a script
-export function persistedConnectionId(script: Pick<ScriptData, 'connectionId' | 'unresolvedConnectionId'>): string {
-    return script.unresolvedConnectionId ?? script.connectionId;
-}
-
 /// The scripts of a workbook by file name in feed order
 export function getScriptRefs(state: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>): ScriptRef[] {
     return state.scriptOrder.map(name => state.scriptRefs[name]);
-}
-
-/// The actions that a cloud preview refuses: they change the scripts or the names of the workbook
-const CLOUD_PREVIEW_REFUSED_ACTIONS: ReadonlySet<WorkbookActionKind> = new Set<WorkbookActionKind>([
-    'createScript', 'deleteScript', 'renameScript', 'reorderScripts', 'setScriptText', 'setScriptVisSpec', 'acceptPendingDiff',
-    'renameWorkbook', 'renameAttachment', 'setWorkbookInput', 'setScriptConnection',
-]);
-
-/// Does a cloud preview refuse the action?
-export function isRefusedByCloudPreview(state: Pick<WorkbookScripts, 'cloud'>, action: WorkbookAction): boolean {
-    return isCloudPreview(state) && CLOUD_PREVIEW_REFUSED_ACTIONS.has(action.kind);
 }
 
 /// The change from one text to another: the range between their common prefix and suffix

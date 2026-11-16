@@ -5,7 +5,7 @@ import { useStorageReader } from '../../storage/storage_provider.js';
 import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useConnectionRegistryStore } from '../connection_registry.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import {
     CLOSED_LOG_STATE,
     HyperLogMetrics,
@@ -33,11 +33,11 @@ interface Props {
 
 /// Provides the extracts of the Hyper logs of the connections, in the monitoring databases in the folders of the
 /// connections. The Hyper connections start their monitors, the monitors of deleted connections are stopped.
-/// Must be nested in the connection registry and the embedded database, which holds the monitoring databases.
+/// Must be nested in the runtime and the embedded database, which holds the monitoring databases.
 export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const storage = useStorageReader();
-    const registryStore = useConnectionRegistryStore();
+    const runtime = useOptionalRuntime();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const [logMetrics] = React.useState(() => new HyperLogMetrics({
         logger,
@@ -50,10 +50,10 @@ export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
         },
     }));
     React.useEffect(() => {
-        const retain = () => logMetrics.retain(new Set(registryStore.current.connections.keys()));
+        const retain = () => logMetrics.retain(new Set(runtime?.store.all('connection').keys() ?? []));
         retain();
-        return registryStore.subscribe(retain);
-    }, [logMetrics, registryStore]);
+        return runtime?.store.subscribeKind('connection', retain);
+    }, [logMetrics, runtime]);
     React.useEffect(() => () => { void logMetrics.stop(); }, [logMetrics]);
     return <LOG_METRICS_CTX.Provider value={logMetrics}>{props.children}</LOG_METRICS_CTX.Provider>;
 };

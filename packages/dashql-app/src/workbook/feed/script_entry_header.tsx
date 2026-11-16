@@ -5,16 +5,14 @@ import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { useQueryState } from '../../connections/query_executor.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { useConnectionLabeler } from '../connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
-import { useScript } from '../scripts/workbook_scripts_registry.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { useScriptRun, useWorkbookExecution } from '../scripts/use_workbook_execution.js';
+import { useQuery, useScript, useScriptRun, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
@@ -54,7 +52,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const config = useAppConfig();
     const storageReader = useStorageReader();
     const workbookExecution = useWorkbookExecution(workbookId);
-    const queryState = useQueryState(workbookId, scriptData?.latestQueryId ?? null);
+    const queryState = useQuery(scriptData?.latestQueryId ?? null);
 
     // The connection of the script, labeled like the feed labels it
     const labeler = useConnectionLabeler();

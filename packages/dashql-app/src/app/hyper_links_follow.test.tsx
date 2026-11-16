@@ -6,14 +6,14 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as core from '@ankoh/dashql-core';
 
 import { useHyperLinks } from './hyper_links.js';
-import { useConnectionRegistry, type ConnectionRegistry } from '../connections/connection_registry.js';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import { PlatformEventListenerProvider, usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
-import { useWorkbooks } from '../workbook/scripts/workbook_scripts_registry.js';
+import { useConnections, useWorkbooks } from '../runtime/runtime_hooks.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
@@ -31,7 +31,7 @@ beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PREC
 describe('following Hyper links', () => {
     let root: Root;
     let listener!: PlatformEventListener;
-    let connections!: ConnectionRegistry;
+    let connections!: ReadonlyMap<string, ConnectionState>;
     let workbooks!: ReadonlyMap<string, WorkbookScripts>;
     let pathname = '/';
     let markOpened!: () => void;
@@ -40,7 +40,7 @@ describe('following Hyper links', () => {
     function Harness(props: { opened: Promise<void> }) {
         useHyperLinks(props.opened);
         listener = usePlatformEventListener();
-        [connections] = useConnectionRegistry();
+        connections = useConnections();
         workbooks = useWorkbooks();
         pathname = useLocation().pathname;
         return null;
@@ -82,7 +82,7 @@ describe('following Hyper links', () => {
     }
 
     function linkConnections() {
-        return [...connections.connections.values()].filter(connection => 'hyper' in connection.params
+        return [...connections.values()].filter(connection => 'hyper' in connection.params
             && connection.params.hyper.protocol === 'V3_HTTP_LINK');
     }
 

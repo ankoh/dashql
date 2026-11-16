@@ -10,13 +10,11 @@ import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { useQueryExecutor } from '../connections/query_executor.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 
@@ -40,7 +38,7 @@ function connection(connectionId: string) {
         }),
     };
     /// Create the connection in the runtime of the test
-    const database = (runtime: CoreRuntime) => {
+    const database = (runtime: Runtime) => {
         const state: ConnectionState = createTestConnection(runtime, {
             connectionId,
             params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
@@ -52,25 +50,25 @@ function connection(connectionId: string) {
 }
 
 interface Api {
-    execute: ReturnType<typeof useQueryExecutor>;
+    execute: Runtime['execute'];
     merge: ReturnType<typeof useMergeConnections>;
     logMetrics: HyperLogMetrics;
     connections: ReadonlyMap<string, ConnectionState>;
 }
 
-function Capture(props: { databases: ((runtime: CoreRuntime) => void)[]; capture: (api: Api) => void }) {
-    const [registry] = useConnectionRegistry();
-    const coreRuntime = useCoreRuntime();
-    const execute = useQueryExecutor();
+function Capture(props: { databases: ((runtime: Runtime) => void)[]; capture: (api: Api) => void }) {
+    const connections = useConnections();
+    const runtime = useRuntime();
+    const execute = runtime.execute;
     const merge = useMergeConnections();
     const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeDatabase();
     React.useEffect(() => {
-        for (const create of props.databases) create(coreRuntime);
+        for (const create of props.databases) create(runtime);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [coreRuntime]);
+    }, [runtime]);
     React.useLayoutEffect(() => {
-        if (compute) props.capture({ execute, merge, logMetrics, connections: registry.connections });
+        if (compute) props.capture({ execute, merge, logMetrics, connections });
     });
     return null;
 }

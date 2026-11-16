@@ -1,5 +1,4 @@
 import { QueryMetadata } from "../query/query_execution_state.js";
-import type { buffers } from '@ankoh/dashql-core';
 import type * as arrow from 'apache-arrow';
 import type { ClientFunctionCallDescription } from "./clfn/clfn_spec.js";
 
@@ -49,7 +48,9 @@ export interface QueryExecutionArgs {
     throwOnError?: boolean;
 }
 
-/// The query executor function: returns the id of the query and its result
+/// Run a query on a connection, returns the id of the query and its result table, null for a query without one
 export type QueryExecutor = (connectionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
-/// Cancel a query of a connection
-export type CancelQuery = (connectionId: string, queryId: number) => Promise<void>;
+/// Cancel a query, resolves once it ended
+export type CancelQuery = (queryId: number) => Promise<void>;
+/// Show the profile of a running query, returns the function that stops showing it
+export type WatchQueryProfile = (queryId: number) => () => void;

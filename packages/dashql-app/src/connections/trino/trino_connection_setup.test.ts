@@ -8,7 +8,7 @@ import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
 import { TrinoChannel } from '@ankoh/dashql-runtime/connections/trino/trino_channel';
-import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createRuntime } from '@ankoh/dashql-runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
@@ -67,7 +67,7 @@ function installBridge(callback: (authUrl: URL) => DashQLOAuthLoopbackResult) {
 
 /// Set up a Trino connection with the runtime, returns the outcome and the runtime with the connection
 async function setup(http: HttpClient, params = OAUTH_PARAMS, cancelled = false) {
-    const runtime = new CoreRuntime({
+    const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
         setupCore: dql,
@@ -77,7 +77,7 @@ async function setup(http: HttpClient, params = OAUTH_PARAMS, cancelled = false)
     runtime.runCatalogLoader(false);
     runtime.createConnection({ connectorType: ConnectorType.TRINO, setupParams: params, params: { trino: params } }, 'trino');
     const done = runtime.setupConnection('trino');
-    if (cancelled) runtime.cancelSetup('trino');
+    if (cancelled) runtime.module?.cancelSetup('trino');
     const outcome = await done;
     return { outcome, runtime, connection: runtime.connection('trino')! };
 }

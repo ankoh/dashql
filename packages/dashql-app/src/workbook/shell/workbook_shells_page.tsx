@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './workbook_shells_page.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
+import { useConnections } from '../../runtime/runtime_hooks.js';
 import { connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
@@ -13,14 +13,14 @@ import { WorkbookShellPage } from './workbook_shell_page.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
 export interface WorkbookShellsPageDependencies {
-    useConnectionRegistry: typeof useConnectionRegistry;
+    useConnections: typeof useConnections;
     useConnectionOrdinals: typeof useConnectionOrdinals;
     ConnectionMenu: typeof ConnectionMenu;
     WorkbookShellPage: typeof WorkbookShellPage;
 }
 
 const DEFAULT_DEPENDENCIES: WorkbookShellsPageDependencies = {
-    useConnectionRegistry,
+    useConnections,
     useConnectionOrdinals,
     ConnectionMenu,
     WorkbookShellPage,
@@ -41,7 +41,7 @@ interface Props {
 /// A shell lives until the page closes, the shells of other connections are hidden and keep their scrollback.
 export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const [registry] = dependencies.useConnectionRegistry();
+    const connections = dependencies.useConnections();
     const ordinals = dependencies.useConnectionOrdinals();
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -52,9 +52,9 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
         setOpened([...opened, props.connectionId]);
     }
     // The shell of a deleted connection closes
-    const shells = opened.filter(connectionId => registry.connections.has(connectionId));
+    const shells = opened.filter(connectionId => connections.has(connectionId));
 
-    const connection = props.connectionId == null ? null : registry.connections.get(props.connectionId) ?? null;
+    const connection = props.connectionId == null ? null : connections.get(props.connectionId) ?? null;
     const labelParts = connection == null ? null : connectionLabelParts(connection, ordinals.get(connection.connectionId) ?? null);
     const label = labelParts == null ? 'No connection' : `${labelParts.name} ${labelParts.detail}`;
 

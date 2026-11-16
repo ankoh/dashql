@@ -30,9 +30,16 @@ import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
 import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
-import { useWorkbookDerived, useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
-import { useScriptResultKey, useScriptRun } from '../scripts/use_workbook_execution.js';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import {
+    useOptionalRuntime,
+    useRuntime,
+    useScriptResultKey,
+    useScriptRun,
+    useWorkbookDerived,
+    useWorkbookExecution,
+    useWorkbookScriptMap,
+} from '../../runtime/runtime_hooks.js';
+import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
 import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
@@ -42,7 +49,7 @@ import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_fo
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupWorkbookAttachmentListWrites } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
@@ -79,7 +86,6 @@ import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
-import { useWorkbookExecution } from '../scripts/use_workbook_execution.js';
 import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
 
@@ -109,7 +115,8 @@ export interface WorkbookFeedRevealRequest {
 
 export interface WorkbookFeedDependencies {
     useStorageReader: typeof useStorageReader;
-    useStorageWriter: typeof useStorageWriter;
+    /// The storage writer of the runtime
+    useRuntimeStorage: () => StorageWriter;
     usePickScriptConnection: typeof usePickScriptConnection;
     usePickPendingConnection: typeof usePickPendingConnection;
     useAttachPendingConnection: typeof useAttachPendingConnection;
@@ -130,7 +137,7 @@ export interface WorkbookFeedDependencies {
 
 const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useStorageReader,
-    useStorageWriter,
+    useRuntimeStorage: () => useRuntime().storage,
     usePickScriptConnection,
     usePickPendingConnection,
     useAttachPendingConnection,
@@ -192,7 +199,7 @@ export interface ComposerCore {
 
 /// The core of the composer of a workbook on the connection of its next script
 export function useComposerCore(workbookId: string, connectionId: string | null): ComposerCore | null {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const instance = runtime?.core ?? null;
     return React.useMemo(() => {
         if (runtime == null || instance == null || connectionId == null) return null;
@@ -258,7 +265,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
     const storageReader = dependencies.useStorageReader();
     const queryResultCache = useQueryResultCache();
-    const storageWriter = dependencies.useStorageWriter();
+    const storageWriter = dependencies.useRuntimeStorage();
     const workbookId = props.workbookScripts.workbookId;
     const [dataFiles, setDataFiles] = React.useState<{ workbookId: string; files: DataFile[] } | null>(null);
     const [dataFilesVersion, setDataFilesVersion] = React.useState(0);

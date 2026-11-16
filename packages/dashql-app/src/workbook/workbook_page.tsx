@@ -3,8 +3,7 @@ import * as styles from './workbook_page.module.css';
 
 import { useLocation } from 'react-router-dom';
 
-import { useWorkbookScripts } from './scripts/workbook_scripts_registry.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
+import { useConnections, useDispatch, useWorkbook } from '../runtime/runtime_hooks.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { isEphemeralWorkbook, newScriptConnection, workbookConnectionIds } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -18,8 +17,9 @@ const WorkbookShellsPage = React.lazy(() => import('./shell/workbook_shells_page
 const LOG_CTX = 'workbook_page';
 
 export interface WorkbookPageDependencies {
-    useWorkbookScripts: typeof useWorkbookScripts;
-    useConnectionRegistry: typeof useConnectionRegistry;
+    useWorkbook: typeof useWorkbook;
+    useDispatch: typeof useDispatch;
+    useConnections: typeof useConnections;
     useLogger: typeof useLogger;
     useRouteContext: typeof useRouteContext;
     useRouterNavigate: typeof useRouterNavigate;
@@ -30,8 +30,9 @@ export interface WorkbookPageDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: WorkbookPageDependencies = {
-    useWorkbookScripts,
-    useConnectionRegistry,
+    useWorkbook,
+    useDispatch,
+    useConnections,
     useLogger,
     useRouteContext,
     useRouterNavigate,
@@ -49,14 +50,15 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const route = dependencies.useRouteContext();
     const logger = dependencies.useLogger();
-    const [workbookScripts, modifyWorkbookScripts] = dependencies.useWorkbookScripts(route.workbookId ?? null);
+    const workbookScripts = dependencies.useWorkbook(route.workbookId ?? null);
+    const modifyWorkbookScripts = dependencies.useDispatch(route.workbookId == null ? null : { workbook: route.workbookId });
     // The connections that the scripts of the workbook run on, and the one the next script runs on
-    const [connectionRegistry] = dependencies.useConnectionRegistry();
+    const connections = dependencies.useConnections();
     const nextConnectionId = workbookScripts == null ? null : newScriptConnection(workbookScripts, null);
-    const conn = nextConnectionId == null ? null : connectionRegistry.connections.get(nextConnectionId) ?? null;
+    const conn = nextConnectionId == null ? null : connections.get(nextConnectionId) ?? null;
     const scriptConnections = new Map<string, ConnectionState>();
     for (const connectionId of workbookScripts == null ? [] : workbookConnectionIds(workbookScripts)) {
-        const connection = connectionRegistry.connections.get(connectionId);
+        const connection = connections.get(connectionId);
         if (connection != null) scriptConnections.set(connectionId, connection);
     }
     const { mode: workbookMode } = dependencies.useWorkbookViewMode();
@@ -65,7 +67,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     // Kept while the shell is closed, the shell reopens on the picked connection of the workbook.
     const [shellPick, setShellPick] = React.useState<{ workbookId: string; connectionId: string } | null>(null);
     const shellConnectionId = shellPick != null && shellPick.workbookId === route.workbookId ? shellPick.connectionId : null;
-    const shellConnection = (shellConnectionId == null ? null : connectionRegistry.connections.get(shellConnectionId)) ?? conn ?? null;
+    const shellConnection = (shellConnectionId == null ? null : connections.get(shellConnectionId)) ?? conn ?? null;
 
     React.useEffect(() => {
         if (route.workbookId === null) {

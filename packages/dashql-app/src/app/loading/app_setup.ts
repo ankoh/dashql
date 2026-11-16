@@ -2,8 +2,7 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router/router.js';
-import { useConnectionAllocator } from '../../connections/connection_registry.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
@@ -14,11 +13,11 @@ import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
 import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
-import { useStorageWriter } from '../../storage/storage_provider.js';
-import { useWorkbookScriptsDeletion } from '../../workbook/scripts/workbook_scripts_registry.js';
+import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
 import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { InvalidWorkbook, WorkbookValidationError } from '@ankoh/dashql-runtime/storage/workbook_validation';
 import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
@@ -68,11 +67,10 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const navigate = useRouterNavigate();
     const setupCore = useDashQLCoreSetup();
     const ephemeralWorkbook = useEphemeralWorkbook();
-    const deleteWorkbookScripts = useWorkbookScriptsDeletion();
-    const storageWriter = useStorageWriter();
+    const deleteWorkbookScripts = useDeleteWorkbook();
     const pathname = useLocation().pathname;
-    const allocateConnection = useConnectionAllocator();
-    const coreRuntime = useCoreRuntime();
+    const runtime = useRuntime();
+    const storageWriter = runtime.storage;
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
@@ -147,12 +145,12 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 loadApp(traced, {
                     restoreAppState: async progressConsumer => {
                         // The connections and the workbooks restore into the runtime, it writes through its writer
-                        coreRuntime.setCore(core);
-                        const restored = await coreRuntime.restore(progress => progressConsumer(restoreProgress(progress)));
+                        runtime.setCore(core);
+                        const restored = await runtime.restore(progress => progressConsumer(restoreProgress(progress)));
                         progressConsumer(restoreProgress(restored.progress));
                         const workbooks = new Map<string, WorkbookScripts>();
                         for (const workbookId of restored.workbookIds) {
-                            const workbook = coreRuntime.workbook(workbookId);
+                            const workbook = runtime.store.get('workbook', workbookId);
                             if (workbook != null) workbooks.set(workbookId, workbook);
                         }
                         const invalidWorkbooks = new Map<string, InvalidWorkbook>(restored.invalidWorkbooks.map(invalid => [invalid.workbookId, {
@@ -188,7 +186,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
 
             // Workbooks fall back to the embedded Hyper and the user can't attach one, the app always holds it.
             // The restored state lacks it when no workbook uses it, e.g. when every workbook runs on the Hyper of a link.
-            const connections = new Map(coreRuntime.registry().connections);
+            const allocateConnection = runtime.createConnection.bind(runtime);
+            const connections = new Map(runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>);
             const embedded = embeddedConnection(connections.values(), allocateConnection);
             connections.set(embedded.connectionId, embedded);
 

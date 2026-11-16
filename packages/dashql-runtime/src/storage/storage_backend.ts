@@ -34,11 +34,6 @@ export interface DataFile {
     mtimeMs?: number;
 }
 
-export interface DataFileData {
-    name: string;
-    bytes: Uint8Array;
-}
-
 /// Browser-originated attachments stay as Blobs until OPFS consumes them, avoiding a renderer-memory
 /// copy for large picker/drop files. Other persistence paths use bytes.
 export type DataFileContent = Uint8Array | Blob;

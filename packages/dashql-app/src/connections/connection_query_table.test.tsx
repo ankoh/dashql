@@ -13,7 +13,7 @@ import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } fr
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
-import { StandaloneCoreRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime } from '../runtime/runtime_hooks.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -69,12 +69,12 @@ describe('QueryTable', () => {
             <LoggerProvider>
                 <EmbeddedDatabaseProvider setupDatabase={async () => computeDatabase}>
                     <ComputeConnectionProvider>
-                        <StandaloneCoreRuntime>
+                        <StandaloneRuntime>
                             <ComputeQueryExecutionProvider createExecution={() => execute}>
                                 <ComputationScheduler />
                                 <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
                             </ComputeQueryExecutionProvider>
-                        </StandaloneCoreRuntime>
+                        </StandaloneRuntime>
                     </ComputeConnectionProvider>
                 </EmbeddedDatabaseProvider>
             </LoggerProvider>,

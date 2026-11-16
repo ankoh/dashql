@@ -4,21 +4,19 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider, useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
+import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
+import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
-import { LoggerProvider } from '../../platform/logger/logger_provider.js';
+import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { StorageProvider } from '../../storage/storage_provider.js';
-import { useWorkbookExecution } from './use_workbook_execution.js';
+import { StorageProvider } from '../storage/storage_provider.js';
 import { analyzeWorkbook } from '@ankoh/dashql-runtime/testing/test_runtime';
-import { useRuntime } from '../../runtime/runtime_provider.js';
-import { TestRuntime } from '../../tests/test_runtime.js';
+import { useRuntime, useWorkbookExecution } from './runtime_hooks.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -60,7 +58,7 @@ function fixture(workbookId: string, deferStream = false) {
     const database = {
         connectionId: `${workbookId}-database`,
         online: true,
-        create(runtime: CoreRuntime) {
+        create(runtime: Runtime) {
             if (runtime.connection(this.connectionId) != null) return;
             const state = createTestConnection(runtime, {
                 connectionId: this.connectionId,
@@ -71,7 +69,7 @@ function fixture(workbookId: string, deferStream = false) {
             runtime.flush();
             expect(state.connectionHealth).toBe(this.online ? ConnectionHealth.ONLINE : ConnectionHealth.NOT_STARTED);
             runtime.createWorkbook(this.connectionId, workbookId, false, undefined, workbookId);
-            runtime.dispatchWorkbook(workbookId, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
+            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'create table a (x int);\ncreate table b (x int);', base: '1_commands' } });
         },
     };
     return { workbookId, database, stream, executeQuery, acquisition, execution, cancellation, aborted,
@@ -98,15 +96,14 @@ function EarlyConsumer(props: { capture: (execution: Execution) => void }) {
 /// Create the connections and the workbooks of the fixtures in the runtime
 function SeedRuntime(props: { fixtures: Fixture[]; children: React.ReactNode }) {
     const runtime = useRuntime();
-    const coreRuntime = useCoreRuntime();
     const [ready, setReady] = React.useState(false);
     React.useEffect(() => {
         for (const f of props.fixtures) {
-            f.database.create(coreRuntime);
+            f.database.create(runtime);
             analyzeWorkbook(runtime, f.workbookId);
         }
         setReady(true);
-    }, [props.fixtures, runtime, coreRuntime]);
+    }, [props.fixtures, runtime]);
     return ready ? props.children : null;
 }
 

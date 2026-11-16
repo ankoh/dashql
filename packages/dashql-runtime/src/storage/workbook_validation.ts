@@ -32,18 +32,6 @@ export function describeWorkbookValidationError(error: WorkbookValidationError):
     return workbookFormat().describeValidationError(error);
 }
 
-/// The result of validating a workbook's metadata.
-export type WorkbookValidationResult =
-    | { ok: true }
-    | { ok: false; error: WorkbookValidationError };
-
-/// Validate a workbook file before it is loaded: the current format version, a workbook id that is a UUID and at
-/// least one connection with a unique UUID and params of a known connector
-export function validateWorkbookData(data: WorkbookData): WorkbookValidationResult {
-    const error = workbookFormat().validate(data);
-    return error == null ? { ok: true } : { ok: false, error: error as WorkbookValidationError };
-}
-
 /// Are the params those of the embedded Hyper of the app? A local cloud attaches a database of the clouds folder and is a
 /// connection of its own.
 export function isLocalHyperWasmParams(params: WorkbookData['connections'][number]['params']): boolean {

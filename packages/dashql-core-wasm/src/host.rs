@@ -52,14 +52,12 @@ export interface RuntimePlatform {
     http: RuntimeHttp;
     /** The channels of the host: the ones that the setups connect, and the ones that run queries themselves (the embedded Hyper, gRPC through the native proxy, the channels of tests) */
     channels: RuntimeChannels;
-    /** The queries that the runtime runs itself, e.g. the metadata queries of the catalog loader and the probes of health checks */
-    queries: RuntimeQueries;
     /** The query result cache, null without one */
     readonly resultCache: RuntimeResultCache | null;
     /** The files of the runs of workbooks in the compute database: the materialized results, the cached results that they scan and the attachments. Null without a compute database that reads Parquet files. */
     readonly mounts: RuntimeMounts | null;
-    /** Random ids */
-    crypto: { randomUuid(): string };
+    /** Random ids and the SHA-256 digests of the keys of the query result cache */
+    crypto: { randomUuid(): string; sha256(bytes: Uint8Array): Promise<Uint8Array> };
     /** The OAuth flows of the setups */
     oauth: RuntimeOAuth;
     /** The specs of the client functions of the extensions, the JSON text */
@@ -182,31 +180,6 @@ export type RuntimeChannelRequest =
     | { type: 'salesforce'; endpoint: string; requestMetadata: Record<string, string>; attachedDatabases: { path: string; alias: string }[]; tokens: { core: unknown; dataCloud: unknown } }
     | { type: 'hyper'; kind: 'embedded' | 'grpc' | 'http'; params: any };
 
-/** A query that the runtime runs itself */
-export interface RuntimeQueryDescription {
-    text: string;
-    metadata: QueryMetadataView;
-    /** The read timeout, null for the default of the connection */
-    readTimeoutMs: number | null;
-    /** Analyze the result on the compute database, false by default */
-    analyzeResults?: boolean;
-    /** Collect the result, true by default. A statement whose output nothing reads drains it. */
-    publishResults?: boolean;
-    /** Reject with the error of a failed query */
-    throwOnError?: boolean;
-    /** A call of a client function that runs instead of the text */
-    clientFunctionCall?: unknown | null;
-    /** The query result cache: the signature that the key of the connection derives from, whether the result becomes the newest file of the key, and whether the query only reads the cache */
-    cache?: { signature: string; refresh: boolean; only: boolean } | null;
-}
-/** The host side of the queries that the runtime runs itself */
-export interface RuntimeQueries {
-    /** Describe where a query of a connection runs, the request as `executeQuery` takes it. The host keeps what it needs to run the query on a channel of its own until `forget`. */
-    describe(queryId: number, connectionId: string, query: RuntimeQueryDescription): Promise<unknown>;
-    /** The query ended */
-    forget(queryId: number): void;
-}
-
 /** How the platform takes the user through the redirect page */
 export interface RuntimeOAuthFlowInfo {
     redirectVariant: 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
@@ -285,12 +258,28 @@ export type RuntimeChannelMessage =
     | { type: 'progress'; progress: QueryProgressView }
     | { type: 'batch'; metrics: QueryStreamMetrics }
     | { type: 'end'; metrics: QueryStreamMetrics };
+/** A query on a channel of the host, what the host needs to run it there */
+export interface RuntimeChannelQuery {
+    text: string;
+    /** The time to wait for the next batch, null for the default of the channel */
+    readTimeoutMs: number | null;
+    /** Collect the result, a statement whose output nothing reads drains it */
+    publishResults: boolean;
+    /** The name of the connector, e.g. for the error of a channel that is not set up */
+    connector: string;
+    /** Is the query a call of a client function? The runtime sends its requests itself, the host names only the tokens of a Salesforce channel. */
+    clientFunction: boolean;
+}
 /** The channels of the host. The setups connect them, the queries of the host run on them by query: the host knows the channel of a query from the query it described. */
 export interface RuntimeChannels {
     /** Connect a channel of a setup, returns its handle */
     connect(setupId: string, request: RuntimeChannelRequest): Promise<number>;
     /** The token of the link to a Hyper that the page holds, null without */
     hyperLinkToken(connectionId: string): string | null;
+    /** Describe where a query runs on the channel of its connection (null before its setup): a channel that the runtime speaks itself (`{ type: 'trino', endpoint, auth, accessToken, catalog, schema }`, `{ type: 'hyperHttp', params, clientContext, auth, parallelChunks }`) or one of the host (`{ type: 'host' }`), with the tokens of a Salesforce channel (`tokens: { core, dataCloud }`). The host keeps the channel and the query until `forget`. */
+    describe(queryId: number, channel: number | null, query: RuntimeChannelQuery): Promise<unknown>;
+    /** The query ended */
+    forget(queryId: number): void;
     /** Run a query on its channel, its batches go into the table that was opened for it. False if the channel returned no result. */
     open(queryId: number, table: number): Promise<boolean>;
     /** The next message of the stream of a query */
@@ -311,8 +300,6 @@ export interface RuntimeResultCache {
     touch(name: string): Promise<void>;
     /** Write a table of the handle table as the newest file of a key */
     write(key: string, table: number): Promise<void>;
-    /** The key of the results of a signature on a connection, null if the connection has no key, e.g. before its setup */
-    key(connectionId: string, signature: string): Promise<string | null>;
     /** Keep the newest file of a key until `release`, null on a miss */
     retain(key: string): Promise<{ id: number; name: string } | null>;
     /** Release a file that `retain` kept */
@@ -672,20 +659,31 @@ impl JsPlatform {
         call(&channels, "hyperLinkToken", &[JsValue::from_str(connection_id)]).ok()?.as_string()
     }
 
-    /// Describe a query that the runtime runs itself, the promise of its request
-    pub fn describe_query(&self, query_id: f64, connection_id: &str, description: &JsValue) -> Promise {
-        let described = member(self.object(), "queries")
-            .and_then(|queries| call(&queries, "describe", &[JsValue::from_f64(query_id), JsValue::from_str(connection_id), description.clone()]));
-        match described {
-            Ok(value) => Promise::resolve(&value),
-            Err(error) => Promise::reject(&JsError::new(error.message()).into()),
+    /// Describe where a query runs on the channel of its connection, the target as JSON. The platform keeps the
+    /// channel of a query of the host until `forget_channel_query`.
+    pub fn channel_describe(&self, query_id: f64, channel: Option<Handle>, query: &JsValue) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let channel = channel.map(|channel| JsValue::from_f64(channel as f64)).unwrap_or(JsValue::NULL);
+        let call = member(self.object(), "channels").and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
+        settled(call)
+    }
+
+    /// A query ended, the platform lets go of its channel
+    pub fn forget_channel_query(&self, query_id: f64) {
+        if let Ok(channels) = member(self.object(), "channels") {
+            let _ = call(&channels, "forget", &[JsValue::from_f64(query_id)]);
         }
     }
 
-    /// A query that the runtime ran itself ended
-    pub fn forget_query(&self, query_id: f64) {
-        if let Ok(queries) = member(self.object(), "queries") {
-            let _ = call(&queries, "forget", &[JsValue::from_f64(query_id)]);
+    /// The SHA-256 digest of bytes, computed by the platform
+    pub fn sha256(&self, bytes: &[u8]) -> impl Future<Output = Result<Vec<u8>, HostError>> + 'static {
+        let call = member(self.object(), "crypto").and_then(|crypto| call(&crypto, "sha256", &[Uint8Array::from(bytes).into()]));
+        async move {
+            let digest = settled(call).await?;
+            if !digest.is_object() {
+                return Err(HostError::new("the platform returned no digest"));
+            }
+            // The bytes may come from another realm, they are copied by value
+            Ok(Uint8Array::new(&digest).to_vec())
         }
     }
 
@@ -858,12 +856,6 @@ impl JsPlatform {
     pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.result_cache().and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
         async move { settled(call).await.map(|_| ()) }
-    }
-
-    /// The key of the results of a signature on a connection, none without a cache or a key
-    pub fn cache_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "key", &[JsValue::from_str(connection_id), JsValue::from_str(signature)]));
-        async move { settled(call).await.ok().and_then(|key| key.as_string()) }
     }
 
     /// Keep the newest file of a key until it is released: its id and its name, none on a miss

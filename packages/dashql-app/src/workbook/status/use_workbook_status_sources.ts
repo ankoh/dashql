@@ -11,7 +11,7 @@ import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
-import { useQueryReader } from '../../connections/query_executor.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 
 /// The latest query of a script
@@ -238,7 +238,8 @@ export function useWorkbookStatusSources(args: {
     publish: CloudPublishStatus | null;
 }): void {
     const workbookId = args.workbookScripts.workbookId;
-    const readQuery = useQueryReader();
+    const runtime = useOptionalRuntime();
+    const readQuery = React.useCallback((queryId: number) => (runtime?.store.get('query', queryId) ?? null) as QueryExecutionState | null, [runtime]);
     const queries = useStable(scriptQueries(args.workbookScripts, args.scripts, args.connections, readQuery));
     const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
     const execution = args.execution;

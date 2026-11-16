@@ -25,10 +25,10 @@ describe('global workbook execution feedback', () => {
     const script = { scriptKey: 1, connectionId: 'main', annotations: {}, analysisOutdated: false };
     const runScript = vi.fn();
     const dependencies = {
-        useWorkbookScripts: () => [workbookScripts, vi.fn()],
-        useWorkbookConnections: (workbookId: string) => { resolveMain(workbookId); return connection == null ? null : [connection]; },
-        useConnectionRegistryStore: () => ({ get current() { return { connections: new Map(connection == null ? [] : [['main', connection]]) }; } }),
-        useCatalogLoaderQueue: () => vi.fn(),
+        useWorkbook: () => workbookScripts,
+        useConnectionsOfWorkbook: (workbookId: string) => { resolveMain(workbookId); return connection == null ? null : [connection]; },
+        useConnectionReader: () => (connectionId: string) => connectionId === 'main' ? connection : null,
+        useRefreshCatalog: () => vi.fn(),
         useLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
         useWorkbookViewMode: () => ({ mode: WorkbookViewMode.Workbook, setMode: vi.fn() }),
         useScriptReader: () => (scriptKey: number) => scriptKey === 1 ? script : null,

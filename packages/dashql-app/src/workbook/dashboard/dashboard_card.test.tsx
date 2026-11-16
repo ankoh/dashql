@@ -12,7 +12,7 @@ import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const dependencies = {
-    useQueryState: () => ({ queryId: 7 }),
+    useQuery: () => ({ queryId: 7 }),
     QueryResultPanel: (props: { onShowTable?: () => void }) => <div data-testid="output" onClick={props.onShowTable}>output</div>,
     VisualizationDispatch: () => <div data-testid="visualization">visualization</div>,
     ScriptEditor: () => <div data-testid="content">content</div>,
@@ -186,7 +186,7 @@ describe('DashboardCard', () => {
                     runnable
                     onRun={vi.fn()}
                     onStop={vi.fn()}
-                    dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
+                    dependencies={{ ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies}
                 /></WithResultTables>
             </DndContext>,
         ));
@@ -285,7 +285,7 @@ describe('DashboardCard', () => {
                     runnable={runnable}
                     onRun={onRun}
                     onStop={onStop}
-                    dependencies={{ ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies}
+                    dependencies={{ ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies}
                 /></WithResultTables>
             </DndContext>,
         ));
@@ -359,7 +359,7 @@ describe('DashboardCard', () => {
         const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onRemoveVisualization: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), onRun: vi.fn(), onStop: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
 
         function renderCollapsed(card: ScriptData, queryState: unknown) {
-            const collapsedDependencies = { ...dependencies, useQueryState: () => queryState } as unknown as DashboardCardDependencies;
+            const collapsedDependencies = { ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies;
             act(() => root.render(
                 <DndContext>
                     <WithResultTables><DashboardCard

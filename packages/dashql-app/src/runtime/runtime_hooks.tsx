@@ -2,34 +2,42 @@ import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { StoreView } from '@ankoh/dashql-runtime/store/runtime_store';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { QueryExecutionProgress, QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { queryProgress } from '@ankoh/dashql-runtime/query/query_progress';
+import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCoreSetup } from './core_provider.js';
 
-// The hooks of the runtime of the module (docs/wip/runtime_api.md): a component reads the view of a slice, which
-// re-renders it when that slice changes and no other, dispatches an action to a slice and resolves the tables of a
-// view by their handles. The views come from the store of the runtime, never from the module.
+// The hooks of the runtime (docs/wip/runtime_api.md). A component reads the view of a slice, which renders it again
+// when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by their
+// handles. The views come from the store of the runtime, never from the module. The commands are methods of the
+// runtime (`useRuntime()`), the hooks below that call them resolve the runtime when their function is called: a test
+// may render a component without a runtime as long as it doesn't call them.
 
-const CORE_RUNTIME_CTX = React.createContext<CoreRuntime | null>(null);
+const RUNTIME_CTX = React.createContext<Runtime | null>(null);
 
-/// Provide the runtime of the module, the RuntimeProvider provides the one of the runtime of the app
-export const CoreRuntimeProvider = CORE_RUNTIME_CTX.Provider;
+/// Provide a runtime to the components below, the RuntimeProvider provides the one of the app
+export const RuntimeContextProvider = RUNTIME_CTX.Provider;
 
-/// The runtime of the module of the provider above, its commands and its store. Throws without one.
-export function useCoreRuntime(): CoreRuntime {
-    const runtime = React.useContext(CORE_RUNTIME_CTX);
-    if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneCoreRuntime');
+/// The runtime of the provider above: its commands, its store and its platform. Throws without one.
+export function useRuntime(): Runtime {
+    const runtime = React.useContext(RUNTIME_CTX);
+    if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
     return runtime;
 }
 
-/// The runtime of the module, null without a provider: a test may render a component without one as long as it
-/// doesn't call it
-export function useOptionalCoreRuntime(): CoreRuntime | null {
-    return React.useContext(CORE_RUNTIME_CTX);
+/// The runtime of the provider above, null without one. Hooks that call the runtime only when their function is
+/// called use it, a test may render a component without a runtime as long as it doesn't call them.
+export function useOptionalRuntime(): Runtime | null {
+    return React.useContext(RUNTIME_CTX);
 }
 
 const NO_SUBSCRIPTION = () => () => { };
@@ -38,7 +46,7 @@ const NO_VIEW = () => null;
 /// The view of a slice, null without one: the view as the runtime returns it, or the projection of the store for the
 /// workbooks, the scripts and the derived views. The component renders again when the slice changes.
 export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | null | undefined): StoreView<K> | null {
-    const runtime = React.useContext(CORE_RUNTIME_CTX);
+    const runtime = React.useContext(RUNTIME_CTX);
     const store = runtime?.store ?? null;
     const subscribe = React.useMemo(
         () => store == null || id == null ? NO_SUBSCRIPTION : (listener: () => void) => store.subscribe(kind, id, listener),
@@ -51,12 +59,23 @@ export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | n
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/// The views of every slice of a kind by id, in the order the runtime registered them. The component renders again
+/// when any slice of the kind changes: only views that show all of them use it.
+function useAll<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, StoreView<K>> {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const store = runtime?.store ?? null;
+    const subscribe = React.useMemo(() => store == null ? NO_SUBSCRIPTION : (listener: () => void) => store.subscribeKind(kind, listener), [store, kind]);
+    const getSnapshot = React.useCallback(() => store?.all(kind) ?? NO_SLICES, [store, kind]);
+    return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot) as ReadonlyMap<core.ViewId<K>, StoreView<K>>;
+}
+const NO_SLICES: ReadonlyMap<never, never> = new Map<never, never>();
+
 /// Dispatch actions to a slice. The runtime is resolved when the function is called.
 export function useDispatch(target: core.Target | null): (action: core.RuntimeAction) => core.DispatchOutcome {
-    const runtime = React.useContext(CORE_RUNTIME_CTX);
+    const runtime = React.useContext(RUNTIME_CTX);
     const key = target == null ? null : JSON.stringify(target);
     return React.useCallback((action: core.RuntimeAction) => {
-        if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneCoreRuntime');
+        if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
         if (key == null) return { ok: false, changed: false, error: 'no target', id: null };
         return runtime.dispatch(JSON.parse(key) as core.Target, action);
     }, [runtime, key]);
@@ -64,31 +83,200 @@ export function useDispatch(target: core.Target | null): (action: core.RuntimeAc
 
 /// An Arrow table of the runtime by its handle, null without one. A handle names one table for as long as it lives.
 export function useTable(handle: number | null | undefined): arrow.Table | null {
-    const runtime = React.useContext(CORE_RUNTIME_CTX);
+    const runtime = React.useContext(RUNTIME_CTX);
     return runtime?.table(handle) ?? null;
 }
 
-/// Delete the computation of a result, the runtime is resolved when the function is called
-export function useDeleteComputation(): (tableId: number) => void {
-    const runtime = React.useContext(CORE_RUNTIME_CTX);
-    return React.useCallback((tableId: number) => {
-        if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneCoreRuntime');
-        runtime.deleteComputation(tableId);
-    }, [runtime]);
+// The workbooks
+
+/// A workbook, it renders again when the workbook changes, not with the keystrokes of its scripts
+export const useWorkbook = (workbookId: string | null | undefined): WorkbookScripts | null => useView('workbook', workbookId);
+/// A script of a workbook by its key
+export const useScript = (scriptKey: number | null | undefined): ScriptData | null => useView('script', scriptKey);
+/// What the runtime derives from the scripts of a workbook: the checked references, the dataflow and the inputs
+export const useWorkbookDerived = (workbookId: string | null | undefined) => useView('workbookDerived', workbookId);
+/// The list of the workbooks: their ids in the order they were registered with their names, and the workbooks that were
+/// refused a load
+export const useWorkbookList = (): core.WorkbookListView | null => useView('workbookList', 'root');
+/// The workbooks by id, in the order they were registered. The component renders again when a workbook changes, not
+/// with the changes of the scripts.
+export const useWorkbooks = (): ReadonlyMap<string, WorkbookScripts> => useAll('workbook');
+
+/// The scripts of a workbook by key. The component renders again when a script of the workbook changes, e.g. with
+/// every keystroke: only the views that show all scripts at once use it.
+export function useWorkbookScriptMap(workbookId: string | null | undefined): ScriptDataMap {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const store = runtime?.store ?? null;
+    const cache = React.useRef<{ keys: readonly number[] | null; scripts: (ScriptData | null)[]; map: ScriptDataMap }>({ keys: null, scripts: [], map: {} });
+    const subscribe = React.useMemo(() => {
+        if (store == null || workbookId == null) return NO_SUBSCRIPTION;
+        return (listener: () => void) => {
+            const unsubscribeWorkbook = store.subscribe('workbook', workbookId, listener);
+            const unsubscribeScripts = store.subscribeKind('script', listener);
+            return () => {
+                unsubscribeWorkbook();
+                unsubscribeScripts();
+            };
+        };
+    }, [store, workbookId]);
+    const getSnapshot = React.useCallback((): ScriptDataMap => {
+        const keys = workbookId == null ? null : store?.get('workbook', workbookId)?.scriptKeys ?? null;
+        const scripts = (keys ?? []).map(key => store?.get('script', key) ?? null);
+        const held = cache.current;
+        if (held.keys === keys && held.scripts.length === scripts.length && scripts.every((script, i) => script === held.scripts[i])) {
+            return held.map;
+        }
+        const map: ScriptDataMap = {};
+        for (const script of scripts) {
+            if (script != null) map[script.scriptKey] = script;
+        }
+        cache.current = { keys, scripts, map };
+        return map;
+    }, [store, workbookId]);
+    return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
+
+// The connections
+
+/// The view of a connection, it renders again when the connection changes: when it is set up, saved or refreshed and
+/// when a query starts or finishes, not with the progress of a query
+export const useConnection = (connectionId: string | null | undefined): ConnectionState | null => useView('connection', connectionId) as ConnectionState | null;
+/// The list of the connections: the ids in the order they were registered, whether they are listed next to the
+/// workbooks and their ordinals, and the ids by connector
+export const useConnectionList = (): core.ConnectionListView | null => useView('connectionList', 'root');
+/// The connections by id, in the order they were registered. The component renders again when a connection changes.
+export const useConnections = (): ReadonlyMap<string, ConnectionState> => useAll('connection') as ReadonlyMap<string, ConnectionState>;
+
+/// The views of some connections, e.g. the `connectionIds` of a workbook, null while one of them is unknown or without
+/// ids. The list keeps its identity while these connections are unchanged, consumers depend on it in effects: a query
+/// on another connection renders the component but returns the same list.
+export function useConnectionViews(connectionIds: readonly string[] | null | undefined): ConnectionState[] | null {
+    const connections = useConnections();
+    let resolved: ConnectionState[] | null = null;
+    if (connectionIds != null && connectionIds.length > 0) {
+        const views = connectionIds.map(connectionId => connections.get(connectionId));
+        if (views.every(view => view != null)) resolved = views as ConnectionState[];
+    }
+    const latest = React.useRef(resolved);
+    const same = latest.current === resolved || (latest.current != null && resolved != null
+        && latest.current.length === resolved.length && latest.current.every((connection, i) => connection === resolved[i]));
+    if (!same) latest.current = resolved;
+    return latest.current;
+}
+
+// The queries
+
+/// The view of a query, it renders again when the query changes and no other
+export const useQuery = (queryId: number | null | undefined): QueryExecutionState | null => useView('query', queryId) as QueryExecutionState | null;
+/// The queries of all histories, it renders again when any query changes, e.g. for the viewer of the query history
+export const useAllQueries = (): ReadonlyMap<number, QueryExecutionState> => useAll('query') as ReadonlyMap<number, QueryExecutionState>;
+
+/// The latest progress of a query with its structured progress
+export function useQueryProgress(query: QueryExecutionState | null | undefined): QueryExecutionProgress | null {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const core = runtime?.core ?? null;
+    const module = runtime?.module ?? null;
+    const view = query?.latestProgressUpdate ?? null;
+    const queryId = query?.queryId ?? null;
+    return React.useMemo(() => {
+        if (core == null || view == null) return null;
+        return queryProgress(core, view, module == null || queryId == null ? null : { runtime: module, queryId });
+    }, [core, module, view, queryId]);
+}
+
+/// The result table of a query, null without one
+export function useQueryResultTable(query: QueryExecutionState | null | undefined): arrow.Table | null {
+    return useTable(query?.resultTable?.id ?? null);
+}
+
+/// Show the profile of a query while the component is mounted: the connector then fetches the plan and its
+/// statistics (Trino). Without a runtime nothing is fetched.
+export function useQueryProfileDetail(queryId: number | null, enabled = true) {
+    const runtime = React.useContext(RUNTIME_CTX);
+    React.useEffect(() => {
+        if (!enabled || queryId == null || runtime == null) return;
+        return runtime.watchProfile(queryId);
+    }, [runtime, queryId, enabled]);
+}
+
+// The computations
 
 /// The view of the computation of a result
 export const useComputation = (tableId: number | null | undefined) => useView('computation', tableId);
 /// Dispatch actions to the computation of a result
 export const useComputationDispatch = (tableId: number | null | undefined) => useDispatch(tableId == null ? null : { computation: tableId });
 
-/// A runtime of the module without the runtime of the app, e.g. of the shell of Hyper, on the compute database of the
-/// provider above. Its core is the one of the provider above, without one the default core.
-export function StandaloneCoreRuntime(props: { children?: React.ReactNode }) {
+// The runs
+
+/// The options of a run of a workbook
+export interface WorkbookExecutionOptions {
+    /// Run the scripts that a change of these inputs affects. A run that holds the workbook stops, the run starts
+    /// once the workbook is free, with the inputs of every change since.
+    inputs?: readonly string[];
+}
+
+/// The run of a workbook from its `run` slice. `busy` while the whole workbook runs, `runActive` while any run holds
+/// the workbook, a run of the workbook or of one of its scripts: the workbook starts no other run then. A run reads the
+/// cached results and the results of the queries with the compute database, a run is `ready` once it is set up.
+export function useWorkbookExecution(workbookId: string) {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const run = useView('run', workbookId);
+    const ready = useComputeDatabase() != null;
+    const state = run?.state ?? null;
+    const held = run?.held != null;
+    return React.useMemo(() => {
+        const busy = workbookExecutionIsBusy(state);
+        return {
+            state,
+            busy,
+            ready,
+            runActive: busy || held,
+            start: (options?: WorkbookExecutionOptions) => {
+                void runtime?.runWorkbook(workbookId, { inputs: options?.inputs == null ? undefined : [...options.inputs] });
+            },
+            stop: () => runtime?.module?.stopRun(workbookId),
+        };
+    }, [state, held, runtime, workbookId, ready]);
+}
+
+/// Run a script of a workbook with the scripts it references, a refresh reads no cached results. Resolves once the run
+/// ended, a failure shows on the script.
+export type ScriptRun = (workbookId: string, scriptKey: number, options?: { refresh?: boolean }) => Promise<void>;
+
+/// The runs of single scripts of the runtime, null without a runtime
+export function useScriptRun(): ScriptRun | null {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const logger = useLogger();
+    return React.useMemo(() => runtime == null ? null : async (workbookId, scriptKey, options = {}) => {
+        try {
+            await runtime.runScript(workbookId, scriptKey, { refresh: options.refresh });
+        } catch (error) {
+            logger.warn('Workbook script run failed', { workbookId, scriptKey: scriptKey.toString(), error: stringifyError(error) }, 'workbook_execution');
+        }
+    }, [runtime, logger]);
+}
+
+/// The reusable result key of a script, the key that a run of the script reads and writes; null without one
+export type ScriptResultKey = (workbookId: string, scriptKey: number) => Promise<string | null>;
+
+/// The result keys of single scripts of the runtime, null without a runtime
+export function useScriptResultKey(): ScriptResultKey | null {
+    const runtime = React.useContext(RUNTIME_CTX);
+    return React.useMemo(() => runtime == null ? null : async (workbookId, scriptKey) => {
+        const index = runtime.store.get('workbook', workbookId)?.scriptKeys.indexOf(scriptKey) ?? -1;
+        if (index < 0) return null;
+        const keys = await runtime.resultKeys(workbookId, [index]);
+        return keys[index] ?? null;
+    }, [runtime]);
+}
+
+/// A runtime without the storage of the app, e.g. of the shell of Hyper, on the compute database of the provider above.
+/// Its core is the one of the provider above, without one the default core.
+export function StandaloneRuntime(props: { children?: React.ReactNode }) {
     const logger = useLogger();
     const setupCore = useDashQLCoreSetup();
     const computeDatabase = useComputeDatabase();
-    const [runtime] = React.useState(() => new CoreRuntime({ logger, scheduler: FRAME_UPDATE_SCHEDULER, setupCore, computeDatabase }));
+    const [runtime] = React.useState(() => createRuntime({ logger, scheduler: FRAME_UPDATE_SCHEDULER, setupCore, computeDatabase }));
     // The compute database starts after the settings loaded, the tasks that start later use it. Only a change of the
     // provider is passed on, a page may set the database of its own, e.g. the shell its embedded database.
     const attached = React.useRef(computeDatabase);
@@ -96,5 +284,5 @@ export function StandaloneCoreRuntime(props: { children?: React.ReactNode }) {
         attached.current = computeDatabase;
         runtime.setComputeDatabase(computeDatabase);
     }
-    return <CoreRuntimeProvider value={runtime}>{props.children}</CoreRuntimeProvider>;
+    return <RuntimeContextProvider value={runtime}>{props.children}</RuntimeContextProvider>;
 }

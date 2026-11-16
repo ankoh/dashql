@@ -10,7 +10,7 @@ import { ShellErrorBoundary } from './shell_error_boundary.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
 import { ShellQueryHistoryProvider } from './shell_query_history.js';
-import { StandaloneCoreRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime } from '../runtime/runtime_hooks.js';
 import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
@@ -48,7 +48,7 @@ export const Shell: React.FC = () => {
                                 <EmbeddedDatabaseProvider>
                                     <GitHubTheme>
                                         <DashQLCoreProvider>
-                                            <StandaloneCoreRuntime>
+                                            <StandaloneRuntime>
                                                 <ShellQueryHistoryProvider key={shellGeneration}>
                                                     <ShellComputeQueryExecutionProvider>
                                                         <ComputationScheduler />
@@ -61,7 +61,7 @@ export const Shell: React.FC = () => {
                                                         </div>
                                                     </ShellComputeQueryExecutionProvider>
                                                 </ShellQueryHistoryProvider>
-                                            </StandaloneCoreRuntime>
+                                            </StandaloneRuntime>
                                         </DashQLCoreProvider>
                                     </GitHubTheme>
                                 </EmbeddedDatabaseProvider>

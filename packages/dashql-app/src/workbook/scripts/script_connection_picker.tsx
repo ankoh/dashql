@@ -10,18 +10,11 @@ import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/co
 import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../connections/attached_connection.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
-import {
-    resolveWorkbookConnections,
-    useConnectionReferences,
-    useConnectionRegistry,
-    useConnectionRegistryStore,
-} from '../../connections/connection_registry.js';
+import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
 import type { ModifyWorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
-import { connectionLabelParts, connectionLabelText, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
-import { useWorkbooks } from './workbook_scripts_registry.js';
 import { listedConnections } from '../../connections/connection_tree.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
@@ -55,23 +48,23 @@ export function scriptConnectionView(connection: ConnectionState, labelParts: Co
 }
 
 /// Run a script of a workbook on a connection.
-/// The workbook uses the connections of its scripts, the workbook file and the connection registry
-/// follow the script.
+/// The workbook uses the connections of its scripts, the workbook file and the connections of the runtime follow the
+/// script.
 export function usePickScriptConnection(_workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts): (fileName: string, connectionId: string) => void {
-    const registryStore = useConnectionRegistryStore();
+    const runtime = useOptionalRuntime();
     return React.useCallback((fileName: string, connectionId: string) => {
-        if (!registryStore.current.connections.has(connectionId)) return;
+        if (runtime?.store.get('connection', connectionId) == null) return;
         modifyWorkbookScripts({ kind: 'setScriptConnection', value: { fileName, connectionId } });
-    }, [modifyWorkbookScripts, registryStore]);
+    }, [modifyWorkbookScripts, runtime]);
 }
 
 /// Create the next script of a workbook on a connection
 export function usePickPendingConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (connectionId: string) => void {
-    const registryStore = useConnectionRegistryStore();
+    const runtime = useOptionalRuntime();
     return React.useCallback((connectionId: string) => {
-        if (!registryStore.current.connections.has(connectionId)) return;
+        if (runtime?.store.get('connection', connectionId) == null) return;
         modifyWorkbookScripts({ kind: 'setPendingConnection', value: { connectionId } });
-    }, [modifyWorkbookScripts, registryStore]);
+    }, [modifyWorkbookScripts, runtime]);
 }
 
 /// Create the next script of a workbook on a new connection of a connector, returns the id of the connection
@@ -215,22 +208,24 @@ interface MenuProps {
 }
 
 /// The connections a script or a shell can run on, the connections of the workbook first.
-/// Subscribes to the registries only while it is open.
+/// Subscribes to the connections only while it is open.
 export function ConnectionMenu(props: MenuProps) {
     const connectorIcon = useConnectorIcon();
-    const [connections] = useConnectionRegistry();
-    // Re-render when the workbooks use other connections
-    const workbooks = useWorkbooks();
-    const references = useConnectionReferences();
+    const connections = useConnections();
+    const list = useConnectionList();
+    // Renders again when the workbook uses other connections
+    const connectionIds = useWorkbook(props.workbookId)?.connectionIds;
     const { workbookConnections, otherConnections, ordinals } = React.useMemo(() => {
-        const workbookConnections = resolveWorkbookConnections(connections, references, props.workbookId) ?? [];
-        const listed = listedConnections(connections, references, workbookConnections);
+        // The connections of the workbook, none while one of them is unknown
+        const resolved = (connectionIds ?? []).map(connectionId => connections.get(connectionId));
+        const workbookConnections = resolved.some(connection => connection == null) ? [] : resolved as ConnectionState[];
+        const listed = listedConnections(connections, list, workbookConnections);
         return {
             workbookConnections,
             otherConnections: listed.slice(workbookConnections.length),
-            ordinals: connectionOrdinals(connections, references),
+            ordinals: connectionOrdinals(list),
         };
-    }, [connections, references, workbooks, props.workbookId]);
+    }, [connections, list, connectionIds, props.workbookId]);
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}

@@ -4,10 +4,14 @@ Status: steps 1 to 3 are built. Step 4 has the OAuth flow, the restore, the runt
 of the app, the Node platform with the embedded Hyper, and the CLI with `lint`, `format`, `run` and `session serve`.
 Open: `dashql auth`, `workbook check`/`pack`/`link`, and step 5.
 
-`packages/dashql-runtime` (`@ankoh/dashql-runtime`) holds the logic of DashQL without React: the workbook model and its
-format, the analysis of scripts, the connectors, query execution, the catalog and the computations. The app and a
-Node command line tool share it. An agent then works on workbooks with the same code the app runs, through a
-`dashql` command, while the user looks at the result in the app.
+`packages/dashql-runtime` (`@ankoh/dashql-runtime`) is the TypeScript side of the runtime of DashQL, shared by the app and
+a Node command line tool. The logic is Rust: the `Runtime` class of the core module holds the workbooks, the
+connections with their queries, the computations and the services (see [core_runtime.md](core_runtime.md) and
+[runtime_api.md](runtime_api.md)). The package holds the facade over it (`runtime.ts`: `createRuntime(platform)`, the
+store of its views and the platform object it calls), the platforms (the browser, the desktop app, Node), the connector
+clients and the channels of the host, helpers for the user interface and the support of the command line tool. An
+agent then works on workbooks with the same code the app runs, through a `dashql` command, while the user looks at the
+result in the app.
 
 | Part | State |
 |---|---|
@@ -15,8 +19,8 @@ Node command line tool share it. An agent then works on workbooks with the same 
 | `packages/dashql-runtime` with the clean modules, `//packages/dashql-runtime:boundary_test` | Done, step 2; their tests run in Node and in the browser tests of the app |
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections, done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
-| The restore | Step 4: the restore is a command of the runtime of the module (`CoreRuntime.restore`), the Hyper links of a tab, done |
-| One runtime | Step 4: `createRuntime` in `runtime.ts` over the runtime of the module, the `RuntimeProvider` of the app, done |
+| The restore | Step 4: the restore is a command of the runtime (`Runtime.restore`), the Hyper links of a tab, done |
+| One runtime | Step 4: `createRuntime` in `runtime.ts` over the runtime of the module, the `RuntimeProvider` of the app, done; one facade since step 7 of [runtime_api.md](runtime_api.md) |
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper over a root folder with the layout of OPFS, done |
 | The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `session serve` with the journal of a workspace, done; `workbook check`, `pack`, `link`, `auth` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
@@ -52,7 +56,7 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 
 - `reduceWorkbookScripts(state, action, storage, logger)` (`workbook/scripts/workbook_scripts.ts`, 29 actions)
 - the computations, the connections with their queries and the query history of the shell are views of the runtime of
-  the module (`core_runtime.ts`, see [core_runtime.md](core_runtime.md) and [runtime_api.md](runtime_api.md))
+  the module (`runtime.ts`, see [core_runtime.md](core_runtime.md) and [runtime_api.md](runtime_api.md))
 
 ### Imports that pulled UI code into the domain
 
@@ -175,17 +179,22 @@ For agents this means:
 packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@ankoh/dashql-runtime/<path>` is src/<path>.ts
   src/platform/                     the seams: HttpClient, StorageBackend, FileSystem, EmbeddedDatabase, the OPFS root,
                                     the logger, HyperDB over hyperdb-wasm, the instance folders
-  src/store/                        Store, UpdateScheduler, the store of the runtime with its projections
-  src/workbook/                     the views of the workbooks and their projections, script runs, execution,
-                                    attachments, inputs, persistence
-  src/connections/                  connection state and registry service, connector setups and clients, the catalog
-                                    loader, the query executor service, the specs of client functions
-  src/query/, src/compute/          query execution state and profiles, computations and data frames
-  src/storage/                      workbook tables, the storage of the platform and the commands of the writer of the
-                                    runtime, the query result cache, migrations
+  src/runtime.ts                    createRuntime(platform) → Runtime, the facade over the runtime of the module
+  src/store/                        Store, UpdateScheduler, the store of the views with its projections, the handle
+                                    table, the Arrow tables by handle
+  src/workbook/                     the projections of the workbook and script views, the files of the runs,
+                                    attachments, inputs, script names, links
+  src/connections/                  the types of the connection views, connector infos and descriptors, labels, params,
+                                    the connector clients and channels (Trino, Hyper over gRPC and HTTP, Salesforce, the
+                                    embedded Hyper), the mock setup of Salesforce, the specs of client functions
+  src/query/                        the channels of the queries of the host and the query result cache
+                                    (`query_channels.ts`), query states and their progress, the profile symbols
+  src/compute/                      the compute platform over the embedded Hyper, the types of the computation views,
+                                    the Arrow formatter
+  src/storage/                      the storage backends, the storage of the platform and the commands of the writer of
+                                    the runtime, the archives, the query result cache in OPFS, migrations
   src/session/                      the journal of an agent session and its state
   src/oauth/, src/sql/              the OAuth flow; lint, format and reports of SQL files
-  src/runtime.ts                    createRuntime(platform) → Runtime
   src/node/                         the only modules that import node:, e.g. @ankoh/dashql-runtime/node/node_platform:
                                     the platform of Node, node:fs handles of the OPFS root, the embedded Hyper of Node,
                                     the core from its file, the locks of the process
@@ -196,18 +205,30 @@ packages/dashql-cli                 the dashql command: lint, format, run, sessi
 ```
 
 ```ts
-interface Runtime {
-    platform: RuntimePlatform;
-    core: core.DashQL;
-    logger: Logger;
-    /// The runtime of the module: the connections with their queries, the executor, the setups, the catalog loader,
-    /// the saves, the computations, the workbooks with their runs, the storage writer (`coreRuntime.storage`) and the
-    /// restore
-    coreRuntime: CoreRuntime;
-    restore(progress?: (progress: core.RestoreProgress) => void): Promise<core.RestoreOutcome>;
-    destroy(): Promise<void>;
+class Runtime {
+    readonly platform: RuntimePlatform;     // what the platform passed: logger, scheduler, storage, http, OAuth flow, ...
+    readonly store: RuntimeStore;           // the views of the last flush, subscriptions per slice
+    readonly handles: HandleTable;          // the host objects the module names by number: tables, channels, ...
+    readonly storage: StorageWriter;        // the commands of the storage writer of the module
+    get core(): core.DashQL | null;
+    get module(): core.Runtime | null;      // the Runtime class of the module, null until the core is set
+    ready(): Promise<core.Runtime>;         // the module, the core is set up with the first call
+    dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome;
+    // Typed commands where the caller needs more than the module returns: the core set up on the first call, the flush
+    // of the store after the command, handles for the objects that cross
+    execute, cancel, watchProfile, analyzeTable, createConnection, createWorkbook, deleteWorkbook, setupConnection,
+    authenticateSalesforce, saveConnection, retrySave, refreshCatalog, restore, restoreWorkbook, runWorkbook,
+    runScript, resultKeys, exportArchive, exportLink, exportTables, readImport, commitImport, reportEditorUpdate, ...
+    destroy(): Promise<void>;               // stops the runs and the loader, writes what is pending, frees the module
 }
 ```
+
+`RuntimePlatform` names what a platform hands over: the logger, the scheduler of the store, the core, the storage
+backend, the HTTP client, the OAuth flow, the connector of channels, the compute database, the query result cache, the
+API of Salesforce and the archives. Every member but the logger and the scheduler is optional, the shell of Hyper runs
+a runtime with the core and the compute database only. The runtime builds the one platform object of the module from
+it (`core.RuntimePlatform`, see [runtime_api.md](runtime_api.md)). Everything else the app calls on the module itself
+(`runtime.module?.stopRun(id)`, `cancelSetup`, `dropImport`, `exportConnection`, ...) and reads through the store.
 
 ### Platform seams
 
@@ -218,6 +239,7 @@ interface Runtime {
 | Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated | the same | `hyperdb-wasm` `node` |
 | Core Wasm | URL from the bundler | the same | file next to the package |
 | Auth | redirect through `oauth.html` | loopback (`oauth_loopback.ts`) | refused for now; planned: loopback with PKCE (`dashql auth`) |
+| Hashing | `crypto.subtle` | the same | `crypto.subtle` of Node |
 | Scheduler | microtask, `requestAnimationFrame` | the same | microtask, `setImmediate` |
 
 ## React after the move
@@ -228,25 +250,29 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
 
 - **The platform of the app.** The provider sits below the providers of the storage, the http client, the core, the
   embedded database, the query result cache and Salesforce, and passes them to `createRuntime`; the storage writer is
-  the one of the runtime: the app flushes it when the page hides and stops it when another tab takes over.
-  The compute database starts after the settings loaded and the config may choose the mock of Salesforce, so the
-  runtime takes them later (`setComputeDatabase`, `setSalesforce`). `createRuntime` is synchronous, the core is
+  the one of the runtime (`runtime.storage`): the app flushes it when the page hides and stops it when another tab
+  takes over. The compute database starts after the settings loaded and the config may choose the mock of Salesforce,
+  so the runtime takes them later (`setComputeDatabase`, `setSalesforce`). `createRuntime` is synchronous, the core is
   instantiated when the runtime needs it.
-- **The followers.** The runs follow the workbooks and the connections of the store, before React renders. The
-  runtime of the module analyzes the scripts of a connection again when its catalog changed, also in the CLI.
-- **Hooks read slices.** `useWorkbookScripts`, `useScript`, `useWorkbookDerived`, `useConnectionById`,
-  `useQueryExecutor` and the others read the slices of the store and the services of the runtime. Outside of the provider, e.g. in
-  a test of a component, the state hooks return no state and the functions throw when they are called, like the
-  contexts without a provider before.
-- **Computations.** They are the first domain of the `Runtime` class of the module (see [runtime_api.md](runtime_api.md)).
-  `CoreRuntime` (`core_runtime.ts`) holds it with its platform object and its store, the runtime creates one as its
-  `coreRuntime` and the shell of Hyper, which has no runtime, one of its own (`StandaloneCoreRuntime`). Components
-  read the views with `useView` and its aliases and dispatch with `useDispatch` (`runtime/runtime_hooks.tsx`); the
-  first command takes the core of the platform.
+- **One object.** The app holds one `Runtime`, the same class as the command line tool and the tests. A component gets
+  it with `useRuntime()` (`useOptionalRuntime()` where a test may render it without a provider) and calls its commands
+  or the module (`runtime.module`).
+- **Hooks read slices.** `packages/dashql-app/src/runtime/runtime_hooks.tsx` has the generic hooks `useView(kind, id)`,
+  `useDispatch(target)` and `useTable(handle)`, and one-line aliases per domain: `useWorkbook`, `useScript`,
+  `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`. A few hooks
+  read several slices for the views that show all of them (`useWorkbooks`, `useWorkbookScriptMap`, `useConnections`,
+  `useAllQueries`), and a few combine a slice with a command (`useWorkbookExecution` over the `run` slice, `useScriptRun`,
+  `useQueryProfileDetail`, `useQueryProgress`). A component renders again only when its slice changes. Outside of a
+  provider, e.g. in a test of a component, the views are null and the functions throw when they are called.
+- **What the app keeps.** The app adds what is about the user interface on top: the selection of scripts
+  (`script_selection.ts`), the drafts of the forms of connections (`connection_draft.ts`), the state of the saves of
+  connections (`connection_persistence.tsx`), creating and deleting workbooks with the selection
+  (`workbook_lifecycle.ts`).
+- **The shell of Hyper** has no runtime of the app; `StandaloneRuntime` gives it a runtime of its own with the core and
+  the compute database of the providers above.
 - **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
   components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
-  test replaces.
-- **Wasm lifetimes** stay in the reducers inside the stores.
+  test replaces (`execute`, `cancel`, `watchProfile` of the runtime).
 - **Editor state** stays in `ScriptData` with types free of CodeMirror. Step 5 moves `completion`, `pendingDiff` and
   the focus into an editor store of the app keyed by workbook and script.
 
@@ -264,7 +290,8 @@ Each step ships on its own and keeps the behavior.
    and its state as a `Store`:
    - `QueryExecutorService`, with the computations, the result cache, the tracked execution and the profile layout of
      the query progress (`query/profile/`), since step 2 of [runtime_api.md](runtime_api.md) the executor of the
-     runtime of the module with `query/query_platform.ts` as its host half;
+     runtime of the module, since step 7 with the description of its queries and the keys of the cache in Rust and
+     `query/query_channels.ts` as the half of the platform (the channels of the host and the cache files);
    - the catalog loader, since step 3 of [runtime_api.md](runtime_api.md) a service of the runtime of the module that
      follows its connections (`refreshCatalog`);
    - the runs of workbooks, since step 5 of [runtime_api.md](runtime_api.md) a service of the runtime of the module
@@ -400,7 +427,7 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   of workbooks (`workbook/workbook_runs.test.ts`: starting and stopping runs, the connections a run needs, previews,
   changes of inputs, the runs of single scripts and their cached results, on the executor of the runtime); the workbooks, the connections, their setups, the catalog loader, the queries and their saves are tested on the
   runtime of the module (`runtime_workbooks.test.ts` and `runtime_connections.test.ts` of `dashql-core-js`) and
-  through `CoreRuntime` (the handles, the workbooks, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts`)
+  through the `Runtime` of the package (the handles, the workbooks, the computations, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts`)
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the
   tests of what React adds: hooks, rendering order, remounting and unmounting.
@@ -408,9 +435,10 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   (`exportWorkbook`, `readImport`, `commitImport`, see "Step 6 as built" of [runtime_api.md](runtime_api.md)); the
   package keeps the half of the platform: `storage/workbook_archives.ts` (`archives` of the platform: zip.js over
   `workbook/persistence/workbook_zip.ts`, the Parquet files of the workbook tables with the embedded Hyper) and
-  `CoreRuntime.exportArchive`, `exportLink`, `exportTables`, `exportConnectionLink`, `readImport` and `commitImport`.
-  A link takes the URL of the app that opens it, the app passes its own, `workbook_link.ts` has the one of the desktop
-  app. The round trip is tested on the runtime of the module (`runtime_imports.test.ts` of `dashql-core-js`) with
+  `Runtime.exportArchive`, `exportLink`, `exportTables`, `readImport` and `commitImport`; the link of a connection is
+  `exportConnection` of the module.
+  A link takes the URL of the app that opens it, the app passes its own, the format of the core has the one of the
+  desktop app (`DESKTOP_APP_LINK_BASE`). The round trip is tested on the runtime of the module (`runtime_imports.test.ts` of `dashql-core-js`) with
   archives of the test that keep their entries in memory.
 - **The compute tasks.** The tasks of the computations (aggregation, filtering, ordering, search, system columns) run in
   the runtime of the core (`packages/dashql-core-runtime/src/compute`); the app keeps `compute/computation_scheduler.tsx`,

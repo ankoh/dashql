@@ -1,8 +1,6 @@
 import * as React from 'react';
 import * as styles from './workbook_shell_page.module.css';
 
-import { useConnectionById } from '../../connections/connection_registry.js';
-import { useCancelQuery, useQueryExecutor, useQueryState } from '../../connections/query_executor.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
@@ -21,14 +19,13 @@ import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_fo
 import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import { useComputeDatabase } from '../../compute/compute_connection_provider.js';
-import { useDeleteComputation } from '../../runtime/runtime_hooks.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/shell_files.js';
 import { useShellFiles } from '../../shell/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/shell_examples.js';
 import { splitShellScript } from '../../shell/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useConnection, useOptionalRuntime, useQuery } from '../../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'workbook_shell_page';
 
@@ -55,18 +52,17 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const ResultOverlay = dependencies.ShellQueryResultOverlay;
     const activeRef = React.useRef(active);
     activeRef.current = active;
-    const [connection] = useConnectionById(connectionId);
+    const connection = useConnection(connectionId);
     // The shell runs on the catalog of its connection, the runtime shares it
-    const coreRuntime = useOptionalCoreRuntime();
-    const catalog = connection == null ? null : coreRuntime?.catalog(connection.connectionId) ?? null;
+    const runtime = useOptionalRuntime();
+    const catalog = connection == null ? null : runtime?.catalog(connection.connectionId) ?? null;
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const keywordCaseRef = React.useRef(keywordCase);
     keywordCaseRef.current = keywordCase;
     const logger = useLogger();
-    // The shell calls the latest executor: a new one, e.g. once the compute database is set up, keeps the shell
-    const executor = { execute: useQueryExecutor(), cancel: useCancelQuery() };
-    const executorRef = React.useRef(executor);
-    executorRef.current = executor;
+    // The shell calls the executor of the runtime when it runs a query, a test may replace it meanwhile
+    const runtimeRef = React.useRef(runtime);
+    runtimeRef.current = runtime;
     const { setMode } = useWorkbookViewMode();
     const containerRef = React.useRef<HTMLDivElement>(null);
     const controllerRef = React.useRef<BrowserShellController | null>(null);
@@ -78,7 +74,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const [status, setStatus] = React.useState('Instantiating Shell');
     const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
     const [resultOpen, setResultOpen] = React.useState(false);
-    const resultQuery = useQueryState(workbookId, resultQueryId);
+    const resultQuery = useQuery(resultQueryId);
     const resultQueryRef = React.useRef(resultQuery);
     resultQueryRef.current = resultQuery;
     const showResult = React.useCallback((queryId: number) => {
@@ -87,10 +83,9 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     }, []);
     // Closing the overlay keeps the result so that it can open again, the computation of a result is released once
     // another result replaces it
-    const deleteComputation = useDeleteComputation();
     const releaseResult = React.useCallback((queryId: number) => {
-        deleteComputation(queryId);
-    }, [deleteComputation]);
+        runtime?.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
+    }, [runtime]);
     React.useEffect(() => {
         if (resultQueryId == null) return;
         return () => releaseResult(resultQueryId);
@@ -133,8 +128,12 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         const environment = createWorkbookShellEnvironment(
             workbookId,
             connection.connectionId,
-            (connectionId, args) => executorRef.current.execute(connectionId, args),
-            (connectionId, queryId) => executorRef.current.cancel(connectionId, queryId),
+            (connectionId, args) => {
+                const current = runtimeRef.current;
+                if (current == null) throw new Error('the query executor needs a RuntimeProvider');
+                return current.execute(connectionId, args);
+            },
+            async queryId => { await runtimeRef.current?.cancel(queryId); },
             releaseResult,
             query => resolveClientFunctionCall(catalog, query),
         );

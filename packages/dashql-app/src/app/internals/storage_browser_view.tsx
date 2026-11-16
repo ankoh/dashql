@@ -21,7 +21,8 @@ import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { useOptionalStorageWriter, useStorageReader } from '../../storage/storage_provider.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import {
     type OPFSCleanupCandidate,
     type OPFSCleanupResult,
@@ -263,7 +264,7 @@ function describeCleanupResult(result: OPFSCleanupResult): string {
 /// visible rows only.
 export function StorageBrowserView(props: { onClose: () => void }) {
     const storageReader = useStorageReader();
-    const storageWriter = useOptionalStorageWriter();
+    const storageWriter = useOptionalRuntime()?.storage ?? null;
     const logger = useLogger();
 
     const [roots, setRoots] = React.useState<StorageTreeRoot[]>(() => listStorageTreeRoots(storageReader));

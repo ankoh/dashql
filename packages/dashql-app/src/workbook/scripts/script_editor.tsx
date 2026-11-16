@@ -7,12 +7,11 @@ import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } fr
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useScript, useWorkbookDerived, useWorkbookScripts } from './workbook_scripts_registry.js';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '../../runtime/runtime_hooks.js';
 import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
 import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
 import { applyScriptTextChanges } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
@@ -52,7 +51,7 @@ export interface ScriptEditorProps {
 export interface ScriptEditorDependencies {
     CodeMirror: typeof CodeMirror;
     createCodeMirrorExtensions: typeof createCodeMirrorExtensions;
-    useWorkbookScripts: typeof useWorkbookScripts;
+    useWorkbook: typeof useWorkbook;
     useScript: typeof useScript;
     useWorkbookDerived: typeof useWorkbookDerived;
     useAppConfig: typeof useAppConfig;
@@ -62,7 +61,7 @@ export interface ScriptEditorDependencies {
 const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
     CodeMirror,
     createCodeMirrorExtensions,
-    useWorkbookScripts,
+    useWorkbook,
     useScript,
     useWorkbookDerived,
     useAppConfig,
@@ -77,8 +76,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const logger = dependencies.useLogger();
     const config = dependencies.useAppConfig();
-    const [scripts, modifyScripts] = dependencies.useWorkbookScripts(props.workbookId);
-    const coreRuntime = useOptionalCoreRuntime();
+    const scripts = dependencies.useWorkbook(props.workbookId);
+    const modifyScripts = useDispatch({ workbook: props.workbookId });
+    const runtime = useOptionalRuntime();
     const readOnly = scripts != null && isCloudPreview(scripts);
     const extraExtensions = React.useMemo(() => [
         ...(props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : []),
@@ -92,7 +92,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Update outdated scripts that are displayed in the editor.
     // The selected script is analyzed right away, all others are deferred.
     // Deferring is safe since the script stays marked as outdated until the analysis ran,
-    // and anything that needs the analysis analyzes it on demand, e.g. a run of the script (`CoreRuntime.runScript`).
+    // and anything that needs the analysis analyzes it on demand, e.g. a run of the script (`Runtime.runScript`).
     React.useEffect(() => {
         if (scripts == null || !scriptData?.analysisOutdated) {
             return;
@@ -119,7 +119,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         if (config == null || view == null || scriptData == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
         const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
-        updateEditor(view, coreRuntime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
+        updateEditor(view, runtime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
     }, [
         config,
         view,
@@ -170,7 +170,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, runtime: CoreRuntime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
+function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];

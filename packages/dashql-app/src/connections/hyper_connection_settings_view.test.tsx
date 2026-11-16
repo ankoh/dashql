@@ -7,7 +7,6 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
-import { useConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
@@ -19,15 +18,15 @@ import { HttpClientProvider } from '../platform/http/http_client_provider.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 
 const CONNECTION_ID = 'hyper-settings-test';
 
-type Registry = ReturnType<typeof useConnectionRegistry>;
+type Registry = ReadonlyMap<string, ConnectionState>;
 /// A connection that a test creates in the runtime of the app once it rendered
-type TestConnection = (runtime: CoreRuntime) => ConnectionState;
-let coreRuntime: CoreRuntime | null = null;
+type TestConnection = (runtime: Runtime) => ConnectionState;
+let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -77,15 +76,15 @@ describe('HyperConnectorSettings', () => {
     let execute: ReturnType<typeof vi.fn<QueryExecutor>>;
     let executor: TestQueryExecutorFunctions;
     /// The commands of the runtime that the settings call
-    let setup: ReturnType<typeof vi.fn<CoreRuntime['setupConnection']>>;
-    let cancel: ReturnType<typeof vi.fn<CoreRuntime['cancelSetup']>>;
+    let setup: ReturnType<typeof vi.fn<Runtime['setupConnection']>>;
+    let cancel: ReturnType<typeof vi.fn<core.Runtime['cancelSetup']>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
-        registry = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
-        coreRuntime.setupConnection = setup;
-        coreRuntime.cancelSetup = cancel;
+        registry = useConnections();
+        appRuntime = useRuntime();
+        appRuntime.setupConnection = setup;
+        appRuntime.module!.cancelSetup = cancel;
         return null;
     }
     /// The params of a setup
@@ -122,13 +121,13 @@ describe('HyperConnectorSettings', () => {
         };
         await act(async () => root.render(tree(false)));
         if (database != null) {
-            await act(async () => { database(coreRuntime!); });
+            await act(async () => { database(appRuntime!); });
         }
         await act(async () => root.render(tree(true)));
     }
 
     function current(): ConnectionState {
-        return registry![0].connections.get(CONNECTION_ID)!;
+        return registry!.get(CONNECTION_ID)!;
     }
     function draft(): connection.HyperConnectionParams {
         const params = current().paramsDraft;
@@ -175,8 +174,8 @@ describe('HyperConnectorSettings', () => {
         registry = null;
         execute = vi.fn<QueryExecutor>(() => [1, Promise.resolve({} as arrow.Table)]);
         executor = { execute, cancel: vi.fn(async () => { }), watchProfile: vi.fn(() => () => { }) };
-        setup = vi.fn<CoreRuntime['setupConnection']>(async () => ({ status: 'succeeded', message: null, data: {}, authentication: null }));
-        cancel = vi.fn<CoreRuntime['cancelSetup']>();
+        setup = vi.fn<Runtime['setupConnection']>(async () => ({ status: 'succeeded', message: null, data: {}, authentication: null }));
+        cancel = vi.fn<core.Runtime['cancelSetup']>();
         onClose = vi.fn<() => void>();
     });
 
@@ -286,7 +285,7 @@ describe('HyperConnectorSettings', () => {
 
         it('freezes the form while connecting and cancels the setup', async () => {
             setup.mockImplementation(async (connectionId, options) => {
-                coreRuntime!.dispatchConnection(connectionId, setupStepAction('HYPER_CHANNEL_SETUP_STARTED', (options?.params as { hyper: unknown }).hyper));
+                appRuntime!.dispatch({ connection: connectionId }, setupStepAction('HYPER_CHANNEL_SETUP_STARTED', (options?.params as { hyper: unknown }).hyper));
                 return await new Promise(() => { });
             });
             await render(hyperDatabase(HTTP), { clients: true });

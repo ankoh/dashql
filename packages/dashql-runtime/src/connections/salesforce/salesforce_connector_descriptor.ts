@@ -12,12 +12,6 @@ export const SALESFORCE_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'salesforce'> 
     // Keep instanceUrl, appConsumerKey and the login hint; drop the connected-app secret.
     sanitizeForSharing: (params, withLoginHint) => ({ ...params, appConsumerSecret: "", ...(withLoginHint ? {} : { login: "" }) }),
     loginHint: params => params.login || null,
-    // The login stays out, another user of the same org reuses the cached results
-    cacheSignature: params => ({
-        case: "salesforce",
-        instanceUrl: params.instanceUrl,
-        appConsumerKey: params.appConsumerKey,
-    }),
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,
@@ -32,9 +26,4 @@ export const DBCOM_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'dbcom'> = {
     defaultParams: () => ({ ...SALESFORCE_CONNECTOR_DESCRIPTOR.defaultParams(), databaseName: HYPER_CLOUD_DEFAULT_DATABASE_NAME }),
     // It isn't known whether Database.com has the Data 360 API
     clientFunctions: undefined,
-    cacheSignature: params => ({
-        ...SALESFORCE_CONNECTOR_DESCRIPTOR.cacheSignature(params) as object,
-        case: "dbcom",
-        databaseName: params.databaseName || HYPER_CLOUD_DEFAULT_DATABASE_NAME,
-    }),
 };

@@ -10,11 +10,6 @@ export class QueryCacheMissError extends Error {
     }
 }
 
-/// Did a query fail because it may only read a cached result that is not cached?
-export function isQueryCacheMiss(error: unknown): boolean {
-    return error instanceof Error && error.name === 'QueryCacheMissError';
-}
-
 /// A cached query result, a Parquet file of the query result cache of the app
 export interface QueryResultCacheEntry {
     /// The file name, `<key>.<uuid>.parquet`

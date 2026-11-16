@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useConnectionRegistryStore } from '../connections/connection_registry.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 
 /// Merge connections into a target connection
@@ -11,13 +11,13 @@ export type ConnectionMerge = (targetId: string, sourceIds: readonly string[]) =
 /// Each merged connection is replaced with the target, see useReplaceConnection: its workbooks move to the
 /// target first, the merged connection is removed once no workbook uses it.
 export function useMergeConnections(): ConnectionMerge {
-    const registryStore = useConnectionRegistryStore();
+    const runtime = useOptionalRuntime();
     const replaceConnection = useReplaceConnection();
 
     return React.useCallback(async (targetId: string, sourceIds: readonly string[]) => {
         for (const sourceId of sourceIds) {
-            if (!registryStore.current.connections.has(targetId)) return;
+            if (runtime?.store.get('connection', targetId) == null) return;
             await replaceConnection(sourceId, targetId);
         }
-    }, [registryStore, replaceConnection]);
+    }, [runtime, replaceConnection]);
 }

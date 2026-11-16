@@ -28,12 +28,6 @@ const state = {
     backend: null as CompositeStorageBackend | null,
 };
 
-const references = {
-    connectionsOf: () => [],
-    workbooksOf: () => [],
-    subscribe: () => () => { },
-};
-
 const storageReader = {
     get backend() { return state.backend; },
     get workbookFolders() { return state.backend; },
@@ -42,19 +36,22 @@ const storageReader = {
     getWorkbookTree: () => state.backend!.getWorkbookTree(),
 };
 const storageWriter = { write: vi.fn(), deleteWorkbook: vi.fn(), backend: {}, cancelPendingWritesForWorkbook: vi.fn(), isWorkbookPaused: () => false };
+/// The runtime as the sidebar uses it, without connections
+const runtime = { storage: storageWriter, dispatch: vi.fn(), createConnection: vi.fn(), store: { get: () => null } };
+const NO_CONNECTIONS = new Map();
+const NO_CONNECTION_LIST = { connections: [], connectionsByType: [[], [], [], []] };
 
 const dependencies = {
     useRouterNavigate: () => state.navigate,
     useRouteContext: () => ({ workbookId: ROOT_WORKBOOK, workbookSetupStatus: 0 }),
-    useConnectionRegistry: () => [{ connections: new Map() }, vi.fn()],
-    useConnectionReferences: () => references,
-    useWorkbookConnections: () => null,
-    useDynamicConnectionDispatch: () => [{ connections: new Map(), connectionsByType: [[], [], []] }, vi.fn()],
-    useConnectionAllocator: () => vi.fn(),
+    useRuntime: () => runtime,
+    useDispatch: () => state.modifyWorkbookScripts,
+    useConnections: () => NO_CONNECTIONS,
+    useConnectionList: () => NO_CONNECTION_LIST,
+    useConnectionViews: () => null,
     ConnectionSettingsOverlay: () => null,
-    useWorkbookScriptsDeletion: () => vi.fn(),
+    useDeleteWorkbook: () => vi.fn(),
     useWorkbooks: () => state.workbookScriptsMap,
-    useWorkbookScripts: () => [null, state.modifyWorkbookScripts],
     useWorkbookCreation: () => state.createWorkbook,
     useOpenGreeter: () => state.openGreeter,
     useEnsureEphemeralWorkbook: () => state.ensureEphemeralWorkbook,
@@ -63,8 +60,6 @@ const dependencies = {
     useDetachConnection: () => vi.fn(),
     useDeleteConnection: () => vi.fn(),
     useStorageReader: () => storageReader,
-    useStorageWriter: () => storageWriter,
-    useDeleteComputation: () => vi.fn(),
     // The storage overlay renders the storage item of the workbook menu as its anchor
     WorkbookStorageOverlay: (props: { renderAnchor: (p: object) => React.ReactElement }) => props.renderAnchor({}),
     WorkbookURLShareOverlay: () => null,
@@ -88,7 +83,7 @@ function leaveInput(input: HTMLInputElement): void {
 function addWorkbook(workbookId: string, name: string, scriptOrder: string[] = []): void {
     const scriptRefs = Object.fromEntries(scriptOrder.map((fileName, scriptId) => [fileName, { fileName, scriptId }]));
     // A new map, like the store hands out when a workbook changes
-    state.workbookScriptsMap = new Map(state.workbookScriptsMap).set(workbookId, { workbookId, name, ephemeral: false, workbookMetadata: {}, scriptRefs, scriptOrder });
+    state.workbookScriptsMap = new Map(state.workbookScriptsMap).set(workbookId, { workbookId, name, ephemeral: false, workbookMetadata: {}, scriptRefs, scriptOrder, connectionIds: [] });
 }
 
 describe('WorkbookWorkbenchSidebar folders', () => {
@@ -295,7 +290,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
 
         function addEphemeralWorkbook(workbookId: string): void {
             state.workbookScriptsMap = new Map(state.workbookScriptsMap).set(workbookId, {
-                workbookId, name: 'New Workbook', ephemeral: true, workbookMetadata: { ephemeral: true }, scriptRefs: {}, scriptOrder: [],
+                workbookId, name: 'New Workbook', ephemeral: true, workbookMetadata: { ephemeral: true }, scriptRefs: {}, scriptOrder: [], connectionIds: [],
             });
         }
         function ephemeralRow(): HTMLElement | null {

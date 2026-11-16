@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useQueryState } from '../../connections/query_executor.js';
+import { useQuery } from '../../runtime/runtime_hooks.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
@@ -94,7 +94,7 @@ interface ChartProps {
 
 /// The chart builder of a script, the preview shows its latest result
 export function DashboardChartOverlay(props: ChartProps): React.ReactElement {
-    const queryState = useQueryState(props.workbookId, props.script.latestQueryId);
+    const queryState = useQuery(props.script.latestQueryId);
     return (
         <ChartBuilderOverlay
             scriptName={scriptDisplayName(props.script.fileName)}
@@ -114,7 +114,7 @@ interface TableProps {
 
 /// The full result table of a script, the card shows the rows that fit into it
 export function DashboardTableOverlay(props: TableProps): React.ReactElement | null {
-    const queryState = useQueryState(props.workbookId, props.script.latestQueryId);
+    const queryState = useQuery(props.script.latestQueryId);
     if (queryState == null) return null;
     return <ResultTableOverlay scriptName={scriptDisplayName(props.script.fileName)} query={queryState} onClose={props.onClose} />;
 }

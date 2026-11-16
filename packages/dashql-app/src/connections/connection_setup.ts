@@ -9,7 +9,7 @@ import { useSaveBeforeConnect } from './connection_persistence.js';
 import { useSalesforceMock } from './salesforce/salesforce_connector.js';
 import { useAppConfig } from '../config/app_config.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 /// The setup of a connection from its settings. The runtime sets the connection up (`setupConnection`), its view shows
 /// how far the setup got, how it ended and whether one runs.
@@ -24,7 +24,7 @@ export interface ConnectionSetup {
 
 export function useConnectionSetup(connectionId: string | null): ConnectionSetup {
     const saveBeforeConnect = useSaveBeforeConnect(connectionId);
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const config = useAppConfig();
     const logger = useLogger();
     const salesforceMock = useSalesforceMock();
@@ -56,13 +56,13 @@ export function useConnectionSetup(connectionId: string | null): ConnectionSetup
     }, [connectionId, forceRelogin, logger, oauthRedirect, runtime, salesforceMock, saveBeforeConnect]);
 
     const cancel = React.useCallback(() => {
-        if (connectionId != null) runtime?.cancelSetup(connectionId);
+        if (connectionId != null) runtime?.module?.cancelSetup(connectionId);
         mockRef.current?.abort(new DOMException('Connection setup cancelled', 'AbortError'));
         mockRef.current = null;
     }, [connectionId, runtime]);
 
     const reset = React.useCallback(() => {
-        if (connectionId != null) runtime?.dispatchConnection(connectionId, { kind: 'resetConnection' });
+        if (connectionId != null) runtime?.dispatch({ connection: connectionId }, { kind: 'resetConnection' });
     }, [connectionId, runtime]);
 
     return React.useMemo(() => ({ run, cancel, reset }), [run, cancel, reset]);

@@ -15,14 +15,11 @@ export function setWorkbookFormatCoreLoader(load: (() => Promise<core.DashQL>) |
 
 /// The format of a core that the platform provided or the format loaded
 let provided: core.DashQLWorkbookFormat | null = null;
-/// The core that the platform provided or the format loaded
-let providedCore: core.DashQL | null = null;
 
 /// Provide the core of the platform to the format, e.g. once the app instantiated it. A core may come from another
 /// copy of the package, e.g. the one of the page that runs the browser tests.
 export function provideWorkbookFormatCore(instance: core.DashQL): void {
     provided ??= instance.workbookFormat;
-    providedCore ??= instance;
 }
 
 /// The format of the instantiated core. Throws before the core is instantiated.
@@ -40,13 +37,4 @@ export async function loadWorkbookFormat(): Promise<core.DashQLWorkbookFormat> {
     if (format != null) return format;
     provideWorkbookFormatCore(await (coreLoader ?? (() => core.DashQL.create()))());
     return provided!;
-}
-
-/// The core for the services of the runtime that need no connection, e.g. the setups of the connectors. It is
-/// instantiated if nothing did yet, like the one of the format.
-export async function loadRuntimeCore(): Promise<core.DashQL> {
-    const instance = providedCore ?? core.DashQL.instantiated();
-    if (instance != null) return instance;
-    provideWorkbookFormatCore(await (coreLoader ?? (() => core.DashQL.create()))());
-    return providedCore!;
 }

@@ -20,7 +20,6 @@ import { listCloudWorkbookVersions, publishCloudWorkbook } from './cloud_store.j
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { useConnectionRegistry } from '../connections/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
@@ -35,15 +34,15 @@ import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_clien
 import { createTestRoot } from '../tests/react_root.js';
 import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
 import * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 import { addTestConnection } from '../tests/test_connections.js';
 
 // The overview of a local cloud on the embedded Hyper of the tests: the statements of the cloud state go through the
 // query executor to the session of the local cloud, the listings of the page run against the same tables
 
-type Registry = ReturnType<typeof useConnectionRegistry>;
-let coreRuntime: CoreRuntime | null = null;
+type Registry = ReadonlyMap<string, ConnectionState>;
+let appRuntime: Runtime | null = null;
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let database: HyperDB;
@@ -81,7 +80,7 @@ async function publish(name: string, folderId: string | null = null, sql = 'sele
 }
 
 /// The local cloud as a connection of the runtime
-function cloudConnection(runtime: CoreRuntime, health: ConnectionHealth): void {
+function cloudConnection(runtime: Runtime, health: ConnectionHealth): void {
     addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: createLocalCloudParams(), active: true, health });
 }
 
@@ -123,8 +122,8 @@ describe('CloudOverviewPage', () => {
     let reconfigure: ReturnType<typeof useAppReconfigure> | null;
 
     function Capture() {
-        registry = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
+        registry = useConnections();
+        appRuntime = useRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
         return null;
@@ -170,7 +169,7 @@ describe('CloudOverviewPage', () => {
     async function renderCloud(health: ConnectionHealth) {
         await root.render(tree(null));
         await vi.waitFor(() => expect(config).not.toBeNull());
-        await act(async () => cloudConnection(coreRuntime!, health));
+        await act(async () => cloudConnection(appRuntime!, health));
         await act(async () => reconfigure!(value => value == null ? null : { ...value, settings: { ...value.settings, cloudConnectionIds: ['trial'] } }));
         await root.render(tree(page));
     }

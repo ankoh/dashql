@@ -1,20 +1,15 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { ConnectionState } from '../connections/connection_state.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connections/connector_info.js';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '../connections/connector_descriptor.js';
-import { createConnectionParamsSignature } from '../connections/connection_params.js';
-import type { CancelQuery, QueryExecutionArgs, QueryExecutor } from '../connections/query_execution_args.js';
+import type { QueryExecutionArgs } from '../connections/query_execution_args.js';
 import { TrinoChannel } from '../connections/trino/trino_channel.js';
 import type { HyperDatabaseChannel } from '../connections/hyper/hyperdb_grpc_client.js';
 import type { SalesforceDatabaseChannel } from '../connections/salesforce/salesforce_api_client.js';
 import { queryParam, requireChannel } from '../connections/query_channel.js';
 import type { HandleTable } from '../store/handles.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
-import { computeQueryResultCacheKey } from './query_result_cache_key.js';
 import { QueryCacheMissError, type QueryResultCache } from './query_result_cache.js';
-import type { QueryExecutionProgress, QueryExecutionResponseStream, QueryMetadata } from './query_execution_state.js';
+import type { QueryExecutionProgress, QueryExecutionResponseStream } from './query_execution_state.js';
 import { createTrace } from '../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../platform/logger/logger.js';
 import type { LogRecord } from '../platform/logger/log_buffer.js';
@@ -23,19 +18,16 @@ import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyper
 
 const LOG_CTX = 'query_executor';
 
-/// Show the profile of a running query, returns the function that stops showing it
-export type WatchQueryProfile = (queryId: number) => () => void;
-
 /// A message of a channel of the host, what the stream produced. The batches stay in the table of the query.
 type ChannelMessage = core.RuntimeChannelMessage | { type: 'error'; error: unknown };
 
-/// What the host keeps of a query of the runtime: the arguments, the channel of the host and its stream
+/// What the platform keeps of a query of the runtime: the channel of its connection, its stream and the cancellation
+/// of its caller
 interface QueryRecord {
-    args: QueryExecutionArgs;
-    /// The channel of a query that the host runs, the one of the connection
+    /// The query on the channel as the runtime described it, null until then
+    query: core.RuntimeChannelQuery | null;
+    /// The channel of the connection
     channel: unknown;
-    /// The name of the connector, e.g. for the error of a channel that is not set up
-    connector: string;
     /// Aborted by the caller and by a cancel, it stops the stream of a channel of the host
     cancellation: AbortController;
     /// The Trino channel that the executor speaks, it keeps a refreshed access token
@@ -51,19 +43,19 @@ interface QueryRecord {
     wakeMessages: (() => void) | null;
 }
 
-/// The cache key of a query on a connection, null when the connection has no params that identify it yet (e.g. before
-/// its setup). Never throws, a key that can't be derived is a miss.
-export async function computeQueryCacheKeyForConnection(connection: Pick<ConnectionState, 'connectorType' | 'details'>, cacheSignature: string): Promise<string | null> {
-    try {
-        const setupParams = connection.details.setupParams;
-        if (setupParams == null) return null;
-        const params = connectionParamsOf(CONNECTOR_DESCRIPTORS[connection.connectorType as ConnectorType], setupParams as never);
-        const signature = createConnectionParamsSignature(params);
-        if (signature == null) return null;
-        return await computeQueryResultCacheKey(signature, cacheSignature);
-    } catch {
-        return null;
-    }
+function newRecord(): QueryRecord {
+    return {
+        query: null,
+        channel: null,
+        cancellation: new AbortController(),
+        trino: null,
+        stream: null,
+        streamCancel: null,
+        producing: false,
+        table: null,
+        messages: [],
+        wakeMessages: null,
+    };
 }
 
 /// The cancellation of a query as an error
@@ -71,9 +63,9 @@ function abortError(): DOMException {
     return new DOMException('Query was cancelled', 'AbortError');
 }
 
-/// What the queries need of the platform. The host can replace them while queries run, e.g. once the compute database is
-/// ready.
-export interface QueryPlatformDependencies {
+/// What the channels and the cache need of the platform. The runtime replaces them while queries run, e.g. once the
+/// compute database is ready.
+export interface QueryChannelsDependencies {
     logger: Logger;
     handles: HandleTable;
     tables: PlatformTables;
@@ -81,30 +73,73 @@ export interface QueryPlatformDependencies {
     computeDatabase: () => EmbeddedComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache: () => QueryResultCache | null;
-    /// A connection as the runtime holds it now, the key of a result derives from its params
-    connection: (connectionId: string) => ConnectionState | null;
 }
 
-/// The host side of the queries of the runtime (docs/wip/runtime_api.md): the query executor of the runtime runs a
-/// query and reports into the history of its connection, the host describes where the query runs (the channel of the
-/// connection, the cache key), runs the queries of the channels that the module doesn't speak (the gRPC channel of
-/// Hyper, the embedded Hyper, the channels of tests) and keeps the query result cache. The caller gets the result table
-/// and the error of a failed query as before. The runtime runs queries of its own as well, the metadata queries of the
-/// catalog loader and the probes of the health checks: the host describes them in the same way.
-export class QueryPlatform {
+/// The half of the queries of the runtime that touches the objects of the platform (docs/wip/runtime_api.md). The
+/// runtime describes a query itself: the target on the channel of its connection, the key of its result and what the
+/// executor does around it. This class describes the channel object (a Trino channel or a Hyper channel over HTTP that
+/// the runtime speaks, else a channel of the host), runs the queries of the channels of the host (the gRPC channel of
+/// Hyper, the embedded Hyper, the channels of tests), keeps the query result cache over the compute database, and gives
+/// a caller in TypeScript the result table and the error of a failed query.
+export class QueryChannels {
     private readonly records = new Map<number, QueryRecord>();
     /// The files of the cache that the runs keep, by id
     private readonly retained = new Map<number, () => Promise<void>>();
     private nextRetained = 0;
 
-    constructor(private readonly deps: QueryPlatformDependencies) { }
+    constructor(private readonly deps: QueryChannelsDependencies) { }
 
-    /// The channels of the host by query
-    readonly channels: Pick<core.RuntimeChannels, 'open' | 'next' | 'cancel' | 'profileDetail'> = {
+    /// The channels of the platform by query
+    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
+        describe: async (queryId, handle, query) => {
+            const record = this.records.get(queryId) ?? newRecord();
+            this.records.set(queryId, record);
+            const channel: unknown = this.deps.handles.get(handle) ?? null;
+            record.query = query;
+            record.channel = channel;
+            const salesforce = channel as SalesforceDatabaseChannel | null;
+            const tokens = salesforce?.coreToken != null && salesforce.dataCloudToken != null
+                ? { core: salesforce.coreToken, dataCloud: salesforce.dataCloudToken }
+                : null;
+            // A call of a client function sends its requests itself with the tokens of the channel
+            if (query.clientFunction) return { type: 'host', tokens };
+            // A Trino channel whose requests go over the HTTP client of the platform
+            if (channel instanceof TrinoChannel) {
+                const endpoint = channel.endpoint;
+                record.trino = channel;
+                return {
+                    type: 'trino',
+                    endpoint: endpoint.endpoint,
+                    auth: endpoint.authParams,
+                    accessToken: endpoint.oauthState?.accessToken ?? null,
+                    catalog: channel.defaults.catalog,
+                    schema: channel.defaults.schema,
+                };
+            }
+            // A Hyper channel over the HTTP API, also the one of a Salesforce connection
+            const hyper = channel as HyperDatabaseChannel | null;
+            const described = await hyper?.describeHttp?.() ?? null;
+            if (described != null) {
+                return {
+                    type: 'hyperHttp',
+                    params: described.params,
+                    clientContext: described.clientContext,
+                    auth: described.auth,
+                    parallelChunks: described.parallelChunks,
+                    tokens,
+                };
+            }
+            return { type: 'host', tokens };
+        },
+        forget: queryId => {
+            this.records.delete(queryId);
+        },
         open: async (queryId, table) => {
             const record = this.recordOf(queryId);
-            const channel = requireChannel(record.channel as HyperDatabaseChannel | null, record.connector);
-            const stream = await channel.executeQuery(queryParam(record.args), record.cancellation.signal, { readTimeoutMs: record.args.readTimeoutMs });
+            const query = record.query;
+            if (query == null) throw new Error(`The query ${queryId} was not described`);
+            const channel = requireChannel(record.channel as HyperDatabaseChannel | null, query.connector);
+            const stream = await channel.executeQuery(queryParam(query.text), record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
             if (stream == null) return false;
             record.stream = stream as QueryExecutionResponseStream;
             // The stream produces with the first message, a query that was cancelled meanwhile never consumes it
@@ -146,10 +181,6 @@ export class QueryPlatform {
                 return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols };
             },
             touch: name => cache.touch(name),
-            key: (connectionId, signature) => {
-                const connection = this.deps.connection(connectionId);
-                return connection == null ? Promise.resolve(null) : computeQueryCacheKeyForConnection(connection, signature);
-            },
             retain: async key => {
                 const file = await cache.retain(key);
                 if (file == null) return null;
@@ -190,30 +221,28 @@ export class QueryPlatform {
     }
 
     /// Run a query on a connection of the runtime: the runtime registers it in the history of the connection right
-    /// away and runs it once the host described it. Returns the id and the result table, null for a query without one.
-    execute(runtime: core.Runtime, readConnection: (connectionId: string) => ConnectionState | null, connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] {
+    /// away, describes and runs it. Returns the id and the result table, null for a query without one.
+    execute(runtime: core.Runtime, connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] {
         const { logger } = this.deps;
         const trace = createTrace();
-        const record: QueryRecord = {
-            args,
-            channel: null,
-            connector: '',
-            cancellation: new AbortController(),
-            trino: null,
-            stream: null,
-            streamCancel: null,
-            producing: false,
-            table: null,
-            messages: [],
-            wakeMessages: null,
-        };
-        const request = this.describe(record, readConnection(connectionId), connectionId);
-        // A failed description fails the query, the promise of the caller rejects with its error
-        request.catch(() => { });
         const ticket = runtime.executeQuery(
             connectionId,
-            { text: args.query, metadata: args.metadata as core.QueryMetadataView, traceId: trace.traceId, spanId: trace.spanId },
-            request,
+            {
+                text: args.query,
+                metadata: args.metadata as core.QueryMetadataView,
+                traceId: trace.traceId,
+                spanId: trace.spanId,
+                options: {
+                    analyzeResults: args.analyzeResults === true,
+                    publishResults: args.publishResults !== false,
+                    throwOnError: args.throwOnError === true,
+                    clientFunctionCall: args.clientFunctionCall,
+                    readTimeoutMs: args.readTimeoutMs,
+                    cache: args.cacheable && args.cacheSignature
+                        ? { signature: args.cacheSignature, refresh: args.refreshCache === true, only: args.cacheOnly === true }
+                        : undefined,
+                },
+            },
             args.failure,
             event => {
                 try {
@@ -237,6 +266,8 @@ export class QueryPlatform {
             },
         );
         const queryId = ticket.queryId;
+        // The runtime describes the query once the call returned, the record of the caller is there by then
+        const record = this.records.get(queryId) ?? newRecord();
         this.records.set(queryId, record);
         // Every abort of the caller stops the query in the runtime, it cancels the query at the backend
         const cancelFromCaller = () => {
@@ -258,7 +289,7 @@ export class QueryPlatform {
         if (logObserver != null) logger.buffer.subscribeTrace(trace.traceId, logObserver);
         const execution = ticket.done.then(outcome => {
             if (outcome.status === 'resolved') return outcome.hasResult ? outcome.table as arrow.Table : null;
-            throw this.errorOf(record, outcome.failure, outcome.value);
+            throw this.errorOf(record, args, outcome.failure, outcome.value);
         }).finally(() => {
             args.abortSignal?.removeEventListener('abort', cancelFromCaller);
             if (logObserver != null) logger.buffer.unsubscribeTrace(trace.traceId, logObserver);
@@ -267,51 +298,14 @@ export class QueryPlatform {
         return [queryId, execution];
     }
 
-    /// Describe a query that the runtime runs itself, e.g. a metadata query of the catalog loader or a statement of a run
-    /// of a workbook. The host keeps its record until the runtime forgets it.
-    describeQuery(queryId: number, connection: ConnectionState | null, connectionId: string, query: core.RuntimeQueryDescription): Promise<unknown> {
-        const cache = query.cache ?? null;
-        const record: QueryRecord = {
-            args: {
-                query: query.text,
-                metadata: query.metadata as QueryMetadata,
-                readTimeoutMs: query.readTimeoutMs ?? undefined,
-                throwOnError: true,
-                analyzeResults: query.analyzeResults ?? false,
-                publishResults: query.publishResults ?? true,
-                clientFunctionCall: (query.clientFunctionCall ?? undefined) as QueryExecutionArgs['clientFunctionCall'],
-                ...(cache == null ? {} : { cacheable: true, cacheSignature: cache.signature, refreshCache: cache.refresh, cacheOnly: cache.only }),
-            },
-            channel: null,
-            connector: '',
-            cancellation: new AbortController(),
-            trino: null,
-            stream: null,
-            streamCancel: null,
-            producing: false,
-            table: null,
-            messages: [],
-            wakeMessages: null,
-        };
-        this.records.set(queryId, record);
-        return this.describe(record, connection, connectionId);
-    }
-
-    /// A query that the runtime ran itself ended
-    forget(queryId: number): void {
-        this.records.delete(queryId);
-    }
-
     /// Cancel a query of the runtime, resolves once the query ended
-    cancel(runtime: core.Runtime): CancelQuery {
-        return async (_connectionId, queryId) => {
-            this.records.get(queryId)?.cancellation.abort(abortError());
-            await runtime.cancelQuery(queryId);
-        };
+    async cancel(runtime: core.Runtime, queryId: number): Promise<void> {
+        this.records.get(queryId)?.cancellation.abort(abortError());
+        await runtime.cancelQuery(queryId);
     }
 
     /// The error of a failure. What the host failed with stays, the cancellation of the caller is its reason.
-    private errorOf(record: QueryRecord, failure: core.QueryRunFailure, value: unknown): unknown {
+    private errorOf(record: QueryRecord, args: QueryExecutionArgs, failure: core.QueryRunFailure, value: unknown): unknown {
         if (failure.hostValue) {
             if (failure.kind === 'processing') {
                 return value instanceof LoggableException
@@ -324,86 +318,10 @@ export class QueryPlatform {
             case 'cacheMiss':
                 return new QueryCacheMissError();
             case 'cancelled':
-                return record.args.abortSignal?.reason ?? (record.cancellation.signal.aborted ? record.cancellation.signal.reason : null) ?? abortError();
+                return args.abortSignal?.reason ?? (record.cancellation.signal.aborted ? record.cancellation.signal.reason : null) ?? abortError();
             default:
                 return new LoggableException(failure.message, failure.details, failure.target);
         }
-    }
-
-    /// Where a query runs and what the executor does around it, the request of the runtime as JSON
-    private async describe(record: QueryRecord, connection: ConnectionState | null, connectionId: string): Promise<unknown> {
-        const { args } = record;
-        if (connection == null) throw new Error(`Couldn't find a connection with id ${connectionId}`);
-        const resultCache = this.deps.resultCache();
-        // The cache of the app holds Parquet files that the compute database writes and reads
-        let cacheKey: string | null = null;
-        if (args.cacheable && args.cacheSignature && resultCache != null && supportsParquet(this.deps.computeDatabase())) {
-            cacheKey = await computeQueryCacheKeyForConnection(connection, args.cacheSignature);
-        }
-        const logDetails: Record<string, string> = {};
-        // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
-        if (args.metadata.planned != null) {
-            logDetails.planned = args.metadata.title ?? '';
-            logDetails.node = args.metadata.planned.node.toString();
-        }
-        return {
-            connectionId,
-            text: args.query,
-            target: await this.describeTarget(record, connection),
-            publishResults: args.publishResults !== false,
-            analyzeResults: args.analyzeResults === true,
-            cache: cacheKey == null ? null : { key: cacheKey, refresh: args.refreshCache === true },
-            cacheOnly: args.cacheOnly === true,
-            // Nothing that runs on Salesforce changes its relations
-            touchesRelations: args.metadata.userProvided && connection.connectorType !== ConnectorType.SALESFORCE_DATA_CLOUD,
-            throwOnError: args.throwOnError === true,
-            failure: args.failure == null ? null : { message: args.failure.message },
-            logDetails,
-        };
-    }
-
-    /// The target of a query: a channel that the executor speaks itself, or a channel of the host
-    private async describeTarget(record: QueryRecord, connection: ConnectionState): Promise<unknown> {
-        const { args } = record;
-        const channel: unknown = record.channel ?? this.deps.handles.get(connection.details.channel) ?? null;
-        record.channel = channel;
-        record.connector = CONNECTOR_INFOS[connection.connectorType as ConnectorType].names.displayLong;
-        // The runtime loads the spec of the connector through the extensions of the platform
-        if (args.clientFunctionCall != null) {
-            const salesforce = channel as SalesforceDatabaseChannel | null;
-            const tokens = salesforce?.coreToken != null && salesforce.dataCloudToken != null
-                ? { core: salesforce.coreToken, dataCloud: salesforce.dataCloudToken }
-                : null;
-            return { type: 'clientFunction', connector: connection.connectorType, spec: null, description: args.clientFunctionCall, tokens };
-        }
-        // A Trino channel whose requests go over the HTTP client of the platform
-        if (channel instanceof TrinoChannel) {
-            const endpoint = channel.endpoint;
-            record.trino = channel;
-            return {
-                type: 'trino',
-                endpoint: endpoint.endpoint,
-                auth: endpoint.authParams,
-                accessToken: endpoint.oauthState?.accessToken ?? null,
-                catalog: channel.defaults.catalog,
-                schema: channel.defaults.schema,
-            };
-        }
-        // A Hyper channel over the HTTP API, also the one of a Salesforce connection
-        const hyper = channel as HyperDatabaseChannel | null;
-        if (hyper?.describeHttp != null) {
-            const described = await hyper.describeHttp();
-            if (described != null) {
-                return {
-                    type: 'hyperHttp',
-                    params: described.params,
-                    clientContext: described.clientContext,
-                    auth: described.auth,
-                    parallelChunks: described.parallelChunks,
-                };
-            }
-        }
-        return { type: 'host' };
     }
 
     /// A query of a record
@@ -423,7 +341,7 @@ export class QueryPlatform {
 
     /// Start producing the result of a channel into the table of the query
     private produce(record: QueryRecord, stream: QueryExecutionResponseStream, table: number): void {
-        const publish = record.args.publishResults !== false;
+        const publish = record.query?.publishResults !== false;
         const result = this.deps.tables.stream(table);
         let batches = 0;
         const batchConsumer = {
@@ -465,6 +383,3 @@ export class QueryPlatform {
         return message;
     }
 }
-
-/// The executor of the queries of a runtime as a function
-export type { QueryExecutor };

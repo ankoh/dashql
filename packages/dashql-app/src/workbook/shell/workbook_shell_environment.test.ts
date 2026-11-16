@@ -68,7 +68,7 @@ describe('workbook shell environment', () => {
         const execution = environment.executeQuery('SELECT 42', abort.signal);
 
         abort.abort();
-        expect(cancel).toHaveBeenCalledWith('connection-7', 9);
+        expect(cancel).toHaveBeenCalledWith(9);
         resolveExecution!(tableFromArrays({ value: [42] }));
         await execution;
     });

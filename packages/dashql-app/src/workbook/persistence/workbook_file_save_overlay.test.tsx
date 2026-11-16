@@ -3,7 +3,6 @@ import JSZip from 'jszip';
 import { act } from '@dashql/browser-test-act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useConnectionRegistry } from '../../connections/connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
@@ -22,14 +21,11 @@ import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_datab
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@ankoh/dashql-core';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
-import { useRuntime } from '../../runtime/runtime_provider.js';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { addTestConnections } from '../../tests/test_connections.js';
 import { analyzeWorkbook } from '@ankoh/dashql-runtime/testing/test_runtime';
 
-let coreRuntime: CoreRuntime | null = null;
 let runtime: Runtime | null = null;
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -44,8 +40,6 @@ beforeAll(async () => {
 afterAll(async () => {
     await disposeDatabase?.();
 });
-
-type Registry = ReturnType<typeof useConnectionRegistry>;
 
 const CONNECTION = {
     connectionId: TEST_CONNECTION_ID,
@@ -66,12 +60,9 @@ const WORKBOOK = {
 describe('WorkbookFileSaveOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
-    let registry: Registry | null;
     let download: ReturnType<typeof vi.spyOn>;
 
     function Capture() {
-        registry = useConnectionRegistry();
-        coreRuntime = useCoreRuntime();
         runtime = useRuntime();
         return null;
     }
@@ -95,8 +86,8 @@ describe('WorkbookFileSaveOverlay', () => {
         );
         await root.render(tree(false));
         await act(async () => {
-            addTestConnections(coreRuntime!, [CONNECTION]);
-            coreRuntime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, 'orders', TEST_WORKBOOK_ID);
+            addTestConnections(runtime!, [CONNECTION]);
+            runtime!.createWorkbook(TEST_CONNECTION_ID, 'Orders', false, 'orders', TEST_WORKBOOK_ID);
         });
         await root.render(tree(true));
     }
@@ -105,7 +96,6 @@ describe('WorkbookFileSaveOverlay', () => {
         root = createTestRoot();
         backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'Orders' }));
-        registry = null;
         download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
     });
     afterEach(() => {
@@ -130,8 +120,8 @@ describe('WorkbookFileSaveOverlay', () => {
     }
     /// The workbook and the number of cached results of an archive, as an import of the runtime reads them
     async function readArchive(bytes: Blob): Promise<{ workbook: WorkbookData; results: number }> {
-        const preview = await coreRuntime!.readImport({ archive: bytes });
-        coreRuntime!.dropImport(preview.importId);
+        const preview = await runtime!.readImport({ archive: bytes });
+        runtime!.module?.dropImport(preview.importId);
         return { workbook: preview.workbook as WorkbookData, results: preview.results.count };
     }
 
@@ -173,17 +163,17 @@ describe('WorkbookFileSaveOverlay', () => {
         // them and derives their keys from their signatures.
         let key: string | null = null;
         await act(async () => {
-            coreRuntime!.dispatchConnection(TEST_CONNECTION_ID, { kind: 'setQueryResultCaching', value: { caching: true } });
-            coreRuntime!.dispatchWorkbook(TEST_WORKBOOK_ID, { kind: 'createScript', value: { text: 'select 1 as a', base: '1' } });
-            coreRuntime!.dispatchWorkbook(TEST_WORKBOOK_ID, { kind: 'createScript', value: { text: 'select 2 as b', base: '2' } });
+            runtime!.dispatch({ connection: TEST_CONNECTION_ID }, { kind: 'setQueryResultCaching', value: { caching: true } });
+            runtime!.dispatch({ workbook: TEST_WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 1 as a', base: '1' } });
+            runtime!.dispatch({ workbook: TEST_WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 2 as b', base: '2' } });
             analyzeWorkbook(runtime!, TEST_WORKBOOK_ID);
-            const keys = await coreRuntime!.resultKeys(TEST_WORKBOOK_ID);
+            const keys = await runtime!.resultKeys(TEST_WORKBOOK_ID);
             expect(keys).toHaveLength(2);
             key = keys[0];
         });
         expect(key).not.toBeNull();
         cache.put(key!, null, bytes);
-        const workbook = coreRuntime!.workbook(TEST_WORKBOOK_ID)!;
+        const workbook = runtime!.store.get('workbook', TEST_WORKBOOK_ID)!;
         await root.render(
             <QueryResultCacheProvider cache={cache}>
                 <LoggerProvider>

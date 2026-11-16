@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
-import type { CoreRuntime } from '../../core_runtime.js';
+import type { Runtime } from '../../runtime.js';
 
 describe('Query result cache clearing', () => {
     it('marks the finished queries of every connection whose results were deleted', () => {
@@ -17,10 +17,12 @@ describe('Query result cache clearing', () => {
         ]);
         const dispatch = vi.fn();
         const runtime = {
-            registry: () => ({ connections }),
-            store: { get: (_kind: string, queryId: number) => queries.get(queryId) ?? null },
+            store: {
+                all: () => connections,
+                get: (_kind: string, queryId: number) => queries.get(queryId) ?? null,
+            },
             dispatch,
-        } as unknown as CoreRuntime;
+        } as unknown as Runtime;
         // The cache belongs to the app, a query of any connection may advertise a deleted key
         expect(markDeletedQueryResults(runtime, ['a', 'b'])).toBe(3);
         expect(dispatch.mock.calls).toEqual([

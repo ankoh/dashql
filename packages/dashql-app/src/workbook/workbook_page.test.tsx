@@ -21,15 +21,17 @@ const state = {
 
 const DEFAULT_CONNECTION = { connectionId: 'database' };
 const OTHER_CONNECTION = { connectionId: 'other' };
+const CONNECTIONS = new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) as any;
 
 const dependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode }),
-    useWorkbookScripts: () => [{
+    useWorkbook: () => ({
         workbookMetadata: { ephemeral: state.ephemeral ? true : undefined }, ephemeral: state.ephemeral,
         workbookId: state.workbookId, name: 'Workbook', pendingConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
         scriptKeys: [], scriptRefs: {}, scriptOrder: [],
-    }, vi.fn()],
-    useConnectionRegistry: () => [{ connections: new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) }] as any,
+    }),
+    useDispatch: () => vi.fn(),
+    useConnections: () => CONNECTIONS,
     useLogger: () => ({ warn: vi.fn() }),
     useRouteContext: () => ({ workbookId: state.workbookId }),
     useRouterNavigate: () => state.navigate,

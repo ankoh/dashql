@@ -41,21 +41,21 @@ describe('the runtime', () => {
         try {
             expect((await first.restore()).workbookIds).toEqual([]);
 
-            const connection = first.coreRuntime.createConnection(newDefaultHyperWasmConnection({ active: true }));
-            const workbook = first.coreRuntime.createWorkbook(connection.connectionId, 'Sales', false);
+            const connection = first.createConnection(newDefaultHyperWasmConnection({ active: true }));
+            const workbook = first.createWorkbook(connection.connectionId, 'Sales', false);
             await settle();
-            expect(first.coreRuntime.workbook(workbook.workbookId)?.name).toBe('Sales');
-            expect(first.coreRuntime.registry().connections.get(connection.connectionId)?.workbooks).toEqual([workbook.workbookId]);
+            expect(first.store.get('workbook', workbook.workbookId)?.name).toBe('Sales');
+            expect(first.store.all('connection').get(connection.connectionId)?.workbooks).toEqual([workbook.workbookId]);
             await first.destroy();
             first = null;
 
             second = createRuntime(testPlatform(storage));
             const restored = await second.restore();
             expect(restored.workbookIds).toEqual([workbook.workbookId]);
-            expect(second.coreRuntime.workbook(workbook.workbookId)?.name).toBe('Sales');
+            expect(second.store.get('workbook', workbook.workbookId)?.name).toBe('Sales');
             // The runtime of the module took the stored connection, the store shows it
-            expect(second.coreRuntime.registry().connections.has(connection.connectionId)).toBe(true);
-            expect(second.coreRuntime.catalog(connection.connectionId)).not.toBeNull();
+            expect(second.store.all('connection').has(connection.connectionId)).toBe(true);
+            expect(second.catalog(connection.connectionId)).not.toBeNull();
         } finally {
             await first?.destroy();
             await second?.destroy();

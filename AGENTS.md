@@ -29,15 +29,19 @@ Please consult relevant docs in that directory before making changes.
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
-- The runtime (`packages/dashql-runtime`: the logic of DashQL without React, shared by the app and the Node `dashql`;
-  `createRuntime(platform)` and its services, the platform of Node with a root folder in the layout of OPFS and the
-  embedded Hyper of Node; where tests go: `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers)
+- The runtime (`packages/dashql-runtime`: the TypeScript side of the runtime, shared by the app and the Node `dashql`;
+  `createRuntime(platform)` returns the one `Runtime` facade over the runtime of the core module with the store of its
+  views and the platform object it calls, the platforms (the browser, the desktop app, Node with a root folder in the
+  layout of OPFS and the embedded Hyper of Node), the connector clients and channels; the hooks of the app over it are
+  `useView`, `useDispatch`, `useTable` and their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where
+  tests go: `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers)
     - `docs/wip/dashql_runtime.md`
 
 - The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state and the services of DashQL in
-  Rust, linked into the core module; the app runs its workbook scripts, connections, queries, computations, catalog
-  loader, connection setups, workbook runs, restore, storage writes and workbook format on it; services are async on a
-  `Host` the platform implements; `dashql-core-script` is the per-script session of the core)
+  Rust, linked into the core module; the app runs its workbook scripts, connections, queries with their descriptions and
+  the keys of the query result cache, computations, catalog loader, connection setups, workbook runs, restore, storage
+  writes, imports and exports and workbook format on it; services are async on a `Host` the platform implements;
+  `dashql-core-script` is the per-script session of the core)
     - `docs/wip/core_runtime.md`
 
 - The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the

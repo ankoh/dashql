@@ -4,7 +4,7 @@ import { randomScriptName } from '@ankoh/dashql-runtime/workbook/scripts/script_
 import { scriptDisplayName, type ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import type { ScriptData, WorkbookAction, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
 
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { createdScriptRef, type ScriptSelection } from './script_selection.js';
 
 /// What a new script starts with
@@ -33,17 +33,17 @@ export function createScriptAction(workbook: Pick<WorkbookScripts, 'scriptOrder'
 
 /// Read a workbook as the runtime holds it now, e.g. right after an action: the store takes the changes first
 export function useLiveWorkbookReader(): (workbookId: string) => WorkbookScripts | null {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useCallback((workbookId: string) => {
         if (runtime == null) return null;
         runtime.flush();
-        return runtime.workbook(workbookId);
+        return runtime.store.get('workbook', workbookId);
     }, [runtime]);
 }
 
 /// Read a script as the runtime holds it now, e.g. the file name of a renamed script: the store takes the changes first
 export function useLiveScriptReader(): (scriptKey: number) => ScriptData | null {
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     return React.useCallback((scriptKey: number) => {
         if (runtime == null) return null;
         runtime.flush();

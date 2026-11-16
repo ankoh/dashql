@@ -87,12 +87,6 @@ export function connectionParamsHaveLoginHint(params: ConnectionParams | null): 
     return connector.loginHint(connectorParams(connector, params)) != null;
 }
 
-/// The params that identify the results of a query in the query result cache
-export function createConnectionParamsSignature(params: ConnectionParams): unknown {
-    const connector = connectorOfParams(params);
-    return connector.cacheSignature(connectorParams(connector, params));
-}
-
 /// The options of a connection that is created with params: whether it is active and its name
 export type NewConnectionOptions = Pick<NewConnection, 'active' | 'name'>;
 

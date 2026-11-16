@@ -6,12 +6,10 @@ import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useQueryState } from '../../connections/query_executor.js';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookDerived, useWorkbookScriptMap } from '../scripts/workbook_scripts_registry.js';
 import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
 import type { ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
 import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
@@ -43,12 +41,11 @@ import {
 import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
 import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
-import { useOptionalCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
 import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
-import { useQueryResultTable } from '../../connections/query_executor.js';
 
 const FitIcon = SymbolIcon('graph_align');
 
@@ -63,7 +60,7 @@ const RESIZE_KEY_STEP = 16;
 const NEVER_COLLAPSED = () => false;
 
 export interface DataflowCanvasDependencies {
-    useQueryState: typeof useQueryState;
+    useQuery: typeof useQuery;
     VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
     ScriptEntryHeader: typeof ScriptEntryHeader;
@@ -72,7 +69,7 @@ export interface DataflowCanvasDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
-    useQueryState,
+    useQuery,
     VisualizationPanel,
     useDataflowModule,
     ScriptEntryHeader,
@@ -495,7 +492,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     // The headers of the boxes show the diagnostics of the script references like the feed
     const scriptReferences = derived?.references ?? NO_REFERENCES;
     // The core of the runtime, or the one that the package instantiated, e.g. of a canvas without a runtime
-    const coreInstance = useOptionalCoreRuntime()?.core ?? core.DashQL.instantiated();
+    const coreInstance = useOptionalRuntime()?.core ?? core.DashQL.instantiated();
     const quoteIdentifier = React.useCallback((name: string) => coreInstance?.quoteIdentifier(name) ?? quoteSqlIdentifier(name), [coreInstance]);
     const readWorkbook = useLiveWorkbookReader();
     const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
@@ -799,8 +796,7 @@ function onHeaderItself(event: React.SyntheticEvent): boolean {
 function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
     const config = props.config;
-    const workbookId = props.workbookScripts.workbookId;
-    const query = props.dependencies.useQueryState(workbookId, script?.latestQueryId ?? null);
+    const query = props.dependencies.useQuery(script?.latestQueryId ?? null);
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
     const terminal = box.rows.length - 1;

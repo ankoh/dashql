@@ -4,7 +4,7 @@ import { setupStepAction as setupStep, type ConnectionState } from '../connectio
 import { newConnectionFromParams, type ConnectionParams } from '../connections/connection_params.js';
 import { connectorOfParams, connectorParams } from '../connections/connector_descriptor.js';
 import { ConnectorType } from '../connections/connector_info.js';
-import type { CoreRuntime } from '../core_runtime.js';
+import type { Runtime } from '../runtime.js';
 
 /// The options of a connection of a test
 export interface TestConnectionOptions {
@@ -24,8 +24,8 @@ export interface TestConnectionOptions {
 }
 
 /// Apply an action to a connection of a test, returns the connection as the runtime holds it now
-export function reduceTestConnection(runtime: CoreRuntime, state: Pick<ConnectionState, 'connectionId'>, action: core.RuntimeAction): ConnectionState {
-    runtime.dispatchConnection(state.connectionId, action);
+export function reduceTestConnection(runtime: Runtime, state: Pick<ConnectionState, 'connectionId'>, action: core.RuntimeAction): ConnectionState {
+    runtime.dispatch({ connection: state.connectionId }, action);
     runtime.flush();
     const next = runtime.connection(state.connectionId);
     if (next == null) throw new Error(`the runtime has no connection ${state.connectionId}`);
@@ -33,7 +33,7 @@ export function reduceTestConnection(runtime: CoreRuntime, state: Pick<Connectio
 }
 
 /// A connection of a test in a runtime, with a channel ready and online if the options have one
-export function createTestConnection(runtime: CoreRuntime, options: TestConnectionOptions): ConnectionState {
+export function createTestConnection(runtime: Runtime, options: TestConnectionOptions): ConnectionState {
     const connector = connectorOfParams(options.params);
     const setupParams = connectorParams(connector, options.params);
     let state = runtime.createConnection(newConnectionFromParams(options.params, { active: options.active, name: options.name }), options.connectionId ?? 'test');

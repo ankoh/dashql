@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router/router.js';
-import { useConnectionAllocator, useConnectionRegistryStore } from '../connections/connection_registry.js';
-import { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
 import { isHyperLinkParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
@@ -12,16 +11,16 @@ import {
     newScriptConnection,
     WorkbookScripts,
 } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { useWorkbookScriptsCreation, useWorkbookScriptsDispatch } from './scripts/workbook_scripts_registry.js';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useCreateWorkbook } from './workbook_lifecycle.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one
 export type WorkbookCreation = (database: ConnectionState, name?: string) => WorkbookScripts;
 
 export function useWorkbookCreation(): WorkbookCreation {
-    const allocate = useWorkbookScriptsCreation();
-    const runtime = useOptionalCoreRuntime();
+    const allocate = useCreateWorkbook();
+    const runtime = useOptionalRuntime();
     return React.useCallback((database: ConnectionState, name?: string) => {
         // The ephemeral workbook gives up its name
         const taken = [...runtime?.store.all('workbook').values() ?? []].filter(workbook => !isEphemeralWorkbook(workbook)).map(workbook => workbook.name);
@@ -35,9 +34,8 @@ export function useWorkbookCreation(): WorkbookCreation {
 /// user picked, unless the connection is the one of a Hyper link: a link moves the workbook to its connection, and a
 /// workbook on the connection of a link that is gone moves back.
 export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookScripts {
-    const allocate = useWorkbookScriptsCreation();
-    const runtime = useOptionalCoreRuntime();
-    const modifyWorkbookScripts = useWorkbookScriptsDispatch();
+    const allocate = useCreateWorkbook();
+    const runtime = useOptionalRuntime();
     return React.useCallback((database: ConnectionState) => {
         const existing = [...runtime?.store.all('workbook').values() ?? []].find(isEphemeralWorkbook);
         if (existing == null) return allocate(database.connectionId, EPHEMERAL_WORKBOOK_NAME, true);
@@ -46,23 +44,24 @@ export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookS
         if (current !== database.connectionId && (
             getHyperLinkTabState().current === database.connectionId || (currentParams != null && isHyperLinkParams(currentParams))
         )) {
-            modifyWorkbookScripts(existing.workbookId, { kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
+            runtime?.dispatch({ workbook: existing.workbookId }, { kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
         }
         return existing;
-    }, [allocate, modifyWorkbookScripts, runtime]);
+    }, [allocate, runtime]);
 }
 
 /// The ephemeral workbook on the connection that new workbooks start on, null before the app set up its connections
 export function useEnsureEphemeralWorkbook(): () => WorkbookScripts | null {
-    const registryStore = useConnectionRegistryStore();
-    const allocateConnection = useConnectionAllocator();
+    const runtime = useOptionalRuntime();
     const ephemeralWorkbook = useEphemeralWorkbook();
     return React.useCallback(() => {
-        const { connections } = registryStore.current;
+        if (runtime == null) return null;
+        const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
         const embedded = findEmbeddedConnection(connections.values());
         if (embedded == null) return null;
-        return ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, getHyperLinkTabState().current));
-    }, [allocateConnection, ephemeralWorkbook, registryStore]);
+        const allocate = runtime.createConnection.bind(runtime);
+        return ephemeralWorkbook(newWorkbookConnection(connections, allocate, getHyperLinkTabState().current));
+    }, [ephemeralWorkbook, runtime]);
 }
 
 /// Open the greeter, the feed of the ephemeral workbook at the root of the app

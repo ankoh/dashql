@@ -13,8 +13,8 @@ import * as dashql from '@ankoh/dashql-core';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
-import { CoreRuntimeProvider, StandaloneCoreRuntime } from '../../runtime/runtime_hooks.js';
-import { testCoreRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import { RuntimeContextProvider, StandaloneRuntime } from '../../runtime/runtime_hooks.js';
+import { testRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -85,14 +85,14 @@ describe('FeedEntryFooter', () => {
     function renderFooter(resultTable: arrow.Table, visualizeQuery: ResolvedVisualizeQuery | null = null) {
         // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
-            <StandaloneCoreRuntime>
+            <StandaloneRuntime>
                 <WithResultTables>
                     <FooterWithTabs
                         queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(resultTable) } as any}
                         visualizeQuery={visualizeQuery}
                     />
                 </WithResultTables>
-            </StandaloneCoreRuntime>,
+            </StandaloneRuntime>,
         ));
     }
 
@@ -235,9 +235,9 @@ describe('FeedEntryFooter', () => {
             latestProgressUpdate: { phase: 'RUNNING', profile: profileView },
         } as unknown as QueryExecutionState;
         act(() => root.render(
-            <CoreRuntimeProvider value={testCoreRuntime(core)}>
+            <RuntimeContextProvider value={testRuntime(core)}>
                 <FeedEntryFooter workbookId="workbook" queryState={queryState} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} dependencies={dependencies} />
-            </CoreRuntimeProvider>,
+            </RuntimeContextProvider>,
         ));
         const profile = container.querySelector<HTMLElement>('[data-testid="query-progress-profile"]');
         expect(profile?.style.height).toEqual('240px');

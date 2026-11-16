@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
 import { clientContextOf, type ComputeQueryExecution, type ComputeTaskContext } from '@ankoh/dashql-runtime/compute/compute_platform';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { sqlframeClientContext } from '../connections/hyper/hyper_log_metrics.js';
@@ -13,7 +13,7 @@ const LOG_CTX = 'scheduler';
 export function WorkbookComputeQueryExecutionProvider(props: React.PropsWithChildren) {
     // Resolve the connection when the task starts, subscribing to the computations would re-create the
     // execution factory and re-render the scheduler for every task step.
-    const runtime = useOptionalCoreRuntime();
+    const runtime = useOptionalRuntime();
     const createExecution = React.useCallback((task: ComputeTaskContext) => {
         const computation = runtime?.store.get('computation', task.tableId) ?? null;
         const connectionId = computation?.connectionId ?? null;

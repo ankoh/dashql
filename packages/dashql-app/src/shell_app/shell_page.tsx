@@ -9,7 +9,7 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
-import { useCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useRuntime } from '../runtime/runtime_hooks.js';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
 import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
@@ -61,7 +61,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const coreProgress = useDashQLCoreSetupProgress();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const queryExecutions = useShellQueryHistory();
-    const coreRuntime = useCoreRuntime();
+    const runtime = useRuntime();
     const httpClient = useHttpClient();
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
@@ -93,8 +93,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         shellRef.current?.setKeywordCase(keywordCase);
     }, [keywordCase]);
     const releaseResult = React.useCallback((queryId: number) => {
-        coreRuntime.deleteComputation(queryId);
-    }, [coreRuntime]);
+        runtime.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
+    }, [runtime]);
     const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
         dropResultQuery();
@@ -152,9 +152,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         login: form.loginHint,
                     };
                     // The runtime logs in with the flow of this login, the window of the click of the user
-                    coreRuntime.setHttp(httpClient);
+                    runtime.setHttp(httpClient);
                     const loginId = `shell-login-${++loginCount}`;
-                    const cancel = () => coreRuntime.cancelSetup(loginId);
+                    const cancel = () => runtime.module?.cancelSetup(loginId);
                     signal?.addEventListener('abort', cancel, { once: true });
                     const messages: Record<string, string> = {
                         GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',
@@ -164,7 +164,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         REQUESTING_DATA_CLOUD_ACCESS_TOKEN: 'Requesting Data Cloud credentials',
                     };
                     try {
-                        const outcome = await coreRuntime.authenticateSalesforce(loginId, params, {
+                        const outcome = await runtime.authenticateSalesforce(loginId, params, {
                             oauthRedirect,
                             forceRelogin: appConfigRef.current?.settings?.forceReLogin ?? false,
                         }, {
@@ -264,8 +264,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
                     prepareResult: (queryId, table) => {
                         // The computations of the results of the shell run on its database
-                        coreRuntime.setComputeDatabase(database);
-                        return coreRuntime.analyzeTable(queryId, table);
+                        runtime.setComputeDatabase(database);
+                        return runtime.analyzeTable(queryId, table);
                     },
                     // The statement succeeded, following the catalog must not fail it
                     afterStatement: async statement => {
@@ -343,7 +343,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             fileRegistryRef.current = null;
             void fileRegistry?.dispose().finally(() => connection?.close());
         };
-    }, [appEvents, coreRuntime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (

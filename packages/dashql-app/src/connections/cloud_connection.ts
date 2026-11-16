@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { useConnectionRegistry } from './connection_registry.js';
+import { useConnections } from '../runtime/runtime_hooks.js';
 import { useAppConfig, useAppReconfigure, type AppSettings } from '../config/app_config.js';
 import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
 
@@ -60,9 +60,8 @@ export function useCloudConnectionIds(): string[] {
 /// The cloud connections, those that are gone are left out
 export function useCloudConnections(): ConnectionState[] {
     const cloudConnectionIds = useCloudConnectionIds();
-    const [registry] = useConnectionRegistry();
-    // The registry changes the states of its connections in place, a new registry is the sign of a change
-    return React.useMemo(() => findCloudConnections(registry.connections, cloudConnectionIds), [registry, cloudConnectionIds]);
+    const connections = useConnections();
+    return React.useMemo(() => findCloudConnections(connections, cloudConnectionIds), [connections, cloudConnectionIds]);
 }
 
 /// Make a connection a cloud, or stop using it as one

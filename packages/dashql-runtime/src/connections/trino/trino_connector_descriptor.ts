@@ -1,6 +1,5 @@
 import type { ConnectorDescriptor } from '../connector_descriptor.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connector_info.js';
-import { trinoSessionDefaults } from './trino_catalogs.js';
 
 /// Trino connections
 export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
@@ -23,21 +22,6 @@ export const TRINO_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'trino'> = {
         };
     },
     loginHint: params => params.auth?.basic?.username || null,
-    // The credentials and the user stay out, a new token or another login reuses the cached results
-    cacheSignature: params => ({
-        case: "trino",
-        endpoint: params.endpoint,
-        auth: {
-            authType: params.auth?.authType,
-            oauthAuthUrl: params.auth?.oauth?.authorizationUrl,
-            oauthTokenUrl: params.auth?.oauth?.tokenUrl,
-            oauthRedirectUrl: params.auth?.oauth?.callbackUrl,
-            oauthClientId: params.auth?.oauth?.clientId,
-            oauthScopes: params.auth?.oauth?.scopes,
-        },
-        // The defaults resolve the names that statements leave out, the catalogs only decide what the catalog loader reads
-        defaults: trinoSessionDefaults(params),
-    }),
     maxConcurrentQueries: () => 1,
     catalogIsDurable: () => true,
     readsAttachments: () => false,

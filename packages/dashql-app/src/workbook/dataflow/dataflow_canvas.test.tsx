@@ -28,7 +28,7 @@ function show(next: TestWorkbook): void {
 }
 
 const dependencies: DataflowCanvasDependencies = {
-    useQueryState: () => null,
+    useQuery: () => null,
     VisualizationPanel: () => <div data-testid="chart" />,
     useDataflowModule: () => ({ layout, error: null }),
     // The header of the feed entry needs the connections and the storage of the app

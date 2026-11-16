@@ -1,5 +1,5 @@
-import { isHyperWasmConnection } from '@ankoh/dashql-runtime/connections/connection_label';
-import { isListedConnection, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
+import type * as core from '@ankoh/dashql-core';
+import { isHyperWasmConnection, isListedConnection } from '@ankoh/dashql-runtime/connections/connection_label';
 import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
 
@@ -16,15 +16,15 @@ export interface ConnectionReplaceCandidates {
 /// Every other listed connection can, the user can't see the others. The connections of the same
 /// connector come first, they are the likely replacements.
 export function connectionReplaceCandidates(
-    registry: Pick<ConnectionRegistry, 'connections'>,
-    references: ConnectionReferences,
+    connections: ReadonlyMap<string, ConnectionState>,
+    list: Pick<core.ConnectionListView, 'connections'> | null,
     sourceId: string,
 ): ConnectionReplaceCandidates {
-    const source = registry.connections.get(sourceId);
+    const source = connections.get(sourceId);
     const candidates: ConnectionReplaceCandidates = { sameConnector: [], otherConnectors: [] };
     if (source == null) return candidates;
-    for (const [connectionId, connection] of registry.connections) {
-        if (connectionId === sourceId || !isListedConnection(registry, references, connectionId)) continue;
+    for (const [connectionId, connection] of connections) {
+        if (connectionId === sourceId || !isListedConnection(list, connectionId)) continue;
         if (connection.connectorType === source.connectorType) {
             candidates.sameConnector.push(connection);
         } else {
@@ -42,19 +42,19 @@ export function connectionReplaceCandidates(
 ///  - Running queries would lose the connection they run on.
 ///  - A workbook whose script changed outside the app holds its writes, its file can't follow.
 export function connectionReplaceBlocker(
-    registry: Pick<ConnectionRegistry, 'connections'>,
-    references: ConnectionReferences,
+    connections: ReadonlyMap<string, ConnectionState>,
+    list: Pick<core.ConnectionListView, 'connections'> | null,
     sourceId: string,
     isWorkbookHeld: (workbookId: string) => boolean,
 ): string | null {
-    const source = registry.connections.get(sourceId);
+    const source = connections.get(sourceId);
     if (source == null) return 'Unknown connection';
     if (isHyperWasmConnection(source)) return 'Workbooks fall back to it';
     const running = source.queriesActiveOrdered.length;
     if (running > 0) return `${running} ${running === 1 ? 'query' : 'queries'} running`;
-    const held = references.workbooksOf(sourceId).filter(isWorkbookHeld).length;
+    const held = source.workbooks.filter(isWorkbookHeld).length;
     if (held > 0) return `${held} ${held === 1 ? 'workbook' : 'workbooks'} changed outside the app`;
-    const candidates = connectionReplaceCandidates(registry, references, sourceId);
+    const candidates = connectionReplaceCandidates(connections, list, sourceId);
     if (candidates.sameConnector.length + candidates.otherConnectors.length === 0) return 'No other connection';
     return null;
 }

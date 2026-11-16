@@ -16,12 +16,12 @@ const dependencies = {
         state.codeMirrorProps = props;
         return <div data-testid="codemirror" />;
     }),
-    useWorkbookScripts: () => [{
+    useWorkbook: () => ({
         workbookId: 'workbook',
         scriptKeys: [7],
         scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
         scriptOrder: ['query.sql'],
-    }, vi.fn()],
+    }),
     useScript: () => ({
         scriptKey: 7,
         workbookId: 'workbook',
@@ -75,12 +75,12 @@ describe('ScriptEditor', () => {
                 }, [node]);
                 return <div ref={setNode} />;
             }),
-            useWorkbookScripts: () => [{
+            useWorkbook: () => ({
                 workbookId: 'workbook',
                 scriptKeys: [7],
                 scriptRefs: { 'query.sql': { scriptId: 7, fileName: 'query.sql' } },
                 scriptOrder: ['query.sql'],
-            }, vi.fn()],
+            }),
             useScript: () => ({ scriptKey: 7, workbookId: 'workbook', fileName: 'query.sql', scriptSession, connectionId: 'main' }),
         } as unknown as ScriptEditorDependencies;
 

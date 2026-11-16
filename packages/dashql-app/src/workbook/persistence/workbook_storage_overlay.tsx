@@ -10,7 +10,8 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { StorageBackendType } from '@ankoh/dashql-runtime/storage/storage_backend';
 import { displayPath } from '../../storage/workbook_locator.js';
-import { useStorageReader, useStorageWriter } from '../../storage/storage_provider.js';
+import { useStorageReader } from '../../storage/storage_provider.js';
+import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 
@@ -66,7 +67,7 @@ interface WorkbookStorageViewerProps {
 
 export const WorkbookStorageViewer: React.FC<WorkbookStorageViewerProps> = (props) => {
     const reader = useStorageReader();
-    const writer = useStorageWriter();
+    const writer = useRuntime().storage;
     const logger = useLogger();
     const platform = usePlatformType();
 

@@ -644,7 +644,7 @@ impl Runs {
             let registry = self.connections.registry.borrow();
             scripts.iter().map(|id| registry.get(id).is_some_and(|connection| connection.state.try_borrow().is_ok_and(|state| state.caches_query_results()))).collect()
         };
-        let platform = self.platform.clone();
+        let connections = self.connections.clone();
         let scripts = Rc::new(scripts);
         Ok(Box::pin(async move {
             if !graph.valid {
@@ -653,7 +653,7 @@ impl Runs {
             let key_scripts = scripts.clone();
             let keys = result_keys(
                 &graph,
-                move |script, signature| platform.cache_key(key_scripts.get(script as usize).map(String::as_str).unwrap_or_default(), &signature),
+                move |script, signature| connections.result_key(key_scripts.get(script as usize).map(String::as_str).unwrap_or_default(), &signature),
                 |script| caches.get(script as usize).copied().unwrap_or(false),
             )
             .await;
@@ -770,7 +770,7 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
-        self.platform.cache_key(connection_id, signature)
+        self.connections.result_key(connection_id, signature)
     }
 
     fn caches_results(&self, connection_id: &str) -> bool {

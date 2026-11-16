@@ -16,20 +16,6 @@ export const HYPER_CONNECTOR_DESCRIPTOR: ConnectorDescriptor<'hyper'> = {
         return { ...hyper, tls: { clientKeyPath: "", clientCertPath: "", caCertsPath: "" } };
     },
     loginHint: () => null,
-    // The gRPC metadata stays out, its headers may carry credentials that change with every token.
-    // The query parameters are session settings that may change the results.
-    cacheSignature: params => ({
-        case: "hyper",
-        protocol: params.protocol,
-        channelArgs: {
-            endpoint: params.endpoint,
-            tls: params.tls
-        },
-        attachedDatabases: (params.attachedDatabases || [])
-            .map((d: any) => ({ path: d.path, alias: d.alias }))
-            .sort((a: any, b: any) => a.path > b.path ? 1 : -1),
-        queryParameters: params.queryParameters ? Object.entries(params.queryParameters).sort(([a,], [b]) => a > b ? 1 : -1) : []
-    }),
     // A Hyper server runs statements in parallel, the embedded HyperDB-WASM one at a time
     maxConcurrentQueries: details => protocolOf(details) != null && protocolOf(details) !== 'WASM' ? 4 : 1,
     // The embedded HyperDB-WASM database is created anew with every page load. Its functions are the builtins of

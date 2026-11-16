@@ -150,11 +150,6 @@ export class WorkbookTestBackend implements StorageBackend {
 export const TEST_WORKBOOK_ID = '11111111-2222-4333-8444-555555555555';
 export const TEST_CONNECTION_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
-/// The connection fields of a test workbook
-export function testConnections(...connections: WorkbookData['connections']): Pick<WorkbookData, 'connections'> {
-    return { connections };
-}
-
 export function testWorkbook(overrides: Partial<WorkbookData> = {}): WorkbookData {
     return {
         formatVersion: WORKBOOK_FORMAT_VERSION,

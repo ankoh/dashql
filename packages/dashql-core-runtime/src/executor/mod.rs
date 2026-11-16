@@ -28,6 +28,7 @@
 //!
 //! Ported from `QueryExecutorService` of `packages/dashql-runtime/src/connections/query_executor_service.ts`.
 
+pub mod cache_key;
 pub mod connectors;
 pub mod ipc;
 pub mod json;

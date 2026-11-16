@@ -1,19 +1,19 @@
 import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { CoreRuntimeProvider, useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { RuntimeContextProvider, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 /// The Arrow tables of the results of the tests, by their handle
 const TABLES = new Map<number, arrow.Table>();
 /// Far from the handles of a runtime above
 let NEXT_HANDLE = 1_000_000;
 
-/// A runtime of the module that holds only the tables of the results, for views that read the result of a query
+/// A runtime that holds only the tables of the results, for views that read the result of a query
 const RESULT_TABLE_RUNTIME = {
     table: (handle: number | null | undefined) => (handle == null ? undefined : TABLES.get(handle)),
-} as unknown as CoreRuntime;
+} as unknown as Runtime;
 
 /// The result of a query as its view holds it, a handle of the table. `WithResultTables` lets the views read it.
 export function resultTableOf(table: arrow.Table): { id: number; rows: number };
@@ -37,7 +37,7 @@ export function succeededQuery(table: arrow.Table, queryId: number = 1): QueryEx
 /// The views below read the results of the queries of `succeededQuery` and `resultTableOf`. Below a runtime, they
 /// read everything else from that runtime.
 export function WithResultTables(props: { children: React.ReactNode }) {
-    const above = useOptionalCoreRuntime();
+    const above = useOptionalRuntime();
     const runtime = React.useMemo(() => {
         if (above == null) return RESULT_TABLE_RUNTIME;
         const table = (handle: number | null | undefined) => (handle == null ? undefined : TABLES.get(handle)) ?? above.table(handle);
@@ -49,5 +49,5 @@ export function WithResultTables(props: { children: React.ReactNode }) {
             },
         });
     }, [above]);
-    return <CoreRuntimeProvider value={runtime}>{props.children}</CoreRuntimeProvider>;
+    return <RuntimeContextProvider value={runtime}>{props.children}</RuntimeContextProvider>;
 }

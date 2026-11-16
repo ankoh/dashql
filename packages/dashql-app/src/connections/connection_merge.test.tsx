@@ -2,10 +2,10 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as core from '@ankoh/dashql-core';
 
 import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from '@ankoh/dashql-runtime/connections/connection_params';
-import { NO_CONNECTION_REFERENCES, type ConnectionReferences, type ConnectionRegistry } from './connection_registry.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
@@ -34,18 +34,29 @@ function database(connectionId: string, params: any, health = ConnectionHealth.N
     } as unknown as ConnectionState;
 }
 
-function registry(...databases: ConnectionState[]): ConnectionRegistry {
-    const reg = { connections: new Map<string, ConnectionState>(), connectionsByType: CONNECTOR_TYPES.map((): string[] => []) };
-    for (const db of databases) {
-        reg.connections.set(db.connectionId, db);
-        reg.connectionsByType[db.connectorType].push(db.connectionId);
-    }
-    return reg;
+/// The connections and their list as the runtime shows them. A connection is listed if it is active or a workbook
+/// uses it.
+function views(databases: ConnectionState[], used: readonly string[] = []) {
+    const connectionsByType = CONNECTOR_TYPES.map((): string[] => []);
+    for (const db of databases) connectionsByType[db.connectorType].push(db.connectionId);
+    return {
+        connections: new Map(databases.map(db => [db.connectionId, db])),
+        list: {
+            connections: databases.map(db => ({
+                connectionId: db.connectionId,
+                connectorType: db.connectorType,
+                active: db.active,
+                listed: db.active || used.includes(db.connectionId),
+                ordinal: null,
+            })),
+            connectionsByType,
+        } as unknown as core.ConnectionListView,
+    };
 }
 
 describe('connectionMergeCandidates', () => {
     it('lists the listed connections that describe the same database', () => {
-        const reg = registry(
+        const { connections, list } = views([
             database('target', grpc('http://hyper', 'one')),
             // Secrets don't tell connections apart
             database('same', grpc('http://hyper', 'two')),
@@ -53,24 +64,23 @@ describe('connectionMergeCandidates', () => {
             database('other-connector', trino('http://hyper')),
             // Inactive connections that no workbook uses are not listed
             database('unlisted', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false),
-        );
-        expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'target').map(db => db.connectionId)).toEqual(['same']);
+        ]);
+        expect(connectionMergeCandidates(connections, list, 'target').map(db => db.connectionId)).toEqual(['same']);
     });
 
     it('lists the embedded database of an imported workbook next to the default one', () => {
-        const reg = registry(
+        const { connections, list } = views([
             database('default', createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), ConnectionHealth.ONLINE),
             // Exported workbooks carry every list and map, even when empty
             database('example', wasm(), ConnectionHealth.ONLINE),
-        );
-        expect(connectionMergeCandidates(reg, NO_CONNECTION_REFERENCES, 'default').map(db => db.connectionId)).toEqual(['example']);
+        ]);
+        expect(connectionMergeCandidates(connections, list, 'default').map(db => db.connectionId)).toEqual(['example']);
     });
 
     it('lists unlisted connections once workbooks use them', () => {
-        const reg = registry(database('target', grpc('http://hyper')), database('used', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false));
-        const references: ConnectionReferences = { ...NO_CONNECTION_REFERENCES, workbooksOf: id => id === 'used' ? ['workbook'] : [] };
-        expect(connectionMergeCandidates(reg, references, 'target').map(db => db.connectionId)).toEqual(['used']);
-        expect(connectionMergeCandidates(reg, references, 'missing')).toEqual([]);
+        const { connections, list } = views([database('target', grpc('http://hyper')), database('used', grpc('http://hyper'), ConnectionHealth.NOT_STARTED, false)], ['used']);
+        expect(connectionMergeCandidates(connections, list, 'target').map(db => db.connectionId)).toEqual(['used']);
+        expect(connectionMergeCandidates(connections, list, 'missing')).toEqual([]);
     });
 });
 
@@ -90,7 +100,7 @@ describe('connection merge ui', () => {
     });
 
     it('offers merging in the row menu only when there are duplicates', () => {
-        const dependencies: ConnectionRefreshDependencies = { useCatalogLoaderQueue: () => vi.fn() };
+        const dependencies: ConnectionRefreshDependencies = { useRefreshCatalog: () => vi.fn() };
         const onMerge = vi.fn();
         const render = (mergeCandidateCount: number) => {
             act(() => root.render(

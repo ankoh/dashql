@@ -1,9 +1,7 @@
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-runtime/connections/connector_info';
 import { type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { connectionLabel, connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
-import { connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_registry_state';
-import type { ConnectionRegistry } from './connection_registry.js';
-import { fixedConnectionReferences } from '@ankoh/dashql-runtime/testing/mocks/connection_references';
+import type * as core from '@ankoh/dashql-core';
+import { connectionLabel, connectionLabelParts, connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_label';
 import {
     connectionTreeRowHeight,
     flattenCatalogRows,
@@ -77,36 +75,39 @@ describe('connections of the same connector', () => {
         connectorType: ConnectorType.TRINO,
         details: { setupParams: {}, channel: null, connector: { kind: 'trino' } },
     }) as unknown as ConnectionState;
-    const registryOf = (databases: ConnectionState[]) => {
-        const connectionsByType: string[][] = [[], [], []];
-        for (const database of databases) connectionsByType[database.connectorType].push(database.connectionId);
-        return {
-            connections: new Map(databases.map(database => [database.connectionId, database])),
-            connectionsByType,
-        } as unknown as ConnectionRegistry;
-    };
-    const noReferences = fixedConnectionReferences({});
-
-    it('numbers connections only when their connector repeats', () => {
-        const registry = registryOf([hyper('a'), trino('t'), hyper('b')]);
-        const ordinals = connectionOrdinals(registry, noReferences);
-        expect([...ordinals]).toEqual([['a', 1], ['b', 2]]);
-        expect(connectionLabel(registry.connections.get('b')!, ordinals.get('b'))).toBe('Hyper #2 Http');
-        expect(connectionLabel(registry.connections.get('t')!, ordinals.get('t') ?? null)).toBe('Trino Http');
+    /// The connections and their list as the runtime shows them, with the listed connections and their ordinals
+    const viewsOf = (databases: ConnectionState[], listed: Record<string, boolean> = {}, ordinals: Record<string, number> = {}) => ({
+        connections: new Map(databases.map(database => [database.connectionId, database])),
+        list: {
+            connections: databases.map(database => ({
+                connectionId: database.connectionId,
+                connectorType: database.connectorType,
+                active: database.active,
+                listed: listed[database.connectionId] ?? database.active,
+                ordinal: ordinals[database.connectionId] ?? null,
+            })),
+            connectionsByType: [],
+        } as unknown as core.ConnectionListView,
     });
 
-    it('does not number connections that are not listed', () => {
+    it('labels connections with the ordinals of the list', () => {
+        const { connections, list } = viewsOf([hyper('a'), trino('t'), hyper('b')], {}, { a: 1, b: 2 });
+        const ordinals = connectionOrdinals(list);
+        expect([...ordinals]).toEqual([['a', 1], ['b', 2]]);
+        expect(connectionLabel(connections.get('b')!, ordinals.get('b'))).toBe('Hyper #2 Http');
+        expect(connectionLabel(connections.get('t')!, ordinals.get('t') ?? null)).toBe('Trino Http');
+    });
+
+    it('lists the connections that the list marks as listed', () => {
         // Inactive connections that no workbook uses are not listed
-        const registry = registryOf([hyper('a', { active: false }), hyper('b', { active: false })]);
-        const references = fixedConnectionReferences({ workbook: ['a'] });
-        expect(connectionOrdinals(registry, references).size).toBe(0);
-        expect(listedConnections(registry, references, []).map(database => database.connectionId)).toEqual(['a']);
+        const { connections, list } = viewsOf([hyper('a', { active: false }), hyper('b', { active: false })], { a: true });
+        expect(connectionOrdinals(list).size).toBe(0);
+        expect(listedConnections(connections, list, []).map(database => database.connectionId)).toEqual(['a']);
     });
 
     it('always lists the clouds', () => {
-        const registry = registryOf([hyper('a', { active: false }), hyper('b', { active: false })]);
-        const references = fixedConnectionReferences({ workbook: ['a'] });
-        expect(listedConnections(registry, references, [], ['b']).map(database => database.connectionId)).toEqual(['a', 'b']);
+        const { connections, list } = viewsOf([hyper('a', { active: false }), hyper('b', { active: false })], { a: true });
+        expect(listedConnections(connections, list, [], ['b']).map(database => database.connectionId)).toEqual(['a', 'b']);
     });
 
     it('sizes the group headings of the connection tree', () => {

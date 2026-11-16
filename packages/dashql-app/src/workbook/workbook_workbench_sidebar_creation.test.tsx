@@ -9,8 +9,8 @@ import { connectionLabelParts } from '@ankoh/dashql-runtime/connections/connecti
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../app/router/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
-import type { CoreRuntime } from '@ankoh/dashql-runtime/core_runtime';
-import { CoreRuntimeProvider } from '../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -57,6 +57,35 @@ function connectionsByType(): string[][] {
     return byType;
 }
 
+/// The views of the fake connections, with the workbooks that use them
+function connectionViews(): Map<string, ConnectionState> {
+    return new Map([...state.connections].map(([connectionId, connection]) =>
+        [connectionId, { ...connection, workbooks: references.workbooksOf(connectionId) } as ConnectionState]));
+}
+
+/// The list of the fake connections: connections that workbooks use are listed, as are active ones, and the listed
+/// connections of a connector are numbered when there are several
+function connectionList() {
+    const entries = [...state.connections.values()].map(connection => ({
+        connectionId: connection.connectionId,
+        connectorType: connection.connectorType,
+        active: connection.active ?? false,
+        listed: references.workbooksOf(connection.connectionId).length > 0 || (connection.active ?? false),
+        ordinal: null as number | null,
+    }));
+    for (const ids of connectionsByType()) {
+        const listed = entries.filter(entry => ids.includes(entry.connectionId) && entry.listed);
+        if (listed.length > 1) listed.forEach((entry, index) => { entry.ordinal = index + 1; });
+    }
+    return { connections: entries, connectionsByType: connectionsByType() };
+}
+
+/// The views of the fake workbooks, with the connections they use
+function workbookViews(): Map<string, unknown> {
+    return new Map([...state.workbookScriptsMap].map(([workbookId, workbook]) =>
+        [workbookId, { ...(workbook as object), connectionIds: references.connectionsOf(workbookId) }]));
+}
+
 /// Stable like the storage contexts
 const storageReader = {
     backend: {},
@@ -72,27 +101,29 @@ const storageWriter = {
     isWorkbookPaused: () => false,
 };
 
+/// The runtime as the sidebar uses it: the storage writer, the actions of the connections and the creation of one
+const runtime = {
+    storage: storageWriter,
+    dispatch: (target: { connection?: string }, action: unknown) => state.dispatchDatabase(target.connection, action),
+    createConnection: (...args: unknown[]) => state.allocateConnection(...args),
+    store: { get: () => null },
+};
+
 const dependencies = {
     useRouterNavigate: () => state.navigate,
     useRouteContext: () => ({ workbookId: 'current-workbook', workbookSetupStatus: WorkbookSetupStatus.NONE }),
-    useConnectionRegistry: () => [{
-        connections: state.connections,
-    }, vi.fn()],
-    useConnectionReferences: () => references,
-    useWorkbookConnections: () => state.workbookAttachedDatabases == null ? null
+    useRuntime: () => runtime,
+    useDispatch: () => state.modifyWorkbookScripts,
+    useConnections: connectionViews,
+    useConnectionList: connectionList,
+    useConnectionViews: () => state.workbookAttachedDatabases == null ? null
         : [state.workbookAttachedDatabases.main, ...state.workbookAttachedDatabases.attached],
-    useDynamicConnectionDispatch: () => [{
-        connections: state.connections,
-        connectionsByType: connectionsByType(),
-    }, state.dispatchDatabase],
-    useConnectionAllocator: () => state.allocateConnection,
     ConnectionSettingsOverlay: (props: typeof state.overlayProps) => {
         state.overlayProps = props;
         return props?.isOpen ? <button onClick={() => props.onConnected?.(state.local!)}>Complete setup</button> : null;
     },
-    useWorkbookScriptsDeletion: () => vi.fn(),
-    useWorkbooks: () => state.workbookScriptsMap,
-    useWorkbookScripts: () => [null, state.modifyWorkbookScripts],
+    useDeleteWorkbook: () => vi.fn(),
+    useWorkbooks: workbookViews,
     useWorkbookCreation: () => state.createWorkbook,
     useOpenGreeter: () => state.openGreeter,
     useEnsureEphemeralWorkbook: () => state.ensureEphemeralWorkbook,
@@ -101,8 +132,6 @@ const dependencies = {
     useDetachConnection: () => state.detachConnection,
     useDeleteConnection: () => state.deleteConnection,
     useStorageReader: () => storageReader,
-    useStorageWriter: () => storageWriter,
-    useDeleteComputation: () => vi.fn(),
     WorkbookStorageOverlay: () => null,
     WorkbookURLShareOverlay: (props: typeof state.shareProps) => {
         state.shareProps = props;
@@ -124,9 +153,9 @@ const dependencies = {
 } as unknown as WorkbookWorkbenchSidebarDependencies;
 
 /// The scripts run on the catalogs of the connections, a runtime of the module that has one for every connection
-const CATALOGS = { catalog: () => EMPTY_CATALOG.catalog } as unknown as CoreRuntime;
+const CATALOGS = { catalog: () => EMPTY_CATALOG.catalog } as unknown as Runtime;
 function WithCatalogs(props: { children: React.ReactNode }) {
-    return <CoreRuntimeProvider value={CATALOGS}>{props.children}</CoreRuntimeProvider>;
+    return <RuntimeContextProvider value={CATALOGS}>{props.children}</RuntimeContextProvider>;
 }
 
 /// The catalog of a connection without relations

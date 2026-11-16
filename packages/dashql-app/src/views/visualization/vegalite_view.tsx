@@ -9,7 +9,7 @@ import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { useColorScheme } from '../../config/color_scheme.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { useComputation } from '../../runtime/runtime_hooks.js';
+import { useComputation, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import { useComputationTables } from '../query_result/computation_tables.js';
 import type { ComputationTables } from '../query_result/computation_tables.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
@@ -21,7 +21,6 @@ import {
     VegaCrossFilterUpdater,
     VegaStableScaleDomain,
 } from './vegalite_crossfilter.js';
-import { useQueryResultTable } from '../../connections/query_executor.js';
 
 type VegaEmbed = typeof import('vega-embed').default;
 type VegaExpressionInterpreter = typeof import('vega-interpreter').expressionInterpreter;

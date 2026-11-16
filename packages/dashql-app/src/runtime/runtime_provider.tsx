@@ -7,7 +7,7 @@ import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
-import { CoreRuntimeProvider } from './runtime_hooks.js';
+import { RuntimeContextProvider } from './runtime_hooks.js';
 import { useSalesforceAPI } from '../connections/salesforce/salesforce_connector.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
@@ -19,21 +19,6 @@ import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCoreSetup } from './core_provider.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
-
-const RUNTIME_CTX = React.createContext<Runtime | null>(null);
-
-/// The runtime of the app
-export function useRuntime(): Runtime {
-    const runtime = React.useContext(RUNTIME_CTX);
-    if (runtime == null) throw new Error('useRuntime must be used within RuntimeProvider');
-    return runtime;
-}
-
-/// The runtime of the app, null outside of the provider. Hooks that resolve a service only when their function is
-/// called use it, a test may render a component without the runtime as long as it doesn't call them.
-export function useOptionalRuntime(): Runtime | null {
-    return React.useContext(RUNTIME_CTX);
-}
 
 const NO_HTTP: HttpClient = {
     fetch: () => Promise.reject(new Error('the app has no http client')),
@@ -47,8 +32,8 @@ interface Props {
 }
 
 /// The runtime of DashQL (packages/dashql-runtime/src/runtime.ts). By default over the platform of the app: the
-/// storage, the http client, the core and the embedded database of the providers above it. The hooks of the views and
-/// the services read from it.
+/// storage, the http client, the core and the embedded database of the providers above it. The hooks of
+/// `runtime_hooks.tsx` read from it.
 export function RuntimeProvider(props: Props) {
     if (props.runtime != null) return <ProvideRuntime runtime={props.runtime}>{props.children}</ProvideRuntime>;
     return <AppRuntime>{props.children}</AppRuntime>;
@@ -100,7 +85,7 @@ function AppRuntime(props: { children?: React.ReactNode }) {
     // when the page unloads, a hidden page usually still finishes them. Electron asks for the writes before it closes a
     // window and waits for them.
     React.useEffect(() => {
-        const writer = runtime.coreRuntime.storage;
+        const writer = runtime.storage;
         const flush = async () => {
             try {
                 await writer.flush();
@@ -124,8 +109,8 @@ function AppRuntime(props: { children?: React.ReactNode }) {
 
     // Another tab takes over the app, the pending writes finish first and nothing is written after
     useAppHandOver(async () => {
-        runtime.coreRuntime.storage.pause();
-        await runtime.coreRuntime.storage.flush();
+        runtime.storage.pause();
+        await runtime.storage.flush();
     });
 
     React.useEffect(() => () => {
@@ -138,11 +123,5 @@ function AppRuntime(props: { children?: React.ReactNode }) {
 }
 
 function ProvideRuntime(props: { runtime: Runtime; children?: React.ReactNode }) {
-    return (
-        <RUNTIME_CTX.Provider value={props.runtime}>
-            <CoreRuntimeProvider value={props.runtime.coreRuntime}>
-                {props.children}
-            </CoreRuntimeProvider>
-        </RUNTIME_CTX.Provider>
-    );
+    return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;
 }

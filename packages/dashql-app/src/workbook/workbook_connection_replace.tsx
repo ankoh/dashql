@@ -1,10 +1,8 @@
 import * as React from 'react';
 
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useConnectionReferences, useConnectionRegistryStore } from '../connections/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useStorageWriter } from '../storage/storage_provider.js';
-import { useOptionalCoreRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'connection_replace';
 
@@ -26,34 +24,34 @@ export type ConnectionReplace = (sourceId: string, targetId: string) => Promise<
 ///  3. The connection is removed once it is dead: no workbook uses it and every workbook file was written.
 ///     It is shut down and deleted with its folder, see useDeleteConnection.
 ///
-/// A connection that is not removed stays in the registry and in the manifest, a workbook that still names
+/// A connection that is not removed stays in the runtime and in the manifest, a workbook that still names
 /// it after a restart moves with the next replacement.
 export function useReplaceConnection(): ConnectionReplace {
-    const registryStore = useConnectionRegistryStore();
-    const references = useConnectionReferences();
-    const runtime = useOptionalCoreRuntime();
-    const storage = useStorageWriter();
+    const runtime = useOptionalRuntime();
     const deleteConnection = useDeleteConnection();
     const logger = useLogger();
 
     return React.useCallback(async (sourceId: string, targetId: string) => {
         if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
-        const target = registryStore.current.connections.get(targetId);
-        if (target == null || sourceId === targetId || !registryStore.current.connections.has(sourceId)) {
+        const storage = runtime.storage;
+        // The workbooks that use a connection, as the last flush of the store shows them
+        const workbooksOf = (connectionId: string) => runtime.store.get('connection', connectionId)?.workbooks ?? [];
+        const target = runtime.store.get('connection', targetId);
+        if (target == null || sourceId === targetId || runtime.store.get('connection', sourceId) == null) {
             return { removed: false };
         }
-        const moving = references.workbooksOf(sourceId);
+        const moving = workbooksOf(sourceId);
         for (const workbookId of moving) {
-            runtime.dispatchWorkbook(workbookId, { kind: 'replaceConnection', value: { from: sourceId, into: targetId } });
+            runtime.dispatch({ workbook: workbookId }, { kind: 'replaceConnection', value: { from: sourceId, into: targetId } });
         }
-        // The references follow the moved scripts
+        // The connections show the workbooks that use them after the moved scripts
         runtime.flush();
 
         // The workbooks of the target include the workbooks that moved before and whose files were not written then
-        const workbookIds = new Set([...moving, ...references.workbooksOf(sourceId), ...references.workbooksOf(targetId)]);
+        const workbookIds = new Set([...moving, ...workbooksOf(sourceId), ...workbooksOf(targetId)]);
         const written = await Promise.all([...workbookIds].map(async workbookId => [workbookId, await storage.flushWorkbook(workbookId)] as const));
         const unwritten = written.filter(([, ok]) => !ok).map(([workbookId]) => workbookId);
-        const remaining = references.workbooksOf(sourceId);
+        const remaining = workbooksOf(sourceId);
         if (unwritten.length > 0 || remaining.length > 0) {
             logger.warn('kept the replaced connection', {
                 connectionId: sourceId,
@@ -65,6 +63,7 @@ export function useReplaceConnection(): ConnectionReplace {
         }
         await deleteConnection(sourceId);
         logger.info('replaced connection', { connectionId: sourceId, target: targetId, workbooks: moving.length.toString() }, LOG_CTX);
-        return { removed: !registryStore.current.connections.has(sourceId) };
-    }, [deleteConnection, logger, references, registryStore, runtime, storage]);
+        runtime.flush();
+        return { removed: runtime.store.get('connection', sourceId) == null };
+    }, [deleteConnection, logger, runtime]);
 }

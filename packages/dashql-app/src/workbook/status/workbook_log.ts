@@ -2,8 +2,9 @@ import * as React from 'react';
 
 import type { LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
-import { findWorkbookQueries, useConnectionRegistryStore } from '../../connections/connection_registry.js';
-import { useQueryReader } from '../../connections/query_executor.js';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { findWorkbookQueries } from '@ankoh/dashql-runtime/connections/connection_state';
+import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 /// The log key of the workbook that a record is about
 export const WORKBOOK_LOG_KEY = 'workbookId';
@@ -16,10 +17,12 @@ export function isWorkbookLogRecord(record: LogRecord, workbookId: string, trace
 }
 
 /// The traces of the queries of a workbook, active and finished
-function workbookTraceIds(store: ReturnType<typeof useConnectionRegistryStore>, readQuery: ReturnType<typeof useQueryReader>, workbookId: string): Set<number> {
+function workbookTraceIds(runtime: Runtime | null, workbookId: string): Set<number> {
     const traceIds = new Set<number>();
     // Outside the runtime, e.g. in a test, there are no connections
-    for (const connection of store.current?.connections.values() ?? []) {
+    if (runtime == null) return traceIds;
+    const readQuery = (queryId: number) => runtime.store.get('query', queryId);
+    for (const connection of runtime.store.all('connection').values()) {
         for (const queryId of findWorkbookQueries(connection, workbookId, readQuery)) {
             const query = readQuery(queryId);
             if (query != null) traceIds.add(query.traceId);
@@ -32,14 +35,13 @@ function workbookTraceIds(store: ReturnType<typeof useConnectionRegistryStore>, 
 /// e.g. while the log of Wobble is open. The records are the ones the log window shows, scoped to the workbook.
 export function useWorkbookLog(workbookId: string, enabled: boolean): readonly LogRecord[] {
     const logger = useLogger();
-    const registry = useConnectionRegistryStore();
-    const readQuery = useQueryReader();
+    const runtime = useOptionalRuntime();
     const version = pollLogVersion(200, enabled);
     // The records read so far, a new trace of the workbook reads the log again from the start
     const scan = React.useRef<{ workbookId: string; traceIds: Set<number>; scanned: number; records: LogRecord[] } | null>(null);
     return React.useMemo(() => {
         if (!enabled) return [];
-        const traceIds = workbookTraceIds(registry, readQuery, workbookId);
+        const traceIds = workbookTraceIds(runtime, workbookId);
         let state = scan.current;
         const newTrace = state != null && [...traceIds].some(id => !state!.traceIds.has(id));
         if (state == null || state.workbookId !== workbookId || newTrace) {
@@ -56,5 +58,5 @@ export function useWorkbookLog(workbookId: string, enabled: boolean): readonly L
         return records;
         // The version of the log tells new records
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [logger, registry, readQuery, workbookId, enabled, version]);
+    }, [logger, runtime, workbookId, enabled, version]);
 }

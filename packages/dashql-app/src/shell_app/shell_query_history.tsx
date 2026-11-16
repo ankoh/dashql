@@ -3,8 +3,7 @@ import * as React from 'react';
 import { QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
 import type { QueryTracker } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/query_history_viewer.js';
-import { useCoreRuntime, useView } from '../runtime/runtime_hooks.js';
-import { useAllQueries } from '../connections/query_executor.js';
+import { useAllQueries, useRuntime, useView } from '../runtime/runtime_hooks.js';
 
 /// The id under which the queries of the shell are listed
 export const SHELL_DATABASE_ID = 'shell';
@@ -18,7 +17,7 @@ const SHELL_QUERY_HISTORY_CTX = React.createContext<QueryTracker | null>(null);
 /// Provide the history of the queries that the shell executes: a history without a connection of the runtime above,
 /// it goes with the component
 export const ShellQueryHistoryProvider: React.FC<{ children: React.ReactElement }> = props => {
-    const runtime = useCoreRuntime();
+    const runtime = useRuntime();
     const [tracker] = React.useState<QueryTracker>(() => ({ runtime, target: { history: `shell-${NEXT_SHELL_HISTORY++}` } }));
     // The history exists once the runtime has its core, the queries before that run untracked
     const created = React.useRef(false);
@@ -26,7 +25,7 @@ export const ShellQueryHistoryProvider: React.FC<{ children: React.ReactElement 
         if (created.current) return;
         created.current = runtime.dispatch(tracker.target, { kind: 'createHistory', value: { limit: SHELL_QUERY_HISTORY_LIMIT } }).ok;
     };
-    if (runtime.runtime != null) create();
+    if (runtime.module != null) create();
     React.useEffect(() => {
         let dropped = false;
         void runtime.ready().then(() => { if (!dropped) create(); }).catch(() => { });

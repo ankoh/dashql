@@ -27,19 +27,12 @@ export type ColumnGroup = core.ComputationColumnGroup;
 export type GridValueColumn = core.ComputationValueColumn;
 /// A key of an ordering
 export type OrderByConstraint = core.ComputationOrderBy;
-/// A filter of the rows by the value of a column
-export type ScalarFilter = core.ComputationScalarFilter;
 /// The version of the data and the filter of a computation
 export type ComputationStateVersion = core.ComputationVersionValue;
 /// The search of the columns or of the data
 export type ResultSearchState = core.ComputationSearch;
 /// A task that a computation tracks with its progress
 export type TrackedTask = core.ComputationTrackedTask;
-
-/// Do two versions match in their data and their filter?
-export function filterMatches(version: ComputationStateVersion | null | undefined, other: ComputationStateVersion | null | undefined): boolean {
-    return version != null && other != null && version.data === other.data && version.filter === other.filter;
-}
 
 /// The value column of a column group with the Arrow type of its field
 export interface SummaryColumn extends Omit<GridValueColumn, 'inputFieldType'> {

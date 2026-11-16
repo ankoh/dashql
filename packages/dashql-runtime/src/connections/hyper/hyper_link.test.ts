@@ -3,8 +3,8 @@ import * as dashql from '@ankoh/dashql-core';
 
 import type { ConnectionState, NewConnection } from '../connection_state.js';
 import { newConnectionFromParams, newDefaultHyperWasmConnection } from '../connection_params.js';
-import type { CoreRuntime } from '../../core_runtime.js';
-import { testCoreRuntime } from '../../testing/mocks/connector_state.js';
+import type { Runtime } from '../../runtime.js';
+import { testRuntime } from '../../testing/mocks/connector_state.js';
 import {
     bindHyperLink,
     confirmHyperLink,
@@ -19,12 +19,12 @@ import type { KeyValueStorage } from '../../platform/key_value_storage.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
-let runtime: CoreRuntime;
+let runtime: Runtime;
 
 beforeAll(async () => {
     dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
 });
-beforeEach(() => { runtime = testCoreRuntime(dql); });
+beforeEach(() => { runtime = testRuntime(dql); });
 afterEach(() => {
     runtime.destroy();
 });
@@ -132,7 +132,7 @@ describe('binding a Hyper link', () => {
         expect(declined.params).toBeNull();
         const confirm = vi.fn(() => true);
         runtime.destroy();
-        runtime = testCoreRuntime(dql);
+        runtime = testRuntime(dql);
         const created = bindHyperLink(target, [embedded()], allocator(), null, confirm);
         expect(isHyperLinkParams(created.connection.params)).toBe(true);
         expect(JSON.stringify(created.connection.params)).not.toContain(target.token);

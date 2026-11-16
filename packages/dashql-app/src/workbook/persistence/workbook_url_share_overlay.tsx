@@ -7,11 +7,9 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { useWorkbookConnections } from '../../connections/connection_registry.js';
 import { useRouteContext } from '../../app/router/router.js';
-import { useWorkbookScripts } from '../scripts/workbook_scripts_registry.js';
 import { ShareURLField } from './share_url_field.js';
-import { useCoreRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime, useWorkbook, useConnectionViews } from '../../runtime/runtime_hooks.js';
 
 interface Props {
     className?: string;
@@ -27,11 +25,11 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [workbookScripts] = useWorkbookScripts(props.workbookId ?? route.workbookId ?? null);
-    const connections = useWorkbookConnections(workbookScripts?.workbookId ?? null);
+    const workbookScripts = useWorkbook(props.workbookId ?? route.workbookId ?? null);
+    const connections = useConnectionViews(workbookScripts?.connectionIds);
     // The connections are resolved anew on every render, the link follows their ids
     const connectionIds = connections?.map(connection => connection.connectionId).join(',') ?? null;
-    const runtime = useCoreRuntime();
+    const runtime = useRuntime();
     const [publicURLText, setPublicURLText] = React.useState<string | null>(null);
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         withCatalog: false,
