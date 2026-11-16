@@ -5,9 +5,15 @@
     flex-direction: column;
     border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: var(--color_bg_card);
+    background-color: var(--composer_bg);
     box-sizing: border-box;
+    --composer_bg: var(--color_bg_card);
     --prompt_editor_max_height: 30vh;
+}
+
+/* In AI the prompt takes nothing, an agent in the terminal writes the scripts: the whole prompt is greyed */
+.composer[data-mode="ai"] {
+    --composer_bg: var(--color_bg_subtle);
 }
 
 .composer[data-variant="hero"] {
@@ -53,7 +59,7 @@
 .composer[data-agent="working"] {
     border-color: transparent;
     background:
-        linear-gradient(var(--color_bg_card), var(--color_bg_card)) padding-box,
+        linear-gradient(var(--composer_bg), var(--composer_bg)) padding-box,
         conic-gradient(
             from var(--composer_agent_angle),
             var(--agent_gradient_2),
@@ -79,49 +85,32 @@
     cursor: text;
 }
 
-/* In AI the prompt takes nothing, an agent in the terminal writes the scripts */
 .composer[data-mode="ai"] .composer_prompt {
     cursor: default;
 }
 
-.composer[data-mode="ai"] .composer_editor {
-    opacity: 0.5;
-}
-
-/* The line that launches an agent in the terminal: the harness, the command, copy and a new port */
+/* The line that launches an agent in the terminal, in the place of the editor: what to do, then the command to copy */
 .composer_connect {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin: 4px 8px 0 8px;
-    padding: 8px;
-    border: 1px solid var(--color_border);
-    border-radius: var(--border_radius);
-    background-color: var(--color_bg_subtle);
+    padding: 8px 8px 4px 8px;
 }
 
-.composer_connect_line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.composer_connect_command {
-    flex: 1;
-    min-width: 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: none;
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_small);
-    color: var(--color_fg);
-    user-select: all;
+.composer[data-variant="hero"] .composer_connect {
+    padding: 12px 12px 6px 12px;
 }
 
 .composer_connect_status {
+    padding-left: 2px;
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);
+}
+
+/* Over the font of the text input */
+.composer_connect .composer_connect_command {
+    font-family: var(--font_family_mono);
+    font-size: var(--font_size_compact);
 }
 
 .composer_editor {

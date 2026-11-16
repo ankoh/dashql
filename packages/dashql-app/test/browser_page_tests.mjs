@@ -227,7 +227,7 @@ async function testAppAgentSession(page, navigate) {
     await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
     await page.getByTestId('composer-connect-renew').click();
     await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
-    const line = await page.getByTestId('composer-connect-command').textContent();
+    const line = await page.getByTestId('composer-connect-command').inputValue();
     const match = /^npx -y @ankoh\/dashql-cli connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
     assert.ok(match, line);
     const connected = await startSessionServer({ port: Number(match[1]), token: match[2] });

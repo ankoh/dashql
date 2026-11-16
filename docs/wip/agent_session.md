@@ -10,9 +10,10 @@ access per workbook and no prompt in natural language.
 
 ## Connecting from the page
 
-The prompt switches between SQL and AI. AI greys the prompt, disables Run and the snippets, and shows a line to run in
-the folder of a project: `npx -y @ankoh/dashql-cli connect --launch claude --port <port> --secret <secret>`, with a
-switch between Claude Code and Codex on the left, copy and a new port on the right.
+The prompt switches between SQL and AI. AI greys the whole prompt, disables Run and the snippets, and shows in the
+place of the editor a line to run in the folder of a project, in a field to copy with a button for a new port:
+`npx -y @ankoh/dashql-cli connect --launch claude --port <port> --secret <secret>`. A switch between Claude Code and
+Codex follows the switch of SQL and AI while AI is on. The editor keeps its draft for SQL.
 
 - **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
   secret, and follows that target like the target of a link, trying it every 2 s until a server answers
@@ -112,10 +113,131 @@ goes through a `dashql` command, so the commands tell what they changed.
   then a new port, Codex, and a server on the port and secret of the line.
 - `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given.
 
+## Plan: the workbook, the connections and the logins of a session
+
+Status: planned, nothing of it is built.
+
+### Two cases
+
+- **A, the conversation starts in the page.** The user has a workbook with working connections in the tab, switches
+  to AI and runs the line of `dashql connect` in the folder of a project. The site is the truth, the disk holds a copy
+  for the agent.
+- **B, the user stays in the shell.** The agent creates a workbook folder in the project and the page only shows it.
+  The folder is the truth, the page holds a copy.
+
+In both cases the agent works on files on disk and the page follows them, the direction of the files is what differs.
+
+### Runs stay in the command line tool
+
+The page reaches a database only where its endpoint allows the origin of DashQL through CORS, often not for a Trino
+behind the proxy of a company, and there is no CORS proxy of DashQL. The command line tool reaches every endpoint, the
+desktop app does as well. So the runs of a session are runs of `dashql run`, the page shows their results through the
+journal and the query result cache that the server hands out, as it does today.
+
+### Where the workbook of case A lives
+
+`<project>/.dashql/workbooks/<workbook id>/`, a workbook folder in the layout of OPFS (`dashql-workbook.json`,
+`scripts/`, `attachments/`).
+
+- `.dashql/` is already the root of Node of the session (`docs/design/storage_layout.md`, "The root of Node"): `cache/`,
+  `workbooks/<id>/attachments/` and `instances/` have the layout of OPFS, nothing is converted.
+- It is in the project, where the sandbox of Codex and the permissions of Claude Code let the agent write, a folder of
+  the system for temporary files is not.
+- `.dashql/.gitignore` is `*`, the copy never reaches the repository of the user.
+- The page writes it: when the tab connects, it sends its workbook to the server (the workbook file, the scripts, the
+  attachments), the server writes it to the folder and replaces an older copy there, the site wins.
+- The agent edits it and runs it with `dashql run`, the journal and `/v1/workbooks/…` bring the changes back into the
+  OPFS of the tab, as in case B.
+- When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
+  next session faster.
+- **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
+  desktop app). From then on the folder is the truth, as in case B.
+
+Two tabs in one folder have two workbook ids, their copies don't clash.
+
+### One journal per session
+
+Today a folder has one `.dashql/journal.jsonl`, two sessions of `dashql connect` in one folder share it and the first
+that stops removes it. Each session gets its own: `.dashql/sessions/<session>/journal.jsonl`. `dashql connect` passes
+the name of the session to the harness in an environment variable without a secret in it (`DASHQL_SESSION`), a command
+of the agent appends to the journal of that session and to the single journal without it.
+
+### Connections travel with the workbook
+
+The parameters of a connection (host, catalog, user name, no secrets) are in the workbook file, `connections[].params`
+matched by `connectionId`. They travel both ways with the workbook: `dashql run` uses the parameters of the folder, the
+app takes them when it opens a folder. A connection that works in the tab has the same address on disk, and one that
+the agent set up appears in the tab.
+
+**The connections of the agent.** The connection picker of the page becomes, in AI, a menu `2 / 4 connections`: the list
+of connections without the attach entry, with a checkbox as the trailing visual of each. The page sends the selection
+to the server, `dashql run` refuses a connection that is not in it, and the output of the hook at the start names
+them for the agent.
+
+### Logins go through the page
+
+Logins don't leave the side that made them: the page never hands a token to the command line tool, and no token is in
+the environment of the agent, which can read and print it, and the telemetry of a managed Mac logs tool content. The
+login of a connection of the session goes through the page, the command line tool exchanges the code:
+
+1. A run needs a token that the process of `dashql connect` doesn't have. The process makes a PKCE verifier and its
+   challenge, the server asks the tab for a login of that connection with that challenge.
+2. The tab opens the URL of the authorization with the redirect URI of the app, `oauth_redirect.tsx` hands the code to
+   the tab that opened it (`WEB_OPENER_FLOW`, as today).
+3. The tab posts the code to the server. The process of `dashql connect` exchanges it from Node with the verifier,
+   without CORS, and refreshes the token itself.
+
+- One redirect URI: the connected app of Salesforce needs no loopback redirect, the one of the app is registered.
+- The browser never holds a usable token, the code is worthless without the verifier.
+- Case B has the page open as well. Without a tab, `dashql connect` prints the URL.
+- **Runs of a connection with a login run in the process of `dashql connect`**, `dashql run` is its client over the
+  server. The token never leaves that process: a server that handed it to `dashql run` would hand it to the agent,
+  which has the token of the session.
+- The tokens end with the session. Keeping the refresh token in the keychain of the system is a later step.
+- Trino with basic auth keeps `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` for the commands without a session.
+
+### What the page sends to the server
+
+One channel from the page to the server, `POST` with the token of the session, for three things: the workbook of case
+A, the selection of connections, the code of a login. The server stays the one place the page talks to.
+
+### How the agent learns DashQL
+
+Today the agent gets one line from the hook at the start, "DashQL shows this session live", nothing about the commands.
+
+- **The output of the hook at the start** goes into the context of the agent with both harnesses. `dashql connect`
+  knows the session, so the hook says what is specific to it: the folder of the workbook, the connections the agent
+  may use, to run `dashql describe` first. Nothing is installed.
+- **`dashql describe`** (new) prints the commands, the workbook folder and how to work with them, like `hyperdb-edge
+  describe` (`docs/wip/hyperdb_edge.md`). The text lives in the command, it fits the installed version.
+- **A skill** only for the installed path without `dashql connect` (case B with hooks in the settings): a short
+  `SKILL.md` in the package that says when to use DashQL and to run `dashql describe`, as the one of hyperdb-edge.
+  Whether `dashql connect` can hand a skill to a harness without installing it is to check in the vendored harnesses,
+  as the `-c` of the hooks of Codex was. With the output of the hook it doesn't need to.
+- **No MCP server for now.** The commands are the one interface for both cases and for the sessions without
+  `dashql connect`, the agent runs them with its shell, `//tests/agents` covers that. MCP is the fallback for the runs in
+  the process of `dashql connect` if a sandbox stands in the way: a tool of an MCP server runs in that process, outside
+  the sandbox, and needs no token of the session in the environment of the agent.
+
+To check before the runs over the server:
+
+- Whether the default `shell_environment_policy` of Codex drops variables with `TOKEN` in their name from the commands
+  of the agent, then `dashql run` lacks `DASHQL_SESSION_TOKEN`.
+- Whether the sandbox of Codex (`workspace-write` without network) and the one of Claude Code let a command reach
+  `127.0.0.1`. `dashql connect` can allow it for Codex with `-c`.
+- Whether the managed settings of a company allow an MCP server that a session adds, should the fallback be needed.
+
+### Order
+
+1. The tab sends its workbook to `.dashql/workbooks/<id>/` and follows it; one journal per session; the channel from
+   the page to the server.
+2. The parameters of connections from the folder in `dashql run` and in the app.
+3. The output of the hook at the start and `dashql describe`.
+4. Logins through the page, runs of connections with a login in the process of `dashql connect`.
+5. The menu of the connections of the agent.
+
 ## Next
 
-- The workbook of a session: the agent works on a workbook folder with the `dashql` commands, the page shows
-  that workbook and its changes.
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.
 - `@ankoh/dashql` and `@ankoh/dashql-cli` are not on npm yet, the line of the prompt needs both published.

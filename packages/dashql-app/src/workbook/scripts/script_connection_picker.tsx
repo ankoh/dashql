@@ -7,9 +7,7 @@ import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, type ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
-import { ATTACHABLE_CONNECTORS, useConnectionAttach } from '../../connections/attached_connection.js';
-import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
+import type { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
 import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
 import type { ModifyWorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
@@ -67,16 +65,6 @@ export function usePickPendingConnection(modifyWorkbookScripts: ModifyWorkbookSc
     }, [modifyWorkbookScripts, runtime]);
 }
 
-/// Create the next script of a workbook on a new connection of a connector, returns the id of the connection
-export function useAttachPendingConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (connector: ConnectorType) => string {
-    const attach = useConnectionAttach();
-    return React.useCallback((connector: ConnectorType) => {
-        const connection = attach(connector);
-        modifyWorkbookScripts({ kind: 'setPendingConnection', value: { connectionId: connection.connectionId } });
-        return connection.connectionId;
-    }, [attach, modifyWorkbookScripts]);
-}
-
 /// The logo of the database of a connector, see useConnectorIcon
 function ConnectorIcon(props: { connectorInfo: ConnectorInfo, size?: number }) {
     const connectorIcon = useConnectorIcon();
@@ -108,89 +96,57 @@ interface Props {
     disabled: boolean;
     /// Run the script on another connection
     onPick: (connectionId: string) => void;
-    /// Run the script on a new connection of a connector, returns the id of the connection
-    onAttach?: (connector: ConnectorType) => string;
     /// The trigger sits in the header of an entry card, it shows the logo of the database instead of
     /// the health dot
     entryHeader?: boolean;
     /// The test id of the trigger
     testId?: string;
-    dependencies?: ScriptConnectionPickerDependencies;
 }
-
-export interface ScriptConnectionPickerDependencies {
-    ConnectionSettingsOverlay: typeof ConnectionSettingsOverlay;
-}
-
-const DEFAULT_DEPENDENCIES: ScriptConnectionPickerDependencies = {
-    ConnectionSettingsOverlay,
-};
 
 /// Pick the connection that a script is analyzed and executed with
 export const ScriptConnectionPicker: React.FC<Props> = (props) => {
-    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const [open, setOpen] = React.useState(false);
-    // The settings of an attached connection open right away, the user configures it there
-    const [settingsConnectionId, setSettingsConnectionId] = React.useState<string | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const label = props.connection?.label ?? 'Unknown connection';
-    const onAttach = props.onAttach;
-    const attach = React.useMemo(() => onAttach == null ? undefined : (connector: ConnectorType) => {
-        setOpen(false);
-        setSettingsConnectionId(onAttach(connector));
-    }, [onAttach]);
     return (
-        <>
-            <AnchoredOverlay
-                open={open}
-                onOpen={() => setOpen(true)}
-                onClose={() => setOpen(false)}
-                side={AnchorSide.OutsideBottom}
-                align={AnchorAlignment.End}
-                anchorOffset={4}
-                anchorRef={triggerRef}
-                returnFocusRef={triggerRef}
-                renderAnchor={(anchorProps) => (
-                    <Button
-                        {...anchorProps}
-                        ref={triggerRef}
-                        className={styles.trigger}
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        disabled={props.disabled}
-                        leadingVisual={props.connection == null ? undefined : props.entryHeader
-                            ? <ConnectorIcon connectorInfo={props.connection.connectorInfo} size={14} />
-                            : <HealthDot health={props.connection.connectionHealth} />}
-                        aria-label={`Connection of ${props.scriptName} script: ${label}`}
-                        data-testid={props.testId ?? "script-connection-picker"}
-                        title={label}
-                    >
-                        <span className={styles.trigger_label}>{props.connection?.labelParts.name ?? label}</span>
-                    </Button>
-                )}
-            >
-                <ConnectionMenu
-                    workbookId={props.workbookId}
-                    label={`${props.scriptName} script`}
-                    connectionId={props.connection?.connectionId ?? null}
-                    onPick={connectionId => {
-                        setOpen(false);
-                        if (connectionId !== props.connection?.connectionId) props.onPick(connectionId);
-                    }}
-                    onAttach={attach}
-                />
-            </AnchoredOverlay>
-            {/* Mounted only while open, the overlay subscribes to the connection */}
-            {settingsConnectionId != null && (
-                <dependencies.ConnectionSettingsOverlay
-                    connectionId={settingsConnectionId}
-                    isOpen
-                    onClose={() => setSettingsConnectionId(null)}
-                    anchorRef={triggerRef}
-                    side={AnchorSide.OutsideBottom}
-                />
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            side={AnchorSide.OutsideBottom}
+            align={AnchorAlignment.End}
+            anchorOffset={4}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            renderAnchor={(anchorProps) => (
+                <Button
+                    {...anchorProps}
+                    ref={triggerRef}
+                    className={styles.trigger}
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    disabled={props.disabled}
+                    leadingVisual={props.connection == null ? undefined : props.entryHeader
+                        ? <ConnectorIcon connectorInfo={props.connection.connectorInfo} size={14} />
+                        : <HealthDot health={props.connection.connectionHealth} />}
+                    aria-label={`Connection of ${props.scriptName} script: ${label}`}
+                    data-testid={props.testId ?? "script-connection-picker"}
+                    title={label}
+                >
+                    <span className={styles.trigger_label}>{props.connection?.labelParts.name ?? label}</span>
+                </Button>
             )}
-        </>
+        >
+            <ConnectionMenu
+                workbookId={props.workbookId}
+                label={`${props.scriptName} script`}
+                connectionId={props.connection?.connectionId ?? null}
+                onPick={connectionId => {
+                    setOpen(false);
+                    if (connectionId !== props.connection?.connectionId) props.onPick(connectionId);
+                }}
+            />
+        </AnchoredOverlay>
     );
 };
 
@@ -203,14 +159,11 @@ interface MenuProps {
     connectionId: string | null;
     /// Pick a connection
     onPick: (connectionId: string) => void;
-    /// Pick a new connection of a connector
-    onAttach?: (connector: ConnectorType) => void;
 }
 
 /// The connections a script or a shell can run on, the connections of the workbook first.
 /// Subscribes to the connections only while it is open.
 export function ConnectionMenu(props: MenuProps) {
-    const connectorIcon = useConnectorIcon();
     const connections = useConnections();
     const list = useConnectionList();
     // Renders again when the workbook uses other connections
@@ -257,28 +210,6 @@ export function ConnectionMenu(props: MenuProps) {
                     <>
                         <ActionList.GroupHeading>Other connections</ActionList.GroupHeading>
                         {otherConnections.map(renderItem)}
-                    </>
-                )}</>
-                <>{props.onAttach != null && (
-                    <>
-                        <ActionList.GroupHeading>Attach database</ActionList.GroupHeading>
-                        {ATTACHABLE_CONNECTORS.map(connector => (
-                            <ActionList.ListItem
-                                key={connector}
-                                data-testid="attach-connection-option"
-                                data-connector={connector}
-                                onClick={() => props.onAttach!(connector)}
-                            >
-                                <ActionList.Leading>
-                                    <svg className={styles.connector_icon} width="16px" height="16px" aria-hidden="true">
-                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} style={CONNECTOR_ICON_STYLE} />
-                                    </svg>
-                                </ActionList.Leading>
-                                <ActionList.ItemText>
-                                    {connector === ConnectorType.HYPER ? 'Hyper server' : CONNECTOR_INFOS[connector].names.displayShort}
-                                </ActionList.ItemText>
-                            </ActionList.ListItem>
-                        ))}
                     </>
                 )}</>
             </ActionList.List>

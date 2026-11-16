@@ -358,7 +358,7 @@ describe('Workbook composer', () => {
             return view!;
         }
         const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
-        const command = () => container.querySelector('[data-testid="composer-connect-command"]')?.textContent ?? null;
+        const command = () => container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')?.value ?? null;
         const snippets = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!;
 
         it('greys the prompt, disables Run and the snippets and shows the line that launches a harness', async () => {
@@ -369,9 +369,15 @@ describe('Workbook composer', () => {
             expect(container.querySelector(`.${styles.composer}`)!.getAttribute('data-mode')).toBe('ai');
             expect(editor.state.readOnly).toBe(true);
             expect(editor.contentDOM.getAttribute('contenteditable')).toBe('false');
+            // The line takes the place of the editor
+            expect(editor.dom.checkVisibility()).toBe(false);
             expect(sendButton().disabled).toBe(true);
             expect(snippets().disabled).toBe(true);
             expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch claude --port 51234 --secret k3x9');
+            // The command is only copied, a new port and copy stay usable
+            expect(container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')!.disabled).toBe(true);
+            expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.disabled).toBe(false);
+            expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.disabled).toBe(false);
             expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Run the command in the folder of your project, the session shows here');
             // Enter sends nothing, the draft stays for SQL
             act(() => press(editor, 'Enter'));
@@ -379,8 +385,11 @@ describe('Workbook composer', () => {
             act(() => mode('sql').click());
             expect(editor.state.readOnly).toBe(false);
             expect(editor.state.doc.toString()).toBe('select 1');
+            expect(editor.dom.checkVisibility()).toBe(true);
             expect(sendButton().disabled).toBe(false);
             expect(command()).toBeNull();
+            // The switch of the harness goes with AI
+            expect(container.querySelector('[data-testid="composer-connect-harness"]')).toBeNull();
         });
 
         it('switches the line between the harnesses, copies it and renews the port', async () => {

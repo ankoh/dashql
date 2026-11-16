@@ -12,6 +12,8 @@ export enum TextInputValidationStatus {
 interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'className' | 'size' | 'autoComplete'> {
     className?: string;
     leadingVisual?: React.ElementType;
+    /// A button before the text, stays usable while the input is disabled
+    leadingAction?: React.ReactElement<React.HTMLProps<HTMLButtonElement>>;
     trailingVisual?: React.ElementType;
     trailingAction?: React.ReactElement<React.HTMLProps<HTMLButtonElement>>;
     block?: boolean;
@@ -26,6 +28,7 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>((pro
         className,
         disabled,
         leadingVisual: LeadingVisual,
+        leadingAction,
         trailingAction,
         trailingVisual: TrailingVisual,
         validationStatus,
@@ -39,6 +42,11 @@ export const TextInput = React.forwardRef<HTMLInputElement, TextInputProps>((pro
             [styles.root_validation_warning]: validationStatus == TextInputValidationStatus.Warning,
             [styles.root_validation_error]: validationStatus == TextInputValidationStatus.Error,
         })}>
+            {leadingAction && (
+                <span className={styles.leading_action_container}>
+                    {leadingAction}
+                </span>
+            )}
             {LeadingVisual && (
                 <span className={styles.leading_visual_container}>
                     <LeadingVisual />

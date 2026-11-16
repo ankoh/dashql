@@ -64,7 +64,6 @@ import { observeSize } from '../../ui/foundations/size_observer.js';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
-    useAttachPendingConnection,
     usePickPendingConnection,
     usePickScriptConnection,
     type ScriptConnectionView,
@@ -114,7 +113,6 @@ export interface WorkbookFeedDependencies {
     useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'refreshAttachments'>;
     usePickScriptConnection: typeof usePickScriptConnection;
     usePickPendingConnection: typeof usePickPendingConnection;
-    useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     useScriptRun: typeof useScriptRun;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
@@ -134,7 +132,6 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useAttachmentCommands: () => useRuntime(),
     usePickScriptConnection,
     usePickPendingConnection,
-    useAttachPendingConnection,
     useKeyEvents,
     useScriptRun,
     useWorkbookScriptMap,
@@ -333,7 +330,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, props.modifyWorkbookScripts);
     // New scripts, and the draft of the composer, use the default connection of the workbook
     const pickPendingConnection = dependencies.usePickPendingConnection(props.modifyWorkbookScripts);
-    const attachPendingConnection = dependencies.useAttachPendingConnection(props.modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -963,7 +959,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                                 connection={scriptConnections.get(composerConnectionId) ?? null}
                                 disabled={false}
                                 onPick={pickPendingConnection}
-                                onAttach={attachPendingConnection}
                                 testId="composer-connection-picker"
                             />
                         )}

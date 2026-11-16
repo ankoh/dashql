@@ -498,7 +498,6 @@ describe('Workbook feed composer', () => {
         useAttachmentCommands: () => attachmentCommands,
         usePickScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
-        useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         useScriptRun: () => feedState.runScript,
         useWorkbookScriptMap: () => feedState.scripts,

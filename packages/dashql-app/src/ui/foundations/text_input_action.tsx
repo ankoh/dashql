@@ -41,6 +41,8 @@ interface CopyToClipboardActionProps {
     timeoutMs?: number;
     logContext: string;
     ariaLabel: string;
+    /// The test id of the button
+    testId?: string;
 }
 
 export function CopyToClipboardAction(props: CopyToClipboardActionProps): React.ReactElement {
@@ -54,6 +56,7 @@ export function CopyToClipboardAction(props: CopyToClipboardActionProps): React.
             value={props.value}
             variant={ButtonVariant.Invisible}
             size={ButtonSize.Small}
+            data-testid={props.testId}
         />
     );
 }

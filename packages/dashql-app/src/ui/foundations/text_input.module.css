@@ -91,6 +91,16 @@
     margin-right: 12px;
 }
 
+.leading_action_container {
+    display: inline-flex;
+    align-self: center;
+    color: var(--color_fg_muted);
+    flex-shrink: 0;
+
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
 .trailing_action_container {
     display: inline-flex;
     align-self: center;

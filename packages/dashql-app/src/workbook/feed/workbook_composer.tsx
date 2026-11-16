@@ -5,7 +5,8 @@ import * as styles from './workbook_composer.module.css';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
+import { TextInput } from '../../ui/foundations/text_input.js';
+import { CopyToClipboardAction, TextInputAction } from '../../ui/foundations/text_input_action.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
 import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
 import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
@@ -277,9 +278,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             <PaperAirplaneIcon />
         </IconButton>
     );
-    const placeholder = ai
-        ? 'An agent in the terminal writes the scripts of this workbook'
-        : (hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line');
+    const placeholder = hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line';
     const connect = props.connect ?? null;
     const handleModeChange = React.useCallback((index: number) => {
         connect?.setMode(index === 0 ? ComposerMode.Sql : ComposerMode.Ai);
@@ -288,7 +287,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         connect?.setHarness(CONNECT_HARNESSES[index]);
     }, [connect]);
     const command = ai && connect?.target != null ? agentConnectCommand(connect.harness, connect.target) : null;
-    const commandId = React.useId();
+    const statusId = React.useId();
     return (
         <div
             className={styles.composer}
@@ -308,57 +307,43 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                 )}
             </div>
             <div className={styles.composer_prompt} onMouseDown={ai ? undefined : handlePromptMouseDown}>
-                <PromptEditor
-                    className={styles.composer_editor}
-                    scriptSession={scriptSession}
-                    placeholder={placeholder}
-                    keywordCase={props.keywordCase}
-                    readOnly={ai}
-                    onSubmit={send}
-                    onTextChange={handleTextChange}
-                    onEditorUpdate={handleEditorUpdate}
-                    setView={handleView}
-                />
+                {/* The line of the agent takes the place of the editor in AI, the editor keeps the draft for SQL */}
+                <div hidden={ai}>
+                    <PromptEditor
+                        className={styles.composer_editor}
+                        scriptSession={scriptSession}
+                        placeholder={placeholder}
+                        keywordCase={props.keywordCase}
+                        readOnly={ai}
+                        onSubmit={send}
+                        onTextChange={handleTextChange}
+                        onEditorUpdate={handleEditorUpdate}
+                        setView={handleView}
+                    />
+                </div>
                 {ai && connect != null && (
                     <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect">
-                        <div className={styles.composer_connect_line}>
-                            <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
-                                <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
-                                    Claude Code
-                                </SegmentedControl.Button>
-                                <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
-                                    Codex
-                                </SegmentedControl.Button>
-                            </SegmentedControl>
-                            <code id={commandId} className={styles.composer_connect_command} data-testid="composer-connect-command">
-                                {command}
-                            </code>
-                            <CopyToClipboardButton
-                                variant={ButtonVariant.Invisible}
-                                size={ButtonSize.Small}
-                                value={command ?? ''}
-                                disabled={command == null}
-                                logContext="composer"
-                                aria-label="Copy the command"
-                                aria-labelledby=""
-                                data-testid="composer-connect-copy"
-                            />
-                            <IconButton
-                                variant={ButtonVariant.Invisible}
-                                size={ButtonSize.Small}
-                                aria-label="Use a new port"
-                                aria-describedby={commandId}
-                                data-testid="composer-connect-renew"
-                                onClick={connect.renewTarget}
-                            >
-                                <SyncIcon />
-                            </IconButton>
-                        </div>
-                        <div className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
+                        <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
                             {session != null
                                 ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
                                 : 'Run the command in the folder of your project, the session shows here'}
                         </div>
+                        {/* The command is only copied, the buttons stay usable */}
+                        <TextInput
+                            className={styles.composer_connect_command}
+                            block
+                            disabled
+                            value={command ?? ''}
+                            aria-label="Command"
+                            aria-describedby={statusId}
+                            data-testid="composer-connect-command"
+                            leadingAction={
+                                <TextInputAction aria-label="Use a new port" aria-labelledby="" data-testid="composer-connect-renew" onClick={connect.renewTarget}>
+                                    <SyncIcon />
+                                </TextInputAction>
+                            }
+                            trailingAction={<CopyToClipboardAction value={command ?? ''} logContext="composer" ariaLabel="Copy the command" testId="composer-connect-copy" />}
+                        />
                     </div>
                 )}
                 <div className={styles.composer_action_bar}>
@@ -369,6 +354,16 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                             </SegmentedControl.Button>
                             <SegmentedControl.Button leadingVisual={SparklesFillIcon} selected={ai} data-testid="composer-mode" data-mode="ai">
                                 AI
+                            </SegmentedControl.Button>
+                        </SegmentedControl>
+                    )}
+                    {ai && connect != null && (
+                        <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
+                            <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
+                                Claude Code
+                            </SegmentedControl.Button>
+                            <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
+                                Codex
                             </SegmentedControl.Button>
                         </SegmentedControl>
                     )}
