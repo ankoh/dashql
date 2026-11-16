@@ -435,6 +435,8 @@ See "Clippy" in [build_bazel_targets.md](../agents/build_bazel_targets.md).
 
 The DOM, I/O and things that cross per value stay in TypeScript: fetch, OPFS, Web Locks, the embedded Hyper, ZIP
 archives (zip.js), the compilation of chart specs (vega-lite), the formatting of cells (`Intl`), React and CodeMirror.
+Bookkeeping stays in Rust: the platform maps the ids of the runtime to its objects, e.g. a pin of the cache, but which
+of them a run holds and when they go is the runtime's (see [Commands](dashql_runtime.md#commands)).
 A port to Rust crosses per operation, never per value; never panics on engine input; names its offset unit (the editor
 APIs count UTF-16 code units, the core UTF-8 bytes); and keeps within the budget of the main thread, since a call into
 the core blocks it.

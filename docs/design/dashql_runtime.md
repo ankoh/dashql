@@ -293,6 +293,14 @@ A new action:
 Work that takes time and returns a result is a method each. The facade has typed commands where a caller needs more
 than the module returns: the flush of the store after the command, handles for the objects that cross, a projection.
 
+The facade and the adapters of the platform decide nothing: the order of a handover, which files a run keeps and when
+it lets go of them, how ids of workbooks compare, the NFC of names, the defaults of options and the log of refused
+actions are the module's. What stays in TypeScript is the JavaScript side of a call: an object by the id that Rust
+names it with (the pins of the cache, the fetches, the OAuth flows, the records of the queries of host channels, the
+abort controllers of compute runs), the errors of JavaScript that a failure becomes, and the identity of the objects
+that React holds (a catalog per `catalogId`, the arrays of an analysis that an editor update left out). Each command
+is a typed method with its contract rather than a generated table, the app reads its types and docs.
+
 | Facade (`Runtime` of `runtime.ts`) | What |
 |---|---|
 | `analyzeTable` | Analyze a result as a computation |
