@@ -24,7 +24,8 @@ Vite bundles the command with the sources of the runtime into one module for Nod
 On npm the command is `@akohn/dashql-cli` (`npx -y @akohn/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
 packs the bundle with the metadata of `npm/package.json`, which depends on `@akohn/dashql` and `hyperdb-wasm`.
 `:npm_package_test` keeps their versions those of the build, so `@akohn/dashql` is published first. CI uploads the tarball
-next to the one of `@akohn/dashql` (`dashql_cli_npm`), publishing is by hand.
+next to the one of `@akohn/dashql` (`dashql_cli_npm`), publishing is by hand, the commands are in the top-level
+`README.md`.
 
 ## dashql lint
 

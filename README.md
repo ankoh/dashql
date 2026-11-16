@@ -73,6 +73,15 @@ bazel build //packages/dashql-datasets:datasets
 # Upload missing test datasets to data.dashql.app (requires R2 key)
 bazel run //packages/dashql-datasets:sync
 
+# Build, test and publish the npm packages @akohn/dashql and @akohn/dashql-cli (npx -y @akohn/dashql-cli).
+# @akohn/dashql goes first, the command line tool depends on its exact version.
+bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-cli:npm_tarball
+bazel test --config=release //packages/dashql:all \
+    //packages/dashql-cli:npm_package_test //packages/dashql-cli:binary_test
+npm login
+npm publish bazel-bin/packages/dashql/dashql.tgz --tag latest
+npm publish bazel-bin/packages/dashql-cli/dashql-cli.tgz --tag latest
+
 ```
 
 ---
@@ -86,6 +95,11 @@ bazel run //packages/dashql-datasets:sync
 - Any commit pushed to the branch `dev` deploys to [dev.dashql.app](https://dev.dashql.app), for integrations under development
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
+- The npm packages `@akohn/dashql` and `@akohn/dashql-cli` are published by hand, see Building above
+    - CI uploads their archives of every trusted build (`dashql_npm`, `dashql_cli_npm`), those can be published instead of a local build
+    - Only these two go to npm: they inline `hyperdb-edge` and the generated packages, `hyperdb-wasm` is on npm already
+    - The account needs the scope `@akohn`; npm wants a tag on a prerelease version, `latest` is what `npx` installs
+    - A version is published once, the next release raises both `npm/package.json` versions and the dependency of the command on `@akohn/dashql`
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//packages/dashql-datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //packages/dashql-datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry

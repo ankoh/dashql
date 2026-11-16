@@ -112,7 +112,8 @@ TypeScript, see `docs/design/dashql_runtime.md`. Only the package on npm is buil
 
 - `bazel build //packages/dashql:bundle` bundles the modules with their declarations into `dist/` (`npm/build.mjs`).
 - `bazel build //packages/dashql:npm_package` assembles the npm directory with `npm/package.json`.
-- `bazel build //packages/dashql:npm_tarball` creates the publishable archive.
+- `bazel build //packages/dashql:npm_tarball` creates the publishable archive. It is published together with the
+  command line tool, the commands are in the top-level `README.md`.
 - `bazel test //packages/dashql:node_smoke_test` checks the bindings and a runtime of the assembled package in Node.
 - `bazel test //packages/dashql:tarball_consumer_test` validates the actual archive as an external consumer.
 - `bazel test //packages/dashql:test_core_node` runs the colocated tests of the bindings in Node.
