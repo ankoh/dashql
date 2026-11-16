@@ -9,7 +9,6 @@ import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@
 import { CodeMirrorSearchExtensions } from './codemirror.js';
 import { DashQLExtensions, DashQLFocusCompletionEffect } from './dashql_extension.js';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from './dashql_processor.js';
-import { replaceScriptSessionText } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 
 /// Callbacks of the prompt editor, read through a ref so the editor extensions are built only once.
 interface PromptEditorCallbacks {
@@ -176,8 +175,12 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             return;
         }
         const text = editorView.state.doc.toString();
+        // The draft session is the editor's own, no workbook holds it
         if (scriptSession.getText() !== text) {
-            replaceScriptSessionText(scriptSession, text);
+            const replaced = scriptSession.replaceText(scriptSession.getTextVersion(), text);
+            if (replaced.status !== dashql.buffers.editor.EditorUpdateStatus.OK) {
+                throw new Error(`Failed to replace the text of the draft: ${replaced.statusMessage ?? replaced.status}`);
+            }
         }
         const onUpdate = (update: DashQLProcessorUpdateOut) => {
             if (update.editorUpdate != null) {

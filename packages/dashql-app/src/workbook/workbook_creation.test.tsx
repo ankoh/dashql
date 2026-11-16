@@ -10,7 +10,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { isEphemeralWorkbook } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
@@ -23,12 +23,6 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('workbook creation', () => {
-    it('picks the first workbook name no other workbook has', () => {
-        expect(freeWorkbookName([])).toBe('Untitled');
-        expect(freeWorkbookName(['Default', null])).toBe('Untitled');
-        expect(freeWorkbookName(['untitled', ' Untitled 2 ', 'Untitled 4'])).toBe('Untitled 3');
-    });
-
     it('registers the scripts of a new workbook and writes its workbook file with the default connection', async () => {
         const backend = new WorkbookTestBackend();
         const params = { hyper: { protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as const;

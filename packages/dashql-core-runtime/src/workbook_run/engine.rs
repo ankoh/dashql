@@ -306,14 +306,15 @@ impl<H: RunHost> Run<H> {
         self.check_cancelled()
     }
 
-    /// Apply an action to the workbook and tell the host. A failed action fails the run.
+    /// Apply an action to the workbook and tell the host, with the effects of the action. A failed action fails the
+    /// run.
     fn apply(&self, action: WorkbookAction) -> Result<(), RunFailure> {
         let outcome = {
             let mut workbook = self.workbook.try_borrow_mut().map_err(|_| RunFailure::error("The workbook is busy"))?;
             workbook.apply(action).map_err(|error| RunFailure::error(error.message))?
         };
-        if outcome.changed {
-            self.host.workbook_changed();
+        if outcome.changed || !outcome.effects.is_empty() {
+            self.host.workbook_changed(outcome.effects);
         }
         Ok(())
     }
@@ -403,7 +404,7 @@ impl<H: RunHost> Run<H> {
         let busy = || RunFailure::error("The workbook is busy");
         let analyzed = self.workbook.try_borrow_mut().map_err(|_| busy())?.analyze_outdated_scripts();
         if analyzed {
-            self.host.workbook_changed();
+            self.host.workbook_changed(Vec::new());
         }
         let request = RunPlanRequest { targets, materialized: provided, mount_prefix, materialization_files: files };
         let graph = self.workbook.try_borrow().map_err(|_| busy())?.plan_run(&request);
@@ -532,8 +533,11 @@ impl<H: RunHost> Run<H> {
                 self.log(LogLevel::Info, "Running without connections, their scripts serve their cached results", details);
             }
         }
+        // The scripts with outdated analyses analyze, a slider that changes an input reruns without analyzing the rest
         let prepared = self.workbook.try_borrow_mut().map_err(|_| RunFailure::error("The workbook is busy"))?.analyze_for_run();
-        host.workbook_changed();
+        if prepared != Ok(false) {
+            host.workbook_changed(Vec::new());
+        }
         prepared.map_err(RunFailure::error)?;
         self.cooperate().await?;
 
@@ -1056,7 +1060,9 @@ impl<H: RunHost> Run<H> {
     /// Start the statement of a node
     fn launch(self: &Rc<Self>, context: &Rc<PlanContext>, index: usize) -> Result<(), RunFailure> {
         self.validate(&context.graph, false)?;
-        let Some(node) = nodes(&context.graph).get(index) else { return Ok(()) };
+        let Some(node) = nodes(&context.graph).get(index) else {
+            return Err(RunFailure::error(format!("The plan has no statement {index}")));
+        };
         let script = node.script;
         let statements = context.nodes_of_script.get(script as usize).map(Vec::as_slice).unwrap_or_default();
         let position = statements.iter().position(|n| *n == index).unwrap_or(0);
@@ -1083,8 +1089,15 @@ impl<H: RunHost> Run<H> {
         if first == Some(true) {
             self.host.script_event(&file, &ScriptEvent::Started);
         }
-        let Some(planned) = context.statements.get(index).cloned() else { return Ok(()) };
-        let Some(script_key) = self.keys.get(script as usize).copied() else { return Ok(()) };
+        // A statement that can't start releases its node, the run fails instead of waiting for it
+        let Some(planned) = context.statements.get(index).cloned() else {
+            self.release(context, index);
+            return Err(RunFailure::error(format!("The plan has no statement {index}")));
+        };
+        let Some(script_key) = self.keys.get(script as usize).copied() else {
+            self.release(context, index);
+            return Err(RunFailure::error(format!("The run has no script {}", self.file(script))));
+        };
         // The result of a script with a reusable key replaces the cached one, the cache was read already
         let reusable = context.keys.get(script as usize).cloned().flatten().filter(|key| key.reusable);
         let cache = match reusable {

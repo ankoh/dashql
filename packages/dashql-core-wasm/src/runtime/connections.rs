@@ -13,7 +13,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
 
-use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::catalog_loader::CatalogLoaderService;
 use dashql_core_runtime::clfn::ClientFunctionSpec;
@@ -47,7 +46,6 @@ use crate::host::JsPlatform;
 use crate::runtime::storage::view::StorageWriteOutcome;
 use crate::runtime::storage::JsStorage;
 use crate::views::JsonValue;
-use crate::ENTRY_IDS;
 
 /// The target of the log messages of the connections
 const LOG_TARGET: &str = "connection_registry";
@@ -200,9 +198,8 @@ impl Connections {
         let mut details = ConnectionDetails::default_for(connection.connector);
         details.setup_params = connection.setup_params;
         let options = ConnectionStateOptions { active: connection.active, params: connection.params, params_draft: connection.params_draft };
-        let catalog = CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone));
         let now = self.now();
-        let mut state = ConnectionState::with_catalog(&connection_id, details, options, now, catalog);
+        let mut state = ConnectionState::new(&connection_id, details, options, now);
         if let Some(name) = connection.name {
             state.apply(ConnectionAction::Rename(name), now)?;
         }

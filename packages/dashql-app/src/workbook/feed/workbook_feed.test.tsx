@@ -553,7 +553,7 @@ describe('Workbook feed composer', () => {
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
-            workbookId: 'workbook', name: null, workbookMetadata: {} as any, pendingConnectionId: 'database',
+            workbookId: 'workbook', name: null, workbookMetadata: {} as any, pendingConnectionId: 'database', nextScriptConnectionId: 'database',
             scriptKeys: fileNames.map((_, i) => i + 1), scriptConnections: fileNames.map(() => 'database'), connectionIds: ['database'],
             scripts, scriptRefs, scriptOrder: [...fileNames],
         } as unknown as WorkbookScripts & { scripts: ScriptDataMap };

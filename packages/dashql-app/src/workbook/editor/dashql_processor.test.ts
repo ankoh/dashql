@@ -76,6 +76,58 @@ describe('CodeMirror portable editor events', () => {
         expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.analysisAvailable).toBe(true);
     });
 
+    it('drops a keystroke of a document that missed a change of the session and shows the text again', () => {
+        const catalog = dql!.createCatalog();
+        const { scriptSession, editorUpdate } = createScriptSession(catalog, 'select 1');
+        const onStaleText = vi.fn();
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const processorState: DashQLProcessorUpdateIn = {
+                scriptKey: scriptSession.getCatalogEntryId(),
+                scriptSession,
+                editorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+                textVersion: scriptSession.getTextVersion(),
+                onStaleText,
+                onUpdate: () => {},
+            };
+            let editorState = EditorState.create({ doc: 'select 1', selection: EditorSelection.cursor(8), extensions: [DashQLProcessorPlugin] });
+            editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+
+            // The workbook changes the text before the editor shows it, e.g. a rewrite of a reference
+            expect(scriptSession.replaceText(scriptSession.getTextVersion(), 'select 12345').status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
+            // A keystroke at an offset of the text the document shows is stale: the session keeps its text, the editor
+            // is asked to show it again
+            editorState = editorState.update({
+                changes: { from: 8, insert: '0' },
+                selection: EditorSelection.cursor(9),
+                annotations: Transaction.userEvent.of('input.type'),
+            }).state;
+            expect(scriptSession.getText()).toBe('select 12345');
+            expect(onStaleText).toHaveBeenCalledTimes(1);
+
+            // The editor takes the text of the session, the session doesn't apply the change of the document
+            editorState = editorState.update({
+                changes: { from: 0, to: editorState.doc.length, insert: scriptSession.getText() },
+                effects: DashQLUpdateEffect.of({ ...processorState, textVersion: scriptSession.getTextVersion() }),
+            }).state;
+            expect(scriptSession.getText()).toBe('select 12345');
+            // Then its keystrokes apply
+            editorState = editorState.update({
+                changes: { from: 12, insert: '6' },
+                selection: EditorSelection.cursor(13),
+                annotations: Transaction.userEvent.of('input.type'),
+            }).state;
+            expect(editorState.doc.toString()).toBe('select 123456');
+            expect(scriptSession.getText()).toBe('select 123456');
+            expect(onStaleText).toHaveBeenCalledTimes(1);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
     it('does not warn when projecting a read-only editor update', () => {
         const catalog = dql!.createCatalog();
         const { scriptSession, editorUpdate } = createScriptSession(catalog, 'select 1');

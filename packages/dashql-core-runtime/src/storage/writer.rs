@@ -180,6 +180,17 @@ fn workbook_of_key(key: &str) -> Option<&str> {
     key.split('/').next().filter(|id| !id.is_empty())
 }
 
+/// The script files that a task writes, deletes or renames, by workbook and file name
+fn script_files(task: &WriteTask) -> Vec<(&str, &str)> {
+    match task {
+        WriteTask::WriteScript { workbook_id, file_name, .. } | WriteTask::DeleteScript { workbook_id, file_name } => {
+            vec![(workbook_id, file_name)]
+        }
+        WriteTask::RenameScript { workbook_id, from, to } => vec![(workbook_id, from), (workbook_id, to)],
+        _ => Vec::new(),
+    }
+}
+
 /// Why a write failed
 #[derive(Clone, Debug)]
 pub enum WriteError {
@@ -495,6 +506,14 @@ impl State {
         let generation = self.next_generation + 1;
         self.next_generation = generation;
         self.generations.insert(key.to_string(), generation);
+        // A newer task of a script file goes after a task that was scheduled after the pending one of its key and
+        // touches the same file, e.g. a delete or a rename onto it, instead of keeping the place of the pending one
+        if self.overtakes_pending(key, &task) {
+            if let Some(mut previous) = self.remove_pending(key) {
+                let resolver = previous.resolver.take();
+                self.resolve(resolver, WriteOutcome::Superseded);
+            }
+        }
         let superseded = match self.pending.get_mut(key) {
             // The newer task keeps the place, the debounce duration and the timer of the first one
             Some(pending) => {
@@ -514,6 +533,17 @@ impl State {
         }
         self.register_scheduled_write(key);
         WriteResult(receiver)
+    }
+
+    /// Was a task that touches a script file of a task scheduled after the pending task of its key? Then the task must
+    /// not take the place of the pending one, it would run before the other.
+    fn overtakes_pending(&self, key: &str, task: &WriteTask) -> bool {
+        let files = script_files(task);
+        let Some(seq) = self.pending.get(key).map(|pending| pending.seq) else { return false };
+        !files.is_empty()
+            && self.order.range(seq + 1..).any(|(_, other)| {
+                self.pending.get(other).is_some_and(|other| script_files(&other.task).iter().any(|file| files.contains(file)))
+            })
     }
 
     /// Start the pending task of a key: it leaves the pending tasks and waits for the tasks of its chain. A held key

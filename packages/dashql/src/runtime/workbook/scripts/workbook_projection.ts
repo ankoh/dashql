@@ -6,7 +6,7 @@ import type { ViewProjection } from '../../store/runtime_store.js';
 import { readSessionInputs } from '../../../platform/workbook/inputs/workbook_inputs.js';
 import { resolveCompiledVisualization } from '../../../platform/workbook/scripts/script_compilation.js';
 import { readScriptReferenceReports } from '../../../platform/workbook/scripts/script_reference_check.js';
-import { createEmptyAnnotations, createScriptRef, type ResolvedVisualizeQuery, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from '../../../platform/workbook/scripts/script_types.js';
+import { createScriptRef, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from '../../../platform/workbook/scripts/script_types.js';
 import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../../../platform/workbook/scripts/workbook_scripts.js';
 
 /// The projections of the views of the workbooks into what the app reads (docs/wip/runtime_projection.md): a script
@@ -30,26 +30,24 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
     );
     /// The last view of every script, the next view crosses only the payloads it changed
     private readonly views = new Map<number, ScriptViews>();
-    /// The session handles of the scripts with the ids of their sessions
-    private readonly sessions = new Map<number, { sessionId: number; session: core.DashQLScriptSession }>();
-    /// Editor updates that the editors reported, the projection holds them instead of reading them again
-    private readonly reported = new Map<number, core.buffers.editor.EditorUpdateT>();
+    /// The session handles of the scripts with the generations of their sessions
+    private readonly sessions = new Map<number, { generation: number; session: core.DashQLScriptSession }>();
 
     constructor(private readonly api: core.DashQL, private readonly runtime: core.Runtime) {
         this.pendingDiffs = new core.FlatBufferCache(bb => core.buffers.diff.ScriptDiff.getRootAsScriptDiff(bb), (_, bytes) => core.scriptDiffBuffer(api, bytes));
     }
 
-    /// Take an editor update for the next projection of a script instead of reading it again
-    report(scriptKey: number, update: core.buffers.editor.EditorUpdateT): void {
-        this.reported.set(scriptKey, update);
+    /// Hold the update of an editor event of a script, the next projection of the script takes it instead of reading
+    /// it again
+    hold(scriptKey: number, update: core.buffers.editor.EditorUpdateT): void {
+        this.editorUpdates.hold(scriptKey, core.editorUpdateKey(update), update);
     }
 
     /// The keys of the payloads of a script that the projection holds
     private keysOf(key: number, withStatistics: boolean): core.WorkbookScriptKeys {
-        const reported = this.reported.get(key);
         const statistics = this.views.get(key)?.view.statistics ?? [];
         return {
-            editorUpdate: reported != null ? core.editorUpdateKey(reported) : this.editorUpdates.known(key),
+            editorUpdate: this.editorUpdates.known(key),
             pendingDiff: this.pendingDiffs.known(key),
             visualization: this.visualizations.known(key),
             statistics: withStatistics && statistics.length > 0 ? statistics[statistics.length - 1].key : null,
@@ -61,13 +59,13 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
     }
 
     /// The session handle of a script, one per session
-    private session(key: number, sessionId: number): core.DashQLScriptSession {
+    private session(key: number, generation: number): core.DashQLScriptSession {
         const held = this.sessions.get(key);
-        if (held != null && held.sessionId === sessionId) return held.session;
+        if (held != null && held.generation === generation) return held.session;
         held?.session.destroy();
         const session = this.api.runtimeScriptSession(this.runtime, key);
         if (session == null) throw new Error(`the runtime holds no script ${key}`);
-        this.sessions.set(key, { sessionId, session });
+        this.sessions.set(key, { generation, session });
         return session;
     }
 
@@ -84,12 +82,7 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
             view = this.runtime.views('script', [key], [this.keysOf(key, false)])[0] ?? view;
         }
 
-        // The payloads keep their objects while their keys don't move, a reported editor update is held as it is
-        const reported = this.reported.get(key);
-        this.reported.delete(key);
-        if (reported != null && view.editorUpdateKey != null && view.editorUpdateKey === core.editorUpdateKey(reported)) {
-            this.editorUpdates.hold(key, view.editorUpdateKey, reported);
-        }
+        // The payloads keep their objects while their keys don't move, the update of an editor event is held as it is
         const editorUpdate = this.editorUpdates.read(key, view.editorUpdateKey, view.editorUpdate);
         const diffBuffer = this.pendingDiffs.read(key, view.pendingDiff?.key ?? null, view.pendingDiff?.diff ?? null);
         const pendingDiff = view.pendingDiff == null || diffBuffer == null ? null
@@ -100,9 +93,8 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
         const visualizeQuery = view.visualization == null || visualization == null ? null
             : before != null && before.view.visualization?.key === view.visualization.key ? before.data.annotations.visualizeQuery
                 : resolveCompiledVisualization(view.visualization.sql, visualization, view.visualization.statementId);
-        const annotations = before != null && before.data.editorUpdate === editorUpdate && before.data.annotations.visualizeQuery === visualizeQuery
-            ? before.data.annotations
-            : deriveScriptAnnotations(editorUpdate, visualizeQuery);
+        // The runtime derives the annotations from the analysis, the visualization that a run captured holds without one
+        const annotations = share<ScriptAnnotations>(before?.data.annotations, { ...view.annotations, visualizeQuery });
         const statistics = view.statistics.flatMap(entry => {
             if (entry.statistics == null) return held.get(entry.key) ?? [];
             return [core.readFlatBuffer(entry.statistics, bb => core.buffers.editor.EditorProcessingStatistics.getRootAsEditorProcessingStatistics(bb)).unpack()];
@@ -113,8 +105,8 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
         const data: ScriptData = {
             scriptKey: key,
             workbookId: view.workbookId,
-            sessionId: view.sessionId,
-            scriptSession: this.session(key, view.sessionId),
+            sessionGeneration: view.sessionGeneration,
+            scriptSession: this.session(key, view.sessionGeneration),
             editorUpdate,
             analysisOutdated: view.analysisOutdated,
             annotations,
@@ -133,7 +125,6 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
 
     release(key: number): void {
         this.views.delete(key);
-        this.reported.delete(key);
         this.sessions.get(key)?.session.destroy();
         this.sessions.delete(key);
         const keys = [...this.views.keys()];
@@ -166,51 +157,55 @@ export const WORKBOOK_PROJECTION: ViewProjection<'workbook', WorkbookScripts> = 
     },
 };
 
-/// The projection of the derived views of the workbooks, the FlatBuffers read once per view. The names of the scripts
-/// and the attachments come from the view of the workbook of the same flush.
+/// The projection of the derived views of the workbooks, the FlatBuffers read once per view. A buffer with the bytes of
+/// the previous view keeps what was read from it. The names of the scripts and the attachments come from the view of
+/// the workbook of the same flush.
 export class WorkbookDerivedProjection implements ViewProjection<'workbookDerived', WorkbookDerived> {
+    /// The last view of every workbook with the names that its references were read with
+    private readonly held = new Map<string, { view: core.WorkbookDerivedView; names: string }>();
+
     constructor(private readonly workbook: (workbookId: string) => WorkbookScripts | null) { }
 
     project(workbookId: string, prev: WorkbookDerived | null, view: core.WorkbookDerivedView): WorkbookDerived {
+        const before = prev != null ? this.held.get(workbookId) ?? null : null;
         const workbook = this.workbook(workbookId);
         const files = view.scriptKeys.map((key, i) => workbook?.scriptKeys[i] === key ? workbook.scriptOrder[i] : null);
         const attachments = (workbook?.attachments ?? []).map(attachment => attachment.fileName);
-        const check = core.readFlatBuffer(view.references, bb => core.buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack();
-        const references = readScriptReferenceReports(check, view.scriptKeys, files, attachments, prev?.references ?? null);
-        const dataflow = core.readFlatBuffer(view.dataflow, bb => core.buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
-        const collected = core.readFlatBuffer(view.inputs, bb => core.buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack();
-        const inputs = share(prev?.inputs, readSessionInputs(collected, view.scriptKeys));
-        return { workbookId, scriptKeys: share(prev?.scriptKeys, view.scriptKeys), references, dataflow, inputs };
+        const names = JSON.stringify([files, attachments]);
+        this.held.set(workbookId, { view, names });
+        const scriptKeys = share(prev?.scriptKeys, view.scriptKeys);
+        const sameScripts = prev != null && scriptKeys === prev.scriptKeys;
+        const references = prev != null && before != null && sameScripts && before.names === names && sameBytes(before.view.references, view.references)
+            ? prev.references
+            : readScriptReferenceReports(
+                core.readFlatBuffer(view.references, bb => core.buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack(),
+                view.scriptKeys, files, attachments, prev?.references ?? null,
+            );
+        const dataflow = prev != null && before != null && sameBytes(before.view.dataflow, view.dataflow)
+            ? prev.dataflow
+            : core.readFlatBuffer(view.dataflow, bb => core.buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
+        const inputs = prev != null && before != null && sameScripts && sameBytes(before.view.inputs, view.inputs)
+            ? prev.inputs
+            : share(prev?.inputs, readSessionInputs(
+                core.readFlatBuffer(view.inputs, bb => core.buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack(), view.scriptKeys,
+            ));
+        if (prev != null && prev.scriptKeys === scriptKeys && prev.references === references && prev.dataflow === dataflow && prev.inputs === inputs) {
+            return prev;
+        }
+        return { workbookId, scriptKeys, references, dataflow, inputs };
+    }
+
+    release(workbookId: string): void {
+        this.held.delete(workbookId);
     }
 }
 
-/// The annotations of a script for the views: its tables, its visualization, its positions on the canvas and the board
-export function deriveScriptAnnotations(
-    update: core.buffers.editor.EditorUpdateT | null | undefined,
-    visualizeQuery: ResolvedVisualizeQuery | null,
-): ScriptAnnotations {
-    // The visualization that a run captured holds also without an analysis
-    if (!update?.analysisAvailable) {
-        return { ...createEmptyAnnotations(), visualizeQuery };
+/// Are two buffers equal byte by byte?
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+    if (left === right) return true;
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; ++i) {
+        if (left[i] !== right[i]) return false;
     }
-    const tableDefs = update.scriptAnnotations?.tableDefinitions
-        .map(table => typeof table.name === 'string' ? table.name : null)
-        .filter((name): name is string => name != null)
-        .sort() ?? [];
-    const flow = update.scriptAnnotations?.flowPosition;
-    const board = update.scriptAnnotations?.boardPosition;
-    const lastStatement = (update.scriptAnnotations?.statements ?? [])
-        .reduce<core.buffers.editor.EditorStatementT | null>((last, statement) => last == null || statement.statementId > last.statementId ? statement : last, null);
-    return {
-        tableDefs,
-        visualizeQuery,
-        flowPosition: flow != null
-            ? { statementId: flow.statementId, x: flow.x, y: flow.y, width: flow.width, height: flow.height }
-            : null,
-        boardPosition: board != null
-            ? { statementId: board.statementId, row: board.row, column: board.column, width: board.width, height: board.height }
-            : null,
-        lastStatementIsQuery: lastStatement?.statementType === core.buffers.parser.StatementType.SELECT,
-        manual: update.scriptAnnotations?.manual ?? false,
-    };
+    return true;
 }

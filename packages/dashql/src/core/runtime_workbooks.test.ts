@@ -39,12 +39,10 @@ function createRuntime(storage?: MemoryStorage, connectionId: string | null = 'm
 const changesOf = (runtime: dashql.Runtime, kinds?: string[]) =>
     runtime.takeChanges().changes.filter(change => kinds == null || kinds.includes(change.kind)).map(change => `${change.kind}:${change.id}${change.revision == null ? ' gone' : ''}`);
 
-/// Apply a typed character to the shared session of a script and report the update, as the editor does
-function type(runtime: dashql.Runtime, workbookId: string, key: number, offset: number, text: string): dashql.buffers.editor.EditorUpdateT {
-    const session = dql!.runtimeScriptSession(runtime, key)!;
-    const view = viewOf(runtime, 'script', key, [NONE])!;
+/// An editor event of typed text at an offset of a text version, packed
+function typedEvent(textVersion: bigint, offset: number, text: string): Uint8Array {
     const event = new dashql.buffers.editor.EditorEventT(
-        session.getTextVersion(),
+        textVersion,
         [new dashql.buffers.editor.EditorTextChangeT(BigInt(offset), BigInt(offset), text)],
         new dashql.buffers.editor.EditorSelectionT(BigInt(offset + text.length), BigInt(offset + text.length)),
         dashql.buffers.editor.EditorEventOrigin.USER,
@@ -52,12 +50,22 @@ function type(runtime: dashql.Runtime, workbookId: string, key: number, offset: 
         dashql.buffers.editor.EditorEventAction.TYPE,
         true,
     );
-    const update = session.apply(event);
     const builder = new flatbuffers.Builder();
-    builder.finish(update.pack(builder));
-    runtime.reportEditorUpdate(workbookId, key, view.sessionId, builder.asUint8Array(), false);
+    builder.finish(event.pack(builder));
+    return builder.asUint8Array();
+}
+
+/// The editor update of packed bytes
+const readUpdate = (bytes: Uint8Array) =>
+    dashql.readFlatBuffer(bytes, bb => dashql.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+
+/// Type text into a script as the editor does: the runtime applies the event to the session of the script
+function type(runtime: dashql.Runtime, workbookId: string, key: number, offset: number, text: string): dashql.buffers.editor.EditorUpdateT {
+    const session = dql!.runtimeScriptSession(runtime, key)!;
+    const view = viewOf(runtime, 'script', key, [NONE])!;
+    const bytes = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, typedEvent(session.getTextVersion(), offset, text));
     session.destroy();
-    return update;
+    return readUpdate(bytes!);
 }
 
 describe('The workbooks of the runtime', () => {
@@ -103,11 +111,60 @@ describe('The workbooks of the runtime', () => {
         const [alpha] = viewOf(runtime, 'workbook', 'w')!.scriptKeys;
         runtime.takeChanges();
 
-        type(runtime, 'w', alpha, 8, '0');
+        const update = type(runtime, 'w', alpha, 8, '0');
+        expect(update.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
         expect(changesOf(runtime)).toEqual([`script:${alpha}`, 'workbookDerived:w']);
         expect(dql!.runtimeScriptSession(runtime, alpha)!.getText()).toBe('select 10');
-        // An update of a stale session is dropped
-        expect(runtime.reportEditorUpdate('w', alpha, 0, new Uint8Array(), false)).toBe(false);
+        // The script holds the update that went to the editor, the view leaves it out for a host that holds its key
+        const view = viewOf(runtime, 'script', alpha, [{ ...NONE, editorUpdate: dashql.editorUpdateKey(update) }])!;
+        expect(view.editorUpdateKey).toBe(dashql.editorUpdateKey(update));
+        expect(view.editorUpdate).toBeNull();
+        // An event of a session that the script no longer holds is dropped
+        expect(runtime.applyEditorEvent('w', alpha, 0, typedEvent(update.textVersion, 0, 'x'))).toBeUndefined();
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('refuse a keystroke of an editor that missed a change of the text', async () => {
+        const { runtime, storage } = createRuntime();
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
+        const [alpha] = viewOf(runtime, 'workbook', 'w')!.scriptKeys;
+        const view = viewOf(runtime, 'script', alpha, [NONE])!;
+        // The editor synced with the text, then the workbook changes it
+        const synced = dql!.runtimeScriptSession(runtime, alpha)!;
+        const shown = synced.getTextVersion();
+        expect(runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: alpha, text: 'select 12345 as value' } }).changed).toBe(true);
+        runtime.takeChanges();
+        // A keystroke at an offset of the text the editor shows is stale, the text stays the one of the workbook
+        const stale = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(shown, 8, '0'))!);
+        expect(stale.status).toBe(dashql.buffers.editor.EditorUpdateStatus.STALE_TEXT_VERSION);
+        expect(synced.getText()).toBe('select 12345 as value');
+        expect(changesOf(runtime, ['script'])).toEqual([]);
+        // Once the editor shows the new text, its keystrokes apply
+        const typed = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(synced.getTextVersion(), 12, '6'))!);
+        expect(typed.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
+        await runtime.storage({ kind: 'flush' });
+        expect(storage.scripts.get('w')?.get('alpha.sql')).toBe('select 123456 as value');
+        synced.destroy();
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('move the derived view only when what it derives changed', () => {
+        const { runtime } = createRuntime();
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'create table t (x int)', base: 'alpha' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select x from t', base: 'beta' } });
+        runtime.takeChanges();
+        const derived = viewOf(runtime, 'workbookDerived', 'w')!;
+        // The scripts share the connection of the runtime: new params reach them and the script list of the workbook,
+        // the derived view derives again and keeps its slice, its buffers stay the same
+        const committed = runtime.dispatch({ connection: 'main' }, { kind: 'commitParams', value: { params: { hyper: { protocol: 'WASM', endpoint: 'moved' } } } });
+        expect(committed.ok).toBe(true);
+        expect(changesOf(runtime, ['workbook', 'workbookDerived'])).toEqual(['workbook:w']);
+        expect(viewOf(runtime, 'workbook', 'w')!.scriptList.connections[0].params).toContain('moved');
+        expect(viewOf(runtime, 'workbookDerived', 'w')!.dataflow).toEqual(derived.dataflow);
         runtime.destroy();
         runtime.free();
     });

@@ -343,9 +343,9 @@ const dispatch = useDispatch({ workbook: workbookId });         // (action) => O
 
 ### Per keystroke
 
-- The editor applies the event to the session (unchanged) and calls `reportEditorUpdate` in its update listener. The
-  workbook applies the update as today (the reduction of 128 µs median), marks the script slice and the
-  `workbookDerived` slice if the result of the derivation changed, and hands its effects to its writer in Rust.
+- The editor sends the event to the runtime (`applyEditorEvent`, one call): the workbook applies it to the session of
+  the script, takes the update, hands its effects to its writer in Rust and returns the update once. It marks the
+  script slice, and the `workbookDerived` slice if the derived buffers changed.
 - The flush is two crossings at most: `takeChanges` and the view of the script, plus the derived view when it moved.
   The projection budget is today's 25 µs median; the typing benchmark of core_runtime.md runs with every step and
   must not exceed it.

@@ -14,10 +14,11 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use dashql_buffers::editor::EditorOffsetUnit;
+use dashql_buffers::editor::{EditorEventT, EditorOffsetUnit};
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::restore::script_connection_of;
+use dashql_core_runtime::names::free_workbook_name;
 use dashql_core_runtime::storage::keys::{workbook_connection_copy_key, workbook_file_key, workbook_scripts_key};
 use dashql_core_runtime::storage::{TextSource, WriteTask};
 use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
@@ -191,14 +192,34 @@ impl Workbooks {
     /// connections learn the workbooks that use them. A failed action leaves the workbook as it was.
     pub fn apply(&self, workbook_id: &str, action: WorkbookAction) -> Result<bool> {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
-        // An editor update changes neither the connections nor the scripts of the workbook
-        let editor_only = matches!(action, WorkbookAction::ReportEditorUpdate { .. });
+        // An editor event changes neither the connections nor the scripts of the workbook
+        let editor_only = matches!(action, WorkbookAction::ApplyEditorEvent { .. });
         let outcome = {
             let mut workbook = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
             workbook.apply(action)?
         };
         let changed = self.settle(workbook_id, &workbook, outcome, editor_only);
         Ok(changed)
+    }
+
+    /// Apply an event of the editor of a script of a session generation and return the packed update for the editor:
+    /// the one of the outcome, or the one that the script holds now. None for a script that holds another session.
+    pub fn apply_editor_event(&self, workbook_id: &str, key: u32, generation: u64, event: EditorEventT) -> Result<Option<Vec<u8>>> {
+        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let (outcome, update) = {
+            let mut held = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
+            if !held.script(key).is_some_and(|script| script.session_generation() == generation) {
+                return Ok(None);
+            }
+            let outcome = held.apply(WorkbookAction::ApplyEditorEvent { key, event })?;
+            let update = match &outcome.editor_update {
+                Some(update) => finish!(update),
+                None => held.script(key).and_then(|script| script.editor_update()).map(|update| finish!(update)).unwrap_or_default(),
+            };
+            (outcome, update)
+        };
+        self.settle(workbook_id, &workbook, outcome, true);
+        Ok(Some(update))
     }
 
     /// Write the effects of an outcome, promote the workbook and tell the host
@@ -275,7 +296,7 @@ impl Workbooks {
         metadata.insert("originType".into(), json!("LOCAL"));
         metadata.insert("originalFileName".into(), json!(new.original_file_name.clone().unwrap_or_default()));
         metadata.insert("originalHttpUrl".into(), json!(""));
-        let copy = connection_copy(&connection.connection_id, connection.params.as_deref());
+        let copy = connection_copy(&connection.connection_id, connection.params().as_deref());
         let list = workbook.script_list();
         self.entries.borrow_mut().push(WorkbookEntry {
             id: workbook_id.clone(),
@@ -354,12 +375,16 @@ impl Workbooks {
         self.platform.signal(true);
     }
 
-    /// Link a workbook to a published workbook, the whole link goes into the workbook file, none removes it
+    /// Link a workbook to a published workbook, the whole link goes into the workbook file, none removes it. A failed
+    /// link leaves the workbook and its metadata as they were.
     pub fn set_cloud_link(&self, workbook_id: &str, link: Option<Value>) -> Result<bool> {
         let ids = match &link {
             Some(link) => Some(cloud_link_of(link).ok_or_else(|| Error::invalid_argument("the link to a cloud misses its ids"))?),
             None => None,
         };
+        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(WorkbookAction::SetCloudLink { link: ids })?;
+        // The metadata changes with the workbook, before its effects write the link into the workbook file
         {
             let mut entries = self.entries.borrow_mut();
             let entry = entries.iter_mut().find(|entry| entry.id == workbook_id);
@@ -372,7 +397,7 @@ impl Workbooks {
             }
             entry.metadata_revision = next_revision();
         }
-        self.apply(workbook_id, WorkbookAction::SetCloudLink { link: ids })
+        Ok(self.settle(workbook_id, &workbook, outcome, false))
     }
 
     /// The scripts that storage holds, with the connections of the runtime
@@ -450,7 +475,8 @@ impl Workbooks {
                 })
             })
             .collect();
-        WorkbookListView { workbooks, invalid_workbooks: self.invalid.borrow().clone() }
+        let next_workbook_name = free_workbook_name(self.taken_names("").iter().map(String::as_str));
+        WorkbookListView { workbooks, invalid_workbooks: self.invalid.borrow().clone(), next_workbook_name }
     }
 }
 
@@ -468,6 +494,13 @@ fn cloud_link_of(link: &Value) -> Option<CloudLink> {
     Some(CloudLink { workbook_id, version_id, preview })
 }
 
+/// The newest of the revisions of a workbook and of the connections of its scripts. Revisions grow, a change of the
+/// workbook or of a connection that its scripts read moves it.
+pub(crate) fn workbook_revision(workbook: &Workbook) -> u64 {
+    let connections = workbook.scripts().iter().map(|script| script.connection()).chain(workbook.pending_connection());
+    connections.map(|connection| connection.revision()).fold(workbook.revision(), u64::max)
+}
+
 /// What the view of a workbook shows, as a hash: everything but the texts and analyses of its scripts. A change of a
 /// script changes the slice of the script, the workbook keeps its slice while its key doesn't move.
 pub(crate) fn workbook_key(entry: &WorkbookEntry, workbook: &Workbook) -> u64 {
@@ -475,7 +508,7 @@ pub(crate) fn workbook_key(entry: &WorkbookEntry, workbook: &Workbook) -> u64 {
     entry.metadata_revision.hash(&mut hasher);
     workbook.name().hash(&mut hasher);
     workbook.ephemeral().hash(&mut hasher);
-    workbook.pending_connection().map(|connection| (&connection.connection_id, &connection.params)).hash(&mut hasher);
+    workbook.pending_connection().map(|connection| (&connection.connection_id, connection.revision())).hash(&mut hasher);
     workbook.cloud().map(|link| (&link.workbook_id, &link.version_id, link.preview)).hash(&mut hasher);
     workbook.attachments().map(|attachments| attachments.len()).hash(&mut hasher);
     for attachment in workbook.attachments().unwrap_or_default() {
@@ -483,7 +516,7 @@ pub(crate) fn workbook_key(entry: &WorkbookEntry, workbook: &Workbook) -> u64 {
     }
     for script in workbook.scripts() {
         let connection = script.connection();
-        (script.key(), script.file_name(), &connection.connection_id, &connection.params, script.unresolved_connection_id()).hash(&mut hasher);
+        (script.key(), script.file_name(), &connection.connection_id, connection.revision(), script.unresolved_connection_id()).hash(&mut hasher);
     }
     hasher.finish()
 }
@@ -515,5 +548,6 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
         script_order: scripts.iter().map(|script| script.file_name().to_string()).collect(),
         script_connections: scripts.iter().map(|script| script.connection().connection_id.clone()).collect(),
         connection_ids: Workbooks::connection_ids(workbook),
+        next_script_connection_id: workbook.new_script_connection(None).map(|connection| connection.connection_id.clone()),
     }
 }

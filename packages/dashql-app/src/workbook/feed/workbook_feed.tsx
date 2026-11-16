@@ -28,7 +28,7 @@ import {
 import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
-import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import {
     useOptionalRuntime,
@@ -260,7 +260,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const cachingConnections = [...(props.scriptConnections ?? defaultConnections).values()]
         .filter(connectionCachesQueryResults).map(connection => connection.connectionId).join(',');
     // The composer drafts the next script, on the connection that the script will run on
-    const composerConnectionId = newScriptConnection(props.workbookScripts, null);
+    const composerConnectionId = props.workbookScripts.nextScriptConnectionId ?? null;
     const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
     const storageReader = dependencies.useStorageReader();
     const queryResultCache = useQueryResultCache();

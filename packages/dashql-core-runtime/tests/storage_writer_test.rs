@@ -526,6 +526,42 @@ fn keeps_rename_write_and_delete_in_distinct_ordered_keyspaces() {
 }
 
 #[test]
+fn writes_a_script_after_a_delete_and_a_rename_onto_its_file() {
+    let h = Harness::new();
+    // Within the debounce duration: type in q.sql, delete it, rename r.sql to q.sql, type in the renamed q.sql
+    let first = h.start(h.writer.write(&script_key(WORKBOOK, "q.sql"), write_script(WORKBOOK, "q.sql", "typed"), 100.0));
+    h.advance(10);
+    let delete = WriteTask::DeleteScript { workbook_id: WORKBOOK.to_string(), file_name: "q.sql".to_string() };
+    let delete = h.start(h.writer.write(&format!("{WORKBOOK}/scripts/q.sql:delete"), delete, 100.0));
+    h.advance(10);
+    let rename = WriteTask::RenameScript { workbook_id: WORKBOOK.to_string(), from: "r.sql".to_string(), to: "q.sql".to_string() };
+    let rename = h.start(h.writer.write(&format!("{WORKBOOK}/scripts/r.sql:rename"), rename, 100.0));
+    h.advance(10);
+    let last = h.start(h.writer.write(&script_key(WORKBOOK, "q.sql"), write_script(WORKBOOK, "q.sql", "renamed and typed"), 100.0));
+    h.run();
+    assert!(matches!(first.take(), WriteOutcome::Superseded));
+    h.advance(200);
+    assert!([delete, rename, last].iter().all(|task| written(&task.take())));
+    // The write of the renamed script comes last, the file ends with its text
+    assert_eq!(
+        h.calls(),
+        [
+            format!("delete:{WORKBOOK}/q.sql"),
+            format!("rename:{WORKBOOK}/r.sql->q.sql"),
+            format!("write:{WORKBOOK}/q.sql=renamed and typed"),
+        ]
+    );
+    // Without a task in between the newer write keeps the timer of the first one
+    let h = Harness::new();
+    h.start(h.writer.write(&script_key(WORKBOOK, "q.sql"), write_script(WORKBOOK, "q.sql", "1"), 100.0));
+    h.start(h.writer.write(&script_list_key(WORKBOOK), script_list(&["q.sql"], Vec::new()), 100.0));
+    h.advance(60);
+    h.start(h.writer.write(&script_key(WORKBOOK, "q.sql"), write_script(WORKBOOK, "q.sql", "2"), 100.0));
+    h.advance(40);
+    assert!(h.calls().first().is_some_and(|call| *call == format!("write:{WORKBOOK}/q.sql=2")));
+}
+
+#[test]
 fn does_not_overlap_mutations_of_the_same_workbook() {
     let h = Harness::new();
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();

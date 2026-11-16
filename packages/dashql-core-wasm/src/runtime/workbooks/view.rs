@@ -143,6 +143,8 @@ pub struct WorkbookView {
     pub script_connections: Vec<String>,
     /// The connections that the workbook uses: of its scripts in the order they first use them, then the pending one
     pub connection_ids: Vec<String>,
+    /// The connection that an appended script runs on, the one that `createScript` without a connection takes
+    pub next_script_connection_id: Option<String>,
 }
 
 /// A workbook of the list of the workbooks
@@ -164,6 +166,77 @@ pub struct WorkbookListEntry {
 pub struct WorkbookListView {
     pub workbooks: Vec<WorkbookListEntry>,
     pub invalid_workbooks: Vec<RestoredInvalidWorkbook>,
+    /// The name of a new workbook: the first of "Untitled", "Untitled 2", ... that no other workbook has
+    pub next_workbook_name: String,
+}
+
+/// The placement of a script on the dataflow canvas, its `@flow` tag
+#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookFlowPosition {
+    pub statement_id: u32,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+}
+
+/// The dashboard placement of a script, the `@board` tag of its last statement
+#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookBoardPosition {
+    pub statement_id: u32,
+    pub row: Option<i32>,
+    pub column: Option<i32>,
+    pub width: i32,
+    pub height: i32,
+}
+
+/// What the views read of the analysis of a script: its tables, its positions on the canvas and the board, whether its
+/// last statement is a query and whether it runs only on request. Empty without an analysis.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct WorkbookScriptAnnotations {
+    /// The names of the tables that the script defines, sorted
+    pub table_defs: Vec<String>,
+    pub flow_position: Option<WorkbookFlowPosition>,
+    pub board_position: Option<WorkbookBoardPosition>,
+    pub last_statement_is_query: bool,
+    pub manual: bool,
+}
+
+impl WorkbookScriptAnnotations {
+    /// The annotations of an editor update
+    pub fn of(update: Option<&dashql_buffers::editor::EditorUpdateT>) -> Self {
+        let Some(annotations) = update.filter(|update| update.analysis_available).and_then(|update| update.script_annotations.as_deref()) else {
+            return Self::default();
+        };
+        let mut table_defs: Vec<String> = annotations.table_definitions.iter().flatten().filter_map(|table| table.name.clone()).collect();
+        table_defs.sort();
+        let last = annotations.statements.iter().flatten().max_by_key(|statement| statement.statement_id);
+        WorkbookScriptAnnotations {
+            table_defs,
+            flow_position: annotations.flow_position.as_deref().map(|flow| WorkbookFlowPosition {
+                statement_id: flow.statement_id,
+                x: flow.x,
+                y: flow.y,
+                width: flow.width,
+                height: flow.height,
+            }),
+            board_position: annotations.board_position.as_deref().map(|board| WorkbookBoardPosition {
+                statement_id: board.statement_id,
+                row: board.row,
+                column: board.column,
+                width: board.width,
+                height: board.height,
+            }),
+            last_statement_is_query: last.is_some_and(|statement| statement.statement_type == dashql_buffers::parser::StatementType::SELECT),
+            manual: annotations.manual,
+        }
+    }
 }
 
 /// What the runtime derives from the scripts of a workbook with the planner: the checked script references, the
@@ -271,8 +344,9 @@ pub struct WorkbookScriptView {
     /// The workbook of the script
     pub workbook_id: String,
     pub revision: u64,
-    /// Identifies the session of the script, a script that moved to another connection has a new one
-    pub session_id: u32,
+    /// Names the session of the script, a script that moved to another connection has a new one. An editor event names
+    /// it (`Runtime.applyEditorEvent`).
+    pub session_generation: u64,
     pub file_name: String,
     pub connection_id: String,
     pub unresolved_connection_id: Option<String>,
@@ -280,6 +354,8 @@ pub struct WorkbookScriptView {
     pub latest_query_id: Option<u32>,
     pub latest_result_query_id: Option<u32>,
     pub external_changes: Option<WorkbookExternalChanges>,
+    /// What the views read of the analysis
+    pub annotations: WorkbookScriptAnnotations,
     /// Names the editor update, an update with the same key is the same analysis
     pub editor_update_key: Option<String>,
     #[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate> | null")]
@@ -322,7 +398,7 @@ impl WorkbookScriptView {
             key: script.key(),
             workbook_id: workbook_id.to_string(),
             revision: script.revision(),
-            session_id: std::rc::Rc::as_ptr(script.session()) as usize as u32,
+            session_generation: script.session_generation(),
             file_name: script.file_name().to_string(),
             connection_id: script.connection().connection_id.clone(),
             unresolved_connection_id: script.unresolved_connection_id().map(str::to_string),
@@ -330,6 +406,7 @@ impl WorkbookScriptView {
             latest_query_id: script.latest_query_id(),
             latest_result_query_id: script.latest_result_query_id(),
             external_changes: script.external_changes().map(WorkbookExternalChanges::from),
+            annotations: WorkbookScriptAnnotations::of(update),
             editor_update_key,
             editor_update,
             pending_diff,

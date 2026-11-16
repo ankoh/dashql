@@ -371,7 +371,8 @@ impl ScriptReferences {
                 let Some(producer) = r.producer else { continue };
                 match colors[producer as usize] {
                     Color::Gray => {
-                        let begin = path.iter().position(|&s| s == producer).unwrap();
+                        // A gray script is on the path
+                        let Some(begin) = path.iter().position(|&s| s == producer) else { continue };
                         let cycle: Vec<String> = path[begin..].iter().chain(std::iter::once(&producer)).map(|&s| script_label(request, s)).collect();
                         reporter.current = (script, index);
                         reporter.error(script, Some(r.text_span), format!("cyclic script reference: {}", cycle.join(" -> ")));
@@ -780,7 +781,9 @@ pub(crate) fn splice_statement(
     if direct.is_empty() {
         return out;
     }
-    let consumer = prepared[script as usize].as_ref().unwrap();
+    let Some(consumer) = prepared.get(script as usize).and_then(Option::as_ref) else {
+        return out;
+    };
     let (scanned, parsed) = (consumer.scanned, consumer.parsed);
 
     // The scripts of the statement, every script after the scripts it references
@@ -791,7 +794,7 @@ pub(crate) fn splice_statement(
     used_names(consumer, statement_id, &mut used);
     for &(producer, kind) in &order {
         if kind == ReferenceKind::Inline {
-            let p = prepared[producer as usize].as_ref().unwrap();
+            let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
             if let Some(terminal) = p.terminal() {
                 used_names(p, terminal, &mut used);
             }
@@ -852,8 +855,8 @@ pub(crate) fn splice_statement(
         let mut relations = BTreeSet::new();
         relation_names(p, statement, &mut relations);
         for r in refs.iter().filter(|r| r.statement_id == statement && r.kind != ReferenceKind::Invalid) {
-            let Some(source) = r.source() else { continue };
-            let cte = &cte_names[&source];
+            let Some(cte) = r.source().and_then(|source| cte_names.get(&source).map(|cte| (source, cte))) else { continue };
+            let (source, cte) = cte;
             let tableref = &p.parsed.nodes[p.parsed.nodes[r.ast_node_id as usize].parent() as usize];
             let [alias] = attrs!(p.parsed.children(tableref), [Key::SQL_TABLEREF_ALIAS]);
             let has_alias = alias.is_some_and(|a| a.node_type() != NodeType::NONE);
@@ -868,16 +871,16 @@ pub(crate) fn splice_statement(
     // The common table expressions in order
     let mut ctes: Vec<String> = Vec::new();
     for &attachment in &attachments {
-        let cte = identifier(&cte_names[&TableParameterSource::Attachment(attachment)]);
+        let Some(cte) = cte_names.get(&TableParameterSource::Attachment(attachment)).map(|cte| identifier(cte)) else { continue };
         let path = attachment_path(request, attachment);
         ctes.push(format!("{cte} as (select * from external('{}', format => 'parquet'))", path.replace('\'', "''")));
     }
     out.attachments = attachments;
     for &(producer, kind) in &order {
-        let cte = identifier(&cte_names[&TableParameterSource::Script(producer)]);
+        let Some(cte) = cte_names.get(&TableParameterSource::Script(producer)).map(|cte| identifier(cte)) else { continue };
         match kind {
             ReferenceKind::Inline => {
-                let p = prepared[producer as usize].as_ref().unwrap();
+                let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
                 let Some(terminal) = p.terminal() else { continue };
                 let span = p.parsed.associate_descriptions()[terminal as usize].statement_span;
                 let mut edits = reference_edits(p, terminal, references.of(producer));
@@ -928,10 +931,10 @@ pub(crate) fn splice_statement(
     out.edits.extend(reference_edits(consumer, statement_id, references.of(script)));
     out.edits.sort_by_key(|(s, _)| (s.offset, s.length));
     for r in direct {
-        let Some(source) = r.source() else { continue };
+        let Some(cte_name) = r.source().and_then(|source| cte_names.get(&source)).cloned() else { continue };
         out.references.push(SplicedReference {
             reference: r.clone(),
-            cte_name: cte_names[&source].clone(),
+            cte_name,
             materialization: match (r.kind, r.producer) {
                 (ReferenceKind::Scan, Some(producer)) => materialization_of.get(&producer).copied(),
                 _ => None,

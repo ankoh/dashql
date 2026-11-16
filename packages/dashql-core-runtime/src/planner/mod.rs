@@ -856,7 +856,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             let direct: BTreeSet<(u32, u32)> = accesses.keys().copied().collect();
             let mut inherited: BTreeSet<(u32, u32)> = BTreeSet::new();
             for &(producer, producer_statement) in &spliced.inlined {
-                let producer_analyzed = prepared[producer as usize].as_ref().unwrap().analyzed;
+                let Some(producer_analyzed) = prepared.get(producer as usize).and_then(Option::as_ref).map(|p| p.analyzed) else { continue };
                 for table_ref in &producer_analyzed.table_references {
                     if table_ref.ast_statement_id != Some(producer_statement)
                         || is_cte_reference(producer_analyzed, table_ref)
@@ -908,7 +908,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                                     .cloned()
                                     .collect();
                                 if matches.len() == 1 {
-                                    name = matches.into_iter().next().unwrap();
+                                    if let Some(only) = matches.into_iter().next() {
+                                        name = only;
+                                    }
                                 } else if matches.len() > 1 {
                                     barrier!("ambiguous DROP target");
                                 }

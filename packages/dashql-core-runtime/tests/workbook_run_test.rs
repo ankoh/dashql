@@ -10,19 +10,14 @@ use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::formatting::FormattingDialect;
-use dashql_core::catalog::{Catalog, EntryIdSource};
 use dashql_core_runtime::executor::QueryId;
-use dashql_core_runtime::host::signal::{oneshot, Sender};
+use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::workbook::{ScriptConnection, Workbook};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookEffect};
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
     StatementCache, StatementFailure, StatementHandle, StatementRequest,
 };
-
-thread_local! {
-    static ENTRY_IDS: EntryIdSource = EntryIdSource::new();
-}
 
 // The executor
 
@@ -91,6 +86,17 @@ struct HostState {
     offline: BTreeSet<String>,
     /// The texts of statements that fail
     failing: Vec<String>,
+    /// How often the run told that it changed the workbook, and the effects it passed on
+    changes: usize,
+    effects: Vec<WorkbookEffect>,
+    /// Do the statements that serve cached results wait for the test?
+    gate_cached: bool,
+    /// Are the cached results gone when they are read?
+    missing: bool,
+    /// Does the host set up the connections of a run, the ones that fail, and a gate that the setups wait for
+    prepares: bool,
+    failing_setups: BTreeSet<String>,
+    prepare_gate: Option<Receiver<()>>,
 }
 
 struct FakeHost {
@@ -103,6 +109,8 @@ struct FakeHost {
     /// The statements of a connection that run at once
     concurrency: usize,
     next_query: Cell<QueryId>,
+    /// Is the workbook still the one of the app?
+    live: Cell<bool>,
 }
 
 impl Host for FakeHost {
@@ -125,9 +133,9 @@ impl RunHost for FakeHost {
         let mut state = self.state.borrow_mut();
         state.calls.push(format!("execute {}", request.text));
         let fails = state.failing.iter().any(|text| request.text.contains(text.as_str()));
-        let miss = matches!(&request.cache, StatementCache::Only { .. })
-            && !state.cached.iter().any(|key| key.ends_with(&format!(":{}", signature_of(&request))));
-        if self.auto || matches!(request.cache, StatementCache::Only { .. }) {
+        let cached = matches!(&request.cache, StatementCache::Only { .. });
+        let miss = cached && (state.missing || !state.cached.iter().any(|key| key.ends_with(&format!(":{}", signature_of(&request)))));
+        if (self.auto && !(cached && state.gate_cached)) || (cached && !state.gate_cached) {
             let end = if fails {
                 Err(StatementFailure::new(format!("{} failed", request.text)))
             } else if miss {
@@ -174,10 +182,19 @@ impl RunHost for FakeHost {
         self.concurrency
     }
     fn prepares_connections(&self) -> bool {
-        false
+        self.state.borrow().prepares
     }
-    fn prepare_connection(&self, _connection_id: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
-        std::future::ready(Ok(()))
+    fn prepare_connection(&self, connection_id: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let mut state = self.state.borrow_mut();
+        state.calls.push(format!("prepare {connection_id}"));
+        let gate = state.prepare_gate.take();
+        let fails = state.failing_setups.contains(connection_id);
+        async move {
+            if let Some(gate) = gate {
+                gate.await;
+            }
+            if fails { Err(HostError::new("the setup failed")) } else { Ok(()) }
+        }
     }
     fn has_cache(&self) -> bool {
         true
@@ -214,9 +231,13 @@ impl RunHost for FakeHost {
         std::future::ready(Ok(()))
     }
     fn workbook_live(&self) -> bool {
-        true
+        self.live.get()
     }
-    fn workbook_changed(&self) {}
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>) {
+        let mut state = self.state.borrow_mut();
+        state.changes += 1;
+        state.effects.extend(effects);
+    }
     fn state(&self, state: &RunState) {
         self.state.borrow_mut().states.push(state.clone());
     }
@@ -248,15 +269,14 @@ fn signature_of(request: &StatementRequest) -> String {
 // The setup
 
 fn connection(id: &str, local: bool) -> Rc<ScriptConnection> {
-    Rc::new(ScriptConnection {
-        connection_id: id.to_string(),
-        catalog: Rc::new(RefCell::new(Catalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone)))),
+    let profile = ScriptConnectionProfile {
         dialect: FormattingDialect::HYPER,
         local,
         params: None,
         default_database: String::new(),
         default_schema: String::new(),
-    })
+    };
+    Rc::new(ScriptConnection::new(id, Rc::new(RefCell::new(new_catalog())), profile))
 }
 
 /// A workbook with scripts on connections, in feed order
@@ -284,6 +304,7 @@ fn setup(auto: bool, mounts: Option<&str>, concurrency: usize) -> Setup {
         mounts: mounts.map(str::to_string),
         concurrency,
         next_query: Cell::new(0),
+        live: Cell::new(true),
     });
     Setup { executor, state, host }
 }
@@ -499,4 +520,157 @@ fn skips_the_scripts_of_a_connection_that_can_not_run() {
     assert_eq!(s.events("2_b.sql"), vec!["skipped"]);
     let state = s.last_state();
     assert_eq!((state.skipped_scripts, state.skipped_files.clone()), (1, vec!["2_b.sql".to_string()]));
+}
+
+#[test]
+fn a_run_analyzes_only_the_scripts_with_outdated_analyses() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("1_create.sql", "create table items (id int)", &main), ("2_query.sql", "select id from items", &main)]);
+    let s = setup(true, None, 1);
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    let analyses = |workbook: &Rc<RefCell<Workbook>>| -> Vec<Option<(u64, u64, u64)>> {
+        let workbook = workbook.borrow();
+        workbook.scripts().iter().map(|s| s.editor_update().map(|u| (u.text_version, u.state_revision, u.catalog_revision))).collect()
+    };
+    let before = analyses(&workbook);
+    assert!(before.iter().all(Option::is_some));
+    // A second run, e.g. the one of an input change, analyzes nothing
+    let options = RunOptions { refresh: true, ..workbook_run() };
+    assert!(s.run(&workbook, options).failure.is_none());
+    assert_eq!(analyses(&workbook), before);
+    assert!(workbook.borrow().scripts().iter().all(|script| !script.is_analysis_outdated()));
+}
+
+/// A gated run of two scripts on one connection, the first statement runs
+fn running_two_scripts(s: &Setup) -> (Rc<RefCell<Workbook>>, dashql_core_runtime::workbook_run::RunHandle<FakeHost>, Rc<RefCell<Option<RunResult>>>) {
+    let main = connection("main", false);
+    let workbook = workbook(&[("1_a.sql", "select 1", &main), ("2_b.sql", "select 2", &main)]);
+    let (handle, result) = s.start(&workbook, workbook_run());
+    assert_eq!(s.texts(), vec!["select 1"]);
+    (workbook, handle, result)
+}
+
+#[test]
+fn a_change_of_the_scripts_during_a_run_fails_it() {
+    use dashql_core_runtime::workbook::WorkbookAction;
+    // A rename, a delete and a move to another connection change the scripts of the plan
+    let other = connection("other", false);
+    let changes: Vec<(WorkbookAction, &str)> = vec![
+        (WorkbookAction::RenameScript { file_name: "2_b.sql".into(), new_name: "2_c".into() }, "Workbook changed during execution"),
+        (WorkbookAction::DeleteScript { file_name: "2_b.sql".into() }, "Workbook changed during execution"),
+        (WorkbookAction::SetScriptConnection { file_name: "2_b.sql".into(), connection: other.clone() }, "Workbook script changed during execution: 2_b.sql"),
+    ];
+    for (action, message) in changes {
+        let s = setup(false, None, 1);
+        let (workbook, _handle, result) = running_two_scripts(&s);
+        workbook.borrow_mut().apply(action).unwrap();
+        s.end("select 1", Ok(true));
+        let failure = result.borrow_mut().take().expect("the run ended").failure.expect("a failure");
+        assert_eq!((failure.kind, failure.message.as_str()), (RunFailureKind::Error, message));
+        assert_eq!(s.texts(), vec!["select 1"]);
+    }
+    // An edit of a planned script runs the statement as it was planned
+    let s = setup(false, None, 1);
+    let (workbook, _handle, result) = running_two_scripts(&s);
+    let key = workbook.borrow().script_by_file("2_b.sql").unwrap().key();
+    workbook.borrow_mut().apply(WorkbookAction::SetScriptText { key, text: "select 3".into(), with_diff: false }).unwrap();
+    s.end("select 1", Ok(true));
+    s.end("select 2", Ok(true));
+    assert!(result.borrow_mut().take().expect("the run ended").failure.is_none());
+    assert_eq!(s.texts(), vec!["select 1", "select 2"]);
+}
+
+#[test]
+fn a_run_of_a_workbook_that_is_gone_fails() {
+    let s = setup(false, None, 1);
+    let (_workbook, _handle, result) = running_two_scripts(&s);
+    s.host.live.set(false);
+    s.end("select 1", Ok(true));
+    let failure = result.borrow_mut().take().expect("the run ended").failure.expect("a failure");
+    assert_eq!((failure.kind, failure.message.as_str()), (RunFailureKind::Error, "Workbook changed during execution"));
+    assert_eq!(s.texts(), vec!["select 1"]);
+}
+
+/// A workbook whose first script has a cached result, the cache holds it
+fn cached_workbook(s: &Setup) -> Rc<RefCell<Workbook>> {
+    let main = connection("main", false);
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &main), ("bar.sql", "select a + 1 from :foo", &main)]);
+    let first = s.run(&workbook, workbook_run());
+    assert!(first.failure.is_none(), "{:?}", first.failure);
+    let signature = signature_of(&s.state.borrow().statements[0].request);
+    let mut state = s.state.borrow_mut();
+    state.statements.clear();
+    state.calls.clear();
+    state.events.clear();
+    state.cached.insert(format!("main:{signature}"));
+    drop(state);
+    workbook
+}
+
+#[test]
+fn runs_a_script_whose_cached_result_is_gone() {
+    let s = setup(true, None, 1);
+    let workbook = cached_workbook(&s);
+    s.state.borrow_mut().missing = true;
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The cached result was asked for, then the script ran with the one after it
+    let statements = &s.state.borrow().statements;
+    assert!(matches!(statements[0].request.cache, StatementCache::Only { .. }));
+    assert_eq!(statements.len(), 3);
+    assert!(statements.iter().skip(1).all(|s| matches!(s.request.cache, StatementCache::Refresh { .. })));
+    assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("done"));
+}
+
+#[test]
+fn cancels_a_run_that_serves_a_cached_result() {
+    let s = setup(true, None, 1);
+    let workbook = cached_workbook(&s);
+    s.state.borrow_mut().gate_cached = true;
+    let (handle, result) = s.start(&workbook, workbook_run());
+    assert_eq!(s.state.borrow().statements.len(), 1);
+    handle.cancel();
+    s.executor.run_until_stalled();
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|f| f.kind), Some(RunFailureKind::Cancelled));
+    assert_eq!(s.state.borrow().statements.len(), 1);
+    assert_eq!(s.last_state().phase, RunPhase::Cancelled);
+}
+
+#[test]
+fn cancels_a_run_that_sets_up_its_connections() {
+    let s = setup(true, None, 1);
+    let main = connection("main", false);
+    let workbook = workbook(&[("1_a.sql", "select 1", &main)]);
+    let (release, gate) = oneshot();
+    {
+        let mut state = s.state.borrow_mut();
+        state.prepares = true;
+        state.prepare_gate = Some(gate);
+    }
+    let (handle, result) = s.start(&workbook, workbook_run());
+    assert_eq!(s.state.borrow().calls, vec!["prepare main"]);
+    handle.cancel();
+    release.send(());
+    s.executor.run_until_stalled();
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|f| f.kind), Some(RunFailureKind::Cancelled));
+    assert!(s.texts().is_empty());
+}
+
+#[test]
+fn skips_the_scripts_of_a_connection_whose_setup_fails_during_a_run() {
+    let (a, b) = (connection("a", false), connection("b", false));
+    let workbook = workbook(&[("1_a.sql", "select 1", &a), ("2_b.sql", "select 2", &b)]);
+    let s = setup(true, None, 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.prepares = true;
+        state.failing_setups.insert("b".into());
+    }
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert_eq!(s.texts(), vec!["select 1"]);
+    assert_eq!(s.events("2_b.sql"), vec!["planned", "skipped"]);
+    assert_eq!(s.last_state().skipped_files, vec!["2_b.sql".to_string()]);
 }

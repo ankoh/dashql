@@ -395,7 +395,7 @@ impl ScriptSession {
     ///
     /// The analysis is current if it was analyzed from the current text, and against a snapshot of
     /// the catalog that is still current.
-    fn is_analysis_current(&self, catalog: &Catalog) -> bool {
+    pub fn is_analysis_current(&self, catalog: &Catalog) -> bool {
         self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot)) && self.script.table_parameters_current()
     }
 

@@ -17,7 +17,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::rc::Rc;
 
-use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core::error::Result;
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::connections::ConnectionAction;
@@ -45,7 +44,6 @@ use super::workbooks::view::WorkbookDataFile;
 use super::workbooks::{StoredScriptRef, Workbooks};
 use crate::host::{call_method, field, JsPlatform};
 use crate::views::JsonValue;
-use crate::ENTRY_IDS;
 
 /// The target of the log of the checks
 const LOG_TARGET: &str = "native_workbook_sync";
@@ -520,7 +518,7 @@ impl ExternalChanges {
             cache_query_results: copy.extra.get("cacheQueryResults").and_then(Value::as_bool),
         };
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
-        let catalog = CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone));
+        let catalog = dashql_core_runtime::workbook::new_catalog();
         let state = connection_state(&host, &stored, catalog)?;
         let params = Value::Object(state.params().to_object());
         let connection_id = self.connections.adopt(state)?;

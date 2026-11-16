@@ -29,7 +29,7 @@ use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState, Connec
 use dashql_core_runtime::executor::{FailureKind, QueryId};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
-use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction};
+use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction, WorkbookEffect};
 use dashql_core_runtime::workbook_run::plan::result_keys;
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent, StatementCache, StatementFailure,
@@ -63,8 +63,8 @@ const PENDING_INPUTS_MS: f64 = 5_000.0;
 /// The run that holds a workbook
 struct HeldRun {
     kind: WorkbookRunKind,
-    /// Stops the run, none until it started
-    handle: Option<Rc<RunHandle<RuntimeRunHost>>>,
+    /// Stops the run
+    handle: Rc<RunHandle<RuntimeRunHost>>,
     /// The connections that the run of the workbook takes, no other run of a workbook starts on them
     connections: Vec<String>,
     /// The connections that were online when the run of the workbook started, it stops when one of them drops
@@ -293,7 +293,7 @@ impl Runs {
                             pending.inputs.push(input.clone());
                         }
                     }
-                    (pending.inputs.clone(), pending.generation, entry.held.as_ref().and_then(|held| held.handle.clone()))
+                    (pending.inputs.clone(), pending.generation, entry.held.as_ref().map(|held| held.handle.clone()))
                 });
                 if let Some(handle) = handle {
                     handle.cancel();
@@ -335,7 +335,7 @@ impl Runs {
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), run_options);
         let connections = scope.connections.clone();
         self.update(workbook_id, |entry| {
-            entry.held = Some(HeldRun { kind: WorkbookRunKind::Workbook, handle: Some(Rc::new(handle)), connections, online });
+            entry.held = Some(HeldRun { kind: WorkbookRunKind::Workbook, handle: Rc::new(handle), connections, online });
         });
         let runs = self.clone();
         let workbook_id = workbook_id.to_string();
@@ -399,7 +399,7 @@ impl Runs {
         };
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), run_options);
         self.update(workbook_id, |entry| {
-            entry.held = Some(HeldRun { kind: WorkbookRunKind::Script, handle: Some(Rc::new(handle)), connections: Vec::new(), online: Vec::new() });
+            entry.held = Some(HeldRun { kind: WorkbookRunKind::Script, handle: Rc::new(handle), connections: Vec::new(), online: Vec::new() });
         });
         let runs = self.clone();
         let workbook_id = workbook_id.to_string();
@@ -499,7 +499,7 @@ impl Runs {
             let registry = self.connections.registry.borrow();
             for entry in entries.iter() {
                 let Some(held) = &entry.held else { continue };
-                let Some(handle) = &held.handle else { continue };
+                let handle = &held.handle;
                 if self.workbooks.get(&entry.workbook_id).is_none() {
                     stops.push((handle.clone(), "Stopping the run of a workbook that is gone", vec![("workbookId", entry.workbook_id.clone())]));
                     continue;
@@ -533,7 +533,7 @@ impl Runs {
 
     /// Stop the run of a workbook
     pub fn stop(&self, workbook_id: &str) {
-        let handle = self.read(workbook_id, |entry| entry.and_then(|entry| entry.held.as_ref()).and_then(|held| held.handle.clone()));
+        let handle = self.read(workbook_id, |entry| entry.and_then(|entry| entry.held.as_ref()).map(|held| held.handle.clone()));
         if let Some(handle) = handle {
             handle.cancel();
         }
@@ -547,7 +547,7 @@ impl Runs {
             for entry in entries.iter_mut() {
                 entry.pending = None;
             }
-            entries.iter().filter_map(|entry| entry.held.as_ref().and_then(|held| held.handle.clone())).collect()
+            entries.iter().filter_map(|entry| entry.held.as_ref().map(|held| held.handle.clone())).collect()
         };
         for handle in handles {
             handle.cancel();
@@ -579,7 +579,8 @@ impl Runs {
         })
     }
 
-    /// Read the columns of the Parquet attachments without columns once per file and stamp, with the compute database
+    /// Read the columns of the Parquet attachments without columns once per file and stamp, with the compute database.
+    /// A read that fails is tried again with the next call.
     pub fn describe_attachments(self: &Rc<Self>) {
         if !self.platform.has_mounts() {
             return;
@@ -588,6 +589,8 @@ impl Runs {
         {
             let entries = self.workbooks.entries.borrow();
             let mut described = self.described.borrow_mut();
+            // The files of workbooks that are gone are forgotten
+            described.retain(|key| key.split_once('/').is_some_and(|(id, _)| entries.iter().any(|entry| entry.id == id)));
             for entry in entries.iter() {
                 let Ok(workbook) = entry.workbook.try_borrow() else { continue };
                 for attachment in workbook.attachments().unwrap_or_default() {
@@ -604,6 +607,7 @@ impl Runs {
         for (workbook_id, file_name, stamp) in new {
             let read = self.platform.mounts_call("attachmentColumns", &[JsValue::from_str(&workbook_id), JsValue::from_str(&file_name)]);
             let workbooks = Rc::downgrade(&self.workbooks);
+            let runs = Rc::downgrade(self);
             let platform = self.platform.clone();
             self.platform.spawn(Box::pin(async move {
                 let read = read.await.and_then(|columns| {
@@ -624,6 +628,10 @@ impl Runs {
                     Err(error) => {
                         let details = [("workbookId", workbook_id.as_str()), ("fileName", file_name.as_str()), ("error", error.message())];
                         platform.log_on(LogLevel::Warn, "Reading the columns of an attachment failed", &details, LOG_TARGET);
+                        // The next call reads the file again
+                        if let Some(runs) = runs.upgrade() {
+                            runs.described.borrow_mut().remove(&format!("{workbook_id}/{file_name}@{stamp}"));
+                        }
                     }
                 }
             }));
@@ -878,7 +886,10 @@ impl RunHost for RuntimeRunHost {
         }
     }
 
-    fn workbook_changed(&self) {
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>) {
+        if let Some(workbooks) = self.workbooks.upgrade() {
+            workbooks.write_effects(&self.workbook_id, effects);
+        }
         self.platform.signal(true);
     }
 

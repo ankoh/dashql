@@ -6,9 +6,7 @@
 use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
-use super::{
-    ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject, Timestamp,
-};
+use super::{ConnectionDetails, ConnectionParams, ConnectorType, JsonObject};
 
 /// The connectors in the order that the field of a stored connection is matched against them
 const IMPORT_ORDER: [ConnectorType; 4] =
@@ -31,19 +29,4 @@ pub fn decode_connection(connection: &Value, workbook_id: &str) -> Result<(Conne
         _ => value.as_object().cloned().unwrap_or_default(),
     };
     Ok((connector, ConnectionDetails::new(&ConnectionParams::new(connector, params))))
-}
-
-/// Restore a connection of a workbook file. A restored connection is active, it belongs to a committed workbook.
-pub fn restore_connection_state(
-    connection_id: &str,
-    details: ConnectionDetails,
-    params_draft: Option<ConnectionParams>,
-    now: Timestamp,
-) -> ConnectionState {
-    ConnectionState::new(
-        connection_id,
-        details,
-        ConnectionStateOptions { active: true, params: None, params_draft },
-        now,
-    )
 }

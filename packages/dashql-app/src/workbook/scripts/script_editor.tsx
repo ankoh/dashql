@@ -170,10 +170,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     );
 };
 
-function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void) {
+/// Bring the editor up to date with a script. `resync` compares the document with the text of the session also when the
+/// update of the script didn't move, e.g. after an event of the editor was stale.
+function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void, resync = false) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
+    // The text version that the document shows after the update, if it takes the text of the session
+    let textVersion: bigint | undefined = undefined;
 
     // Script does not belong here?
     // Create a new editor state and update the view.
@@ -192,6 +196,7 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
         const extensions = createExtensions();
         const newState = EditorState.create({ doc: scriptText, extensions });
         view.setState(newState);
+        textVersion = scriptData.scriptSession.getTextVersion();
     }
 
     // Initial setup or unexpected script buffers?
@@ -199,9 +204,10 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
     // Only replace if the doc content actually differs — the editor may already have the
     // correct text from its own transaction (e.g. autoclose inserting brackets).
     let mapsSelection = false;
-    if (state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision) {
+    if (resync || state.editorUpdate?.stateRevision !== scriptData.editorUpdate?.stateRevision) {
         const scriptText = scriptData.scriptSession.getText();
         const editorText = view.state.doc.toString();
+        textVersion = scriptData.scriptSession.getTextVersion();
         const external = scriptData.externalChanges;
         // The changes apply only to the text they were made for and only if they yield the text of the workbook
         if (scriptText !== editorText && external != null && external.fromText === editorText
@@ -253,8 +259,8 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
 
     // XXX Detect invalid selections
 
-    // Report an update of the CodeMirror extension to the workbook, also when the state is set up initially. An
-    // update of a session that the script no longer holds is dropped.
+    // The events of the editor go to the runtime, which applies them to the session of the script and writes the text.
+    // An update of the CodeMirror extension tells the workbook that the editor accepted the staged rewrite.
     const updateScript = (update: DashQLProcessorUpdateOut) => {
         if (update.scriptSession != null && update.scriptSession !== scriptData.scriptSession) {
             logger.warn("Dropping editor update of a stale session", {
@@ -263,13 +269,18 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
             }, LOG_CTX);
             return;
         }
-        if (update.editorUpdate != null) {
-            runtime?.reportEditorUpdate(scriptData, update.editorUpdate, update.scriptPendingDiff != null);
-        } else if (update.scriptPendingDiff == null && scriptData.pendingDiff != null) {
+        if (update.scriptPendingDiff == null && scriptData.pendingDiff != null) {
             // The editor accepted the staged rewrite, a rejection restored the text already
             modifyScripts({ kind: 'acceptPendingDiff', value: { scriptKey: scriptData.scriptKey } });
         }
     };
+    // An event that was stale: the session changed without the editor, the document shows its text again
+    const resyncScript = () => queueMicrotask(() => {
+        if (view.state.field(DashQLProcessorPlugin).scriptSession !== scriptData.scriptSession) return;
+        const latest = runtime?.store.get('script', scriptData.scriptKey) ?? scriptData;
+        if (latest.scriptSession !== scriptData.scriptSession) return;
+        updateEditor(view, runtime, latest, selected, modifyScripts, logger, config, createExtensions, onNavigateToScript, true);
+    });
 
 
     // Notify the CodeMirror extension
@@ -282,6 +293,9 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
             // The editor keeps its own completion, see DashQLProcessorPlugin
             scriptCompletion: null,
             scriptPendingDiff: scriptData.pendingDiff,
+            textVersion,
+            applyEvent: runtime == null ? undefined : (event, known) => runtime.applyEditorEvent(scriptData, event, known),
+            onStaleText: runtime == null ? undefined : resyncScript,
 
             selected,
             keywordCase: getKeywordCase(config.settings),

@@ -20,6 +20,18 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     /// selected script and clears it for the others. Editors outside of a workbook leave it unset.
     selected?: boolean;
 
+    /// The text version of the session that the document shows after this update, e.g. after the editor took the text
+    /// of the session. The events of the editor name it, an event of a document that missed a change of the session is
+    /// stale. Left out, the editor keeps the version it knows.
+    textVersion?: bigint;
+    /// Apply an event through the owner of the session, e.g. the runtime for the script of a workbook, with the update
+    /// that the editor holds. Null if the owner holds another session. Without, the editor applies the event to the
+    /// session itself.
+    applyEvent?: (event: dashql.buffers.editor.EditorEventT, known: dashql.buffers.editor.EditorUpdateT | null) => dashql.buffers.editor.EditorUpdateT | null;
+    /// The session changed without the editor, an event of the editor was stale: the document has to show the text of
+    /// the session again. Called during the update of the editor, the callee dispatches later.
+    onStaleText?: () => void;
+
     /// Resolve the editor workbook of a workbook script by its catalog entry id for code actions.
     lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSession | null;
     /// Navigate to a workbook script definition.
@@ -183,9 +195,12 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             if (effect.is(DashQLUpdateEffect)) {
                 const keepLocalCompletion = state.scriptSession === effect.value.scriptSession
                     && state.editorUpdate?.stateRevision === effect.value.editorUpdate?.stateRevision;
+                const sameSession = state.scriptSession === effect.value.scriptSession;
                 state = {
                     ...state,
                     ...effect.value,
+                    // The document shows this version of the text, or the one it showed of the same session
+                    textVersion: effect.value.textVersion ?? (sameSession ? state.textVersion : undefined),
                     keywordCase: effect.value.keywordCase ?? dashql.buffers.formatting.KeywordCase.LOWER,
                     // Completion is editor-owned interaction state. An asynchronous workbook
                     // round-trip must not resurrect a completion that was locally dismissed.
@@ -201,10 +216,12 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 }
 
                 // Script changed?
-                // Signaled either through a completely new script or through a new script buffer
+                // Signaled either through a completely new script or through a new script buffer, or a document that
+                // takes the text of the session with this transaction. The session holds that text already.
                 if (
                     prevState.scriptSession !== state.scriptSession ||
-                    prevState.editorUpdate?.stateRevision !== state.editorUpdate?.stateRevision
+                    prevState.editorUpdate?.stateRevision !== state.editorUpdate?.stateRevision ||
+                    (effect.value.textVersion != null && transaction.docChanged)
                 ) {
                     if (state.selected !== false) {
                         state.derivedFocus = deriveFocus(state);
@@ -263,11 +280,25 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         if (transaction.docChanged || selectionChanged || state.editorUpdate?.primaryCursorState == null) {
             state = copyLazily(state, prevState);
             const scriptSession = state.scriptSession!;
-            const expectedTextVersion = scriptSession.getTextVersion();
-            const update = scriptSession.apply(transactionToEditorEvent(
-                transaction,
-                expectedTextVersion,
-            ));
+            // The version of the text that the document showed before the transaction, not the one of the session: a
+            // session that changed meanwhile rejects the offsets of the document as stale
+            const expectedTextVersion = state.textVersion ?? scriptSession.getTextVersion();
+            const event = transactionToEditorEvent(transaction, expectedTextVersion);
+            const update = state.applyEvent != null ? state.applyEvent(event, state.editorUpdate ?? null) : scriptSession.apply(event);
+            if ((update == null || update.status !== dashql.buffers.editor.EditorUpdateStatus.OK) && state.onStaleText != null) {
+                // The document shows the text of the session again, the transaction is dropped
+                console.warn(`${LOG_PREFIX} the session changed without the editor, showing its text again`, {
+                    scriptKey: state.scriptKey,
+                    expectedTextVersion,
+                    status: update?.status,
+                    statusMessage: update?.statusMessage,
+                });
+                state.onStaleText();
+                return state;
+            }
+            if (update == null) {
+                throw new Error('the editor event targets a session that the script no longer holds');
+            }
             console.debug(`${LOG_PREFIX} applied CodeMirror transaction`, {
                 scriptKey: state.scriptKey,
                 docChanged: transaction.docChanged,
@@ -292,6 +323,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 throw new Error(editorUpdateMessage(update));
             }
             state.editorUpdate = update;
+            state.textVersion = update.textVersion;
             state.derivedFocus = state.scriptCompletion == null
                 ? deriveFocusFromEditorUpdate(state.scriptKey, update)
                 : state.derivedFocus;

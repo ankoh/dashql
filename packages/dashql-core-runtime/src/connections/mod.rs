@@ -54,7 +54,8 @@ pub use trino::TrinoAction;
 
 pub use crate::workbook::CatalogHandle;
 use crate::handles::Handle;
-use crate::workbook::next_revision;
+use crate::workbook::{new_catalog, next_revision, ScriptConnection, ScriptConnectionProfile};
+use dashql_buffers::formatting::FormattingDialect;
 
 /// How far the setup of a connection got
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -243,6 +244,8 @@ pub struct ConnectionState {
     setup_attempt_draft: Option<ConnectionParams>,
     /// The catalog
     catalog: CatalogHandle,
+    /// What the scripts on the connection read of it, shared with all of them and updated in place
+    script_connection: Rc<ScriptConnection>,
     /// The catalog updates
     catalog_updates: CatalogUpdates,
     /// The catalog entry of the relations of the connection
@@ -292,13 +295,13 @@ fn iso_timestamp(ms: Timestamp) -> String {
 }
 
 impl ConnectionState {
-    /// A connection with an empty catalog
+    /// A connection with an empty catalog of the runtime (`workbook::new_catalog`)
     pub fn new(connection_id: &str, details: ConnectionDetails, options: ConnectionStateOptions, now: Timestamp) -> Self {
-        Self::with_catalog(connection_id, details, options, now, Catalog::new())
+        Self::with_catalog(connection_id, details, options, now, new_catalog())
     }
 
-    /// A connection with an empty catalog of the caller, e.g. one that shares the entry ids of the other catalogs of
-    /// the module
+    /// A connection with an empty catalog of the caller, e.g. one that a restore filled. Scripts publish into it, the
+    /// caller creates it with `workbook::new_catalog`.
     pub fn with_catalog(
         connection_id: &str,
         details: ConnectionDetails,
@@ -314,7 +317,10 @@ impl ConnectionState {
             .params
             .or_else(|| details.connection_params())
             .unwrap_or_else(|| ConnectionParams::default_for(details.connector_type()));
-        Self {
+        let catalog = Rc::new(RefCell::new(catalog));
+        let profile = Self::profile_of(details.connector_type(), &details, &params);
+        let script_connection = Rc::new(ScriptConnection::new(connection_id, catalog.clone(), profile));
+        let mut state = Self {
             connection_id: connection_id.to_string(),
             active: options.active,
             status: ConnectionStatus::NotStarted,
@@ -326,12 +332,40 @@ impl ConnectionState {
             params_draft: options.params_draft,
             setup_attempt_params: None,
             setup_attempt_draft: None,
-            catalog: Rc::new(RefCell::new(catalog)),
+            catalog,
+            script_connection,
             catalog_updates: CatalogUpdates::default(),
             relation_entry_id,
             function_script: Some(function_script),
             revision: 0,
+        };
+        state.refresh_script_connection();
+        state
+    }
+
+    /// What the scripts read of a connection
+    fn profile_of(connector: ConnectorType, details: &ConnectionDetails, params: &ConnectionParams) -> ScriptConnectionProfile {
+        let defaults = details.catalog_name_defaults();
+        ScriptConnectionProfile {
+            dialect: if connector == ConnectorType::Trino { FormattingDialect::TRINO } else { FormattingDialect::HYPER },
+            local: false,
+            params: Some(params.to_json()),
+            default_database: defaults.database_name,
+            default_schema: defaults.schema_name,
         }
+    }
+
+    /// Bring the profile that the scripts share up to date with the connection
+    fn refresh_script_connection(&mut self) {
+        let mut profile = Self::profile_of(self.connector_type(), &self.details, &self.params);
+        profile.local = label::is_hyper_wasm_connection(self);
+        self.script_connection.update(profile);
+    }
+
+    /// The connection of the scripts on the connection, with its catalog. Every script on the connection shares it,
+    /// a change of the connection reaches all of them.
+    pub fn script_connection(&self) -> &Rc<ScriptConnection> {
+        &self.script_connection
     }
 
     /// A connection with params
@@ -519,6 +553,7 @@ impl ConnectionState {
         }
         if outcome.changed {
             self.revision = next_revision();
+            self.refresh_script_connection();
         }
         Ok(outcome)
     }

@@ -27,7 +27,7 @@ const dependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode }),
     useWorkbook: () => ({
         workbookMetadata: { ephemeral: state.ephemeral ? true : undefined }, ephemeral: state.ephemeral,
-        workbookId: state.workbookId, name: 'Workbook', pendingConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
+        workbookId: state.workbookId, name: 'Workbook', pendingConnectionId: 'database', nextScriptConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
         scriptKeys: [], scriptRefs: {}, scriptOrder: [],
     }),
     useDispatch: () => vi.fn(),

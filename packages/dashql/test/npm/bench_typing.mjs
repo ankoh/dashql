@@ -1,10 +1,11 @@
 // The typing benchmark of the runtime (docs/wip/core_runtime.md, "Typing").
 //
-// A script of 40 lines is typed character by character next to two other scripts, the way the editor does it: the
-// editor applies the event to the shared session of the script and reports the update to the runtime
-// (`reportEditorUpdate`), the store of the host takes the changes and reads the view of the typed script with the newest
-// processing statistics, and reads the derived view of the workbook when it moved. Prints the 10th percentile and the
-// median of every step per keystroke in microseconds.
+// A script of 40 lines is typed character by character next to two other scripts, and again next to 19 other scripts
+// (tables, queries over them and scripts that read other scripts as table parameters) so that costs per script show.
+// Every keystroke goes the way of the editor: the editor packs the event, the runtime applies it to the session of the
+// script and returns the update (`applyEditorEvent`), the store of the host takes the changes and reads the view of the
+// typed script with the newest processing statistics, and reads the derived view of the workbook when it moved. Prints
+// the 10th percentile and the median of every step per keystroke in microseconds.
 //
 //   bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 import { readFile } from 'node:fs/promises';
@@ -16,10 +17,25 @@ const passes = Number(process.argv.find(arg => arg.startsWith('--passes='))?.sli
 const buffers = core.buffers;
 
 /// The two scripts next to the typed one
-const OTHER_SCRIPTS = [
+const FEW_SCRIPTS = [
     ['lineitem', 'create table if not exists lineitem (l_orderkey integer, l_partkey integer, l_suppkey integer, l_quantity decimal(15,2), l_extendedprice decimal(15,2), l_discount decimal(15,2), l_tax decimal(15,2), l_returnflag text, l_linestatus text, l_shipdate date)'],
     ['orders', 'create table if not exists orders (o_orderkey integer, o_custkey integer, o_orderstatus text, o_totalprice decimal(15,2), o_orderdate date, o_orderpriority text)'],
 ];
+
+/// 19 scripts next to the typed one: the two above, tables, queries over them and scripts that read other scripts
+function manyScripts() {
+    const scripts = [...FEW_SCRIPTS];
+    for (let i = 0; i < 6; ++i) {
+        scripts.push([`t${i}`, `create table if not exists t${i} (k integer, v${i} decimal(15,2), name text, d date)`]);
+    }
+    for (let i = 0; i < 6; ++i) {
+        scripts.push([`q${i}`, `select k, sum(v${i}) as total, count(*) as n\nfrom t${i}\nwhere d >= date '1994-01-01'\ngroup by k\norder by k`]);
+    }
+    for (let i = 0; scripts.length < 19; ++i) {
+        scripts.push([`r${i}`, `select a.k, a.total, b.n\nfrom :q${i} a join :q${i + 1} b on a.k = b.k\nwhere a.total > ${i * 10}`]);
+    }
+    return scripts;
+}
 
 /// The typed script, 40 lines
 function typedScript() {
@@ -88,70 +104,82 @@ function percentiles(samples) {
 const wasm = new Uint8Array(await readFile(new URL('../../npm_package/dist/wasm/dashql_core.wasm', import.meta.url)));
 const dql = await core.DashQL.create({ wasmBinary: wasm });
 const text = typedScript();
-const apply = [], report = [], flush = [], derive = [];
-for (let pass = 0; pass < passes; ++pass) {
-    const runtime = dql.createRuntime(platform());
-    runtime.runCatalogLoader(false);
-    runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: core.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
-    const workbookId = runtime.dispatch('app', { kind: 'createWorkbook', value: { connectionId: 'main' } }).id;
-    for (const [base, sql] of OTHER_SCRIPTS) runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: sql, base } });
-    runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: '', base: 'typed' } });
-    const key = runtime.views('workbook', [workbookId])[0].scriptKeys[2];
-    runtime.takeChanges();
-    const session = dql.runtimeScriptSession(runtime, key);
-    let view = runtime.views('script', [key], [null])[0];
-    for (let i = 0; i < text.length; ++i) {
-        const event = new buffers.editor.EditorEventT(
-            session.getTextVersion(),
-            [new buffers.editor.EditorTextChangeT(BigInt(i), BigInt(i), text[i])],
-            new buffers.editor.EditorSelectionT(BigInt(i + 1), BigInt(i + 1)),
-            buffers.editor.EditorEventOrigin.USER, buffers.editor.EditorEventIntent.EDIT, buffers.editor.EditorEventAction.TYPE, true,
-        );
-        const t0 = performance.now();
-        const update = session.apply(event);
-        const t1 = performance.now();
-        // The editor reports its update, packed
-        const builder = new flatbuffers.Builder();
-        builder.finish(update.pack(builder));
-        runtime.reportEditorUpdate(workbookId, key, view.sessionId, builder.asUint8Array(), false);
-        const t2 = performance.now();
-        // The store takes the changes and reads the view of the script, the editor update is the one it reported
-        const changes = runtime.takeChanges().changes;
-        const statistics = view.statistics;
-        const known = {
-            editorUpdate: core.editorUpdateKey(update),
-            pendingDiff: null,
-            visualization: null,
-            statistics: statistics.length > 0 ? statistics[statistics.length - 1].key : null,
-        };
-        view = runtime.views('script', [key], [known])[0];
-        for (const entry of view.statistics) {
-            if (entry.statistics != null) core.readFlatBuffer(entry.statistics, bb => buffers.editor.EditorProcessingStatistics.getRootAsEditorProcessingStatistics(bb)).unpack();
+for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manyScripts()]]) {
+    const event = [], flush = [], derive = [], total = [];
+    for (let pass = 0; pass < passes; ++pass) {
+        const runtime = dql.createRuntime(platform());
+        runtime.runCatalogLoader(false);
+        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: core.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
+        const workbookId = runtime.dispatch('app', { kind: 'createWorkbook', value: { connectionId: 'main' } }).id;
+        for (const [base, sql] of others) runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: sql, base } });
+        runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: '', base: 'typed' } });
+        const key = runtime.views('workbook', [workbookId])[0].scriptKeys[others.length];
+        runtime.takeChanges();
+        let view = runtime.views('script', [key], [null])[0];
+        // The editor shows the text of the session and holds no analysis of the empty script
+        const session = dql.runtimeScriptSession(runtime, key);
+        let shown = session.getTextVersion();
+        session.destroy();
+        let held = null;
+        for (let i = 0; i < text.length; ++i) {
+            const t0 = performance.now();
+            // The editor packs the event with the text version it shows and the analysis it holds
+            const typed = new buffers.editor.EditorEventT(
+                shown,
+                [new buffers.editor.EditorTextChangeT(BigInt(i), BigInt(i), text[i])],
+                new buffers.editor.EditorSelectionT(BigInt(i + 1), BigInt(i + 1)),
+                buffers.editor.EditorEventOrigin.USER, buffers.editor.EditorEventIntent.EDIT, buffers.editor.EditorEventAction.TYPE, true,
+            );
+            typed.knownAnalysis = held?.analysisAvailable ? new buffers.editor.EditorAnalysisVersionT(held.textVersion, held.catalogRevision) : null;
+            const builder = new flatbuffers.Builder();
+            builder.finish(typed.pack(builder));
+            const bytes = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, builder.asUint8Array());
+            const update = core.readFlatBuffer(bytes, bb => buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+            if (update.status !== buffers.editor.EditorUpdateStatus.OK) throw new Error(`the keystroke failed: ${update.statusMessage}`);
+            if (update.analysisOmitted && held != null) {
+                update.diagnostics = held.diagnostics; update.syntaxSpans = held.syntaxSpans; update.semanticSpans = held.semanticSpans;
+                update.scriptAnnotations = held.scriptAnnotations; update.processingStatistics = held.processingStatistics;
+            }
+            held = update;
+            shown = update.textVersion;
+            const t1 = performance.now();
+            // The store takes the changes and reads the view of the script, the editor update is the one it holds
+            const changes = runtime.takeChanges().changes;
+            const statistics = view.statistics;
+            const known = {
+                editorUpdate: core.editorUpdateKey(update),
+                pendingDiff: null,
+                visualization: null,
+                statistics: statistics.length > 0 ? statistics[statistics.length - 1].key : null,
+            };
+            view = runtime.views('script', [key], [known])[0];
+            for (const entry of view.statistics) {
+                if (entry.statistics != null) core.readFlatBuffer(entry.statistics, bb => buffers.editor.EditorProcessingStatistics.getRootAsEditorProcessingStatistics(bb)).unpack();
+            }
+            const t2 = performance.now();
+            // The derived view of the workbook when it moved, its buffers read
+            if (changes.some(change => change.kind === 'workbookDerived')) {
+                const derived = runtime.views('workbookDerived', [workbookId])[0];
+                core.readFlatBuffer(derived.references, bb => buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack();
+                core.readFlatBuffer(derived.dataflow, bb => buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
+                core.readFlatBuffer(derived.inputs, bb => buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack();
+                derive.push(performance.now() - t2);
+            }
+            event.push(t1 - t0); flush.push(t2 - t1); total.push(performance.now() - t0);
         }
-        const t3 = performance.now();
-        // The derived view of the workbook when it moved, its buffers read
-        if (changes.some(change => change.kind === 'workbookDerived')) {
-            const derived = runtime.views('workbookDerived', [workbookId])[0];
-            core.readFlatBuffer(derived.references, bb => buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack();
-            core.readFlatBuffer(derived.dataflow, bb => buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
-            core.readFlatBuffer(derived.inputs, bb => buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack();
-            derive.push(performance.now() - t3);
-        }
-        apply.push(t1 - t0); report.push(t2 - t1); flush.push(t3 - t2);
+        await runtime.storage({ kind: 'flush' });
+        runtime.destroy();
+        runtime.free();
     }
-    session.destroy();
-    await runtime.storage({ kind: 'flush' });
-    runtime.destroy();
-    runtime.free();
-}
-const rows = [
-    ['The editor applies the event to the session', apply],
-    ['The runtime takes the reported update', report],
-    ['The flush: the changes and the view of the script', flush],
-    ['The update and the flush', report.map((r, i) => r + flush[i])],
-    ['The derived view of the workbook when it moved', derive],
-];
-for (const [label, samples] of rows) {
-    const { p10, p50, n } = percentiles(samples);
-    console.log(`${label.padEnd(52)} p10 ${p10.toFixed(1).padStart(7)} us  p50 ${p50.toFixed(1).padStart(7)} us  (${n})`);
+    const rows = [
+        ['The runtime applies the event of the editor', event],
+        ['The flush: the changes and the view of the script', flush],
+        ['The derived view of the workbook when it moved', derive],
+        ['The keystroke in total', total],
+    ];
+    console.log(title);
+    for (const [label, samples] of rows) {
+        const { p10, p50, n } = percentiles(samples);
+        console.log(`${label.padEnd(52)} p10 ${p10.toFixed(1).padStart(7)} us  p50 ${p50.toFixed(1).padStart(7)} us  (${n})`);
+    }
 }

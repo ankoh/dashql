@@ -9,7 +9,6 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
-use dashql_core::catalog::Catalog;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::catalog_loader::tables::{catalog_tables_of_descriptor, read_catalog_descriptor};
 use dashql_core_runtime::connections::{ConnectionState, RelationName};
@@ -273,7 +272,6 @@ impl Fixture {
         let mut next = 0;
         let options = RestoreOptions {
             offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS,
-            new_catalog: Box::new(Catalog::new),
             new_uuid: Box::new(move || {
                 next += 1;
                 Some(format!("00000000-0000-4000-8000-{next:012}"))

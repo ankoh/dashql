@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { newScriptConnection, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
 import type { ScriptRef } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -26,7 +26,7 @@ function selectedScriptConnection(
     scriptConnection: ConnectionState | null;
 } {
     const scriptData = entry != null ? readScript(entry.scriptId) ?? undefined : undefined;
-    const connectionId = scriptData?.connectionId ?? newScriptConnection(workbookScripts, null);
+    const connectionId = scriptData?.connectionId ?? workbookScripts.nextScriptConnectionId ?? null;
     const scriptConnection = connectionId == null ? null : readConnection(connectionId);
     return { entry, scriptData, scriptConnection };
 }

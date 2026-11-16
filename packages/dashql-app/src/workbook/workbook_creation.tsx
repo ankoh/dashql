@@ -6,9 +6,7 @@ import { isHyperLinkParams } from '../connections/hyper/hyper_link.js';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import {
     EPHEMERAL_WORKBOOK_NAME,
-    freeWorkbookName,
     isEphemeralWorkbook,
-    newScriptConnection,
     WorkbookScripts,
 } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useCreateWorkbook } from './workbook_lifecycle.js';
@@ -22,9 +20,8 @@ export function useWorkbookCreation(): WorkbookCreation {
     const allocate = useCreateWorkbook();
     const runtime = useOptionalRuntime();
     return React.useCallback((database: ConnectionState, name?: string) => {
-        // The ephemeral workbook gives up its name
-        const taken = [...runtime?.store.all('workbook').values() ?? []].filter(workbook => !isEphemeralWorkbook(workbook)).map(workbook => workbook.name);
-        return allocate(database.connectionId, name ?? freeWorkbookName(taken), false);
+        // The runtime names a free name, the ephemeral workbook gives up its name
+        return allocate(database.connectionId, name ?? runtime?.store.get('workbookList', 'root')?.nextWorkbookName ?? 'Untitled', false);
     }, [allocate, runtime]);
 }
 
@@ -39,7 +36,7 @@ export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookS
     return React.useCallback((database: ConnectionState) => {
         const existing = [...runtime?.store.all('workbook').values() ?? []].find(isEphemeralWorkbook);
         if (existing == null) return allocate(database.connectionId, EPHEMERAL_WORKBOOK_NAME, true);
-        const current = newScriptConnection(existing, null);
+        const current = existing.nextScriptConnectionId ?? null;
         const currentParams = current == null ? null : runtime?.connection(current)?.params;
         if (current !== database.connectionId && (
             getHyperLinkTabState().current === database.connectionId || (currentParams != null && isHyperLinkParams(currentParams))

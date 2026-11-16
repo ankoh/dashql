@@ -18,7 +18,7 @@ use std::pin::Pin;
 
 use crate::executor::{HostValue, QueryId};
 use crate::host::{Host, HostError};
-use crate::workbook::ScriptKey;
+use crate::workbook::{ScriptKey, WorkbookEffect};
 pub use engine::{start_run, RunHandle};
 pub use plan::{PlanRun, PlannedStatement, ResultKey};
 
@@ -149,8 +149,9 @@ pub trait RunHost: Host {
 
     /// Is the workbook still the one of the app? A run of a workbook that is gone fails.
     fn workbook_live(&self) -> bool;
-    /// The run changed the workbook, e.g. it registered a query
-    fn workbook_changed(&self);
+    /// The run changed the workbook, e.g. it registered a query. The effects of its action, e.g. the files to write, go
+    /// where the effects of every action of the workbook go.
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>);
     /// The state of the run changed
     fn state(&self, state: &RunState);
     /// Something happened to a script of the run

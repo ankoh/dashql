@@ -9,7 +9,7 @@
 //! drops it from the catalog explicitly (`Catalog.dropScript`, `ScriptSession.dropFromCatalog`).
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
-use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer, EntryIdSource};
+use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
 use dashql_core::annotation::Annotation;
@@ -105,11 +105,6 @@ impl SharedCatalog {
     }
 }
 
-thread_local! {
-    /// The entry ids of all catalogs of the module, so a script key identifies a script across catalogs
-    static ENTRY_IDS: EntryIdSource = EntryIdSource::new();
-}
-
 /// A catalog (`dashql_catalog_*`)
 #[wasm_bindgen]
 pub struct Catalog {
@@ -122,7 +117,7 @@ impl Catalog {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Catalog {
         Catalog {
-            inner: SharedCatalog::new(CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone))),
+            inner: SharedCatalog::new(dashql_core_runtime::workbook::new_catalog()),
         }
     }
 

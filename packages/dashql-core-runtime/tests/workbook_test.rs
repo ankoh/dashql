@@ -7,29 +7,27 @@ use std::sync::Arc;
 
 use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorTextChangeT};
 use dashql_buffers::formatting::FormattingDialect;
-use dashql_core::catalog::{Catalog, EntryIdSource};
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::workbook::{
-    text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptConnection, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
+    new_catalog, text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
     Workbook, WorkbookAction, WorkbookEffect,
 };
 
-thread_local! {
-    /// The entry ids of the catalogs of a test: a script that moves to another catalog keeps its key, like in the app
-    static ENTRY_IDS: EntryIdSource = EntryIdSource::new();
-}
-
-/// A connection with a catalog of its own
-fn connection(id: &str, params: Option<&str>) -> Rc<ScriptConnection> {
-    Rc::new(ScriptConnection {
-        connection_id: id.to_string(),
-        catalog: Rc::new(RefCell::new(Catalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone)))),
+/// What the scripts read of a connection of a test
+fn profile(params: Option<&str>) -> ScriptConnectionProfile {
+    ScriptConnectionProfile {
         dialect: FormattingDialect::HYPER,
         local: false,
         params: params.map(str::to_string),
         default_database: String::new(),
         default_schema: String::new(),
-    })
+    }
+}
+
+/// A connection with a catalog of its own. The catalogs of the runtime share their entry ids, a script that moves to
+/// another catalog keeps its key.
+fn connection(id: &str, params: Option<&str>) -> Rc<ScriptConnection> {
+    Rc::new(ScriptConnection::new(id, Rc::new(RefCell::new(new_catalog())), profile(params)))
 }
 
 /// The connection that the scripts of a test workbook run on
@@ -177,7 +175,9 @@ fn writes_typed_text_but_not_a_moved_cursor() {
     let event = typed(&workbook, alpha, "select 42");
     let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
     assert!(outcome.changed);
-    assert!(outcome.editor_update.is_some_and(|update| update.analysis_available));
+    // The update is the one that the script holds now
+    assert!(outcome.editor_update.is_none());
+    assert!(workbook.script(alpha).unwrap().editor_update().is_some_and(|update| update.analysis_available));
     assert_eq!(outcome.effects, [WorkbookEffect::WriteScript { file_name: "alpha.sql".into(), text: "select 42".into() }]);
 
     let revision = workbook.script(alpha).unwrap().revision();
@@ -513,15 +513,7 @@ fn moves_the_scripts_and_the_pending_connection_of_a_merged_connection() {
     let kept = connection("kept", None);
     workbook.apply(WorkbookAction::SetScriptConnection { file_name: "beta.sql".into(), connection: kept.clone() }).unwrap();
     let (alpha, beta) = (key(&workbook, "alpha.sql"), key(&workbook, "beta.sql"));
-    let pending = Rc::new(ScriptConnection {
-        connection_id: "main".into(),
-        catalog: main.catalog.clone(),
-        dialect: FormattingDialect::HYPER,
-        local: false,
-        params: Some(MAIN_PARAMS.into()),
-        default_database: String::new(),
-        default_schema: String::new(),
-    });
+    let pending = Rc::new(ScriptConnection::new("main", main.catalog.clone(), profile(Some(MAIN_PARAMS))));
     workbook.apply(WorkbookAction::SetPendingConnection { connection: connection("other", Some("{}")) }).unwrap();
     workbook.apply(WorkbookAction::SetPendingConnection { connection: pending }).unwrap();
     let target = connection("target", Some(r#"{"hyper":{"protocol":"WASM"}}"#));
@@ -779,4 +771,117 @@ fn takes_deleted_and_dropped_scripts_out_of_their_catalogs() {
     // A dropped workbook takes its scripts with it
     drop(workbook);
     assert!(!other.catalog.borrow().contains(more));
+}
+
+#[test]
+fn applies_the_keystrokes_of_an_editor_and_leaves_out_the_analysis_it_holds() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
+    let alpha = key(&workbook, "alpha.sql");
+    let event = typed(&workbook, alpha, "select 42");
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap().outcome_is_held());
+    // The first cursor move analyzes against the catalog that the published text left
+    let event = cursor(&workbook, alpha, 2);
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    let held = workbook.script(alpha).unwrap().editor_update().unwrap().clone();
+    assert!(held.analysis_available && held.syntax_spans.is_some());
+
+    // A cursor move of an editor that holds the analysis leaves it out, the script keeps it
+    let mut event = cursor(&workbook, alpha, 3);
+    let mut known = dashql_buffers::editor::EditorAnalysisVersionT::default();
+    known.text_version = held.text_version;
+    known.catalog_revision = held.catalog_revision;
+    event.known_analysis = Some(Box::new(known.clone()));
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    let update = outcome.editor_update.expect("the update without the analysis");
+    assert!(update.analysis_omitted && update.syntax_spans.is_none());
+    let script = workbook.script(alpha).unwrap().editor_update().unwrap();
+    assert_eq!(script.state_revision, update.state_revision);
+    assert_eq!(script.syntax_spans, held.syntax_spans);
+    assert_eq!(script.semantic_spans, held.semantic_spans);
+
+    // An editor that names another analysis gets the whole update
+    let mut event = cursor(&workbook, alpha, 4);
+    known.text_version += 100;
+    event.known_analysis = Some(Box::new(known));
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    assert!(outcome.editor_update.is_none());
+    assert!(!workbook.script(alpha).unwrap().editor_update().unwrap().analysis_omitted);
+}
+
+#[test]
+fn refuses_a_keystroke_of_an_editor_that_missed_a_change_of_the_text() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
+    let alpha = key(&workbook, "alpha.sql");
+    // The editor shows the text, then the workbook changes it
+    let stale = typed(&workbook, alpha, "select 2");
+    workbook.apply(WorkbookAction::SetScriptText { key: alpha, text: "select 12345".into(), with_diff: false }).unwrap();
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event: stale }).unwrap();
+    assert_eq!(outcome.editor_update.map(|update| update.status), Some(dashql_buffers::editor::EditorUpdateStatus::STALE_TEXT_VERSION));
+    assert!(outcome.effects.is_empty() && !outcome.changed);
+    assert_eq!(workbook.script(alpha).unwrap().text(), "select 12345");
+}
+
+#[test]
+fn a_cloud_preview_refuses_every_change_of_its_scripts() {
+    let (mut workbook, main) = workbook(&[("alpha.sql", "select 1")]);
+    let alpha = key(&workbook, "alpha.sql");
+    let link = CloudLink { workbook_id: "published".into(), version_id: "v1".into(), preview: true };
+    workbook.apply(WorkbookAction::SetCloudLink { link: Some(link) }).unwrap();
+    // Typing and replacing the scripts from storage fail, the text stays
+    let event = typed(&workbook, alpha, "select 2");
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).is_err());
+    let stored = vec![StoredScript { name: "alpha.sql".into(), sql: "select 3".into(), connection: main.clone(), unresolved_connection_id: None }];
+    assert!(workbook.replace_from_storage(stored).is_err());
+    assert!(workbook.apply(WorkbookAction::RejectPendingDiff { key: alpha }).is_err());
+    assert_eq!(workbook.script(alpha).unwrap().text(), "select 1");
+    // Moving the cursor of the read-only editor stays
+    let event = cursor(&workbook, alpha, 3);
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).is_ok());
+}
+
+#[test]
+fn computes_a_chart_edit_before_it_changes_the_script() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1 as x")]);
+    let alpha = key(&workbook, "alpha.sql");
+    workbook.apply(WorkbookAction::SetScriptVisSpec { key: alpha, spec: r#"{"mark":"bar"}"#.into() }).unwrap();
+    assert!(workbook.script(alpha).unwrap().pending_diff().is_some());
+    let version = workbook.script(alpha).unwrap().session().borrow().text_version();
+    // A spec that isn't one changes nothing, not even the version of the text
+    let outcome = workbook.apply(WorkbookAction::SetScriptVisSpec { key: alpha, spec: "not json".into() }).unwrap();
+    assert!(!outcome.changed && outcome.effects.is_empty());
+    assert_eq!(workbook.script(alpha).unwrap().session().borrow().text_version(), version);
+    // A second edit restages the diff against the text before the first one
+    workbook.apply(WorkbookAction::SetScriptVisSpec { key: alpha, spec: r#"{"mark":"line"}"#.into() }).unwrap();
+    let script = workbook.script(alpha).unwrap();
+    assert_eq!(script.pending_diff().map(|diff| diff.prior_text.as_str()), Some("select 1 as x"));
+    assert!(script.text().contains("line"));
+}
+
+#[test]
+fn a_run_analyzes_the_outdated_scripts_once() {
+    let (mut workbook, _) = workbook(&[("tables.sql", "create table t (x int)"), ("query.sql", "select x from t")]);
+    let (tables, query) = (key(&workbook, "tables.sql"), key(&workbook, "query.sql"));
+    assert_eq!(workbook.analyze_for_run(), Ok(true));
+    assert!(workbook.scripts().iter().all(|script| !script.is_analysis_outdated()));
+    // Current analyses stay as they are
+    let revision = workbook.script(query).unwrap().revision();
+    assert_eq!(workbook.analyze_for_run(), Ok(false));
+    assert_eq!(workbook.script(query).unwrap().revision(), revision);
+    // Typing a new table outdates the query, the next run analyzes it
+    let event = typed(&workbook, tables, "create table t (x int, y int)");
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event }).unwrap();
+    assert!(workbook.script(query).unwrap().is_analysis_outdated());
+    assert_eq!(workbook.analyze_for_run(), Ok(true));
+    assert!(workbook.scripts().iter().all(|script| !script.is_analysis_outdated()));
+}
+
+trait HeldUpdate {
+    /// Does the script hold the update of the outcome?
+    fn outcome_is_held(&self) -> bool;
+}
+
+impl HeldUpdate for dashql_core_runtime::workbook::WorkbookOutcome {
+    fn outcome_is_held(&self) -> bool {
+        self.changed && self.editor_update.is_none()
+    }
 }

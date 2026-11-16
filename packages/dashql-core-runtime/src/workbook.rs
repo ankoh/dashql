@@ -7,7 +7,7 @@
 //!
 //! Ported from `reduceWorkbookScripts` of `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`.
 
-use std::cell::{Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -17,7 +17,7 @@ use dashql_buffers::editor::{
     EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorUpdateStatus, EditorUpdateT,
 };
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, EntryIdSource};
 use dashql_core::error::{Error, Result};
 use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::script::Script;
@@ -33,19 +33,26 @@ use crate::planner::{plan_session, ConnectionKind, PlanScope, PlannerAttachment,
 use crate::planner::script_references::check_script_references;
 
 /// The key of a script, its entry in the catalog of its connection. A script keeps its key when it moves to another
-/// connection.
+/// connection. Keys are unique across the catalogs of the runtime because all of them take their entry ids from one
+/// source, see [`new_catalog`].
 pub type ScriptKey = CatalogEntryId;
+
+/// The source of the entry ids of the catalogs of the runtime
+static ENTRY_IDS: std::sync::OnceLock<EntryIdSource> = std::sync::OnceLock::new();
+
+/// A new catalog of the runtime. Every catalog that scripts publish into is created here, so the entry ids of all of
+/// them, and with them the keys of the scripts, come from one source.
+pub fn new_catalog() -> Catalog {
+    Catalog::with_entry_ids(ENTRY_IDS.get_or_init(EntryIdSource::new).clone())
+}
 
 /// A catalog that the scripts of a connection share
 pub type CatalogHandle = Rc<RefCell<Catalog>>;
 
-/// The connection that a script is analyzed and executed with
-#[derive(Debug)]
-pub struct ScriptConnection {
-    /// The id of the connection
-    pub connection_id: String,
-    /// The catalog of the connection, the scripts publish their declarations into it
-    pub catalog: CatalogHandle,
+/// What the scripts of a connection read of it besides its catalog. It follows the connection: the connection updates
+/// it in place, every script on the connection sees the change.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptConnectionProfile {
     /// The dialect that the queries of the scripts are compiled to
     pub dialect: FormattingDialect,
     /// Is the connection the embedded Hyper, which scans the results of scripts of other connections?
@@ -56,6 +63,55 @@ pub struct ScriptConnection {
     pub default_database: String,
     /// The schema of relations without a schema name
     pub default_schema: String,
+}
+
+/// The connection that a script is analyzed and executed with. A connection of the runtime holds one value that all
+/// of its scripts share.
+#[derive(Debug)]
+pub struct ScriptConnection {
+    /// The id of the connection
+    pub connection_id: String,
+    /// The catalog of the connection, the scripts publish their declarations into it
+    pub catalog: CatalogHandle,
+    /// What the scripts read of the connection
+    profile: RefCell<ScriptConnectionProfile>,
+    /// Changes with the profile
+    revision: Cell<u64>,
+}
+
+impl ScriptConnection {
+    pub fn new(connection_id: &str, catalog: CatalogHandle, profile: ScriptConnectionProfile) -> Self {
+        Self { connection_id: connection_id.to_string(), catalog, profile: RefCell::new(profile), revision: Cell::new(next_revision()) }
+    }
+    /// What the scripts read of the connection
+    pub fn profile(&self) -> Ref<'_, ScriptConnectionProfile> {
+        self.profile.borrow()
+    }
+    pub fn dialect(&self) -> FormattingDialect {
+        self.profile.borrow().dialect
+    }
+    pub fn local(&self) -> bool {
+        self.profile.borrow().local
+    }
+    pub fn params(&self) -> Option<String> {
+        self.profile.borrow().params.clone()
+    }
+    pub fn has_params(&self) -> bool {
+        self.profile.borrow().params.is_some()
+    }
+    /// Changes with the profile
+    pub fn revision(&self) -> u64 {
+        self.revision.get()
+    }
+    /// Follow a change of the connection, returns whether the profile changed
+    pub fn update(&self, profile: ScriptConnectionProfile) -> bool {
+        if *self.profile.borrow() == profile {
+            return false;
+        }
+        *self.profile.borrow_mut() = profile;
+        self.revision.set(next_revision());
+        true
+    }
 }
 
 /// What a table parameter reads, by file name: a script or an attachment
@@ -212,6 +268,8 @@ pub struct WorkbookScript {
     file_name: String,
     /// The editor session of the script
     session: SessionHandle,
+    /// Names the session, a script that moved to another connection has a new one. Generations grow.
+    session_generation: u64,
     /// The connection the script runs on
     connection: Rc<ScriptConnection>,
     /// The latest analysis, also the one of a failed analysis
@@ -247,6 +305,10 @@ impl WorkbookScript {
     }
     pub fn session(&self) -> &SessionHandle {
         &self.session
+    }
+    /// Names the session of the script, a script that moved to another connection has a new one
+    pub fn session_generation(&self) -> u64 {
+        self.session_generation
     }
     pub fn connection(&self) -> &Rc<ScriptConnection> {
         &self.connection
@@ -339,18 +401,27 @@ impl WorkbookScript {
         self.unresolved_connection_id.as_deref().unwrap_or(&self.connection.connection_id)
     }
 
-    /// Is the analysis outdated? The flag marks the changes that the workbook knows about, the versions also catch the
-    /// ones it missed: the text or the catalog changed since the analysis.
+    /// Is the analysis outdated? The one predicate of the runtime, runs and the host ask it. The flag marks the
+    /// changes that the workbook knows about, the session catches the ones it missed: the text changed since the
+    /// analysis, or the analysis is no longer current with the catalog, as the planner checks it. A failed analysis is
+    /// outdated once the text or the catalog changed, analyzing the same text against the same catalog fails again.
     pub fn is_analysis_outdated(&self) -> bool {
         if self.analysis_outdated {
             return true;
         }
-        match &self.editor_update {
-            None => false,
-            Some(update) => {
-                update.text_version != self.session.borrow().text_version()
-                    || update.catalog_revision != self.connection.catalog.borrow().version() as u64
-            }
+        let Some(update) = &self.editor_update else {
+            return false;
+        };
+        let (Ok(session), Ok(catalog)) = (self.session.try_borrow(), self.connection.catalog.try_borrow()) else {
+            return false;
+        };
+        if update.text_version != session.text_version() {
+            return true;
+        }
+        if update.status == EditorUpdateStatus::OK && update.analysis_available {
+            !session.is_analysis_current(&catalog)
+        } else {
+            update.catalog_revision != catalog.version() as u64
         }
     }
 
@@ -371,7 +442,7 @@ impl WorkbookScript {
     fn compile_visualization(&mut self) {
         let available = self.editor_update.as_ref().is_some_and(|update| update.analysis_available);
         let visualization = if available {
-            let config = execution_compilation_config(self.connection.dialect);
+            let config = execution_compilation_config(self.connection.dialect());
             let compiled = self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config, true, true);
             let valid = compiled.errors.as_ref().is_none_or(Vec::is_empty) && compiled.kind == ScriptCompilationStatementKind::VISUALIZE;
             match (valid, compiled.sql, compiled.visualization) {
@@ -400,25 +471,43 @@ impl WorkbookScript {
         Ok(())
     }
 
-    /// The statement that a chart of the script visualizes, the last statement. None without statements. Errors of
-    /// the compilation, e.g. of other statements, don't matter, a rewrite of a tag refuses a script it can't parse.
+}
+
+/// A session of a text in a catalog of its own, it never reaches the catalogs of the workbook. An action computes the
+/// texts that it writes on it before it changes a script, a failure leaves the scripts as they are.
+struct Scratch {
+    catalog: Catalog,
+    session: ScriptSession,
+}
+
+impl Scratch {
+    fn new(text: &str, offset_unit: EditorOffsetUnit) -> Result<Self> {
+        let catalog = Catalog::new();
+        let mut session = ScriptSession::new(&catalog, offset_unit)?;
+        let update = session.replace_text(&catalog, session.text_version(), text);
+        if update.status != EditorUpdateStatus::OK {
+            return Err(Error::invalid_argument("cannot replace the text of the script"));
+        }
+        Ok(Self { catalog, session })
+    }
+
+    /// The statement that a chart of the text visualizes, the last statement. None without statements. Errors of the
+    /// compilation, e.g. of other statements, don't matter, a rewrite of a tag refuses a script it can't parse.
     fn chart_statement_id(&mut self) -> Option<usize> {
-        let compiled = self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &chart_compilation_config(), true, true);
+        let compiled = self.session.compile_query(&self.catalog, &chart_compilation_config(), true, true);
         (compiled.terminal_statement_id != NO_STATEMENT).then_some(compiled.terminal_statement_id as usize)
     }
 
-    /// The diff of a staged rewrite from the text of the script to a new text. The new text is parsed in a catalog
-    /// of its own, it never reaches the catalog of the workbook.
+    /// The diff of a staged rewrite from the text to a new text
     fn diff_to(&mut self, text: &str) -> Result<ScriptDiffT> {
-        let update = self.session.borrow_mut().analyze(&self.connection.catalog.borrow());
+        let update = self.session.analyze(&self.catalog);
         if update.status != EditorUpdateStatus::OK || !update.analysis_available {
             return Err(Error::invalid_argument("cannot analyze the script for a diff"));
         }
-        let catalog = Catalog::new();
-        let mut target = Script::new(&catalog);
+        let mut target = Script::new(&self.catalog);
         target.replace_text(text);
         target.parse();
-        self.session.borrow_mut().diff(&target)
+        self.session.diff(&target)
     }
 }
 
@@ -490,11 +579,11 @@ pub enum WorkbookAction {
     SetScriptVisSpec { key: ScriptKey, spec: String },
     /// Set the value of an input in the scripts that use it, their `@param :name = <literal>` tags
     SetWorkbookInput { name: String, literal: String, keys: Vec<ScriptKey> },
-    /// Apply an event of the editor of a script, e.g. a typed character or a moved cursor
+    /// Apply an event of the editor of a script, e.g. a typed character or a moved cursor. The event names the text
+    /// version that the editor shows, an event of an editor that missed a change of the text is stale. An edit of the
+    /// user accepts a staged rewrite. The analysis that the event names as known is left out of the update if the
+    /// script holds the same one.
     ApplyEditorEvent { key: ScriptKey, event: EditorEventT },
-    /// The update of an event that an editor applied to the shared session of a script itself. `accepts_diff` drops a
-    /// staged rewrite when the text changed, the editor accepted it with an edit of the user.
-    ReportEditorUpdate { key: ScriptKey, update: EditorUpdateT, accepts_diff: bool },
     /// Analyze a script if its analysis is outdated
     AnalyzeOutdatedScript { key: ScriptKey },
     /// The catalog of a connection changed, its scripts must be analyzed again
@@ -529,22 +618,44 @@ pub enum WorkbookAction {
 }
 
 impl WorkbookAction {
-    /// Does a cloud preview refuse the action? These change the scripts or the names of the workbook. Running scripts,
-    /// inputs and the connections of the scripts stay, they don't change what the workbook says.
+    /// Does a cloud preview refuse the action? These change the scripts or the names of the workbook: every action
+    /// that writes a script. Running scripts, moving the cursor and the connections of the workbook stay, they don't
+    /// change what the workbook says.
     fn changes_published_content(&self) -> bool {
-        matches!(
-            self,
+        match self {
             WorkbookAction::CreateScript { .. }
-                | WorkbookAction::DeleteScript { .. }
-                | WorkbookAction::RenameScript { .. }
-                | WorkbookAction::ReorderScripts { .. }
-                | WorkbookAction::SetScriptText { .. }
-                | WorkbookAction::SetScriptVisSpec { .. }
+            | WorkbookAction::DeleteScript { .. }
+            | WorkbookAction::RenameScript { .. }
+            | WorkbookAction::ReorderScripts { .. }
+            | WorkbookAction::SetScriptText { .. }
+            | WorkbookAction::SetScriptVisSpec { .. }
+            | WorkbookAction::AcceptPendingDiff { .. }
+            | WorkbookAction::RejectPendingDiff { .. }
+            | WorkbookAction::RenameWorkbook { .. }
+            | WorkbookAction::RenameAttachment { .. }
+            | WorkbookAction::SetWorkbookInput { .. }
+            | WorkbookAction::SetScriptConnection { .. } => true,
+            WorkbookAction::ApplyEditorEvent { event, .. } => event.changes.as_ref().is_some_and(|changes| !changes.is_empty()),
+            _ => false,
+        }
+    }
+
+    /// Do the table parameters follow the action? They read the results of the scripts and the attachments, actions
+    /// that leave both as they are don't derive them again. An editor event derives them only if it changed the text
+    /// or the analysis of its script, see `take_editor_update`.
+    fn derives_table_parameters(&self) -> bool {
+        !matches!(
+            self,
+            WorkbookAction::ApplyEditorEvent { .. }
                 | WorkbookAction::AcceptPendingDiff { .. }
+                | WorkbookAction::CatalogDidUpdate { .. }
+                | WorkbookAction::SetExecutionVisualization { .. }
+                | WorkbookAction::RegisterQuery { .. }
+                | WorkbookAction::RegisterScriptResult { .. }
                 | WorkbookAction::RenameWorkbook { .. }
-                | WorkbookAction::RenameAttachment { .. }
-                | WorkbookAction::SetWorkbookInput { .. }
-                | WorkbookAction::SetScriptConnection { .. }
+                | WorkbookAction::SetPendingConnection { .. }
+                | WorkbookAction::DetachConnection { .. }
+                | WorkbookAction::SetCloudLink { .. }
         )
     }
 }
@@ -556,7 +667,8 @@ pub struct WorkbookOutcome {
     pub changed: bool,
     /// The effects for the host, in order
     pub effects: Vec<WorkbookEffect>,
-    /// The update of an editor event, the editor projects it
+    /// The update of an editor event as it goes back to the editor: an analysis that the editor holds is left out.
+    /// None if the update is the one that the script holds now (`WorkbookScript::editor_update`).
     pub editor_update: Option<EditorUpdateT>,
 }
 
@@ -593,6 +705,8 @@ pub struct Workbook {
     cloud: Option<CloudLink>,
     /// The offset unit of the editors
     offset_unit: EditorOffsetUnit,
+    /// Did an editor event of the running action change what the table parameters read?
+    table_parameters_outdated: bool,
     /// The revision of the workbook, it changes with every change
     revision: u64,
 }
@@ -610,6 +724,7 @@ impl Workbook {
             table_parameters: None,
             cloud: None,
             offset_unit,
+            table_parameters_outdated: false,
             revision: next_revision(),
         }
     }
@@ -666,6 +781,9 @@ impl Workbook {
     /// script that moved to another connection keeps its key. Every new session is created before anything changes, a
     /// failure leaves the workbook as it is. Returns whether anything changed.
     pub fn replace_from_storage(&mut self, stored: Vec<StoredScript>) -> Result<bool> {
+        if self.is_cloud_preview() {
+            return Err(Error::invalid_argument("a cloud preview can't be changed"));
+        }
         // The first script of a name wins
         let mut unique: Vec<StoredScript> = Vec::with_capacity(stored.len());
         for script in stored {
@@ -789,16 +907,18 @@ impl Workbook {
             script_connections.push(index as u32);
         }
         let catalogs: Vec<Ref<Catalog>> = connections.iter().map(|connection| connection.catalog.borrow()).collect();
+        let profiles: Vec<Ref<ScriptConnectionProfile>> = connections.iter().map(|connection| connection.profile()).collect();
         let planner_connections: Vec<PlannerConnection> = connections
             .iter()
             .zip(&catalogs)
-            .map(|(connection, catalog)| PlannerConnection {
+            .zip(&profiles)
+            .map(|((connection, catalog), profile)| PlannerConnection {
                 id: &connection.connection_id,
-                kind: if connection.local { ConnectionKind::Local } else { ConnectionKind::Remote },
+                kind: if profile.local { ConnectionKind::Local } else { ConnectionKind::Remote },
                 catalog,
-                dialect: connection.dialect,
-                default_database: &connection.default_database,
-                default_schema: &connection.default_schema,
+                dialect: profile.dialect,
+                default_database: &profile.default_database,
+                default_schema: &profile.default_schema,
             })
             .collect();
         let sessions: Vec<Ref<ScriptSession>> = self.scripts.iter().map(|script| script.session.borrow()).collect();
@@ -852,25 +972,19 @@ impl Workbook {
         self.with_plan_request(derive_session_dataflow)
     }
 
-    /// Analyze every script for a run and publish its declarations into the catalog of its connection, then analyze
-    /// every script again at the catalog revisions that the publishing left. The scripts take the analyses. Fails with
-    /// the message of a script that doesn't analyze.
-    pub fn analyze_for_run(&mut self) -> std::result::Result<(), String> {
-        for _pass in 0..2 {
-            for script in self.scripts.iter_mut() {
-                script.analyze();
-                script.revision = next_revision();
-                let update = script.editor_update.as_ref();
-                if !update.is_some_and(|update| update.status == EditorUpdateStatus::OK && update.analysis_available) {
-                    let message = update.and_then(|update| update.status_message.clone()).filter(|message| !message.is_empty());
-                    let message = message.unwrap_or_else(|| format!("Failed to analyze {}", script.file_name));
-                    self.revision = next_revision();
-                    return Err(message);
-                }
+    /// Analyze the scripts for a run: the scripts whose analysis is outdated analyze until none is, their declarations
+    /// published into the catalogs of their connections. Scripts with current analyses stay as they are. Fails with
+    /// the message of a script that doesn't analyze. Returns whether a script analyzed.
+    pub fn analyze_for_run(&mut self) -> std::result::Result<bool, String> {
+        let analyzed = self.analyze_outdated_scripts();
+        for script in &self.scripts {
+            let update = script.editor_update.as_ref();
+            if !update.is_some_and(|update| update.status == EditorUpdateStatus::OK && update.analysis_available) {
+                let message = update.and_then(|update| update.status_message.clone()).filter(|message| !message.is_empty());
+                return Err(message.unwrap_or_else(|| format!("Failed to analyze {}", script.file_name)));
             }
         }
-        self.revision = next_revision();
-        Ok(())
+        Ok(analyzed)
     }
 
     /// Analyze the scripts whose analysis is outdated, e.g. by a catalog update that landed since the preparation of
@@ -994,8 +1108,9 @@ impl Workbook {
         });
         let reference = format!(":{}", quote_identifier(name));
         let unit = self.offset_unit;
-        let mut rewritten = Vec::new();
-        for (script, spans) in self.scripts.iter_mut().zip(spans) {
+        // The new texts of all scripts first, a reference outside of its text fails the action before a script changed
+        let mut rewrites: Vec<(usize, String, ExternalChanges)> = Vec::new();
+        for (index, (script, spans)) in self.scripts.iter().zip(spans).enumerate() {
             if spans.is_empty() || Some(script.key) == keep {
                 continue;
             }
@@ -1003,7 +1118,7 @@ impl Workbook {
             let mut text = from_text.clone();
             let mut changes = Vec::with_capacity(spans.len());
             for (begin, end) in spans.iter().rev() {
-                if *end > text.len() || !text.is_char_boundary(*begin) || !text.is_char_boundary(*end) {
+                if *begin > *end || *end > text.len() || !text.is_char_boundary(*begin) || !text.is_char_boundary(*end) {
                     return Err(Error::invalid_argument("a reference outside of the text of its script"));
                 }
                 text.replace_range(*begin..*end, &reference);
@@ -1012,14 +1127,39 @@ impl Workbook {
                 let from = text_length(&from_text[..*begin], unit);
                 changes.push(TextChange { from, to: from + text_length(&from_text[*begin..*end], unit), insert: reference.clone() });
             }
-            script.replace_text(&text)?;
+            rewrites.push((index, text, ExternalChanges { from_text, changes }));
+        }
+        self.commit_texts(rewrites.iter().map(|(index, text, external)| (*index, text.as_str(), external.from_text.as_str())))?;
+        let mut rewritten = Vec::with_capacity(rewrites.len());
+        for (index, _, external) in rewrites {
+            let Some(script) = self.scripts.get_mut(index) else { continue };
             script.analyze();
             script.pending_diff = None;
-            script.external_changes = Some(ExternalChanges { from_text, changes });
+            script.external_changes = Some(external);
             script.revision = next_revision();
             rewritten.push(script.key);
         }
         Ok(rewritten)
+    }
+
+    /// Replace the texts of scripts by their indexes, with the texts they hold now. A text that can't be replaced
+    /// fails, the scripts replaced before it get their texts back: all scripts change or none.
+    fn commit_texts<'t>(&mut self, texts: impl Iterator<Item = (usize, &'t str, &'t str)> + Clone) -> Result<()> {
+        for (done, (index, text, _)) in texts.clone().enumerate() {
+            let replaced = match self.scripts.get_mut(index) {
+                Some(script) => script.replace_text(text),
+                None => Err(Error::invalid_argument("a rewrite of an unknown script")),
+            };
+            if let Err(error) = replaced {
+                for (index, _, previous) in texts.take(done) {
+                    if let Some(script) = self.scripts.get_mut(index) {
+                        let _ = script.replace_text(previous);
+                    }
+                }
+                return Err(error);
+            }
+        }
+        Ok(())
     }
 
     pub fn id(&self) -> &str {
@@ -1105,9 +1245,9 @@ impl Workbook {
         let mut connections: Vec<ConnectionCopy> = Vec::new();
         let pending = self.pending_connection.iter().filter(|_| self.scripts.is_empty());
         for connection in pending.chain(self.scripts.iter().map(|script| &script.connection)) {
-            if let Some(params) = &connection.params {
+            if let Some(params) = connection.params() {
                 if !connections.iter().any(|copy| copy.connection_id == connection.connection_id) {
-                    connections.push(ConnectionCopy { connection_id: connection.connection_id.clone(), params: params.clone() });
+                    connections.push(ConnectionCopy { connection_id: connection.connection_id.clone(), params });
                 }
             }
         }
@@ -1120,6 +1260,8 @@ impl Workbook {
         if self.is_cloud_preview() && action.changes_published_content() {
             return Err(Error::invalid_argument("a cloud preview can't be changed"));
         }
+        let derives_table_parameters = action.derives_table_parameters();
+        self.table_parameters_outdated = false;
         match action {
             WorkbookAction::SetCloudLink { link } => {
                 if link != self.cloud {
@@ -1151,12 +1293,7 @@ impl Workbook {
             }
             WorkbookAction::SetScriptVisSpec { key, spec } => self.set_vis_spec(key, &spec, &mut outcome)?,
             WorkbookAction::SetWorkbookInput { name, literal, keys } => self.set_input(&name, &literal, &keys, &mut outcome)?,
-            WorkbookAction::ApplyEditorEvent { key, event } => self.apply_editor_event(key, &event, &mut outcome)?,
-            WorkbookAction::ReportEditorUpdate { key, update, accepts_diff } => {
-                if update.status == EditorUpdateStatus::OK {
-                    self.take_editor_update(key, update, accepts_diff, &mut outcome)?;
-                }
-            }
+            WorkbookAction::ApplyEditorEvent { key, event } => self.apply_editor_event(key, event, &mut outcome)?,
             WorkbookAction::AnalyzeOutdatedScript { key } => self.analyze_outdated(key, &mut outcome),
             WorkbookAction::CatalogDidUpdate { connection_id } => {
                 for script in self.scripts.iter_mut().filter(|script| script.connection.connection_id == connection_id) {
@@ -1234,10 +1371,13 @@ impl Workbook {
             }
         }
         if outcome.changed {
-            // The table parameters read the results of the scripts and the attachments, which follow every change
-            self.publish_table_parameters();
+            // The table parameters read the results of the scripts and the attachments
+            if derives_table_parameters || self.table_parameters_outdated {
+                self.publish_table_parameters();
+            }
             self.revision = next_revision();
         }
+        self.table_parameters_outdated = false;
         Ok(outcome)
     }
 
@@ -1293,6 +1433,7 @@ impl Workbook {
             key: session.catalog_entry_id(),
             file_name: file_name.to_string(),
             session: Rc::new(RefCell::new(session)),
+            session_generation: next_revision(),
             connection,
             editor_update: None,
             analysis_outdated: true,
@@ -1441,6 +1582,7 @@ impl Workbook {
     }
 
     fn set_text(&mut self, key: ScriptKey, text: &str, with_diff: bool, outcome: &mut WorkbookOutcome) -> Result<()> {
+        let unit = self.offset_unit;
         let Some(script) = self.script_mut(key) else {
             return Ok(());
         };
@@ -1450,14 +1592,12 @@ impl Workbook {
             (Some(pending), true) => pending.prior_text.clone(),
             _ => current.clone(),
         };
-        let mut pending_diff = None;
-        if with_diff && text != prior {
-            if prior != current {
-                script.replace_text(&prior)?;
-            }
-            // A failed diff never blocks the rewrite, the rewrite is just not staged then
-            pending_diff = script.diff_to(text).ok().map(|diff| PendingDiff { prior_text: prior, diff, revision: next_revision() });
-        }
+        // The diff is computed on a session of the prior text of its own, the script changes only with the new text. A
+        // failed diff never blocks the rewrite, the rewrite is just not staged then.
+        let pending_diff = (with_diff && text != prior)
+            .then(|| Scratch::new(&prior, unit).and_then(|mut scratch| scratch.diff_to(text)).ok())
+            .flatten()
+            .map(|diff| PendingDiff { prior_text: prior, diff, revision: next_revision() });
         script.replace_text(text)?;
         script.analyze();
         script.pending_diff = pending_diff;
@@ -1472,58 +1612,63 @@ impl Workbook {
     }
 
     fn set_vis_spec(&mut self, key: ScriptKey, spec: &str, outcome: &mut WorkbookOutcome) -> Result<()> {
-        let Some(script) = self.script_mut(key) else {
+        let Some(script) = self.script(key) else {
             return Ok(());
         };
         let current = script.text();
         let prior = script.pending_diff.as_ref().map_or_else(|| current.clone(), |pending| pending.prior_text.clone());
-        // The diff is computed against the text before the first edit, the tag is rewritten in that text
-        if prior != current {
-            script.replace_text(&prior)?;
-        }
-        let rewritten = script
+        // The diff is computed against the text before the first edit, the tag is rewritten in that text on a session
+        // of its own. The script changes only with the rewritten text.
+        let mut scratch = Scratch::new(&prior, self.offset_unit)?;
+        let rewritten = scratch
             .chart_statement_id()
             .and_then(|statement| {
                 let renderer = VisRenderer::from_parts("vegalite", spec).ok()?;
-                script.session.borrow_mut().rewrite_vis_renderer(statement, Some(&renderer), true).ok()
+                scratch.session.rewrite_vis_renderer(statement, Some(&renderer), true).ok()
             })
             .filter(|text| *text != current);
         match rewritten {
             // A spec that restores the chart before the first edit drops the diff
             Some(text) => self.set_text(key, &text, true, outcome),
-            None => {
-                // The script stays as it is
-                if script.text() != current {
-                    script.replace_text(&current)?;
-                }
-                Ok(())
-            }
+            // The script stays as it is
+            None => Ok(()),
         }
     }
 
     fn set_input(&mut self, name: &str, literal: &str, keys: &[ScriptKey], outcome: &mut WorkbookOutcome) -> Result<()> {
         let unit = self.offset_unit;
-        let mut rewritten: Vec<(ScriptKey, CatalogHandle)> = Vec::new();
+        // The new texts of all scripts first, then the scripts: all of them change or none
+        let mut rewrites: Vec<(usize, String, String)> = Vec::new();
         for key in keys {
-            let Some(script) = self.script_mut(*key) else {
+            let Some(index) = self.scripts.iter().position(|script| script.key == *key) else {
                 continue;
             };
+            if rewrites.iter().any(|(other, ..)| *other == index) {
+                continue;
+            }
+            let script = &self.scripts[index];
             let from_text = script.text();
             // A script that doesn't parse keeps its tags
             let Ok(text) = script.session.borrow_mut().rewrite_param_tag(name, Some(literal), true) else {
                 continue;
             };
-            if text == from_text {
-                continue;
+            if text != from_text {
+                rewrites.push((index, text, from_text));
             }
-            script.replace_text(&text)?;
+        }
+        self.commit_texts(rewrites.iter().map(|(index, text, from_text)| (*index, text.as_str(), from_text.as_str())))?;
+        let mut rewritten: Vec<(ScriptKey, CatalogHandle)> = Vec::new();
+        for (index, text, from_text) in rewrites {
+            let Some(script) = self.scripts.get_mut(index) else {
+                continue;
+            };
             script.analyze();
             script.pending_diff = None;
             // A mounted editor applies the change and keeps its cursor
             script.external_changes = Some(ExternalChanges { changes: vec![text_change(&from_text, &text, unit)], from_text });
             script.revision = next_revision();
             outcome.effects.push(Self::write_script(script));
-            rewritten.push((*key, script.connection.catalog.clone()));
+            rewritten.push((script.key, script.connection.catalog.clone()));
         }
         for (key, catalog) in &rewritten {
             self.mark_others_outdated(*key, catalog);
@@ -1532,11 +1677,19 @@ impl Workbook {
         Ok(())
     }
 
-    fn apply_editor_event(&mut self, key: ScriptKey, event: &EditorEventT, outcome: &mut WorkbookOutcome) -> Result<()> {
+    fn apply_editor_event(&mut self, key: ScriptKey, mut event: EditorEventT, outcome: &mut WorkbookOutcome) -> Result<()> {
         let Some(script) = self.script_mut(key) else {
             return Err(Error::invalid_argument("an editor event of an unknown script"));
         };
-        let update = script.session.borrow_mut().apply(&script.connection.catalog.borrow(), event);
+        // The editor fills an analysis that the update leaves out with the one that it names, the script with the one
+        // that it holds: the update leaves out only an analysis that both hold
+        if let Some(known) = event.known_analysis.as_deref() {
+            let held = script.editor_update.as_ref().filter(|held| held.analysis_available);
+            if held.is_none_or(|held| held.text_version != known.text_version || held.catalog_revision != known.catalog_revision) {
+                event.known_analysis = None;
+            }
+        }
+        let update = script.session.borrow_mut().apply(&script.connection.catalog.borrow(), &event);
         if update.status != EditorUpdateStatus::OK {
             // The editor reports the failure, the script is unchanged
             outcome.editor_update = Some(update);
@@ -1547,24 +1700,12 @@ impl Workbook {
         self.take_editor_update(key, update, accepts_diff, outcome)
     }
 
-    /// Take the update of an editor event, applied by the workbook or by an editor to the shared session. The text is
-    /// published into the catalog and written, a changed text with `accepts_diff` accepts a staged rewrite.
+    /// Take the update of an editor event. The text is published into the catalog and written, a changed text with
+    /// `accepts_diff` accepts a staged rewrite.
     fn take_editor_update(&mut self, key: ScriptKey, mut update: EditorUpdateT, accepts_diff: bool, outcome: &mut WorkbookOutcome) -> Result<()> {
         let Some(script) = self.script_mut(key) else {
             return Err(Error::invalid_argument("an editor update of an unknown script"));
         };
-        // An update that leaves an unchanged analysis out takes the arrays of the previous one
-        if update.analysis_omitted {
-            if let Some(previous) = &script.editor_update {
-                update.diagnostics = previous.diagnostics.clone();
-                update.syntax_spans = previous.syntax_spans.clone();
-                update.vegalite_specs = previous.vegalite_specs.clone();
-                update.comment_tags = previous.comment_tags.clone();
-                update.semantic_spans = previous.semantic_spans.clone();
-                update.script_annotations = previous.script_annotations.clone();
-                update.processing_statistics = previous.processing_statistics.clone();
-            }
-        }
         let previous = script.editor_update.as_ref();
         let text_changed = previous.map(|previous| previous.text_version) != Some(update.text_version);
         let state_changed = previous.map(|previous| previous.state_revision) != Some(update.state_revision);
@@ -1582,8 +1723,22 @@ impl Workbook {
             outcome.editor_update = Some(update);
             return Ok(());
         }
+        // The editor gets the update as it is. The script holds it with the arrays of an analysis that the update left
+        // out, they move over from the update that it replaces.
+        let returned = update.analysis_omitted.then(|| update.clone());
+        if update.analysis_omitted {
+            if let Some(previous) = script.editor_update.as_mut() {
+                update.diagnostics = previous.diagnostics.take();
+                update.syntax_spans = previous.syntax_spans.take();
+                update.vegalite_specs = previous.vegalite_specs.take();
+                update.comment_tags = previous.comment_tags.take();
+                update.semantic_spans = previous.semantic_spans.take();
+                update.script_annotations = previous.script_annotations.take();
+                update.processing_statistics = previous.processing_statistics.take();
+            }
+        }
         script.record_statistics(&update);
-        script.editor_update = Some(update.clone());
+        script.editor_update = Some(update);
         script.analysis_outdated = false;
         if text_changed || analysis_refreshed {
             script.compile_visualization();
@@ -1598,9 +1753,11 @@ impl Workbook {
         if catalog_changed {
             self.mark_others_outdated(key, &catalog);
         }
+        // Moving the cursor leaves the results of the scripts as they are
+        self.table_parameters_outdated |= text_changed || analysis_refreshed;
         outcome.changed = true;
         outcome.effects.extend(write);
-        outcome.editor_update = Some(update);
+        outcome.editor_update = returned;
         Ok(())
     }
 
@@ -1653,7 +1810,7 @@ impl Workbook {
 
     fn set_pending_connection(&mut self, connection: Rc<ScriptConnection>, outcome: &mut WorkbookOutcome) {
         let same = self.pending_connection.as_ref().is_some_and(|pending| pending.connection_id == connection.connection_id);
-        if same || connection.params.is_none() {
+        if same || !connection.has_params() {
             return;
         }
         self.pending_connection = Some(connection);
@@ -1695,7 +1852,7 @@ impl Workbook {
         // connection
         outcome.effects.push(WorkbookEffect::PatchConnection {
             connection_id: into.connection_id.clone(),
-            params: into.params.clone(),
+            params: into.params(),
             replaces: vec![from.to_string()],
         });
         outcome.effects.push(WorkbookEffect::WriteScriptList(self.script_list()));

@@ -61,9 +61,8 @@ buffers in between. The boundary moves to what the UI reads.
   rename, the script list and the properties of the workbook file. The runtime hands them to its storage writer, which
   debounces them. A dropped script leaves the catalog of its connection.
 - **Sessions are shared.** The workbook shares the session of a script with a `ScriptSession` handle of the module
-  (`Runtime.scriptSession`), the editors of the app apply their events to it and report the update
-  (`Runtime.reportEditorUpdate`). The editor that sends its events to `ApplyEditorEvent` of the workbook is the end
-  state.
+  (`Runtime.scriptSession`), the editors of the app read it. Their events go to the workbook
+  (`Runtime.applyEditorEvent`, `ApplyEditorEvent` of the workbook).
 - **The UI reads views.** The workbook, every script and the derived view of a workbook are slices of the runtime
   (see [The workbooks](#the-workbooks)). Plain fields cross as JS objects, editor updates, staged diffs,
   visualizations, processing statistics and the derived references, dataflow and inputs as packed FlatBuffers.
@@ -171,17 +170,29 @@ cloud), and the workbooks that the restore refused.
   name that no other workbook has, the registry of the connections learns which workbooks use a connection after every
   action that can change it, and an announced catalog of a connection outdates the analyses of the scripts on it
   (`catalog_listener` of the connections).
-- **Per keystroke.** `reportEditorUpdate(workbookId, scriptKey, sessionId, update, holdsPendingDiff)` takes the packed
-  update of an editor; an update of a session that the script no longer holds is dropped, an editor that holds no
-  staged rewrite of the script accepted it. The workbook writes the text of the script, the slice of the script changes,
-  the workbook keeps its slice.
+- **Per keystroke.** `applyEditorEvent(workbookId, scriptKey, sessionGeneration, event)` takes the packed event of an
+  editor, applies it to the session of the script and returns the packed update once. The event names the text version
+  that the document of the editor shows: an editor that missed a change of the text (an input, a rewrite of a
+  reference, a change on disk) gets `STALE_TEXT_VERSION` and shows the text of the session again. An event of a session
+  that the script no longer holds (an older `sessionGeneration` of the script view) returns null. The update leaves out
+  the analysis that the event names as known if the script holds the same one; the editor fills it from the update it
+  holds, the script moves the arrays over from the update it replaces. An edit of the user accepts a staged rewrite. The
+  workbook writes the text of the script and derives the table parameters again only when the text or the analysis
+  changed, not for a moved cursor. The slice of the script changes, the workbook keeps its slice.
 - **Slices.** The `workbook` slice changes with the key of what its view shows (`workbook_key`, a hash of everything
-  but the texts and analyses of the scripts), the `script` slice with the revision of the script, the `workbookDerived`
-  slice with the key of what it derives from (`derived_key`: the names, connections, texts and analyses of the scripts
-  and the attachments). The derived view runs the planner of the crate on the workbook (`Workbook::with_planner`) when
-  the store reads it: the checked references, the dataflow and the inputs, packed like the free functions of the
-  planner. The store of TypeScript reads the payloads of a script once per key (`ScriptProjection`), the FlatBuffers of
-  a derived view once per view.
+  but the texts and analyses of the scripts, with the revisions of the connections of its scripts), the `script` slice
+  with the revision of the script, the `workbookDerived` slice when its buffers change: when the key of what it derives
+  from moves (`derived_key`: the names, connections, texts and analyses of the scripts and the attachments), the
+  changes derive the view (`Workbook::with_planner`: the checked references, the dataflow and the inputs, packed like
+  the free functions of the planner) and hash the buffers, the store reads the buffers they derived. The store of
+  TypeScript reads the payloads of a script once per key (`ScriptProjection`), the update of an editor event is held
+  as it is, and keeps what it read of a buffer of a derived view while its bytes stay the same.
+- **Connections of scripts.** A connection of the runtime holds one `ScriptConnection` that all of its scripts share
+  (`ConnectionState::script_connection`): the dialect, the defaults of names and the params follow the connection in
+  place. All catalogs take their entry ids, and the scripts their keys, from one source (`workbook::new_catalog`).
+- **Analyses.** `WorkbookScript::is_analysis_outdated` is the one predicate: the flag, a text that changed, or an
+  analysis that is no longer current with the catalog as the planner checks it. A run analyzes the scripts that it
+  names outdated until none is (`analyze_for_run`), the others keep their analyses.
 - **Runs.** A run shares the workbook of the runtime (`runWorkbook`, `runScript`), it is live while the runtime holds
   the workbook, and its writes tell the platform. The `run` slice of a workbook shows the run that holds it and the
   state of its last run, see [The runs of workbooks](#the-runs-of-workbooks).
@@ -925,6 +936,13 @@ derived view and crosses its three FlatBuffers.
 With the runs in the runtime (step 5), one run of three passes at a load of about 1.7: the editor 81 / 145 µs, the
 update 31 / 67 µs, the projection 11 / 15 µs, the update and the projection 44 / 84 µs, the derivation 25 / 35 µs (p10 /
 p50). The change set crosses the `run` slices as well, a keystroke changes none of them.
+
+With `applyEditorEvent` (one call per keystroke) the benchmark types next to two and next to 19 other scripts. One run
+of three passes at a load of about 9, medians: the event in the runtime 156 µs (the editor and the update before: 151
+and 69 µs), the flush with the derivation 41 µs, reading the derived view 5 µs; per keystroke 209 µs against about 272
+µs before. Next to 19 scripts the event takes 158 µs, the flush 150 µs and the keystroke 331 µs against about 386 µs.
+The derivation runs for every keystroke that changes the text: the buffers carry the text version and the spans of the
+statements of the typed script, so the derived slice moves with them; it is linear in the scripts of the workbook.
 
 ## Open
 

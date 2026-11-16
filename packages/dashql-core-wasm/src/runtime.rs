@@ -58,14 +58,13 @@ use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
-use crate::{js_error, Catalog, ScriptSession, SharedCatalog, ENTRY_IDS};
+use crate::{js_error, Catalog, ScriptSession, SharedCatalog};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use connections::{Connections, NewConnection};
 use queries::QueryArgs;
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
 use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
-use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core_runtime::restore::{AppRestore, RestoreOptions, RestoredState};
 use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
@@ -485,16 +484,41 @@ struct Taken {
     workbooks: Vec<(String, (u64, u64, u64))>,
     /// The scripts of all workbooks by key
     scripts: BTreeMap<u32, u64>,
-    /// What the derived views of the workbooks derive from, and the revision of their slices
-    derived: Vec<(String, (u64, u64))>,
+    /// The derived views of the workbooks
+    derived: Vec<(String, Derived)>,
     /// The revision of the view of the storage
     storage: Option<(u64, u64)>,
     /// The revisions of the runs of the workbooks
     runs: BTreeMap<String, u64>,
 }
 
+/// The derived view of a workbook that the host took
+struct Derived {
+    /// What the view derives from, see `derived_key`
+    inputs: u64,
+    /// The packed buffers of the view: the checked references, the dataflow and the inputs
+    buffers: Rc<[Vec<u8>; 3]>,
+    /// A hash of the buffers, the slice moves only when it moves
+    hash: u64,
+    /// The revision of the slice
+    slice: u64,
+}
+
+/// Derive the buffers of the derived view of a workbook: the checked references, the dataflow and the inputs, packed
+/// like the free functions of the planner. Returns them with their hash, which includes the keys of the scripts.
+fn derive_buffers(workbook: &dashql_core_runtime::workbook::Workbook) -> (Rc<[Vec<u8>; 3]>, u64) {
+    let buffers = workbook.with_planner(|request, sessions| {
+        [crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request)]
+    });
+    let mut hasher = DefaultHasher::new();
+    buffers.hash(&mut hasher);
+    workbook.scripts().iter().for_each(|script| script.key().hash(&mut hasher));
+    (Rc::new(buffers), hasher.finish())
+}
+
 /// What the derived view of a workbook derives from, as a hash: the names, the connections and the analyses of its
-/// scripts and its attachments. The view derives again only when they change.
+/// scripts and its attachments. The view derives again only when they change, its slice moves only when the derived
+/// buffers change.
 fn derived_key(workbook: &dashql_core_runtime::workbook::Workbook) -> u64 {
     let mut hasher = DefaultHasher::new();
     for script in workbook.scripts() {
@@ -502,7 +526,7 @@ fn derived_key(workbook: &dashql_core_runtime::workbook::Workbook) -> u64 {
         script.key().hash(&mut hasher);
         script.file_name().hash(&mut hasher);
         connection.connection_id.hash(&mut hasher);
-        connection.local.hash(&mut hasher);
+        connection.revision().hash(&mut hasher);
         script.session().try_borrow().map(|session| session.text_version()).unwrap_or_default().hash(&mut hasher);
         script.editor_update().map(|update| (update.text_version, update.catalog_revision, update.analysis_available)).hash(&mut hasher);
     }
@@ -816,7 +840,7 @@ impl Runtime {
                 }
                 continue;
             };
-            let revision = workbook.revision();
+            let revision = workbooks::workbook_revision(&workbook);
             let slice = match previous {
                 Some((taken_revision, key, slice)) if taken_revision == revision => (revision, key, slice),
                 previous => {
@@ -839,13 +863,21 @@ impl Runtime {
                 }
                 scripts.insert(key, script.revision());
             }
+            // A keystroke derives the view again, its slice moves only if the derived buffers changed
             let inputs = derived_key(&workbook);
             let derived = match previous_derived {
-                Some((taken_inputs, slice)) if taken_inputs == inputs => (taken_inputs, slice),
-                _ => {
-                    let slice = next_revision();
-                    changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
-                    (inputs, slice)
+                Some(held) if held.inputs == inputs => held,
+                previous => {
+                    let (buffers, hash) = derive_buffers(&workbook);
+                    let slice = match previous {
+                        Some(held) if held.hash == hash => held.slice,
+                        _ => {
+                            let slice = next_revision();
+                            changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
+                            slice
+                        }
+                    };
+                    Derived { inputs, buffers, hash, slice }
                 }
             };
             taken.derived.push((entry.id.clone(), derived));
@@ -890,15 +922,19 @@ impl Runtime {
     fn derived_view(&self, workbook_id: &str) -> Option<WorkbookDerivedView> {
         let workbook = self.workbooks.get(workbook_id)?;
         let workbook = workbook.try_borrow().ok()?;
-        let (references, dataflow, inputs) = workbook.with_planner(|request, sessions| {
-            (crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request))
+        // The buffers that the last changes derived, if the workbook didn't change since
+        let inputs = derived_key(&workbook);
+        let held = self.taken.try_borrow().ok().and_then(|taken| {
+            taken.derived.iter().find(|(id, held)| id == workbook_id && held.inputs == inputs).map(|(_, held)| held.buffers.clone())
         });
+        let buffers = held.unwrap_or_else(|| derive_buffers(&workbook).0);
+        let [references, dataflow, inputs] = &*buffers;
         Some(WorkbookDerivedView {
             workbook_id: workbook_id.to_string(),
             script_keys: workbook.scripts().iter().map(|script| script.key()).collect(),
-            references: FlatBufferBytes(references),
-            dataflow: FlatBufferBytes(dataflow),
-            inputs: FlatBufferBytes(inputs),
+            references: FlatBufferBytes(references.clone()),
+            dataflow: FlatBufferBytes(dataflow.clone()),
+            inputs: FlatBufferBytes(inputs.clone()),
         })
     }
 
@@ -1031,7 +1067,6 @@ impl Restorer {
         let platform = self.platform.clone();
         let options = RestoreOptions {
             offset_unit: Workbooks::offset_unit(),
-            new_catalog: Box::new(|| CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone))),
             new_uuid: Box::new(move || platform.random_uuid().ok()),
         };
         AppRestore::new(host, self.workbooks.writer.clone(), options)
@@ -1599,35 +1634,23 @@ impl Runtime {
 
     // The workbooks
 
-    /// Report the update of an event that the editor of a script applied to the shared session of the script itself, a
-    /// packed `EditorUpdate`. An update of a session that the script no longer holds is dropped. An editor that holds no
-    /// staged rewrite of the script accepted it with an edit. Returns whether the workbook changed.
-    #[wasm_bindgen(js_name = reportEditorUpdate)]
-    pub fn report_editor_update(&self, workbook_id: &str, script_key: u32, session_id: u32, update: &[u8], holds_pending_diff: bool) -> Result<bool, JsError> {
-        use dashql_core_runtime::workbook::WorkbookAction;
-        let Some(workbook) = self.workbooks.get(workbook_id) else {
-            return Ok(false);
-        };
-        let pending_diff = {
-            let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
-            let script = workbook.script(script_key).filter(|script| Rc::as_ptr(script.session()) as usize as u32 == session_id);
-            match script {
-                Some(script) => script.pending_diff().is_some(),
-                None => {
-                    let key = script_key.to_string();
-                    let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
-                    self.platform.log_on(LogLevel::Warn, "Dropping editor update of an unknown script or a stale session", &details, "workbook_scripts");
-                    return Ok(false);
-                }
-            }
-        };
-        let update = flatbuffers::root::<dashql_buffers::editor::EditorUpdate>(update).map_err(|_| JsError::new("invalid editor update"))?.unpack();
-        let mut changed = self.workbooks.apply(workbook_id, WorkbookAction::ReportEditorUpdate { key: script_key, update, accepts_diff: false }).map_err(js_error)?;
-        // The editor accepted or rejected the staged rewrite, a rejection restored the text already
-        if pending_diff && !holds_pending_diff {
-            changed |= self.workbooks.apply(workbook_id, WorkbookAction::AcceptPendingDiff { key: script_key }).map_err(js_error)?;
+    /// Apply an event of the editor of a script, a packed `EditorEvent`, and return the packed `EditorUpdate` for the
+    /// editor: the workbook takes the update, writes the text and publishes it. The event names the text version that
+    /// the editor shows, an editor that missed a change of the text gets the status `STALE_TEXT_VERSION` and shows the
+    /// text of the script again. The update leaves out the analysis that the event names as known if the script holds
+    /// the same one. An edit of the user accepts a staged rewrite. Null for an event of a session that the script no
+    /// longer holds (`sessionGeneration` of the view of the script).
+    #[wasm_bindgen(js_name = applyEditorEvent)]
+    pub fn apply_editor_event(&self, workbook_id: &str, script_key: u32, session_generation: f64, event: &[u8]) -> Result<Option<Vec<u8>>, JsError> {
+        let generation = integer(session_generation, "session generation")?;
+        let event = flatbuffers::root::<dashql_buffers::editor::EditorEvent>(event).map_err(|_| JsError::new("invalid editor event"))?.unpack();
+        let update = self.workbooks.apply_editor_event(workbook_id, script_key, generation, event).map_err(js_error)?;
+        if update.is_none() {
+            let key = script_key.to_string();
+            let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
+            self.platform.log_on(LogLevel::Warn, "Dropping editor event of an unknown script or a stale session", &details, "workbook_scripts");
         }
-        Ok(changed)
+        Ok(update)
     }
 
     /// The session of a script, shared with its workbook. Every call returns a new handle. None for an unknown script.

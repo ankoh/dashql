@@ -34,9 +34,10 @@ export interface ScriptData {
     scriptKey: number;
     /// The workbook of the script
     workbookId: string;
-    /// Identifies the session of the script, a script that moved to another connection has a new one
-    sessionId: number;
-    /// The session of the script, shared with the workbook. The editor applies its events to it.
+    /// Names the session of the script, a script that moved to another connection has a new one. An editor event names
+    /// it (`Runtime.applyEditorEvent`).
+    sessionGeneration: number;
+    /// The session of the script, shared with the workbook. The editor reads it, its events go to the runtime.
     scriptSession: core.DashQLScriptSession;
     /// The latest editor update
     editorUpdate: core.buffers.editor.EditorUpdateT | null;
@@ -111,18 +112,6 @@ export function isCloudPreview(state: Pick<WorkbookScripts, 'cloud'>): boolean {
     return state.cloud?.preview === true;
 }
 
-/// The first of "Untitled", "Untitled 2", ... that no other workbook has, compared case-insensitively
-export function freeWorkbookName(names: Iterable<string | null>): string {
-    const taken = new Set<string>();
-    for (const name of names) {
-        if (name != null) taken.add(name.trim().toLowerCase());
-    }
-    if (!taken.has('untitled')) return 'Untitled';
-    let n = 2;
-    while (taken.has(`untitled ${n}`)) ++n;
-    return `Untitled ${n}`;
-}
-
 /// The ids of the connections that the scripts of a workbook run on, in the order the scripts first use them. A
 /// workbook run takes exactly these connections.
 export function scriptConnectionIds(state: Pick<WorkbookScripts, 'scriptConnections'>): string[] {
@@ -132,17 +121,6 @@ export function scriptConnectionIds(state: Pick<WorkbookScripts, 'scriptConnecti
 /// The ids of the connections that a workbook uses: the connections of its scripts and the pending connection
 export function workbookConnectionIds(state: Pick<WorkbookScripts, 'connectionIds'>): string[] {
     return state.connectionIds;
-}
-
-/// The connection that a new script runs on, null when the workbook has neither scripts nor a pending connection. A
-/// script inserted at an index takes the connection of the script before it, the first script that of the script
-/// after it. An appended script takes the pending connection, otherwise the connection of the last script.
-export function newScriptConnection(state: Pick<WorkbookScripts, 'scriptConnections' | 'pendingConnectionId'>, index: number | null): string | null {
-    const connections = state.scriptConnections;
-    if (index == null || connections.length === 0) {
-        return state.pendingConnectionId ?? connections[connections.length - 1] ?? null;
-    }
-    return connections[Math.max(0, Math.min(Math.trunc(index), connections.length) - 1)];
 }
 
 /// The number of scripts of a workbook that run on a connection. The pending connection alone does not count.
@@ -165,21 +143,3 @@ export function textChange(from: string, to: string): ScriptTextChange {
     return { from: prefix, to: from.length - suffix, insert: to.slice(prefix, to.length - suffix) };
 }
 
-export function replaceScriptSessionText(scriptSession: core.DashQLScriptSession, text: string): void {
-    const update = scriptSession.replaceText(scriptSession.getTextVersion(), text);
-    if (update.status !== core.buffers.editor.EditorUpdateStatus.OK) {
-        const status = core.buffers.editor.EditorUpdateStatus[update.status] ?? update.status.toString();
-        throw new Error(`Failed to replace editor workbook text: ${status}`);
-    }
-}
-
-/// Is the analysis of a script outdated? The flag marks the changes that the workbook knows about, the versions also
-/// catch the ones it missed: the text of the session or its catalog changed since the analysis. A script that
-/// published its own declarations changed its catalog too, so a current script may analyze once more.
-export function isAnalysisOutdated(scriptData: Pick<ScriptData, 'analysisOutdated' | 'editorUpdate' | 'scriptSession'>): boolean {
-    if (scriptData.analysisOutdated) return true;
-    const update = scriptData.editorUpdate;
-    if (update == null) return false;
-    return update.textVersion !== scriptData.scriptSession.getTextVersion()
-        || update.catalogRevision !== scriptData.scriptSession.getCatalogRevision();
-}

@@ -1478,7 +1478,7 @@ fn decodes_the_connections_of_a_workbook_file() {
     assert!(decode_connection(&json!({}), "workbook").is_err());
 
     let (_, details) = decode_connection(&json!({ "hyper": { "protocol": "V3_HTTP" } }), "workbook").unwrap();
-    let restored = restore_connection_state("c1", details, None, 0.0);
+    let restored = ConnectionState::new("c1", details, ConnectionStateOptions { active: true, ..Default::default() }, 0.0);
     assert!(restored.active());
     assert_eq!(restored.params().params, object(json!({ "protocol": "V3_HTTP" })));
 }

@@ -705,16 +705,46 @@ export class Runtime {
         this.store.flush();
     }
 
-    /// Report the update of an event that the editor of a script applied to the shared session of the script. The
-    /// projection holds the update instead of reading it again. An editor that holds no staged rewrite accepted the one
-    /// of the script.
-    reportEditorUpdate(script: Pick<ScriptData, 'workbookId' | 'scriptKey' | 'sessionId'>, update: core.buffers.editor.EditorUpdateT, holdsPendingDiff: boolean): boolean {
+    /// Apply an event of the editor of a script and return the update for the editor, the projection of the script
+    /// holds it instead of reading it again. The event names the text version that the editor shows, an editor that
+    /// missed a change of the text gets the status `STALE_TEXT_VERSION`. `known` is the update that the editor holds:
+    /// the runtime leaves its analysis out if the script holds the same one, the update takes its arrays then. Null for
+    /// a script that holds another session than the one the editor shows.
+    applyEditorEvent(
+        script: Pick<ScriptData, 'workbookId' | 'scriptKey' | 'sessionGeneration'>,
+        event: core.buffers.editor.EditorEventT,
+        known: core.buffers.editor.EditorUpdateT | null,
+    ): core.buffers.editor.EditorUpdateT | null {
         const module = this.runtimeModule;
-        if (module == null) return false;
-        this.scriptProjection?.report(script.scriptKey, update);
+        if (module == null) return null;
+        const analysis = known?.analysisAvailable === true ? known : null;
+        event.knownAnalysis = analysis == null ? null : new core.buffers.editor.EditorAnalysisVersionT(analysis.textVersion, analysis.catalogRevision);
         const builder = new flatbuffers.Builder();
-        builder.finish(update.pack(builder));
-        return module.reportEditorUpdate(script.workbookId, script.scriptKey, script.sessionId, builder.asUint8Array(), holdsPendingDiff);
+        builder.finish(event.pack(builder));
+        // A refused event, e.g. an edit of a cloud preview or of a busy workbook, changes nothing: the editor shows the
+        // text of the script again
+        let bytes: Uint8Array | undefined;
+        try {
+            bytes = module.applyEditorEvent(script.workbookId, script.scriptKey, script.sessionGeneration, builder.asUint8Array());
+        } catch (e: unknown) {
+            this.logger.warn('Refused an editor event', { workbookId: script.workbookId, scriptKey: script.scriptKey.toString(), error: stringifyError(e) }, 'workbook_editor');
+            return null;
+        }
+        if (bytes == null) return null;
+        const update = core.readFlatBuffer(bytes, bb => core.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+        if (update.analysisOmitted && analysis != null) {
+            update.diagnostics = analysis.diagnostics;
+            update.syntaxSpans = analysis.syntaxSpans;
+            update.vegaliteSpecs = analysis.vegaliteSpecs;
+            update.commentTags = analysis.commentTags;
+            update.semanticSpans = analysis.semanticSpans;
+            update.scriptAnnotations = analysis.scriptAnnotations;
+            update.processingStatistics = analysis.processingStatistics;
+        }
+        if (update.status === core.buffers.editor.EditorUpdateStatus.OK) {
+            this.scriptProjection?.hold(script.scriptKey, update);
+        }
+        return update;
     }
 
     /// Give the table parameters of a workbook to a session that is no script of it, e.g. the draft of the composer.

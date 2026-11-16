@@ -17,21 +17,19 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_buffers::editor::EditorOffsetUnit;
-use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
 use crate::attachments::DataFile;
 use crate::connections::import::decode_connection;
-use crate::connections::label::is_hyper_wasm_connection;
-use crate::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions, ConnectorType};
+use crate::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
 use crate::host::{HostError, LogLevel};
 use crate::storage::keys::{
     connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
 };
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
-use crate::workbook::{CloudLink, ScriptConnection, Workbook};
+use crate::workbook::{new_catalog, CloudLink, ScriptConnection, Workbook};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
 use crate::workbook_format::storage_migration::iso_timestamp;
 use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
@@ -103,8 +101,6 @@ impl RestoreProgress {
 pub struct RestoreOptions {
     /// The unit that the editors of the workbooks count offsets in
     pub offset_unit: EditorOffsetUnit,
-    /// A new empty catalog of a connection, e.g. one that shares the entry ids of the other catalogs of the module
-    pub new_catalog: Box<dyn Fn() -> Catalog>,
     /// Fresh UUIDs, for a new connection to the embedded database
     pub new_uuid: Box<dyn FnMut() -> Option<String>>,
 }
@@ -143,16 +139,7 @@ pub struct LiveConnection {
 
 /// The connection of the scripts of a connection state
 pub fn script_connection_of(state: &ConnectionState) -> Rc<ScriptConnection> {
-    let defaults = state.details().catalog_name_defaults();
-    Rc::new(ScriptConnection {
-        connection_id: state.connection_id().to_string(),
-        catalog: state.catalog().clone(),
-        dialect: if state.connector_type() == ConnectorType::Trino { FormattingDialect::TRINO } else { FormattingDialect::HYPER },
-        local: is_hyper_wasm_connection(state),
-        params: Some(state.params().to_json()),
-        default_database: defaults.database_name,
-        default_schema: defaults.schema_name,
-    })
+    state.script_connection().clone()
 }
 
 /// The params of a connection state as a JSON value
@@ -236,7 +223,6 @@ struct Run<'a, H: RestoreHost, W: StorageHost> {
     host: &'a H,
     writer: &'a StorageWriter<W>,
     offset_unit: EditorOffsetUnit,
-    new_catalog: Box<dyn Fn() -> Catalog>,
     planner: RestorePlanner,
     /// The connections that the restore created, in order
     states: Vec<ConnectionState>,
@@ -251,12 +237,11 @@ struct Run<'a, H: RestoreHost, W: StorageHost> {
 
 impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
     fn new(host: &'a H, writer: &'a StorageWriter<W>, options: RestoreOptions, live: Vec<LiveConnection>) -> Self {
-        let RestoreOptions { offset_unit, new_catalog, new_uuid } = options;
+        let RestoreOptions { offset_unit, new_uuid } = options;
         let mut run = Self {
             host,
             writer,
             offset_unit,
-            new_catalog,
             planner: RestorePlanner::new(iso_timestamp(host.now()), new_uuid),
             states: Vec::new(),
             script_connections: HashMap::new(),
@@ -293,7 +278,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             .cloned()
             .collect();
         for connection in missing {
-            let state = connection_state(self.host, &connection, (self.new_catalog)())?;
+            let state = connection_state(self.host, &connection, new_catalog())?;
             self.script_connections.insert(connection.connection_id.clone(), script_connection_of(&state));
             self.states.push(state);
         }
@@ -308,7 +293,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         };
         let connection = RestoreConnection::of_entry(&entry);
         // Workbooks that reference a connection that fails register it again from their copies
-        let created = connection_state(self.host, &connection, (self.new_catalog)())
+        let created = connection_state(self.host, &connection, new_catalog())
             .and_then(|state| self.planner.restore_manifest_connection(&entry).map(|_| state));
         match created {
             Ok(state) => {
