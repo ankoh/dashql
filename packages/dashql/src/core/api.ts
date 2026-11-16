@@ -950,18 +950,24 @@ export class DashQLScriptSession extends DashQLScriptSessionReader<NativeScriptS
             () => new buffers.editor.EditorUpdate(),
         ).unpack();
         if (update.analysisOmitted && this.lastAnalysis != null) {
-            update.diagnostics = this.lastAnalysis.diagnostics;
-            update.syntaxSpans = this.lastAnalysis.syntaxSpans;
-            update.vegaliteSpecs = this.lastAnalysis.vegaliteSpecs;
-            update.commentTags = this.lastAnalysis.commentTags;
-            update.semanticSpans = this.lastAnalysis.semanticSpans;
-            update.scriptAnnotations = this.lastAnalysis.scriptAnnotations;
-            update.processingStatistics = this.lastAnalysis.processingStatistics;
+            takeKnownAnalysis(update, this.lastAnalysis);
         } else if (update.analysisAvailable) {
             this.lastAnalysis = update;
         }
         return update;
     }
+}
+
+/// Give an update that left the analysis out the arrays of the analysis that the editor holds, an unchanged analysis
+/// keeps its identity
+export function takeKnownAnalysis(update: buffers.editor.EditorUpdateT, known: buffers.editor.EditorUpdateT): void {
+    update.diagnostics = known.diagnostics;
+    update.syntaxSpans = known.syntaxSpans;
+    update.vegaliteSpecs = known.vegaliteSpecs;
+    update.commentTags = known.commentTags;
+    update.semanticSpans = known.semanticSpans;
+    update.scriptAnnotations = known.scriptAnnotations;
+    update.processingStatistics = known.processingStatistics;
 }
 
 export class DashQLScript {

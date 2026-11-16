@@ -28,6 +28,7 @@ use dashql_core_runtime::workbook_format::connection_import::{
     ConnectionImportPlanItem,
 };
 use dashql_core_runtime::workbook_format::data::{ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
+use dashql_core_runtime::workbook_format::files::nfc;
 use dashql_core_runtime::workbook_format::import::{plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry, FolderArchiveFiles, TableArchiveEntry};
 use dashql_core_runtime::workbook_format::layout::{StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
 use dashql_core_runtime::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
@@ -406,7 +407,8 @@ impl Imports {
             directory: bool,
         }
         let entries: Vec<Entry> = items(self.platform.archives_call("entries", std::slice::from_ref(&handle)).await?, "the entries of the archive")?;
-        let entries: Vec<ArchiveEntry> = entries.into_iter().map(|entry| ArchiveEntry { filename: entry.filename, directory: entry.directory }).collect();
+        // The names of the entries in NFC, a ZIP of another platform may decompose them
+        let entries: Vec<ArchiveEntry> = entries.into_iter().map(|entry| ArchiveEntry { filename: nfc(&entry.filename), directory: entry.directory }).collect();
         let index = |index: usize| JsValue::from_f64(index as f64);
         match plan_archive(&entries).map_err(format_error)? {
             ArchivePlan::Tables(plan) => {

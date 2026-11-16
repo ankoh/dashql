@@ -273,7 +273,7 @@ runtime.dispatch(target, action): DispatchOutcome
   value: { ... } }`. They are synchronous changes of state, e.g. `createScript`, `setScriptText`, `showScript`,
   `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The queries run with `execute`, never by actions.
 - **The outcome** is `{ ok, changed, error, id }` (`DispatchOutcome`): `id` names what the action created (a workbook,
-  a connection). A failed action leaves the state as it was; the facade logs every refused action as a warning.
+  a connection). A failed action leaves the state as it was; the runtime logs every refused action as a warning.
 - **Never throws.** A malformed target or action is a failed outcome like a refused action, and so is a dispatch
   after `destroy`.
 

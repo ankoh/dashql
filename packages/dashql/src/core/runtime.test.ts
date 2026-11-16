@@ -85,6 +85,18 @@ describe('DashQL runtime', () => {
         runtime.free();
     });
 
+    it('logs a refused action as a warning', () => {
+        const { platform: host } = platform();
+        const logs: string[] = [];
+        const runtime = dql!.createRuntime({ ...host, log: (level, message, details) => logs.push(`${level}: ${message} ${JSON.stringify(Object.fromEntries(details))}`) });
+        expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' }).ok).toBe(true);
+        expect(logs).toEqual([]);
+        const unchecked = runtime as unknown as { dispatch(target: unknown, action: unknown): unknown };
+        expect(unchecked.dispatch({ computation: 1 }, { kind: 'unknown' })).toMatchObject({ ok: false });
+        expect(logs).toEqual([expect.stringMatching(/^warn: The runtime refused an action \{"target":"\{\\"computation\\":1\}","action":"unknown","error":".*malformed/)]);
+        runtime.free();
+    });
+
     it('refuses or throws on arguments of the wrong type instead of trapping the module', () => {
         const runtime = dql!.createRuntime(platform().platform);
         const unchecked = runtime as unknown as {

@@ -88,7 +88,7 @@ export interface RuntimeStorage {
     deleteScript(workbookId: string, fileName: string, expected?: RuntimeFileStamp | null): Promise<void>;
     /** The file keeps its stamp, a missing source is renamed already */
     renameScript(workbookId: string, from: string, to: string, expectedFrom?: RuntimeFileStamp | null, expectedTo?: RuntimeFileStamp | null): Promise<void>;
-    /** The names of the attachments in NFC, the runtime orders them naturally */
+    /** The names of the attachments, the runtime normalizes them to NFC and orders them naturally */
     listAttachments(workbookId: string): Promise<string[]>;
     /** Update the connection entries of the app manifest exclusively. The update gets the entries, null before the connections were migrated, and returns the new ones, null if nothing changed. */
     updateConnections(update: (connections: unknown[] | null) => unknown[] | null): Promise<void>;
@@ -188,7 +188,7 @@ export interface RuntimeArchives {
     write(entries: RuntimeArchiveEntry[]): Promise<Blob>;
     /** The bytes of an archive of the handle table, e.g. for a link */
     bytes(archive: number): Promise<Uint8Array>;
-    /** The entries of an archive, their names in NFC */
+    /** The entries of an archive, the runtime normalizes their names to NFC */
     entries(archive: number): Promise<{ filename: string; directory: boolean }[]>;
     /** The text of an entry */
     readText(archive: number, index: number): Promise<string>;

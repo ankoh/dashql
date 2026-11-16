@@ -112,7 +112,7 @@ export function createRuntimeArchives(handles: HandleTable, database: (context: 
         }),
         bytes: async archive => new Uint8Array(await blobOf(archive).arrayBuffer()),
         // The core doesn't normalize Unicode, the names are passed in NFC
-        entries: archive => checked(async () => (await reader(archive).entries).map(entry => ({ filename: entry.filename.normalize('NFC'), directory: entry.directory }))),
+        entries: archive => checked(async () => (await reader(archive).entries).map(entry => ({ filename: entry.filename, directory: entry.directory }))),
         readText: (archive, index) => checked(async () => await (await fileEntry(archive, index)).getData(new TextWriter())),
         readTable: (archive, index) => checked(async () => {
             const file = await (await fileEntry(archive, index)).getData(new BlobWriter(), { checkCrc32: true });

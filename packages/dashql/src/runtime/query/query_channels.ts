@@ -205,9 +205,9 @@ export class QueryChannels {
                 traceId: trace.traceId,
                 spanId: trace.spanId,
                 options: {
-                    analyzeResults: args.analyzeResults === true,
-                    publishResults: args.publishResults !== false,
-                    throwOnError: args.throwOnError === true,
+                    analyzeResults: args.analyzeResults,
+                    publishResults: args.publishResults,
+                    throwOnError: args.throwOnError,
                     clientFunctionCall: args.clientFunctionCall,
                     readTimeoutMs: args.readTimeoutMs,
                     cache: args.cacheable && args.cacheSignature

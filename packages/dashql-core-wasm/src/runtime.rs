@@ -934,18 +934,25 @@ impl Runtime {
         Ok(views)
     }
 
-    /// Apply an action to a slice. Never throws: a malformed target or action and a refused action are failed outcomes.
+    /// Apply an action to a slice. Never throws: a malformed target or action and a refused action are failed outcomes,
+    /// logged as warnings.
     #[wasm_bindgen(unchecked_return_type = "DispatchOutcome")]
     pub fn dispatch(
         &self,
         #[wasm_bindgen(unchecked_param_type = "Target")] target: JsValue,
         #[wasm_bindgen(unchecked_param_type = "RuntimeAction")] action: JsValue,
     ) -> JsValue {
-        let outcome = match (serde_wasm_bindgen::from_value::<Target>(target), serde_wasm_bindgen::from_value::<RuntimeAction>(action)) {
+        let outcome = match (serde_wasm_bindgen::from_value::<Target>(target.clone()), serde_wasm_bindgen::from_value::<RuntimeAction>(action.clone())) {
             (Ok(target), Ok(action)) => self.dispatch_action(target, action).unwrap_or_else(DispatchOutcome::failed),
             (Err(error), _) => DispatchOutcome::failed(format!("the target is malformed: {error}")),
             (_, Err(error)) => DispatchOutcome::failed(format!("the action is malformed: {error}")),
         };
+        if !outcome.ok {
+            let target = js_sys::JSON::stringify(&target).ok().and_then(|target| target.as_string()).unwrap_or_default();
+            let kind = Reflect::get(&action, &JsValue::from_str("kind")).ok().and_then(|kind| kind.as_string()).unwrap_or_default();
+            let details = [("target", target.as_str()), ("action", kind.as_str()), ("error", outcome.error.as_deref().unwrap_or_default())];
+            self.platform.log_on(LogLevel::Warn, "The runtime refused an action", &details, "runtime");
+        }
         views_to_js(&outcome).unwrap_or_else(|_| {
             let failed = Object::new();
             let _ = Reflect::set(&failed, &JsValue::from_str("ok"), &JsValue::FALSE);

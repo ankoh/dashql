@@ -66,7 +66,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         saveScript: async (workbookId, fileName, text, expected) => backend.saveScript(workbookId, fileName, text, expected),
         deleteScript: async (workbookId, fileName, expected) => backend.deleteScript(workbookId, fileName, expected),
         renameScript: async (workbookId, from, to, expectedFrom, expectedTo) => backend.renameScript(workbookId, from, to, expectedFrom, expectedTo),
-        listAttachments: async workbookId => (await backend.listDataFiles(workbookId)).map(file => file.name.normalize('NFC')),
+        listAttachments: async workbookId => (await backend.listDataFiles(workbookId)).map(file => file.name),
         updateConnections: async update => registry().updateConnections(connections => update(connections ?? null) as ConnectionEntry[] | null),
         saveConnectionFile: async (connectionId, fileName, text) => registry().saveConnectionFile(connectionId, fileName, text),
         deleteConnectionFiles: async connectionId => registry().deleteConnectionFiles(connectionId),

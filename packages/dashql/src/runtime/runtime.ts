@@ -290,14 +290,12 @@ export class Runtime {
         }
     }
 
-    /// Apply an action to a slice. It applies at once, the views follow with the next flush. A refused action is
-    /// logged. Never throws: the runtime refuses an action that it can't read, and a destroyed runtime refuses every
+    /// Apply an action to a slice. It applies at once, the views follow with the next flush. The runtime logs a refused
+    /// action. Never throws: the runtime refuses an action that it can't read, and a destroyed runtime refuses every
     /// action.
     dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome {
         if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null };
-        const outcome = this.module.dispatch(target, action);
-        if (!outcome.ok) this.logger.warn('The runtime refused an action', { target: JSON.stringify(target), action: action.kind, error: outcome.error ?? '' }, LOG_CTX);
-        return outcome;
+        return this.module.dispatch(target, action);
     }
 
     // The computations
@@ -313,7 +311,7 @@ export class Runtime {
         const analysis = module.analyzeTable(tableId, handle, {
             connectionId: options.connectionId ?? undefined,
             clientContext: clientContextJson(options.clientContext) ?? undefined,
-            columnAggregates: options.columnAggregates !== false,
+            columnAggregates: options.columnAggregates,
             ordering: options.ordering,
         });
         await this.settled(analysis);
@@ -518,15 +516,7 @@ export class Runtime {
         }
         if (outcome == null) return null;
         const update = core.readFlatBuffer(outcome.update, bb => core.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
-        if (update.analysisOmitted && known != null) {
-            update.diagnostics = known.diagnostics;
-            update.syntaxSpans = known.syntaxSpans;
-            update.vegaliteSpecs = known.vegaliteSpecs;
-            update.commentTags = known.commentTags;
-            update.semanticSpans = known.semanticSpans;
-            update.scriptAnnotations = known.scriptAnnotations;
-            update.processingStatistics = known.processingStatistics;
-        }
+        if (update.analysisOmitted && known != null) core.takeKnownAnalysis(update, known);
         if (update.status === core.buffers.editor.EditorUpdateStatus.OK) {
             this.scriptProjection.hold(script.scriptKey, outcome.key, update);
         }

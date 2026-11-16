@@ -152,6 +152,19 @@ describe('the workbooks of the runtime', () => {
         ]);
     });
 
+    it('lists the attachments of a folder in its workbook file with their names in NFC', async () => {
+        const storage = new WorkbookTestBackend();
+        const rt = runtime = await createTestRuntime({ storage });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { workbookId } = rt.addWorkbook(TEST_CONNECTION_ID, [['sales.sql', 'select 1;']], { name: 'Attachments' });
+        await rt.storage.flush();
+        // A file that another platform wrote with a decomposed name
+        await storage.saveDataFile(workbookId, 'cafe\u0301.parquet', new Blob(['a']));
+        await rt.refreshAttachments(workbookId);
+        await rt.storage.flush();
+        expect(storage.workbooks.get(workbookId)?.attachments.map(attachment => attachment.name)).toEqual(['caf\u00e9.parquet']);
+    });
+
     it('renames an attachment with its file and the scripts that read it, a refused rename changes nothing', async () => {
         const storage = new WorkbookTestBackend();
         const rt = runtime = await createTestRuntime({ storage });
