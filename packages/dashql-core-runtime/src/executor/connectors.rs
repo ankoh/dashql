@@ -8,11 +8,12 @@
 //! function is written as the next part of an Arrow IPC stream and handed to the host, a chunk of Hyper is handed on
 //! as it is.
 
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use arrow_array::RecordBatch;
 use arrow_schema::SchemaRef;
+use serde_json::Value;
 
 use super::ipc::IpcStreamWriter;
 use super::wait::{next, TaskSet, Wake};
@@ -23,15 +24,19 @@ use super::{
 use crate::clfn::{
     start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
 };
-use crate::connections::DetailedError;
+use crate::connections::{ConnectionChannel, DetailedError};
 use crate::host::signal::Receiver;
 use crate::host::{timeout, HostError, LogLevel};
-use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpHost, HttpResponse};
+use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpHost, HttpResponse, Url};
 use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
+use crate::salesforce::relay::{salesforce_relay_endpoints, salesforce_stand_ins};
 use dashql_buffers::profile::ProfileLayoutConfig;
-use crate::trino::{refresh_outcome, SharedTrinoChannel, StreamOutput, TokenCheck, TrinoError, TrinoQuery, TrinoQueryOptions};
+use crate::trino::{
+    refresh_outcome, SharedTrinoChannel, StreamOutput, TokenCheck, TrinoAuthType, TrinoError, TrinoQuery,
+    TrinoQueryOptions,
+};
 
 /// A failure to write the Arrow IPC stream of a result
 fn write_failure(message: String) -> QueryFailure {
@@ -307,26 +312,80 @@ async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel:
     context.token.run(refreshed).await.map(refresh_outcome)
 }
 
-/// The auth of a Trino channel as it goes with a request, e.g. for a request that another process sends
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrinoAuth {
-    /// The auth headers, the access token of OAuth
-    pub headers: Vec<(String, String)>,
-    /// The account of the access token, it keys the cached results
+/// The token of the stand-ins of a relayed login: the relay replaces it, it authorizes nothing
+pub const RELAY_STAND_IN_TOKEN: &str = "dashql-relay";
+
+/// The auth of a connection for a process that sends the requests of the connection for another one, the relay of
+/// `dashql connect` (docs/wip/agent_session.md, "Logins go through the page")
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct RelayAuth {
+    /// The auth headers of the requests by the origin of their endpoint
+    pub endpoints: BTreeMap<String, Vec<(String, String)>>,
+    /// The account that keys the cached results: the account of the token, the user of basic auth
     pub principal: Option<String>,
+    /// The responses of the token requests of a login by the URL of the request, the token replaced with
+    /// `RELAY_STAND_IN_TOKEN`: a run sets the connection up with them and never sees a token
+    pub stand_ins: BTreeMap<String, Value>,
 }
 
-/// The auth of a shared Trino channel with a fresh access token: a token about to expire is refreshed first, like
-/// before a request of a query
-pub async fn fresh_trino_auth<H: HttpHost>(host: &Rc<H>, channel: &SharedTrinoChannel) -> Result<TrinoAuth, TrinoError> {
+/// The auth of the channel of a connection with fresh tokens, a token about to expire is refreshed first like before a
+/// request of a query. None for a channel that the relay doesn't serve and for a Trino channel with OAuth that has no
+/// token yet. `principal` is the account of a Salesforce login, the user info named it.
+pub async fn fresh_relay_auth<H: HttpHost>(
+    host: &Rc<H>,
+    channel: &ConnectionChannel,
+    principal: Option<String>,
+) -> Result<Option<RelayAuth>, String> {
+    match channel {
+        ConnectionChannel::Trino(channel) => fresh_trino_relay_auth(host, channel).await,
+        ConnectionChannel::Salesforce(channel) => {
+            channel.fresh(host).await?;
+            let tokens = channel.tokens();
+            Ok(Some(RelayAuth {
+                endpoints: salesforce_relay_endpoints(&tokens, &channel.auth()),
+                principal,
+                stand_ins: salesforce_stand_ins(&channel.params(), &tokens, RELAY_STAND_IN_TOKEN),
+            }))
+        }
+        ConnectionChannel::Host(_) | ConnectionChannel::HyperHttp { .. } => Ok(None),
+    }
+}
+
+/// The relay auth of a shared Trino channel: the access token of OAuth with the stand-in of its token request, or the
+/// user and the password of basic auth
+async fn fresh_trino_relay_auth<H: HttpHost>(
+    host: &Rc<H>,
+    channel: &SharedTrinoChannel,
+) -> Result<Option<RelayAuth>, String> {
     if let Some(refreshed) = refresh_trino_token(host, channel, |_| {}) {
-        refresh_outcome(refreshed.await)?;
+        refresh_outcome(refreshed.await).map_err(|error| error.message)?;
     }
     let current = channel.channel();
-    Ok(TrinoAuth {
-        headers: current.auth_headers().into_iter().map(|(name, value)| (name.to_string(), value)).collect(),
-        principal: current.access_token.and_then(|token| token.principal),
-    })
+    let origin = Url::parse(&current.endpoint)
+        .map_err(|_| format!("the endpoint {} of the connection is no URL", current.endpoint))?
+        .origin();
+    let headers: Vec<(String, String)> =
+        current.auth_headers().into_iter().map(|(name, value)| (name.to_string(), value)).collect();
+    let mut auth = RelayAuth { endpoints: BTreeMap::from([(origin, headers)]), ..RelayAuth::default() };
+    match current.auth.auth_type {
+        TrinoAuthType::OAuth => {
+            let Some(token) = current.access_token.filter(|token| !token.access_token.is_empty()) else {
+                return Ok(None);
+            };
+            if let Some(oauth) = &current.auth.oauth {
+                let mut response = serde_json::Map::new();
+                response.insert("access_token".to_string(), Value::String(RELAY_STAND_IN_TOKEN.to_string()));
+                response.insert("token_type".to_string(), Value::String("Bearer".to_string()));
+                if let Some(principal) = &token.principal {
+                    response.insert("sub".to_string(), Value::String(principal.clone()));
+                }
+                auth.stand_ins.insert(oauth.token_url.clone(), Value::Object(response));
+            }
+            auth.principal = token.principal;
+        }
+        TrinoAuthType::Basic => auth.principal = Some(current.auth.username).filter(|user| !user.is_empty()),
+    }
+    Ok(Some(auth))
 }
 
 /// Cancel a Trino query at the backend by deleting its next URI, e.g. after the query was cancelled or failed while

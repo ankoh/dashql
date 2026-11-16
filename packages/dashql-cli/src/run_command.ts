@@ -27,7 +27,7 @@ import { JournalRunReporter } from './run_journal.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { openSessionJournal, readSessionConnections, readSessionServer, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
-import { RelayedConnections } from './run_relay.js';
+import { NoSessionLogins, RelayedConnections } from './run_relay.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
@@ -50,10 +50,15 @@ dashql session serve creates in the folder of its session, or ~/.dashql. The wor
 works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
-user and the password of the workbook. In a session of dashql connect also Trino with OAuth: the process of dashql
-connect logs in, the user clicks Log in in the tab of DashQL, and the run reaches Trino through it.
+user and the password of the workbook. In a session of dashql connect also Trino with OAuth and Salesforce: the process
+of dashql connect logs in, the user clicks Log in in the tab of DashQL, and the run reaches them through it. There a
+Trino connection with basic auth gets the password of the tab, unless DASHQL_TRINO_PASSWORD is set.
 
 --verbose prints the log of the runtime to stderr.`;
+
+/// The redirect page of the login of a Salesforce connection in a run: the run logs in with a stand-in, nothing opens
+/// the page, the setup needs one
+const RELAYED_OAUTH_REDIRECT = 'https://dashql.app/oauth.html';
 
 /// The rows of a result that are printed by default
 const DEFAULT_ROWS = 10;
@@ -184,8 +189,10 @@ function connectionLabel(conn: ConnectionState): string {
     return 'dbcom';
 }
 
-/// Set up a connection and check that it answers, an error message if it can't be set up: Trino with basic auth and the
-/// embedded Hyper, also a local cloud on it. The runtime sets it up, the embedded Hyper of the run is its channel.
+/// Set up a connection and check that it answers, an error message if it can't be set up: Trino and the embedded Hyper,
+/// also a local cloud on it, and in a session of dashql connect Salesforce. The runtime sets it up, the embedded Hyper
+/// of the run is its channel. In a session, the connections that log in through the tab go through the process of
+/// dashql connect: it logs in, the user in the tab, and the requests go through its relay.
 async function setupConnection(
     rt: Runtime,
     conn: ConnectionState,
@@ -195,47 +202,70 @@ async function setupConnection(
     signal: AbortSignal,
 ): Promise<string | null> {
     const params = conn.params;
-    let options: { channelParams?: connection.TrinoConnectionParams } = {};
+    const login = async () => {
+        try {
+            return await relayed!.login(conn.connectionId, connectionLabel(conn), params, signal);
+        } catch (error) {
+            return error instanceof NoSessionLogins ? null : `the login failed: ${describeError(error)}`;
+        }
+    };
     if ('hyper' in params && (params.hyper.protocol ?? 'WASM') === 'WASM') {
         if (hyper == null) return 'the script runs on the embedded Hyper, which did not start';
-    } else if (!('trino' in params)) {
-        return `dashql run reaches Trino and the embedded Hyper only, this script runs on ${connectionLabel(conn)}`;
-    } else {
-        const auth = params.trino.auth;
-        if (auth?.authType === 'AUTH_OAUTH') {
-            // The process of dashql connect logs in, the user in the tab, and the requests go through its relay
-            if (relayed == null) return 'the connection signs in with OAuth, dashql run reaches it in a session of dashql connect only';
-            try {
-                await relayed.login(conn.connectionId, connectionLabel(conn), params.trino.endpoint ?? '', params, signal);
-            } catch (error) {
-                return `the login failed: ${describeError(error)}`;
-            }
-            return await finishSetup(rt, conn, {}, signal);
-        }
-        // A connection saves the params it was set up with once it is online, and saved params are written into the
-        // workbook. The connection keeps the params of the workbook, the credentials of the environment stay in the channel.
-        const channelParams: connection.TrinoConnectionParams = {
-            ...(params.trino as connection.TrinoConnectionParams),
-            auth: {
-                authType: 'AUTH_BASIC',
-                basic: {
-                    username: env.trinoUser ?? auth?.basic?.username ?? '',
-                    secret: env.trinoPassword ?? auth?.basic?.secret ?? '',
-                },
-            },
-        };
-        options = { channelParams };
+        return await finishSetup(rt, conn, {}, signal);
     }
-    return await finishSetup(rt, conn, options, signal);
+    if ('salesforce' in params || 'dbcom' in params) {
+        if (relayed == null) return 'the connection signs in to Salesforce, dashql run reaches it in a session of dashql connect only';
+        const logged = await login();
+        if (logged == null) return 'the connection signs in to Salesforce, the session logs in to nothing, start it with dashql connect';
+        if (typeof logged === 'string') return logged;
+        // The redirect page of the stand-in login is never opened, the setup needs one
+        return await finishSetup(rt, conn, { oauthRedirect: RELAYED_OAUTH_REDIRECT }, signal);
+    }
+    if (!('trino' in params)) {
+        return `dashql run reaches Trino, Salesforce and the embedded Hyper only, this script runs on ${connectionLabel(conn)}`;
+    }
+    const auth = params.trino.auth;
+    if (auth?.authType === 'AUTH_OAUTH') {
+        if (relayed == null) return 'the connection signs in with OAuth, dashql run reaches it in a session of dashql connect only';
+        const logged = await login();
+        if (logged == null) return 'the connection signs in with OAuth, the session logs in to nothing, start it with dashql connect';
+        if (typeof logged === 'string') return logged;
+        return await finishSetup(rt, conn, {}, signal);
+    }
+    // Basic auth: the password of the environment, else the one of the tab through the relay, else the one of the
+    // workbook. A connection saves the params it was set up with once it is online, and saved params are written into
+    // the workbook. The connection keeps the params of the workbook, the credentials stay in the channel.
+    let username = env.trinoUser ?? auth?.basic?.username ?? '';
+    let secret = env.trinoPassword ?? auth?.basic?.secret ?? '';
+    if (env.trinoPassword == null && relayed != null) {
+        const logged = await login();
+        if (typeof logged === 'string') return logged;
+        if (logged != null) {
+            // The relay puts the user and the password of the tab in, the user keys the cached results
+            username = logged.principal ?? username;
+            secret = '';
+        }
+    }
+    const channelParams: connection.TrinoConnectionParams = {
+        ...(params.trino as connection.TrinoConnectionParams),
+        auth: { authType: 'AUTH_BASIC', basic: { username, secret } },
+    };
+    return await finishSetup(rt, conn, { channelParams }, signal);
 }
 
 /// Let the runtime set up a connection, an error message if it can't be set up
-async function finishSetup(rt: Runtime, conn: ConnectionState, options: { channelParams?: connection.TrinoConnectionParams }, signal: AbortSignal): Promise<string | null> {
+async function finishSetup(
+    rt: Runtime,
+    conn: ConnectionState,
+    options: { channelParams?: connection.TrinoConnectionParams; oauthRedirect?: string },
+    signal: AbortSignal,
+): Promise<string | null> {
     const cancel = () => rt.cancelSetup(conn.connectionId);
     signal.addEventListener('abort', cancel, { once: true });
     try {
         const outcome = await rt.setupConnection(conn.connectionId, {
             channelParams: options.channelParams == null ? undefined : { trino: options.channelParams },
+            oauthRedirect: options.oauthRedirect,
         });
         if (outcome.status === 'succeeded') return null;
         return describeError(new LoggableException(outcome.message ?? 'the connection could not be set up', outcome.data, 'connection_setup'));
@@ -305,7 +335,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeError(error)}\n`);
     }
     const embedded = hyper?.database ?? null;
-    // In a session of dashql connect, the connections with OAuth go through the process of dashql connect
+    // In a session of dashql connect, the connections that log in through the tab go through the process of dashql connect
     const server = readSessionServer(workspace, env.session ?? null, { endpoint: env.sessionEndpoint, token: env.sessionToken });
     const relayed = server == null ? null : new RelayedConnections(server);
     const platform = await createNodePlatform({ logger, storage, core: await cli.setupCore(), oauthFlow: relayed?.oauthFlow() });

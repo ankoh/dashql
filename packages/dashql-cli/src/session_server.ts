@@ -5,7 +5,15 @@ import { open } from 'node:fs/promises';
 import path from 'node:path';
 
 import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
-import { createAgentSessionState, reduceAgentSessionEvent, reduceAgentSessionJournal, type AgentSessionEvent, type AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
+import {
+    createAgentSessionState,
+    parseAgentSessionOAuth,
+    reduceAgentSessionEvent,
+    reduceAgentSessionJournal,
+    type AgentSessionEvent,
+    type AgentSessionLoginAnswer,
+    type AgentSessionState,
+} from '@ankoh/dashql/platform/session/agent_session_state';
 import {
     isWorkbookCopyId,
     parseSessionConnections,
@@ -20,13 +28,17 @@ import {
     workbookCopyPath,
     type JournalFile,
 } from '@ankoh/dashql/platform/session/workbook_journal';
-import { isTrinoOAuth, type ConnectAuth, type LoginConnection } from './connect_auth.js';
+import { loginKind, type ConnectAuth, type LoginConnection } from './connect_auth.js';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
 
 /// How long a request for a login waits before it answers that the login still waits
 export const LOGIN_POLL_MS = 20_000;
 /// The headers of a request of a run that the relay doesn't forward: the connection, its own token and its address
 const RELAY_DROPPED_HEADERS = new Set(['host', 'authorization', 'x-dashql-url', 'connection', 'content-length', 'origin', 'transfer-encoding', 'keep-alive']);
+
+/// The headers of an answer of an endpoint that the relay doesn't hand back: the encoding and the length of the body,
+/// which fetch decoded, the connection and the cookies of the endpoint
+const RELAY_DROPPED_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive', 'set-cookie']);
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
@@ -50,6 +62,8 @@ export interface SessionServerOptions {
     onEnd?: () => void;
     /// The logins of the connections of the session, the runs of the agent reach them through the relay
     auth?: ConnectAuth | null;
+    /// How the relay sends the requests of the runs, fetch by default
+    fetch?: typeof fetch;
 }
 
 /// A running server of a session
@@ -80,7 +94,7 @@ function decodePart(part: string): string | null {
 /// The token in the path of the routes of files, null for other routes
 function pathToken(url: URL): string | null {
     const parts = url.pathname.split('/');
-    const routes = ['workbooks', 'results', 'connections', 'auth', 'relay'];
+    const routes = ['workbooks', 'results', 'connections', 'auth', 'login', 'relay'];
     return parts[1] === 'v1' && routes.includes(parts[2] ?? '') ? decodePart(parts[3] ?? '') : null;
 }
 
@@ -283,16 +297,17 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     const sendJson = (response: http.ServerResponse, status: number, value: unknown) =>
         response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(value));
 
-    /// POST /v1/auth/<token>/<connection id> with the connection: a valid token of the connection, the user logs in
-    /// through the tab if the process has none. Answers the account that the cached results are keyed by.
+    /// POST /v1/auth/<token>/<connection id> with the connection: a channel of the connection, the user logs in
+    /// through the tab if the process has none. Answers the account that the cached results are keyed by, the origins
+    /// that the relay reaches and the stand-in responses of the token requests of the login.
     const login = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
         const auth = options.auth;
         if (auth == null) return sendJson(response, 404, { error: 'the session has no logins' });
         let connection: LoginConnection;
         try {
-            const body = JSON.parse((await readBody(request)).toString('utf8')) as { name?: unknown; endpoint?: unknown; params?: unknown };
-            if (!isTrinoOAuth(body.params) || typeof body.endpoint !== 'string') throw new Error('no Trino connection with OAuth');
-            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, endpoint: new URL(body.endpoint).origin, params: body.params };
+            const body = JSON.parse((await readBody(request)).toString('utf8')) as { name?: unknown; params?: unknown };
+            if (loginKind(body.params) == null) throw new Error('no connection that logs in through the tab');
+            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, params: body.params };
         } catch (error) {
             return sendJson(response, 400, { error: String(error) });
         }
@@ -305,11 +320,26 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         ]);
         if (waited == null) return sendJson(response, 202, { waiting: true });
         if ('error' in waited) return sendJson(response, 502, { error: waited.error instanceof Error ? waited.error.message : String(waited.error) });
-        sendJson(response, 200, { principal: waited.value.principal });
+        const { principal, endpoints, standIns } = waited.value;
+        sendJson(response, 200, { principal, origins: Object.keys(endpoints), standIns });
     };
 
-    /// /v1/relay/<token>/<connection id> with the URL in X-DashQL-Url: a request of a run to the endpoint of a connection
-    /// that it logged in to, with the token of the connection. The token stays in this process.
+    /// POST /v1/login/<token>/<connection id> from the tab: the answer to a login that waits, the callback of the
+    /// redirect page or the credentials of the connection of the tab. They stay in this process.
+    const answerLogin = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
+        let answer: AgentSessionLoginAnswer;
+        try {
+            answer = JSON.parse((await readBody(request)).toString('utf8')) as AgentSessionLoginAnswer;
+            if (answer == null || typeof answer !== 'object') throw new Error('no answer');
+        } catch {
+            return void response.writeHead(400).end();
+        }
+        if (options.auth?.answer(connectionId, answer) !== true) return sendJson(response, 409, { error: 'no login of the connection waits for this answer' });
+        response.writeHead(204).end();
+    };
+
+    /// /v1/relay/<token>/<connection id> with the URL in X-DashQL-Url: a request of a run to an endpoint of a connection
+    /// that it logged in to, with the auth of that endpoint. The tokens stay in this process.
     const relay = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
         const connection = options.auth?.connection(connectionId) ?? null;
         const target = request.headers['x-dashql-url'];
@@ -319,25 +349,32 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         } catch {
             return sendJson(response, 400, { error: 'the relay needs the URL of the request' });
         }
-        if (connection == null || url.origin !== connection.endpoint) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
+        if (connection == null) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
         let authorization;
         try {
             authorization = await options.auth!.authorization(connection);
         } catch (error) {
             return sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
         }
+        const auth = authorization.endpoints[url.origin];
+        if (auth == null) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
         const headers = new Headers();
         for (const [name, value] of Object.entries(request.headers)) {
             if (value == null || RELAY_DROPPED_HEADERS.has(name)) continue;
             headers.set(name, Array.isArray(value) ? value.join(', ') : value);
         }
-        for (const [name, value] of Object.entries(authorization.headers)) headers.set(name, value);
+        for (const [name, value] of Object.entries(auth)) headers.set(name, value);
         const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : new Uint8Array(await readBody(request));
         try {
-            const forwarded = await fetch(url, { method: request.method, headers, body });
+            const forwarded = await (options.fetch ?? fetch)(url, { method: request.method, headers, body });
             const bytes = Buffer.from(await forwarded.arrayBuffer());
-            const contentType = forwarded.headers.get('content-type');
-            response.writeHead(forwarded.status, contentType == null ? {} : { 'Content-Type': contentType }).end(bytes);
+            // The headers of the answer go back to the run, e.g. the status of a query of Data Cloud, but not the
+            // encoding of the body, which fetch decoded, and not the cookies of the endpoint
+            const answered: Record<string, string> = {};
+            forwarded.headers.forEach((value, name) => {
+                if (!RELAY_DROPPED_RESPONSE_HEADERS.has(name)) answered[name] = value;
+            });
+            response.writeHead(forwarded.status, answered).end(bytes);
         } catch (error) {
             sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
         }
@@ -390,6 +427,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             void login(request, response, connectionId);
             return;
         }
+        if (request.method === 'POST' && url.pathname.startsWith('/v1/login/')) {
+            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
+            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
+            void answerLogin(request, response, connectionId);
+            return;
+        }
         if (url.pathname.startsWith('/v1/relay/')) {
             const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
             if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
@@ -408,6 +451,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     response.writeHead(400).end();
                     return;
                 }
+                // How the tab logs in to Salesforce stays in memory, the file names the connections only
+                options.auth?.setOAuth(parseAgentSessionOAuth(body));
                 try {
                     if (journal == null) throw new Error('the session has no folder');
                     writeFileSync(path.join(path.dirname(journal), SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);

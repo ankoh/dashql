@@ -413,6 +413,37 @@ describe('dashql run', () => {
         }
     });
 
+    it('reaches a Trino connection with basic auth with the password of the tab through the relay of dashql connect', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        const auth = new ConnectAuth({
+            runtime: async flow => await coreLoginRuntime(await setupCore('test'), flow),
+            listen: async () => { throw new Error('a password needs no listener'); },
+        });
+        const server = await startSessionServer({ harness: 'claude', folder: dir, session: '51007', auth });
+        trino.authorizations.length = 0;
+        try {
+            writeFileSync(path.join(dir, '.dashql', 'sessions', '51007', 'server.json'), JSON.stringify({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token }));
+            const running = run(dir, ['.'], { session: '51007' });
+            // The run waits for the password of the tab, the tab sends it to the server
+            await vi.waitFor(() => expect(server.state().logins).toEqual([{ connectionId: CONNECTION_ID, name: `trino ${trino.endpoint}`, kind: 'credentials', url: '' }]), { timeout: 20_000 });
+            const answer = (body: unknown) => fetch(`http://127.0.0.1:${server.port}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify(body) });
+            expect((await answer({ oauthRedirect: { state: { flowId: 'f' } } })).status).toBe(409);
+            expect((await answer({ basic: { username: 'ann', secret: 'pw' } })).status).toBe(204);
+            const output = await running;
+            expect(output.stderr).toBe('');
+            expect(output.code).toBe(0);
+            expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows /m);
+            // Trino got the password of the tab with every request, the run sent none
+            expect(new Set(trino.authorizations)).toEqual(new Set([`Basic ${btoa('ann:pw')}`]));
+            expect(new Set(trino.users)).toEqual(new Set(['ann']));
+            // A second run reuses the channel of the process, the tab is not asked again
+            expect((await run(dir, ['--refresh', '.'], { session: '51007' })).code).toBe(0);
+            expect(server.state().logins).toEqual([]);
+        } finally {
+            await server.close();
+        }
+    });
+
     it('reports the progress of a running script to the journal', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
         mkdirSync(path.join(dir, '.dashql'));

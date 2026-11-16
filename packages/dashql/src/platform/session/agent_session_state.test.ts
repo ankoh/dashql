@@ -1,4 +1,4 @@
-import { createAgentSessionState, MAX_AGENT_SESSION_TURNS, reduceAgentSessionEvent, type AgentSessionEvent } from './agent_session_state.js';
+import { createAgentSessionState, MAX_AGENT_SESSION_TURNS, parseAgentSessionOAuth, reduceAgentSessionEvent, type AgentSessionEvent } from './agent_session_state.js';
 
 const at = (event: Omit<AgentSessionEvent, 'harness' | 'folder'>): AgentSessionEvent => ({ harness: 'claude', folder: '/w', ...event });
 
@@ -35,5 +35,14 @@ describe('the state of an agent session', () => {
         }
         expect(state.turns).toHaveLength(MAX_AGENT_SESSION_TURNS);
         expect(state.turns[state.turns.length - 1].turnId).toBe(MAX_AGENT_SESSION_TURNS + 5);
+    });
+
+    it('reads how the tab logs in to Salesforce from the body of its connections', () => {
+        const oauth = { redirect: 'https://dashql.app/oauth.html', redirectVariant: 'WEB_OPENER_FLOW', redirectCallbackUrl: 'http://localhost:9002/oauth.html', flavor: '' };
+        expect(parseAgentSessionOAuth(JSON.stringify({ connections: [], oauth }))).toEqual({ ...oauth, flavor: null });
+        expect(parseAgentSessionOAuth(JSON.stringify({ connections: [] }))).toBeNull();
+        expect(parseAgentSessionOAuth(JSON.stringify({ oauth: { ...oauth, redirect: '' } }))).toBeNull();
+        expect(parseAgentSessionOAuth(JSON.stringify({ oauth: { ...oauth, redirectVariant: 'OTHER' } }))).toBeNull();
+        expect(parseAgentSessionOAuth('not json')).toBeNull();
     });
 });

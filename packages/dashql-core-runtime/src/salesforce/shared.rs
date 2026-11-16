@@ -171,6 +171,11 @@ impl SharedSalesforceChannel {
         }
     }
 
+    /// The params of the connected app of the login
+    pub fn params(&self) -> SalesforceConnectionParams {
+        self.state.borrow().params.clone()
+    }
+
     /// Do two values refer to the same channel?
     pub fn same(&self, other: &SharedSalesforceChannel) -> bool {
         Rc::ptr_eq(&self.state, &other.state)

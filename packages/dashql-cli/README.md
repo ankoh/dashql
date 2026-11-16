@@ -164,13 +164,17 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
   app; the result then says `from the cache` and its connection is not needed. `--refresh` runs every script. The
   workbook folder is not written.
-- **OAuth.** In a session of `dashql connect`, a Trino connection with OAuth goes through the process of `dashql
-  connect`: it logs in, the user clicks **Log in** in the prompt of the tab, and keeps the token; the run reaches
-  Trino through its relay and never sees the token (`docs/wip/agent_session.md`, "Logins go through the page").
+- **Logins.** In a session of `dashql connect`, Trino with OAuth, Salesforce and Trino with basic auth go through the
+  process of `dashql connect`, which logs in and keeps the tokens and the password: the user clicks **Log in** in the
+  prompt of the tab for OAuth and Salesforce, the tab sends the password of a Trino connection that it lets the agent
+  use by itself. The run reaches the connection through the relay of the process and never sees a token or the
+  password (`docs/wip/agent_session.md`, "Logins go through the page").
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
-  override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
+  override the user and the password of the workbook. They stay in memory, the workbook keeps its params. With
+  `DASHQL_TRINO_PASSWORD` set, a run in a session doesn't ask the tab for the password.
   A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
-  Connections with OAuth, Salesforce and remote Hyper servers are refused before their first statement. The
+  Outside a session of `dashql connect`, connections with OAuth and Salesforce are refused before their first
+  statement, remote Hyper servers always are. The
   connections that statements run on are set up and checked with `select 1` before the first statement, all at once.
   The scripts of a connection that can't be set up don't run, nor do the scripts that follow them; the others do.
 - **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It runs on Node 24: Node 24.15

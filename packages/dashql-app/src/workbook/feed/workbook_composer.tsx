@@ -329,18 +329,25 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                 ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
                                 : 'Run the command in the folder of your project, the session shows here'}
                         </div>
-                        {/* A run of the agent waits for a login, the identity provider redirects to the terminal */}
+                        {/* A run of the agent waits for a login: the user opens the authorization page, the tab
+                            sends the password of a connection with basic auth by itself */}
                         {(session?.logins ?? []).map(login => (
                             <div key={login.connectionId} className={styles.composer_connect_login} data-testid="composer-connect-login" data-connection={login.connectionId}>
-                                <span className={styles.composer_connect_login_text}>The agent waits for a login to {login.name}</span>
-                                <Button
-                                    variant={ButtonVariant.Primary}
-                                    size={ButtonSize.Small}
-                                    onClick={() => window.open(login.url, '_blank', 'popup')}
-                                    data-testid="composer-connect-login-open"
-                                >
-                                    Log in
-                                </Button>
+                                {login.kind === 'credentials' ? (
+                                    <span className={styles.composer_connect_login_text}>The agent waits for the password of {login.name}</span>
+                                ) : (
+                                    <>
+                                        <span className={styles.composer_connect_login_text}>The agent waits for a login to {login.name}</span>
+                                        <Button
+                                            variant={ButtonVariant.Primary}
+                                            size={ButtonSize.Small}
+                                            onClick={() => connect.openLogin(login)}
+                                            data-testid="composer-connect-login-open"
+                                        >
+                                            Log in
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         ))}
                         {/* The command is only copied, the buttons stay usable */}

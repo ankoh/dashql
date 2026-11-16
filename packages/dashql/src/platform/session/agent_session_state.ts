@@ -1,3 +1,4 @@
+import type { OAuthRedirectData } from '../oauth/oauth_types.js';
 import type { LogRecord } from '../platform/logger/log_buffer.js';
 import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
 
@@ -37,14 +38,56 @@ export interface AgentSessionTurn {
     files: string[];
 }
 
+/// How a login of a run of the agent goes through the tab:
+/// - `loopback`: the user opens the URL, the identity provider redirects to the process of `dashql connect` (Trino
+///   with OAuth)
+/// - `redirect`: the user opens the URL, the redirect page of the app hands the callback to the tab, which sends it to
+///   the server (Salesforce)
+/// - `credentials`: the tab sends the user and the password of its connection (Trino with basic auth)
+export type AgentSessionLoginKind = 'loopback' | 'redirect' | 'credentials';
+
 /// A login that a run of the agent waits for: the tab shows it, the user opens the URL with a click
 export interface AgentSessionLogin {
     connectionId: string;
     /// The label of the connection
     name: string;
-    /// The authorization URL of the identity provider
+    /// How the login goes through the tab, absent in the state of an older server: `loopback`
+    kind?: AgentSessionLoginKind;
+    /// The authorization URL of the identity provider, empty for credentials
     url: string;
+    /// The flow of a redirect, its callback names it
+    flowId?: string;
 }
+
+/// How the redirect page of the app hands a Salesforce login back to the tab, what the OAuth flow of the tab says.
+/// The tab tells the server, the process of `dashql connect` logs in with it.
+export interface AgentSessionOAuth {
+    /// The redirect page that the connected app knows, `connectors.salesforce.auth.oauthRedirect` of the app config
+    redirect: string;
+    redirectVariant: 'WEB_OPENER_FLOW' | 'NATIVE_LINK_FLOW';
+    /// The page of the app that the redirect page sends the callback to in a web opener flow
+    redirectCallbackUrl: string | null;
+    /// The flavor of the app, the redirect page is branded with it
+    flavor: string | null;
+}
+
+/// The OAuth settings that a tab sends with its connections (`{ connections, oauth }`), null without valid ones
+export function parseAgentSessionOAuth(text: string): AgentSessionOAuth | null {
+    try {
+        const oauth = (JSON.parse(text) as { oauth?: Partial<AgentSessionOAuth> } | null)?.oauth;
+        if (oauth == null || typeof oauth.redirect !== 'string' || oauth.redirect.length === 0) return null;
+        if (oauth.redirectVariant !== 'WEB_OPENER_FLOW' && oauth.redirectVariant !== 'NATIVE_LINK_FLOW') return null;
+        const optional = (value: unknown) => typeof value === 'string' && value.length > 0 ? value : null;
+        return { redirect: oauth.redirect, redirectVariant: oauth.redirectVariant, redirectCallbackUrl: optional(oauth.redirectCallbackUrl), flavor: optional(oauth.flavor) };
+    } catch {
+        return null;
+    }
+}
+
+/// What the tab answers a login with: the callback of a redirect, or the user and the password of its connection
+export type AgentSessionLoginAnswer =
+    | { oauthRedirect: OAuthRedirectData }
+    | { basic: { username: string; secret: string } };
 
 /// The state of a session that the server keeps and the page follows
 export interface AgentSessionState {

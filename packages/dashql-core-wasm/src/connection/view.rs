@@ -292,16 +292,20 @@ pub struct ConnectionSecrets {
     pub data_cloud_access_token: Option<String>,
 }
 
-/// The auth of a connection as it goes with a request, with a fresh access token. Only
-/// `Runtime.connectionAuthorization` hands it out, e.g. to the relay of `dashql connect`.
+/// The auth of a connection as it goes with its requests, with fresh tokens. Only `Runtime.connectionAuthorization`
+/// hands it out, to the relay of `dashql connect` (docs/wip/agent_session.md, "Logins go through the page").
 #[derive(Clone, Debug, Default, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct ConnectionAuthorization {
-    /// The auth headers by name, e.g. `Authorization` with the access token
-    pub headers: BTreeMap<String, String>,
-    /// The account of the access token, it keys the cached results
+    /// The auth headers of the requests by the origin of their endpoint, e.g. `Authorization` with the access token
+    pub endpoints: BTreeMap<String, BTreeMap<String, String>>,
+    /// The account that keys the cached results: the account of the token, the user of basic auth
     pub principal: Option<String>,
+    /// The responses of the token requests of a login by the URL of the request, with a stand-in token that authorizes
+    /// nothing: a run of the relay sets the connection up with them
+    #[tsify(type = "Record<string, unknown>")]
+    pub stand_ins: BTreeMap<String, serde_json::Value>,
 }
 
 impl ConnectionSecrets {

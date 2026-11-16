@@ -1,5 +1,5 @@
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
-import type { AgentSessionState } from './agent_session_state.js';
+import type { AgentSessionLoginAnswer, AgentSessionOAuth, AgentSessionState } from './agent_session_state.js';
 import type { SessionConnections } from './workbook_journal.js';
 
 /// Where a page finds the server of a session: `dashql session serve` on this machine
@@ -134,8 +134,22 @@ export async function readWorkbookFolderFiles(folder: FileSystemDirectoryHandle)
     return [{ path: STORAGE_WORKBOOK_FILE, content: workbook }, ...files];
 }
 
-/// Tell the session which connections the agent may use, `dashql run` refuses the others
-export async function writeAgentSessionConnections(target: AgentSessionTarget, connections: SessionConnections, signal?: AbortSignal): Promise<void> {
+/// Tell the session which connections the agent may use, `dashql run` refuses the others, and how the redirect page
+/// of the app hands a Salesforce login back to the tab. The server keeps the OAuth settings in memory only.
+export async function writeAgentSessionConnections(
+    target: AgentSessionTarget,
+    connections: SessionConnections,
+    oauth: AgentSessionOAuth | null = null,
+    signal?: AbortSignal,
+): Promise<void> {
     const url = new URL(`/v1/connections/${encodeURIComponent(target.token)}`, target.endpoint);
-    await expectOk(await fetch(url, { method: 'PUT', body: JSON.stringify(connections), signal }), 'the connections of the agent');
+    const body = oauth == null ? connections : { ...connections, oauth };
+    await expectOk(await fetch(url, { method: 'PUT', body: JSON.stringify(body), signal }), 'the connections of the agent');
+}
+
+/// Answer a login that a run of the agent waits for (`logins` of the state): the callback of the redirect page or the
+/// credentials of the connection of the tab. They go to the process of `dashql connect`, never to the agent.
+export async function answerAgentSessionLogin(target: AgentSessionTarget, connectionId: string, answer: AgentSessionLoginAnswer, signal?: AbortSignal): Promise<void> {
+    const url = new URL(`/v1/login/${encodeURIComponent(target.token)}/${encodeURIComponent(connectionId)}`, target.endpoint);
+    await expectOk(await fetch(url, { method: 'POST', body: JSON.stringify(answer), signal }), 'the login of the agent');
 }

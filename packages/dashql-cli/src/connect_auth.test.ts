@@ -2,11 +2,20 @@ import { createServer } from 'node:net';
 
 import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
 
-import { ConnectAuth, isTrinoOAuth, listenForCallback, type ConnectAuthHost, type ConnectionAuthorization, type LoginConnection } from './connect_auth.js';
+import { ConnectAuth, flowIdOf, listenForCallback, loginKind, type ConnectAuthHost, type ConnectionAuthorization, type LoginConnection, type LoginSetupOptions } from './connect_auth.js';
 
 const OAUTH = { authorizationUrl: 'https://idp.example/authorize', tokenUrl: 'https://idp.example/token', clientId: 'dashql' };
 const PARAMS = { trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_OAUTH', oauth: OAUTH } } };
-const CONNECTION: LoginConnection = { connectionId: 'c1', name: 'Trino prod', endpoint: 'https://trino.example', params: PARAMS };
+const CONNECTION: LoginConnection = { connectionId: 'c1', name: 'Trino prod', params: PARAMS };
+const BASIC: LoginConnection = { connectionId: 'c2', name: 'Trino dev', params: { trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_BASIC', basic: { username: 'ann', secret: '' } } } } };
+const SALESFORCE: LoginConnection = { connectionId: 'c3', name: 'Data 360', params: { salesforce: { instanceUrl: 'https://org.my.salesforce.com', appConsumerKey: 'key' } } };
+const OAUTH_SETTINGS = { redirect: 'https://dashql.app/oauth.html', redirectVariant: 'WEB_OPENER_FLOW' as const, redirectCallbackUrl: 'http://localhost:9002/oauth.html', flavor: null };
+
+/// The authorization URL of a Salesforce login with the state of its flow
+function salesforceAuthorization(flowId: string): URL {
+    const state = Buffer.from(JSON.stringify({ flowId, flowVariant: 'WEB_OPENER_FLOW' })).toString('base64url');
+    return new URL(`https://org.my.salesforce.com/services/oauth2/authorize?client_id=key&state=${state}`);
+}
 
 /// A runtime whose setup drives the OAuth flow like the Trino setup of the core: the authorization URL with a state,
 /// the callback with the code, a channel with the token
@@ -16,18 +25,30 @@ function fakeHost() {
     const created: string[] = [];
     const setups: string[] = [];
     let callback: ((params: URLSearchParams) => void) | null = null;
+    const options: LoginSetupOptions[] = [];
     const host: ConnectAuthHost = {
         runtime: async oauthFlow => {
             flow = oauthFlow;
             return {
                 createConnection: connection => { created.push(connection.connectionId); },
-                setupConnection: async connectionId => {
+                setupConnection: async (connectionId, setup) => {
                     setups.push(connectionId);
+                    options.push(setup);
+                    if (connectionId === BASIC.connectionId) {
+                        channels.set(connectionId, { endpoints: { 'https://trino.example': { Authorization: 'Basic tab' } }, principal: 'ann', standIns: {} });
+                        return { status: 'succeeded' };
+                    }
+                    if (connectionId === SALESFORCE.connectionId) {
+                        const flowId = `flow-${setups.length}`;
+                        const redirect = await flow!.authorizeWithRedirectPage(salesforceAuthorization(flowId), callback => callback.state?.flowId === flowId, new AbortController().signal, () => { });
+                        channels.set(connectionId, { endpoints: { 'https://org.my.salesforce.com': { Authorization: `Bearer core-${redirect.code}` } }, principal: 'ann@org', standIns: { 'https://org.my.salesforce.com/services/oauth2/token': { access_token: 'dashql-relay' } } });
+                        return { status: 'succeeded' };
+                    }
                     const state = `state-${setups.length}`;
                     const answer = await flow!.authorizeWithLoopback(new URL(`${OAUTH.authorizationUrl}?client_id=dashql&state=${state}`), 'http://localhost:56512/Callback', new AbortController().signal, () => { });
                     if (answer.error != null) return { status: 'failed', message: `OAuth failed: ${answer.errorDescription ?? answer.error}` };
                     if (answer.state !== state) return { status: 'failed', message: 'OAuth callback state does not match the authorization request' };
-                    channels.set(connectionId, { headers: { Authorization: `Bearer token-${answer.code}` }, principal: 'ann' });
+                    channels.set(connectionId, { endpoints: { 'https://trino.example': { Authorization: `Bearer token-${answer.code}` } }, principal: 'ann', standIns: {} });
                     return { status: 'succeeded' };
                 },
                 authorization: async connectionId => channels.get(connectionId) ?? null,
@@ -44,6 +65,8 @@ function fakeHost() {
         host,
         created,
         setups,
+        options,
+        flow: () => flow!,
         /// The user logs in in the tab: the identity provider redirects with the code
         callback: (params: Record<string, string>) => callback!(new URLSearchParams(params)),
     };
@@ -65,9 +88,9 @@ describe('the logins of dashql connect', () => {
         // Two runs at once share the login
         const second = auth.authorization(CONNECTION);
         const url = await shownLogin(auth);
-        expect(auth.pending()[0]).toEqual({ connectionId: 'c1', name: 'Trino prod', url: url.toString() });
+        expect(auth.pending()[0]).toEqual({ connectionId: 'c1', name: 'Trino prod', kind: 'loopback', url: url.toString() });
         fake.callback({ code: 'code1', state: url.searchParams.get('state')! });
-        expect(await first).toEqual({ headers: { Authorization: 'Bearer token-code1' }, principal: 'ann' });
+        expect(await first).toEqual({ endpoints: { 'https://trino.example': { Authorization: 'Bearer token-code1' } }, principal: 'ann', standIns: {} });
         expect(await second).toEqual(await first);
         expect(logins).toEqual([1, 0]);
         // The channel of the runtime serves the next runs, the connection was created once
@@ -95,11 +118,51 @@ describe('the logins of dashql connect', () => {
         expect(auth.pending()).toEqual([]);
     });
 
-    it('knows the connections that log in to Trino with OAuth', () => {
-        expect(isTrinoOAuth(PARAMS)).toBe(true);
-        expect(isTrinoOAuth({ trino: { auth: { authType: 'AUTH_BASIC' } } })).toBe(false);
-        expect(isTrinoOAuth({ trino: { auth: { authType: 'AUTH_OAUTH' } } })).toBe(false);
-        expect(isTrinoOAuth({ hyper: {} })).toBe(false);
+    it('sets up a Trino connection with basic auth with the password that the tab sends, which stays in the process', async () => {
+        const fake = fakeHost();
+        const auth = new ConnectAuth(fake.host);
+        const logged = auth.authorization(BASIC);
+        await vi.waitFor(() => expect(auth.pending()).toEqual([{ connectionId: 'c2', name: 'Trino dev', kind: 'credentials', url: '' }]));
+        // Another answer than credentials doesn't fit, neither does a connection that waits for none
+        expect(auth.answer('c2', { oauthRedirect: { state: { flowId: 'f', flowVariant: 'WEB_OPENER_FLOW', debugMode: false } } })).toBe(false);
+        expect(auth.answer('c9', { basic: { username: 'ann', secret: 'pw' } })).toBe(false);
+        expect(auth.answer('c2', { basic: { username: 'ann', secret: 'pw' } })).toBe(true);
+        expect(await logged).toEqual({ endpoints: { 'https://trino.example': { Authorization: 'Basic tab' } }, principal: 'ann', standIns: {} });
+        expect(auth.pending()).toEqual([]);
+        expect(fake.options).toEqual([{ channelParams: { trino: { endpoint: 'https://trino.example', auth: { authType: 'AUTH_BASIC', basic: { username: 'ann', secret: 'pw' } } } } }]);
+    });
+
+    it('logs in to Salesforce with the redirect page of the tab, which hands the callback on', async () => {
+        const fake = fakeHost();
+        const auth = new ConnectAuth(fake.host);
+        // Without the OAuth settings of the tab there is no redirect page to log in with
+        await expect(auth.authorization(SALESFORCE)).rejects.toThrow('the tab of DashQL did not say how it logs in to Data 360');
+        auth.setOAuth(OAUTH_SETTINGS);
+        expect(fake.flow().redirectVariant).toBe('WEB_OPENER_FLOW');
+        expect(fake.flow().redirectCallbackUrl).toBe('http://localhost:9002/oauth.html');
+        const logged = auth.authorization(SALESFORCE);
+        await vi.waitFor(() => expect(auth.pending()).toHaveLength(1));
+        const login = auth.pending()[0];
+        expect(login).toEqual({ connectionId: 'c3', name: 'Data 360', kind: 'redirect', url: salesforceAuthorization('flow-1').toString(), flowId: 'flow-1' });
+        expect(fake.options).toEqual([{ oauthRedirect: 'https://dashql.app/oauth.html' }]);
+        // The callback of another flow doesn't fit
+        const state = { flowId: 'other', flowVariant: 'WEB_OPENER_FLOW' as const, debugMode: false };
+        expect(auth.answer('c3', { oauthRedirect: { state, code: 'code0' } })).toBe(false);
+        expect(auth.answer('c3', { oauthRedirect: { state: { ...state, flowId: 'flow-1' }, code: 'code1' } })).toBe(true);
+        expect(await logged).toMatchObject({ endpoints: { 'https://org.my.salesforce.com': { Authorization: 'Bearer core-code1' } }, principal: 'ann@org' });
+        expect(auth.pending()).toEqual([]);
+    });
+
+    it('knows the connections that log in through the tab', () => {
+        expect(loginKind(PARAMS)).toBe('loopback');
+        expect(loginKind({ trino: { auth: { authType: 'AUTH_BASIC' } } })).toBe('credentials');
+        expect(loginKind({ trino: { endpoint: 'https://trino.example' } })).toBe('credentials');
+        expect(loginKind({ trino: { auth: { authType: 'AUTH_OAUTH' } } })).toBeNull();
+        expect(loginKind(SALESFORCE.params)).toBe('redirect');
+        expect(loginKind({ dbcom: { instanceUrl: 'https://org.my.salesforce.com' } })).toBe('redirect');
+        expect(loginKind({ hyper: {} })).toBeNull();
+        expect(flowIdOf(salesforceAuthorization('f1'))).toBe('f1');
+        expect(flowIdOf(new URL('https://org.my.salesforce.com/services/oauth2/authorize?state=nonsense'))).toBeNull();
     });
 
     it('listens for the redirect on the loopback address of the callback URL', async () => {

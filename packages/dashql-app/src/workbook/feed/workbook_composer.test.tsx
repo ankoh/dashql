@@ -340,6 +340,10 @@ describe('Workbook composer', () => {
         const RENEWED = { endpoint: 'http://127.0.0.1:60001', token: 'z7q2' };
         type Session = React.ComponentProps<typeof WorkbookComposer>['session'];
 
+        /// The logins that the composer opened
+        let openLogin = vi.fn();
+        beforeEach(() => { openLogin = vi.fn(); });
+
         /// The composer with the connect state of a provider
         const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean }> = ({ initial, session, pickers }) => {
             const [mode, setMode] = React.useState(initial);
@@ -347,7 +351,7 @@ describe('Workbook composer', () => {
             const [target, setTarget] = React.useState(TARGET);
             const connect: AgentConnect = {
                 mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED),
-                excludedConnections: new Set(), toggleConnection: () => { },
+                excludedConnections: new Set(), toggleConnection: () => { }, openLogin: login => openLogin(login),
             };
             return (
                 <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}
@@ -420,20 +424,23 @@ describe('Workbook composer', () => {
             expect(onSend).toHaveBeenCalledWith('select 2');
         });
 
-        it('opens the login that a run of the agent waits for with a click', async () => {
+        it('opens the login that a run of the agent waits for with a click, a password needs none', async () => {
             const url = 'https://idp.example/authorize?client_id=dashql&state=s1';
-            const logins = [{ connectionId: 'c1', name: 'Trino prod', url }];
+            const logins = [
+                { connectionId: 'c1', name: 'Trino prod', kind: 'loopback' as const, url },
+                { connectionId: 'c2', name: 'Data 360', kind: 'redirect' as const, url, flowId: 'f1' },
+                { connectionId: 'c3', name: 'Trino dev', kind: 'credentials' as const, url: '' },
+            ];
             const session = { harness: 'claude', folder: '/w', connected: true, turns: [], logins, onDismiss: vi.fn(), onShowScript: vi.fn() };
-            const open = vi.spyOn(window, 'open').mockReturnValue(null);
-            try {
-                await renderConnected(ComposerMode.Ai, session);
-                const login = container.querySelector('[data-testid="composer-connect-login"]')!;
-                expect(login.textContent).toContain('The agent waits for a login to Trino prod');
-                act(() => login.querySelector<HTMLButtonElement>('[data-testid="composer-connect-login-open"]')!.click());
-                expect(open).toHaveBeenCalledWith(url, '_blank', 'popup');
-            } finally {
-                open.mockRestore();
-            }
+            await renderConnected(ComposerMode.Ai, session);
+            const shown = [...container.querySelectorAll('[data-testid="composer-connect-login"]')];
+            expect(shown.map(login => login.textContent)).toEqual([
+                'The agent waits for a login to Trino prodLog in',
+                'The agent waits for a login to Data 360Log in',
+                'The agent waits for the password of Trino dev',
+            ]);
+            for (const login of shown.slice(0, 2)) act(() => login.querySelector<HTMLButtonElement>('[data-testid="composer-connect-login-open"]')!.click());
+            expect(openLogin.mock.calls).toEqual([[logins[0]], [logins[1]]]);
         });
 
         it('shows the connections of the agent in place of the connection picker in AI', async () => {

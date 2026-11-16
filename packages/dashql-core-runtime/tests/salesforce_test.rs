@@ -402,6 +402,81 @@ fn needs_a_login_for_a_host_and_none_for_the_variables() {
     assert_eq!(salesforce_client_function_variables(), BTreeMap::from([("api_version".to_string(), "68.0".to_string())]));
 }
 
+// The tokens of a login for the relay of dashql connect
+
+/// The tokens of a login as the setup reads them from the responses
+fn logged_in() -> SalesforceTokens {
+    let core = parse_core_access_token(
+        &json!({
+            "access_token": "core-secret",
+            "refresh_token": "refresh-secret",
+            "id_token": "id-secret",
+            "signature": "signature-secret",
+            "instance_url": "https://org.my.salesforce.com",
+            "id": "https://login.salesforce.com/id/org/user",
+            "issued_at": "1767225600000",
+            "scope": "api cdp_query_api refresh_token",
+            "token_type": "Bearer",
+        }),
+        NOW,
+    )
+    .unwrap();
+    let payload = json!({ "exp": 1_800_000_000, "audienceTenantId": "tenant-1", "customAttributes": { "dataspace": "Marketing" } });
+    let raw = format!("{}.{}.jwt-signature", encode_jwt_part(&json!({ "alg": "RS256" })), encode_jwt_part(&payload));
+    let request = data_cloud_access_token_request(&core);
+    let answer = json!({ "access_token": raw, "instance_url": "tenant.c360a.salesforce.com", "token_type": "Bearer", "issued_token_type": "urn:ietf:params:oauth:token-type:jwt" });
+    let data_cloud = read_data_cloud_access_token_response(&request, &ok(answer), NOW).unwrap();
+    SalesforceTokens { core, data_cloud }
+}
+
+#[test]
+fn hands_a_run_stand_ins_that_read_like_the_tokens_without_a_secret() {
+    let tokens = logged_in();
+    let stand_ins = relay::salesforce_stand_ins(&params(), &tokens, "stand-in");
+    let urls: Vec<&String> = stand_ins.keys().collect();
+    assert_eq!(urls, ["https://org.my.salesforce.com/services/a360/token", "https://org.my.salesforce.com/services/oauth2/token"]);
+    let text = serde_json::to_string(&stand_ins).unwrap();
+    for secret in ["core-secret", "refresh-secret", "id-secret", "signature-secret", "jwt-signature"] {
+        assert!(!text.contains(secret), "{secret} reached the stand-ins");
+    }
+
+    // The run reads them with the readers of the setup: the same tokens, the stand-in in place of the secrets
+    let code = core_access_token_request(&SalesforceOAuthConfig { oauth_redirect: "https://dashql.app/oauth.html".into() }, &params(), "code", "verifier");
+    let core_answer = ok(stand_ins.get(&code.url).unwrap().clone());
+    let core = read_core_access_token_response(&code, &core_answer, NOW).unwrap();
+    assert_eq!(core.access_token, "stand-in");
+    assert_eq!(core.refresh_token, None);
+    assert_eq!(core.id_token, None);
+    assert_eq!(core.signature, None);
+    assert_eq!(core.instance_url, tokens.core.instance_url);
+    assert_eq!(core.id, tokens.core.id);
+
+    let exchange = data_cloud_access_token_request(&core);
+    let data_cloud = read_data_cloud_access_token_response(&exchange, &ok(stand_ins.get(&exchange.url).unwrap().clone()), NOW).unwrap();
+    assert_eq!(data_cloud.instance_url, tokens.data_cloud.instance_url);
+    assert_eq!(data_cloud.expires_at, tokens.data_cloud.expires_at);
+    assert_eq!(data_cloud.jwt.payload, tokens.data_cloud.jwt.payload);
+    assert!(data_cloud.jwt.raw.ends_with(".stand-in"));
+    assert_eq!(get_salesforce_data_space(&data_cloud), "Marketing");
+}
+
+#[test]
+fn relays_the_core_token_to_the_instance_and_the_data_cloud_token_to_the_tenant() {
+    let tokens = logged_in();
+    let tenant = dashql_core_runtime::http::Headers::from_pairs([("audience", "tenant-1"), ("authorization", "Bearer tenant-jwt")]);
+    let endpoints = relay::salesforce_relay_endpoints(&tokens, &tenant);
+    assert_eq!(
+        endpoints,
+        BTreeMap::from([
+            ("https://org.my.salesforce.com".to_string(), vec![("Authorization".to_string(), "Bearer core-secret".to_string())]),
+            (
+                "https://tenant.c360a.salesforce.com".to_string(),
+                vec![("audience".to_string(), "tenant-1".to_string()), ("authorization".to_string(), "Bearer tenant-jwt".to_string())]
+            ),
+        ])
+    );
+}
+
 // The authorization
 
 fn params() -> SalesforceConnectionParams {

@@ -1,6 +1,13 @@
 import * as React from 'react';
 
-import { followAgentSession, parseAgentSessionTarget, writeAgentSessionConnections, type AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import {
+    answerAgentSessionLogin,
+    followAgentSession,
+    parseAgentSessionTarget,
+    writeAgentSessionConnections,
+    type AgentSessionTarget,
+} from '@ankoh/dashql/platform/session/agent_session_client';
+import type { AgentSessionLogin } from '@ankoh/dashql/platform/session/agent_session_state';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { Store } from '../utils/store.js';
@@ -11,6 +18,10 @@ import { agentSessionOf, type AgentSession, type AgentSessionArgs, type Followed
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 import { agentConnections } from './agent_connections.js';
+import { agentSessionOAuth, credentialsAnswer } from './agent_session_logins.js';
+import { useAppConfig } from '../config/app_config.js';
+import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
+import { usePlatformType } from '../platform/platform_type.js';
 
 const LOG_CTX = 'agent_session';
 
@@ -128,6 +139,9 @@ export interface AgentConnect {
     excludedConnections: ReadonlySet<string>;
     /// Allow or forbid a connection for the agent
     toggleConnection: (connectionId: string) => void;
+    /// Open a login that a run of the agent waits for, in the click of the user: the authorization page in a popup.
+    /// The callback of a redirect page goes to the server of the session.
+    openLogin: (login: AgentSessionLogin) => void;
 }
 
 /// The workbooks that the page shows, a session gets a copy of each once its server answers
@@ -146,6 +160,9 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
     const runtime = useOptionalRuntime();
+    const platformType = usePlatformType();
+    const oauthRedirect = useAppConfig()?.connectors?.salesforce?.auth?.oauthRedirect ?? null;
+    const oauthFlow = React.useMemo(() => new AppOAuthFlow(appEvents, platformType), [appEvents, platformType]);
     const [store] = React.useState(() => new Store<FollowedAgentSession | null>(null));
     const [target, setTarget] = React.useState<AgentSessionTarget | null>(readTabTarget);
     const [connect, setConnect] = React.useState(readTabConnect);
@@ -220,15 +237,74 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
         const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
         const { allowed } = agentConnections(connections, runtime.store.get('connectionList', 'root'), excludedRef.current);
-        const text = JSON.stringify(allowed);
+        // How this tab logs in to Salesforce goes with them, the process of dashql connect logs in through the tab
+        const oauth = agentSessionOAuth(oauthRedirect, oauthFlow);
+        const text = JSON.stringify({ allowed, oauth });
         if (sentConnections.current.target === target && sentConnections.current.text === text) return;
         sentConnections.current = { target, text };
-        writeAgentSessionConnections(target, allowed).catch(error => {
+        writeAgentSessionConnections(target, allowed, oauth).catch(error => {
             // The next state tries again
             if (sentConnections.current.text === text) sentConnections.current = { target: null, text: null };
             logger.warn('Cannot tell the session the connections of the agent', { error: stringifyError(error) }, LOG_CTX);
         });
-    }, [runtime, target, store, logger]);
+    }, [runtime, target, store, logger, oauthRedirect, oauthFlow]);
+    // The logins that runs of the agent wait for. The tab sends the credentials of a Trino connection with basic auth
+    // that it lets the agent use once per login, the user opens the other logins.
+    const answeredLogins = React.useRef<{ target: AgentSessionTarget | null; connections: Set<string> }>({ target: null, connections: new Set() });
+    const redirect = React.useRef<{ connectionId: string; controller: AbortController } | null>(null);
+    const answerLogins = React.useCallback((logins: AgentSessionLogin[]) => {
+        if (runtime == null || target == null) return;
+        if (answeredLogins.current.target !== target) answeredLogins.current = { target, connections: new Set() };
+        const answered = answeredLogins.current.connections;
+        // A login that ended may come again, e.g. after the password of the connection changed
+        for (const connectionId of [...answered]) {
+            if (!logins.some(login => login.connectionId === connectionId)) answered.delete(connectionId);
+        }
+        // A redirect that no run waits for anymore is not waited for either
+        if (redirect.current != null && !logins.some(login => login.connectionId === redirect.current?.connectionId && login.kind === 'redirect')) {
+            redirect.current.controller.abort();
+            redirect.current = null;
+        }
+        const connections = runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>;
+        for (const login of logins) {
+            if (login.kind !== 'credentials' || answered.has(login.connectionId)) continue;
+            const answer = credentialsAnswer(login, connections, excludedRef.current);
+            if (answer == null) continue;
+            answered.add(login.connectionId);
+            answerAgentSessionLogin(target, login.connectionId, answer).catch(error => {
+                answered.delete(login.connectionId);
+                logger.warn('Cannot send the login of the agent', { connection: login.connectionId, error: stringifyError(error) }, LOG_CTX);
+            });
+        }
+    }, [runtime, target, logger]);
+    const openLogin = React.useCallback((login: AgentSessionLogin) => {
+        if (target == null) return;
+        if (login.kind !== 'redirect') {
+            // The identity provider redirects to the process of dashql connect
+            if (login.url.length > 0) window.open(login.url, '_blank', 'popup');
+            return;
+        }
+        let url: URL;
+        try {
+            url = new URL(login.url);
+        } catch {
+            return;
+        }
+        // The redirect page hands the callback to this tab, which sends it on. One login waits at a time.
+        redirect.current?.controller.abort();
+        const controller = new AbortController();
+        redirect.current = { connectionId: login.connectionId, controller };
+        oauthFlow.authorizeWithRedirectPage(url, callback => callback.state?.flowId === login.flowId, controller.signal, () => { })
+            .then(callback => answerAgentSessionLogin(target, login.connectionId, { oauthRedirect: callback }))
+            .catch(error => {
+                if (controller.signal.aborted) return;
+                logger.warn('Cannot hand on the login of the agent', { connection: login.connectionId, error: stringifyError(error) }, LOG_CTX);
+            })
+            .finally(() => {
+                if (redirect.current?.controller === controller) redirect.current = null;
+            });
+    }, [target, oauthFlow, logger]);
+    React.useEffect(() => () => redirect.current?.controller.abort(), [target]);
     React.useEffect(() => sendConnections(), [excluded, sendConnections]);
     React.useEffect(() => {
         if (runtime == null) return;
@@ -268,6 +344,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             try {
                 copyShown();
                 sendConnections();
+                answerLogins(state.ended ? [] : state.logins ?? []);
                 void copies?.update(state);
                 // An ended session takes no edits of the page
                 if (state.ended) copies?.dispose();
@@ -294,7 +371,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             }
         })();
         return () => controller.abort();
-    }, [target, store, logger, updateConnect, copyShown, copiesOf, sendConnections]);
+    }, [target, store, logger, updateConnect, copyShown, copiesOf, sendConnections, answerLogins]);
     const connectValue = React.useMemo<AgentConnect>(() => ({
         mode: connect.mode,
         setMode: mode => updateConnect({ mode }),
@@ -304,7 +381,8 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         renewTarget: () => follow(newAgentConnectTarget()),
         excludedConnections: excluded,
         toggleConnection,
-    }), [connect, target, updateConnect, follow, excluded, toggleConnection]);
+        openLogin,
+    }), [connect, target, updateConnect, follow, excluded, toggleConnection, openLogin]);
     return (
         <FOLLOWED_CTX.Provider value={store}>
             <SHOWN_CTX.Provider value={shownValue}>

@@ -118,9 +118,15 @@ goes through a `dashql` command, so the commands tell what they changed.
 - `//packages/dashql-cli:test` also: the connections of the agent next to the journal, `dashql run` that refuses
   the others, `dashql describe` that lists them.
 - `//packages/dashql-cli:test` also: the logins of `dashql connect` (PKCE, the refresh, a callback of another
-  request, the loopback listener) and a run on a Trino connection with OAuth through the relay, where Trino gets the
-  real token and the run only the stand-in.
-- `workbook_composer.test.tsx`: the login that a run waits for opens with a click.
+  request, the loopback listener, the password of the tab, the redirect of a Salesforce login and answers that don't
+  fit) and a run on a Trino connection with OAuth and one with basic auth through the relay, where Trino gets the real
+  token or the password of the tab and the run neither (`run_command.test.ts`); a Salesforce login through the tab with
+  the core in both processes, the setup of a run with the stand-ins, the health checks on a fake tenant with the real
+  token (`run_relay.test.ts`).
+- `salesforce_test` of the core: the stand-ins read like the tokens of the login without a secret, the relay puts the
+  core token and the Data Cloud token on their origins.
+- `workbook_composer.test.tsx`: the logins that a run waits for open with a click, a password needs none;
+  `agent/agent_session_logins.test.ts`: the tab sends the password of a connection that the agent may use only.
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts, the edits of the
   user into the copy, a copy adopted after a reload, the results of the agent once.
 - `runtime/workbook/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
@@ -224,51 +230,73 @@ is guidance for the agent, not a boundary: the agent can write it.
 
 ### Logins go through the page
 
-Built for Trino with OAuth. Logins don't leave the side that made them: the page never hands a token to the command
-line tool, and no token reaches a process of the agent, which can read and print it, and the telemetry of a managed Mac
-logs tool content.
+Built for Trino with OAuth, Salesforce and Trino with basic auth. Logins don't leave the side that made them: the page
+never hands a token to the command line tool, and no token or password reaches a process of the agent, which can read
+and print it, and the telemetry of a managed Mac logs tool content. The process of `dashql connect` logs in and keeps
+the channels, it is Node on the machine of the browser.
 
-Trino with OAuth logs in with a loopback redirect (`http://localhost:56512/Callback` unless the connection names
-another), not with the redirect page of the app: the web app can't take it at all, the desktop app listens on it. The
-process of `dashql connect` listens on it as well, it is Node on the machine of the browser:
-
-1. `dashql run` in a session of `dashql connect` sets up a Trino connection with OAuth as usual, but first asks the
-   server for a login (`POST /v1/auth/<token>/<connection id>` with the label, the endpoint and the params of the
-   connection). It finds the server in `DASHQL_SESSION_ENDPOINT` and `DASHQL_SESSION_TOKEN`, else in
-   `.dashql/sessions/<port>/server.json`, which `dashql connect` writes for the user only: a harness may keep variables
-   with a token in their name from the commands of its agent.
+1. `dashql run` in a session of `dashql connect` sets up such a connection as usual, but first asks the server for a
+   login (`POST /v1/auth/<token>/<connection id>` with the label and the params of the connection). It finds the
+   server in `DASHQL_SESSION_ENDPOINT` and `DASHQL_SESSION_TOKEN`, else in `.dashql/sessions/<port>/server.json`, which
+   `dashql connect` writes for the user only: a harness may keep variables with a token in their name from the
+   commands of its agent.
 2. The process of `dashql connect` (`connect_auth.ts`) keeps a runtime of its own, without storage, with the
-   connections that runs logged in to. A connection without a channel is set up there with the Trino setup of the core:
-   the PKCE challenge, the authorization URL, the code exchange and the account of the token. Its OAuth flow is the
-   only part of Node: it listens on the callback URL and puts the authorization URL into `logins` of the state of the
-   session. The prompt of the tab shows "The agent waits for a login to <connection>", **Log in** opens the URL in a
-   popup, the identity provider redirects to the listener. Logins run one after the other. A login waits 10 minutes;
-   the request of the run answers "waiting" after 20 s and the run asks again, no request outlives the timeouts of
-   fetch.
-3. The run gets the account of the token, never the token. Its runtime sets the connection up with the Trino setup of
-   the core: its OAuth flow gets a stand-in code, its HTTP client answers the token request with a stand-in token that
-   carries the account (`run_relay.ts`), so the cached results are keyed by the account like in the app. Every request
-   to the endpoint of the connection goes to the relay of the server (`/v1/relay/<token>/<connection id>`, the URL in
-   `X-DashQL-Url`), which puts the auth of the channel in. The relay reaches only the endpoints of the connections that
-   a run logged in to.
-4. The relay asks the runtime for the auth of the channel before every request, `connectionAuthorization` of the
-   runtime: the auth headers and the account, with a token that is refreshed first if it is about to expire, by the
-   same refresh that a query runs before its requests (`fresh_trino_auth` of the executor).
+   connections that runs logged in to. A connection without a channel is set up there with the setup of the core: the
+   PKCE challenge, the authorization URL, the code exchange, the account of the token and, for Salesforce, the exchange
+   for the Data Cloud token. Only the way to the user is Node and the tab. The login goes into `logins` of the state of
+   the session with its kind (`AgentSessionLoginKind`):
+   - `loopback`, Trino with OAuth: it redirects to a loopback address (`http://localhost:56512/Callback` unless the
+     connection names another), not to the redirect page of the app: the web app can't take it at all, the desktop app
+     listens on it. The process listens there. The prompt of the tab shows "The agent waits for a login to
+     <connection>", **Log in** opens the URL in a popup, the identity provider redirects to the listener.
+   - `redirect`, Salesforce: the connected app knows only the redirect page of the app. The tab says how its redirect
+     page hands a login back (`AgentSessionOAuth`: the redirect page of the config of the app, the redirect variant,
+     the callback page and the flavor of its OAuth flow) with its connections (`PUT /v1/connections/<token>`, kept in
+     memory, not in `connections.json`), the setup of the process builds the state of the flow with it. **Log in**
+     opens the URL with the OAuth flow of the app (`agent_session_provider.tsx`), the redirect page hands the callback
+     to the tab, the tab posts it to the server (`POST /v1/login/<token>/<connection id>` with `{ oauthRedirect }`),
+     and the process exchanges the code with its verifier.
+   - `credentials`, Trino with basic auth: the tab sends the user and the password of its connection by itself
+     (`{ basic: { username, secret } }` to the same route), for a connection that it lets the agent use; the prompt
+     shows "The agent waits for the password of <connection>" until then. The channel of the process connects with
+     them, the params of the process keep no password. The tab has the password while its connection was set up in
+     this tab, the workbook keeps none.
 
-- Anyone with the token of the session can query through the relay, as the agent can with `dashql run`. The token of
-  the connection stays in the process of `dashql connect`.
+   Logins run one after the other. A login waits 10 minutes; the request of the run answers "waiting" after 20 s and
+   the run asks again, no request outlives the timeouts of fetch.
+3. The run gets the account of the login and stand-ins, never a token. The answer of the login names the origins that
+   the relay reaches and the responses of the token requests of the login with a stand-in token (`stand_ins` of
+   `executor/connectors.rs`): for Trino with OAuth the token response with the account, for Salesforce the core token
+   without a refresh token and the Data Cloud JWT with its header and claims and the stand-in as its signature
+   (`salesforce/relay.rs`): the run reads the tenant, the data space and the expiry from it. The runtime of the run
+   sets the connection up with the setup of the core: its OAuth flow gets a stand-in code, its HTTP client answers the
+   token requests with the stand-ins (`run_relay.ts`), so the cached results are keyed by the account like in the app.
+   Trino with basic auth needs no stand-in, its channel connects with the user of the tab and no password. Every
+   request to an origin of the connection goes to the relay of the server (`/v1/relay/<token>/<connection id>`, the
+   URL in `X-DashQL-Url`), which puts the auth of that origin in: the token of the core for the instance of Salesforce,
+   the Data Cloud token with its audience for the tenant, the token or the password for Trino. The relay hands the
+   headers of the answer back, e.g. the status of a query of Data Cloud, not the encoding of the body.
+4. The relay asks the runtime for the auth of the channel before every request, `connectionAuthorization` of the
+   runtime (`fresh_relay_auth` of the executor): the auth headers by origin and the account, with tokens that are
+   refreshed first if they are about to expire, by the same refresh that a query runs before its requests.
+
+- Anyone with the token of the session can query through the relay, as the agent can with `dashql run`. The tokens and
+  the passwords of the connections stay in the process of `dashql connect`.
 - The tokens end with the session. Keeping the refresh token in the keychain of the system is a later step.
-- Not yet: Salesforce, `dashql run` has no Salesforce connections. The plan for it: the redirect page of the app hands
-  the code to the tab (`WEB_OPENER_FLOW`), the tab posts it to the server, the process of `dashql connect` exchanges
-  it with its verifier.
-- Trino with basic auth keeps `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD` for the commands without a session.
+- A run of Salesforce keeps the expiry of the Data Cloud token of its login: a client function on the tenant fails
+  once it passed, a new run asks the process again, which refreshed it.
+- Trino with basic auth keeps `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`: with the password set, a run doesn't
+  ask the tab. A server of `dashql session serve` logs in to nothing, a run there takes the password of the workbook.
+- Not checked against a real org or a real Trino with OAuth yet, the tests fake the login API of Salesforce and the
+  Hyper of the tenant.
 
 ### What the page sends to the server
 
 One channel from the page to the server, requests with the token of the session, for three things: the workbook of
-case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections (built, `PUT
-/v1/connections/<token>`), the code of a login (Salesforce, not built; Trino logs in on a loopback address). The
-server stays the one place the page talks to.
+case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections with the OAuth settings of
+the tab (built, `PUT /v1/connections/<token>`), the answers to logins (built, `POST /v1/login/<token>/<connection id>`:
+the callback of a Salesforce login, the password of a Trino connection; Trino with OAuth logs in on a loopback
+address). The server stays the one place the page talks to.
 
 ### How the agent learns DashQL
 
@@ -306,7 +334,7 @@ To check before the runs over the server:
 2. The parameters of connections from the folder in `dashql run` and in the app.
 3. The output of the hook at the start and `dashql describe`. Built, without the connections of the agent.
 4. Logins through the page, runs of connections with a login through the process of `dashql connect`. Built for Trino
-   with OAuth, through the relay.
+   with OAuth or basic auth and for Salesforce, through the relay.
 5. The menu of the connections of the agent. Built.
 
 ## Next

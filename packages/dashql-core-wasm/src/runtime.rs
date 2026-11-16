@@ -43,7 +43,7 @@ use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
-use dashql_core_runtime::executor::connectors::fresh_trino_auth;
+use dashql_core_runtime::executor::connectors::fresh_relay_auth;
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
 use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
@@ -1184,22 +1184,38 @@ impl Runtime {
         Ok(to_js(&secrets)?.into())
     }
 
-    /// The auth of a connection as it goes with a request, for a process that sends the requests of the connection for
-    /// another one, e.g. the relay of `dashql connect`: the auth headers of its Trino channel, with an access token that
-    /// is refreshed first if it is about to expire, and the account of the token. Null for a connection without a
-    /// Trino channel, rejects when the refresh fails.
+    /// The auth of a connection as it goes with its requests, for a process that sends the requests of the connection
+    /// for another one, e.g. the relay of `dashql connect`: the auth headers by the origin of the endpoints, with
+    /// tokens that are refreshed first if they are about to expire, the account and the stand-in responses of the
+    /// token requests of the login. Null for a connection without a channel of Trino or Salesforce or with a Trino
+    /// channel that has no token yet, rejects when the refresh fails.
     #[wasm_bindgen(js_name = connectionAuthorization, unchecked_return_type = "Promise<ConnectionAuthorization | null>")]
     pub fn connection_authorization(&self, connection_id: &str) -> Result<Promise, JsError> {
         let connection = self.connections.registry.try_borrow().map_err(|_| busy())?.get(connection_id).cloned();
-        let channel = match connection {
-            Some(connection) => connection.state.try_borrow().map_err(|_| busy())?.details().channel.as_ref().and_then(|channel| channel.trino()).cloned(),
-            None => None,
+        let (channel, principal) = match connection {
+            Some(connection) => {
+                let state = connection.state.try_borrow().map_err(|_| busy())?;
+                let details = state.details();
+                (details.channel.clone(), details.salesforce().and_then(|salesforce| salesforce.principal.clone()))
+            }
+            None => (None, None),
         };
         let host = Rc::new(self.platform.clone());
         Ok(future_to_promise(async move {
             let Some(channel) = channel else { return Ok(JsValue::NULL) };
-            let auth = fresh_trino_auth(&host, &channel).await.map_err(|error| JsValue::from(JsError::new(&error.message)))?;
-            let authorization = ConnectionAuthorization { headers: auth.headers.into_iter().collect(), principal: auth.principal };
+            let auth = fresh_relay_auth(&host, &channel, principal)
+                .await
+                .map_err(|message| JsValue::from(JsError::new(&message)))?;
+            let Some(auth) = auth else { return Ok(JsValue::NULL) };
+            let authorization = ConnectionAuthorization {
+                endpoints: auth
+                    .endpoints
+                    .into_iter()
+                    .map(|(origin, headers)| (origin, headers.into_iter().collect()))
+                    .collect(),
+                principal: auth.principal,
+                stand_ins: auth.stand_ins,
+            };
             Ok(to_js(&authorization).map_err(JsValue::from)?.into())
         }))
     }
