@@ -106,13 +106,13 @@ bazel test //...
 
 | Target | Purpose |
 |--------|---------|
-| `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
-| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
-| `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests |
+| `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test, Clippy with the safety lints |
+| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, the Hyper validation, Clippy with the safety lints but indexing |
+| `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-wasm:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
-| `//packages/dashql-core-shell:all` | Shell tests |
-| `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests |
+| `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
+| `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
@@ -312,7 +312,7 @@ in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust
 
 ```bash
 # Clippy with the safety lints, a breach fails the build of the test
-bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-wasm:clippy_test
+bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-wasm:clippy_test //packages/dashql-core:clippy_test
 
 # The findings, warnings included
 bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-wasm:clippy_test_clippy

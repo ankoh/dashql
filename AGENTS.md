@@ -40,8 +40,10 @@ Please consult relevant docs in that directory before making changes.
 - The DashQL core (the Rust crates and how they fit, the core module and its release build, the runtime in Rust:
   workbooks, connections with setup epochs, channels and tokens, queries and the executor, computations, the catalog
   loader, runs, the storage writer, restore, the workbook format, `shutdown`; the `Host` traits, `JsPlatform`, `HostError`
-  and how to add a host call; async without
-  `Send`, no borrow across an await, no panics, enforced by `clippy_test` and `//bazel:rust_safety_lints`)
+  and how to add a host call; async without `Send`, no borrow across an await or a call into JS, no panics: every crate
+  of the module denies unwrap, expect, panic, unreachable, indexing and string slices in its `clippy_test` with
+  `//bazel:rust_safety_lints`, dashql-core all but indexing, the runtime crates every warning; the borrow across JS is
+  kept by review)
     - `docs/design/dashql_core.md`
 
 - The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the

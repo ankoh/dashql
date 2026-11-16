@@ -44,7 +44,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
   frees them, and calls into the core are function calls.
 - **Panics.** The module aborts on a panic: the call traps without dropping its guards, and the module must not be used
   anymore. `installPanicHook` reports the message to `globalThis.__dashqlCorePanic` first, and the app shows
-  `core_panic_overlay.tsx`. This is why the runtime crates deny panicking code, see [The rules](#the-rules).
+  `core_panic_overlay.tsx`. This is why every crate of the module denies panicking code, see [The rules](#the-rules).
 - **Views.** The views of the runtime are Rust structs with `Serialize` and `Tsify` next to the bindings
   (`*/view.rs`, `views.rs` of `dashql-core-wasm`). serde-wasm-bindgen builds the JS objects directly, tsify writes their
   declarations into the `.d.ts` of wasm-bindgen. `Option<T>` is `T | null` (`missing_as_null`), `u64` is `number` and
