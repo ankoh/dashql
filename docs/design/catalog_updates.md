@@ -64,7 +64,7 @@ The grammar only knows the `ALTER` actions that change what the catalog holds. O
 **A name without a schema matches every schema.** The connection decides what such a name means: a temporary schema or one
 of the search path. A name with an empty table is a whole schema. `same_relation` in `catalog/mod.rs` holds these rules.
 
-The query of a connector selects the relations with `relationFilter`:
+The query of a connector selects the relations with `relation_filter` (`catalog_loader/sql.rs` of the core runtime):
 
 | Connector | Query |
 |---|---|
@@ -86,7 +86,8 @@ remembers it (`absent_relations`) and hides declarations of that name in resolut
 ## Failures
 
 An update that fails or is cancelled gives its relations back. The loader tries again after a wait, three attempts in all.
-After that the catalog counts as out of date and the refresh button of the connection shows it (`isCatalogOutOfDate`), until
+After that the catalog counts as out of date and the refresh button of the connection shows it (`catalogUpdates.outOfDate`
+of the connection view), until
 the next statement or a refresh. A Hyper refresh that fails for an attached database keeps the relations of that database
 (`CatalogTableUpdate.databases`).
 

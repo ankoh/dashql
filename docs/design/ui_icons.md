@@ -229,7 +229,7 @@ decorative in one place and meaningful in another.
 6. Run the relevant Bazel verification target. For application code changes, use at least:
 
 ```bash
-bazel test //packages/dashql-app:tsc_typecheck_test
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 ```
 
 Run `bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox` as well when behavior or components changed. An SVG-only

@@ -4,11 +4,11 @@ DashQL caches successful user-query results in Parquet files of the origin priva
 
 ## Scope
 
-The cache stores a result table as Parquet file, written and read by the compute database (hyperdb-wasm) whatever connection ran the query. The cache needs a compute database that mounts directories (`supportsParquet`) and a `QueryResultCacheProvider` above the executor, and it applies only when the caller opts in through `QueryExecutionArgs.cacheable` and passes the script signature of the key (`cacheSignature`). Without a provider, `useQueryResultCache()` is null and nothing is cached.
+The cache stores a result table as Parquet file, written and read by the compute database (hyperdb-wasm) whatever connection ran the query. The cache needs a compute database that mounts directories (`supportsParquet`) and a `QueryResultCache` that the platform passes to `createRuntime` as `resultCache` (the app takes it from `QueryResultCacheProvider`, `useQueryResultCache()`), and it applies only when the caller opts in through `QueryExecutionArgs.cacheable` and passes the script signature of the key (`cacheSignature`). Without a cache nothing is cached.
 
 Every connection decides whether its query results are cached: the toggle **Cache query results** in the connection settings, applied right away (`setQueryResultCaching`). The app manifest keeps the choice in the connection entry (`cacheQueryResults`); without a choice the connector decides (`ConnectorFeatures` of `connections/params.rs` in the core runtime: off for Hyper, on for Salesforce, Database.com and Trino), and the view of the connection carries the decision (`cachesQueryResults`).
 
-Single-script runs opt in when the connection of the script caches results: explicit execution, execute-on-send, reruns, and refreshes, all through `runScript` of the runtime (`packages/dashql-core-wasm/src/runtime/runs.rs`). A run of a script executes a plan of the script like a run of the workbook executes the plan of every script (`packages/dashql-core-runtime/src/workbook_run/`): it derives the result keys from the plan and, for a script whose key is reusable and cached and that follows no script that runs, runs only the terminal query of the script with `cacheOnly`: the executor serves it from the cache and never runs it on the backend, since the query holds only after the statements before it. If the file is gone meanwhile, the executor fails with a `QueryCacheMissError` and the script runs. A script that runs has read the cache already: the terminal query of a script with a reusable key runs with `cacheable`, `refreshCache` and the signature of its key, the executor runs it on the backend and writes its result as the newest file of the key, and the other statements run without. A refresh (`refresh` of `runScript`) reads no cache entries (see Script References below). Shell queries never opt in: the workbook shell sets `cacheable: false`, and the standalone shell executes directly against its embedded database connection. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a workbook does not execute queries or read cached results; a user-triggered execution is required.
+Single-script runs opt in when the connection of the script caches results: explicit execution, execute-on-send, reruns, and refreshes, all through `runScript` of the runtime (`packages/dashql-core-wasm/src/runtime/runs.rs`). A run of a script executes a plan of the script like a run of the workbook executes the plan of every script (`packages/dashql-core-runtime/src/workbook_run/`): it derives the result keys from the plan and, for a script whose key is reusable and cached and that follows no script that runs, runs only the terminal query of the script with `cacheOnly`: the executor serves it from the cache and never runs it on the backend, since the query holds only after the statements before it. If the file is gone meanwhile, the executor fails with a `QueryCacheMissError` and the script runs. A script that runs has read the cache already: the terminal query of a script with a reusable key runs with `cacheable`, `refreshCache` and the signature of its key, the executor runs it on the backend and writes its result as the newest file of the key, and the other statements run without. A refresh (`refresh` of `runScript`) reads no cache entries (see Script References below). Shell queries never opt in: the workbook shell sets `cacheable: false`, and the standalone shell runs its statements on its connection to the embedded Hyper without `cacheable`. Internal catalog, setup, and health-check queries also do not set the flag and therefore never read or write the cache. Merely loading or viewing a workbook does not execute queries or read cached results; a user-triggered execution is required.
 
 **Execute All** also runs while connections of the workbook aren't connected (`can_run` of the host of the run, the connections that are online when the run starts). A script whose connection can't run doesn't run, so it doesn't keep the scripts after it from serving their cached results: the script can't change what they read during the run. The scripts of such a connection serve their cached results, the others are skipped with every statement that follows them, also a scan of the embedded Hyper that reads one of them. A script runs completely or not at all. The run counts the skipped scripts (`WorkbookExecutionState.skippedScripts`, `skippedFiles`), the status shows `3/5 completed · 2 need a connection`, its tooltip names the scripts, and the connections of the workbook pulse in the bar once a run of the open page settles. A run stops if a connection drops that it runs statements on. A connection that is connecting holds the run, it would join a moment later. A change of inputs runs the same way, a script whose input changed usually has a new key and needs its connection. The run of a single script still waits for its connections. A run starts once the compute database is set up (`ready` of `useWorkbookExecution`, Execute All stays disabled until then): it reads the cached files, before its setup every script would miss. The log of a run that skipped scripts names each one with the reason and the key it looked for, a key that differs from the names in an imported file, e.g. one of another version of the app, shows there.
 
@@ -64,8 +64,8 @@ If the executor cannot recover connection parameters or derive a signature, it t
 The query result cache belongs to the app, not to a workbook: every workbook and connection writes into the folder
 `cache/` at the root of the origin private file system, also native workbooks. `createOPFSQueryResultCache`
 (`packages/dashql/src/platform/storage/opfs_query_result_cache.ts`) implements the `QueryResultCache` interface
-(`packages/dashql/src/platform/query/query_result_cache.ts`), and `QueryResultCacheProvider` hands it to the executor and
-the workbook runs.
+(`packages/dashql/src/platform/query/query_result_cache.ts`). The platform passes it to `createRuntime` as `resultCache`,
+the executor and the runs of the runtime use it through `resultCache` and `mounts` of the platform object.
 
 ```
 cache/
@@ -122,7 +122,7 @@ flowchart TD
     C -- key available --> D[Look up the newest file of the key]
     D -- hit --> E[Pin, read through the mount, touch access marker]
     D -- miss --> F
-    E --> G[Dispatch result state and run post-processing]
+    E --> G[Record the result in the history and run post-processing]
     F --> H[Stream connector batches into Arrow table]
     H --> G
     G --> I[Mark query succeeded]
@@ -132,10 +132,10 @@ flowchart TD
     K --> L
 ```
 
-The cacheable path computes the key before query state is registered.
+The query is in the history of its connection before the runtime describes it: the key is computed after the registration.
 
 On a cache hit, the executor reads the newest file of the key through the mounted cache folder while the file is
-pinned (`QueryResultCache.readTable`), dispatches the same completed-result state used by a streamed query with empty metadata and zeroed stream metrics, then enters the shared analysis and success path. It records the cache key, cached-at timestamp, and `servedFromCache` state for the UI. A cache hit also asynchronously rewrites the empty access marker; it never rewrites the potentially large payload.
+pinned (`QueryResultCache.readTable`), and the history records it like the result of a streamed query, with empty metadata and zeroed stream metrics; then the shared analysis and success path runs. It records the cache key, cached-at timestamp, and `servedFromCache` state for the UI. A cache hit also asynchronously rewrites the empty access marker; it never rewrites the potentially large payload.
 
 On a miss, the executor streams the backend result into an Arrow table as usual. After the query succeeds, or after only the analysis of its result failed, the compute database writes the table as new file of the key into the mounted cache folder (`QueryResultCache.writeTable`, `resultCache.write` resolves with the name of the file), then the older files of the key are removed and eviction runs. The caller is not blocked on the write or the eviction scan. A write whose file survived the eviction records the cache key on the finished query; a file that the eviction removed right away, e.g. a result larger than the cache, and a failed write only produce a log message.
 
@@ -150,9 +150,9 @@ reusable, a transient file otherwise:
 
 - A run scans the newest file of a reusable key that is cached (`materialized` of the plan), the producer doesn't
   run unless it follows a script of the plan that runs (`script_references.md`). The run pins the file from the
-  lookup on until it ends (`QueryResultCache.retain`, `ExecutionMounts.use`).
+  lookup on until it ends (`QueryResultCache.retain`, `use` of the `mounts` of the platform).
 - Otherwise the producer runs. Its terminal node writes its result as a new file of its key if the key is reusable
-  (`ExecutionMounts.fileName`, `QueryResultCache.newFileName`), the file replaces the older files of the key. A
+  (`fileName` of the `mounts` of the platform, `QueryResultCache.newFileName`), the file replaces the older files of the key. A
   result whose key isn't reusable, or a script without a key, e.g. on a connection whose signature is unknown, is a
   transient file (`QueryResultCache.newTransientFileName`).
 - A refresh runs every producer anew and writes its result the same way.
@@ -166,7 +166,7 @@ The **Query Results** toggle of the export of a `.dashql` file, off by default, 
 to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections. Every result
 is a table of its own, `workbook_result_<id>.parquet`, and a row of `workbook_results` names its cache key
 (`workbook_tables.md`).
-Archives of older versions carry `results/<key>.parquet`, an import still reads them. The export of the runtime plans
+An archive may carry `results/<key>.parquet` instead, an import reads them. The export of the runtime plans
 the workbook without analyzing it, like the cache indicators of the cards, and takes the newest file of every reusable
 key (`resultKeys`, `resultCache.retain` of the platform), retained until the archive holds it (`exportWorkbook` with
 `results`). The overlay packs the archive without results whenever the workbook or the settings change and shows its
@@ -192,9 +192,9 @@ import alone, the log names each one.
 The card of a dropped file shows the summary of the file on the left and the steps of the import on the right, drawn
 like the steps of the setup of the app (`SetupSteps`): Read File, Check Archive, Resolve Connections, Add Query Results
 (only for a file with results, with how many are in the cache) and Save Workbook. The first three run on their own
-(`preparePortableImport`, which writes nothing and may ask which existing connections to use); the card then asks to
+(`readImport`, which writes nothing and may ask which existing connections to use); the card then asks to
 Import, or to Replace or Create New if a workbook with the same id is registered. The import adds the results and saves
-the workbook (`commitPortableImport`, its `onProgress` reports the steps). A failed step is marked. If some results
+the workbook (`commitImport`, its `onStep` reports the steps). A failed step is marked. If some results
 weren't added, the card stays open as Workbook Imported with how many and why, and the first error, until the user opens
 the workbook: their scripts need a connection. An import that replaces a registered workbook reloads the app, its card is
 gone then and only the log tells.

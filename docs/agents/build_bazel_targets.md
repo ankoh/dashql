@@ -276,17 +276,18 @@ slowdown of every case. A hyperdb-wasm without the backend only reports that.
 
 ### TypeScript
 
-TypeScript type checking is integrated into Bazel test targets:
+The app is checked by the `typecheck` output group of its `ts_project`, the other packages by `tsc_typecheck_test`
+targets:
 
 ```bash
-# Type check a specific package
-bazel test //packages/dashql-app:tsc_typecheck_test
+# The app, a plain build of :tsc skips the check
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 
-# Type check with transitive dependencies
-bazel test //packages/dashql-app:tsc_transitive_typecheck_test
+# @ankoh/dashql
+bazel test //packages/dashql:tsc_typecheck_test //packages/dashql:tsc_typecheck_tests_test //packages/dashql:tsc_typecheck_node_test
 ```
 
-**Never run `npx tsc` directly.** The typecheck tests of the app use `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolve `@ankoh/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail these tests.
+**Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@ankoh/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
 
 ### Rust
 
@@ -410,7 +411,7 @@ rm -rf bazel-bin/packages/bar/
 
 ```bash
 # ✅ Bazel type checking
-bazel test //packages/dashql-app:tsc_typecheck_test
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 
 # ✅ Bazel building
 bazel build //packages/dashql-native-proxy:addon
@@ -428,7 +429,7 @@ bazel run //tests/snapshots/parser:update
 
 ```bash
 # Type check and run tests
-bazel test //packages/dashql-app:tsc_typecheck_test
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 # The package @ankoh/dashql in Node and its bindings in the browsers
 bazel test //packages/dashql:all //packages/dashql/test/browser:all

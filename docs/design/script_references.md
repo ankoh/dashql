@@ -137,7 +137,7 @@ the run plans the other scripts again with the served scripts as `materialized`:
 out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
 that scans it reads the cached file. A refresh (`refresh` of `runWorkbook` and `runScript`)
 reads no cached results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
-at most `maxConcurrentQueries` nodes of a connection run at once, and nodes of different connections run side by
+at most `RunHost::max_concurrent_queries` nodes of a connection run at once (four for a Hyper server, one otherwise), and nodes of different connections run side by
 side. The files of a run (`mounts` of the platform, `createRunMounts`) are files of the query result cache of the app
 (`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
 materialized script (`materializationFile`): a result that a run materializes is a new file of the result key of its
@@ -168,7 +168,7 @@ The result key of a script covers the keys of the scripts it references (`result
 cache results, a materialized script with a reusable cached key is served from the cache instead of running
 (`materialized` of the plan): the plan scans the newest file of its key. The cached result of the script is served
 when nothing it follows runs. Every other materialized script runs and writes its result as a new file of its key if
-the key is reusable, as a transient file otherwise (`ExecutionMounts.fileName`). A refresh of a script reads no cached
+the key is reusable, as a transient file otherwise (`fileName` of the `mounts` of the platform). A refresh of a script reads no cached
 results: the script and every script of its plan run, their results with reusable keys become the newest files of
 their keys.
 
@@ -187,8 +187,9 @@ it reads, `INLINE`, `SCAN`, `ATTACHMENT` or `INVALID`, the referenced script or 
 spans in the offset unit of the session of the script (`ScriptReferenceCheck` in `execution_graph.fbs`). The
 planner snapshots list the check under `checked-references`.
 
-The app checks the workbook whenever a name, a connection or an analysis of a script changes
-(`checkWorkbookScriptReferences`). The editor underlines the errors, shows them at the cursor and in the diagnostics
+The runtime checks the workbook whenever a name, a connection or an analysis of a script changes: the checked
+references are a buffer of the `workbookDerived` view (`Workbook::with_planner`, see
+[dashql_core.md](dashql_core.md#workbooks-and-scripts)). The editor underlines the errors, shows them at the cursor and in the diagnostics
 of the script (`dashql_script_references.ts`). A table parameter that reads a script with a result is a table
 reference of the analysis that resolves to the result: the cursor on it, on its alias or on a column of it highlights
 the reference and the columns like those of a table. The planner and the check of the script references skip these
@@ -200,12 +201,13 @@ table references, they read the script through the script reference.
 columns of every script of a workbook that is a single SELECT, in workbook order, then the columns of the attachments
 of the workbook, as table declarations of the reserved catalog entry `TABLE_PARAMETERS_ENTRY_ID`.
 Scripts on a cycle of references have no result, an attachment whose columns the host didn't read has no table.
-Every script session of the workbook holds the same table parameters (`DashQLTableParameters.publish`): the analyzer
+Every script session of the workbook holds the same table parameters (`Workbook::publish_table_parameters` in
+`workbook.rs` of the core runtime; a session outside the workbook takes them with `attachTableParameters`): the analyzer
 resolves a named table parameter that finds a table as a FROM source with its columns, named by its alias or the
 parameter name. The source yields its name to the other FROM items, like the planner renames its common table
 expression. A table parameter that is the target of a write, positional, ambiguous or names nothing with a table
 resolves nothing. An analysis that reads table parameters is current only with the table parameters it was analyzed
-with: the app publishes them after every change of the scripts and the attachments and analyzes the scripts again
+with: the workbook publishes them after every change of the scripts and the attachments and analyzes the scripts again
 whose analysis they outdate. The results of a script follow the results of the scripts it reads, they converge
 along the references.
 

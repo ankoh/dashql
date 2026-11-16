@@ -1,7 +1,8 @@
 # Native File Synchronization
 
 DashQL native workbooks live in user-owned directories. DashQL writes scripts and attachments to
-those directories through a debounced `StorageWriter`; users and external tools may also edit the
+those directories through the debounced storage writer of the runtime (`StorageWriter` of
+`packages/dashql-core-runtime/src/storage/writer.rs`); users and external tools may also edit the
 same files. Native file synchronization detects those external changes and offers to reload them into
 the running application without reopening the workbook.
 
@@ -60,8 +61,8 @@ workbook format version 7 removed the catalog copies from workbook folders. A fo
 or checked in may carry the catalogs of its connections in `connections/<id>/`. They seed the
 connections that are new to the app when the folder is imported and are ignored afterwards.
 
-The native workbook directory is resolved through `StorageReader.getWorkbookLocation`. Only locations
-with `StorageBackendType.Native` and a `nativePath` are checked.
+The runtime asks the storage of the platform for the folder of a workbook (`storage.workbookFolder`): only the
+workbooks that a `NativeStorageBackend` keeps have one, and only those are checked.
 
 ## Architecture
 
@@ -133,20 +134,20 @@ app stays and the next check asks again.
 
 ### Domain Reconciliation
 
-Workbook scripts reconciliation stays in
-`packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`:
+The reconciliation is Rust: `Workbook::matches_stored_scripts` and `Workbook::replace_from_storage` of
+`packages/dashql-core-runtime/src/workbook.rs`, applied by `Workbooks::replace_from_storage` of the bindings.
 
-- `WorkbookScriptsStorageSnapshot` is the storage-shaped boundary type.
-- `workbookScriptsMatchStorageSnapshot` detects differences in script order, connection and text.
-- `replaceWorkbookScriptsFromStorage` applies a complete snapshot without persistence side effects.
-- Scripts at an unchanged file path on the same connection retain their WASM script identity and query
-  history. A script that moved to another connection gets a new script session in that connection's catalog.
-- Added scripts allocate new WASM state; removed scripts are detached from the catalog before destruction.
-- Changed script text clears stale completion and pending-diff buffers.
-- The focused script is retained when its path still exists; otherwise focus falls back to the first
-  script in workbook order.
-- Any workbook change invalidates affected workbook analysis. Scripts are reanalyzed on
-  demand when an editor, execution, or diagnostics flow needs current analysis.
+- `matches_stored_scripts` compares the files in their order, their connections, their unresolved connections and
+  their texts.
+- `replace_from_storage` applies the stored scripts and writes nothing back. The first script of a name wins.
+- A script that stays at its file name on its connection keeps its session and its queries. A script that moved to
+  another connection gets a new session in the catalog of that connection and keeps its key.
+- Every new session is created before anything changes, a failure leaves the workbook as it is. A cloud preview
+  refuses the replace.
+- A changed text drops the staged diff. Any change outdates the analyses of all scripts, they analyze again when an
+  editor, a run or the diagnostics need them.
+- The selection is a state of the app (`workbook/scripts/script_selection.ts`): it stays with its script key, and
+  falls back to the first script when its script is gone.
 
 ## Check Protocol
 
@@ -212,7 +213,7 @@ version.
 
 ## Writer Coordination
 
-`StorageWriter` remains the authority for outbound writes. Native synchronization adds these narrowly
+The storage writer of the runtime makes every outbound write. Native synchronization adds these narrowly
 scoped capabilities:
 
 - **Holds with reasons:** a hold of the writer or of one workbook carries a reason (external change, reload, import,
@@ -288,7 +289,7 @@ Focused tests cover:
 Relevant Bazel targets:
 
 ```bash
-bazel test //packages/dashql-app:tsc_typecheck_test
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 bazel build //packages/dashql-native:compile
 ```

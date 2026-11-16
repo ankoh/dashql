@@ -107,10 +107,11 @@ hyperd.
      workbooks (`setHyperLinkToken`), a reload keeps both and closing the tab ends them,
   4. opens the open workbook if it runs on the connection, otherwise the first workbook on it, otherwise the greeter on
      the connection. The first script of the greeter creates the workbook.
-- **Connecting**: `V3_HTTP_LINK` connects like `V3_HTTP` (`setupHyperConnection`) with the token of the tab as
-  `authorization` header (`hyperLinkChannelParams`). Without a token the setup asks to open the link again. The
-  connection of an open workbook connects right away, as the embedded Hyper does, and again for every new link
-  (`useInitialMemorySetup`).
+- **Connecting**: `V3_HTTP_LINK` connects like `V3_HTTP` (`connection_setup/hyper.rs` of the core runtime) with the
+  token of the tab as `authorization` header (`hyper_link_channel_params` of `hyper/link.rs`); the platform hands the
+  token over with `channels.hyperLinkToken`. Without a token the setup asks to open the link again. The connection of
+  an open workbook connects right away, as the embedded Hyper does, and again for every new link
+  (`setUpOpenedWorkbook` of the runtime, `connections/open_setup.rs`).
 - **New workbooks**: `newWorkbookConnection` (`connections/embedded_connection.ts`) starts new workbooks on the
   connection of the latest link of the tab, otherwise on the embedded Hyper. A workbook has a single default
   connection, so the composer prompt and new scripts run on it. Detaching the connection falls back to the embedded

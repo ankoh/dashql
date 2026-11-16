@@ -291,8 +291,8 @@ export class Runtime {
     }
 
     /// Apply an action to a slice. It applies at once, the views follow with the next flush. A refused action is
-    /// logged. Never throws: the runtime refuses an action that it can't read. The handles that an action carries are
-    /// the runtime's from the call on, it releases the ones of a refused action.
+    /// logged. Never throws: the runtime refuses an action that it can't read, and a destroyed runtime refuses every
+    /// action.
     dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome {
         if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null };
         const outcome = this.module.dispatch(target, action);

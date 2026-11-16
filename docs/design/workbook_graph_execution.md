@@ -1,16 +1,14 @@
 # Workbook Graph Execution in the Core
 
-## Status
-
-Done. The runs of workbooks are a service of the core runtime (`packages/dashql-core-runtime/src/workbook_run/`): the
+The runs of workbooks are a service of the core runtime (`packages/dashql-core-runtime/src/workbook_run/`): the
 preparation of the scripts, the plan, the cached results, the schedule of the plan across its connections and the
-writes of a run. This records why the scheduler of a planned workbook run moved into the core.
+writes of a run.
 
-| Area | State |
+| Area | Where |
 |---|---|
-| Graph executor in `dashql-core-runtime` | Done, `workbook_run/engine.rs` |
-| The plan as a run reads it (statements, keys, skipped nodes) | Done, `workbook_run/plan.rs` |
-| Plan-shape guarantees in the planner | The run counts every pair of nodes once and fails a plan with a cycle |
+| The graph executor | `workbook_run/engine.rs` |
+| The plan as a run reads it (statements, keys, skipped nodes) | `workbook_run/plan.rs` |
+| Plan-shape guarantees | The run counts every pair of nodes once and fails a plan with a cycle |
 
 ## Background
 
@@ -29,10 +27,10 @@ it, at most a number of statements of a connection run at once, a failed stateme
 registers the queries, the results and the visualizations of the scripts on the workbook. See
 `docs/design/dashql_core.md`, Runs of workbooks.
 
-The host keeps what is a JavaScript value: the result tables, the files of the query result cache and the mounts of the
-embedded Hyper, the abort signals of the queries, the holds of workbooks and the state that the hooks of the app read.
+The platform keeps what is a JavaScript value: the result tables, the files of the query result cache and the mounts of
+the embedded Hyper. The holds of workbooks, the cancellation of the queries and the `run` views are Rust.
 
-## Why it moved
+## Why the core runs it
 
 - **One execution protocol.** The order of the statements and the scheduling come from the core, next to the planner
   whose invariants they rely on.
@@ -40,8 +38,7 @@ embedded Hyper, the abort signals of the queries, the holds of workbooks and the
   connections and "a failure stops new launches" are tested next to the planner (`tests/workbook_run_test.rs`).
 - **No round trip per completion.** The run awaits the statements itself, the app doesn't call into wasm to learn what
   is ready.
-- **The analyses of a run belong to the workbook.** The run analyzes the scripts on the workbook, the workbook no longer
-  takes the analyses of a TypeScript planner (`ApplyPlannerAnalysis` is gone).
+- **The analyses of a run belong to the workbook.** The run analyzes the scripts on the workbook.
 
 ## Files
 

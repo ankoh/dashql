@@ -263,7 +263,7 @@ Vega input path or SQL pushdown that sends Vega a reduced chart-specific result.
 The relevant Bazel targets are:
 
 ```bash
-bazel test //packages/dashql-app:tsc_typecheck_test
+bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 ```
 

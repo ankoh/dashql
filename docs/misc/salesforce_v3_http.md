@@ -1,9 +1,9 @@
 # Salesforce Query Service V3 HTTP API
 
 The client is `packages/dashql-core-runtime/src/hyper/client.rs` of the runtime (requests, status and error types), the
-query executor of the runtime runs queries on it: polling, chunk prefetching and errors. The channel of the app
-(`packages/dashql-app/src/connections/hyper/platform/web_hyperdb_http_client.ts`) only describes the endpoint and the
-auth headers.
+query executor of the runtime runs queries on it: polling, chunk prefetching and errors. The Salesforce channel of the
+runtime (`SharedSalesforceChannel` of `salesforce/shared.rs`) holds the endpoint and the tokens, the queries take the
+headers of its current Data Cloud JWT.
 
 ## Base Path
 

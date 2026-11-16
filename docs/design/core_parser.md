@@ -380,7 +380,7 @@ table parameter adds no FROM source, its columns stay unresolved like the column
 Locations are represented as `SymbolSpan { offset: uint32, length: uint32 }`.
 
 During **scanning**, offset/length refer to byte positions in the source text.
-During **parsing**, the parser remaps locations to **token indices**—each token is stamped with `SymbolSpan(next_token_index, 1)`.
+During **parsing**, the parser remaps locations to **token indices**—each token is stamped with `SymbolSpan::new(index, 1)`.
 This means parse-time `@N` locations reference positions in the token stream, not the source text.
 
 The scanner-phase byte locations are preserved in the `ScannerTokens` table (`token_offsets`, `token_lengths`) so downstream consumers can map back to source positions.

@@ -22,9 +22,9 @@ root `tsconfig.json` and the Vite config of the app for editors and the dev serv
 
 | Folder | Imported as | Holds |
 |---|---|---|
-| `src/core` | `@ankoh/dashql`, `/buffers`, `/browser-worker` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
+| `src/core` | `@ankoh/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
 | `src/runtime` | `@ankoh/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@ankoh/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
+| `src/platform` | `@ankoh/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@ankoh/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
@@ -60,33 +60,35 @@ breaks a rule:
   imports the app.
 - The package imports itself relatively, never as `@ankoh/dashql`, and no relative import leaves `src/`.
 - Only `core/` imports `@ankoh/dashql-wasm` and `@ankoh/dashql-flatbuffers`.
-- No module imports React, an editor, a UI library, a `.tsx` module or a bundler asset (`?url`, `?raw`, `.css`).
+- No module imports React, an editor, a UI library or a `.tsx` module.
 - In `runtime/` and `platform/`, only the modules of Node (`runtime/node`, `platform/node`) import `node:` and other
   modules of Node.
-- No module uses a seam that only a browser or a bundler provides (`import.meta.glob`, `navigator.storage`,
-  `new Worker`, the Electron bridge) unless it is listed in `KNOWN_SEAMS`: `platform/platform/opfs_root.ts` (the
-  origin private file system; Node hands a folder of the host through `setOPFSRootProvider`) and
-  `platform/platform/electron_fs.ts` (the file system of the desktop app). The specs of the client functions come
-  through `provideClientFunctionSpecs` of `platform/connections/clfn/clfn_specs.ts`: the app passes its
-  `import.meta.glob` in `connections/clfn/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
+- In `runtime/` and `platform/`, no module uses a seam that only a browser or a bundler provides (a bundler asset
+  `?url`, `?raw` or `.css`, `import.meta.glob`, `navigator.storage`, `new Worker`, the Electron bridge) unless it is
+  listed in `KNOWN_SEAMS`: `platform/platform/opfs_root.ts` (the origin private file system; Node hands a folder of
+  the host through `setOPFSRootProvider`) and `platform/platform/electron_fs.ts` (the file system of the desktop app).
+  The specs of the client functions come through `provideClientFunctionSpecs` of
+  `platform/connections/clfn/clfn_specs.ts`: the app passes its `import.meta.glob` in
+  `connections/clfn/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
+- The checks of the assets and the seams skip all of `core/` and every `*.test.ts`. The bindings load their Wasm in
+  Node and in the browsers on their own, e.g. `core/batch_worker_client.ts` uses `new Worker(`, and a test may stand
+  in for a platform.
 
 ### Type checks and editors
 
-- `:tsc_typecheck_test` checks the modules against the `WebWorker` lib (`tsconfig.bazel.json`): no `window`, no
-  `document`, no types of Node. An API of only one platform fails here.
-- `:tsc_typecheck_tests_test` checks the tests of the runtime and the platform with the globals of vitest
-  (`tsconfig.bazel.test.json`). The tests of the bindings run but are not type checked.
-- `:tsc_typecheck_node_test` checks `src/runtime/node` and `src/platform/node` against the types of Node
-  (`tsconfig.bazel.node.json`).
-- `:editor_config_test` keeps the `tsconfig.json` of the package extending the root one, and fails on an import that
-  is neither a path of the root `tsconfig.json` nor a dependency of the root `package.json`.
-- The dev server of the app aliases the sources and watches them: an edit arrives as a hot update, a build of the core
-  module replaces the glue and the Wasm and reloads the page.
+The modules type check against the `WebWorker` lib (`tsconfig.bazel.json`): no `window`, no `document`, no types of
+Node, so an API of only one platform fails. The tests of the runtime and the platform check with the globals of
+vitest, the modules of Node with the types of Node; the tests of the bindings run but are not type checked.
+`:editor_config_test` keeps the `tsconfig.json` of the package extending the root one. The targets are in
+[build_bazel_targets.md](../agents/build_bazel_targets.md).
+
+The dev server of the app aliases the sources and watches them: an edit arrives as a hot update, a build of the core
+module replaces the glue and the Wasm and reloads the page.
 
 ## Creating a runtime
 
 ```ts
-const runtime = createRuntime(platform);   // @ankoh/dashql/runtime/runtime
+const runtime = createRuntime(options);   // RuntimeOptions, @ankoh/dashql/runtime/runtime
 await runtime.restore();
 // ...
 await runtime.destroy();
@@ -125,10 +127,10 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `clock`, `log` | Time, timers, the log | `runtime.ts` |
 | `handles` | The handle table: `register`, `get`, `duplicate`, `release`, `close`, `abort` | `store/handles.ts` |
 | `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
-| `compute` | The compute database: import a table by handle, create a table from a SELECT, query, drop, cancel a run | `compute/compute_platform.ts` |
+| `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute/compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
-| `resultCache` | Lookup, read, write, touch, retain, release, import, list, remove, capacity | `query/query_channels.ts` |
+| `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release`, `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts` |
 | `mounts` | The files of runs in the compute database and the attachments, unmounted when their workbook is deleted | `workbook/scripts/run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
@@ -137,21 +139,21 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `archives` | The ZIP container and the Parquet files of the workbook tables | the factory of the platform |
 | `changed` | The state changed, `urgent` or not | the store |
 
-Every call into it catches: a member that throws or is missing fails the call of the service with an error, it never
-unwinds through the module. Once the module shut down (`shutdown`, below), it calls the platform object no more: a call
-fails, a timer never fires, and the effects on handles wait for the last changes.
+Every call into it catches: a member that throws or is missing fails the call of the service with a `HostError`, it
+never unwinds through the module (see [Errors](#errors)). Once the module shut down (`shutdown`, below), it calls the
+platform object no more: a call fails, a timer never fires, and the effects on handles wait for the last changes.
 
 ### The platforms
 
 | | Browser | Desktop app | Node |
 |---|---|---|---|
 | Created in | `RuntimeProvider` of the app | `RuntimeProvider` of the app | `createNodePlatform` (`runtime/node/node_platform.ts`), the CLI |
-| Scheduler | `FRAME_UPDATE_SCHEDULER` (microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (microtask, `setTimeout`) |
+| Scheduler | `FRAME_UPDATE_SCHEDULER` of the app (`utils/store_hooks.ts`: microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `setTimeout`) |
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
 | Storage | OPFS (composite backend of the app) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
-| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
+| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
 | Core Wasm | URL from the bundler | the same | the file of `@ankoh/dashql/wasm` (`platform/node/node_core.ts`) |
-| OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused; `dashql auth` is planned |
+| OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
 | Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | the CLI connects its embedded Hyper |
 | Archives | `createRuntimeArchives` | the same | none |
 
@@ -171,7 +173,7 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | `computation` | table id | The computation of a result: column groups, tasks, filters, orderings, searches, its tables as handles |
 | `connectionList` | `'root'` | The connections in order, whether listed and their ordinals, the ids by connector |
 | `connection` | connection id | Connector, params, draft, details with the channel as a handle, health, status, the setup, catalog updates and version, `catalogId`, the queries, the workbooks that use it, the save, token summaries |
-| `history` | name | A history without a connection; no action creates one since the shell runs on its connection |
+| `history` | name | A history without a connection, by its name. No command creates one: the shell runs on its connection |
 | `query` | query id | Status, metadata, metrics, error, the latest progress with the structured progress as FlatBuffers by key, the result table as a handle |
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |
@@ -185,10 +187,12 @@ A parent lists the ids of its children, not their revisions: a keystroke changes
 
 ### Changes and the flush
 
-1. A service that changes a slice marks it on the platform (`JsPlatform::changed` in Rust), which calls
-   `platform.changed(urgent)` once until the store takes the changes. The events of a query between its start and its
-   end (progress, batches, the result, the analysis, the cache) are not urgent, nor are the computations; everything
-   else is.
+1. A service that changes a slice marks it on the platform (`JsPlatform::changed` or `mark` and `signal` in Rust),
+   which calls `platform.changed(urgent)` once until the store takes the changes, and again when a change turns
+   urgent. Not urgent are the events of a query other than its registration, `Sending` and its end (succeeded,
+   failed, cancelled), so its progress, its batches and its result wait for the frame; the steps of the tasks of a
+   computation; a refreshed token of a connection; the releases of handles; and the slices that were busy or that the
+   host asked for again. Everything else is urgent: actions, setups, workbooks, runs, the storage.
 2. The store flushes at the end of the task when urgent, before the next frame otherwise (`RuntimeStore.changed` over
    the `UpdateScheduler`). `flush()` flushes at once, e.g. for the command line tool and the tests.
 3. `takeChanges()` returns the marked slices, `{ kind, id, revision }` with a null revision for a slice that is gone,
@@ -215,8 +219,12 @@ can't be read, keeps the previous views, and the store asks for the slices again
 times in a row; then it drops the slice until it changes. Changes that fail to cross to the host come again with the
 next `takeChanges`.
 
-Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush. The typed
-commands of the facade flush the store once they settled (`settled` of `runtime.ts`).
+Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush. The commands of
+the facade that wait for the state of the module flush the store once they settled (`settled` of `runtime.ts`):
+`analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`, `restore`, `restoreWorkbook`,
+`deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `refreshAttachments`, `runWorkbook`, `runScript` and
+`commitImport`. `createConnection`, `createWorkbook` and `deleteWorkbook` flush right after their action. The others,
+e.g. `execute`, `cancel`, `authenticateSalesforce`, the exports and `readImport`, leave the views to the next flush.
 
 ### The store and its projections
 
@@ -239,6 +247,20 @@ A projection may pass the keys of the payloads it holds (`known`), the module le
 views as the app reads them are in `src/platform` (`connections/connection_state.ts`,
 `query/query_execution_state.ts`, `workbook/scripts/workbook_scripts.ts`, `compute/computation_types.ts`).
 
+A new view kind:
+
+1. The view, a Rust struct with `Serialize` and `Tsify` next to the bindings of its domain.
+2. The kind in `runtime.rs`: a constant, an entry of `RuntimeViews` in the TypeScript section (id, view, known keys)
+   and an arm of `read_views` that reads with `try_borrow` and returns `Read::Busy` for a borrowed state.
+3. The marks in `runtime/changes.rs`: a `Slice` variant with its field in `Dirty` (`mark`, `merge`, `is_empty`), a
+   field of `Changes` at its place in the order of the kinds (`of`, `into_vec`), what the host took in `Taken`, a take
+   that compares the revisions of the objects or moves the slice with a new revision, and an arm of
+   `resync_slices`. Every change of the state marks the slice.
+4. Optionally a `ViewProjection` (`store/runtime_store.ts`: `project`, `known`, `release`) passed to `store.attach`
+   in `runtime.ts`, with its type in `ProjectedViews`. Without one the store shares the view with the previous one.
+5. A hook in `runtime_hooks.tsx` of the app, a one-line alias of `useView(kind, id)`.
+6. The tests: the marks in the unit tests of the wasm crate, the views in `runtime_changes.test.ts`.
+
 ### Dispatch
 
 ```ts
@@ -250,9 +272,21 @@ runtime.dispatch(target, action): DispatchOutcome
 - **Actions** are one generated union, `RuntimeAction` of `runtime.rs`, adjacently tagged: `{ kind: 'setScriptText',
   value: { ... } }`. They are synchronous changes of state, e.g. `createScript`, `setScriptText`, `showScript`,
   `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The queries run with `execute`, never by actions.
-- **The outcome** is `{ ok, changed, error, id }`: `id` names what the action created (a workbook, a
-  connection). A failed action leaves the state as it was; the facade logs a refused action, once.
-- **Never throws.** A malformed target or action is a failed outcome like a refused action.
+- **The outcome** is `{ ok, changed, error, id }` (`DispatchOutcome`): `id` names what the action created (a workbook,
+  a connection). A failed action leaves the state as it was; the facade logs every refused action as a warning.
+- **Never throws.** A malformed target or action is a failed outcome like a refused action, and so is a dispatch
+  after `destroy`.
+
+A new action:
+
+1. A variant of `RuntimeAction` in `runtime.rs`, with doc comments, they become the declarations.
+2. An arm in the dispatch of its target: `dispatch_action` for a computation, `dispatch_connection` (or
+   `dispatch_query` for the queries of its history), `dispatch_workbook`, which maps it to a `WorkbookAction` of
+   `workbook.rs` that `Workbooks::apply` settles, or `dispatch_app`.
+3. Its outcome: `DispatchOutcome::changed(changed)`, `created(id)` or `failed(error)`. The service marks what it
+   changed, a workbook action through `Workbooks::settle`.
+4. A test in the crate (`tests/workbook_test.rs` for a workbook) and a step in the property test of
+   `runtime_changes.test.ts`, which checks that every view the action changed is named.
 
 ### Commands
 
@@ -281,8 +315,8 @@ Everything else the app and the CLI call on the module directly (`runtime.module
 `Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
 
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects
-with `the runtime was destroyed`, `dispatch` fails, a command without a result does nothing, and the storage commands
-do nothing. A wait for a compute database that never came up ends. `shutdown()` of the module owns the order: the
+with `the runtime was destroyed`, `execute` returns a rejected promise, `dispatch` fails, a command without a result
+does nothing, and the storage commands do nothing. A wait for a compute database that never came up ends. `shutdown()` of the module owns the order: the
 runs stop, the catalog loader stops, the writes into the query result cache and the pending writes of the storage
 finish, then the imports are dropped, the setups and queries cancelled and the computations deleted, and the platform is
 fenced. The store then takes the last changes, the projection of the scripts destroys its session handles, the module is
@@ -300,6 +334,28 @@ the handle table in a task of its own; a closed object keeps its handle until th
 handle that is gone: the store forgets the released and closed handles after it read the views of the flush, and keeps
 them while a slice holds an older view, busy or asked for again; the runtime keeps the releases while a slice was busy
 when the store took the changes. Every effect tells the host. `HandleTable.apply` runs every effect even if one throws.
+
+### Errors
+
+- **`dispatch` never throws.** A malformed target or action, a refused action and a dispatch after `destroy` are a
+  failed `DispatchOutcome` with its `error`.
+- **The synchronous methods of the module** throw a `JsError` on bad arguments, e.g. an id that is no integer or an
+  option that doesn't deserialize, and on a state that a task holds (`the state is busy`). The facade catches
+  `applyEditorEvent`, logs it and returns null.
+- **The commands** report failure in their result. `analyzeTable`, `restore`, `restoreWorkbook`, `attachFiles`,
+  `renameAttachment`, the imports and exports and the storage commands reject with the error of the task or with what
+  the platform failed with. `setupConnection` and `authenticateSalesforce` resolve with their `SetupOutcome`, a
+  failure is in the view of the connection and the log. `runWorkbook` and `runScript` resolve with `{ outcome, error }`.
+  `executeQuery` resolves with a `QueryRunOutcome`: `rejected` carries a `QueryRunFailure` (`error`, `cancelled`,
+  `cacheMiss` or `processing`, with `hostValue`) and the value; `execute` of the facade rejects with that value when
+  `hostValue` is set, else with a `QueryCacheMissError`, the reason of the abort signal or a `LoggableException`.
+- **A host call that fails** is a `HostError` in Rust (`host/mod.rs` of the core runtime): its message and the value
+  that JavaScript failed with, which goes back unchanged (`host_value` of `host.rs`). A cancelled call is
+  `HostError::cancelled()` (`is_cancelled()`), a call whose target is gone is `HostError::unavailable` (a
+  `WorkbookFolderMissingError` of the storage, the storage writer stops retrying it), a write onto a file that changed
+  outside the app is an external script change (an `ExternalScriptChangeError`).
+- **A panic** aborts the module, see [dashql_core.md](dashql_core.md#the-core-module). The runtime crates deny
+  panicking code.
 
 ### Results stay in JavaScript
 
@@ -350,7 +406,7 @@ it over, and only the latest lease resets the connection when it closes.
   `useWorkbookScriptMap`, `useConnections`, `useConnectionViews`, `useAllQueries`); and hooks over a slice and a
   command (`useQueryProgress`, `useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`,
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
-  changes. The facade logs a refused dispatch.
+  changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
 - **What the app keeps** is about the user interface: the script selection (`workbook/scripts/script_selection.ts`),
   the drafts of connection forms (`connections/connection_draft.ts`), the state of a save
   (`connections/connection_persistence.tsx`), creating and deleting workbooks with the selection
@@ -381,7 +437,8 @@ it over, and only the latest lease resets the connection when it closes.
    (`runs/cached_results.rs`).
 
 The editors tell the runtime which scripts they show (`showScript`, `hideScript`): an outdated selected script is
-analyzed right away, the other shown ones once the changes pause for 150 ms (`visible_scripts.rs`).
+analyzed right away, the other shown ones once the changes pause, see
+[dashql_core.md](dashql_core.md#workbooks-and-scripts).
 
 ## Node and the command line tool
 
@@ -401,8 +458,9 @@ the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
   with locks of the process: a root that two processes use at once is not protected.
 - **The embedded Hyper in Node.** `hyperdb-wasm` is a wasm64 build with 64-bit memory, 64-bit tables and Wasm
   exceptions with `exnref`. Node 24.15 and later run it without flags; earlier Node 24 releases need exnref, which
-  `checkWasmFeatures` of `@ankoh/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles, since
-  Node refuses V8 flags in `NODE_OPTIONS`. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
+  `checkWasmFeatures` of `@ankoh/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag
+  on the command line would break approving the command by its prefix, and the worker of the engine gets the flag
+  too. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
   (JavaScriptCore has no memory64). The CLI loads `hyperdb-wasm` only in commands that need it, so the commands without
   Hyper run on Node 22 (`engines: node >=22`).
 - **Agent sessions.** `dashql session serve` and the journal of a session are in
@@ -414,34 +472,23 @@ the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
 `npm/package.json`. `:bundle` builds `dist/` with `npm/build.mjs`: Vite builds the modules of `src/` without tests, test
 helpers and mocks, every module keeps its path, tsc writes the declarations next to them, and the generated packages and
 the library of hyperdb-edge, which are not on npm, are inlined (`dist/wasm`, `dist/gen/<name>`, `dist/hyperdb-edge`).
-
-| Export | Module |
-|---|---|
-| `.` | `dist/core/index.js`, the bindings |
-| `./buffers`, `./browser-worker`, `./batch-worker` | The FlatBuffers, the browser worker and its script |
-| `./wasm`, `./dataflow-wasm`, `./wasm/glue` | The Wasm of the core and of the dataflow layout, the glue of the core |
-| `./runtime` | `dist/runtime/runtime.js`, `createRuntime` |
-| `./node` | `dist/runtime/node/node_platform.js`, `createNodePlatform` |
-| `./runtime/*`, `./platform/*` | Every module of `src/runtime` and `src/platform` |
+The exports mirror those of the source package and are listed in
+[packages/dashql/README.md](../../packages/dashql/README.md).
 
 Its dependencies are `flatbuffers`, `apache-arrow`, `@bufbuild/protobuf`, `immutable` and `@zip.js/zip.js`;
 `hyperdb-wasm` and `vega-lite` are optional peers. `:tarball_consumer_test` installs the archive like a consumer and
 checks its files, the exports of the bindings in Node and their declarations for `NodeNext`; `:node_smoke_test` runs the
 bindings and a runtime over the platform of Node from `dist/`; `//packages/dashql/test/browser` runs the bindings of the
-archive in Chromium and Firefox. The CLI's package on npm depends on it for the Wasm of the core. More in
-[packages/dashql/README.md](../../packages/dashql/README.md).
+archive in Chromium and Firefox. The CLI's package on npm depends on it for the Wasm of the core.
 
 ## Tests
 
-Every feature of the runtime runs, and is tested, in Node and in the browsers.
-
-| Target | Runs |
-|---|---|
-| `//packages/dashql:test_core_node` | The tests of the bindings (`src/core`) in Node, among them the runtime of the module without the facade (`runtime_workbooks.test.ts`, `runtime_connections.test.ts`, `runtime_imports.test.ts`, `runtime_changes.test.ts`) |
-| `//packages/dashql:test_runtime_node`, `:test_platform_node` | The tests of `src/runtime` and `src/platform` in Node (a vitest project per folder of `vitest.config.mjs`) |
-| `//packages/dashql/test/browser:all` | The tests of the bindings and of the package on npm in Chromium and Firefox |
-| `//packages/dashql-app:test_chromium`, `:test_firefox` | The browser tests of the app, which also run the tests of `src/runtime` and `src/platform` (`:browser_test_files` of the package) |
-| `//packages/dashql-cli:test`, `:binary_test` | `dashql run` against a fake Trino and the embedded Hyper, and the bundle |
+Every feature of the runtime runs, and is tested, in Node and in the browsers. In Node, `:test_core_node`,
+`:test_runtime_node` and `:test_platform_node` of `//packages/dashql` run the tests of the three folders (a vitest
+project per folder of `vitest.config.mjs`); the tests of the bindings include the runtime of the module without the
+facade (`runtime_*.test.ts` of `src/core`). In the browsers, `//packages/dashql/test/browser:all` runs the bindings
+and the package on npm, and the browser tests of the app run the tests of `src/runtime` and `src/platform` as well
+(`:browser_test_files` of the package). The targets are in [build_bazel_targets.md](../agents/build_bazel_targets.md).
 
 - **Names.** A test runs in Node and in the browsers. `*.node.test.ts` runs only in Node, e.g.
   `node/node_file_system.node.test.ts`; `*.browser.test.ts` only in the browsers, e.g.

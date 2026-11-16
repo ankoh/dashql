@@ -228,7 +228,7 @@ tests share its OPFS. They keep every file in `tests/` instead of the OPFS root:
 `setOPFSAppFolder('tests')` before it loads a test, `getOPFSRoot()` then returns `tests/` and `hyperOPFSRoot()`
 returns `/mnt/fs/tests`, the test engine logs to `tests/logs/`. App code never calls
 `navigator.storage.getDirectory()` or writes `/mnt/fs` itself, it goes through these two functions of
-`src/platform/opfs_root.ts`. Test databases live in an instance folder of the frame, see `testDatabasePath()`. The
+`src/platform/platform/opfs_root.ts`. Test databases live in an instance folder of the frame, see `testDatabasePath()`. The
 cleanup of the app lists `tests/` as files of the browser tests.
 
 ## Versions and migrations

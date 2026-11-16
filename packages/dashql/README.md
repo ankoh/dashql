@@ -56,7 +56,7 @@ module-worker environment. `./batch-worker` is the script of the worker itself.
 
 ## The runtime
 
-`@ankoh/dashql/runtime` exports `createRuntime(platform)`, the runtime of DashQL over the runtime object of the core
+`@ankoh/dashql/runtime` exports `createRuntime(options)`, the runtime of DashQL over the runtime object of the core
 module, and `@ankoh/dashql/node` exports `createNodePlatform`, its platform in Node:
 
 ```ts
@@ -102,8 +102,8 @@ No ambient type shim or extra runtime dependency is installed by this package.
 
 Serve the package's `dist` directory intact or use a bundler that preserves
 module-worker and `new URL(..., import.meta.url)` assets. The `./wasm` subpath
-exports the binary; `./wasm/glue` exports the wasm-bindgen glue for custom
-loading. No application-specific aliases or test globals are required.
+exports the binary of the core, `./dataflow-wasm` the one of the dataflow layout; `./wasm/glue` exports the
+wasm-bindgen glue for custom loading. No application-specific aliases or test globals are required.
 
 ## Bazel
 

@@ -113,18 +113,18 @@ The in-scope column ranks first. The table ranks below the identity candidate be
 
 ### `select * fr` with column `from_sql` in scope
 
-| Candidate       | Base | SUBSTRING | PREFIX | KW_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
+| Candidate       | Base | SUBSTRING | PREFIX | KEYWORD_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
 |-----------------|------|-----------|--------|--------------------|-----------|----------|-------|
 | `from` (keyword)| 0    | 30        | 5      | 20                 | 4         | 0        | **59**|
 | `from_sql` (col)| 20   | 30        | 5      | 0                  | 0         | 10       | **65**|
 
-`KW_SUBSTRING_BONUS` is the +20 combo bonus that fires when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set.
+`KEYWORD_SUBSTRING_BONUS` is the +20 combo bonus that fires when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set.
 The column still wins here because it is in scope.
 But once the user completes the full word `from`, the exact match modifier fires:
 
 ### `select * from` with column `from_sql` in scope
 
-| Candidate       | Base | SUBSTRING | PREFIX | EXACT | KW_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
+| Candidate       | Base | SUBSTRING | PREFIX | EXACT | KEYWORD_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
 |-----------------|------|-----------|--------|-------|--------------------|-----------|----------|-------|
 | `from` (keyword)| 0    | 30        | 5      | 15    | 20                 | 4         | 0        | **74**|
 | `from_sql` (col)| 20   | 30        | 5      | 0     | 0                  | 0         | 10       | **65**|
@@ -159,13 +159,13 @@ In TABLE_REF (identity=50):
 - Non-matching table: 20 + 2 = 22 < 50, identity wins ✓
 
 In TABLE_REF_ALIAS (identity=50):
-- Prefix-matching keyword (WHERE): KW_SUBSTRING_BONUS(20) + SUBSTRING(30) + PREFIX(5) + KEYWORD_A(4) = 59 > 50 ✓
+- Prefix-matching keyword (WHERE): KEYWORD_SUBSTRING_BONUS(20) + SUBSTRING(30) + PREFIX(5) + KEYWORD_A(4) = 59 > 50 ✓
 - Non-matching keyword: 0 < 50, identity wins ✓
 
 In COLUMN_REF (identity=59):
 - In-scope column with substring match: 20 + 30 + 10 = 60 > 59 ✓
 - Out-of-scope column prefix-only: 20 + 30 + 5 = 55 < 59, identity wins ✓
-- Best keyword (KEYWORD_A + KW_SUBSTRING_BONUS + substring + prefix): 4 + 20 + 30 + 5 = 59, tie broken lexicographically
+- Best keyword (KEYWORD_A + KEYWORD_SUBSTRING_BONUS + substring + prefix): 4 + 20 + 30 + 5 = 59, tie broken lexicographically
 
 ## Definition positions
 

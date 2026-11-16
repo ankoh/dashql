@@ -38,8 +38,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
   The generated glue and the Wasm reach TypeScript as `@ankoh/dashql-wasm` (`//packages/dashql:dep_wasm`), the
   declarations of the glue import the FlatBuffers as `@ankoh/dashql-flatbuffers`.
 - **Release.** `--config=release` builds with `-c opt`, `-Copt-level=3` and stripping, and `optimize_wasm`
-  (`bazel/wasm_tools.bzl`) runs `wasm-opt -O3` and `wasm-strip`; a dev build copies the module unchanged. The release
-  module is in the order of 14 MB, about 4 MB with gzip.
+  (`bazel/wasm_tools.bzl`) runs `wasm-opt -O3` and `wasm-strip`; a dev build copies the module unchanged.
 - **One module.** The runtime is linked into the core module. A module of its own would duplicate the core and split
   the catalogs: the workbook owns the script sessions and the catalogs of its connections as plain Rust values, `Drop`
   frees them, and calls into the core are function calls.
@@ -83,7 +82,7 @@ marks are `runtime/changes.rs`.
   connection of its scripts with the catalog, its latest editor update, its staged rewrite, its query ids and its cached
   result, plus the attachments and the table parameters. An action changes the workbook in place and returns
   `WorkbookEffect`s, the writes of the storage writer under the keys of the workbook. A failed action leaves the
-  workbook unchanged.
+  workbook as it was, but for the scripts that analyzed on the way, which show their analyses.
 - **The runtime holds the workbooks** in the order they were registered, with the metadata of their workbook files that
   a workbook doesn't keep, and the workbooks that the restore refused. An action names a connection by id; the runtime
   gives the scripts the `ScriptConnection` of that connection (`restore::script_connection_of`), one per connection and
@@ -141,11 +140,16 @@ marks are `runtime/changes.rs`.
 ### Connections, setups and channels
 
 - **The registry** (`connections/registry.rs`) holds the connections in the order they were registered with the
-  histories of their queries, the histories without a connection by name (the shell's keeps 100 queries), and hands
-  out all query ids from one sequence. A connection that workbooks use is never deleted, the embedded Hyper is never
+  histories of their queries and the histories without a connection by name, and hands out all query ids from one
+  sequence. A history keeps every query of the user and the latest 100 finished internal queries
+  (`INTERNAL_QUERY_HISTORY_LIMIT`); the shell runs on its connection, its queries are in the history of that
+  connection. A connection that workbooks use is never deleted, the embedded Hyper is never
   deleted.
 - **A connection owns its catalog**; `Runtime.catalog` hands out a read-only handle of it. The script with the
   functions of the connection stays in Rust.
+- **The connectors** (`ConnectorType` of `connections/params.rs`) are Hyper (the embedded Hyper, Hyper servers over
+  HTTP or gRPC, the Hyper of a link), Salesforce Data Cloud, Trino and Database.com (`Dbcom`), which behaves like
+  Salesforce Data Cloud.
 - **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,
@@ -176,11 +180,11 @@ marks are `runtime/changes.rs`.
   auth, the defaults and the access token), Hyper over HTTP and the Hyper of a link (the HTTP channel with the headers
   of its requests, the token of a link only in memory), and the Hyper of Salesforce (`SharedSalesforceChannel`: the
   HTTP API of the Data Cloud tenant with the tokens of the login, the queries take the headers of the current Data
-  Cloud JWT). Only the embedded Hyper and Hyper over gRPC are objects of the host that the platform connects
-  (`channels.connect`) and keeps under a handle. The tokens of Trino and Salesforce refresh once for every caller in a
-  task of their own that runs to its end or times out after 30 s (Trino with the refresh token of its OAuth token,
-  Salesforce with the refresh token of the core login and a new Data Cloud exchange); a failed refresh is logged and
-  fails the connection that is online (`ConnectionAction::TokenRefreshFailed`).
+  Cloud JWT; Database.com too). Only the embedded Hyper and Hyper over gRPC are objects of the host that the platform
+  connects (`channels.connect`) and keeps under a handle. The tokens of Trino and Salesforce refresh once for every
+  caller in a task of their own that runs to its end or times out after 30 s (Trino with the refresh token of its
+  OAuth token, Salesforce with the refresh token of the core login and a new Data Cloud exchange); a failed refresh
+  is logged and fails the connection that is online (`ConnectionAction::TokenRefreshFailed`).
 - **Health checks** run the probe of the connector as a query of the connection (`check_health`), so it shows in the
   query viewer. The embedded Hyper is online with its channel and runs no probe.
 - **Opened workbooks.** `setUpOpenedWorkbook` sets up the connections of an opened workbook that need nothing of the
@@ -208,7 +212,8 @@ marks are `runtime/changes.rs`.
 - **The executor** (`executor/`, `QueryExecutor::execute`) serves a result from the cache or sends the query, reports
   `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core script crate),
   analyzes the result on the computations and writes it into the cache, also when only the analysis failed. The
-  history applies the start and the end of a query as urgent changes, the rest with the next frame. It decides the
+  history applies the start and the end of a query as urgent changes, the rest with the next frame (see
+  [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the
   latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
   was cancelled or failed keeps no result in the history.
 - **A query that the caller failed** (`executeQuery` with a failure) is recorded as failed with it and nothing of it
@@ -343,11 +348,13 @@ its timer when dropped), tasks (`spawn`) and the log. A service adds a trait for
 
 A host call that fails returns a `HostError`, the error of the task: it keeps what the host failed with and hands it
 back unchanged. A call that was cancelled fails with `HostError::cancelled()`, the code asks `is_cancelled()` and
-never matches the text of a message. A `CancellationToken` keeps one waker per future that waits for it and drops it
+never matches the text of a message. How errors reach the callers is in
+[Errors](dashql_runtime.md#errors). A `CancellationToken` keeps one waker per future that waits for it and drops it
 with the future, so a token that lives long gathers nothing. `host::signal` has a value sent once and a future that can be cancelled.
 
 **Shutdown.** `Runtime::shutdown` of the module stops the runs and the catalog loader, waits for the writes into the
-query result cache and the pending writes of the storage, drops the imports, cancels the setups and the queries, deletes
+query result cache and the pending writes of the storage, drops the imports and the checks of folders that change
+outside the app, cancels the setups and the queries, deletes
 the computations and fences `JsPlatform` (`fence`): from then on every call of the platform fails, a timer never fires
 and a task that wakes up later ends at its next call. The host takes the last changes and frees the module.
 
@@ -361,6 +368,18 @@ slices and calls `changed(urgent)`.
 
 The tests of the crate implement the traits over fakes: an executor of a single thread, a clock that only the test
 advances, a storage and a compute database in memory.
+
+A new host call, e.g. `channel_cancel` of the executor:
+
+1. The member in the TypeScript section of `host.rs` (`RuntimePlatform` and its groups, `RuntimeChannels.cancel`),
+   with a doc comment.
+2. A method of `JsPlatform` that calls it through `call`/`settled` and returns `Result<_, HostError>`; a value that
+   doesn't read is a `HostError` too. Once the platform is fenced, the call fails.
+3. A method of the host trait of the service in `dashql-core-runtime` (`ExecutorHost::channel_cancel` of
+   `executor/mod.rs`), with no `Send` bound, and its fake in the tests of the crate (`tests/executor_test.rs`).
+4. The implementation of the trait in the bindings over `JsPlatform` (`QueryHost` of `runtime/queries.rs`).
+5. The platform side in TypeScript: the member of the platform object that `Runtime.modulePlatform` builds
+   (`query/query_channels.ts`), and the fakes of the tests of the bindings (`core/test_fixture.ts`).
 
 ## The rules
 
@@ -389,19 +408,15 @@ The DOM, I/O and things that cross per value stay in TypeScript: fetch, OPFS, We
 archives (zip.js), the compilation of chart specs (vega-lite), the formatting of cells (`Intl`), React and CodeMirror.
 A port to Rust crosses per operation, never per value; never panics on engine input; names its offset unit (the editor
 APIs count UTF-16 code units, the core UTF-8 bytes); and keeps within the budget of the main thread, since a call into
-the core blocks it. The geometry of the query profile (`views/query_profile/profile_scene.ts`, `ui/graph/graph_edges.ts`
-of the app) is the largest pure piece of TypeScript that could move next to `profile_layout.rs`.
+the core blocks it.
 
 ## Tests
 
-| Target | Tests |
-|---|---|
-| `//packages/dashql-parser:all`, `//packages/dashql-core:all`, `//packages/dashql-core-script:all`, `//packages/dashql-core-profile:all` | The language, sessions and profiles, with the snapshot tests of `tests/snapshots` |
-| `//packages/dashql-core-runtime:all` | The services on fake hosts (`tests/*_test.rs`: workbooks, the planner, connections, setups, the executor, Trino, Hyper, client functions, computations, the catalog loader, runs, the storage writer, the restore, the workbook format and migrations), the planner and dataflow snapshots, the Hyper validation of the planner, Clippy |
-| `//packages/dashql-core-wasm:all` | The parts of the bindings that call no JS on the host (the change marks), Clippy |
-| `//packages/dashql:test_core_node` | The bindings and the runtime of the module in Node, see [dashql_runtime.md](dashql_runtime.md#tests) |
-
-New core outputs get snapshot tests, derived graphs come from the analyzer and the planner. How to run them is in
+The services are tested on fake hosts in `packages/dashql-core-runtime/tests/*_test.rs`, one file per service, with
+the planner and dataflow snapshots and the Hyper validation of the planner. The bindings test the parts that call no
+JS (the change marks) on the host; the runtime of the module runs in Node in the tests of the bindings, see
+[dashql_runtime.md](dashql_runtime.md#tests). New core outputs get snapshot tests, derived graphs come from the
+analyzer and the planner. The targets and how to run them are in
 [build_bazel_targets.md](../agents/build_bazel_targets.md).
 
 ## Further reading

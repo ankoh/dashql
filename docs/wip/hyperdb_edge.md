@@ -291,7 +291,7 @@ Findings from building them:
 
 Not built yet:
 
-- **A real model, manual**, like `//packages/dashql-cli:bridge_harness_test`: a few tasks over fixture files through
+- **A real model, manual**: a few tasks over fixture files through
   the Tool Runner, checking the answer and the SQL the model wrote (`pg_catalog` instead of `information_schema`,
   `EXPLAIN (ANALYZE)` with parentheses, qualified names while a second database is attached). It checks the texts of
   `describe`, which no fake model can, and decides whether the tools return the table format or JSON lines.

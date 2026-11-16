@@ -82,7 +82,7 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
 
 A new workbook starts on the connection of the latest Hyper link of the tab, otherwise on the embedded Hyper
 (`newWorkbookConnection`). A cloud is no default, the app may have several. Within a workbook, a new script keeps taking the connection of its
-neighbor or the pending connection of the workbook (`newScriptConnection`). The fallbacks for connections that are
+neighbor or the pending connection of the workbook (`CreateScript` of the workbook in the core runtime). The fallbacks for connections that are
 missing stay on the embedded Hyper: a workbook whose connection is gone, attachments, and the compute of data frames.
 
 ## Published Workbooks

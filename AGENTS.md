@@ -30,16 +30,17 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
 - The DashQL runtime (`packages/dashql`, `@ankoh/dashql`: the TypeScript side of the runtime, one source package with
-  `src/core` (the bindings of the core module), `src/runtime` (`createRuntime(platform)`, the `Runtime` facade, the
-  store of its views, the adapters of its platform) and `src/platform` (browser, desktop app and Node, storage, OAuth,
-  connector clients); the folder rules and `//packages/dashql:boundary_test`; views, `takeChanges`, `dispatch`, handles;
-  the hooks of the app in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; Node, the package on npm; where tests go:
+  `src/core` (the bindings of the core module), `src/runtime` (`createRuntime(options)` with `RuntimeOptions`, the
+  `Runtime` facade, the store of its views, the adapters of its platform) and `src/platform` (browser, desktop app and
+  Node, storage, OAuth, connector clients); the folder rules and `//packages/dashql:boundary_test`; views, `takeChanges`,
+  `dispatch`, handles, the errors, `destroy`; how to add a view kind or an action; the hooks of the app in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; Node, the package on npm; where tests go:
   `*.node.test.ts`, `*.browser.test.ts`, a test that creates a runtime goes in `src/runtime`; the typing benchmark)
     - `docs/design/dashql_runtime.md`
 
 - The DashQL core (the Rust crates and how they fit, the core module and its release build, the runtime in Rust:
   workbooks, connections with setup epochs, channels and tokens, queries and the executor, computations, the catalog
-  loader, runs, the storage writer, restore, the workbook format; the `Host` traits and `JsPlatform`; async without
+  loader, runs, the storage writer, restore, the workbook format, `shutdown`; the `Host` traits, `JsPlatform`, `HostError`
+  and how to add a host call; async without
   `Send`, no borrow across an await, no panics, enforced by `clippy_test` and `//bazel:rust_safety_lints`)
     - `docs/design/dashql_core.md`
 
