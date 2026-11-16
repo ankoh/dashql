@@ -24,8 +24,9 @@ use crate::clfn::{
     start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
 };
 use crate::connections::DetailedError;
+use crate::host::signal::Receiver;
 use crate::host::{timeout, HostError, LogLevel};
-use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpResponse};
+use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpHost, HttpResponse};
 use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
@@ -261,19 +262,21 @@ fn fetch_outcome(result: Result<HttpResponse, HostError>) -> FetchOutcome {
 /// How long a refresh of the access token of a Trino channel may take, a refresh that takes longer fails
 pub const TRINO_TOKEN_REFRESH_TIMEOUT_MS: f64 = 30.0 * 1000.0;
 
-/// Make sure that the access token of a shared Trino channel is fresh before a request. A token about to expire is
-/// refreshed once for every query of the channel: the first query starts the refresh in a task of its own that runs to
-/// its end or times out, so a cancelled query never drops a refresh that others wait for. The channel keeps the new
-/// token, a failed refresh is logged and the host hears how it ended. None if the query was cancelled while it waited.
-async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel) -> Option<Result<(), TrinoError>> {
-    let host = context.host.clone();
-    let refreshed = match channel.check_token(host.now() as i64) {
-        TokenCheck::Fresh => return Some(Ok(())),
-        TokenCheck::Pending(refreshed) => refreshed,
+/// Start or join the refresh of the access token of a shared Trino channel, none if the token is fresh. The first
+/// caller starts the refresh in a task of its own that runs to its end or times out, so a caller that goes away never
+/// drops a refresh that others wait for. The channel keeps the new token, a failed refresh is logged, `on_end` hears
+/// how the refresh that this caller started ended.
+fn refresh_trino_token<H: HttpHost>(
+    host: &Rc<H>,
+    channel: &SharedTrinoChannel,
+    on_end: impl FnOnce(Result<(), DetailedError>) + 'static,
+) -> Option<Receiver<Result<(), TrinoError>>> {
+    match channel.check_token(host.now() as i64) {
+        TokenCheck::Fresh => None,
+        TokenCheck::Pending(refreshed) => Some(refreshed),
         TokenCheck::Started { request, refreshed } => {
             let channel = channel.clone();
             let task_host = host.clone();
-            let run = context.run.clone();
             host.spawn(Box::pin(async move {
                 let fetched = timeout(&*task_host, TRINO_TOKEN_REFRESH_TIMEOUT_MS, task_host.fetch(request, &CancellationToken::new())).await;
                 let outcome = match fetched {
@@ -284,13 +287,46 @@ async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel:
                 if let Err(error) = &finished {
                     task_host.log(LogLevel::Warn, "Failed to refresh the access token", &[("error", error.message.as_str()), ("target", LOG_TARGET)]);
                 }
-                let outcome = finished.map_err(|error| DetailedError { message: error.message, data: error.data });
-                task_host.token_refresh_ended(&run, outcome);
+                on_end(finished.map_err(|error| DetailedError { message: error.message, data: error.data }));
             }));
-            refreshed
+            Some(refreshed)
         }
+    }
+}
+
+/// Make sure that the access token of a shared Trino channel is fresh before a request. A token about to expire is
+/// refreshed once for every query of the channel (`refresh_trino_token`), the host hears how a refresh that this query
+/// started ended. None if the query was cancelled while it waited.
+async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel) -> Option<Result<(), TrinoError>> {
+    let host = context.host.clone();
+    let run = context.run.clone();
+    let ended = host.clone();
+    let Some(refreshed) = refresh_trino_token(&host, channel, move |outcome| ended.token_refresh_ended(&run, outcome)) else {
+        return Some(Ok(()));
     };
     context.token.run(refreshed).await.map(refresh_outcome)
+}
+
+/// The auth of a Trino channel as it goes with a request, e.g. for a request that another process sends
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrinoAuth {
+    /// The auth headers, the access token of OAuth
+    pub headers: Vec<(String, String)>,
+    /// The account of the access token, it keys the cached results
+    pub principal: Option<String>,
+}
+
+/// The auth of a shared Trino channel with a fresh access token: a token about to expire is refreshed first, like
+/// before a request of a query
+pub async fn fresh_trino_auth<H: HttpHost>(host: &Rc<H>, channel: &SharedTrinoChannel) -> Result<TrinoAuth, TrinoError> {
+    if let Some(refreshed) = refresh_trino_token(host, channel, |_| {}) {
+        refresh_outcome(refreshed.await)?;
+    }
+    let current = channel.channel();
+    Ok(TrinoAuth {
+        headers: current.auth_headers().into_iter().map(|(name, value)| (name.to_string(), value)).collect(),
+        principal: current.access_token.and_then(|token| token.principal),
+    })
 }
 
 /// Cancel a Trino query at the backend by deleting its next URI, e.g. after the query was cancelled or failed while

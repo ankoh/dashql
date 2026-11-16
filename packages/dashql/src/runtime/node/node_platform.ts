@@ -19,8 +19,9 @@ const NO_OAUTH_FLOW: OAuthFlow = {
 
 export interface NodePlatformOptions {
     logger: Logger;
-    /// Where the workbooks are kept, e.g. a NativeStorageBackend over NODE_FILE_SYSTEM for a workbook folder
-    storage: StorageBackend;
+    /// Where the workbooks are kept, e.g. a NativeStorageBackend over NODE_FILE_SYSTEM for a workbook folder; none for
+    /// a runtime that keeps nothing, e.g. the one of the logins of `dashql connect`
+    storage: StorageBackend | null;
     /// How connectors authorize, none by default
     oauthFlow?: OAuthFlow;
     /// The core, by default the one of the file next to the package

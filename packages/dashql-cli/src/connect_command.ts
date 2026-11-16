@@ -6,7 +6,7 @@ import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platfo
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
-import { ConnectAuth } from './connect_auth.js';
+import { ConnectAuth, coreLoginRuntime, listenForCallback } from './connect_auth.js';
 import { SESSION_NAME_ENV, SESSION_SERVER_FILE } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
@@ -156,7 +156,9 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     let server: Awaited<ReturnType<typeof startSessionServer>>;
     try {
         // The port names the session, no other session on this machine has it while it runs
-        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port), auth: new ConnectAuth() });
+        // The logins of the connections of the agent run the Trino setup of the core
+        const auth = new ConnectAuth({ runtime: async flow => await coreLoginRuntime(await cli.setupCore(), flow), listen: listenForCallback });
+        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port), auth });
     } catch (error) {
         const code = (error as { code?: string }).code;
         cli.stderr(code === 'EADDRINUSE'

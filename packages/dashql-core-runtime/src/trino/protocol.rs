@@ -378,21 +378,31 @@ impl TrinoChannel {
         Ok(())
     }
 
+    /// The auth headers of the channel as they go with a request: the access token of OAuth, the user and the
+    /// password of basic auth
+    pub fn auth_headers(&self) -> Vec<(&'static str, String)> {
+        match self.auth.auth_type {
+            TrinoAuthType::OAuth => self
+                .access_token
+                .as_ref()
+                .filter(|token| !token.access_token.is_empty())
+                .map(|token| vec![("Authorization", format!("Bearer {}", token.access_token))])
+                .unwrap_or_default(),
+            TrinoAuthType::Basic if !self.auth.username.is_empty() => {
+                let credentials = format!("{}:{}", self.auth.username, self.auth.secret);
+                vec![
+                    ("Authorization", format!("Basic {}", base64_encode(credentials.as_bytes()))),
+                    ("X-Trino-User", self.auth.username.clone()),
+                ]
+            }
+            TrinoAuthType::Basic => Vec::new(),
+        }
+    }
+
     /// Add the auth headers of the channel to a request
     fn add_auth_headers(&self, request: &mut HttpRequest) {
-        match self.auth.auth_type {
-            TrinoAuthType::OAuth => {
-                if let Some(token) = self.access_token.as_ref().filter(|token| !token.access_token.is_empty()) {
-                    request.set_header("Authorization", format!("Bearer {}", token.access_token));
-                }
-            }
-            TrinoAuthType::Basic => {
-                if !self.auth.username.is_empty() {
-                    let credentials = format!("{}:{}", self.auth.username, self.auth.secret);
-                    request.set_header("Authorization", format!("Basic {}", base64_encode(credentials.as_bytes())));
-                    request.set_header("X-Trino-User", self.auth.username.clone());
-                }
-            }
+        for (name, value) in self.auth_headers() {
+            request.set_header(name, value);
         }
     }
 

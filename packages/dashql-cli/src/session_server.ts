@@ -20,7 +20,7 @@ import {
     workbookCopyPath,
     type JournalFile,
 } from '@ankoh/dashql/platform/session/workbook_journal';
-import { trinoOAuthOf, type ConnectAuth, type LoginConnection } from './connect_auth.js';
+import { isTrinoOAuth, type ConnectAuth, type LoginConnection } from './connect_auth.js';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
 
 /// How long a request for a login waits before it answers that the login still waits
@@ -291,17 +291,16 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         let connection: LoginConnection;
         try {
             const body = JSON.parse((await readBody(request)).toString('utf8')) as { name?: unknown; endpoint?: unknown; params?: unknown };
-            const oauth = trinoOAuthOf(body.params);
-            if (oauth == null || typeof body.endpoint !== 'string') throw new Error('no Trino connection with OAuth');
-            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, endpoint: new URL(body.endpoint).origin, oauth };
+            if (!isTrinoOAuth(body.params) || typeof body.endpoint !== 'string') throw new Error('no Trino connection with OAuth');
+            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, endpoint: new URL(body.endpoint).origin, params: body.params };
         } catch (error) {
             return sendJson(response, 400, { error: String(error) });
         }
         // A login waits for the user, the run asks again after a while: no request outlives the timeouts of fetch
-        const token = auth.token(connection);
-        token.catch(() => { });
+        const authorization = auth.authorization(connection);
+        authorization.catch(() => { });
         const waited = await Promise.race([
-            token.then(value => ({ value }), (error: unknown) => ({ error })),
+            authorization.then(value => ({ value }), (error: unknown) => ({ error })),
             new Promise<null>(resolve => setTimeout(() => resolve(null), LOGIN_POLL_MS).unref()),
         ]);
         if (waited == null) return sendJson(response, 202, { waiting: true });
@@ -321,9 +320,9 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             return sendJson(response, 400, { error: 'the relay needs the URL of the request' });
         }
         if (connection == null || url.origin !== connection.endpoint) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
-        let token;
+        let authorization;
         try {
-            token = await options.auth!.token(connection);
+            authorization = await options.auth!.authorization(connection);
         } catch (error) {
             return sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
         }
@@ -332,7 +331,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             if (value == null || RELAY_DROPPED_HEADERS.has(name)) continue;
             headers.set(name, Array.isArray(value) ? value.join(', ') : value);
         }
-        headers.set('Authorization', `${token.tokenType} ${token.accessToken}`);
+        for (const [name, value] of Object.entries(authorization.headers)) headers.set(name, value);
         const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : new Uint8Array(await readBody(request));
         try {
             const forwarded = await fetch(url, { method: request.method, headers, body });

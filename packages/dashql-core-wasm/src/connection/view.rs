@@ -292,6 +292,18 @@ pub struct ConnectionSecrets {
     pub data_cloud_access_token: Option<String>,
 }
 
+/// The auth of a connection as it goes with a request, with a fresh access token. Only
+/// `Runtime.connectionAuthorization` hands it out, e.g. to the relay of `dashql connect`.
+#[derive(Clone, Debug, Default, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null, hashmap_as_object)]
+pub struct ConnectionAuthorization {
+    /// The auth headers by name, e.g. `Authorization` with the access token
+    pub headers: BTreeMap<String, String>,
+    /// The account of the access token, it keys the cached results
+    pub principal: Option<String>,
+}
+
 impl ConnectionSecrets {
     /// The tokens of a connection, the ones that its channel holds
     pub fn of(details: &ConnectionDetails) -> Self {

@@ -237,22 +237,24 @@ process of `dashql connect` listens on it as well, it is Node on the machine of 
    connection). It finds the server in `DASHQL_SESSION_ENDPOINT` and `DASHQL_SESSION_TOKEN`, else in
    `.dashql/sessions/<port>/server.json`, which `dashql connect` writes for the user only: a harness may keep variables
    with a token in their name from the commands of its agent.
-2. The process of `dashql connect` (`connect_auth.ts`) has a token of the connection, refreshes it a minute before it
-   expires, or logs in: a PKCE verifier and its challenge, a listener on the callback URL, and the authorization URL in
-   `logins` of the state of the session. The prompt of the tab shows "The agent waits for a login to <connection>",
-   **Log in** opens the URL in a popup. The identity provider redirects to the listener, the process exchanges the code
-   with the verifier and keeps the token. A login waits 10 minutes; the request of the run answers "waiting" after 20 s
-   and the run asks again, no request outlives the timeouts of fetch.
+2. The process of `dashql connect` (`connect_auth.ts`) keeps a runtime of its own, without storage, with the
+   connections that runs logged in to. A connection without a channel is set up there with the Trino setup of the core:
+   the PKCE challenge, the authorization URL, the code exchange and the account of the token. Its OAuth flow is the
+   only part of Node: it listens on the callback URL and puts the authorization URL into `logins` of the state of the
+   session. The prompt of the tab shows "The agent waits for a login to <connection>", **Log in** opens the URL in a
+   popup, the identity provider redirects to the listener. Logins run one after the other. A login waits 10 minutes;
+   the request of the run answers "waiting" after 20 s and the run asks again, no request outlives the timeouts of
+   fetch.
 3. The run gets the account of the token, never the token. Its runtime sets the connection up with the Trino setup of
    the core: its OAuth flow gets a stand-in code, its HTTP client answers the token request with a stand-in token that
    carries the account (`run_relay.ts`), so the cached results are keyed by the account like in the app. Every request
    to the endpoint of the connection goes to the relay of the server (`/v1/relay/<token>/<connection id>`, the URL in
-   `X-DashQL-Url`), which puts the real token in. The relay reaches only the endpoints of the connections that a run
-   logged in to.
+   `X-DashQL-Url`), which puts the auth of the channel in. The relay reaches only the endpoints of the connections that
+   a run logged in to.
+4. The relay asks the runtime for the auth of the channel before every request, `connectionAuthorization` of the
+   runtime: the auth headers and the account, with a token that is refreshed first if it is about to expire, by the
+   same refresh that a query runs before its requests (`fresh_trino_auth` of the executor).
 
-- The authorization request, the token request and the account of a token mirror `trino/setup.rs` and
-  `trino/protocol.rs` of the core runtime in TypeScript: the relay refreshes the token before it forwards, the Trino
-  setup of the core refreshes only within its own requests.
 - Anyone with the token of the session can query through the relay, as the agent can with `dashql run`. The token of
   the connection stays in the process of `dashql connect`.
 - The tokens end with the session. Keeping the refresh token in the keychain of the system is a later step.

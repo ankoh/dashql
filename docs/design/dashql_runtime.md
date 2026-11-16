@@ -311,7 +311,7 @@ than the module returns: the flush of the store after the command, handles for t
 
 Everything else the app and the CLI call on the module directly (`runtime.module`): `runCatalogLoader`, `resultKeys`,
 `dropImport`, `exportConnection`, `exportedResults`, `migrateWorkbookFolder`, `checkWorkbookFolders`,
-`answerExternalChange`, `revealConnectionSecrets`, `queryProgressRecording`, `followQueryProgress`, and more.
+`answerExternalChange`, `revealConnectionSecrets`, `connectionAuthorization` (the auth headers of a Trino channel with a fresh token, for the relay of `dashql connect`), `queryProgressRecording`, `followQueryProgress`, and more.
 `Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
 
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects

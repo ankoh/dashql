@@ -1,97 +1,65 @@
 // The logins of the connections of a session of `dashql connect` (docs/wip/agent_session.md, "Logins go through the
-// page"): the process of `dashql connect` logs in to a Trino connection with OAuth, keeps the token and refreshes it.
-// The token never leaves the process: `dashql run` reaches the connection through the relay of the server, which adds
-// the token to the requests. The tab opens the login when the user clicks, the identity provider redirects to the
-// loopback address of the connection, where this process listens.
+// page"): the process of `dashql connect` logs in to a Trino connection with OAuth and keeps its channel. The token
+// never leaves the process: `dashql run` reaches the connection through the relay of the server, which adds the auth
+// of the channel to the requests.
 //
-// The authorization request, the token request and the account of a token mirror the Trino setup of the runtime
-// (`trino/setup.rs`, `trino/protocol.rs` of dashql-core-runtime), the cache keys of the results of a run name the same
-// account.
-import { createHash, randomBytes } from 'node:crypto';
+// The login is the Trino setup of the core in a runtime of this process: the PKCE challenge, the authorization URL, the
+// code exchange, the account of the token and its refresh. This file adds only what Node does for it: the OAuth flow
+// listens on the loopback address of the callback URL and hands the authorization URL to the tab, which opens it when
+// the user clicks.
 import http from 'node:http';
 
+import type * as dashql from '@ankoh/dashql';
+import type { TrinoConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import type { OAuthFlow, OAuthLoopbackCallback } from '@ankoh/dashql/platform/oauth/oauth_flow';
+import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 import type { AgentSessionLogin } from '@ankoh/dashql/platform/session/agent_session_state';
+import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
+import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 
-/// The redirect of the OAuth flow if the connection doesn't configure one, the one of the runtime
-export const DEFAULT_OAUTH_CALLBACK_URL = 'http://localhost:56512/Callback';
-/// The scopes of the OAuth flow if the connection doesn't configure any
-export const DEFAULT_OAUTH_SCOPES = ['openid', 'email', 'profile', 'offline_access'];
 /// How long a login waits for the user
 const LOGIN_TIMEOUT_MS = 10 * 60 * 1000;
-/// A token is refreshed this long before it expires
-const REFRESH_MARGIN_MS = 60 * 1000;
-
-/// The OAuth settings of a Trino connection
-export interface TrinoOAuth {
-    authorizationUrl: string;
-    tokenUrl: string;
-    clientId: string;
-    callbackUrl: string;
-    scopes: string[];
-}
 
 /// The connection that a run needs a login for
 export interface LoginConnection {
     connectionId: string;
     /// The label of the connection, the tab shows it
     name: string;
-    /// The endpoint of the connection, the relay forwards only to it
+    /// The origin of the endpoint of the connection, the relay forwards only to it
     endpoint: string;
-    oauth: TrinoOAuth;
+    /// The params of the connection, `{ trino: { endpoint, auth: { authType: 'AUTH_OAUTH', oauth } } }`
+    params: unknown;
 }
 
-/// A token of a connection
-export interface ConnectionToken {
-    accessToken: string;
-    tokenType: string;
-    refreshToken: string | null;
-    expiresAt: number | null;
-    /// The account that logged in, it keys the cached results
+/// The auth of a connection as it goes with a request
+export interface ConnectionAuthorization {
+    /// The auth headers by name
+    headers: Record<string, string>;
+    /// The account of the token, it keys the cached results
     principal: string | null;
 }
 
-/// The OAuth settings of the params of a Trino connection, `{ trino: { auth: { authType: 'AUTH_OAUTH', oauth } } }` or
-/// the Trino params themselves; null for a connection without OAuth
-export function trinoOAuthOf(params: unknown): TrinoOAuth | null {
-    const trino = (params as { trino?: unknown })?.trino ?? params;
-    const auth = (trino as { auth?: { authType?: unknown; oauth?: Record<string, unknown> } })?.auth;
-    if (auth?.authType !== 'AUTH_OAUTH' || auth.oauth == null) return null;
-    const text = (key: string) => typeof auth.oauth?.[key] === 'string' ? auth.oauth[key] as string : '';
-    const scopes = Array.isArray(auth.oauth.scopes) ? auth.oauth.scopes.filter((scope): scope is string => typeof scope === 'string') : [];
-    return { authorizationUrl: text('authorizationUrl'), tokenUrl: text('tokenUrl'), clientId: text('clientId'), callbackUrl: text('callbackUrl'), scopes };
+/// Does a connection log in to Trino with OAuth? Those go through the process of `dashql connect`.
+export function isTrinoOAuth(params: unknown): boolean {
+    const trino = (params as { trino?: { auth?: { authType?: unknown; oauth?: unknown } } })?.trino;
+    return trino?.auth?.authType === 'AUTH_OAUTH' && trino.auth.oauth != null;
 }
 
-/// The `sub` of a JWT, without checking its signature: the token response of the identity provider names the account
-function jwtSubject(jwt: string): string | null {
-    try {
-        const payload = JSON.parse(Buffer.from(jwt.split('.')[1] ?? '', 'base64url').toString('utf8')) as { sub?: unknown };
-        return typeof payload.sub === 'string' && payload.sub.length > 0 ? payload.sub : null;
-    } catch {
-        return null;
-    }
+/// The part of the runtime that the logins use, the tests pass their own
+export interface LoginRuntime {
+    /// Register a connection with its params, once
+    createConnection(connection: LoginConnection): void;
+    /// Set a connection up, its OAuth flow is the one that the runtime was created with
+    setupConnection(connectionId: string): Promise<{ status: string; message?: string | null }>;
+    /// The auth of the channel of a connection with a fresh token, null without a channel
+    authorization(connectionId: string): Promise<ConnectionAuthorization | null>;
 }
 
-/// The token of a token response, as the runtime reads it
-export function readTokenResponse(body: unknown, now: number): ConnectionToken {
-    const token = body as Record<string, unknown> | null;
-    const text = (key: string) => typeof token?.[key] === 'string' && (token[key] as string).length > 0 ? token[key] as string : null;
-    const accessToken = text('access_token');
-    if (accessToken == null) throw new Error('the token response has no access token');
-    const expiresIn = typeof token?.expires_in === 'number' && Number.isFinite(token.expires_in) && token.expires_in !== 0 ? token.expires_in : null;
-    const idToken = text('id_token');
-    return {
-        accessToken,
-        tokenType: text('token_type') ?? 'Bearer',
-        refreshToken: text('refresh_token'),
-        expiresAt: expiresIn == null ? null : now + expiresIn * 1000,
-        principal: text('sub') ?? (idToken == null ? null : jwtSubject(idToken)),
-    };
-}
-
-/// What the logins take from the process, the tests pass their own
+/// What the logins take from the process
 export interface ConnectAuthHost {
-    fetch: typeof fetch;
-    now: () => number;
+    /// Create the runtime of the logins with an OAuth flow
+    runtime: (oauthFlow: OAuthFlow) => Promise<LoginRuntime>;
     /// Listen on the callback URL, resolves once the listener is up, with the first callback that comes in
     listen: (callbackUrl: string, signal: AbortSignal) => Promise<{ callback: Promise<URLSearchParams> }>;
 }
@@ -136,16 +104,20 @@ export function listenForCallback(callbackUrl: string, signal: AbortSignal): Pro
     });
 }
 
-/// The logins of the connections of a session: one token per connection, one login at a time per connection
+/// The logins of the connections of a session: one channel per connection in the runtime of the logins, one login at
+/// a time, so the OAuth flow knows the connection it is for
 export class ConnectAuth {
-    private readonly tokens = new Map<string, ConnectionToken>();
-    private readonly running = new Map<string, Promise<ConnectionToken>>();
-    private readonly logins = new Map<string, AgentSessionLogin>();
+    private runtime: Promise<LoginRuntime> | null = null;
     private readonly connections = new Map<string, LoginConnection>();
+    private readonly logins = new Map<string, AgentSessionLogin>();
     private readonly listeners = new Set<(logins: AgentSessionLogin[]) => void>();
     private readonly closed = new AbortController();
+    /// The logins run one after the other
+    private queue: Promise<unknown> = Promise.resolve();
+    /// The connection whose setup runs
+    private current: LoginConnection | null = null;
 
-    constructor(private readonly host: ConnectAuthHost = { fetch, now: () => Date.now(), listen: listenForCallback }) { }
+    constructor(private readonly host: ConnectAuthHost) { }
 
     /// The logins that wait for the user, the tab shows them
     pending(): AgentSessionLogin[] {
@@ -163,37 +135,33 @@ export class ConnectAuth {
         return this.connections.get(connectionId) ?? null;
     }
 
-    /// A token of a connection that is valid for a while: the one that the process has, refreshed, or a new login
-    async token(connection: LoginConnection): Promise<ConnectionToken> {
-        this.connections.set(connection.connectionId, connection);
-        const running = this.running.get(connection.connectionId);
-        if (running != null) return await running;
-        const token = this.tokens.get(connection.connectionId);
-        const now = this.host.now();
-        if (token != null && (token.expiresAt == null || token.expiresAt - REFRESH_MARGIN_MS > now)) return token;
-        const next = (async () => {
+    /// The auth of a connection with a fresh token: the channel that the runtime has, or a new login that the user
+    /// opens in the tab
+    async authorization(connection: LoginConnection): Promise<ConnectionAuthorization> {
+        const runtime = await this.runtimeOf();
+        if (!this.connections.has(connection.connectionId)) {
+            runtime.createConnection(connection);
+            this.connections.set(connection.connectionId, connection);
+        }
+        const current = await runtime.authorization(connection.connectionId);
+        if (current != null) return current;
+        const login = this.queue.then(async () => {
+            // A login of another run of the same connection may have ended meanwhile
+            const ready = await runtime.authorization(connection.connectionId);
+            if (ready != null) return ready;
+            this.current = connection;
             try {
-                if (token?.refreshToken != null) {
-                    try {
-                        return await this.refresh(connection, token.refreshToken);
-                    } catch {
-                        // The refresh token expired, the user logs in again
-                    }
-                }
-                return await this.login(connection);
+                const outcome = await runtime.setupConnection(connection.connectionId);
+                if (outcome.status !== 'succeeded') throw new Error(outcome.message ?? `the setup of ${connection.name} did not succeed`);
             } finally {
-                this.running.delete(connection.connectionId);
+                this.current = null;
             }
-        })();
-        this.running.set(connection.connectionId, next);
-        const fresh = await next;
-        this.tokens.set(connection.connectionId, fresh);
-        return fresh;
-    }
-
-    /// The token of a connection right now, null without one, e.g. for a request of the relay that came after the login
-    current(connectionId: string): ConnectionToken | null {
-        return this.tokens.get(connectionId) ?? null;
+            const authorization = await runtime.authorization(connection.connectionId);
+            if (authorization == null) throw new Error(`the setup of ${connection.name} left no channel`);
+            return authorization;
+        });
+        this.queue = login.catch(() => { });
+        return await login;
     }
 
     /// Stop the logins that wait
@@ -201,70 +169,75 @@ export class ConnectAuth {
         this.closed.abort();
     }
 
+    private runtimeOf(): Promise<LoginRuntime> {
+        this.runtime ??= this.host.runtime(this.oauthFlow());
+        return this.runtime;
+    }
+
     private publish(): void {
         const logins = this.pending();
         for (const listener of this.listeners) listener(logins);
     }
 
-    private async login(connection: LoginConnection): Promise<ConnectionToken> {
-        const { oauth } = connection;
-        const callbackUrl = oauth.callbackUrl || DEFAULT_OAUTH_CALLBACK_URL;
-        const verifier = randomBytes(32).toString('base64url');
-        const challenge = createHash('sha256').update(verifier).digest('base64url');
-        const state = randomBytes(16).toString('base64url');
-        const url = new URL(oauth.authorizationUrl);
-        const fields: [string, string][] = [
-            ['client_id', oauth.clientId],
-            ['redirect_uri', callbackUrl],
-            ['response_type', 'code'],
-            ['code_challenge', challenge],
-            ['code_challenge_method', 'S256'],
-            ['scope', (oauth.scopes.length > 0 ? oauth.scopes : DEFAULT_OAUTH_SCOPES).join(' ')],
-            ['state', state],
-        ];
-        for (const [key, value] of fields) url.searchParams.set(key, value);
-        const timeout = AbortSignal.timeout(LOGIN_TIMEOUT_MS);
-        const signal = AbortSignal.any([timeout, this.closed.signal]);
-        const { callback } = await this.host.listen(callbackUrl, signal);
-        this.logins.set(connection.connectionId, { connectionId: connection.connectionId, name: connection.name, url: url.toString() });
-        this.publish();
-        let params: URLSearchParams;
-        try {
-            params = await callback;
-        } catch (error) {
-            throw timeout.aborted ? new Error(`nobody logged in to ${connection.name} in the tab of DashQL in time`) : error;
-        } finally {
-            this.logins.delete(connection.connectionId);
-            this.publish();
-        }
-        const error = params.get('error');
-        if (error != null) throw new Error(`the login failed: ${params.get('error_description') ?? error}`);
-        if (params.get('state') !== state) throw new Error('the login answered another request');
-        const code = params.get('code');
-        if (code == null || code.length === 0) throw new Error('the login sent no code');
-        return await this.requestToken(oauth, {
-            grant_type: 'authorization_code',
-            client_id: oauth.clientId,
-            code,
-            redirect_uri: callbackUrl,
-            code_verifier: verifier,
-        });
+    /// The OAuth flow of the runtime: the tab opens the authorization URL, the identity provider redirects to the
+    /// listener of this process
+    private oauthFlow(): OAuthFlow {
+        return {
+            redirectVariant: 'NATIVE_LINK_FLOW',
+            redirectCallbackUrl: null,
+            debugMode: false,
+            flavor: null,
+            authorizeWithRedirectPage: () => Promise.reject(new Error('dashql connect logs in to Trino connections with OAuth only')),
+            authorizeWithLoopback: async (authorizationUrl, callbackUrl, signal) => {
+                const connection = this.current;
+                if (connection == null) throw new Error('dashql connect logs in when a run needs a connection');
+                const timeout = AbortSignal.timeout(LOGIN_TIMEOUT_MS);
+                const { callback } = await this.host.listen(callbackUrl, AbortSignal.any([signal, timeout, this.closed.signal]));
+                this.logins.set(connection.connectionId, { connectionId: connection.connectionId, name: connection.name, url: authorizationUrl.toString() });
+                this.publish();
+                let params: URLSearchParams;
+                try {
+                    params = await callback;
+                } catch (error) {
+                    throw timeout.aborted ? new Error(`nobody logged in to ${connection.name} in the tab of DashQL in time`) : error;
+                } finally {
+                    this.logins.delete(connection.connectionId);
+                    this.publish();
+                }
+                const answer: OAuthLoopbackCallback = {};
+                for (const [key, field] of [['code', 'code'], ['state', 'state'], ['error', 'error'], ['error_description', 'errorDescription']] as const) {
+                    const value = params.get(key);
+                    if (value != null) answer[field] = value;
+                }
+                return answer;
+            },
+        };
     }
+}
 
-    private async refresh(connection: LoginConnection, refreshToken: string): Promise<ConnectionToken> {
-        const token = await this.requestToken(connection.oauth, { grant_type: 'refresh_token', client_id: connection.oauth.clientId, refresh_token: refreshToken });
-        // A server that sends no new refresh token keeps the old one valid
-        return { ...token, refreshToken: token.refreshToken ?? refreshToken };
-    }
+/// A logger that keeps nothing, the runtime of the logins runs in the terminal of the harness
+class QuietLogger extends Logger {
+    public destroy(): void { }
 
-    private async requestToken(oauth: TrinoOAuth, fields: Record<string, string>): Promise<ConnectionToken> {
-        const response = await this.host.fetch(oauth.tokenUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-            body: new URLSearchParams(fields).toString(),
-        });
-        // The body may echo credentials, it stays out of the error
-        if (!response.ok) throw new Error(`the token request failed: ${response.status}`);
-        return readTokenResponse(await response.json(), this.host.now());
+    protected flushPendingRecords(): void {
+        this.pendingRecords = [];
     }
+}
+
+/// The runtime of the logins over the core: a runtime without storage that holds the Trino connections of the session
+export async function coreLoginRuntime(core: dashql.DashQL, oauthFlow: OAuthFlow): Promise<LoginRuntime> {
+    const runtime = createRuntime({ ...await createNodePlatform({ logger: new QuietLogger(), storage: null, core, oauthFlow }), catalogLoader: false });
+    return {
+        createConnection: connection => {
+            const trino = (connection.params as { trino: TrinoConnectionParams }).trino;
+            runtime.createConnection({ connectorType: ConnectorType.TRINO, setupParams: trino, params: { trino }, active: false }, connection.connectionId);
+        },
+        setupConnection: connectionId => runtime.setupConnection(connectionId),
+        authorization: async connectionId => {
+            const authorization = await runtime.module.connectionAuthorization(connectionId);
+            // A connection that never logged in has a channel without a token
+            if (authorization == null || authorization.headers.Authorization == null) return null;
+            return { headers: authorization.headers, principal: authorization.principal ?? null };
+        },
+    };
 }

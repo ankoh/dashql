@@ -6,7 +6,20 @@
 import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
 import type { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
 
-import { trinoOAuthOf, type TrinoOAuth } from './connect_auth.js';
+/// The fields of the OAuth settings of a Trino connection that a run matches its requests with
+interface TrinoOAuth {
+    authorizationUrl: string;
+    tokenUrl: string;
+    clientId: string;
+}
+
+/// The OAuth settings of the params of a Trino connection, null for a connection without OAuth
+function trinoOAuthOf(params: unknown): TrinoOAuth | null {
+    const auth = (params as { trino?: { auth?: { authType?: unknown; oauth?: Record<string, unknown> } } })?.trino?.auth;
+    if (auth?.authType !== 'AUTH_OAUTH' || auth.oauth == null) return null;
+    const text = (key: string) => typeof auth.oauth?.[key] === 'string' ? auth.oauth[key] as string : '';
+    return { authorizationUrl: text('authorizationUrl'), tokenUrl: text('tokenUrl'), clientId: text('clientId') };
+}
 
 /// The stand-in of the code and the token of a relayed connection, the relay replaces the token
 export const RELAYED_TOKEN = 'dashql-relay';
