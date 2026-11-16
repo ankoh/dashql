@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { Store } from '@ankoh/dashql-runtime/store/store';
-import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ScriptRef } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { useStoreState } from '../../utils/store_hooks.js';

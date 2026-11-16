@@ -20,7 +20,7 @@ import { classNames } from '../../utils/classnames.js';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import {
@@ -38,7 +38,7 @@ import {
     type StorageTreeFileStat,
     type StorageTreeRoot,
 } from '../../storage/storage_tree.js';
-import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
 
 const LOG_CTX = 'storage_browser';
 /// The height of a row: a 32px entry with 1px of space above and below, as in the catalog tree

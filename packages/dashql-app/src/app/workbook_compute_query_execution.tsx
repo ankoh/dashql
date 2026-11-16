@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
 import { clientContextOf, type ComputeQueryExecution, type ComputeTaskContext } from '@ankoh/dashql-runtime/compute/compute_platform';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
-import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { sqlframeClientContext } from '../connections/hyper/hyper_log_metrics.js';
 

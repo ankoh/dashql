@@ -1,9 +1,9 @@
 // @vitest-environment node
 import * as core from '@ankoh/dashql-core';
-import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { testShellHistory } from '../tests/test_shell_history.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

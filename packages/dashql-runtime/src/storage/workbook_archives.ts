@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { EmbeddedComputeDatabase, EmbeddedExternalFileDatabase } from '../platform/database/embedded_database.js';
-import { exportArrowTableAsParquet, supportsParquetExport, type ParquetExportDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase, EmbeddedExternalFileDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import { exportArrowTableAsParquet, supportsParquetExport, type ParquetExportDatabase } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_parquet_export';
 import type { HandleTable } from '../store/handles.js';
 import {
     archiveError,
@@ -15,7 +15,7 @@ import {
     ZipWriter,
     type Entry,
     type FileEntry,
-} from '../workbook/persistence/workbook_zip.js';
+} from '@ankoh/dashql-platform/workbook/persistence/workbook_zip';
 
 // The `.dashql` archives of the imports and exports of the runtime (`archives` of the platform, docs/wip/runtime_api.md,
 // docs/design/workbook_tables.md). The runtime decides what an archive holds and reads, the platform keeps the ZIP

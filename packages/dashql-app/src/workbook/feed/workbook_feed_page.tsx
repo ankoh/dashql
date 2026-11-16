@@ -3,7 +3,7 @@ import * as styles from './workbook_feed_page.module.css';
 
 import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import {
     isCloudPreview,
     isEphemeralWorkbook,
@@ -11,7 +11,7 @@ import {
     workbookConnectionIds,
     type ModifyWorkbookScripts,
     type WorkbookScripts,
-} from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+} from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';
@@ -34,7 +34,7 @@ import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
-import type { RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
+import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';

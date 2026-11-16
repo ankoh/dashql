@@ -1,13 +1,13 @@
 // @vitest-environment node
-import { tableFromArrays } from '../testing/arrow_fixtures.js';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import type * as core from '@ankoh/dashql-core';
 
-import { QueryExecutionStatus, QueryType } from './query_execution_state.js';
+import { QueryExecutionStatus, QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
 import { executeTrackedQuery, type QueryTracker } from './tracked_query_execution.js';
 import { testCore } from '../testing/test_runtime.js';
 import { connectorState, testRuntime } from '../testing/mocks/connector_state.js';
 import type { Runtime } from '../runtime.js';
-import { ConnectorType } from '../connections/connector_info.js';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 
 let dql: core.DashQL;
 let runtime: Runtime;

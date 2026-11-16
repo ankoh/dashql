@@ -1,9 +1,9 @@
-import { newConnectionFromParams, type ConnectionParams } from '../connection_params.js';
-import type { KeyValueStorage } from '../../platform/key_value_storage.js';
-import type { ConnectionAllocator, ConnectionState } from '../connection_state.js';
-import { isLoopbackHyperLink, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
+import { newConnectionFromParams, type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { KeyValueStorage } from '@ankoh/dashql-platform/platform/key_value_storage';
+import type { ConnectionAllocator, ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { isLoopbackHyperLink, type HyperLinkTarget } from '@ankoh/dashql-platform/platform/events/hyper_link_target';
 
-export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '../../platform/events/hyper_link_target.js';
+export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '@ankoh/dashql-platform/platform/events/hyper_link_target';
 
 /// The session storage key of the tokens of the Hyper links of a tab
 const HYPER_LINKS_STORAGE_KEY = 'dashql.hyper_links';

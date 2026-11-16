@@ -1,6 +1,6 @@
 import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
-import { VariantKind } from "@ankoh/dashql-runtime/utils/variant";
+import { VariantKind } from "@ankoh/dashql-platform/utils/variant";
 import { PlatformFile } from "../file/file.js";
 
 export const DROP_EVENT = Symbol("DROP_EVENT");

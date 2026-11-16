@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
-import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import { WORKBOOK_TABLE, type WorkbookTables } from '@ankoh/dashql-runtime/storage/workbook_tables';
+import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import { WORKBOOK_TABLE, type WorkbookTables } from '@ankoh/dashql-platform/storage/workbook_tables';
 import { testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import {

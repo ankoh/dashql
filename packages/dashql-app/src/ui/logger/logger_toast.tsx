@@ -2,7 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { LogBuffer, LogLevel, LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
+import { LogBuffer, LogLevel, LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
 import { classNames } from '../../utils/classnames.js';
 
 import * as styles from './logger_toast.module.css';

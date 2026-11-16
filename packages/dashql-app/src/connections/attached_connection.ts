@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
-import { createAttachedConnectionParamsForConnector, newConnectionFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { createAttachedConnectionParamsForConnector, newConnectionFromParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 
 /// The connectors of the connections that the user attaches next to the embedded Hyper
 export const ATTACHABLE_CONNECTORS = [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.TRINO] as const;

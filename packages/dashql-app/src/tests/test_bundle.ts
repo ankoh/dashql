@@ -16,3 +16,9 @@ import.meta.glob([
     // The tests of Node, see //packages/dashql-runtime:test_node
     '!../../../dashql-runtime/src/**/*.node.test.ts',
 ], { eager: true });
+// The tests of the platform, see test_modules.ts
+import.meta.glob([
+    '../../../dashql-platform/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-platform:test_node
+    '!../../../dashql-platform/src/**/*.node.test.ts',
+], { eager: true });

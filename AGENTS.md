@@ -31,11 +31,18 @@ Please consult relevant docs in that directory before making changes.
 
 - The runtime (`packages/dashql-runtime`: the TypeScript side of the runtime, shared by the app and the Node `dashql`;
   `createRuntime(platform)` returns the one `Runtime` facade over the runtime of the core module with the store of its
-  views and the platform object it calls, the platforms (the browser, the desktop app, Node with a root folder in the
-  layout of OPFS and the embedded Hyper of Node), the connector clients and channels; the hooks of the app over it are
-  `useView`, `useDispatch`, `useTable` and their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where
-  tests go: `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers)
+  views and the platform object it calls, the view projections and the adapters that build the platform of the core
+  from the objects of `dashql-platform`; the hooks of the app over it are `useView`, `useDispatch`, `useTable` and
+  their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where tests go: `*.node.test.ts`,
+  `*.browser.test.ts`, the rest runs in Node and the browsers, a test that creates a runtime goes in the runtime)
     - `docs/wip/dashql_runtime.md`
+
+- The platform (`packages/dashql-platform`, `@ankoh/dashql-platform`: the platforms of the runtime, the browser, the
+  desktop app and Node with a root folder in the layout of OPFS and the embedded Hyper of Node; storage backends, the
+  query result cache, archives, OAuth, the connector clients and channels, the UI helpers that more than the app uses,
+  the SQL and session support of the CLI; the runtime depends on it, it never imports the runtime, the boundary tests
+  of both packages check it)
+    - `docs/wip/dashql_runtime.md` (The two packages, what goes where)
 
 - The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state and the services of DashQL in
   Rust, linked into the core module; the app runs its workbook scripts, connections, queries with their descriptions and

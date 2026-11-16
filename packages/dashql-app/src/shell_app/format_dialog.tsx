@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createScriptFormatConfig, getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import { createScriptFormatConfig, getKeywordCase } from '../workbook/scripts/script_format.js';
 import { measureScriptFormatWidth } from '../workbook/editor/script_format_editor.js';
 import { useAppConfig } from '../config/app_config.js';
 import { CodeMirror } from '../workbook/editor/codemirror.js';

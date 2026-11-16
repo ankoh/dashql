@@ -3,7 +3,7 @@ import * as styles from '../ui/logs/log_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 
-import { LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
+import { LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../platform/logger/logger_provider.js';
 import { observeSize } from '../ui/foundations/size_observer.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';

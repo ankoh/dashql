@@ -1,5 +1,5 @@
-import type { ClientFunctionSpec } from '@ankoh/dashql-runtime/connections/clfn/clfn_spec';
-import { provideClientFunctionSpecs } from '@ankoh/dashql-runtime/connections/clfn/clfn_specs';
+import type { ClientFunctionSpec } from '@ankoh/dashql-platform/connections/clfn/clfn_spec';
+import { provideClientFunctionSpecs } from '@ankoh/dashql-platform/connections/clfn/clfn_specs';
 
 // The client function specs of extensions/ as chunks of the bundle, every page that may run a client function imports
 // this module once

@@ -1,4 +1,4 @@
-import { QueryExecutionState, QueryExecutionStatus, queryErrorDetails, queryIsDone, type QueryExecutionProgress } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus, queryErrorDetails, queryIsDone, type QueryExecutionProgress } from '@ankoh/dashql-platform/query/query_execution_state';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { summarizeQueryProgress } from '../views/query_progress/query_progress_format.js';
 

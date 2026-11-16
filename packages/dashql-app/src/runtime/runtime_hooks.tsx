@@ -4,12 +4,12 @@ import type * as core from '@ankoh/dashql-core';
 
 import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
 import type { StoreView } from '@ankoh/dashql-runtime/store/runtime_store';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import type { QueryExecutionProgress, QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { queryProgress } from '@ankoh/dashql-runtime/query/query_progress';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { workbookExecutionIsBusy } from '@ankoh/dashql-runtime/workbook/scripts/workbook_execution';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import type { QueryExecutionProgress, QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
+import { queryProgress } from '@ankoh/dashql-platform/query/query_progress';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { workbookExecutionIsBusy } from '@ankoh/dashql-platform/workbook/scripts/workbook_execution';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';

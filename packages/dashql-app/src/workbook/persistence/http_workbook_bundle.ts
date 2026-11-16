@@ -1,11 +1,11 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-platform/platform/http/http_client';
 import {
     STORAGE_WORKBOOK_FILE,
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql-runtime/storage/storage_backend';
+} from '@ankoh/dashql-platform/storage/storage_backend';
 import { LEGACY_WORKBOOK_FILES } from '../../platform/events/legacy_links.js';
 
 // A workbook that a web server hosts as the files of a workbook folder: the runtime reads it like any workbook folder

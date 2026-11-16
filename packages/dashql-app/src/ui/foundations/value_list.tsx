@@ -3,7 +3,7 @@ import * as styles from './value_list.module.css';
 
 import { PlusIcon, XIcon } from './symbol_icon.js';
 
-import { Dispatch } from '@ankoh/dashql-runtime/utils/variant';
+import { Dispatch } from '@ankoh/dashql-platform/utils/variant';
 import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';

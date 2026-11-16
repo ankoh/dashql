@@ -1,6 +1,6 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
 
 // The sources and previews of imports in tests: a workbook folder in memory that the runtime reads like a native
 // folder or a folder of the browser, and a preview as the runtime returns it for a workbook file.

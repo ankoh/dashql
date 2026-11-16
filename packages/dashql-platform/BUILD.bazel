@@ -1,0 +1,162 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+# The platforms of DashQL: the storage backends, the query result cache, the archives, the embedded Hyper, the logger,
+# HTTP and OAuth, the connector clients and channels, the UI helpers that more than the app uses, and the support of the
+# command line tool (src/node, src/sql, src/session), see docs/wip/dashql_runtime.md. The runtime
+# (//packages/dashql-runtime) depends on it, it never imports the runtime (:boundary_test). A source package, nothing is
+# compiled: the app bundles the TypeScript itself. Linked as //:node_modules/@ankoh/dashql-platform, the dev server of
+# the app reads packages/dashql-platform directly.
+
+package(default_visibility = ["//visibility:public"])
+
+_SOURCES = glob(["src/**/*.ts"])
+
+# The tests that the browser tests of the app run: all but those of Node (*.node.test.ts). They also run
+# *.browser.test.ts, which only run there.
+filegroup(
+    name = "test_files",
+    srcs = glob(
+        ["src/**/*.test.ts"],
+        exclude = ["src/**/*.node.test.ts"],
+    ),
+)
+
+# The generated packages, resolved through the paths of tsconfig.json like in the app
+copy_to_directory(
+    name = "dep_protobuf",
+    srcs = ["//proto/pb:ts_gen"],
+    out = "./dependencies/dashql-protobuf",
+    replace_prefixes = {
+        "proto/pb/ts_gen": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
+copy_to_directory(
+    name = "dep_jsonschema",
+    srcs = ["//proto/json:ts_gen"],
+    out = "./dependencies/dashql-jsonschema",
+    replace_prefixes = {
+        "proto/json": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
+# The specs of the extensions for the @dashql/extensions alias of the tests
+copy_to_directory(
+    name = "dep_extensions",
+    srcs = ["//extensions/d360-api:files"],
+    out = "./dependencies/extensions",
+    replace_prefixes = {
+        "extensions": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["package.json", "tsconfig.bazel.json", "tsconfig.bazel.node.json", "tsconfig.bazel.test.json"],
+)
+
+_TEST_DEPENDENCIES = [
+    ":dep_jsonschema",
+    ":dep_protobuf",
+    "//:node_modules/@ankoh/dashql-core",
+    "//:node_modules/@ankoh/hyperdb-edge",
+    "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/@zip.js/zip.js",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/flatbuffers",
+    "//:node_modules/hyperdb-wasm",
+    "//:node_modules/immutable",
+    # The tests read archives with it
+    "//:node_modules/jszip",
+    "//:node_modules/vega-lite",
+]
+
+# Against the WebWorker lib, without the DOM and without the types of Node: an API of only one platform fails here
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.json"],
+    chdir = "packages/dashql-platform",
+    data = [":typecheck_inputs"] + _TEST_DEPENDENCIES,
+)
+
+# The tests and their helpers, with the globals of vitest
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_tests_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.test.json"],
+    chdir = "packages/dashql-platform",
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+# The modules of Node (src/node) and their tests, against the types of Node instead of the WebWorker lib
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_node_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.node.json"],
+    chdir = "packages/dashql-platform",
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/@types/node",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+# The tests of the platform in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker
+vitest_bin.vitest_test(
+    name = "test_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+    ],
+    chdir = "packages/dashql-platform",
+    data = _SOURCES + [
+        "package.json",
+        "test/setup_node.mjs",
+        "vitest.config.mjs",
+        ":dep_extensions",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+# The platform reaches no code of the app, no user interface and not the runtime, and uses only the known seams of a
+# browser or a bundler
+js_test(
+    name = "boundary_test",
+    data = _SOURCES,
+    entry_point = "test/boundary_test.mjs",
+)
+
+# Editors resolve every import of the platform through the root tsconfig.json and package.json
+js_test(
+    name = "editor_config_test",
+    data = _SOURCES + [
+        "tsconfig.json",
+        "//:package.json",
+        "//:tsconfig_json",
+    ],
+    entry_point = "test/editor_config_test.mjs",
+    # The root package.json is only read
+    no_copy_to_bin = ["//:package.json"],
+)
+
+npm_package(
+    name = "npm_package",
+    package = "@ankoh/dashql-platform",
+    srcs = ["package.json"] + _SOURCES,
+    include_transitive_sources = False,
+    include_transitive_types = False,
+)

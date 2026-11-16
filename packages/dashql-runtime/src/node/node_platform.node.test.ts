@@ -1,8 +1,8 @@
 import { createNodePlatform } from './node_platform.js';
 import { createRuntime } from '../runtime.js';
-import { TestLogger } from '../testing/test_logger.js';
-import { WorkbookTestBackend } from '../testing/workbook_test_backend.js';
-import { newDefaultHyperWasmConnection } from '../connections/connection_params.js';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import { newDefaultHyperWasmConnection } from '@ankoh/dashql-platform/connections/connection_params';
 
 describe('the platform of Node', () => {
     it('runs a runtime with the core from its file', async () => {

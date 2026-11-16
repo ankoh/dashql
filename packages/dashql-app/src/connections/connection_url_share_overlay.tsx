@@ -6,8 +6,8 @@ import { AnchorAlignment } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/persistence/workbook_export_settings_view.js';
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
-import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 interface Props {

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { WORKBOOK_INPUT_COMMIT_DELAY_MS, WorkbookInputCard } from './workbook_input_card.js';
-import type { SessionInput } from '@ankoh/dashql-runtime/workbook/inputs/workbook_inputs';
+import type { SessionInput } from '@ankoh/dashql-platform/workbook/inputs/workbook_inputs';
 
 function setInputValue(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);

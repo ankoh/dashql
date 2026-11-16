@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, printConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { newScriptConnection, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { newScriptConnection, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
-import type { ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import type { ScriptRef } from '@ankoh/dashql-platform/workbook/scripts/script_types';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../../app/router/router.js';
-import { isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
+import { isCatalogRefreshRunning } from '@ankoh/dashql-platform/connections/catalog/catalog_update_state';
 import { useConnectionViews, useOptionalRuntime, useScriptRun, useWorkbook } from '../../runtime/runtime_hooks.js';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';

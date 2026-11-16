@@ -3,11 +3,11 @@ import * as core from '@ankoh/dashql-core';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 
 import { createRuntime, type Runtime } from './runtime.js';
-import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from './compute/computation_types.js';
-import { openTestHyperDB } from './testing/test_hyperdb.js';
-import type { HyperDB } from './platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from './testing/test_logger.js';
-import { vectorFromArray } from './testing/arrow_fixtures.js';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from '@ankoh/dashql-platform/compute/computation_types';
+import { openTestHyperDB } from '@ankoh/dashql-platform/testing/test_hyperdb';
+import type { HyperDB } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_wasm';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { TASK_UPDATE_SCHEDULER } from './store/store.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

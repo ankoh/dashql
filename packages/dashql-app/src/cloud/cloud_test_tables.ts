@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
 import {
     ATTACHMENT_TABLE_PREFIX,
     emptyWorkbookTables,
@@ -12,7 +12,7 @@ import {
     type CatalogTableRow,
     type WorkbookTableName,
     type WorkbookTables,
-} from '@ankoh/dashql-runtime/storage/workbook_tables';
+} from '@ankoh/dashql-platform/storage/workbook_tables';
 
 import type { CloudWorkbookTables } from './cloud_store.js';
 

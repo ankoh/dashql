@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import type { ConnectionSaveResult } from './connection_persistence.js';
-import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
 import { useCloseOnConnect, type CloseOnConnectProps } from './connection_settings_overlay.js';
 
 const WORKBOOKS_FAILED: ConnectionSaveResult = {

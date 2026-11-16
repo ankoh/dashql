@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { buffers } from '@ankoh/dashql-core';
 import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const Node = buffers.visualization.MarkdownNodeT;

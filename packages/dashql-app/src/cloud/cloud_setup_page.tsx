@@ -9,10 +9,10 @@ import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useConnection, useConnections, useRuntime } from '../runtime/runtime_hooks.js';
-import { newConnectionFromParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { newConnectionFromParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useConnectionAttach } from '../connections/attached_connection.js';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { HyperConnectorSettings } from '../connections/hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
@@ -23,7 +23,7 @@ import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
-import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
 
 // The page that sets up the cloud, a card like the one of the app loader, shown before the workbench. See
 // docs/design/cloud.md.

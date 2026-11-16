@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { DashQLCompletionStatus, type DashQLCompletionState } from './dashql_completion_state.js';
-import { QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID } from '@ankoh/dashql-runtime/workbook/scripts/catalog_object_id';
+import { QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID } from '../scripts/catalog_object_id.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID, FocusType } from './semantic_focus.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

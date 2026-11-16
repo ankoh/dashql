@@ -1,7 +1,7 @@
 import type * as core from '@ankoh/dashql-core';
 
 import type { HandleTable } from './handles.js';
-import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
+import type { ScriptData, WorkbookDerived, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { RevisionCache, share } from './projection.js';
 import type { UpdateScheduler } from './store.js';
 

@@ -50,7 +50,7 @@ EXPLAIN CALL cdp.segment_delete (segment_api_name => 'vip');
 
 ## The Salesforce binding
 
-The Salesforce connector's descriptor (`packages/dashql-runtime/src/connections/salesforce/salesforce_connector_descriptor.ts`) enables the spec, so the spec shadows `cdp.` on Salesforce connections: nothing under it reaches the backend, and a function the spec doesn't know is an error. On any other connection, `CALL cdp.*` goes to the backend as written.
+The Salesforce connector's descriptor (`packages/dashql-platform/src/connections/salesforce/salesforce_connector_descriptor.ts`) enables the spec, so the spec shadows `cdp.` on Salesforce connections: nothing under it reaches the backend, and a function the spec doesn't know is an error. On any other connection, `CALL cdp.*` goes to the backend as written.
 
 | Spec host | Base path | Token | Used by |
 |---|---|---|---|

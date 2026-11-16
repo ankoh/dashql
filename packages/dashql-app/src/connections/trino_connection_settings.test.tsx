@@ -7,15 +7,15 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 
-import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { QueryExecutor } from '@ankoh/dashql-platform/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 

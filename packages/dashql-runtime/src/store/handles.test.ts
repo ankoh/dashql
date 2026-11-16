@@ -2,12 +2,12 @@ import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable } from './handles.js';
-import type { ConnectionParams } from '../connections/connection_params.js';
-import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
-import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { HyperDB } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_wasm';
+import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-platform/query/query_execution_state';
 import { executeTrackedQuery } from '../query/tracked_query_execution.js';
-import { vectorFromArray } from '../testing/arrow_fixtures.js';
-import { openTestHyperDB } from '../testing/test_hyperdb.js';
+import { vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
+import { openTestHyperDB } from '@ankoh/dashql-platform/testing/test_hyperdb';
 import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
 
 describe('HandleTable', () => {

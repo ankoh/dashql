@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { SnippetBrowser } from './snippets_overlay.js';
 import type { SnippetRegistry } from './snippet_registry.js';
 import { useFocusTrap } from '../../ui/foundations/focus.js';

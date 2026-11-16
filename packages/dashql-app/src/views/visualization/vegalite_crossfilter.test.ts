@@ -12,7 +12,7 @@ import {
     VegaCrossFilterUpdater,
     VegaCrossFilterView,
 } from './vegalite_crossfilter.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 describe('injectVegaLiteCrossFilter', () => {
     it('prepends a row-id membership filter without mutating the authored spec', () => {

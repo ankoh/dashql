@@ -1,18 +1,18 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import type { ConnectionState } from '../connections/connection_state.js';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { createTestConnection, type TestConnectionOptions } from './connection_fixtures.js';
-import type { OAuthFlow } from '../oauth/oauth_flow.js';
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
-import type { HttpClient } from '../platform/http/http_client.js';
-import type { QueryResultCache } from '../query/query_result_cache.js';
+import type { OAuthFlow } from '@ankoh/dashql-platform/oauth/oauth_flow';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import type { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
+import type { QueryResultCache } from '@ankoh/dashql-platform/query/query_result_cache';
 import { createRuntime, type Runtime, type RuntimePlatform } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
-import type { StorageBackend, WorkbookData } from '../storage/storage_backend.js';
-import { WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
-import type { ScriptDataMap, WorkbookScripts } from '../workbook/scripts/workbook_scripts.js';
-import { TestLogger } from './test_logger.js';
-import { WorkbookTestBackend } from './workbook_test_backend.js';
+import type { StorageBackend, WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { createRuntimeArchives, type ParquetReadDatabase } from '../storage/workbook_archives.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

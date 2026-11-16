@@ -1,9 +1,9 @@
-import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
+import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
 import type { SetupProgress } from '../platform/database/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { testDatabasePath } from './hyperdb_test_client.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import '@ankoh/dashql-runtime/testing/test_hyperdb';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import '@ankoh/dashql-platform/testing/test_hyperdb';
 
 export interface SharedHyperDBTestPool {
     dispose(): void;
@@ -28,7 +28,7 @@ export function installSharedHyperDBTestPool(): SharedHyperDBTestPool {
         });
     };
 
-    // The HyperDBs of the tests of the runtime (@ankoh/dashql-runtime/testing/test_hyperdb), on the same engine
+    // The HyperDBs of the tests of the runtime (@ankoh/dashql-platform/testing/test_hyperdb), on the same engine
     globalThis.__DASHQL_TEST_HYPERDB__ = context => globalThis.__DASHQL_TEST_HYPERDB_FACTORY__!(context, new TestLogger());
 
     return {

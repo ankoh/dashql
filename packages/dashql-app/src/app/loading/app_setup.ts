@@ -3,25 +3,25 @@ import { useLocation } from 'react-router-dom';
 
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router/router.js';
 import { useRuntime } from '../../runtime/runtime_hooks.js';
-import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
+import { embeddedConnection, newWorkbookConnection } from '../../connections/embedded_connection.js';
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
+import { createTrace } from '@ankoh/dashql-platform/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
-import { ProgressCounter } from '@ankoh/dashql-runtime/utils/progress';
+import { ProgressCounter } from '@ankoh/dashql-platform/utils/progress';
 import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 
 const LOG_CTX = "app_loader";
 

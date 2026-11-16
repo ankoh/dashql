@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { vectorFromArray } from '../testing/arrow_fixtures.js';
+import { vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { QueryResultStream } from './query_result_stream.js';
 
 const SCHEMA = new arrow.Schema([new arrow.Field('n', new arrow.Int32())]);

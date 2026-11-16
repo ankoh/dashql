@@ -2,8 +2,8 @@ import * as dashql from '@ankoh/dashql-core';
 import * as React from 'react';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { TracedLogger, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
+import { TracedLogger, stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { createTrace } from '@ankoh/dashql-platform/platform/logger/trace_context';
 import { decodedContentLength } from '../utils/content_length.js';
 import { CorePanicOverlay } from './core_panic_overlay.js';
 

@@ -6,13 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
+import { ProfileExecutionState } from '@ankoh/dashql-platform/query/profile_execution_state';
 import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {

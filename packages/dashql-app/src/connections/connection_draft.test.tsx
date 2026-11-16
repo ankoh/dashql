@@ -7,15 +7,15 @@ import { createTestConnection, reduceTestConnection } from '@ankoh/dashql-runtim
 import { testRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { useConnection, useDispatch, useRuntime } from '../runtime/runtime_hooks.js';
-import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useConnectionDraftForm } from './connection_draft.js';
-import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-runtime/connections/connector_info';
-import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { ConnectorType, CONNECTOR_INFOS } from '@ankoh/dashql-platform/connections/connector_info';
+import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
 import { buildHyperConnectionPageState, buildHyperConnectionSetupParams, type HyperConnectionPageState } from './hyper_connection_settings.js';
 import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { TestRuntime } from '../tests/test_runtime.js';
 

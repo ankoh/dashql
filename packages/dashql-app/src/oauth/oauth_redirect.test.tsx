@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import { BASE64URL_CODEC } from '@ankoh/dashql-platform/utils/base64';
 import { RedirectPage } from './oauth_redirect.js';
-import type { AppEventData, OAuthState } from '@ankoh/dashql-runtime/oauth/oauth_types';
+import type { AppEventData, OAuthState } from '@ankoh/dashql-platform/oauth/oauth_types';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

@@ -4,12 +4,12 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { WebHyperDatabaseClient } from './web_hyperdb_http_client.js';
-import { HyperHttpClientMock } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_http_client_mock';
-import { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
-import { QueryExecutionProgress } from '@ankoh/dashql-runtime/query/query_execution_state';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { HyperHttpClientMock } from '@ankoh/dashql-platform/connections/hyper/hyperdb_http_client_mock';
+import { HttpClient, HttpFetchResult } from '@ankoh/dashql-platform/platform/http/http_client';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { HyperDatabaseConnectionContext, AttachedDatabase } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
+import { QueryExecutionProgress } from '@ankoh/dashql-platform/query/query_execution_state';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 const ENDPOINT = 'https://hyper.mock.local';
 

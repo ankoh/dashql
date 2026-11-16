@@ -8,8 +8,8 @@ import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-runtime/connections/connection_state';
-import { getSalesforceConnectionDetails } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_state';
+import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql-platform/connections/connection_state';
+import { getSalesforceConnectionDetails } from '@ankoh/dashql-platform/connections/salesforce/salesforce_connection_state';
 import {
     TextField,
     TextFieldValidationStatus,
@@ -18,14 +18,14 @@ import {
 } from '../ui/foundations/text_field.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
-import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql-platform/connections/connector_descriptor';
 import type { ConnectionDetailsView } from '@ankoh/dashql-core';
-import type { DetailedError } from '@ankoh/dashql-runtime/utils/error';
+import type { DetailedError } from '@ankoh/dashql-platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { collectSalesforceAuthInfo } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_catalog_update';
+import { collectSalesforceAuthInfo } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
+import { HYPER_CLOUD_DEFAULT_DATABASE_NAME } from '@ankoh/dashql-platform/connections/salesforce/salesforce_catalog_update';
 
 const LOG_CTX = "sf_connector";
 

@@ -1,12 +1,12 @@
-// The journal of the session of a workspace (@ankoh/dashql-runtime/session/workbook_journal): dashql
+// The journal of the session of a workspace (@ankoh/dashql-platform/session/workbook_journal): dashql
 // commands append their log records, `dashql session serve` reads them.
 import { appendFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
-import type { LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
-import { SESSION_JOURNAL_FILE, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql-runtime/session/workbook_journal';
-import type { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
-import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
+import { SESSION_JOURNAL_FILE, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql-platform/session/workbook_journal';
+import type { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-platform/storage/storage_backend';
 
 /// The journal that a command of a workbook folder appends to
 export interface SessionJournal {

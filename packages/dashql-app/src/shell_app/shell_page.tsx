@@ -2,9 +2,9 @@ import * as React from 'react';
 
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import type { EmbeddedConnection } from '@ankoh/dashql-platform/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import { LoggableException, stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { LoggableException, stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
@@ -29,7 +29,7 @@ import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { useAppConfig } from '../config/app_config.js';
-import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import { getKeywordCase } from '../workbook/scripts/script_format.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { useFormatDialog } from './format_dialog.js';
 import { usePlanDialog } from './plan_dialog.js';
@@ -37,7 +37,7 @@ import { useShareDialog } from './share_dialog.js';
 import { useSnippetsDialog } from '../workbook/snippets/snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
 import { splitShellScript } from '../shell/shell_script.js';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
 

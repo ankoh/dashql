@@ -6,7 +6,7 @@ import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@ankoh/dashql-platform/connections/connection_params';
 import { useRouteContext } from '../../app/router/router.js';
 import { ShareURLField } from './share_url_field.js';
 import { useRuntime, useWorkbook, useConnectionViews } from '../../runtime/runtime_hooks.js';

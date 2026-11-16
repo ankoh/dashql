@@ -1,10 +1,10 @@
-import type { Logger } from '../platform/logger/logger.js';
+import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
 import type { RuntimePlatform } from '../runtime.js';
-import type { StorageBackend } from '../storage/storage_backend.js';
-import type { OAuthFlow } from '../oauth/oauth_flow.js';
+import type { StorageBackend } from '@ankoh/dashql-platform/storage/storage_backend';
+import type { OAuthFlow } from '@ankoh/dashql-platform/oauth/oauth_flow';
 import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
-import { WebHttpClient } from '../platform/http/web_http_client.js';
-import { createDashQLCoreSetup } from './node_core.js';
+import { WebHttpClient } from '@ankoh/dashql-platform/platform/http/web_http_client';
+import { createDashQLCoreSetup } from '@ankoh/dashql-platform/node/node_core';
 
 /// Node has no OAuth flow yet, `dashql auth` brings one (docs/wip/dashql_runtime.md)
 const NO_OAUTH_FLOW: OAuthFlow = {

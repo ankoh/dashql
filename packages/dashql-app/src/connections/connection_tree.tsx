@@ -27,9 +27,9 @@ import {
     TrashIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql-runtime/connections/catalog/catalog_update_state';
-import { canRefreshConnection } from '@ankoh/dashql-runtime/connections/connection_refresh';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql-platform/connections/catalog/catalog_update_state';
+import { canRefreshConnection } from '@ankoh/dashql-platform/connections/connection_refresh';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
     connectionLabelParts,
@@ -38,7 +38,7 @@ import {
     isListedConnection,
     supportsConnectionOverview,
     type ConnectionLabelParts,
-} from '@ankoh/dashql-runtime/connections/connection_label';
+} from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
@@ -47,7 +47,7 @@ import { isCloudCapable } from './cloud_connection.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
-import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');

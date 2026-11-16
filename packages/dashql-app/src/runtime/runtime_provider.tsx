@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
 import { createRuntimeArchives } from '@ankoh/dashql-runtime/storage/workbook_archives';
-import type { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import type { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';

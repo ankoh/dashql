@@ -1,10 +1,10 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { stringifyError } from '../platform/logger/logger.js';
-import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from './storage_backend.js';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from './storage_backend.js';
-import { NativeStorageBackend } from './native_storage_backend.js';
-import { markWorkbookAttachmentsChanged } from '../workbook/attachments/attachment_mounts.js';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from '@ankoh/dashql-platform/storage/storage_backend';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from '@ankoh/dashql-platform/storage/storage_backend';
+import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
+import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-platform/workbook/attachments/attachment_mounts';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
 /// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/wip/runtime_api.md). The writer

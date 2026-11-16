@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { embeddedConnection, newWorkbookConnection } from '@ankoh/dashql-runtime/connections/embedded_connection';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { embeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { getHyperLinkTabState } from './hyper/hyper_link_tab.js';
 

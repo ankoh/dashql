@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { connectChannel, type ChannelClients } from './hyper_connection_setup.js';
-import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 
 /// The clients of a test, none by default

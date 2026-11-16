@@ -33,6 +33,9 @@
             "@ankoh/dashql-runtime/*": [
                 "./packages/dashql-runtime/src/*.ts"
             ],
+            "@ankoh/dashql-platform/*": [
+                "./packages/dashql-platform/src/*.ts"
+            ],
             "@ankoh/hyperdb-edge/*": [
                 "./packages/hyperdb-edge/src/*.ts"
             ],

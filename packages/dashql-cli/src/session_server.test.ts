@@ -2,8 +2,8 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, write
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { LogLevel, type LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
-import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql-runtime/session/workbook_journal';
+import { LogLevel, type LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
+import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql-platform/session/workbook_journal';
 
 import { startSessionServer, type SessionServer } from './session_server.js';
 

@@ -5,8 +5,10 @@ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
-# The logic of DashQL without React, shared by the app (//packages/dashql-app) and the command line tool, see
-# docs/wip/dashql_runtime.md. A source package, nothing is compiled: the app bundles the TypeScript itself.
+# The runtime of DashQL without React, shared by the app (//packages/dashql-app) and the command line tool: the facade
+# over the runtime of the core, the store, the view projections and the adapters that build the platform of the core
+# from the platform objects of //packages/dashql-platform, see docs/wip/dashql_runtime.md. It depends on the platform,
+# the platform never on it. A source package, nothing is compiled: the app bundles the TypeScript itself.
 # Linked as //:node_modules/@ankoh/dashql-runtime, the dev server of the app reads packages/dashql-runtime directly.
 
 package(default_visibility = ["//visibility:public"])
@@ -70,6 +72,7 @@ _TEST_DEPENDENCIES = [
     ":dep_jsonschema",
     ":dep_protobuf",
     "//:node_modules/@ankoh/dashql-core",
+    "//:node_modules/@ankoh/dashql-platform",
     "//:node_modules/@ankoh/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@zip.js/zip.js",
@@ -135,7 +138,8 @@ vitest_bin.vitest_test(
     ] + _TEST_DEPENDENCIES,
 )
 
-# The runtime reaches no code of the app and no user interface, and uses only the known seams of a browser or a bundler
+# The runtime reaches no code of the app and no user interface, reaches the platform only by its name, and uses only the
+# known seams of a browser or a bundler
 js_test(
     name = "boundary_test",
     data = _SOURCES,

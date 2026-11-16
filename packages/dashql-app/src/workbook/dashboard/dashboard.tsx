@@ -2,13 +2,13 @@ import * as React from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type KeyboardCoordinateGetter } from '@dnd-kit/core';
 
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
-import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
-import type { DashboardSpec } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
+import type { DashboardSpec } from '@ankoh/dashql-platform/workbook/scripts/script_types';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {

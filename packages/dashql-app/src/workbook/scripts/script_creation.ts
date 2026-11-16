@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { randomScriptName } from '@ankoh/dashql-runtime/workbook/scripts/script_name';
-import { scriptDisplayName, type ScriptRef } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import type { ScriptData, WorkbookAction, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { randomScriptName } from './script_name.js';
+import { scriptDisplayName, type ScriptRef } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import type { ScriptData, WorkbookAction, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { createdScriptRef, type ScriptSelection } from './script_selection.js';

@@ -3,14 +3,14 @@ import * as styles from './workbook_shells_page.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useConnections } from '../../runtime/runtime_hooks.js';
-import { connectionLabelParts } from '@ankoh/dashql-runtime/connections/connection_label';
+import { connectionLabelParts } from '../../connections/connection_label.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
 import { useConnectionOrdinals } from '../connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';
-import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
 
 export interface WorkbookShellsPageDependencies {
     useConnections: typeof useConnections;

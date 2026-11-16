@@ -1,19 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@ankoh/dashql-core';
-import type * as pb from '../../proto.js';
-import { openTestHyperDB } from '../../testing/test_hyperdb.js';
-import type { EmbeddedConnection } from '../../platform/database/embedded_database.js';
-import { ConnectorType } from '../connector_info.js';
-import { setupStepAction } from '../connection_state.js';
+import type * as pb from '@ankoh/dashql-platform/proto';
+import { openTestHyperDB } from '@ankoh/dashql-platform/testing/test_hyperdb';
+import type { EmbeddedConnection } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { setupStepAction } from '@ankoh/dashql-platform/connections/connection_state';
 import { createRuntime, type Runtime } from '../../runtime.js';
-import type { ConnectionParams } from '../../storage/storage_backend.js';
-import { STORAGE_CATALOG_RELATIONS } from '../../storage/storage_backend.js';
+import type { ConnectionParams } from '@ankoh/dashql-platform/storage/storage_backend';
+import { STORAGE_CATALOG_RELATIONS } from '@ankoh/dashql-platform/storage/storage_backend';
 import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
-import { TestLogger } from '../../testing/test_logger.js';
-import { WorkbookTestRegistry } from '../../testing/workbook_test_backend.js';
-import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../embedded/embedded_database_channel.js';
-import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from './catalog_sql_generator.js';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { WorkbookTestRegistry } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '@ankoh/dashql-platform/connections/embedded/embedded_database_channel';
+import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from '@ankoh/dashql-platform/connections/catalog/catalog_sql_generator';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

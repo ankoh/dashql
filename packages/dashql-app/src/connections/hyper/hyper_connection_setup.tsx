@@ -3,9 +3,9 @@ import type * as core from '@ankoh/dashql-core';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import type { ChannelConnector } from '@ankoh/dashql-runtime/runtime';
-import { HyperDatabaseClient, type HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
-import { SalesforceDatabaseChannel, type SalesforceApiClientInterface } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import { connectEmbeddedHyper } from '@ankoh/dashql-runtime/connections/embedded/embedded_database_channel';
+import { HyperDatabaseClient, type HyperDatabaseConnectionContext } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
+import { SalesforceDatabaseChannel, type SalesforceApiClientInterface } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
+import { connectEmbeddedHyper } from '@ankoh/dashql-platform/connections/embedded/embedded_database_channel';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyperdb_grpc_client_provider.js';
 import { useEmbeddedDatabaseSetup, type EmbeddedDatabaseSetupFn } from '../../platform/database/embedded_database_provider.js';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';

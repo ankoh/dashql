@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { NO_LIVE_QUERY_RESULT, useLiveQuery, type LiveQueryState } from './use_live_query.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 /// A database whose queries wait for the outcome that the test releases.
 /// The loop runs a query every few milliseconds, so the test could otherwise miss the result of a run.

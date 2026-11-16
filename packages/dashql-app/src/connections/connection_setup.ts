@@ -2,9 +2,9 @@ import * as React from 'react';
 import type * as core from '@ankoh/dashql-core';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { setupSalesforceConnectionMock } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_connection_setup_mock';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { setupSalesforceConnectionMock } from './salesforce/salesforce_connection_setup_mock.js';
 import { useSaveBeforeConnect } from './connection_persistence.js';
 import { useSalesforceMock } from './salesforce/salesforce_connector.js';
 import { useAppConfig } from '../config/app_config.js';

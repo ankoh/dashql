@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type * as core from '@ankoh/dashql-core';
-import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
 import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql-runtime/storage/runtime_storage';
 import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 

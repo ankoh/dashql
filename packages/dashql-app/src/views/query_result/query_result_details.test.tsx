@@ -15,10 +15,10 @@ const mockState = {
     logError: vi.fn(),
 };
 
-import { QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies = {

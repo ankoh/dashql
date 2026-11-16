@@ -4,7 +4,7 @@ import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
 import type * as core from '@ankoh/dashql-core';
-import { ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, TrackedTask, WithFilterEpoch, ComputationStateVersion } from '@ankoh/dashql-runtime/compute/computation_types';
+import { ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, TrackedTask, WithFilterEpoch, ComputationStateVersion } from '@ankoh/dashql-platform/compute/computation_types';
 import { RectangleWaveSpinner } from '../../ui/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';

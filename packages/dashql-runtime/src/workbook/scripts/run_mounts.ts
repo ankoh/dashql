@@ -2,9 +2,9 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
 import type { HandleTable } from '../../store/handles.js';
-import type { ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
-import type { QueryResultCache } from '../../query/query_result_cache.js';
-import { mountWorkbookAttachments, readAttachmentColumns } from '../attachments/attachment_mounts.js';
+import type { ParquetDatabase } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_parquet_export';
+import type { QueryResultCache } from '@ankoh/dashql-platform/query/query_result_cache';
+import { mountWorkbookAttachments, readAttachmentColumns } from '@ankoh/dashql-platform/workbook/attachments/attachment_mounts';
 
 /// The files of a run: the pins of the files it reads and writes, its transient files
 interface RunFiles {

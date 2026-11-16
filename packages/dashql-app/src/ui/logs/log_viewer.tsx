@@ -5,7 +5,7 @@ import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon, DownloadIcon } from '../foundations/symbol_icon.js';
 
-import { getLogLevelName, LogRecord } from '@ankoh/dashql-runtime/platform/logger/log_buffer';
+import { getLogLevelName, LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';

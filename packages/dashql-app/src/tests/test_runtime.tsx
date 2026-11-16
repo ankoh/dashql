@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as core from '@ankoh/dashql-core';
 
-import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql-runtime/connections/query_execution_args';
+import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql-platform/connections/query_execution_args';
 
 import { RuntimeProvider } from '../runtime/runtime_provider.js';
 import { useRuntime } from '../runtime/runtime_hooks.js';

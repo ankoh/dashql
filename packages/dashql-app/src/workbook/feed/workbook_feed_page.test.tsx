@@ -6,7 +6,7 @@ import { WorkbookFeedPage, type WorkbookFeedPageDependencies } from './workbook_
 import { WorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl } from '../../ui/foundations/segmented_control.js';
 import { Button } from '../../ui/foundations/button.js';
-import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { DBCOM_FLAVOR } from '../../config/flavors.js';

@@ -4,13 +4,13 @@ import * as path from 'node:path';
 
 import { createRuntime } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
-import { TestLogger } from '../testing/test_logger.js';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 import { testCore } from '../testing/test_runtime.js';
-import { openNodeRoot } from './node_directory_handle.js';
-import { NODE_FILE_SYSTEM } from './node_file_system.js';
-import { NativeStorageBackend } from '../storage/native_storage_backend.js';
-import { createStorageRoot } from '../storage/storage_root.js';
-import { STORAGE_VERSION, WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
+import { openNodeRoot } from '@ankoh/dashql-platform/node/node_directory_handle';
+import { NODE_FILE_SYSTEM } from '@ankoh/dashql-platform/node/node_file_system';
+import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
+import { createStorageRoot } from '@ankoh/dashql-platform/storage/storage_root';
+import { STORAGE_VERSION, WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';

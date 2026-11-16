@@ -267,7 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-runtime/src/connections/connector_descriptor.ts`):
+A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-platform/src/connections/connector_descriptor.ts`):
 
 ```ts
 interface ClientFunctionBinding {
@@ -688,7 +688,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | `connection.rs` | Connects it to a connection: the binding of the connector, the spec on the catalog of the connection, a call of the connection |
 
 The query executor of the crate runs a call as a task over the HTTP client of the host, the result reaches the host as
-Arrow IPC like every other query result. In TypeScript, `packages/dashql-runtime/src/connections/clfn/` keeps the types of
+Arrow IPC like every other query result. In TypeScript, `packages/dashql-platform/src/connections/clfn/` keeps the types of
 the document and of the core's description (`clfn_spec.ts`) and `loadClientFunctionSpec` (`clfn_specs.ts`), which loads
 a bundled spec as a chunk of its own, for `loadSpec` of a binding.
 

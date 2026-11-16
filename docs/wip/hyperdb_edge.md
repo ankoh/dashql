@@ -298,14 +298,15 @@ Not built yet:
 
 ## With the DashQL runtime
 
-The runtime and the command sit side by side on `hyperdb-wasm`. The runtime depends on the library of `hyperdb-edge`,
-never the other way: the command would otherwise carry all of DashQL. Neither command calls the other, and they don't
+The runtime and the command sit side by side on `hyperdb-wasm`. The runtime depends on the library of `hyperdb-edge`
+through its platform (`@ankoh/dashql-platform`, `node/node_hyperdb.ts`), never the other way: the command would
+otherwise carry all of DashQL. Neither command calls the other, and they don't
 overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 
 ```
           dashql (Node CLI)          hyperdb-edge (command)
                  │                           │
-          @ankoh/dashql-runtime ───────► @ankoh/hyperdb-edge (library)
+          @ankoh/dashql-platform ──────► @ankoh/hyperdb-edge (library)
                  │                           │
                  └────────► hyperdb-wasm ◄───┘
 ```

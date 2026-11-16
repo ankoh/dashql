@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as core from '@ankoh/dashql-core';
 
 import { useHyperLinks } from './hyper_links.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import { PlatformEventListenerProvider, usePlatformEventListener } from '../platform/events/event_listener_provider.js';
@@ -14,10 +14,10 @@ import type { PlatformEventListener } from '../platform/events/event_listener.js
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { useConnections, useWorkbooks } from '../runtime/runtime_hooks.js';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 const LOCAL_LINK = { endpoint: 'http://127.0.0.1:7484', token: 'first' };

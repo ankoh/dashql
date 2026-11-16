@@ -8,7 +8,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type ProfileScene, type ProfileSceneOperator } from './profile_scene.js';
 import { formatCpuShare, formatEstimateSymbol, formatFragmentMetrics, formatShortBytes, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
-import { ProfileExecutionState } from '@ankoh/dashql-runtime/query/profile_execution_state';
+import { ProfileExecutionState } from '@ankoh/dashql-platform/query/profile_execution_state';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);

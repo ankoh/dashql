@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import * as dashql from '@ankoh/dashql-core';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
-import { replayProgressRecording } from '@ankoh/dashql-runtime/query/query_progress';
+import { replayProgressRecording } from '@ankoh/dashql-platform/query/query_progress';
 import { ProfileProgressDetails } from './query_progress_panel.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

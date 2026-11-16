@@ -2,18 +2,18 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { SalesforceApiClient, SalesforceDatabaseChannel } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_api_client';
-import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { SalesforceApiClient, SalesforceDatabaseChannel } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
+import type { HyperDatabaseClient, HyperDatabaseConnectionContext } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 import { createRuntime } from '@ankoh/dashql-runtime/runtime';
-import { ConnectionHealth } from '@ankoh/dashql-runtime/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql-platform/connections/connector_descriptor';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
-import type { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
+import type { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-runtime/utils/base64';
+import { BASE64URL_CODEC } from '@ankoh/dashql-platform/utils/base64';
 import { connectChannel } from '../hyper/hyper_connection_setup.js';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 

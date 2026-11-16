@@ -4,13 +4,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createRuntime } from '@ankoh/dashql-runtime/runtime';
 import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { SNIPPET_DATASETS_FOLDER } from './snippet.js';
 import { getBundledSnippets, snippetText } from './snippet_registry.js';
-import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { quoteIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

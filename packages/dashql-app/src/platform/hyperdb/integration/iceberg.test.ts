@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
-import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

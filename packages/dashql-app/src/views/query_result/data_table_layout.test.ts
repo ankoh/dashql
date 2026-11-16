@@ -1,12 +1,12 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { ArrowTableFormatter } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { ArrowTableFormatter } from '@ankoh/dashql-platform/compute/arrow_formatter';
 import { valueColumn } from '../../tests/mocks/computation.js';
-import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-runtime/compute/computation_types';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@ankoh/dashql-platform/compute/computation_types';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 function createTableState() {
     const table = tableFromArrays({

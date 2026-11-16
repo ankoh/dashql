@@ -106,7 +106,7 @@ goes through a `dashql` command, so the commands tell what they changed.
   harnesses, a session that a hook starts; the journal: the server creates it, follows partial lines, folds the
   markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
   the progress and the results of a workbook in the workspace it is given.
-- `//packages/dashql-runtime:test_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
+- `//packages/dashql-platform:test_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
   a session with the log of the commands.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
   then a new port, Codex, and a server on the port and secret of the line.

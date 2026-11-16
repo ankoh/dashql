@@ -1,5 +1,5 @@
-import { ChannelArgs, ChannelError, ChannelMetadataProvider, RawProxyError } from '@ankoh/dashql-runtime/platform/channel_common';
-import { Logger } from "@ankoh/dashql-runtime/platform/logger/logger";
+import { ChannelArgs, ChannelError, ChannelMetadataProvider, RawProxyError } from '@ankoh/dashql-platform/platform/channel_common';
+import { Logger } from "@ankoh/dashql-platform/platform/logger/logger";
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_CHANNEL_ID, HEADER_NAME_ENDPOINT, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_STREAM_ID, HEADER_NAME_TLS, HEADER_NAME_TLS_CACERTS, HEADER_NAME_TLS_CLIENT_CERT, HEADER_NAME_TLS_CLIENT_KEY } from '../native_proxy_headers.js';
 import { nativeProxyFetch } from '../electron_native_fetch.js';
 

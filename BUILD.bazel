@@ -45,10 +45,16 @@ npm_link_package(
     src = "//packages/dashql-core-js:npm_package",
 )
 
-# The logic of DashQL without React, shared by //packages/dashql-app and the command line tool.
+# The runtime of DashQL without React, shared by //packages/dashql-app and the command line tool.
 npm_link_package(
     name = "node_modules/@ankoh/dashql-runtime",
     src = "//packages/dashql-runtime:npm_package",
+)
+
+# The platforms, the connector clients and the support of the command line tool, the runtime depends on them.
+npm_link_package(
+    name = "node_modules/@ankoh/dashql-platform",
+    src = "//packages/dashql-platform:npm_package",
 )
 
 # The library of the embedded Hyper of hyperdb-wasm, the runtime checks the WebAssembly of Node with it.

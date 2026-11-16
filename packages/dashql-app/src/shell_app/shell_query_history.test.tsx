@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import * as core from '@ankoh/dashql-core';
 
-import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
 import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import {
     SHELL_DATABASE_ID,

@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import { ConnectorConfigs, readConnectorConfigs } from '@ankoh/dashql-runtime/connections/connector_configs';
+import { ConnectorConfigs, readConnectorConfigs } from '@ankoh/dashql-platform/connections/connector_configs';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql-runtime/platform/logger/trace_context';
+import { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { createTrace } from '@ankoh/dashql-platform/platform/logger/trace_context';
 import { AppFlavor, applyFlavorSettings } from './flavors.js';
 import { useAppFlavor } from './flavor_provider.js';
-import type { AppSettings } from '@ankoh/dashql-runtime/config/app_settings';
+import type { AppSettings } from './app_settings.js';
 
 const CONFIG_URL = new URL('../../static/config.json', import.meta.url);
 
-export type { AppSettings } from '@ankoh/dashql-runtime/config/app_settings';
+export type { AppSettings } from './app_settings.js';
 
 export interface AppConfig {
     settings?: AppSettings;

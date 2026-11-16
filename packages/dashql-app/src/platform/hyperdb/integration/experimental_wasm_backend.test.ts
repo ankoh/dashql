@@ -3,9 +3,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
-import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '@ankoh/dashql-runtime/platform/hyperdb/hyperdb_settings';
+import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_settings';
 import { setupWebHyperDB } from '../hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

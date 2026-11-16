@@ -4,10 +4,10 @@
 // (packages/dashql-core-runtime/tests/workbook_test.rs), the views in `runtime_workbooks.test.ts` of dashql-core-js.
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ConnectionParams } from '../connections/connection_params.js';
-import { WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
 import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
-import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../testing/workbook_test_backend.js';
+import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 
 /// A Hyper server, its catalog outlives the app
 const HYPER = { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams;

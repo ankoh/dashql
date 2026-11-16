@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createTableSQL, insertStatements, qualifiedName, type CloudColumn } from './cloud_sql.js';
-import { quoteLiteral } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { quoteLiteral } from '@ankoh/dashql-platform/utils/sql_quote';
 
 const COLUMNS: CloudColumn[] = [
     { name: 'id', type: 'integer', nullable: false },

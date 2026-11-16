@@ -1,7 +1,7 @@
 import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { SqlInput } from '@ankoh/dashql-runtime/sql/sql_lint';
+import type { SqlInput } from '@ankoh/dashql-platform/sql/sql_lint';
 
 /// The path that reads a script from stdin
 export const STDIN = '-';

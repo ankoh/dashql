@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import * as core from '@ankoh/dashql-core';
 
 import { useCreateComputeQueryExecution } from '../compute/compute_query_execution.js';
-import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, QueryType, type QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
 import { ShellComputeQueryExecutionProvider } from './shell_compute_query_execution.js';
 import { ShellQueryHistoryProvider, useShellQueries } from './shell_query_history.js';
 import { StandaloneRuntime, useRuntime } from '../runtime/runtime_hooks.js';

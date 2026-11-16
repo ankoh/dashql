@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-runtime/platform/http/http_client';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-platform/platform/http/http_client';
 import { readWorkbookFromHttp } from './http_workbook_bundle.js';
-import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { testStorageRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
+import type { WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
 
 const URL = new globalThis.URL('https://example.com/workbook/dashql-workbook.json');
 

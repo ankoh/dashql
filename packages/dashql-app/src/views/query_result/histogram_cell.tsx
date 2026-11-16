@@ -3,8 +3,8 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../ui/foundations/size_observer.js';
-import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '@ankoh/dashql-runtime/compute/computation_types';
-import { dataTypeToString } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '@ankoh/dashql-platform/compute/computation_types';
+import { dataTypeToString } from '@ankoh/dashql-platform/compute/arrow_formatter';
 import { COLUMN_SUMMARY_BASELINE_COLOR, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { HistogramBars, HistogramNullBar, NULL_SYMBOL } from './histogram_bars.js';
 import { useHistogramBrush } from './histogram_brush.js';

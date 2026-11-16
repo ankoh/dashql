@@ -5,18 +5,18 @@
 import type * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ConnectionHealth, setupStepAction } from '../connections/connection_state.js';
-import type { ConnectionParams } from '../connections/connection_params.js';
+import { ConnectionHealth, setupStepAction } from '@ankoh/dashql-platform/connections/connection_state';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
 import type { RunResult, Runtime } from '../runtime.js';
 import { createTestConnection } from '../testing/connection_fixtures.js';
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
-import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
-import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
-import { tableFromArrays } from '../testing/arrow_fixtures.js';
-import { memoryQueryResultCache } from '../testing/memory_query_result_cache.js';
-import { openTestHyperDB } from '../testing/test_hyperdb.js';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import type { HyperDB } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_wasm';
+import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '@ankoh/dashql-platform/query/query_execution_state';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
+import { memoryQueryResultCache } from '@ankoh/dashql-platform/testing/memory_query_result_cache';
+import { openTestHyperDB } from '@ankoh/dashql-platform/testing/test_hyperdb';
 import { createTestRuntime, restoreTestWorkbook, type TestRuntime } from '../testing/test_runtime.js';
-import { workbookExecutionIsBusy, type ScriptRunEvent, type WorkbookExecutionState } from './scripts/workbook_execution.js';
+import { workbookExecutionIsBusy, type ScriptRunEvent, type WorkbookExecutionState } from '@ankoh/dashql-platform/workbook/scripts/workbook_execution';
 
 function deferred() {
     let resolve!: () => void;

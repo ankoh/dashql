@@ -1221,6 +1221,51 @@ the 1,075 lines of `testing/`; 6,802 lines of tests in 59 files), cut anew by fi
 | Remaining logic | 317 | the mock setup of Salesforce, the catalog SQL of the shell |
 | Test helpers in the sources | 224 | `hyperdb_http_client_mock.ts` |
 
+### The split as built
+
+Decision 6, built on `c42f4e67e` (step 8): `packages/dashql-runtime` split into the runtime and a new
+`packages/dashql-platform` (`@ankoh/dashql-platform`). A move and a rename: no file changed but its imports, the tests
+are the ones of before. What goes where is in [dashql_runtime.md](dashql_runtime.md#the-two-packages).
+
+| Where | Sources | Tests | Test helpers |
+|---|---|---|---|
+| `dashql-runtime` | 2,940 lines in 15 files | 1,661 in 11 | 259 in 3 |
+| `dashql-platform` | 10,982 in 106 | 4,783 in 42 | 759 in 8 |
+| `dashql-app` (moved in) | 567 in 12 | 358 in 6 | |
+
+The 14,489 lines of step 8 are all accounted for. The runtime is larger than the 800 lines of the decision: `runtime.ts`
+alone has 915, and the adapters of the platform of the core (`query_channels.ts` 387, `runtime_storage.ts` 260, the
+projections of the workbook views 216, the archives, the tracked queries, the result streams, the compute platform,
+the files of runs, `createNodePlatform`) belong to it, since they name the `RuntimePlatform` of the facade, the handle
+table or the core's platform types.
+
+- **The direction.** The runtime imports the platform, the platform neither the runtime nor the app.
+  `//packages/dashql-platform:boundary_test` fails on `@ankoh/dashql-runtime` and on a relative import out of the
+  package, `//packages/dashql-runtime:boundary_test` allows the platform only by its name (`src/node` alone may import
+  `@ankoh/dashql-platform/node/`). The modules that would have closed a cycle went with their importers:
+  `query/query_progress.ts` to the platform (`query_execution_state.ts` names its types), the archives, the tracked
+  queries and `createNodePlatform` stayed in the runtime (they take the handle table or return the `RuntimePlatform`),
+  the mock setup of Salesforce and the marking of deleted query results moved into the app (they take a `Runtime`).
+- **The app** got the helpers only it uses: `connection_label.ts` with `embedded_connection.ts`, the Hyper links of a
+  tab, `salesforce_connection_setup_mock.ts`, `query_result_cache_clear.ts`, `workbook_link.ts`, `script_name.ts`,
+  `script_format.ts` with `config/app_settings.ts`, `catalog_object_id.ts`, `script_rename.ts` and
+  `attachment_rename.ts`, at the same paths under `packages/dashql-app/src`. Their tests run in the browser tests of
+  the app only.
+- **The tests.** A test that creates a runtime stays in the runtime with the test runtime and its fixtures, also when it
+  tests a module of the platform (the catalog updates of an embedded channel, the tracked queries, the migrations over a
+  root of Node, `hyper_link.test.ts` went to the app with its module). The platform has its own `test_node`, the three
+  type checks, the boundary and editor tests; the browser tests of the app run the tests of both packages
+  (`:platform_browser_test_files`, `platform/src/<path>`).
+- **The codemod.** A script moved the modules with `mv` and rewrote the imports: the relative imports of the runtime
+  and of the modules for the app that reach another package became deep imports (`@ankoh/dashql-platform/<path>`,
+  `@ankoh/dashql-runtime/<path>`), and `@ankoh/dashql-runtime/<path>` and `packages/dashql-runtime/src/<path>` of a
+  moved module became the platform or the relative path in the app. It changed 408 files of the app, 18 of the command
+  line tool, 23 of the runtime, 14 of the modules for the app and 7 documents; the platform needed none.
+- **Build.** `//:node_modules/@ankoh/dashql-platform`, the `npm_translate_lock` data of `MODULE.bazel`, the importer of
+  `pnpm-lock.yaml`, `.bazelignore`, the path of the root `tsconfig.json`, `__PLATFORM_PATH__` of the Vite config of the
+  app, the dependencies of the app, the command line tool and the runtime. Rust and Wasm are unchanged; comments in the
+  crates that name old paths of `packages/dashql-runtime/src` were left.
+
 ### The order
 
 Steps 2 and 4 are the wide ones. Step 4 can go before 2 and 3 if the editor matters more than the connections
@@ -1264,7 +1309,8 @@ Taken on 2026-11-15.
 4. **The editor.** The shared `ScriptSession` with `reportEditorUpdate` stays, `ApplyEditorEvent` comes later.
 5. **Hooks.** Generic `useView(kind, id)` with one-line aliases.
 6. **The package.** `packages/dashql-runtime` splits into a runtime of about 800 lines (the facade, the store, the
-   platform builder) and a `dashql-platform` package with the platforms, the clients and the CLI support.
+   platform builder) and a `dashql-platform` package with the platforms, the clients and the CLI support. Done, see
+   [The split as built](#the-split-as-built): the runtime has 2,940 lines with the adapters of the platform.
 7. **The order.** Computations, connections, setups, workbooks: the glue of the connections and queries goes first and
    the workbooks build on them.
 8. **Derived slices.** The references, the dataflow and the inputs move into Rust with step 4, which ends the renders

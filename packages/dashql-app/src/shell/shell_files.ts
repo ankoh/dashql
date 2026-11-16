@@ -2,9 +2,9 @@ import type {
     EmbeddedExternalDirectoryDatabase,
     EmbeddedExternalFileDatabase,
     ExternalDirectoryMode,
-} from '@ankoh/dashql-runtime/platform/database/embedded_database';
+} from '@ankoh/dashql-platform/platform/database/embedded_database';
 import type { PlatformFile } from '../platform/file/file.js';
-import { stringifyError, type LoggerLike } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql-platform/platform/logger/logger';
 import type { DashQLShellCommand, DashQLShellCommandContext } from './api.js';
 
 const LOG_CTX = 'standalone_shell_files';

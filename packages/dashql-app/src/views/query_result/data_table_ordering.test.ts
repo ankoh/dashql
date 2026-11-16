@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import type { TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { getColumnSortDirection, getNextColumnSortDirection, useDataTableOrdering } from './data_table_ordering.js';

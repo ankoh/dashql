@@ -1,9 +1,9 @@
 import type * as core from '@ankoh/dashql-core';
 
-import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { createScriptAction } from '../scripts/script_creation.js';
-import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
-import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { scriptDisplayName, type FlowPosition } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import { quoteIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
 
 /// The placement of the `@flow` tag of a script, null without a tag
 function placementOf(flow: FlowPosition | null | undefined): core.DataflowPlacement | null {

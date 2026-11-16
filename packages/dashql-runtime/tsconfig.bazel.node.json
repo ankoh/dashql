@@ -1,5 +1,6 @@
 // The modules of Node in src/node and their tests, with the types of Node. The WebWorker lib stays while modules that
-// they import still name the types of the origin private file system (the known seams of test/boundary_test.mjs).
+// they import still name the types of the origin private file system (the known seams of the boundary test of
+// packages/dashql-platform).
 {
   "extends": "./tsconfig.bazel.json",
   "compilerOptions": {

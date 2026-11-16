@@ -8,7 +8,7 @@ import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_datab
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from './snippet_registry.js';
 import { SnippetsOverlay } from './snippets_overlay.js';
 

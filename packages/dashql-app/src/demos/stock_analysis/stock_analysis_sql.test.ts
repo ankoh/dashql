@@ -1,9 +1,9 @@
 import type * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql-platform/platform/database/embedded_database';
 import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
 import { bindSqlTemplate } from '../shared/sql_template.js';
 import { readBoardRows } from './live_board.js';
 import { deleteTicksBeforeSql, insertTicksSql, type Tick } from './tick_feed.js';

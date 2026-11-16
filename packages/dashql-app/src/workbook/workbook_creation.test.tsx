@@ -4,13 +4,13 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';

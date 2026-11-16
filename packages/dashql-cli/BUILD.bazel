@@ -43,12 +43,13 @@ copy_to_directory(
     },
 )
 
-# The runtime is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
-# core.
+# The runtime and the platform are source packages, their imports come from here. `run` reaches all of them, `lint` and
+# `format` only the core and the SQL support of the platform.
 _DEPENDENCIES = [
     ":dep_jsonschema",
     ":dep_protobuf",
     "//:node_modules/@ankoh/dashql-core",
+    "//:node_modules/@ankoh/dashql-platform",
     "//:node_modules/@ankoh/dashql-runtime",
     "//:node_modules/@ankoh/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",

@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { followAgentSession, parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql-runtime/session/agent_session_client';
+import { followAgentSession, parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql-platform/session/agent_session_client';
 import { Store } from '@ankoh/dashql-runtime/store/store';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';

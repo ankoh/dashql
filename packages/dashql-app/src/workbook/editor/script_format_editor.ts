@@ -2,8 +2,8 @@ import * as dashql from '@ankoh/dashql-core';
 
 import type { EditorView } from '@codemirror/view';
 
-import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import { createScriptFormatConfig, DEFAULT_FORMAT_WIDTH, MIN_FORMAT_WIDTH } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import type { ScriptData } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { createScriptFormatConfig, DEFAULT_FORMAT_WIDTH, MIN_FORMAT_WIDTH } from '../scripts/script_format.js';
 
 /// Formatting in an editor: the width of the view and the formatted text of a script, see ../scripts/script_format.ts
 

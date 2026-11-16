@@ -3,11 +3,11 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createRuntime, type Runtime, type RuntimePlatform } from './runtime.js';
 import { TASK_UPDATE_SCHEDULER } from './store/store.js';
-import { TestLogger } from './testing/test_logger.js';
-import { WorkbookTestBackend } from './testing/workbook_test_backend.js';
-import { newDefaultHyperWasmConnection } from './connections/connection_params.js';
-import type { OAuthFlow } from './oauth/oauth_flow.js';
-import type { HttpClient } from './platform/http/http_client.js';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import { newDefaultHyperWasmConnection } from '@ankoh/dashql-platform/connections/connection_params';
+import type { OAuthFlow } from '@ankoh/dashql-platform/oauth/oauth_flow';
+import type { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

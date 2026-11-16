@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import type * as core from '@ankoh/dashql-core';
 
-import type { ColumnGroup, ResultSearchState, TableComputationState } from '@ankoh/dashql-runtime/compute/computation_types';
+import type { ColumnGroup, ResultSearchState, TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
 
 /// A search without a pattern
 export function createResultSearchState(): ResultSearchState {

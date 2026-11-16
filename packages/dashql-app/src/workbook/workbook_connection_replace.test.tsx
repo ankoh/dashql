@@ -5,17 +5,17 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 import { useConnections, useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 
-import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import type { WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import * as core from '@ankoh/dashql-core';
 import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
 import { useReplaceConnection } from './workbook_connection_replace.js';

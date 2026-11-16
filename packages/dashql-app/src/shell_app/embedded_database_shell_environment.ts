@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
-import { createQueryResponseStreamMetrics } from '@ankoh/dashql-runtime/query/query_execution_state';
-import type { EmbeddedConnection } from '@ankoh/dashql-runtime/platform/database/embedded_database';
+import { createQueryResponseStreamMetrics } from '@ankoh/dashql-platform/query/query_execution_state';
+import type { EmbeddedConnection } from '@ankoh/dashql-platform/platform/database/embedded_database';
 import { DashQLShellEnvironment } from '../shell/api.js';
 import { executeTrackedQuery, type QueryTracker } from '@ankoh/dashql-runtime/query/tracked_query_execution';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';

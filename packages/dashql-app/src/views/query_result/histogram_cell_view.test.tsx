@@ -4,8 +4,8 @@ import * as d3 from 'd3';
 import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-runtime/testing/test_logger';
-import { ArrowTableFormatter, dataTypeToString } from '@ankoh/dashql-runtime/compute/arrow_formatter';
+import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { ArrowTableFormatter, dataTypeToString } from '@ankoh/dashql-platform/compute/arrow_formatter';
 import {
     type ColumnAggregationVariant,
     type SummaryColumn,
@@ -13,9 +13,9 @@ import {
     type OrdinalColumnAggregation,
     type TableAggregation,
     type WithFilterEpoch,
-} from '@ankoh/dashql-runtime/compute/computation_types';
-import { filteredAggregate, ordinalAggregate } from '@ankoh/dashql-runtime/testing/column_aggregates';
-import { tableFromArrays } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+} from '@ankoh/dashql-platform/compute/computation_types';
+import { filteredAggregate, ordinalAggregate } from '@ankoh/dashql-platform/testing/column_aggregates';
+import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
 import { HistogramCell, type HistogramFilterCallback } from './histogram_cell.js';

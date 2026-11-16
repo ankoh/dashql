@@ -39,8 +39,11 @@ export default vite.defineConfig(({ mode, command }) => {
     // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website.
     // A source package: the dev server reads packages/dashql-ui, Vite watches it and updates the page in place.
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
-    // The package root of @ankoh/dashql-runtime, the logic of DashQL without React. A source package like @ankoh/dashql-ui.
+    // The package root of @ankoh/dashql-runtime, the runtime of DashQL without React. A source package like @ankoh/dashql-ui.
     const RUNTIME_PATH = path.resolve(rootDir, "__RUNTIME_PATH__");
+    // The package root of @ankoh/dashql-platform, the platforms and connector clients that the runtime builds on. A source
+    // package like @ankoh/dashql-runtime.
+    const PLATFORM_PATH = path.resolve(rootDir, "__PLATFORM_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
@@ -54,11 +57,13 @@ export default vite.defineConfig(({ mode, command }) => {
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
     const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
-    // The tests of the runtime, relative to src/tests/test_modules.ts like the glob they replace
-    const runtimeTestPatterns = includesBrowserTests && command === 'build'
-        ? nodeFs.readFileSync(path.join(rootDir, 'runtime_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
-            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(RUNTIME_PATH, 'src', file)).split(path.sep).join('/'))
+    // The tests of the runtime and of the platform, relative to src/tests/test_modules.ts like the globs they replace
+    const packageTestPatterns = (manifest: string, packagePath: string) => includesBrowserTests && command === 'build'
+        ? nodeFs.readFileSync(path.join(rootDir, manifest), 'utf8').trim().split('\n').filter(Boolean)
+            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(packagePath, 'src', file)).split(path.sep).join('/'))
         : null;
+    const runtimeTestPatterns = packageTestPatterns('runtime_browser_test_files.txt', RUNTIME_PATH);
+    const platformTestPatterns = packageTestPatterns('platform_browser_test_files.txt', PLATFORM_PATH);
     const browserTestStylesheets = declaredTestInputs('browser_test_stylesheets.txt');
 
     // The pages deployment ships WebAssembly pre-compressed with Brotli, like hyperdb-wasm does: the bytes we deploy are
@@ -245,7 +250,8 @@ export default vite.defineConfig(({ mode, command }) => {
                     if (!cleanId || !/\/src\/tests\/(test_modules|test_bundle)\.ts$/.test(cleanId)) return;
                     return code
                         .replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'))
-                        .replace("'../../../dashql-runtime/src/**/*.test.ts'", (runtimeTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
+                        .replace("'../../../dashql-runtime/src/**/*.test.ts'", (runtimeTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'))
+                        .replace("'../../../dashql-platform/src/**/*.test.ts'", (platformTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
                 },
             }, {
                 name: 'bazel-browser-test-stylesheets',
@@ -261,11 +267,15 @@ export default vite.defineConfig(({ mode, command }) => {
                 transform(code: string, id: string): string | undefined {
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
-                    // The tests of the runtime are named runtime/src/<path>, see src/tests/test_modules.ts
+                    // The tests of the runtime are named runtime/src/<path>, those of the platform platform/src/<path>, see
+                    // src/tests/test_modules.ts
                     const runtimeIndex = cleanId.lastIndexOf('/dashql-runtime/src/');
+                    const platformIndex = cleanId.lastIndexOf('/dashql-platform/src/');
                     const sourceIndex = cleanId.lastIndexOf('/src/');
                     if (sourceIndex < 0) return;
-                    const file = runtimeIndex >= 0 ? `runtime/src/${cleanId.slice(runtimeIndex + '/dashql-runtime/src/'.length)}` : cleanId.slice(sourceIndex + 1);
+                    const file = runtimeIndex >= 0 ? `runtime/src/${cleanId.slice(runtimeIndex + '/dashql-runtime/src/'.length)}`
+                        : platformIndex >= 0 ? `platform/src/${cleanId.slice(platformIndex + '/dashql-platform/src/'.length)}`
+                        : cleanId.slice(sourceIndex + 1);
                     return `globalThis.__DASHQL_SET_CURRENT_TEST_FILE__(${JSON.stringify(file)});\n${code}`;
                 },
             }] : []),
@@ -342,6 +352,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
                 { find: /^@ankoh\/dashql-runtime\/(.+)$/, replacement: path.join(RUNTIME_PATH, 'src/$1.ts') },
+                { find: /^@ankoh\/dashql-platform\/(.+)$/, replacement: path.join(PLATFORM_PATH, 'src/$1.ts') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
@@ -402,6 +413,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         CORE_PATH,
                         UI_PATH,
                         RUNTIME_PATH,
+                        PLATFORM_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,

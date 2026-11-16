@@ -1,0 +1,11 @@
+{
+  "name": "@ankoh/dashql-platform",
+  "version": "0.0.0",
+  "description": "The platforms of DashQL: storage, the embedded Hyper, the connector clients, OAuth and the support of the command line tool",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "exports": {
+    "./*": "./src/*.ts"
+  }
+}

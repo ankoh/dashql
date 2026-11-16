@@ -2,14 +2,14 @@ import * as React from 'react';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { useConnection, useConnectionList } from '../runtime/runtime_hooks.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals } from '@ankoh/dashql-runtime/connections/connection_label';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
 import * as styles from './connection_overview_page.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
-import { connectorInfoOf } from '@ankoh/dashql-runtime/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
 
 /// Does a connection run its queries in a Hyper, whose log the metrics are read from?
 function isHyperConnection(connection: ConnectionState): boolean {

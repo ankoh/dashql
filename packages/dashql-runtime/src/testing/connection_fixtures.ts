@@ -1,9 +1,9 @@
 import type * as core from '@ankoh/dashql-core';
 
-import { setupStepAction as setupStep, type ConnectionState } from '../connections/connection_state.js';
-import { newConnectionFromParams, type ConnectionParams } from '../connections/connection_params.js';
-import { connectorOfParams, connectorParams } from '../connections/connector_descriptor.js';
-import { ConnectorType } from '../connections/connector_info.js';
+import { setupStepAction as setupStep, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { newConnectionFromParams, type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { connectorOfParams, connectorParams } from '@ankoh/dashql-platform/connections/connector_descriptor';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import type { Runtime } from '../runtime.js';
 
 /// The options of a connection of a test

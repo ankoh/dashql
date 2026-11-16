@@ -7,7 +7,7 @@ import {
     STORAGE_CONNECTIONS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql-runtime/storage/storage_backend';
+} from '@ankoh/dashql-platform/storage/storage_backend';
 
 interface BrowserFolderEntry {
     path: string;

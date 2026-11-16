@@ -1,13 +1,13 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { generatePKCEChallenge } from '../../utils/pkce.js';
-import { sleep } from '../../utils/sleep.js';
-import { Logger, stringifyError } from '../../platform/logger/logger.js';
-import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
-import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { setupStepAction } from '../connection_state.js';
-import { HyperDatabaseChannelMock } from '../hyper/hyperdb_grpc_client_mock.js';
-import type { Runtime } from '../../runtime.js';
+import { generatePKCEChallenge } from '@ankoh/dashql-platform/utils/pkce';
+import { sleep } from '@ankoh/dashql-platform/utils/sleep';
+import { Logger, stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
+import { SalesforceConnectorConfig } from '@ankoh/dashql-platform/connections/connector_configs';
+import { setupStepAction } from '@ankoh/dashql-platform/connections/connection_state';
+import { HyperDatabaseChannelMock } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client_mock';
+import type { Runtime } from '@ankoh/dashql-runtime/runtime';
 
 /// The setup of a Salesforce connection with the mock of the API that the config of the app chose: the steps of a
 /// setup without an OAuth flow and without requests, over a mock of the Hyper channel. The runtime applies the steps.

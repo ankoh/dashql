@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { STORAGE_MANIFEST_FILE } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { STORAGE_VERSION } from '@ankoh/dashql-runtime/storage/migration/versions';
-import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { STORAGE_MANIFEST_FILE } from '@ankoh/dashql-platform/storage/storage_backend';
+import { STORAGE_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
+import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
 
 describe('OPFSStorageBackend V2 flat storage', () => {

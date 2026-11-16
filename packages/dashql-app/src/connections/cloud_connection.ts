@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { useConnections } from '../runtime/runtime_hooks.js';
 import { useAppConfig, useAppReconfigure, type AppSettings } from '../config/app_config.js';
-import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-runtime/connections/hyper/local_cloud';
+import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-platform/connections/hyper/local_cloud';
 
 // A cloud is a connection that keeps the workbooks that the user publishes to it in the tables of DashQL. The app may
 // have several clouds, all equal: new workbooks don't start on one, and publishing names the cloud. See

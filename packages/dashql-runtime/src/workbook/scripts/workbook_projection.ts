@@ -3,11 +3,11 @@ import * as Immutable from 'immutable';
 
 import { share } from '../../store/projection.js';
 import type { ViewProjection } from '../../store/runtime_store.js';
-import { readSessionInputs } from '../inputs/workbook_inputs.js';
-import { resolveCompiledVisualization } from './script_compilation.js';
-import { readScriptReferenceReports } from './script_reference_check.js';
-import { createEmptyAnnotations, createScriptRef, type ResolvedVisualizeQuery, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from './script_types.js';
-import type { ScriptData, WorkbookDerived, WorkbookScripts } from './workbook_scripts.js';
+import { readSessionInputs } from '@ankoh/dashql-platform/workbook/inputs/workbook_inputs';
+import { resolveCompiledVisualization } from '@ankoh/dashql-platform/workbook/scripts/script_compilation';
+import { readScriptReferenceReports } from '@ankoh/dashql-platform/workbook/scripts/script_reference_check';
+import { createEmptyAnnotations, createScriptRef, type ResolvedVisualizeQuery, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import type { ScriptData, WorkbookDerived, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 
 /// The projections of the views of the workbooks into what the app reads (docs/wip/runtime_projection.md): a script
 /// with its payloads read once per key and the session handle of its session, the workbook with its scripts by file

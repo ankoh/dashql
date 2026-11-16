@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.bazel.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/node/**"
+  ]
+}

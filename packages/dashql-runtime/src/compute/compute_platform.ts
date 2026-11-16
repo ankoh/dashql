@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../platform/database/embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@ankoh/dashql-platform/platform/database/embedded_database';
 
 /// Executes the query of a task, e.g. to track it as a query of the connection of the table.
 /// The query runs with the client context that execute receives, e.g. to attribute it in the Hyper log.

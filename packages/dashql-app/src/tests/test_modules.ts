@@ -16,13 +16,26 @@ export const RUNTIME_TEST_MODULES = import.meta.glob([
     '!../../../dashql-runtime/src/**/*.node.test.ts',
 ]);
 
-/// The tests of the runtime are named runtime/src/<path>
-const RUNTIME_SOURCE_ROOT = '/dashql-runtime/src/';
-const RUNTIME_TEST_KEYS = new Map(Object.keys(RUNTIME_TEST_MODULES).map(key =>
-    [`runtime/src/${key.slice(key.lastIndexOf(RUNTIME_SOURCE_ROOT) + RUNTIME_SOURCE_ROOT.length)}`, key]));
+/// The tests of the platform run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-platform:test_node)
+export const PLATFORM_TEST_MODULES = import.meta.glob([
+    '../../../dashql-platform/src/**/*.test.ts',
+    // The tests of Node, see //packages/dashql-platform:test_node
+    '!../../../dashql-platform/src/**/*.node.test.ts',
+]);
 
-export const BROWSER_TEST_FILES = [...Object.keys(BROWSER_TEST_MODULES).map(normalizePath), ...RUNTIME_TEST_KEYS.keys()]
-    .sort();
+/// The tests of a package are named <name>/src/<path>, runtime/src/<path> and platform/src/<path>
+function packageTestKeys(name: string, modules: Record<string, unknown>): Map<string, string> {
+    const sourceRoot = `/dashql-${name}/src/`;
+    return new Map(Object.keys(modules).map(key => [`${name}/src/${key.slice(key.lastIndexOf(sourceRoot) + sourceRoot.length)}`, key]));
+}
+const RUNTIME_TEST_KEYS = packageTestKeys('runtime', RUNTIME_TEST_MODULES);
+const PLATFORM_TEST_KEYS = packageTestKeys('platform', PLATFORM_TEST_MODULES);
+
+export const BROWSER_TEST_FILES = [
+    ...Object.keys(BROWSER_TEST_MODULES).map(normalizePath),
+    ...RUNTIME_TEST_KEYS.keys(),
+    ...PLATFORM_TEST_KEYS.keys(),
+].sort();
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
 
@@ -66,6 +79,10 @@ export function getBrowserTestModule(file: string): (() => Promise<unknown>) | n
     if (file.startsWith('runtime/')) {
         const key = RUNTIME_TEST_KEYS.get(file);
         return key == null ? null : RUNTIME_TEST_MODULES[key] ?? null;
+    }
+    if (file.startsWith('platform/')) {
+        const key = PLATFORM_TEST_KEYS.get(file);
+        return key == null ? null : PLATFORM_TEST_MODULES[key] ?? null;
     }
     const key = file.startsWith('src/tests/') ? `./${file.slice('src/tests/'.length)}` : `../${file.replace(/^src\//, '')}`;
     return BROWSER_TEST_MODULES[key] ?? null;

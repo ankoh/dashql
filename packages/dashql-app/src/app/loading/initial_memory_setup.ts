@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
-import { isHyperLinkParams } from '@ankoh/dashql-runtime/connections/hyper/hyper_link';
+import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { isHyperLinkParams } from '../../connections/hyper/hyper_link.js';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 
 /// What the startup asks of the runtime: the setup of a connection with its params, a reset and a cancellation

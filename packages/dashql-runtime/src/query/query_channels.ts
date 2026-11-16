@@ -1,20 +1,20 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { QueryExecutionArgs } from '../connections/query_execution_args.js';
-import { TrinoChannel } from '../connections/trino/trino_channel.js';
-import type { HyperDatabaseChannel } from '../connections/hyper/hyperdb_grpc_client.js';
-import type { SalesforceDatabaseChannel } from '../connections/salesforce/salesforce_api_client.js';
-import { queryParam, requireChannel } from '../connections/query_channel.js';
+import type { QueryExecutionArgs } from '@ankoh/dashql-platform/connections/query_execution_args';
+import { TrinoChannel } from '@ankoh/dashql-platform/connections/trino/trino_channel';
+import type { HyperDatabaseChannel } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
+import type { SalesforceDatabaseChannel } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
+import { queryParam, requireChannel } from '@ankoh/dashql-platform/connections/query_channel';
 import type { HandleTable } from '../store/handles.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
-import { QueryCacheMissError, type QueryResultCache } from './query_result_cache.js';
-import type { QueryExecutionProgress, QueryExecutionResponseStream } from './query_execution_state.js';
-import { createTrace } from '../platform/logger/trace_context.js';
-import { LoggableException, stringifyError, type Logger } from '../platform/logger/logger.js';
-import type { LogRecord } from '../platform/logger/log_buffer.js';
-import type { EmbeddedComputeDatabase } from '../platform/database/embedded_database.js';
-import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import { QueryCacheMissError, type QueryResultCache } from '@ankoh/dashql-platform/query/query_result_cache';
+import type { QueryExecutionProgress, QueryExecutionResponseStream } from '@ankoh/dashql-platform/query/query_execution_state';
+import { createTrace } from '@ankoh/dashql-platform/platform/logger/trace_context';
+import { LoggableException, stringifyError, type Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import type { LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import { supportsParquet, type ParquetDatabase } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_parquet_export';
 
 const LOG_CTX = 'query_executor';
 

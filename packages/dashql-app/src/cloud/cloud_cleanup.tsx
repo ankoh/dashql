@@ -3,7 +3,7 @@ import * as styles from './cloud_installer.module.css';
 
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import type { ConnectionState } from '@ankoh/dashql-runtime/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
 import { cloudDatabaseOf, useCloudQuery } from './cloud_query.js';
 import { useCloudState } from './cloud_state.js';
 import { cleanupCloud, type CloudCleanup } from './cloud_store.js';

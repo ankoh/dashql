@@ -1,0 +1,18 @@
+// For editors: the modules of Node see the types of Node, the rest of the platform doesn't. Bazel checks them with
+// tsconfig.bazel.node.json, which says why the WebWorker lib stays.
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022",
+      "WebWorker"
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "./**/*.ts"
+  ]
+}

@@ -25,10 +25,10 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql-runtime/connections/connection_state';
+import { ConnectionHealth, ConnectionState, connectionCachesQueryResults } from '@ankoh/dashql-platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
-import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
+import { getScriptRefs, newScriptConnection, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import {
     useOptionalRuntime,
@@ -40,27 +40,27 @@ import {
     useWorkbookScriptMap,
 } from '../../runtime/runtime_hooks.js';
 import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
-import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-runtime/workbook/attachments/attachment_mounts';
-import { renameAttachment } from '@ankoh/dashql-runtime/workbook/attachments/attachment_rename';
-import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-runtime/workbook/attachments/workbook_attachments';
-import { scriptDisplayName } from '@ankoh/dashql-runtime/workbook/scripts/script_types';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-platform/workbook/attachments/attachment_mounts';
+import { renameAttachment } from '../attachments/attachment_rename.js';
+import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql-platform/workbook/attachments/workbook_attachments';
+import { scriptDisplayName } from '@ankoh/dashql-platform/workbook/scripts/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
-import { renameScript, type RenameDraftReferences } from '@ankoh/dashql-runtime/workbook/scripts/script_rename';
+import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { groupWorkbookAttachmentListWrites } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
-import { getKeywordCase } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './workbook_feed_drag.js';
-import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '@ankoh/dashql-runtime/storage/storage_backend';
-import { stringifyError } from '@ankoh/dashql-runtime/platform/logger/logger';
+import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '@ankoh/dashql-platform/storage/storage_backend';
+import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
@@ -76,7 +76,7 @@ import {
 import { useConnectionLabeler } from '../connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../ui/foundations/symbol_icon.js';
-import { connectionReadsAttachments } from '@ankoh/dashql-runtime/connections/connector_descriptor';
+import { connectionReadsAttachments } from '@ankoh/dashql-platform/connections/connector_descriptor';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
@@ -87,7 +87,7 @@ import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeT
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
 import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
-import { quoteIdentifier } from '@ankoh/dashql-runtime/utils/sql_quote';
+import { quoteIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;

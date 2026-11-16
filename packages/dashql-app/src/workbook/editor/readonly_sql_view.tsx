@@ -6,7 +6,7 @@ import { EditorView } from '@codemirror/view';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from './codemirror.js';
 import { DashQLUpdateEffect } from './dashql_processor.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { formatSqlText } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
+import { formatSqlText } from '../scripts/script_format.js';
 
 /// Analyze a SQL text in a throwaway script session, the result highlights the text in a read-only view
 export function projectSqlText(

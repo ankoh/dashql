@@ -1,7 +1,8 @@
 // The runtime reaches no code of the app and no user interface, see docs/wip/dashql_runtime.md. Reads every module of src/
 // and fails with each import that leaves the package, reaches React, an editor, a .tsx module or a bundler asset, and
-// with each use of a seam that only a browser or a bundler provides, unless the seam is a known one below. Only the
-// modules of Node in src/node import node:, and the other modules don't import them.
+// with each use of a seam that only a browser or a bundler provides, unless the seam is a known one below. It reaches
+// the platform by its name (@ankoh/dashql-platform), whose own boundary test keeps the platform off the runtime. Only
+// the modules of Node in src/node import node: and the modules of Node of the platform, the other modules don't.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,11 +23,9 @@ const SEAMS = [
     { name: 'a Web Worker', test: text => /@ankoh\/dashql-core\/browser-worker|\bnew Worker\(/.test(text) },
     { name: 'the Electron bridge', test: text => /\bdashqlElectron\b/.test(text) },
 ];
-/// The modules that still use a seam, each needs another way to what it does before Node can use it
-const KNOWN_SEAMS = new Map([
-    ['platform/electron_fs.ts', ['the Electron bridge']],
-    ['platform/opfs_root.ts', ['the origin private file system']],
-]);
+/// The modules that still use a seam, each needs another way to what it does before Node can use it. The known seams
+/// are modules of the platform (packages/dashql-platform/test/boundary_test.mjs).
+const KNOWN_SEAMS = new Map([]);
 
 const IMPORT = /(?:^|[\n;])\s*(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const DYNAMIC_IMPORT = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
@@ -55,6 +54,8 @@ for (const file of modules('')) {
             else if (/\.tsx$/.test(target) || existsSync(join(SRC, target.replace(/\.js$/, '.tsx')))) violations.push(`${file}: ${specifier} is a .tsx module`);
         } else if (FORBIDDEN_PACKAGE.test(specifier)) {
             violations.push(`${file}: ${specifier}`);
+        } else if (!ofNode && specifier.startsWith('@ankoh/dashql-platform/node/')) {
+            violations.push(`${file}: ${specifier} is a module of Node`);
         } else if (specifier.startsWith('@ankoh/dashql-runtime')) {
             violations.push(`${file}: ${specifier} imports the package by its name, use a relative import`);
         }

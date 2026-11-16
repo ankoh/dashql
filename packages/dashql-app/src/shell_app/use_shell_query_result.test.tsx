@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
-import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
 import { SHELL_QUERY_HISTORY_LIMIT } from './shell_query_history.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';

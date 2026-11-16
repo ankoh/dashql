@@ -1,4 +1,4 @@
-import { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 
 /// The folder of the snippets that load datasets, the browser lists it first
 export const SNIPPET_DATASETS_FOLDER = 'datasets';

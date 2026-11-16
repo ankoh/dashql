@@ -1,4 +1,4 @@
-import { ProgressCounter } from "@ankoh/dashql-runtime/utils/progress";
+import { ProgressCounter } from "@ankoh/dashql-platform/utils/progress";
 
 export type AppLoadingPartialProgressConsumer = (progress: Partial<AppLoadingProgress>) => void;
 export type AppLoadingProgressConsumer = (progress: AppLoadingProgress) => void;

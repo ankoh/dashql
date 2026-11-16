@@ -1,9 +1,9 @@
 import type * as arrow from 'apache-arrow';
 import type * as core from '@ankoh/dashql-core';
 
-import type { QueryExecutionMetrics, QueryMetadata } from './query_execution_state.js';
-import { LoggableException, stringifyError } from '../platform/logger/logger.js';
-import { createTrace, type TraceContext } from '../platform/logger/trace_context.js';
+import type { QueryExecutionMetrics, QueryMetadata } from '@ankoh/dashql-platform/query/query_execution_state';
+import { LoggableException, stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { createTrace, type TraceContext } from '@ankoh/dashql-platform/platform/logger/trace_context';
 import type { HandleTable } from '../store/handles.js';
 
 /// Where the host tracks the queries that it runs itself, e.g. the queries of the computations or of the shell: the

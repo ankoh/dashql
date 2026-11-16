@@ -1,4 +1,4 @@
-import { getOPFSRoot } from '@ankoh/dashql-runtime/platform/opfs_root';
+import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
 
 export const SHELL_FILES_DIRECTORY = 'imported';
 

@@ -4,10 +4,10 @@ import * as styles from './script_diagnostics.module.css';
 
 import { AlertIcon, XCircleFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 
-import type { ScriptData } from '@ankoh/dashql-runtime/workbook/scripts/workbook_scripts';
-import type { ScriptReferenceReport } from '@ankoh/dashql-runtime/workbook/scripts/script_reference_check';
-import { formattingDialectForConnector } from '@ankoh/dashql-runtime/workbook/scripts/script_format';
-import type { ConnectorType } from '@ankoh/dashql-runtime/connections/connector_info';
+import type { ScriptData } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { ScriptReferenceReport } from '@ankoh/dashql-platform/workbook/scripts/script_reference_check';
+import { formattingDialectForConnector } from './script_format.js';
+import type { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';

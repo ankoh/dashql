@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 
-import type { ConnectionParams } from '@ankoh/dashql-runtime/connections/connection_params';
-import type { QueryExecutor } from '@ankoh/dashql-runtime/connections/query_execution_args';
-import { SALESFORCE_CATALOG_DATABASE } from '@ankoh/dashql-runtime/connections/salesforce/salesforce_catalog_update';
-import { QueryType } from '@ankoh/dashql-runtime/query/query_execution_state';
+import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { QueryExecutor } from '@ankoh/dashql-platform/connections/query_execution_args';
+import { SALESFORCE_CATALOG_DATABASE } from '@ankoh/dashql-platform/connections/salesforce/salesforce_catalog_update';
+import { QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
 import { CLOUD_DATABASE, type CloudQuery } from './cloud_store_schema.js';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 

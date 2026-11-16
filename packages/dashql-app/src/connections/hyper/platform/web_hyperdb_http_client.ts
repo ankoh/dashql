@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as pb from "@ankoh/dashql-runtime/proto";
+import * as pb from "@ankoh/dashql-platform/proto";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
@@ -8,26 +8,26 @@ import {
     HyperDatabaseConnectionContext,
     HyperHttpChannelDescription,
     HyperQueryResultStream,
-} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_grpc_client';
+} from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
 import {
     HyperDatabaseHttpClient,
     HyperHttpAuthProvider,
     HyperHttpError,
     mergeQueryStatus,
     QueryStatus,
-} from '@ankoh/dashql-runtime/connections/hyper/hyperdb_http_client';
-import { fromHttpErrorResponse, HyperQueryError } from '@ankoh/dashql-runtime/connections/hyper/hyper_error_info';
+} from '@ankoh/dashql-platform/connections/hyper/hyperdb_http_client';
+import { fromHttpErrorResponse, HyperQueryError } from '@ankoh/dashql-platform/connections/hyper/hyper_error_info';
 import {
     createQueryResponseStreamMetrics,
     QueryExecutionMetrics,
     QueryExecutionProgress,
     QueryExecutionResponseStream,
-} from '@ankoh/dashql-runtime/query/query_execution_state';
-import { AsyncConsumer } from '@ankoh/dashql-runtime/utils/async_consumer';
-import { AsyncValue } from '@ankoh/dashql-runtime/utils/async_value';
-import { HttpClient } from '@ankoh/dashql-runtime/platform/http/http_client';
-import { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { yieldToBrowser } from '@ankoh/dashql-runtime/utils/yield_to_browser';
+} from '@ankoh/dashql-platform/query/query_execution_state';
+import { AsyncConsumer } from '@ankoh/dashql-platform/utils/async_consumer';
+import { AsyncValue } from '@ankoh/dashql-platform/utils/async_value';
+import { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
+import { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { yieldToBrowser } from '@ankoh/dashql-platform/utils/yield_to_browser';
 
 const LOG_CTX = "web_hyperdb_http_client";
 

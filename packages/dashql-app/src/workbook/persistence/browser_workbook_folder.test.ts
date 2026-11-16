@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@ankoh/dashql-core';
 
 import { browserWorkbookFolder } from './browser_workbook_folder.js';
-import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-runtime/testing/workbook_test_backend';
+import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
 import { testStorageRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
-import type { WorkbookData } from '@ankoh/dashql-runtime/storage/storage_backend';
+import type { WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;

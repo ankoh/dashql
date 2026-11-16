@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './tab_header.module.css';
 
-import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { ScreenFullIcon } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';

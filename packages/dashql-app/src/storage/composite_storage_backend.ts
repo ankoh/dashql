@@ -12,20 +12,20 @@ import {
     type StorageManifest,
     StorageBackendType,
     validateDataFileName,
-} from '@ankoh/dashql-runtime/storage/storage_backend';
+} from '@ankoh/dashql-platform/storage/storage_backend';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
     flattenWorkbookTree,
     removeWorkbookFromTree,
     upsertWorkbookInTree,
-} from '@ankoh/dashql-runtime/storage/workbook_tree';
-import { type FileStamp } from '@ankoh/dashql-runtime/platform/electron_fs';
-import { NativeStorageBackend } from '@ankoh/dashql-runtime/storage/native_storage_backend';
+} from '@ankoh/dashql-platform/storage/workbook_tree';
+import { type FileStamp } from '@ankoh/dashql-platform/platform/electron_fs';
+import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import type { Logger } from '@ankoh/dashql-runtime/platform/logger/logger';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-runtime/platform/electron_fs';
+import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-platform/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
 

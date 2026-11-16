@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 
 import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-runtime/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
 import { RuntimeContextProvider, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 /// The Arrow tables of the results of the tests, by their handle

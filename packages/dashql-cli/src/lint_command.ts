@@ -1,5 +1,5 @@
-import { SqlLinter } from '@ankoh/dashql-runtime/sql/sql_lint';
-import { formatReportFile, formatReportSummary, formatReportTimings } from '@ankoh/dashql-runtime/sql/sql_report';
+import { SqlLinter } from '@ankoh/dashql-platform/sql/sql_lint';
+import { formatReportFile, formatReportSummary, formatReportTimings } from '@ankoh/dashql-platform/sql/sql_report';
 
 import { readInputs, STDIN } from './inputs.js';
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';

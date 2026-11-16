@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { formatResultDetail, formatResultRowCount, getResultTableBytes } from './query_result_header.js';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-runtime/testing/arrow_fixtures';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
 
 describe('formatResultRowCount', () => {
     it('is null while the total is unknown', () => {
