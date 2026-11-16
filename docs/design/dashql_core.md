@@ -92,7 +92,8 @@ marks are `runtime/changes.rs`.
   registry of connections learns which workbooks use a connection after every action that can change it, and an
   announced catalog outdates the analyses of the scripts on it (`CatalogDidUpdate`). Every change of a workbook, also
   one of a run, settles in `Workbooks::settle`: the writes, the marks of the slices (the scripts and, when analyses
-  changed, the derived view; the whole workbook only for a change of the workbook), the promotion, the references of
+  changed, the derived view, after an editor event once the typing paused for 150 ms; the whole workbook only for a
+  change of the workbook), the promotion, the references of
   the connections, the check of the cached results and the analyses of the shown scripts.
 - **Analyses.** `WorkbookScript::is_analysis_outdated` is the one predicate of runs, views (`analysisOutdated`), the
   shown scripts and the cached results: the flag, a text that changed, or an analysis that is no longer current with the

@@ -120,6 +120,8 @@ describe('The changes of the runtime', () => {
             ['setScriptText', rt => workbook({ kind: 'setScriptText', value: { scriptKey: key(rt, 1), text: 'select z from t', withDiff: true } })(rt)],
             ['rejectPendingDiff', rt => workbook({ kind: 'rejectPendingDiff', value: { scriptKey: key(rt, 1) } })(rt)],
             ['editorEvent', rt => type(rt, 'w', key(rt, 1), ' where x > 1')],
+            // What the workbook derives follows the typing once it paused
+            ['typingPaused', () => new Promise(resolve => setTimeout(resolve, 300))],
             ['renameScript', rt => workbook({ kind: 'renameScript', value: { fileName: file(rt, 1), newName: 'renamed' } })(rt)],
             ['reorderScripts', rt => workbook({ kind: 'reorderScripts', value: { order: [file(rt, 1), file(rt, 0), file(rt, 2)] } })(rt)],
             ['setScriptVisSpec', rt => workbook({ kind: 'setScriptVisSpec', value: { scriptKey: key(rt, 1), spec: '{"mark":"bar"}' } })(rt)],
@@ -376,7 +378,7 @@ describe('The changes of the runtime', () => {
         runtime.free();
     });
 
-    it('keep the derived view of a workbook while typing changes nothing it derives', () => {
+    it('keep the derived view of a workbook while typing changes nothing it derives', async () => {
         const platform = testPlatform();
         const runtime = dql!.createRuntime(platform.platform);
         runtime.runCatalogLoader(false);
@@ -386,12 +388,18 @@ describe('The changes of the runtime', () => {
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select x\nfrom t', base: 'beta' } });
         runtime.takeChanges();
         const [, key] = viewOf(runtime, 'workbook', 'w')!.scriptKeys;
-        const kinds = () => runtime.takeChanges().changes.map(change => change.kind);
-        // Typing after the first line of the statement moves the script, not what the workbook derives
+        const kinds = () => runtime.takeChanges().changes.map(change => change.kind).filter(kind => kind !== 'storage');
+        // Typing after the first line of the statement moves the script, not what the workbook derives, also once the
+        // typing paused and the workbook derived again
+        const typingPause = () => new Promise(resolve => setTimeout(resolve, 300));
         type(runtime, 'w', key, ' ');
         expect(kinds()).toEqual(['script']);
+        await typingPause();
+        expect(kinds()).toEqual([]);
         type(runtime, 'w', key, 'w');
         expect(kinds()).toEqual(['script']);
+        await typingPause();
+        expect(kinds()).toEqual([]);
         // A reference to another script changes what the workbook derives
         runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: key, text: 'select x\nfrom :alpha' } });
         expect(kinds()).toEqual(expect.arrayContaining(['script', 'workbookDerived']));

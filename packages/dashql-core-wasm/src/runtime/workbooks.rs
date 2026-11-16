@@ -11,12 +11,12 @@
 pub(crate) mod view;
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::collections::{BTreeSet, HashMap};
+use std::rc::{Rc, Weak};
 
 use dashql_buffers::editor::{EditorEventT, EditorOffsetUnit};
 use dashql_core::error::{Error, Result};
-use dashql_core_runtime::host::LogLevel;
+use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
 use dashql_core_runtime::storage::keys::workbook_connection_copy_key;
@@ -80,6 +80,14 @@ enum Changed {
     Workbook,
 }
 
+/// The workbooks whose derived view waits until the typing pauses
+struct PendingDerives {
+    platform: JsPlatform,
+    workbooks: BTreeSet<String>,
+    /// Counts the restarts of the pause, a timer of an earlier one does nothing
+    generation: u64,
+}
+
 /// A workbook of the runtime
 pub(crate) struct WorkbookEntry {
     pub id: String,
@@ -130,12 +138,15 @@ pub(crate) struct Workbooks {
     pub removed_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
     /// The scripts that the editors show, their outdated analyses run on their own
     pub visible: VisibleScripts<JsPlatform>,
+    /// The workbooks whose derived view follows the typing once it paused
+    pending_derives: Rc<RefCell<PendingDerives>>,
 }
 
 impl Workbooks {
     pub fn new(platform: JsPlatform, connections: Rc<Connections>, writer: RuntimeWriter) -> Rc<Self> {
         let workbooks = Rc::new(Workbooks {
             visible: VisibleScripts::new(platform.clone(), BACKGROUND_ANALYSIS_DELAY_MS),
+            pending_derives: Rc::new(RefCell::new(PendingDerives { platform: platform.clone(), workbooks: BTreeSet::new(), generation: 0 })),
             platform,
             connections: connections.clone(),
             writer,
@@ -335,21 +346,29 @@ impl Workbooks {
     }
 
     /// Write the effects of an outcome, mark what changed and tell the host. A change of scripts marks them and what the
-    /// workbook derives if it `derives`; a change of the workbook marks it as a whole, promotes it and tells the
-    /// connections which workbooks use them. The scripts of the other workbooks on a catalog that the scripts changed
+    /// workbook derives if it `derives`, an editor event marks what the workbook derives once the typing paused; a
+    /// change of the workbook marks it as a whole, promotes it and tells the connections which workbooks use them. The scripts of the other workbooks on a catalog that the scripts changed
     /// are outdated, the runs look up the cached results of the workbook again, and the outdated scripts that the
     /// editors show analyze.
     fn settle(&self, workbook_id: &str, workbook: &Rc<RefCell<Workbook>>, outcome: WorkbookOutcome, changed: Changed) -> bool {
         let mut moved = outcome.changed;
         self.write_effects(workbook_id, outcome.effects);
         match changed {
-            Changed::Editor { derives } | Changed::Scripts { derives } => {
+            Changed::Editor { derives } => {
                 self.platform.mark(Slice::Scripts(workbook_id));
                 if derives {
+                    self.derive_after_pause(workbook_id);
+                }
+            }
+            Changed::Scripts { derives } => {
+                self.platform.mark(Slice::Scripts(workbook_id));
+                if derives {
+                    self.pending_derives.borrow_mut().workbooks.remove(workbook_id);
                     self.platform.mark(Slice::Derived(workbook_id));
                 }
             }
             Changed::Workbook => {
+                self.pending_derives.borrow_mut().workbooks.remove(workbook_id);
                 self.platform.mark(Slice::Workbook(workbook_id));
                 let taken = self.taken_names(workbook_id);
                 let promoted = workbook.try_borrow_mut().ok().and_then(|mut workbook| workbook.promote(taken.iter().map(String::as_str)));
@@ -374,6 +393,37 @@ impl Workbooks {
             self.visible.changed();
         }
         moved
+    }
+
+    /// Mark what a workbook derives once the typing paused for a while. The planner runs over every script of the
+    /// workbook, a keystroke leaves it to the pause and costs the same with any number of scripts. Every keystroke
+    /// restarts the pause.
+    fn derive_after_pause(&self, workbook_id: &str) {
+        let generation = {
+            let mut pending = self.pending_derives.borrow_mut();
+            pending.workbooks.insert(workbook_id.to_string());
+            pending.generation += 1;
+            pending.generation
+        };
+        let sleep = self.platform.sleep(BACKGROUND_ANALYSIS_DELAY_MS);
+        let pending: Weak<RefCell<PendingDerives>> = Rc::downgrade(&self.pending_derives);
+        self.platform.spawn(Box::pin(async move {
+            sleep.await;
+            let Some(pending) = pending.upgrade() else { return };
+            let (platform, workbooks) = {
+                let Ok(mut pending) = pending.try_borrow_mut() else { return };
+                if pending.generation != generation {
+                    return;
+                }
+                (pending.platform.clone(), std::mem::take(&mut pending.workbooks))
+            };
+            for workbook_id in &workbooks {
+                platform.mark(Slice::Derived(workbook_id));
+            }
+            if !workbooks.is_empty() {
+                platform.signal(false);
+            }
+        }));
     }
 
     /// Outdate the analyses of the scripts of the other workbooks on the connections whose catalogs the scripts of a

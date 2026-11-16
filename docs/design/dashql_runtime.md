@@ -427,12 +427,15 @@ it over, and only the latest lease resets the connection when it closes.
    the text of the session again; an event of a session that the script no longer holds (an older `sessionGeneration`)
    returns null. The update leaves out the analysis if the editor holds the analysis of the script, the facade fills it
    in from `known`.
-3. The `script` slice is marked, and the `workbookDerived` slice when the derived buffers changed. The derived buffers
-   leave out what typing moves and no consumer reads (text versions, the spans of references without errors), so
-   typing within a statement usually leaves the derived slice where it is.
-4. The flush is at most three crossings: `takeChanges`, the view of the script (the facade holds the update, its bytes
-   don't cross again), and the derived view when it moved. Only the subscribers of that script, and of the derived
-   view when it moved, render.
+3. The `script` slice is marked. The derived view runs the planner over every script of the workbook, so a keystroke
+   leaves it to the pause: once the typing paused for 150 ms (`BACKGROUND_ANALYSIS_DELAY_MS`, every keystroke restarts
+   it) the `workbookDerived` slice is marked, and it moves when the derived buffers changed. A change of the workbook or
+   of an analysis outside the editor marks it at once. The derived buffers leave out what typing moves and no consumer
+   reads (text versions, the spans of references without errors), so typing within a statement usually leaves the
+   derived slice where it is. Until it moved, the editor hides the errors of references of a script whose text changed.
+4. The flush of a keystroke is two crossings, `takeChanges` and the view of the script (the facade holds the update, its
+   bytes don't cross again), and costs the same with any number of scripts. Only the subscribers of that script render;
+   those of the derived view once it moved after the pause.
 5. The cached results of the workbook are looked up once the typing paused, a move of the cursor looks up none
    (`runs/cached_results.rs`).
 
@@ -508,14 +511,16 @@ and the package on npm, and the browser tests of the app run the tests of `src/r
 ## The typing benchmark
 
 `packages/dashql/test/npm/bench_typing.mjs` types a script of 40 lines character by character next to two other
-scripts, and again next to 19 other scripts, the way the editor does: it packs the event, calls `applyEditorEvent`, lets
-the store take the changes and read the view of the typed script, and reads the derived view when it moved. It runs on
-the release module in Node and prints the 10th percentile and the median of every step per keystroke in microseconds:
+scripts, and again next to 19 other scripts, the way the editor does: it packs the event, calls `applyEditorEvent` and
+lets the store take the changes and read the view of the typed script. At the end of every line the typing pauses, and
+the store takes the changes and reads the derived view when it moved. It runs on the release module in Node and prints
+the 10th percentile and the median of every step in microseconds:
 
 ```bash
 bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 ```
 
 Run it before and after a change on the per-keystroke path: the editor, the workbook, the derived views, the change
-tracking or the store. The derivation of the workbook (the planner) runs for every keystroke that changes the text and
-is linear in the scripts of the workbook, so the run next to 19 scripts shows costs per script.
+tracking or the store. A keystroke costs the same next to 2 and next to 19 scripts. The derivation of the workbook (the
+planner) runs after a pause and is linear in the scripts of the workbook, the run next to 19 scripts shows its cost per
+script.

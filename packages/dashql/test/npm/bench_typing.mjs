@@ -4,8 +4,9 @@
 // (tables, queries over them and scripts that read other scripts as table parameters) so that costs per script show.
 // Every keystroke goes the way of the editor: the editor packs the event, the runtime applies it to the session of the
 // script and returns the update (`applyEditorEvent`), the store of the host takes the changes and reads the view of the
-// typed script with the newest processing statistics, and reads the derived view of the workbook when it moved. Prints
-// the 10th percentile and the median of every step per keystroke in microseconds.
+// typed script with the newest processing statistics. The typing pauses at the end of every line: the runtime derives
+// the workbook again, the store takes the changes and reads the derived view of the workbook when it moved. Prints the
+// 10th percentile and the median of every step in microseconds.
 //
 //   bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 import { readFile } from 'node:fs/promises';
@@ -15,6 +16,8 @@ import * as core from '../../npm_package/dist/core/index.js';
 
 const passes = Number(process.argv.find(arg => arg.startsWith('--passes='))?.slice('--passes='.length) ?? 3);
 const buffers = core.buffers;
+/// The pause of the typing at the end of a line, longer than the one after which the runtime derives the workbook
+const TYPING_PAUSE_MS = 200;
 
 /// The two scripts next to the typed one
 const FEW_SCRIPTS = [
@@ -158,15 +161,21 @@ for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manySc
                 if (entry.statistics != null) core.readFlatBuffer(entry.statistics, bb => buffers.editor.EditorProcessingStatistics.getRootAsEditorProcessingStatistics(bb)).unpack();
             }
             const t2 = performance.now();
-            // The derived view of the workbook when it moved, its buffers read
-            if (changes.some(change => change.kind === 'workbookDerived')) {
-                const derived = runtime.views('workbookDerived', [workbookId])[0];
-                core.readFlatBuffer(derived.references, bb => buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack();
-                core.readFlatBuffer(derived.dataflow, bb => buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
-                core.readFlatBuffer(derived.inputs, bb => buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack();
-                derive.push(performance.now() - t2);
+            event.push(t1 - t0); flush.push(t2 - t1); total.push(t2 - t0);
+            // The typing pauses at the end of a line, the runtime derives the workbook again: the store takes the
+            // changes and reads the derived view when it moved, its buffers read
+            if (text[i] === '\n') {
+                await new Promise(resolve => setTimeout(resolve, TYPING_PAUSE_MS));
+                const t3 = performance.now();
+                const paused = runtime.takeChanges().changes;
+                if (paused.some(change => change.kind === 'workbookDerived')) {
+                    const derived = runtime.views('workbookDerived', [workbookId])[0];
+                    core.readFlatBuffer(derived.references, bb => buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack();
+                    core.readFlatBuffer(derived.dataflow, bb => buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
+                    core.readFlatBuffer(derived.inputs, bb => buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack();
+                }
+                derive.push(performance.now() - t3);
             }
-            event.push(t1 - t0); flush.push(t2 - t1); total.push(performance.now() - t0);
         }
         await runtime.storage({ kind: 'flush' });
         runtime.free();
@@ -174,7 +183,7 @@ for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manySc
     const rows = [
         ['The runtime applies the event of the editor', event],
         ['The flush: the changes and the view of the script', flush],
-        ['The derived view of the workbook when it moved', derive],
+        ['The flush after a pause: what the workbook derives', derive],
         ['The keystroke in total', total],
     ];
     console.log(title);

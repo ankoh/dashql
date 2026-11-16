@@ -35,6 +35,9 @@ function createRuntime(storage?: MemoryStorage, connectionId: string | null = 'm
     return { runtime, ...platform };
 }
 
+/// Wait until the typing paused and the runtime derived the workbooks again
+const typingPause = () => new Promise(resolve => setTimeout(resolve, 300));
+
 /// The changed slices as `kind:id`
 const changesOf = (runtime: dashql.Runtime, kinds?: string[]) =>
     runtime.takeChanges().changes.filter(change => kinds == null || kinds.includes(change.kind)).map(change => `${change.kind}:${change.id}${change.revision == null ? ' gone' : ''}`);
@@ -116,7 +119,7 @@ describe('The workbooks of the runtime', () => {
         runtime.free();
     });
 
-    it('take a keystroke as the change of the script only', () => {
+    it('take a keystroke as the change of the script only, what the workbook derives follows once the typing paused', async () => {
         const { runtime } = createRuntime();
         runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
@@ -127,7 +130,7 @@ describe('The workbooks of the runtime', () => {
         const outcome = type(runtime, 'w', alpha, 8, '0');
         const update = readUpdate(outcome);
         expect(update.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
-        expect(changesOf(runtime)).toEqual([`script:${alpha}`, 'workbookDerived:w']);
+        expect(changesOf(runtime)).toEqual([`script:${alpha}`]);
         expect(dql!.runtimeScriptSession(runtime, alpha)!.getText()).toBe('select 10');
         // The script holds the update that went to the editor, the view leaves it out for a host that holds its key
         const view = viewOf(runtime, 'script', alpha, [{ ...NONE, editorUpdate: outcome.key }])!;
@@ -135,6 +138,11 @@ describe('The workbooks of the runtime', () => {
         expect(view.editorUpdate).toBeNull();
         // An event of a session that the script no longer holds is dropped
         expect(runtime.applyEditorEvent('w', alpha, 0, typedEvent(update.textVersion, 0, 'x'), outcome.key)).toBeUndefined();
+        // The planner runs over every script of the workbook, the derived view waits until the typing paused
+        type(runtime, 'w', alpha, 9, '0');
+        expect(changesOf(runtime)).toEqual([`script:${alpha}`]);
+        await typingPause();
+        expect(changesOf(runtime, ['script', 'workbookDerived'])).toEqual(['workbookDerived:w']);
         runtime.free();
     });
 
