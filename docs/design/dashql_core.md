@@ -283,6 +283,10 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
 - A workbook that is deleted or replaced (a restore or an import under the same id) takes its `run` slice with it: the
   run that holds it stops, the inputs that wait are dropped, and a run changes the slice only while it holds it.
 - A listener may prepare connections (`prepareConnection`), which is how `dashql run` sets up its connections.
+- The run keeps its files: the cached files it retained and the pins of the files it scans and writes
+  (`RunHost::mount_pin`), by the ids of the host, and the names of its transient files. Once it settled, a failed run
+  after its running statements ended, it releases them (`cache_release`) and then removes the transient files
+  (`mount_remove`). A file that the cache retained while the run stopped is released with the others.
 
 See [workbook_graph_execution.md](workbook_graph_execution.md).
 

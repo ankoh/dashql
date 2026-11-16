@@ -143,10 +143,11 @@ side. The files of a run (`mounts` of the platform, `createRunMounts`) are files
 materialized script (`materializationFile`): a result that a run materializes is a new file of the result key of its
 script, `<key>.<uuid>.parquet`, if the key is reusable, a transient file otherwise. The terminal node of a
 materialized script runs on its own connection, the host loads its result into the compute Hyper and writes it with
-`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`mounts.write`). A scan reads the
+`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`mounts.pin`, `mounts.write`). A scan reads the
 byte ranges it needs from disk, nothing of a file is held in memory. The run pins every file it
-writes or reads, so eviction and other windows leave them alone. The files of keys stay in the cache when it ends,
-the transient files are removed. The terminal query of a script with a reusable key that runs writes its result as the
+writes or reads (`mounts.pin`), so eviction and other windows leave them alone, and keeps the pins itself. Once it
+settled, a failed run after its running statements ended, it releases them; the files of keys stay in the cache, the
+transient files are removed (`resultCache.remove`). The terminal query of a script with a reusable key that runs writes its result as the
 newest file of its key.
 
 ## Running a Script

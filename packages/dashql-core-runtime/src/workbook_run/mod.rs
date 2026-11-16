@@ -8,7 +8,8 @@
 //! of a connection run at once. The statements run through the host, which hands them to the query executor and keeps
 //! the result tables. The run registers the queries and the results of the scripts on the workbook and captures the
 //! visualization of every output, the host learns that the workbook changed. A failed statement cancels the running
-//! ones, the run settles once they are done and then releases the files of its materializations.
+//! ones, the run settles once they are done and then releases its files: the cached files it kept and the pins of the
+//! files it scans and writes, then it removes its transient files.
 
 mod engine;
 pub mod plan;
@@ -128,7 +129,7 @@ pub trait RunHost: Host {
     fn has_cache(&self) -> bool;
     /// Keep the newest file of a key until the run releases it, none if the cache has none
     fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static;
-    /// Release a file that the run kept
+    /// Release a file that the run kept: a retained file or a pin
     fn cache_release(&self, file: u64) -> impl Future<Output = ()> + 'static;
 
     /// The directory of the files of the materialized results of the run, none without the compute database
@@ -136,12 +137,13 @@ pub trait RunHost: Host {
     /// The name of a new file of the result of a script, a file of its key if the key is reusable, a transient file
     /// otherwise
     fn mount_file_name(&self, key: Option<&str>) -> String;
-    /// Write the result of a statement as Parquet file at a path below the prefix, returns its rows
+    /// Mount the files of the cache in the compute database and pin a file below the prefix, also one that the run is
+    /// about to write. Returns the id that `cache_release` releases the pin with.
+    fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static;
+    /// Write the result of a statement as Parquet file at a path below the prefix that the run pinned, returns its rows
     fn mount_write(&self, path: &str, query_id: QueryId) -> impl Future<Output = Result<u64, HostError>> + 'static;
-    /// Keep a file that the run reads, e.g. a cached result that a statement scans
-    fn mount_use(&self, path: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
-    /// Release the files of the run, the transient files are removed
-    fn mount_release(&self) -> impl Future<Output = ()> + 'static;
+    /// Remove a transient file of the run that nobody pins any more
+    fn mount_remove(&self, name: &str) -> impl Future<Output = ()> + 'static;
     /// Can the host mount the attachments of the workbook?
     fn mounts_attachments(&self) -> bool;
     /// Mount the attachments of the workbook in the embedded Hyper

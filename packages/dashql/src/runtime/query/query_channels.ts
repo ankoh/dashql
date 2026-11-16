@@ -5,6 +5,7 @@ import type { QueryExecutionArgs } from '../../platform/connections/query_execut
 import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hyperdb_grpc_client.js';
 import { queryParam, requireChannel } from '../../platform/connections/query_channel.js';
 import type { HandleTable } from '../store/handles.js';
+import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
 import { QueryCacheMissError, type QueryResultCache } from '../../platform/query/query_result_cache.js';
 import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
@@ -71,6 +72,8 @@ export interface QueryChannelsDependencies {
     computeDatabase: ComputeDatabase | null;
     /// The cache of query results, null without one
     resultCache: QueryResultCache | null;
+    /// The files of the cache that the runtime keeps
+    pins: CachePins;
 }
 
 /// The half of the queries of the runtime that touches the objects of the platform (docs/design/dashql_runtime.md). The
@@ -81,9 +84,6 @@ export interface QueryChannelsDependencies {
 /// cache over the compute database, and gives a caller in TypeScript the result table and the error of a failed query.
 export class QueryChannels {
     private readonly records = new Map<number, QueryRecord>();
-    /// The files of the cache that the runs keep, by id
-    private readonly retained = new Map<number, () => Promise<void>>();
-    private nextRetained = 0;
 
     /// The query result cache of the platform, Parquet files that the compute database reads and writes. Null without
     /// a cache.
@@ -93,13 +93,10 @@ export class QueryChannels {
         this.resultCache = deps.resultCache == null ? null : this.createResultCache(deps.resultCache, deps.computeDatabase);
     }
 
-    /// Let go of what the platform keeps for the runtime: the queries stop, the files that the runs kept are released
+    /// Let go of what the platform keeps for the runtime: the queries stop
     dispose(): void {
         for (const record of this.records.values()) record.cancellation.abort(abortError());
         this.records.clear();
-        const retained = [...this.retained.values()];
-        this.retained.clear();
-        for (const release of retained) void release().catch(() => { });
     }
 
     /// The channels of the platform by query
@@ -162,16 +159,9 @@ export class QueryChannels {
             touch: name => cache.touch(name),
             retain: async key => {
                 const file = await cache.retain(key);
-                if (file == null) return null;
-                const id = ++this.nextRetained;
-                this.retained.set(id, file.release);
-                return { id, name: file.entry.name };
+                return file == null ? null : { id: this.deps.pins.add(file.release), name: file.entry.name };
             },
-            release: async id => {
-                const release = this.retained.get(id);
-                this.retained.delete(id);
-                await release?.().catch(() => { });
-            },
+            release: id => this.deps.pins.release(id),
             file: name => cache.readFile(name),
             import: async (key, handle, crc32) => {
                 const file = this.deps.handles.get<Blob | Uint8Array>(handle);

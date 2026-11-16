@@ -10,6 +10,7 @@ import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
 import { createRunMounts } from '@ankoh/dashql/runtime/workbook/scripts/run_mounts';
+import { CachePins } from '@ankoh/dashql/runtime/query/cache_pins';
 import { HandleTable } from '@ankoh/dashql/runtime/store/handles';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql/platform/storage/opfs_query_result_cache';
 import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
@@ -438,14 +439,16 @@ describe('HyperDB embedded database integration', () => {
             const cached = cache.newFileName(KEY_A);
             await cache.writeTable(database!, table, cached);
             const handles = new HandleTable();
-            const mounts = createRunMounts(async () => database!, cache, handles);
+            const pins = new CachePins();
+            const mounts = createRunMounts(async () => database!, cache, handles, pins);
             const prefix = mounts.prefix();
             expect(prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
-            // The run writes the result of another key and reads the cached one
-            const runFile = mounts.fileName(1, KEY_B);
+            // The run pins and writes the result of another key and pins the cached one that it reads
+            const runFile = mounts.fileName(KEY_B);
             expect(runFile.startsWith(`${KEY_B}.`)).toBe(true);
-            expect(await mounts.write(1, `${prefix}/${runFile}`, handles.register(table))).toBe(table.numRows);
-            await mounts.use(1, `${prefix}/${cached}`);
+            const written = await mounts.pin(`${prefix}/${runFile}`);
+            expect(await mounts.write(`${prefix}/${runFile}`, handles.register(table))).toBe(table.numRows);
+            const read = await mounts.pin(`${prefix}/${cached}`);
             const connection = await database!.connect();
             try {
                 const result = await connection.query(
@@ -460,8 +463,9 @@ describe('HyperDB embedded database integration', () => {
             expect(await cache.clear()).toEqual([]);
             expect(await cache.lookup(KEY_A)).toMatchObject({ name: cached });
             expect(await cache.lookup(KEY_B)).toMatchObject({ name: runFile });
-            // Once the run ended, its files stay in the cache and can be removed
-            await mounts.release(1);
+            // Once the run released its pins, its files stay in the cache and can be removed
+            await pins.release(written);
+            await pins.release(read);
             expect(await files()).toEqual([cached, `${cached}.last_access`, runFile, `${runFile}.last_access`].sort());
             expect((await cache.clear()).sort()).toEqual([KEY_A, KEY_B]);
             expect(await files()).toEqual([]);
@@ -480,9 +484,10 @@ describe('HyperDB embedded database integration', () => {
             // A run keeps reading its file through the shared mount while the cache removes another one
             const kept = cache.newFileName(KEY_B);
             await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
-            const mounts = createRunMounts(async () => database!, cache, new HandleTable());
+            const pins = new CachePins();
+            const mounts = createRunMounts(async () => database!, cache, new HandleTable(), pins);
             try {
-                await mounts.use(1, `${mounts.prefix()}/${kept}`);
+                await mounts.pin(`${mounts.prefix()}/${kept}`);
                 await cache.delete(KEY_A);
                 await cache.mount(database!);
                 const connection = await database!.connect();
@@ -493,7 +498,7 @@ describe('HyperDB embedded database integration', () => {
                     await connection.close();
                 }
             } finally {
-                await mounts.release(1);
+                await pins.close();
             }
             // Files of other keys stay readable through the refreshed mount
             const second = cache.newFileName(KEY_A);

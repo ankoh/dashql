@@ -26,7 +26,8 @@ import { createRuntimeStorage, StorageCommands } from './storage/runtime_storage
 import type { StorageBackend } from '../platform/storage/storage_backend.js';
 import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook/scripts/workbook_projection.js';
 import type { ScriptData, WorkbookScripts } from '../platform/workbook/scripts/workbook_scripts.js';
-import { createRunMounts, type RunMounts } from './workbook/scripts/run_mounts.js';
+import { createRunMounts } from './workbook/scripts/run_mounts.js';
+import { CachePins } from './query/cache_pins.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/scripts/workbook_execution.js';
 import { emptyWorkbookTables, provideWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 import { provideStorageVersions } from '../platform/storage/storage_versions.js';
@@ -188,8 +189,8 @@ export class Runtime {
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
-    /// The files of the runs in the compute database, null without one
-    private readonly mounts: RunMounts | null;
+    /// The files of the query result cache that the runtime keeps
+    private readonly pins = new CachePins();
     /// The catalogs of the connections by the identity of the catalog (`catalogId` of the view of a connection), one
     /// handle each that reads only. A catalog leaves the map with its connection; the handle is never destroyed, a
     /// component may still hold it, the finalizer of the module frees it once it is unreachable.
@@ -214,8 +215,7 @@ export class Runtime {
         this.requests = new PlatformRequests(options);
         this.tables = createRuntimeTables(this.handles);
         const database = this.computeDatabase.available ? () => this.computeDatabase.get() : null;
-        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: options.resultCache ?? null });
-        this.mounts = database == null ? null : createRunMounts(database, options.resultCache ?? null, this.handles);
+        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: options.resultCache ?? null, pins: this.pins });
         provideWorkbookTables(this.core);
         provideStorageVersions(this.core);
         this.module = this.core.createRuntime(this.modulePlatform(database));
@@ -268,7 +268,7 @@ export class Runtime {
                 hyperLinkToken: connectionId => platform.channels?.hyperLinkToken?.(connectionId) ?? null,
             },
             resultCache: this.queries.resultCache,
-            mounts: this.mounts,
+            mounts: database == null ? null : createRunMounts(database, platform.resultCache ?? null, this.handles, this.pins),
             crypto: {
                 randomUuid: () => crypto.randomUUID(),
                 sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
@@ -723,6 +723,6 @@ export class Runtime {
         this.store.dispose();
         this.requests.abortAll();
         this.queries.dispose();
-        await this.mounts?.dispose().catch(() => { });
+        await this.pins.close();
     }
 }

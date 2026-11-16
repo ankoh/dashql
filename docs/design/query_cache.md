@@ -150,15 +150,18 @@ reusable, a transient file otherwise:
 
 - A run scans the newest file of a reusable key that is cached (`materialized` of the plan), the producer doesn't
   run unless it follows a script of the plan that runs (`script_references.md`). The run pins the file from the
-  lookup on until it ends (`QueryResultCache.retain`, `use` of the `mounts` of the platform).
+  lookup on until it ends (`QueryResultCache.retain`, `pin` of the `mounts` of the platform).
 - Otherwise the producer runs. Its terminal node writes its result as a new file of its key if the key is reusable
   (`fileName` of the `mounts` of the platform, `QueryResultCache.newFileName`), the file replaces the older files of the key. A
   result whose key isn't reusable, or a script without a key, e.g. on a connection whose signature is unknown, is a
   transient file (`QueryResultCache.newTransientFileName`).
 - A refresh runs every producer anew and writes its result the same way.
 
-The run pins every file it writes or reads until it ends, then it removes its transient files. Transient files that a
-closed window left behind are nobody's pins any more, the next listing in any window removes them.
+The run pins every file it writes or reads until it settled, then it removes its transient files. The runtime keeps
+the pins of a run by their ids and releases them through `resultCache.release` (`workbook_run/engine.rs`), the platform
+only maps an id to the release of its pin (`query/cache_pins.ts`) and releases the pins that are left when the runtime
+is destroyed. Transient files that a closed window left behind are nobody's pins any more, the next listing in any
+window removes them.
 
 ## Exported Results
 

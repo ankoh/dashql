@@ -41,6 +41,7 @@ the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@ank
   that turn platform objects into the platform of the core: `query/query_channels.ts` (the channels of the host and the
   query result cache), `query/query_result_stream.ts`, `compute/compute_platform.ts`, `compute/compute_database.ts`
   (the compute database of the platform and whether it is ready), `workbook/scripts/run_mounts.ts`,
+  `query/cache_pins.ts` (the releases of the files of the cache that the runtime keeps, by id),
   `storage/runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
   `storage/workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
   `connections/catalog/embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
@@ -130,8 +131,8 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute/compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
-| `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release`, `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts` |
-| `mounts` | The files of runs in the compute database and the attachments, unmounted when their workbook is deleted | `workbook/scripts/run_mounts.ts` |
+| `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release` (of a retained file or a pin), `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
+| `mounts` | The files of runs in the compute database: `prefix`, `fileName`, `pin`, `write`; and the attachments, unmounted when their workbook is deleted. The runtime keeps the pins of a run and releases them | `workbook/scripts/run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
 | `extensions` | `loadSpec`, the JSON of a client function spec | `loadClientFunctionSpec` |
@@ -320,7 +321,8 @@ does nothing, and the storage commands do nothing. A wait for a compute database
 runs stop, the catalog loader stops, the writes into the query result cache and the pending writes of the storage
 finish, then the imports are dropped, the setups and queries cancelled and the computations deleted, and the platform is
 fenced. The store then takes the last changes, the projection of the scripts destroys its session handles, the module is
-freed, the fetches and OAuth flows are aborted, and the files that the cache and the runs kept are released.
+freed, the fetches and OAuth flows are aborted, and the pins of the files of the cache that are left are released
+(`CachePins.close`); a pin that arrives later is released at once.
 
 ### Handles
 

@@ -140,8 +140,11 @@ struct Run<H: RunHost> {
     state: RefCell<RunState>,
     /// Did the run hand a statement to the host?
     launched: Cell<bool>,
-    /// The cached files that the run keeps
-    retained: RefCell<Vec<u64>>,
+    /// The files that the run keeps until it settled, by the ids of the host: the cached files that it retained and the
+    /// pins of the files that it scans and writes
+    kept: RefCell<Vec<u64>>,
+    /// The transient files of the results that the run materializes, removed once it released its files
+    transient: RefCell<Vec<String>>,
     /// The schedule of the plan that runs
     schedule: RefCell<Option<Schedule>>,
 }
@@ -200,7 +203,8 @@ pub fn start_run<H: RunHost>(
         connections,
         state: RefCell::new(RunState::default()),
         launched: Cell::new(false),
-        retained: RefCell::new(Vec::new()),
+        kept: RefCell::new(Vec::new()),
+        transient: RefCell::new(Vec::new()),
         schedule: RefCell::new(None),
     });
     let handle = RunHandle { run: run.clone() };
@@ -489,17 +493,35 @@ impl<H: RunHost> Run<H> {
         outcome
     }
 
-    /// Run the plan, then release the files of the run
+    /// Run the plan, then release the files of the run. A plan that failed cancels the statements that run and waits
+    /// for them first, a statement never writes a file past the release of its pin.
     async fn run_plan(self: &Rc<Self>) -> Result<Vec<Option<QueryId>>, RunFailure> {
         let result = self.plan_and_run().await;
-        if self.host.mount_prefix().is_some() {
-            self.host.mount_release().await;
+        if result.is_err() {
+            self.cancel_active();
+            self.settle().await;
         }
-        let retained = std::mem::take(&mut *self.retained.borrow_mut());
-        for file in retained {
+        self.release_files().await;
+        result
+    }
+
+    /// Pin a file below the mount prefix until the run released its files
+    async fn pin(&self, path: &str) -> Result<(), RunFailure> {
+        let pin = self.host.mount_pin(path).await.map_err(|error| RunFailure::from_host(&error))?;
+        self.kept.borrow_mut().push(pin);
+        Ok(())
+    }
+
+    /// Release the files that the run kept, then remove its transient files, which nobody pins any more
+    async fn release_files(&self) {
+        let kept = std::mem::take(&mut *self.kept.borrow_mut());
+        for file in kept {
             self.host.cache_release(file).await;
         }
-        result
+        let transient = std::mem::take(&mut *self.transient.borrow_mut());
+        for name in transient {
+            self.host.mount_remove(&name).await;
+        }
     }
 
     /// Analyze the scripts, plan the targets with what they need, every script without targets, serve the cached
@@ -582,9 +604,12 @@ impl<H: RunHost> Run<H> {
                     continue;
                 }
                 let file = host.cache_retain(&key.key).await.ok().flatten();
+                // A file that was retained is kept before a cancellation counts, the release of the run releases it
+                if let Some(file) = &file {
+                    self.kept.borrow_mut().push(file.id);
+                }
                 self.check_cancelled()?;
                 let Some(file) = file else { continue };
-                self.retained.borrow_mut().push(file.id);
                 if let Some(served) = self.serve_cached(&graph, index, result_node, &key, &statements, &visualizations).await? {
                     if let Some(run) = runs.get_mut(index as usize) {
                         *run = false;
@@ -619,7 +644,11 @@ impl<H: RunHost> Run<H> {
                         continue;
                     }
                     let key = keys.get(materialization.script as usize).cloned().flatten().filter(|key| key.reusable);
-                    names.push((materialization.script, host.mount_file_name(key.as_ref().map(|key| key.key.as_str()))));
+                    let name = host.mount_file_name(key.as_ref().map(|key| key.key.as_str()));
+                    if key.is_none() {
+                        self.transient.borrow_mut().push(name.clone());
+                    }
+                    names.push((materialization.script, name));
                 }
             }
             let provided: Vec<u32> = cached_files.keys().copied().collect();
@@ -888,7 +917,7 @@ impl<H: RunHost> Run<H> {
         // The results that the host provides, e.g. cached results, are read in place
         for materialization in materializations {
             if materialization.node == NONE {
-                self.host.mount_use(materialization.path.as_deref().unwrap_or_default()).await.map_err(|error| RunFailure::from_host(&error))?;
+                self.pin(materialization.path.as_deref().unwrap_or_default()).await?;
             }
         }
 
@@ -1178,6 +1207,7 @@ impl<H: RunHost> Run<H> {
                     if !has_result {
                         return Err(RunFailure::error(format!("{} has no result that other scripts could read", run.file(script))));
                     }
+                    run.pin(path).await?;
                     let rows = run.host.mount_write(path, query_id).await.map_err(|error| RunFailure::from_host(&error))?;
                     run.log(
                         LogLevel::Info,

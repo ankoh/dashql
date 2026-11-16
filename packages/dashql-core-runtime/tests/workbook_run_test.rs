@@ -84,6 +84,8 @@ struct HostState {
     cached: BTreeSet<String>,
     /// The connections that can't run
     offline: BTreeSet<String>,
+    /// The connections that cache no query results
+    uncached: BTreeSet<String>,
     /// The texts of statements that fail
     failing: Vec<String>,
     /// How often the run told that it changed the workbook, and the effects it passed on
@@ -97,6 +99,9 @@ struct HostState {
     prepares: bool,
     failing_setups: BTreeSet<String>,
     prepare_gate: Option<Receiver<()>>,
+    /// Gates that the next retain of a cached file and the next pin wait for
+    retain_gate: Option<Receiver<()>>,
+    pin_gate: Option<Receiver<()>>,
 }
 
 struct FakeHost {
@@ -109,8 +114,17 @@ struct FakeHost {
     /// The statements of a connection that run at once
     concurrency: usize,
     next_query: Cell<QueryId>,
+    /// The ids of the files that the host keeps for the runs
+    next_file: Cell<u64>,
     /// Is the workbook still the one of the app?
     live: Cell<bool>,
+}
+
+impl FakeHost {
+    fn next_file(&self) -> u64 {
+        self.next_file.set(self.next_file.get() + 1);
+        self.next_file.get()
+    }
 }
 
 impl Host for FakeHost {
@@ -172,8 +186,8 @@ impl RunHost for FakeHost {
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
         std::future::ready(Some(format!("{connection_id}:{signature}")))
     }
-    fn caches_results(&self, _connection_id: &str) -> bool {
-        true
+    fn caches_results(&self, connection_id: &str) -> bool {
+        !self.state.borrow().uncached.contains(connection_id)
     }
     fn can_run(&self, connection_id: &str) -> bool {
         !self.state.borrow().offline.contains(connection_id)
@@ -201,9 +215,21 @@ impl RunHost for FakeHost {
     }
     fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
         let found = self.state.borrow().cached.contains(key);
-        std::future::ready(Ok(found.then(|| RetainedFile { id: 1, name: format!("{}.parquet", key.len()) })))
+        let file = found.then(|| RetainedFile { id: self.next_file(), name: format!("{}.parquet", key.len()) });
+        let mut state = self.state.borrow_mut();
+        if let Some(file) = &file {
+            state.calls.push(format!("retain {}", file.id));
+        }
+        let gate = state.retain_gate.take();
+        async move {
+            if let Some(gate) = gate {
+                gate.await;
+            }
+            Ok(file)
+        }
     }
-    fn cache_release(&self, _file: u64) -> impl Future<Output = ()> + 'static {
+    fn cache_release(&self, file: u64) -> impl Future<Output = ()> + 'static {
+        self.state.borrow_mut().calls.push(format!("release {file}"));
         std::future::ready(())
     }
     fn mount_prefix(&self) -> Option<String> {
@@ -212,16 +238,24 @@ impl RunHost for FakeHost {
     fn mount_file_name(&self, key: Option<&str>) -> String {
         if key.is_some() { "keyed.parquet".to_string() } else { "transient.parquet".to_string() }
     }
+    fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
+        let pin = self.next_file();
+        let mut state = self.state.borrow_mut();
+        state.calls.push(format!("pin {pin} {path}"));
+        let gate = state.pin_gate.take();
+        async move {
+            if let Some(gate) = gate {
+                gate.await;
+            }
+            Ok(pin)
+        }
+    }
     fn mount_write(&self, path: &str, query_id: QueryId) -> impl Future<Output = Result<u64, HostError>> + 'static {
         self.state.borrow_mut().calls.push(format!("write {query_id} {path}"));
         std::future::ready(Ok(1))
     }
-    fn mount_use(&self, path: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
-        self.state.borrow_mut().calls.push(format!("use {path}"));
-        std::future::ready(Ok(()))
-    }
-    fn mount_release(&self) -> impl Future<Output = ()> + 'static {
-        self.state.borrow_mut().calls.push("release".to_string());
+    fn mount_remove(&self, name: &str) -> impl Future<Output = ()> + 'static {
+        self.state.borrow_mut().calls.push(format!("remove {name}"));
         std::future::ready(())
     }
     fn mounts_attachments(&self) -> bool {
@@ -304,6 +338,7 @@ fn setup(auto: bool, mounts: Option<&str>, concurrency: usize) -> Setup {
         mounts: mounts.map(str::to_string),
         concurrency,
         next_query: Cell::new(0),
+        next_file: Cell::new(0),
         live: Cell::new(true),
     });
     Setup { executor, state, host }
@@ -456,14 +491,80 @@ fn materializes_a_script_of_another_connection_before_the_scan() {
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let calls = s.state.borrow().calls.clone();
     assert_eq!(calls.first().map(String::as_str), Some("execute select 1 as a"));
-    assert_eq!(calls.get(1).map(String::as_str), Some("write 1 /mnt/cache/keyed.parquet"));
-    assert!(calls.get(2).is_some_and(|call| call.starts_with("execute") && call.contains("/mnt/cache/keyed.parquet")));
-    assert_eq!(calls.last().map(String::as_str), Some("release"));
+    // The run pins the file before it writes it and releases the pin once it ended
+    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/keyed.parquet"));
+    assert_eq!(calls.get(2).map(String::as_str), Some("write 1 /mnt/cache/keyed.parquet"));
+    assert!(calls.get(3).is_some_and(|call| call.starts_with("execute") && call.contains("/mnt/cache/keyed.parquet")));
+    assert_eq!(calls.last().map(String::as_str), Some("release 1"));
     // Without the mounts the run fails before its first statement
     let s = setup(true, None, 1);
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.unwrap().message.contains("need the compute database"));
     assert!(s.texts().is_empty());
+}
+
+#[test]
+fn removes_the_transient_files_of_a_run_after_it_released_their_pins() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    // The result of a connection that caches nothing has no reusable key, it is a transient file of the run
+    s.state.borrow_mut().uncached.insert("remote".to_string());
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    let calls = s.state.borrow().calls.clone();
+    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/transient.parquet"));
+    let tail: Vec<&str> = calls.iter().skip(calls.len().saturating_sub(2)).map(String::as_str).collect();
+    assert_eq!(tail, vec!["release 1", "remove transient.parquet"]);
+}
+
+#[test]
+fn releases_the_pins_of_a_failed_run_once_its_statements_settled() {
+    let (local, remote, other) = (connection("local", true), connection("remote", false), connection("other", false));
+    let workbook = workbook(&[
+        ("foo.sql", "select 1 as a", &remote),
+        ("bar.sql", "select count(*) from :foo", &local),
+        ("baz.sql", "select 2", &other),
+    ]);
+    let s = setup(false, Some("/mnt/cache"), 1);
+    let (open, gate) = oneshot();
+    s.state.borrow_mut().pin_gate = Some(gate);
+    let (_handle, result) = s.start(&workbook, workbook_run());
+    // The result of foo arrived, the pin of its file is pending when baz fails
+    s.end("select 1 as a", Ok(true));
+    assert!(s.state.borrow().calls.iter().any(|call| call == "pin 1 /mnt/cache/keyed.parquet"));
+    s.end("select 2", Err(StatementFailure::new("boom")));
+    // The run waits for the statement of foo before it releases the files
+    assert!(result.borrow().is_none());
+    open.send(());
+    s.executor.run_until_stalled();
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|failure| failure.message), Some("boom".to_string()));
+    assert_eq!(s.state.borrow().calls.last().map(String::as_str), Some("release 1"));
+}
+
+#[test]
+fn releases_a_cached_file_that_was_retained_while_the_run_stopped() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &main)]);
+    let s = setup(true, None, 1);
+    // A first run learns the signature of the result of foo, the cache holds it then
+    let first = s.run(&workbook, workbook_run());
+    assert!(first.failure.is_none(), "{:?}", first.failure);
+    let signature = signature_of(&s.state.borrow().statements[0].request);
+    s.state.borrow_mut().cached.insert(format!("main:{signature}"));
+    // The run stops while the cache retains the file
+    let (open, gate) = oneshot();
+    s.state.borrow_mut().retain_gate = Some(gate);
+    let (handle, result) = s.start(&workbook, workbook_run());
+    handle.cancel();
+    open.send(());
+    s.executor.run_until_stalled();
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|failure| failure.kind), Some(RunFailureKind::Cancelled));
+    let calls = s.state.borrow().calls.clone();
+    assert!(calls.iter().any(|call| call == "retain 1"), "{calls:?}");
+    assert_eq!(calls.last().map(String::as_str), Some("release 1"));
 }
 
 #[test]

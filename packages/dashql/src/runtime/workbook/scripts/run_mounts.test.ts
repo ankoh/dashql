@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { createRunMounts } from './run_mounts.js';
+import { CachePins } from '../../query/cache_pins.js';
 import { HandleTable } from '../../store/handles.js';
 import type { EmbeddedComputeDatabase } from '../../../platform/platform/database/embedded_database.js';
 import type { QueryResultCache } from '../../../platform/query/query_result_cache.js';
@@ -28,38 +29,41 @@ function testCache() {
         writeTable: async () => { },
         newFileName: (key: string) => `${key}.parquet`,
         newTransientFileName: () => 'transient.parquet',
-        remove: vi.fn(async () => true),
     } as unknown as QueryResultCache;
     const pins = () => [...pinned.values()].reduce((sum, count) => sum + count, 0);
     return { cache, pins };
 }
 
 describe('the files of the runs', () => {
-    it('releases the pin of a write that ends after the release of its run', async () => {
+    it('pins a file of a run until the runtime releases the pin', async () => {
         const { cache, pins } = testCache();
-        let resolveDatabase!: (database: EmbeddedComputeDatabase) => void;
-        const database = new Promise<EmbeddedComputeDatabase>(resolve => { resolveDatabase = resolve; });
         const handles = new HandleTable();
-        const mounts = createRunMounts(() => database, cache, handles);
-        const table = handles.register(tableFromArrays({ value: [1, 2] }));
-
-        // The write waits for the database, the run ends meanwhile
-        const write = mounts.write(1, `/mnt/cache/${mounts.fileName(1, 'a')}`, table).catch(error => error);
-        await mounts.release(1);
-        resolveDatabase(DATABASE);
-        expect(await write).toBeInstanceOf(Error);
+        const kept = new CachePins();
+        const mounts = createRunMounts(async () => DATABASE, cache, handles, kept);
+        const path = `/mnt/cache/${mounts.fileName('a')}`;
+        const pin = await mounts.pin(path);
+        expect(await mounts.write(path, handles.register(tableFromArrays({ value: [1, 2] })))).toBe(2);
+        expect(pins()).toBe(1);
+        await kept.release(pin);
         expect(pins()).toBe(0);
+        await expect(mounts.pin('/elsewhere/a.parquet')).rejects.toThrow('no file of the run');
     });
 
-    it('releases the files of the runs that the runtime left when it goes', async () => {
+    it('releases the pins that are left when the runtime goes, and a pin that arrives later at once', async () => {
         const { cache, pins } = testCache();
-        const handles = new HandleTable();
-        const mounts = createRunMounts(async () => DATABASE, cache, handles);
-        await mounts.use(1, '/mnt/cache/a.parquet');
-        await mounts.write(2, `/mnt/cache/${mounts.fileName(2, null)}`, handles.register(tableFromArrays({ value: [1] })));
-        expect(pins()).toBe(2);
-        await mounts.dispose();
+        const kept = new CachePins();
+        let resolveDatabase!: (database: EmbeddedComputeDatabase) => void;
+        const database = new Promise<EmbeddedComputeDatabase>(resolve => { resolveDatabase = resolve; });
+        const mounts = createRunMounts(() => database, cache, new HandleTable(), kept);
+        // One pin waits for the database, the other is a file that a run retained
+        const late = mounts.pin(`/mnt/cache/${mounts.fileName(null)}`).catch((error: unknown) => error);
+        kept.add((await cache.pin('cached.parquet')));
+        expect(pins()).toBe(1);
+        await kept.close();
         expect(pins()).toBe(0);
-        expect(cache.remove).toHaveBeenCalledWith('transient.parquet');
+        resolveDatabase(DATABASE);
+        expect(await late).toBeInstanceOf(Error);
+        await Promise.resolve();
+        expect(pins()).toBe(0);
     });
 });

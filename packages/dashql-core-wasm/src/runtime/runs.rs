@@ -98,7 +98,7 @@ pub(crate) struct Runs {
     connections: Rc<Connections>,
     workbooks: Rc<Workbooks>,
     entries: RefCell<Vec<RunEntry>>,
-    /// The number of the last run, the platform names the files of a run by it
+    /// The number of the last run
     numbers: Cell<u64>,
     /// The Parquet attachments whose columns were read, by workbook, file and stamp
     described: RefCell<BTreeSet<String>>,
@@ -782,10 +782,6 @@ pub(crate) struct RuntimeRunHost {
 }
 
 impl RuntimeRunHost {
-    fn number(&self) -> JsValue {
-        JsValue::from_f64(self.number as f64)
-    }
-
     /// The state of a connection of the runtime
     fn with_connection<R>(&self, connection_id: &str, read: impl FnOnce(&ConnectionState) -> R) -> Option<R> {
         let registry = self.connections.registry.borrow();
@@ -907,7 +903,7 @@ impl RunHost for RuntimeRunHost {
     fn mount_file_name(&self, key: Option<&str>) -> String {
         let keyed = key.is_some();
         let key = key.map(JsValue::from_str).unwrap_or(JsValue::NULL);
-        let name = self.platform.mounts_call_now("fileName", &[self.number(), key]).ok().and_then(|name| name.as_string()).unwrap_or_default();
+        let name = self.platform.mounts_call_now("fileName", &[key]).ok().and_then(|name| name.as_string()).unwrap_or_default();
         if keyed && !name.is_empty() {
             self.keyed_files.borrow_mut().insert(name.clone());
         }
@@ -920,7 +916,7 @@ impl RunHost for RuntimeRunHost {
             let registry = self.connections.registry.borrow();
             registry.query_history(query_id).and_then(|(_, history)| history.try_borrow().ok().and_then(|history| history.query(query_id).and_then(|query| query.result_table.as_ref().map(|table| table.id))))
         };
-        let write = table.map(|table| self.platform.mounts_call("write", &[self.number(), JsValue::from_str(path), JsValue::from_f64(table as f64)]));
+        let write = table.map(|table| self.platform.mounts_call("write", &[JsValue::from_str(path), JsValue::from_f64(table as f64)]));
         // The cache keeps its limits after every file of a key, a transient file of the run goes when the run ends
         let keyed = self.keyed_files.borrow().iter().any(|name| path.rsplit('/').next() == Some(name.as_str()));
         let evict = keyed.then(|| self.platform.evict_cache());
@@ -934,13 +930,16 @@ impl RunHost for RuntimeRunHost {
         }
     }
 
-    fn mount_use(&self, path: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let call = self.platform.mounts_call("use", &[self.number(), JsValue::from_str(path)]);
-        async move { call.await.map(|_| ()) }
+    fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
+        let call = self.platform.mounts_call("pin", &[JsValue::from_str(path)]);
+        async move {
+            let pin = call.await?.as_f64().ok_or_else(|| HostError::new("the platform returned no pin"))?;
+            Ok(pin.max(0.0) as u64)
+        }
     }
 
-    fn mount_release(&self) -> impl Future<Output = ()> + 'static {
-        let call = self.platform.mounts_call("release", &[self.number()]);
+    fn mount_remove(&self, name: &str) -> impl Future<Output = ()> + 'static {
+        let call = self.platform.cache_call("remove", &[JsValue::from_str(name)]);
         async move {
             let _ = call.await;
         }

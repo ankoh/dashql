@@ -362,7 +362,7 @@ export interface RuntimeResultCache {
     write(key: string, table: number): Promise<string>;
     /** Keep the newest file of a key until `release`, null on a miss */
     retain(key: string): Promise<{ id: number; name: string } | null>;
-    /** Release a file that `retain` kept */
+    /** Release a file that `retain` or `pin` of the mounts kept */
     release(id: number): Promise<void>;
     /** The Blob of a file, e.g. one that `retain` kept for an export */
     file(name: string): Promise<Blob>;
@@ -376,18 +376,16 @@ export interface RuntimeResultCache {
     remove(name: string): Promise<boolean>;
 }
 
-/** The files of the runs of workbooks in the compute database. A run names its files by its number. */
+/** The files of the runs of workbooks in the compute database, the files of the query result cache. The runtime keeps the pins of a run, releases them with `release` of the cache once the run settled and then removes its transient files with `remove`. */
 export interface RuntimeMounts {
     /** The directory of the files of the runs, the files of the query result cache; null without the cache */
     prefix(): string | null;
-    /** The name of a new file of the result of a script: a file of its key if the key is reusable, a transient file of the run otherwise */
-    fileName(run: number, key: string | null): string;
-    /** Write a table of the handle table as Parquet file at a path below the prefix, resolves with its rows. The run keeps the file. */
-    write(run: number, path: string, table: number): Promise<number>;
-    /** Keep a file that a run scans, e.g. a cached result */
-    use(run: number, path: string): Promise<void>;
-    /** Release the files of a run, its transient files are removed */
-    release(run: number): Promise<void>;
+    /** The name of a new file of the result of a script: a file of its key if the key is reusable, a transient file otherwise */
+    fileName(key: string | null): string;
+    /** Mount the files in the compute database and pin a file at a path below the prefix, also one that is about to be written. Resolves with the id that `release` of the cache releases it with. */
+    pin(path: string): Promise<number>;
+    /** Write a table of the handle table as Parquet file at a path below the prefix that is pinned, resolves with its rows */
+    write(path: string, table: number): Promise<number>;
     /** Mount the attachments of a workbook */
     attachments(workbookId: string): Promise<void>;
     /** The columns of a Parquet attachment of a workbook */
