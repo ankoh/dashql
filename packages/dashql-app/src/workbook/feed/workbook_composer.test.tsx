@@ -368,7 +368,6 @@ describe('Workbook composer', () => {
         }
         const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
         const command = () => container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')?.value ?? null;
-        const snippets = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!;
 
         it('disables Run and the snippets and shows the line that launches a harness', async () => {
             const editor = await renderConnected(ComposerMode.Sql);
@@ -380,8 +379,10 @@ describe('Workbook composer', () => {
             expect(editor.contentDOM.getAttribute('contenteditable')).toBe('false');
             // The line takes the place of the editor
             expect(editor.dom.checkVisibility()).toBe(false);
-            expect(sendButton().disabled).toBe(true);
-            expect(snippets().disabled).toBe(true);
+            // The switch of the harness takes the place of the snippets and Run
+            expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
+            expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
+            expect(container.querySelector('[data-testid="composer-connect-harness"]')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
             expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch claude --port 51234 --secret k3x9');
             // The command is only copied, a new port and copy stay usable
             expect(container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')!.disabled).toBe(true);
@@ -453,7 +454,10 @@ describe('Workbook composer', () => {
 
         it('shows the connections of the agent in place of the connection picker in AI', async () => {
             await renderConnected(ComposerMode.Ai, undefined, true);
-            expect(container.querySelector('[data-testid="agent-picker"]')).not.toBeNull();
+            // The connections of the agent stand left of the switch of the harness
+            const picker = container.querySelector('[data-testid="agent-picker"]')!;
+            const harness = container.querySelector('[data-testid="composer-connect-harness"]')!;
+            expect(picker.compareDocumentPosition(harness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
             expect(container.querySelector('[data-testid="sql-picker"]')).toBeNull();
             act(() => mode('sql').click());
             expect(container.querySelector('[data-testid="agent-picker"]')).toBeNull();

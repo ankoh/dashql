@@ -288,7 +288,7 @@ async function testAppAgentSession(page, navigate) {
         const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${session.port}`, token: 'secret' } })).toString('base64url');
         await navigate(`/?data=${data}`);
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
-        assert.equal(await page.getByTestId('composer-send').isDisabled(), true);
+        assert.equal(await page.getByTestId('composer-send').count(), 0);
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
         // The log opens by itself while the agent works
         await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();

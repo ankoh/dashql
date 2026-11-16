@@ -273,7 +273,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     const session = props.session != null && props.session.connected ? props.session : null;
     const showDraftInputs = !ai && draftInputs.length > 0;
-    const blockedWorkbookId = ai ? null : offlineWorkbookId;
+    const blockedWorkbookId = offlineWorkbookId;
     const blocked = blockedWorkbookId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
     const sendButton = (
@@ -284,7 +284,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             data-testid="composer-send"
             tooltipDirection="n"
             data-connect={blocked ? '' : undefined}
-            disabled={ai || (empty && !blocked)}
+            disabled={empty && !blocked}
             onClick={handleSendClick}
         >
             <PaperAirplaneIcon />
@@ -390,32 +390,37 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                             </SegmentedControl.Button>
                         </SegmentedControl>
                     )}
-                    {ai && connect != null && (
-                        <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
-                            <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
-                                Claude Code
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
-                                Codex
-                            </SegmentedControl.Button>
-                        </SegmentedControl>
+                    {/* In AI the switch of the harness takes the place of the snippets and Run, the connections stay left of it */}
+                    {ai && connect != null ? (
+                        <div className={styles.composer_trailing_actions}>
+                            {props.agentConnectionsPicker ?? props.connectionPicker}
+                            <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
+                                <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
+                                    Claude Code
+                                </SegmentedControl.Button>
+                                <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
+                                    Codex
+                                </SegmentedControl.Button>
+                            </SegmentedControl>
+                        </div>
+                    ) : (
+                        <div className={styles.composer_trailing_actions}>
+                            {props.connectionPicker}
+                            {props.snippetConnector != null && (
+                                <SnippetsOverlay
+                                    scriptName="the prompt"
+                                    connectorType={props.snippetConnector}
+                                    disabled={view == null}
+                                    onApply={applySnippet}
+                                    registry={props.snippetRegistry}
+                                    testId="composer-snippets"
+                                />
+                            )}
+                            {blockedWorkbookId != null
+                                ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
+                                : sendButton}
+                        </div>
                     )}
-                    <div className={styles.composer_trailing_actions}>
-                        {ai && props.agentConnectionsPicker != null ? props.agentConnectionsPicker : props.connectionPicker}
-                        {props.snippetConnector != null && (
-                            <SnippetsOverlay
-                                scriptName="the prompt"
-                                connectorType={props.snippetConnector}
-                                disabled={view == null || ai}
-                                onApply={applySnippet}
-                                registry={props.snippetRegistry}
-                                testId="composer-snippets"
-                            />
-                        )}
-                        {blockedWorkbookId != null
-                            ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
-                            : sendButton}
-                    </div>
                 </div>
             </div>
         </div>
