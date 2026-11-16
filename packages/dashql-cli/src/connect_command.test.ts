@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -7,6 +7,7 @@ import { followAgentSession } from '@ankoh/dashql/platform/session/agent_session
 import type { AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
 
 import { claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
+import { SESSION_NAME_ENV } from './session_journal.js';
 import { runSession, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionEnvironment } from './session_command.js';
 import { runWith } from './test_process.js';
 
@@ -63,7 +64,9 @@ describe('dashql connect', () => {
             program = harnessProgram;
             args = harnessArgs;
             expect(cwd).toBe(W);
-            expect(harnessEnv).toEqual({ [SESSION_ENDPOINT_ENV]: `http://127.0.0.1:${port}`, [SESSION_TOKEN_ENV]: 's3cret' });
+            expect(harnessEnv).toEqual({ [SESSION_ENDPOINT_ENV]: `http://127.0.0.1:${port}`, [SESSION_TOKEN_ENV]: 's3cret', [SESSION_NAME_ENV]: String(port) });
+            // The journal of the session is its own, named by the port
+            expect(existsSync(path.join(W, '.dashql', 'sessions', String(port), 'journal.jsonl'))).toBe(true);
             // The page follows the server like the tab that showed the line
             following = followAgentSession({ endpoint: `http://127.0.0.1:${port}`, token: 's3cret' }, state => states.push(state), new AbortController().signal);
             const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
@@ -89,8 +92,9 @@ describe('dashql connect', () => {
             ended: true,
             turns: [{ turnId: 1, question: 'how many orders', note: '42', files: ['a.sql'] }],
         });
-        // The server is gone
+        // The server is gone, with the folder of its session
         await expect(fetch(`http://127.0.0.1:${port}/v1/state`)).rejects.toThrow();
+        expect(existsSync(path.join(W, '.dashql', 'sessions', String(port)))).toBe(false);
     });
 
     it('gives Codex the hooks as a config override, without SessionEnd', () => {

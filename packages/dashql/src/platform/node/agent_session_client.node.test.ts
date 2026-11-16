@@ -1,6 +1,10 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
-import { followAgentSession, parseAgentSessionTarget } from '../session/agent_session_client.js';
+import { followAgentSession, parseAgentSessionTarget, readWorkbookFolderFiles } from '../session/agent_session_client.js';
+import { openNodeRoot } from './node_directory_handle.js';
 import { createAgentSessionState, type AgentSessionState } from '../session/agent_session_state.js';
 
 describe('the client of an agent session', () => {
@@ -33,5 +37,22 @@ describe('the client of an agent session', () => {
         } finally {
             server.close();
         }
+    });
+
+    it('reads the files of a workbook folder that a page copies into the session', async () => {
+        const folder = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-copy-'));
+        const root = await openNodeRoot(folder);
+        // The mirror of the attachments of a native workbook has no workbook file, the page copies nothing
+        mkdirSync(path.join(folder, 'attachments'));
+        writeFileSync(path.join(folder, 'attachments', 't.parquet'), 'PAR1');
+        expect(await readWorkbookFolderFiles(root)).toBeNull();
+
+        writeFileSync(path.join(folder, 'dashql-workbook.json'), '{}');
+        mkdirSync(path.join(folder, 'scripts'));
+        writeFileSync(path.join(folder, 'scripts', 'b.sql'), 'select 2');
+        writeFileSync(path.join(folder, 'scripts', 'a.sql'), 'select 1');
+        const files = await readWorkbookFolderFiles(root);
+        expect(files?.map(file => file.path)).toEqual(['dashql-workbook.json', 'scripts/a.sql', 'scripts/b.sql', 'attachments/t.parquet']);
+        expect(await (files![1].content as Blob).text()).toBe('select 1');
     });
 });

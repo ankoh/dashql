@@ -5,6 +5,8 @@ import path from 'node:path';
 import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
 import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql/platform/session/workbook_journal';
 
+import { writeAgentSessionWorkbook } from '@ankoh/dashql/platform/session/agent_session_client';
+
 import { startSessionServer, type SessionServer } from './session_server.js';
 
 const temp = (prefix: string) => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), prefix));
@@ -14,6 +16,10 @@ async function until(condition: () => boolean): Promise<void> {
     for (let i = 0; i < 100 && !condition(); ++i) await new Promise(resolve => setTimeout(resolve, 50));
     expect(condition()).toBe(true);
 }
+
+/// A record of the log of a command, as it reaches the journal
+const record = (message: string, target: string, keyValues: LogRecord['keyValues']): LogRecord =>
+    ({ timestamp: 1, level: LogLevel.Info, target, message, context: null, tracing: null, keyValues });
 
 describe('the session server', () => {
     let server: SessionServer | null = null;
@@ -41,8 +47,6 @@ describe('the session server', () => {
         expect(readFileSync(journal, 'utf8')).toBe('');
         expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
 
-        const record = (message: string, target: string, keyValues: LogRecord['keyValues']): LogRecord =>
-            ({ timestamp: 1, level: LogLevel.Info, target, message, context: null, tracing: null, keyValues });
         const workbook = { [JOURNAL_KEYS.workbook]: 'orders', [JOURNAL_KEYS.workbookId]: 'w1' };
         const entries: LogRecord[] = [
             record(JOURNAL_FILES, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.files]: ['dashql-workbook.json', 'scripts/a.sql', 'scripts/gone_ä.sql'] }),
@@ -90,6 +94,87 @@ describe('the session server', () => {
         await server.close();
         server = null;
         expect(existsSync(journal)).toBe(false);
+    });
+
+    it('keeps the journal of a session of dashql connect in a folder of its own', async () => {
+        const folder = temp('dashql-session-');
+        // Two sessions in one folder, each has its journal, the first that stops leaves the other one
+        const first = await startSessionServer({ harness: 'claude', folder, session: '51001' });
+        server = await startSessionServer({ harness: 'codex', folder, session: '51002' });
+        const second = server;
+        const journal = (session: string) => path.join(folder, '.dashql', 'sessions', session, 'journal.jsonl');
+        try {
+            expect(readFileSync(journal('51001'), 'utf8')).toBe('');
+            expect(readFileSync(journal('51002'), 'utf8')).toBe('');
+            expect(existsSync(path.join(folder, '.dashql', 'journal.jsonl'))).toBe(false);
+            expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
+            appendFileSync(journal('51002'), `${JSON.stringify(record(JOURNAL_FILES, JOURNAL_TARGET, { [JOURNAL_KEYS.workbook]: '.', [JOURNAL_KEYS.workbookId]: 'w1', [JOURNAL_KEYS.files]: [] }))}\n`);
+            await until(() => second.state().workbooks.length === 1);
+            expect(first.state().workbooks).toEqual([]);
+            await first.close();
+            expect(existsSync(path.join(folder, '.dashql', 'sessions', '51001'))).toBe(false);
+            expect(existsSync(journal('51002'))).toBe(true);
+        } finally {
+            if (existsSync(journal('51001'))) await first.close();
+        }
+        await second.close();
+        server = null;
+        expect(existsSync(path.join(folder, '.dashql', 'sessions', '51002'))).toBe(false);
+        await expect(startSessionServer({ harness: 'claude', folder, session: '../x' })).rejects.toThrow('invalid session name');
+    });
+
+    it('keeps the copy of the workbook of a page in its folder and hands out its files', async () => {
+        const folder = temp('dashql-session-');
+        server = await startSessionServer({ harness: 'claude', folder, session: '51003' });
+        const target = { endpoint: `http://127.0.0.1:${server.port}`, token: server.token };
+        const copy = path.join(folder, '.dashql', 'workbooks', 'w1');
+        const parquet = new Uint8Array([0x50, 0x41, 0x52, 0x31]);
+        await writeAgentSessionWorkbook(target, 'w1', [
+            { path: 'dashql-workbook.json', content: '{"scripts":[]}' },
+            { path: 'scripts/a.sql', content: 'select 1\n' },
+            { path: 'attachments/t.parquet', content: parquet },
+        ]);
+        expect(readFileSync(path.join(copy, 'scripts', 'a.sql'), 'utf8')).toBe('select 1\n');
+        expect(new Uint8Array(readFileSync(path.join(copy, 'attachments', 't.parquet')))).toEqual(parquet);
+        // The state names the copy like a workbook folder of the journal, the page fetches its files from there
+        expect(server.state().workbooks).toMatchObject([{ path: '.dashql/workbooks/w1', workbookId: 'w1' }]);
+        expect(server.state().workbooks[0].files.map(file => file.path)).toEqual(['dashql-workbook.json', 'scripts/a.sql', 'attachments/t.parquet']);
+        const base = `http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/w1`;
+        expect(await (await fetch(`${base}/scripts/a.sql`)).text()).toBe('select 1\n');
+
+        // A new copy replaces the old one, the scripts that the page no longer has are gone
+        await writeAgentSessionWorkbook(target, 'w1', [
+            { path: 'dashql-workbook.json', content: '{"scripts":[]}' },
+            { path: 'scripts/b.sql', content: 'select 2\n' },
+        ]);
+        expect(existsSync(path.join(copy, 'scripts', 'a.sql'))).toBe(false);
+        expect(server.state().workbooks[0].files.map(file => file.path)).toEqual(['dashql-workbook.json', 'scripts/b.sql']);
+        // The agent edits the copy with a tool of its harness, the stamps follow after the tool
+        const stamp = () => server!.state().workbooks[0].files.find(file => file.path === 'scripts/b.sql');
+        const before = stamp();
+        writeFileSync(path.join(copy, 'scripts', 'b.sql'), 'select 22, 23\n');
+        const event = { event: 'PostToolUse', harness: 'claude', folder, status: 'Edit', files: [] };
+        const posted = await fetch(`http://127.0.0.1:${server.port}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: JSON.stringify(event) });
+        expect(posted.status).toBe(204);
+        expect(stamp()?.size).toBe(14);
+        expect(stamp()).not.toEqual(before);
+
+        // A file of the copy can go on its own
+        expect((await fetch(`${base}/scripts/b.sql`, { method: 'DELETE' })).status).toBe(204);
+        expect(server.state().workbooks[0].files.map(file => file.path)).toEqual(['dashql-workbook.json']);
+
+        // Only the files of a workbook folder, only with the token, only into the folder of the copy
+        expect((await fetch(`${base}/secret.txt`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetch(`${base}/scripts/..%2F..%2Fx.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetch(`http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/..%2Fx/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetch(`http://127.0.0.1:${server.port}/v1/workbooks/wrong/w1/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(401);
+        const preflight = await fetch(`${base}/scripts/a.sql`, { method: 'OPTIONS', headers: { Origin: 'https://dashql.app' } });
+        expect(preflight.headers.get('access-control-allow-methods')).toContain('PUT');
+
+        // The whole copy goes, the state forgets it
+        expect((await fetch(base, { method: 'DELETE' })).status).toBe(204);
+        expect(existsSync(copy)).toBe(false);
+        expect(server.state().workbooks).toEqual([]);
     });
 
     it('serves the state only with the token and to the pages of DashQL', async () => {

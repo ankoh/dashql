@@ -1,3 +1,4 @@
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
 import type { AgentSessionState } from './agent_session_state.js';
 
 /// Where a page finds the server of a session: `dashql session serve` on this machine
@@ -55,4 +56,65 @@ export async function followAgentSession(
             if (data.length > 0) onState(JSON.parse(data) as AgentSessionState);
         }
     }
+}
+
+/// A file of a workbook folder, its path in the folder with forward slashes
+export interface AgentSessionWorkbookFile {
+    path: string;
+    content: string | Uint8Array<ArrayBuffer> | Blob;
+}
+
+/// The URL of a file of a workbook of a session, or of the whole copy of a workbook without a path
+function workbookUrl(target: AgentSessionTarget, workbookId: string, file?: string): string {
+    const parts = ['v1', 'workbooks', target.token, workbookId, ...(file?.split('/') ?? [])];
+    return new URL(`/${parts.map(encodeURIComponent).join('/')}`, target.endpoint).toString();
+}
+
+async function expectOk(response: Response, what: string): Promise<void> {
+    if (!response.ok) throw new Error(`the session answered ${what} with ${response.status}`);
+}
+
+/// Write the workbook of the page into the folder of the session, `.dashql/workbooks/<workbook id>/`, where the agent
+/// works on it. An older copy goes first. The workbook file comes last: with it, the server announces the copy in the
+/// state of the session.
+export async function writeAgentSessionWorkbook(
+    target: AgentSessionTarget,
+    workbookId: string,
+    files: readonly AgentSessionWorkbookFile[],
+    signal?: AbortSignal,
+): Promise<void> {
+    await expectOk(await fetch(workbookUrl(target, workbookId), { method: 'DELETE', signal }), 'the removal of the copy');
+    const ordered = [...files.filter(file => file.path !== STORAGE_WORKBOOK_FILE), ...files.filter(file => file.path === STORAGE_WORKBOOK_FILE)];
+    for (const file of ordered) {
+        const response = await fetch(workbookUrl(target, workbookId, file.path), { method: 'PUT', body: file.content, signal });
+        await expectOk(response, `the write of ${file.path}`);
+    }
+}
+
+/// The files of a workbook folder in the layout of OPFS (`workbooks/<id>/` of the root of the app) as a page copies
+/// them into a session: the workbook file, the scripts and the attachments. Null for a folder without a workbook file,
+/// e.g. the mirror of the attachments of a native workbook.
+export async function readWorkbookFolderFiles(folder: FileSystemDirectoryHandle): Promise<AgentSessionWorkbookFile[] | null> {
+    let workbook: File;
+    try {
+        workbook = await (await folder.getFileHandle(STORAGE_WORKBOOK_FILE)).getFile();
+    } catch {
+        return null;
+    }
+    const files: AgentSessionWorkbookFile[] = [];
+    for (const sub of [STORAGE_SCRIPTS_FOLDER, STORAGE_ATTACHMENTS_FOLDER]) {
+        let dir: FileSystemDirectoryHandle;
+        try {
+            dir = await folder.getDirectoryHandle(sub);
+        } catch {
+            continue;
+        }
+        const entries: [string, FileSystemFileHandle][] = [];
+        for await (const [name, handle] of dir.entries()) {
+            if (handle.kind === 'file') entries.push([name, handle as FileSystemFileHandle]);
+        }
+        entries.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+        for (const [name, handle] of entries) files.push({ path: `${sub}/${name}`, content: await handle.getFile() });
+    }
+    return [{ path: STORAGE_WORKBOOK_FILE, content: workbook }, ...files];
 }

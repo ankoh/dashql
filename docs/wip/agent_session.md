@@ -1,8 +1,9 @@
 # Agent Sessions
 
 Status: built. The hooks of Claude Code and Codex reach `dashql session serve`, the page follows the session through a
-link or through the line of the AI side of its prompt (`dashql connect`). The files of the agent are not yet the
-workbook of the page.
+link or through the line of the AI side of its prompt (`dashql connect`). A tab that connects copies its workbook into
+the folder of the session and takes the scripts that the agent changes there; the other files of the agent are not
+yet the workbook of the page.
 
 An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
 (`docs/design/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
@@ -111,11 +112,15 @@ goes through a `dashql` command, so the commands tell what they changed.
   a session with the log of the commands.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
   then a new port, Codex, and a server on the port and secret of the line.
-- `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given.
+- `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given; the
+  journal of a session of its own; the copy of the workbook of a page (writes, replacement, the stamps after a tool,
+  paths it refuses).
+- `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts.
+- The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects.
 
 ## Plan: the workbook, the connections and the logins of a session
 
-Status: planned, nothing of it is built.
+Status: the first step is partly built, see [Order](#order).
 
 ### Two cases
 
@@ -144,10 +149,20 @@ journal and the query result cache that the server hands out, as it does today.
 - It is in the project, where the sandbox of Codex and the permissions of Claude Code let the agent write, a folder of
   the system for temporary files is not.
 - `.dashql/.gitignore` is `*`, the copy never reaches the repository of the user.
-- The page writes it: when the tab connects, it sends its workbook to the server (the workbook file, the scripts, the
-  attachments), the server writes it to the folder and replaces an older copy there, the site wins.
-- The agent edits it and runs it with `dashql run`, the journal and `/v1/workbooks/…` bring the changes back into the
-  OPFS of the tab, as in case B.
+- **The page writes it** once the server of the session answers, for every workbook that it shows
+  (`AgentSessionProvider`): it writes the pending writes of the workbook, then sends the files of its OPFS folder with
+  `writeAgentSessionWorkbook` of the runtime: `DELETE /v1/workbooks/<token>/<id>` removes an older copy, the site wins,
+  `PUT /v1/workbooks/<token>/<id>/<path>` writes the scripts and the attachments and the workbook file last. With the
+  workbook file the server names the copy in the `workbooks` of its state, like a workbook folder of the journal with
+  the path `.dashql/workbooks/<id>`, and hands out its files on the same route. A native workbook has its folder on disk
+  already, the page copies nothing; the agent could work in that folder (not built).
+- **The changes of the agent come back** (`agent/agent_session_copy.ts`). The first state that names a copy is what the
+  page wrote, later stamps of its scripts that differ are changes of the agent: the page fetches a changed script and
+  stages it as a rewrite to accept or reject (`setScriptText` with a diff), a new script becomes a script of the
+  workbook, and its next changes go to that script. A script with the text of the page stays as it is. The server
+  stamps the copies again after every `PostToolUse` and `Stop`, so an edit with a tool of the harness shows without a
+  `dashql` command. Not yet: scripts that the agent deletes or renames, the workbook file of the copy (the order, the
+  connections), its attachments and results, and the edits of the page during the session, which don't reach the copy.
 - When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
   next session faster.
 - **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
@@ -157,10 +172,11 @@ Two tabs in one folder have two workbook ids, their copies don't clash.
 
 ### One journal per session
 
-Today a folder has one `.dashql/journal.jsonl`, two sessions of `dashql connect` in one folder share it and the first
-that stops removes it. Each session gets its own: `.dashql/sessions/<session>/journal.jsonl`. `dashql connect` passes
-the name of the session to the harness in an environment variable without a secret in it (`DASHQL_SESSION`), a command
-of the agent appends to the journal of that session and to the single journal without it.
+Built. A session of `dashql connect` has its own journal, `.dashql/sessions/<port>/journal.jsonl`: the port names
+the session, no other session on the machine has it while it runs. `dashql connect` passes the name to the harness in
+an environment variable without a secret in it (`DASHQL_SESSION`), `dashql run` appends to the journal of that session,
+and to `.dashql/journal.jsonl` of `dashql session serve` without it. The folder of the session goes when it ends, two
+sessions in one folder keep apart.
 
 ### Connections travel with the workbook
 
@@ -198,8 +214,9 @@ login of a connection of the session goes through the page, the command line too
 
 ### What the page sends to the server
 
-One channel from the page to the server, `POST` with the token of the session, for three things: the workbook of case
-A, the selection of connections, the code of a login. The server stays the one place the page talks to.
+One channel from the page to the server, requests with the token of the session, for three things: the workbook of
+case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections, the code of a login. The
+server stays the one place the page talks to.
 
 ### How the agent learns DashQL
 
@@ -230,7 +247,8 @@ To check before the runs over the server:
 ### Order
 
 1. The tab sends its workbook to `.dashql/workbooks/<id>/` and follows it; one journal per session; the channel from
-   the page to the server.
+   the page to the server. Built: one journal per session, the copy, the scripts of the agent back into the tab. Open:
+   the rest of the copy (see above), the results of the agent's runs in the tab.
 2. The parameters of connections from the folder in `dashql run` and in the app.
 3. The output of the hook at the start and `dashql describe`.
 4. Logins through the page, runs of connections with a login in the process of `dashql connect`.

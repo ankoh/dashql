@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
+import { SESSION_NAME_ENV } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
@@ -117,7 +118,8 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     const folder = named.get('folder') ?? cli.cwd;
     let server: Awaited<ReturnType<typeof startSessionServer>>;
     try {
-        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret });
+        // The port names the session, no other session on this machine has it while it runs
+        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port) });
     } catch (error) {
         const code = (error as { code?: string }).code;
         cli.stderr(code === 'EADDRINUSE'
@@ -131,7 +133,11 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     cli.stdout(`DashQL follows this session on 127.0.0.1:${server.port}\n`);
     let code: number;
     try {
-        code = await env.runHarness(program, args, { [SESSION_ENDPOINT_ENV]: target.endpoint, [SESSION_TOKEN_ENV]: target.token }, folder);
+        code = await env.runHarness(program, args, {
+            [SESSION_ENDPOINT_ENV]: target.endpoint,
+            [SESSION_TOKEN_ENV]: target.token,
+            [SESSION_NAME_ENV]: String(server.port),
+        }, folder);
     } catch (error) {
         cli.stderr((error as { code?: string }).code === 'ENOENT'
             ? `dashql: cannot run ${program}, is ${harness === 'claude' ? 'Claude Code' : 'Codex'} installed?\n`

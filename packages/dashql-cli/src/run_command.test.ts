@@ -295,6 +295,20 @@ describe('dashql run', () => {
         expect(existsSync(path.join(workspace, '.dashql', 'cache'))).toBe(true);
     });
 
+    it('appends to the journal of the session of dashql connect that it runs in', async () => {
+        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
+        // The sessions of two connects in the folder and the one of session serve
+        for (const journal of ['journal.jsonl', 'sessions/51001/journal.jsonl', 'sessions/51002/journal.jsonl']) {
+            mkdirSync(path.dirname(path.join(dir, '.dashql', journal)), { recursive: true });
+            writeFileSync(path.join(dir, '.dashql', journal), '');
+        }
+        expect((await run(dir, ['.'], { ...PASSWORD, session: '51002' })).code).toBe(0);
+        const lines = (journal: string) => readFileSync(path.join(dir, '.dashql', journal), 'utf8');
+        expect(lines('sessions/51002/journal.jsonl')).toContain('"workbook_journal"');
+        expect(lines('sessions/51001/journal.jsonl')).toBe('');
+        expect(lines('journal.jsonl')).toBe('');
+    });
+
     it('reports the progress of a running script to the journal', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
         mkdirSync(path.join(dir, '.dashql'));

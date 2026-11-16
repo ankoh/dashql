@@ -26,7 +26,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { JournalRunReporter } from './run_journal.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
-import { openSessionJournal, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { openSessionJournal, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
@@ -66,6 +66,8 @@ export interface RunEnvironment {
     home: string | null;
     trinoUser?: string;
     trinoPassword?: string;
+    /// The session of `dashql connect` that the command runs in (DASHQL_SESSION), its journal gets the log
+    session?: string | null;
 }
 
 export function processRunEnvironment(): RunEnvironment {
@@ -73,6 +75,7 @@ export function processRunEnvironment(): RunEnvironment {
         home: process.env.DASHQL_HOME || null,
         trinoUser: process.env.DASHQL_TRINO_USER || undefined,
         trinoPassword: process.env.DASHQL_TRINO_PASSWORD || undefined,
+        session: process.env[SESSION_NAME_ENV] || null,
     };
 }
 
@@ -264,7 +267,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     else cli.interrupt?.addEventListener('abort', interrupt, { once: true });
 
     // In a session the log of the run goes into its journal, with markers of what changed
-    const journal = openSessionJournal(workspace, dir);
+    const journal = openSessionJournal(workspace, dir, env.session ?? null);
     const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null, journal);
     const storage = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
     // The embedded Hyper writes the results into the query result cache of the root and reads the results of other

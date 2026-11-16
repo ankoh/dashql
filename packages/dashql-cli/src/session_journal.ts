@@ -4,7 +4,7 @@ import { appendFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
 import type { LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
-import { SESSION_JOURNAL_FILE, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platform/session/workbook_journal';
+import { isSessionName, sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platform/session/workbook_journal';
 import type { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
 
@@ -16,11 +16,17 @@ export interface SessionJournal {
     write(record: LogRecord): void;
 }
 
-/// The journal of the session of a workspace, `.dashql/journal.jsonl`, which `dashql session serve` creates in the
-/// folder of its session. Null outside a session and for a workbook folder outside the workspace: the server hands out
-/// only the files of its folder.
-export function openSessionJournal(workspace: string, workbookFolder: string): SessionJournal | null {
-    const journal = path.join(workspace, SESSION_JOURNAL_FOLDER, SESSION_JOURNAL_FILE);
+/// The variable that names the session of `dashql connect` for the commands of its harness. It holds no secret: Codex
+/// passes it to the commands of its agent.
+export const SESSION_NAME_ENV = 'DASHQL_SESSION';
+
+/// The journal of the session of a workspace, which the server of the session creates in its folder:
+/// `.dashql/sessions/<session>/journal.jsonl` for a session of `dashql connect`, `.dashql/journal.jsonl` for one of
+/// `dashql session serve`. Null outside a session and for a workbook folder outside the workspace: the server hands
+/// out only the files of its folder.
+export function openSessionJournal(workspace: string, workbookFolder: string, session: string | null = null): SessionJournal | null {
+    const name = session != null && isSessionName(session) ? session : null;
+    const journal = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(name));
     const relative = path.relative(path.resolve(workspace), path.resolve(workbookFolder));
     if (!existsSync(journal) || relative.startsWith('..') || path.isAbsolute(relative)) return null;
     return {

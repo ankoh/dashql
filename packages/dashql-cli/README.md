@@ -198,6 +198,11 @@ stay quiet then. When the harness exits, `connect` ends the session and stops th
 the harness. A port that is taken fails before the harness starts, the tab gives a new one. The arguments after `--`
 go to the harness, `--command` launches another program than `claude` or `codex` on the `PATH`.
 
+The port names the session: its journal is `.dashql/sessions/<port>/journal.jsonl`, and the harness gets
+`DASHQL_SESSION=<port>`, which `dashql run` appends to. Two sessions in one folder keep apart, the folder of a session
+goes when it ends. The tab writes the workbook that it shows into `.dashql/workbooks/<workbook id>/` once the server
+answers, the agent works on that copy, and its changed scripts come back into the tab as rewrites to accept.
+
 ## dashql session
 
 ```
@@ -215,9 +220,11 @@ ends the session. `DASHQL_SERVERS` is the folder of the running servers (`~/.das
 port and token; `DASHQL_APP_URL`
 the page of the links (`https://dashql.app`).
 
-The server also creates the journal of the session, `.dashql/journal.jsonl` in its folder. `dashql run` appends the
-files of a workbook folder below it and every result, the server folds them into its state and hands out the files of
-the workbook folders and the results of its `.dashql/cache` to the page (`docs/wip/agent_session.md`).
+The server also creates the journal of the session, `.dashql/journal.jsonl` in its folder (the one of `dashql
+connect` is `.dashql/sessions/<port>/journal.jsonl`). `dashql run` appends the files of a workbook folder below it and
+every result, the server folds them into its state and hands out the files of the workbook folders and the results of
+its `.dashql/cache` to the page (`docs/wip/agent_session.md`). The page writes the copy of its workbook with `PUT` and
+`DELETE` on the routes of the files of the workbooks.
 
 Claude Code, in its settings (`.claude/settings.json`):
 

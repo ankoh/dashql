@@ -1,12 +1,24 @@
 import * as React from 'react';
 
-import { followAgentSession, parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import {
+    followAgentSession,
+    parseAgentSessionTarget,
+    readWorkbookFolderFiles,
+    writeAgentSessionWorkbook,
+    type AgentSessionTarget,
+} from '@ankoh/dashql/platform/session/agent_session_client';
+import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
+import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
+import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 
 const LOG_CTX = 'agent_session';
 
@@ -14,6 +26,8 @@ const LOG_CTX = 'agent_session';
 const TAB_STORAGE_KEY = 'dashql.agent_session';
 /// The key of the mode of the prompt and the harness of the line to connect in the storage of the tab
 const TAB_CONNECT_KEY = 'dashql.agent_connect';
+/// The key of the workbooks that the tab copied into the session of its target, a reload copies them not again
+const TAB_COPIES_KEY = 'dashql.agent_session_copies';
 /// The time between the attempts to reach a session that the page lost or waits for
 const RECONNECT_DELAY_MS = 2000;
 
@@ -40,6 +54,25 @@ function writeTabTarget(target: AgentSessionTarget): void {
         tabStorage()?.setItem(TAB_STORAGE_KEY, JSON.stringify(target));
     } catch {
         // Without storage, a reload forgets the session
+    }
+}
+
+/// The workbooks that the tab copied into the session of a target before a reload
+function readTabCopies(target: AgentSessionTarget): Set<string> {
+    try {
+        const stored = JSON.parse(tabStorage()?.getItem(TAB_COPIES_KEY) ?? 'null');
+        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || !Array.isArray(stored.workbooks)) return new Set();
+        return new Set(stored.workbooks.filter((id: unknown) => typeof id === 'string'));
+    } catch {
+        return new Set();
+    }
+}
+
+function writeTabCopies(target: AgentSessionTarget, workbooks: Set<string>): void {
+    try {
+        tabStorage()?.setItem(TAB_COPIES_KEY, JSON.stringify({ ...target, workbooks: [...workbooks] }));
+    } catch {
+        // Without storage, a reload copies again
     }
 }
 
@@ -79,7 +112,30 @@ export interface AgentConnect {
     renewTarget: () => void;
 }
 
+/// Write a workbook of the page into the folder of the session, where the agent works on it: the pending writes of the
+/// workbook first, then the files of its folder in OPFS. A native workbook has its folder on disk already, the page
+/// copies nothing (docs/wip/agent_session.md, "Where the workbook of case A lives").
+async function copyWorkbookToSession(runtime: Runtime, target: AgentSessionTarget, workbookId: string, logger: Logger): Promise<void> {
+    await runtime.storage.flushWorkbook(workbookId);
+    let folder: FileSystemDirectoryHandle;
+    try {
+        folder = await (await (await getOPFSRoot()).getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER)).getDirectoryHandle(workbookId);
+    } catch {
+        return;
+    }
+    const files = await readWorkbookFolderFiles(folder);
+    if (files == null) return;
+    await writeAgentSessionWorkbook(target, workbookId, files);
+    logger.info('Copied the workbook into the session', { workbook: workbookId, files: String(files.length) }, LOG_CTX);
+}
+
+/// The workbooks that the page shows, a session gets a copy of each once its server answers
+interface ShownWorkbooks {
+    show: (workbookId: string) => () => void;
+}
+
 const FOLLOWED_CTX = React.createContext<Store<FollowedAgentSession | null> | null>(null);
+const SHOWN_CTX = React.createContext<ShownWorkbooks | null>(null);
 const CONNECT_CTX = React.createContext<AgentConnect | null>(null);
 
 /// Follows the session of the latest link to a session, or of the target that the tab picked for the line of the
@@ -88,6 +144,7 @@ const CONNECT_CTX = React.createContext<AgentConnect | null>(null);
 export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) => {
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
+    const runtime = useOptionalRuntime();
     const [store] = React.useState(() => new Store<FollowedAgentSession | null>(null));
     const [target, setTarget] = React.useState<AgentSessionTarget | null>(readTabTarget);
     const [connect, setConnect] = React.useState(readTabConnect);
@@ -104,6 +161,45 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         });
     }, []);
     React.useEffect(() => appEvents?.subscribeAgentSessions(follow), [appEvents, follow]);
+
+    // The workbooks that the page shows and the ones that the server of the session got, per target. The changes of
+    // the agent in the copies come back into the workbooks.
+    const shown = React.useRef(new Map<string, number>());
+    const copied = React.useRef<{ target: AgentSessionTarget | null; workbooks: Set<string>; copies: AgentSessionCopies | null }>({ target: null, workbooks: new Set(), copies: null });
+    const copiesOf = React.useCallback((next: AgentSessionTarget) => {
+        if (copied.current.target !== next) {
+            const copies = runtime == null ? null : new AgentSessionCopies(agentSessionCopyHost(runtime, next), logger);
+            copied.current = { target: next, workbooks: readTabCopies(next), copies };
+        }
+        return copied.current;
+    }, [runtime, logger]);
+    const copyShown = React.useCallback(() => {
+        const followed = store.current;
+        if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
+        const { workbooks, copies } = copiesOf(target);
+        for (const workbookId of shown.current.keys()) {
+            if (workbooks.has(workbookId)) continue;
+            workbooks.add(workbookId);
+            writeTabCopies(target, workbooks);
+            copies?.reset(workbookId);
+            // Once per target: a copy again would replace what the agent did in the copy meanwhile, a failed copy waits
+            // for a new line
+            copyWorkbookToSession(runtime, target, workbookId, logger).catch(error => {
+                logger.warn('Cannot copy the workbook into the session', { workbook: workbookId, error: stringifyError(error) }, LOG_CTX);
+            });
+        }
+    }, [runtime, target, store, logger, copiesOf]);
+    const shownValue = React.useMemo<ShownWorkbooks>(() => ({
+        show: workbookId => {
+            shown.current.set(workbookId, (shown.current.get(workbookId) ?? 0) + 1);
+            copyShown();
+            return () => {
+                const count = (shown.current.get(workbookId) ?? 1) - 1;
+                if (count > 0) shown.current.set(workbookId, count);
+                else shown.current.delete(workbookId);
+            };
+        },
+    }), [copyShown]);
     // AI waits on a target, the first switch picks one
     React.useEffect(() => {
         if (connect.mode === ComposerMode.Ai && target == null) follow(newAgentConnectTarget());
@@ -115,8 +211,16 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         const { signal } = controller;
         // A session that the page reaches switches the prompt to AI once, the user may switch back to SQL
         let reached = false;
+        const copies = copiesOf(target).copies;
         const onState = (state: FollowedAgentSession['state']) => {
             store.update({ state, connected: true });
+            // The copies never end the stream of the session
+            try {
+                copyShown();
+                void copies?.update(state);
+            } catch (error) {
+                logger.warn('Cannot follow the copies of the session', { error: stringifyError(error) }, LOG_CTX);
+            }
             if (!reached) {
                 reached = true;
                 updateConnect({ mode: ComposerMode.Ai });
@@ -137,7 +241,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             }
         })();
         return () => controller.abort();
-    }, [target, store, logger, updateConnect]);
+    }, [target, store, logger, updateConnect, copyShown, copiesOf]);
     const connectValue = React.useMemo<AgentConnect>(() => ({
         mode: connect.mode,
         setMode: mode => updateConnect({ mode }),
@@ -148,7 +252,9 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     }), [connect, target, updateConnect, follow]);
     return (
         <FOLLOWED_CTX.Provider value={store}>
-            <CONNECT_CTX.Provider value={connectValue}>{props.children}</CONNECT_CTX.Provider>
+            <SHOWN_CTX.Provider value={shownValue}>
+                <CONNECT_CTX.Provider value={connectValue}>{props.children}</CONNECT_CTX.Provider>
+            </SHOWN_CTX.Provider>
         </FOLLOWED_CTX.Provider>
     );
 };
@@ -173,6 +279,10 @@ const DASHQL_RUN = /(^|[\s/])dashql run\b/;
 
 export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const followed = useFollowedAgentSession();
+    // The session gets a copy of the workbook that the page shows
+    const shown = React.useContext(SHOWN_CTX);
+    const workbookId = args.workbookScripts.workbookId;
+    React.useEffect(() => shown?.show(workbookId), [shown, workbookId]);
     const [dismissed, setDismissed] = React.useState<ReadonlySet<number>>(() => new Set());
     const dismiss = React.useCallback((questionId: number) => setDismissed(prev => new Set(prev).add(questionId)), []);
     const session = React.useMemo(

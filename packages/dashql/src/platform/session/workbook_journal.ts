@@ -9,6 +9,33 @@ import type { LogKeyValues, LogRecord, LogValue } from '../platform/logger/log_b
 export const SESSION_JOURNAL_FOLDER = '.dashql';
 /// The journal in that folder
 export const SESSION_JOURNAL_FILE = 'journal.jsonl';
+/// The folder of the sessions of `dashql connect` in that folder, one folder per session with its own journal
+export const SESSION_JOURNAL_SESSIONS = 'sessions';
+
+/// The folder of the copies of the workbooks of pages in that folder, `.dashql/workbooks/<workbook id>/`: a page that
+/// connects writes its workbook there for the agent
+export const SESSION_WORKBOOK_COPIES = 'workbooks';
+
+/// The name of a session of `dashql connect`, a folder name: letters, digits, `-` and `_`
+export function isSessionName(name: string): boolean {
+    return /^[\w-]{1,64}$/.test(name);
+}
+
+/// The id of a workbook that a page copies, a folder name like the name of a session
+export const isWorkbookCopyId = isSessionName;
+
+/// The folder of the copy of a workbook relative to the folder of the session, as the markers of the journal name it
+export function workbookCopyPath(workbookId: string): string {
+    return `${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/${workbookId}`;
+}
+
+/// The path of the journal of a session in the folder of the journal: `sessions/<name>/journal.jsonl` for a session of
+/// `dashql connect`, `journal.jsonl` for the one of `dashql session serve`
+export function sessionJournalPath(session: string | null): string[] {
+    if (session == null) return [SESSION_JOURNAL_FILE];
+    if (!isSessionName(session)) throw new Error(`invalid session name ${JSON.stringify(session)}`);
+    return [SESSION_JOURNAL_SESSIONS, session, SESSION_JOURNAL_FILE];
+}
 /// The target of the records that tell what changed
 export const JOURNAL_TARGET = 'workbook_journal';
 

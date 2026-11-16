@@ -162,11 +162,41 @@ async function testAppWorkbook(page, navigate) {
 }
 
 /// A server of the session of an agent, like `dashql session serve`, that streams the states that the test pushes
+/// Wait until a condition in the test process holds, e.g. a request reached a server of the test
+async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
+    const end = Date.now() + timeout;
+    while (!condition()) {
+        if (Date.now() > end) throw new Error('The condition did not hold in time');
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+}
+
 async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     const streams = new Set();
-    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], version: 0 };
+    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
+    // The files that the page wrote into the copy of its workbook, in the order of the writes
+    const writes = [];
     const server = http.createServer((request, response) => {
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
+        if (request.method === 'OPTIONS') {
+            // The preflight of the server of dashql
+            return response.writeHead(204, {
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
+                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+                'Access-Control-Allow-Private-Network': 'true',
+            }).end();
+        }
+        const copy = `/v1/workbooks/${encodeURIComponent(token)}/`;
+        if ((request.method === 'PUT' || request.method === 'DELETE') && request.url.startsWith(copy)) {
+            const [workbookId, ...parts] = request.url.slice(copy.length).split('/').map(decodeURIComponent);
+            const chunks = [];
+            request.on('data', chunk => chunks.push(chunk));
+            request.on('end', () => {
+                writes.push({ method: request.method, workbookId, path: parts.join('/'), body: Buffer.concat(chunks).toString('utf8') });
+                response.writeHead(204).end();
+            });
+            return;
+        }
         if (request.url !== `/v1/stream?token=${encodeURIComponent(token)}`) return response.writeHead(401).end();
         response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
         response.write(`data: ${JSON.stringify(state)}\n\n`);
@@ -176,6 +206,7 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
     return {
         port: server.address().port,
+        writes,
         push: next => {
             state = { ...state, ...next, version: state.version + 1 };
             for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`);
@@ -218,6 +249,9 @@ async function testAppAgentSession(page, navigate) {
         await session.close();
     }
 
+    // A workbook with a script, the next session gets a copy of it
+    await sendFromComposer(page, 'select 42 as copied_answer');
+
     // AI waits on a new port with a new secret, `dashql connect` starts the server there. The page tries the port before.
     await page.context().route(url => url.hostname === '127.0.0.1' && url.port !== new URL(page.url()).port, route => route.continue());
     await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
@@ -230,6 +264,21 @@ async function testAppAgentSession(page, navigate) {
     try {
         connected.push({ harness: 'codex' });
         await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
+        // The page writes its workbook into the folder of the session: the old copy goes, the workbook file comes last
+        await waitUntil(() => connected.writes.some(write => write.path === 'dashql-workbook.json'));
+        const { writes } = connected;
+        assert.equal(writes[0].method, 'DELETE');
+        assert.equal(writes[0].path, '');
+        assert.equal(writes[writes.length - 1].path, 'dashql-workbook.json');
+        assert.ok(writes.some(write => write.path.startsWith('scripts/') && write.body.includes('select 42 as copied_answer')), JSON.stringify(writes.map(write => write.path)));
+        assert.equal(new Set(writes.map(write => write.workbookId)).size, 1);
+        // A reload follows the same session and leaves the copy to the agent
+        const written = writes.length;
+        await page.reload();
+        await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
+        connected.push({ turns: [] });
+        await page.waitForTimeout(500);
+        assert.equal(writes.length, written);
     } finally {
         await connected.close();
     }
