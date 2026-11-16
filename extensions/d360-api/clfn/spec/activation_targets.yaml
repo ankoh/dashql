@@ -11,9 +11,9 @@ description: |
   - **Gated orgs.** `CdpActivationTarget` or `CdpActivationExternalPlatform` means the surface is [gated for this org or user](https://github.com/forcedotcom/sf-skills/blob/2476476dda1b671762c6e963b9d10c4a7056f1c4/skills/data360-activate/SKILL.md), so don't retry blindly.
 
   ```sql
-  CALL cdp.activation_platform_metadata_list (platform_type => 'Sftp');
+  CALL d360.activation_platform_metadata_list (platform_type => 'Sftp');
 
-  CALL cdp.activation_target_create (
+  CALL d360.activation_target_create (
     name => 'sftp_exports',
     dataspace_name => 'default',
     platform_type => 'Sftp',
@@ -22,7 +22,7 @@ description: |
   );
 
   /* Wait for status Active, using the id from the create result */
-  CALL cdp.activation_target_get (activation_target_id => '85USB000004ADXx2AO');
+  CALL d360.activation_target_get (activation_target_id => '85USB000004ADXx2AO');
   ```
 
 functions:
@@ -32,7 +32,7 @@ functions:
     path: /ssot/activation-targets/{activationTargetId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/delete
     description: Delete an activation target by ID or developer name. Since v60.0.
-    example: CALL cdp.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC');
+    example: CALL d360.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. See the conflict noted on `activation_target_get`."}
     effect: write
@@ -47,7 +47,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets/get
     tools: [d360_activation_target_list]
     description: Get a list of activation targets with selected filters. Since v60.0.
-    example: CALL cdp.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50);
+    example: CALL d360.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50);
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of results to return. Values are from `1` through `200`. If unspecified, the default value is `20`. Since v60.0."}
       - {name: filters, in: query, type: string, description: "Filter expression using `in`, joined with `AND`. Fields: `master_label` (target name), `targetStatus` (such as `active`), `connectionType` (a `platform_type` value) and `platform_name`. Spec examples: `targetStatus in active AND platform_name in Amazon S3`, `MasterLabel in Target002`. Since v60.0."}
@@ -95,7 +95,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/get
     tools: [d360_activation_target_get]
     description: Get an activation target by ID or developer name. Since v60.0.
-    example: CALL cdp.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC');
+    example: CALL d360.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. One org found id only (community), see notes."}
     columns:
@@ -137,7 +137,7 @@ functions:
     path: /ssot/activation-targets/{activationTargetId}/available-ad-accounts
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D~1available-ad-accounts/get
     description: Returns the ad accounts that aren't already assigned in the specified data space. Since v67.0.
-    example: CALL cdp.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    example: CALL d360.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space used to filter out already-assigned accounts. Since v67.0."}
@@ -161,7 +161,7 @@ functions:
     path: /ssot/activation-targets/{activationTargetId}/partner-objects
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D~1partner-objects/get
     description: "Returns partner-platform objects of the specified type. Results are cursor-paginated: follow `next_page_url` to retrieve each subsequent page instead of supplying an offset. Since v67.0."
-    example: CALL cdp.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule');
+    example: CALL d360.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
       - {name: page_token, api_name: pageToken, in: query, type: string, description: "Cursor for the next page of results. Omit this value on the first request. The response's `next_page_url` includes the `page_token` to fetch the next page, so follow `next_page_url` rather than constructing this value. Since v67.0."}
@@ -187,7 +187,7 @@ functions:
     path: /ssot/activation-targets/metadata/activation-platforms
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1activation-platforms/get
     description: Lists the platforms you can create a target on, including their `api_name`, category and whether they process in batch or streaming. Use it first when setting up a destination. Since v67.0.
-    example: CALL cdp.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc');
+    example: CALL d360.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc');
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to scope the lookup. If unspecified, the request's data space context is used. Since v67.0."}
@@ -221,7 +221,7 @@ functions:
     path: /ssot/activation-targets/metadata/communication-capping-data-spaces
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1communication-capping-data-spaces/get
     description: Returns all data spaces with communication capping definitions linked to activation targets. Since v67.0.
-    example: CALL cdp.communication_capping_data_space_list ();
+    example: CALL d360.communication_capping_data_space_list ();
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
       - {name: filters, in: query, type: string, description: "Filter expression used to narrow results, such as `field eq value AND name contains foo`. Supported operators are `eq`, `!=`, `contains`, `in`, `>`, `<`, `>=`, and `<=`. Since v67.0."}
@@ -249,7 +249,7 @@ functions:
     path: /ssot/activation-targets/metadata/dataspace-account-validation
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1dataspace-account-validation/get
     description: Indicates whether an ad account is available to assign to an activation target. Returns `true` when the account isn't already assigned. Since v67.0.
-    example: CALL cdp.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    example: CALL d360.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
     options:
       - {name: account_id, api_name: accountId, in: query, type: string, required: true, description: "Identifier of the ad account on the partner platform. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to check against. Since v67.0."}
@@ -267,7 +267,7 @@ functions:
     path: /ssot/activation-targets/metadata/mc-enterprises
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1mc-enterprises/get
     description: Returns Marketing Cloud enterprises and their business units. Since v67.0.
-    example: CALL cdp.marketing_cloud_enterprise_list ();
+    example: CALL d360.marketing_cloud_enterprise_list ();
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
@@ -292,7 +292,7 @@ functions:
     path: /ssot/activation-targets/metadata/target-platform-fields
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1metadata~1target-platform-fields/get
     description: Returns the target-level configuration fields for an activation platform. Since v67.0.
-    example: CALL cdp.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+    example: CALL d360.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
     options:
       - {name: platform_id_or_name, api_name: platformIdOrName, in: query, type: string, required: true, description: "Record ID (15- or 18-character) or API name of the activation platform. Since v67.0."}
     rows: /platformFields
@@ -319,7 +319,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1%7BactivationTargetId%7D/patch
     tools: [d360_activation_target_update]
     description: Update a specific activation target by ID or developer name. Since v60.0.
-    example: CALL cdp.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports');
+    example: CALL d360.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "ID or developer name, per the spec. See the conflict noted on `activation_target_get`."}
       - {name: connector, in: body, schema: DataConnectorInputRepresentation, description: "Details of the connector used for the activation target. Since v60.0."}
@@ -369,7 +369,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets/post
     tools: [d360_activation_target_create]
     description: Creates the destination that activations send segment data to. Call it after choosing a platform and before `activation_create`. Since v60.0.
-    example: CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
+    example: CALL d360.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
     options:
       - {name: connector, in: body, schema: DataConnectorInputRepresentation, description: "Details of the connector used for the activation target. Since v60.0."}
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, required: true, description: "Name of the data space for the activation target. Since v60.0."}
@@ -446,7 +446,7 @@ functions:
     path: /ssot/activation-targets/actions/{activationTargetId}/assign-ad-account
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1assign-ad-account/post
     description: Assigns the specified ad account to the activation target. Since v67.0.
-    example: CALL cdp.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default');
+    example: CALL d360.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
       - {name: account_number, api_name: accountNumber, in: body, type: string, required: true, description: "Ad account number to assign. Since v67.0."}
@@ -466,7 +466,7 @@ functions:
     path: /ssot/activation-targets/actions/{activationTargetId}/disable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1disable/post
     description: Disables an activation target. Since v67.0.
-    example: CALL cdp.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    example: CALL d360.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation target to disable. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
@@ -484,7 +484,7 @@ functions:
     path: /ssot/activation-targets/actions/{activationTargetId}/enable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1enable/post
     description: Enables an activation target. Since v67.0.
-    example: CALL cdp.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    example: CALL d360.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation target to enable. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
@@ -502,7 +502,7 @@ functions:
     path: /ssot/activation-targets/actions/{activationTargetId}/retry-sync
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Targets/paths/~1ssot~1activation-targets~1actions~1%7BactivationTargetId%7D~1retry-sync/post
     description: Retries the sync for an activation target. Since v67.0.
-    example: CALL cdp.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4');
+    example: CALL d360.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
     columns:

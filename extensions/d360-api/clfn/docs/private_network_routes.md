@@ -2,7 +2,7 @@
 
 # Private Network Routes
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A private network route (PNR) connects a Data 360 tenant to a data source without sending traffic over the public internet. The feature is [Private Connect for Data 360](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-private-connect-considerations.md), a different product from Salesforce Private Connect. A route is network plumbing only: connections and data streams use it, and it carries no data itself.
 
@@ -17,14 +17,14 @@ The gotchas that matter most:
 - Salesforce's `sf-pi` calls this family [feature gated](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md), and says it can return internal errors when the org has no routes.
 
 ```sql
-CALL cdp.private_network_route_create (
+CALL d360.private_network_route_create (
   name => 'Snowflake_Prod',
   label => 'Snowflake Prod',
   description => 'PrivateLink route to the prod Snowflake account',
   route => (type = 'Snowflake', service_name = 'com.amazonaws.vpce.us-west-2.vpce-svc-0123456789abcdef0', account_url = 'https://my-account.snowflakecomputing.com')
 );
-CALL cdp.private_network_route_get (route_id_or_name => 'Snowflake_Prod'); /* repeat until cloud_provider.status is Ready, then update the Snowflake network policy */
-CALL cdp.connection_create (
+CALL d360.private_network_route_get (route_id_or_name => 'Snowflake_Prod'); /* repeat until cloud_provider.status is Ready, then update the Snowflake network policy */
+CALL d360.connection_create (
   connector_type => 'SNOWFLAKE',
   label => 'Snowflake prod',
   name => 'snowflake_prod',
@@ -58,7 +58,7 @@ Delete a Private Network Route. Since v65.0.
 | `route_id_or_name` | `routeIdOrName` | path | string | yes | ID or name of the Private Network Route. Since v65.0. |
 
 ```sql
-CALL cdp.private_network_route_delete (route_id_or_name => 'Redshift_Prod');
+CALL d360.private_network_route_delete (route_id_or_name => 'Redshift_Prod');
 ```
 
 **Result**
@@ -84,7 +84,7 @@ Get a paginated list of Private Network Routes. Since v65.0.
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. By default, the endpoint skips `0` rows. Since v65.0. |
 
 ```sql
-CALL cdp.private_network_route_list ();
+CALL d360.private_network_route_list ();
 ```
 
 **Result**
@@ -123,7 +123,7 @@ Get detailed information about a Private Network Route. Since v65.0.
 | `route_id_or_name` | `routeIdOrName` | path | string | yes | ID or name of the Private Network Route. Since v65.0. |
 
 ```sql
-CALL cdp.private_network_route_get (route_id_or_name => 'Redshift_Prod');
+CALL d360.private_network_route_get (route_id_or_name => 'Redshift_Prod');
 ```
 
 **Result**
@@ -168,7 +168,7 @@ Create a private network route from the Data 360 tenant to a data source's priva
 | `storage_route` | `storageRoute` | body | [RouteDetailsInput](#routedetailsinputrepresentation) |  | Storage details for a route, for example, the URL and service name, for a storage/internal stage in the case of customer-managed and Salesforce-managed solutions. Since v66.0. |
 
 ```sql
-CALL cdp.private_network_route_create (
+CALL d360.private_network_route_create (
   name => 'Redshift_Prod',
   label => 'Redshift Prod',
   description => 'PrivateLink route to the prod Redshift cluster',

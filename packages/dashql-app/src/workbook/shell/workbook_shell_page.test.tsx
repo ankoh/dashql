@@ -522,12 +522,12 @@ describe('WorkbookShellPage', () => {
 
         it('runs a call in the namespace as a client function', async () => {
             await openWithSpec();
-            run("call cdp.segment_list (dataspace => 'default');");
+            run("call d360.segment_list (dataspace => 'default');");
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
             expect(execute.mock.calls[0][0]).toBe(MAIN);
-            expect(lastArgs().query).toContain('call cdp.segment_list');
+            expect(lastArgs().query).toContain('call d360.segment_list');
             expect(lastArgs().clientFunctionCall).toEqual({
-                namespace: 'cdp',
+                namespace: 'd360',
                 function: 'segment_list',
                 effect: 'read',
                 explain: false,
@@ -537,7 +537,7 @@ describe('WorkbookShellPage', () => {
 
         it('explains a call as a client function', async () => {
             await openWithSpec();
-            run('explain call cdp.segment_list ();');
+            run('explain call d360.segment_list ();');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
             expect(lastArgs().clientFunctionCall).toMatchObject({ function: 'segment_list', explain: true });
         });
@@ -551,14 +551,14 @@ describe('WorkbookShellPage', () => {
 
         it('leaves a call to the backend on a connection without the spec', async () => {
             await open();
-            run('call cdp.segment_list ();');
+            run('call d360.segment_list ();');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
             expect(lastArgs().clientFunctionCall).toBeUndefined();
         });
 
         it('fails a call that the spec does not know without running anything', async () => {
             await openWithSpec();
-            run('call cdp.segment_lisst ();');
+            run('call d360.segment_lisst ();');
             await vi.waitFor(() => expect(screen()).toContain('segment_lisst'), WAIT);
             await vi.waitFor(() => expect(screen()).toMatch(/segment_list/), WAIT);
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -567,21 +567,21 @@ describe('WorkbookShellPage', () => {
 
         it('fails a parameter without a value without running anything', async () => {
             await openWithSpec();
-            run('call cdp.segment_list (dataspace => :space);');
+            run('call d360.segment_list (dataspace => :space);');
             await vi.waitFor(() => expect(screen()).toContain('input :space has no value'), WAIT);
             expect(execute).not.toHaveBeenCalled();
         });
 
         it('fails a call that does not parse without running anything', async () => {
             await openWithSpec();
-            run('call cdp.segment_list (dataspace => );');
+            run('call d360.segment_list (dataspace => );');
             await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
             expect(execute).not.toHaveBeenCalled();
         });
 
         it('fails an EXPLAIN with options of a call without running anything', async () => {
             await openWithSpec();
-            run('explain (analyze) call cdp.segment_list ();');
+            run('explain (analyze) call d360.segment_list ();');
             await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
             expect(execute).not.toHaveBeenCalled();
         });
@@ -589,7 +589,7 @@ describe('WorkbookShellPage', () => {
         it('fails a call next to another statement', async () => {
             const catalog = core.createCatalog();
             catalog.registerClientFunctions(JSON.stringify(await loadClientFunctionSpec('d360-api')));
-            expect(() => resolveClientFunctionCall(catalog, 'select 1; call cdp.segment_list ();')).toThrow('statement of its own');
+            expect(() => resolveClientFunctionCall(catalog, 'select 1; call d360.segment_list ();')).toThrow('statement of its own');
         });
     });
 
@@ -632,7 +632,7 @@ describe('WorkbookShellPage', () => {
             await open([connection]);
             const spec = JSON.stringify(await loadClientFunctionSpec('d360-api'));
             connection.write(catalog => catalog.registerClientFunctions(spec));
-            type('call cdp.access_policy_g');
+            type('call d360.access_policy_g');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('access_policy_get'), WAIT);
             expect(created).toHaveLength(1);

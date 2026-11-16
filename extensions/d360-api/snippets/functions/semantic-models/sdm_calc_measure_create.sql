@@ -4,7 +4,7 @@
  * A formula that aggregates needs `aggregation_type => 'UserAgg'`. The filters scope the rows the formula sees, and `filter_logic` combines them by index.
  */
 
-call cdp.sdm_calc_measure_create (
+call d360.sdm_calc_measure_create (
     model_api_name_or_id => 'AccountRevenue',
     label => 'Total Pipeline',
     api_name => 'Total_Pipeline',
@@ -23,7 +23,7 @@ call cdp.sdm_calc_measure_create (
     filter_logic => '1 AND 2'
 );
 
-call cdp.sdm_calc_measure_get (
+call d360.sdm_calc_measure_get (
     model_api_name_or_id => 'AccountRevenue',
     calculated_measurement_name_or_id => 'Total_Pipeline'
 );

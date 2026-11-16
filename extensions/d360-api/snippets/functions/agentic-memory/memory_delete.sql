@@ -4,13 +4,13 @@
  * Read the category first to pick the IDs. The profile and category options are required although each entry is identified by its ID.
  */
 
-call cdp.memory_list (
+call d360.memory_list (
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',
     category => 'sys_PROFILE_PREFERENCES'
 );
 
-call cdp.memory_delete (
+call d360.memory_delete (
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',
     category => 'sys_PROFILE_PREFERENCES',

@@ -4,6 +4,6 @@
  * The developer name includes the suffix, such as `Account_Home__dll`. Fields created as `Bar` come back as `Bar__c`.
  */
 
-call cdp.dlo_list (limit => 20, order_by => 'ASC');
+call d360.dlo_list (limit => 20, order_by => 'ASC');
 
-call cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+call d360.dlo_get (record_id_or_developer_name => 'Account_Home__dll');

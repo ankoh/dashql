@@ -4,4 +4,4 @@
  * Check that the personalization point exists.
  */
 
-call cdp.p13n_point_get (id_or_name => 'home_page_experience');
+call d360.p13n_point_get (id_or_name => 'home_page_experience');

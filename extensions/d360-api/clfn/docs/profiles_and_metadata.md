@@ -2,7 +2,7 @@
 
 # Profiles, Insights and Metadata
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 These calls read what exists in an org and fetch single records, without SQL. There are four groups: metadata (which objects and fields exist), profile reads, calculated insight reads and ID lookups. The docs [recommend these over custom SQL](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/obj-specific-apis.md) where one fits. For joins, aggregates or engagement data, use a `SELECT` over the connection.
 
@@ -19,11 +19,11 @@ The gotchas that matter most:
 
 ```sql
 /* Inventory, without fields */
-CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+CALL d360.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
 /* Fields, keys and relationships of one object */
-CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+CALL d360.metadata (entity_name => 'ssot__Individual__dlm');
 /* Records */
-CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c');
+CALL d360.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c');
 ```
 
 **Functions:** [`insights_query`](#insights_query), [`insights_metadata`](#insights_metadata), [`insights_metadata_get`](#insights_metadata_get), [`metadata`](#metadata), [`metadata_entities`](#metadata_entities), [`profile_query`](#profile_query), [`profile_get`](#profile_get), [`profile_child`](#profile_child), [`profile_insight`](#profile_insight), [`profile_metadata`](#profile_metadata), [`profile_metadata_get`](#profile_metadata_get), [`universal_id_lookup`](#universal_id_lookup), [`metadata_search`](#metadata_search), [`direct_metadata`](#direct_metadata), [`direct_profile_metadata`](#direct_profile_metadata), [`direct_profile_metadata_get`](#direct_profile_metadata_get), [`direct_profile_list`](#direct_profile_list), [`direct_profile_get`](#direct_profile_get), [`direct_profile_child`](#direct_profile_child), [`direct_profile_insight`](#direct_profile_insight), [`direct_insight_metadata`](#direct_insight_metadata), [`direct_insight_metadata_get`](#direct_insight_metadata_get), [`direct_insight_query`](#direct_insight_query), [`direct_datagraph_metadata`](#direct_datagraph_metadata), [`direct_datagraph_get`](#direct_datagraph_get), [`direct_datagraph_lookup`](#direct_datagraph_lookup), [`direct_universal_id_lookup`](#direct_universal_id_lookup)
@@ -48,7 +48,7 @@ Query a Calculated Insight object in Data 360. Since v52.0.
 | `time_granularity` | `timeGranularity` | query | string |  | Time range for the measures. Values are `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0. |
 
 ```sql
-CALL cdp.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', batch_size => 100);
+CALL d360.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', batch_size => 100);
 ```
 
 **Result**
@@ -70,7 +70,7 @@ Get Insight metadata, including Calculated Insight objects, their dimensions, an
 None.
 
 ```sql
-CALL cdp.insights_metadata ();
+CALL d360.insights_metadata ();
 ```
 
 **Result**
@@ -96,7 +96,7 @@ Get metadata for a Calculated Insight object in Data 360. Metadata includes dime
 | `ci_name` | `ciName` | path | string | yes | API name of the insight, such as `Avg_Spends__cio`. |
 
 ```sql
-CALL cdp.insights_metadata_get (ci_name => 'Avg_Spends__cio');
+CALL d360.insights_metadata_get (ci_name => 'Avg_Spends__cio');
 ```
 
 **Result**
@@ -123,7 +123,7 @@ Get all metadata, including Calculated Insights, Engagement, Profile, and other 
 | `entity_type` | `entityType` | query | string |  | Type of metadata entity requested. Valid values are `DataLakeObject`, `DataModelObject`, and `CalculatedInsight`. If unspecified, all types are returned. Since v54.0. |
 
 ```sql
-CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+CALL d360.metadata (entity_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -167,7 +167,7 @@ Get a list of metadata entities. This endpoint provides a high-performance way t
 | `entity_type` | `entityType` | query | string |  | Type of metadata entity. If unspecified, all types are returned. Supported values are: - `CalculatedInsight` - `DataLakeObject` - `DataModelObject` Since v66.0. |
 
 ```sql
-CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+CALL d360.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
 ```
 
 **Result**
@@ -207,7 +207,7 @@ Query a profile data model object using filters in Data 360. Since v52.0.
 | `order_by` | `orderby` | query | string |  | Sort order for the result set, such as `GenderId__c ASC,Occupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v52.0. |
 
 ```sql
-CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c', batch_size => 100);
+CALL d360.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c', batch_size => 100);
 ```
 
 **Result**
@@ -242,7 +242,7 @@ Get profile records by the value of a key. Without `search_key`, `id` matches th
 | `search_key` | `searchKey` | query | string |  | If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0. |
 
 ```sql
-CALL cdp.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', search_key => 'ssot__FirstName__c', fields => 'ssot__Id__c,ssot__LastName__c');
+CALL d360.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', search_key => 'ssot__FirstName__c', fields => 'ssot__Id__c,ssot__LastName__c');
 ```
 
 **Result**
@@ -274,7 +274,7 @@ Get the child records of a profile record, such as an Individual's email address
 | `search_key` | `searchKey` | query | string |  | If a field other than the primary key is used, name of the key field, for example, `FirstName__c`. Parameter is required for secondary key. Since v52.0. |
 
 ```sql
-CALL cdp.profile_child (data_model_name => 'ssot__Individual__dlm', id => '100005', child_data_model_name => 'ContactPointEmail__dlm');
+CALL d360.profile_child (data_model_name => 'ssot__Individual__dlm', id => '100005', child_data_model_name => 'ContactPointEmail__dlm');
 ```
 
 **Result**
@@ -309,7 +309,7 @@ Get a calculated insight's values for one profile record.
 | `time_granularity` | `timeGranularity` | query | string |  | Time range for the measures. Values are: `HOUR`, `DAY`, `MONTH`, `QUARTER`, or `YEAR`. If unspecified, no time range is applied. Since v54.0. |
 
 ```sql
-CALL cdp.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100005', ci_name => 'Avg_Spends__cio', measures => 'Avg_Spend__c');
+CALL d360.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100005', ci_name => 'Avg_Spends__cio', measures => 'Avg_Spend__c');
 ```
 
 **Result**
@@ -331,7 +331,7 @@ Get metadata for data model objects in the profile category, including Individua
 None.
 
 ```sql
-CALL cdp.profile_metadata ();
+CALL d360.profile_metadata ();
 ```
 
 **Result**
@@ -357,7 +357,7 @@ Get metadata for a data model object (DMO) in the profile category, such as Indi
 | `data_model_name` | `dataModelName` | path | string | yes | API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`. |
 
 ```sql
-CALL cdp.profile_metadata_get (data_model_name => 'ssot__Individual__dlm');
+CALL d360.profile_metadata_get (data_model_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -384,7 +384,7 @@ Starting from one source record, return the records from every source that are l
 | `source_record_id` | `sourceRecordId` | path | string | yes | Primary key of the source record, such as `100060522`. It maps to the Individual ID of the Individual DMO. |
 
 ```sql
-CALL cdp.universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', data_source_id => 'SFMC1487860', data_source_object_id => 'SFMC1487860_EmailProfile', source_record_id => '100060522');
+CALL d360.universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', data_source_id => 'SFMC1487860', data_source_object_id => 'SFMC1487860_EmailProfile', source_record_id => '100060522');
 ```
 
 **Result**
@@ -412,7 +412,7 @@ Search metadata in natural language, without listing every entity. Each result's
 | `filters` | `filters` | body | array of [MetadataSearchFilter](#metadatasearchfilter) |  | Filters on result attributes. |
 
 ```sql
-CALL cdp.metadata_search (query => 'AI Agent Interaction', pagination => (limit = 5), filters => [(field = 'metadataType', values = ['DataModelObject'])]);
+CALL d360.metadata_search (query => 'AI Agent Interaction', pagination => (limit = 5), filters => [(field = 'metadataType', values = ['DataModelObject'])]);
 ```
 
 **Result**
@@ -448,7 +448,7 @@ Get metadata about all entities on the tenant host: DMOs, DLOs and calculated in
 | `entity_category` | `entityCategory` | query | string |  | `Profile`, `Engagement` or `Related`. If unset, all categories are returned. It doesn't apply to calculated insights. |
 
 ```sql
-CALL cdp.direct_metadata (entity_name => 'ssot__Individual__dlm');
+CALL d360.direct_metadata (entity_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -483,7 +483,7 @@ List the Profile category DMOs with their fields, indexes and relationships. It'
 None.
 
 ```sql
-CALL cdp.direct_profile_metadata ();
+CALL d360.direct_profile_metadata ();
 ```
 
 **Result**
@@ -515,7 +515,7 @@ Get the fields, indexes and relationships of one Profile category DMO. It's the 
 | `data_model_name` | `dataModelName` | path | string | yes | API name of the DMO, such as `Individual__dlm`. |
 
 ```sql
-CALL cdp.direct_profile_metadata_get (data_model_name => 'Individual__dlm');
+CALL d360.direct_profile_metadata_get (data_model_name => 'Individual__dlm');
 ```
 
 **Result**
@@ -554,7 +554,7 @@ Query the records of a Profile category DMO using equality filters. It's the ten
 | `order_by` | `orderby` | query | string |  | Sort fields, with a `-` prefix for descending, such as `LastName__c,-FirstName__c`. |
 
 ```sql
-CALL cdp.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'FirstName__c,LastName__c', filters => '[FirstName__c=John]', limit => 10);
+CALL d360.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'FirstName__c,LastName__c', filters => '[FirstName__c=John]', limit => 10);
 ```
 
 **Result**
@@ -587,7 +587,7 @@ Get profile records by a key: the primary key, or with `search_key`, another fie
 | `search_key` | `searchkey` | query | string |  | Field to search by, such as `Email__c`. |
 
 ```sql
-CALL cdp.direct_profile_get (data_model_name => 'Individual__dlm', id => '123', fields => 'FirstName__c,LastName__c');
+CALL d360.direct_profile_get (data_model_name => 'Individual__dlm', id => '123', fields => 'FirstName__c,LastName__c');
 ```
 
 **Result**
@@ -623,7 +623,7 @@ Get the child records of a profile record through a parent-child relationship. I
 | `search_key` | `searchkey` | query | string |  | Field to search by, such as `Email__c`. |
 
 ```sql
-CALL cdp.direct_profile_child (data_model_name => 'Individual__dlm', id => '123', child_data_model_name => 'ContactPointEmail__dlm', fields => 'Email__c,IsPrimary__c');
+CALL d360.direct_profile_child (data_model_name => 'Individual__dlm', id => '123', child_data_model_name => 'ContactPointEmail__dlm', fields => 'Email__c,IsPrimary__c');
 ```
 
 **Result**
@@ -652,7 +652,7 @@ Get a calculated insight's values for one profile record. It's the tenant host f
 | `fields` | `fields` | query | string |  | Comma-separated fields, such as `TotalAmount__c,LastPurchaseDate__c`. If unset, up to 10 fields are returned. |
 
 ```sql
-CALL cdp.direct_profile_insight (data_model_name => 'Individual__dlm', id => '123', ci_name => 'TotalSales__cio', fields => 'TotalAmount__c,LastPurchaseDate__c');
+CALL d360.direct_profile_insight (data_model_name => 'Individual__dlm', id => '123', ci_name => 'TotalSales__cio', fields => 'TotalAmount__c,LastPurchaseDate__c');
 ```
 
 **Result**
@@ -679,7 +679,7 @@ List the calculated insights with their dimensions, measures and relationships. 
 None.
 
 ```sql
-CALL cdp.direct_insight_metadata ();
+CALL d360.direct_insight_metadata ();
 ```
 
 **Result**
@@ -710,7 +710,7 @@ Get the dimensions, measures and relationships of one calculated insight. It's t
 | `ci_name` | `ci-name` | path | string | yes | API name of the insight, such as `Avg_Spends__cio`. It fills the `{ci-name}` path segment. |
 
 ```sql
-CALL cdp.direct_insight_metadata_get (ci_name => 'Avg_Spends__cio');
+CALL d360.direct_insight_metadata_get (ci_name => 'Avg_Spends__cio');
 ```
 
 **Result**
@@ -750,7 +750,7 @@ Query a calculated insight with chosen dimensions, measures and filters. It's th
 | `time_granularity` | `timeGranularity` | query | string |  | `HOUR`, `DAY`, `MONTH`, `QUARTER` or `YEAR`. |
 
 ```sql
-CALL cdp.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', limit => 3);
+CALL d360.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', limit => 3);
 ```
 
 **Result**
@@ -777,7 +777,7 @@ List the data graphs with their primary objects, related objects and fields. Use
 | `data_graph_name` | `dataGraphName` | query | string |  | Name of one data graph. The reference's parameter table uses this name. |
 
 ```sql
-CALL cdp.direct_datagraph_metadata (entity_name => 'UnifiedIndividual_DG');
+CALL d360.direct_datagraph_metadata (entity_name => 'UnifiedIndividual_DG');
 ```
 
 **Result**
@@ -819,7 +819,7 @@ Get one data graph record by the primary key of the graph's primary DMO. It's th
 | `dataspace` | `dataspace` | header | string |  | Data space the query runs in. |
 
 ```sql
-CALL cdp.direct_datagraph_get (data_graph_entity_name => 'individual_eng_dg', id => '100005');
+CALL d360.direct_datagraph_get (data_graph_entity_name => 'individual_eng_dg', id => '100005');
 ```
 
 **Result**
@@ -853,7 +853,7 @@ Get data graph records by lookup keys on any participating DMO, optionally with 
 | `dataspace` | `dataspace` | header | string |  | Data space the query runs in. |
 
 ```sql
-CALL cdp.direct_datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
+CALL d360.direct_datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
 ```
 
 **Result**
@@ -905,7 +905,7 @@ Starting from one source record, return the records from every source that are l
 | `SourceRecordId__c` | `SourceRecordId__c` | path | string | yes | Primary key of the source record, such as `100060522`. It maps to the Individual ID of the Individual DMO. |
 
 ```sql
-CALL cdp.direct_universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', DataSourceId__c => 'SFMC1487860', DataSourceObjectId__c => 'SFMC1487860_EmailProfile', SourceRecordId__c => '100060522');
+CALL d360.direct_universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', DataSourceId__c => 'SFMC1487860', DataSourceObjectId__c => 'SFMC1487860_EmailProfile', SourceRecordId__c => '100060522');
 ```
 
 **Result**

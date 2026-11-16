@@ -12,8 +12,8 @@ description: |
   - The sources don't say how long a request takes or how to tell it finished.
 
   ```sql
-  CALL cdp.consent_update (action => 'processing', ids => '100000695', mode => 'cdp', status => 'optout');
-  CALL cdp.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');
+  CALL d360.consent_update (action => 'processing', ids => '100000695', mode => 'cdp', status => 'optout');
+  CALL d360.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');
   ```
 
 functions:
@@ -22,7 +22,7 @@ functions:
     host: core
     path: /consent/action/{action}
     description: Reads the consent flag of one action for a list of Data 360 profiles. Use it to check whether a profile has restricted processing, asked for an export, or asked to be forgotten.
-    example: CALL cdp.consent_get (action => 'portability', ids => '00932I3SU92', mode => 'cdp');
+    example: CALL d360.consent_get (action => 'portability', ids => '00932I3SU92', mode => 'cdp');
     options:
       - {name: action, in: path, type: string, required: true, description: "`processing`, `portability` or `shouldforget`."}
       - {name: ids, in: query, type: string, required: true, description: "Comma-separated list of IDs. Each must be present in a field mapped to Individual.Individual Id."}
@@ -54,7 +54,7 @@ functions:
     path: /consent/action/{action}
     description: "Records a consent request on Data 360 profiles: restrict processing, export the profile to your S3 bucket, or delete its PII. Use it to carry out a consumer rights request."
     example: |
-      CALL cdp.consent_update (
+      CALL d360.consent_update (
         action => 'portability',
         ids => '100000695',
         mode => 'cdp',

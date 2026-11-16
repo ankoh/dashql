@@ -4,7 +4,7 @@
  * Run `transform_validate` with the same body first. The transform is `Processing` until it turns `Active` or `Error`, so poll `transform_get` before you run or schedule it. A name that exists is an error, so after a lost response look it up instead of retrying blindly.
  */
 
-call cdp.transform_create (
+call d360.transform_create (
     name => 'account_summary',
     label => 'Account Summary',
     description => 'Accounts over one million in revenue',
@@ -38,4 +38,4 @@ call cdp.transform_create (
     )
 );
 
-call cdp.transform_get (data_transform_name_or_id => 'account_summary');
+call d360.transform_get (data_transform_name_or_id => 'account_summary');

@@ -4,7 +4,7 @@
  * Query the measure.
  */
 
-call cdp.sdm_query (
+call d360.sdm_query (
     semantic_model_api_name => 'AccountRevenue',
     structured_semantic_query => (
         fields = [(

@@ -4,7 +4,7 @@
  * `refresh_type` is the only field the spec requires, but the segment, the target, the subject and at least the id attribute are needed in practice. `RELATED` attributes need a query path from the activated DMO to their own. Read the result with `activation_get`.
  */
 
-call cdp.activation_create (
+call d360.activation_create (
     name => 'high_value_s3',
     dataspace_name => 'default',
     segment_api_name => 'High_Value',

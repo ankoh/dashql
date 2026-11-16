@@ -4,4 +4,4 @@
  * Create the taxonomy that holds the tags.
  */
 
-call cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
+call d360.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');

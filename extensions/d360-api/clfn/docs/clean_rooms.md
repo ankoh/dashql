@@ -2,7 +2,7 @@
 
 # Clean Rooms
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A clean room lets two companies compare customer data without handing it over. A provider usually holds the data, and a consumer wants insights from it. A template fixes the match keys, the allowed queries, who runs them and who sees results. Results are summarized and must cover a minimum group size, and queries are logged in a Clean Room Audit Log DMO ([Trailhead](https://trailhead.salesforce.com/content/learn/modules/data-360-clean-rooms-quick-look/get-started-with-data-360-clean-rooms)).
 
@@ -18,12 +18,12 @@ A clean room lets two companies compare customer data without handing it over. A
 **Evidence** is thin: the spec, its examples and one Trailhead unit. [`FamilyCatalog.java`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) has no clean room tools.
 
 ```sql
-CALL cdp.clean_room_template_list ();
-CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462', specification_dev_name => 'sampleMapping', template_name => 'Overlap', data_cloud_org_id => '00DSB00000eMue32AC');
+CALL d360.clean_room_template_list ();
+CALL d360.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462', specification_dev_name => 'sampleMapping', template_name => 'Overlap', data_cloud_org_id => '00DSB00000eMue32AC');
 /* The other member, in its own org */
-CALL cdp.clean_room_invitation_accept (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOSB000000COGH4A4', specification_id => '1TIxx0000004CSOGA2');
-CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'overlap_run_1', query_parameters => (threshold_count = '4'));
-CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+CALL d360.clean_room_invitation_accept (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOSB000000COGH4A4', specification_id => '1TIxx0000004CSOGA2');
+CALL d360.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'overlap_run_1', query_parameters => (threshold_count = '4'));
+CALL d360.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
 ```
 
 **Functions:** [`clean_room_specification_delete`](#clean_room_specification_delete), [`clean_room_collaboration_list`](#clean_room_collaboration_list), [`clean_room_query_job_list`](#clean_room_query_job_list), [`clean_room_collaboration_result_object_list`](#clean_room_collaboration_result_object_list), [`clean_room_provider_list`](#clean_room_provider_list), [`clean_room_provider_get`](#clean_room_provider_get), [`clean_room_provider_template_list`](#clean_room_provider_template_list), [`clean_room_specification_list`](#clean_room_specification_list), [`clean_room_template_list`](#clean_room_template_list), [`clean_room_template_collaboration_list`](#clean_room_template_collaboration_list), [`clean_room_collaboration_create`](#clean_room_collaboration_create), [`clean_room_invitation_accept`](#clean_room_invitation_accept), [`clean_room_collaboration_disable`](#clean_room_collaboration_disable), [`clean_room_invitation_reject`](#clean_room_invitation_reject), [`clean_room_query_run`](#clean_room_query_run), [`clean_room_provider_create`](#clean_room_provider_create), [`clean_room_specification_create`](#clean_room_specification_create), [`clean_room_connection_test`](#clean_room_connection_test), [`clean_room_collaboration_metadata_refresh`](#clean_room_collaboration_metadata_refresh)
@@ -41,7 +41,7 @@ Deletes a specific clean room specification. Since v66.0.
 | `specification_id_or_api_name` | `specificationIdOrApiName` | path | string | yes | ID or API name of the clean room specification. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_specification_delete (specification_id_or_api_name => 'sampleMapping');
+CALL d360.clean_room_specification_delete (specification_id_or_api_name => 'sampleMapping');
 ```
 
 **Result**
@@ -66,7 +66,7 @@ Get a list of clean room collaborations. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_collaboration_list (order_by => 'createdDate DESC', limit => 20);
+CALL d360.clean_room_collaboration_list (order_by => 'createdDate DESC', limit => 20);
 ```
 
 **Result**
@@ -116,7 +116,7 @@ Get a list of clean room query jobs. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', limit => 20);
+CALL d360.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', limit => 20);
 ```
 
 **Result**
@@ -169,7 +169,7 @@ Retrieve a list of all data model objects (DMOs) created by a specific clean roo
 | `collaboration_id_or_api_name` | `collaborationIdOrApiName` | path | string | yes | ID or developer name of the clean room collaboration. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_collaboration_result_object_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+CALL d360.clean_room_collaboration_result_object_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
 ```
 
 **Result**
@@ -209,7 +209,7 @@ Get a list of clean room providers. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_provider_list ();
+CALL d360.clean_room_provider_list ();
 ```
 
 **Result**
@@ -262,7 +262,7 @@ Get a clean room provider. Since v63.0.
 | `provider_id_or_name` | `providerIdOrName` | path | string | yes | ID or developer name of the clean room provider. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_provider_get (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
+CALL d360.clean_room_provider_get (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
 ```
 
 **Result**
@@ -311,7 +311,7 @@ Get a list of all templates associated with a clean room provider. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_provider_template_list (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
+CALL d360.clean_room_provider_template_list (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
 ```
 
 **Result**
@@ -358,7 +358,7 @@ Get a list of all clean room specifications. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_specification_list ();
+CALL d360.clean_room_specification_list ();
 ```
 
 **Result**
@@ -407,7 +407,7 @@ Get a list of all clean room templates. Since v63.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_template_list ();
+CALL d360.clean_room_template_list ();
 ```
 
 **Result**
@@ -459,7 +459,7 @@ Retrieve a paginated list of all collaborations for a specific type of use case 
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set. Specify a field and an order, ascending (`ASC`) or descending (`DESC`). For example, `created_date DESC`. By default, items are returned in the order they are retrieved. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_template_collaboration_list (use_case_template_type => 'Overlap');
+CALL d360.clean_room_template_collaboration_list (use_case_template_type => 'Overlap');
 ```
 
 **Result**
@@ -512,7 +512,7 @@ Create a new clean room collaboration. Since v63.0.
 | `template_version_id` | `templateVersionId` | body | string |  | Template version ID that the collaboration is to support. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00Dxx00nZbkbQyW_TestProviderName1746172733791', template_version_id => '00Dxx00nZbkbBjk8ef', template_name => 'OVERLAP', specification_dev_name => 'X00Dxx00MhXCjA7M_null1746504015424', data_cloud_org_id => '00Dxx00nZbkbQgmEIE');
+CALL d360.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00Dxx00nZbkbQyW_TestProviderName1746172733791', template_version_id => '00Dxx00nZbkbBjk8ef', template_name => 'OVERLAP', specification_dev_name => 'X00Dxx00MhXCjA7M_null1746504015424', data_cloud_org_id => '00Dxx00nZbkbQgmEIE');
 ```
 
 **Result**
@@ -562,7 +562,7 @@ Accept an invitation for a clean room collaboration. Since v63.0.
 | `specification_id` | `specificationId` | body | string | yes | Record ID of the clean room specification. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_invitation_accept (
+CALL d360.clean_room_invitation_accept (
   collaboration_id_or_api_name => 'collab21_00DSB00000eMue3',
   invitation_id => '1TOxx0000004CQoGAM',
   specification_id => '1TIxx0000004CH6GAM',
@@ -625,7 +625,7 @@ Disable a clean room collaboration. Since v66.0.
 | `collaboration_id_or_api_name` | `collaborationIdOrApiName` | path | string | yes | ID or developer name of the clean room collaboration. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_collaboration_disable (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+CALL d360.clean_room_collaboration_disable (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
 ```
 
 **Result**
@@ -666,7 +666,7 @@ Reject an invitation for a clean room collaboration. Since v63.0.
 | `invitation_id` | `invitationId` | body | string | yes | Record ID of the collaboration invitation. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_invitation_reject (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOxx0000004D3UGAU');
+CALL d360.clean_room_invitation_reject (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOxx0000004D3UGAU');
 ```
 
 **Result**
@@ -716,7 +716,7 @@ Run a query job on a clean room. You can start a query run only if the collabora
 | `segment_ids` | `segmentIds` | body | array of string |  | Segment IDs on which the query is to be executed. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'rawtalks1', query_parameters => (threshold_count = '4'));
+CALL d360.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'rawtalks1', query_parameters => (threshold_count = '4'));
 ```
 
 **Result**
@@ -785,7 +785,7 @@ Registers a provider definition: where its data lives and which templates it off
 | `use_case_type_config` | `useCaseTypeConfig` | body | array of [DataCleanRoomUseCaseTypeInput](#datacleanroomusecasetypeinputrepresentation) |  | Configuration for the type of use case template. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_provider_create (
+CALL d360.clean_room_provider_create (
   label => 'package_AWS',
   description => 'AWS',
   provider_name => 'package_AWS',
@@ -890,7 +890,7 @@ Maps a template's attributes to one member's DMO fields. A member needs a specif
 | `use_case_type` | `useCaseType` | body | enum(Custom, Overlap) | yes | Type of use case template. Since v63.0. |
 
 ```sql
-CALL cdp.clean_room_specification_create (
+CALL d360.clean_room_specification_create (
   name => 'sampleMapping',
   label => 'sampleMapping',
   dataspace_name => 'default',
@@ -959,7 +959,7 @@ Test the connection between the clean room and the provider's external storage. 
 | `consumer_org_id` | `consumerOrgId` | body | string |  | 18-character org ID of the target consumer. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_connection_test (consumer_org_id => '00D000000000001', connector_type => 'CleanroomAwsS3', connection_attributes => (authenticationOption = 'idp', bucketName = 'cleanroom-data-bucket', parentDirectory = '/shared-data/', iamRoleName = 'arn:aws:iam::123456789012:role/CleanroomDataAccessRole', externalId = 'app:DE809C7E:A1B2C3D4'));
+CALL d360.clean_room_connection_test (consumer_org_id => '00D000000000001', connector_type => 'CleanroomAwsS3', connection_attributes => (authenticationOption = 'idp', bucketName = 'cleanroom-data-bucket', parentDirectory = '/shared-data/', iamRoleName = 'arn:aws:iam::123456789012:role/CleanroomDataAccessRole', externalId = 'app:DE809C7E:A1B2C3D4'));
 ```
 
 **Result**
@@ -992,7 +992,7 @@ Refresh metadata for a clean room collaboration. Since v66.0.
 | `collaboration_id_or_api_name` | `collaborationIdOrApiName` | path | string | yes | ID or developer name of the clean room collaboration. Since v66.0. |
 
 ```sql
-CALL cdp.clean_room_collaboration_metadata_refresh (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+CALL d360.clean_room_collaboration_metadata_refresh (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
 ```
 
 **Result**

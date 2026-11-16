@@ -4,7 +4,7 @@
  * The four options are path segments, and they carry their field names as option names.
  */
 
-call cdp.direct_universal_id_lookup (
+call d360.direct_universal_id_lookup (
     entity_name => 'IndividualIdentityLink__dlm',
     DataSourceId__c => 'SFMC1487860',
     DataSourceObjectId__c => 'SFMC1487860_EmailProfile',

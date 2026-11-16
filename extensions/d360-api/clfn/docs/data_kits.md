@@ -2,7 +2,7 @@
 
 # Data Kits
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data kit packages Data 360 definitions, such as streams, DLOs and insights, so that they can move to another org. It carries [metadata, not data](https://developer.salesforce.com/docs/data/data-cloud-dev/guide/packages-data-kits.md).
 
@@ -19,11 +19,11 @@ The gotchas that matter most:
 
 ```sql
 /* In the source org */
-CALL cdp.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))]);
+CALL d360.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))]);
 
 /* In the target org, after installing the package */
-CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => []);
-CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+CALL d360.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => []);
+CALL d360.datakit_deploy_status (job_id => '08Paj00000tPyr4');
 ```
 
 **Functions:** [`datakit_delete`](#datakit_delete), [`datakit_list`](#datakit_list), [`datakit_component_deps`](#datakit_component_deps), [`datakit_component_status`](#datakit_component_status), [`datakit_components`](#datakit_components), [`datakit_manifest`](#datakit_manifest), [`datakit_components_update`](#datakit_components_update), [`datakit_create`](#datakit_create), [`datakit_deploy`](#datakit_deploy), [`datakit_undeploy`](#datakit_undeploy), [`datakit_get`](#datakit_get), [`datakit_deploy_status`](#datakit_deploy_status)
@@ -41,7 +41,7 @@ Delete a data kit. Since v64.0.
 | `data_kit_dev_name` | `dataKitDevName` | path | string | yes | Developer name of the data kit. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_delete (data_kit_dev_name => 'Customer_Kit');
+CALL d360.datakit_delete (data_kit_dev_name => 'Customer_Kit');
 ```
 
 **Result**
@@ -63,7 +63,7 @@ Get a list of data kits by namespace. Since v63.0.
 | `namespace` | `namespace` | query | string |  | Namespace prefix of the data kit package. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_list (namespace => 'acme');
+CALL d360.datakit_list (namespace => 'acme');
 ```
 
 **Result**
@@ -101,7 +101,7 @@ Get the dependencies for components deployed from a data kit. Since v63.0.
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject');
+CALL d360.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject');
 ```
 
 **Result**
@@ -130,7 +130,7 @@ Get the status of a component deployed from a data kit. Since v62.0.
 | `data_kit_name` | `dataKitName` | path | string | yes | Developer name of the data kit. |
 
 ```sql
-CALL cdp.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll');
+CALL d360.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll');
 ```
 
 **Result**
@@ -160,7 +160,7 @@ List components in the org that can be added to a data kit, optionally by compon
 | `offset` | `offset` | query | integer |  | Number of records to skip before returning results. If unspecified, no rows are skipped. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_components (component_type => 'DataLakeObject', limit => 50);
+CALL d360.datakit_components (component_type => 'DataLakeObject', limit => 50);
 ```
 
 **Result**
@@ -184,7 +184,7 @@ Get a list of all member components and dependencies for a data kit. Since v63.0
 | `data_kit_dev_name` | `dataKitDevName` | path | string | yes | Developer name of the data kit or name of the `DataPackageKitDefinition`. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
+CALL d360.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
 ```
 
 **Result**
@@ -217,7 +217,7 @@ Update the components of an existing data kit. Updating components is a destruct
 | `components` | `components` | body | array of [DataKitComponentInput](#datakitcomponentinputrepresentation) | yes | List of data kit components. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))]);
+CALL d360.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))]);
 ```
 
 **Result**
@@ -249,7 +249,7 @@ Create a standard data kit. Since v63.0.
 | `label` | `label` | body | string | yes | Label of the data kit. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))]);
+CALL d360.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))]);
 ```
 
 **Result**
@@ -284,7 +284,7 @@ Deploy multiple components from a specific data kit. Since v64.0. **Note:** See 
 | `components` | `components` | body | array of [CdpDataKitDeployComponent](#cdpdatakitdeploycomponentrepresentation) | yes | List of components to deploy. Since v57.0. |
 
 ```sql
-CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))]);
+CALL d360.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))]);
 ```
 
 **Result**
@@ -384,7 +384,7 @@ Undeploy a component previously deployed from a data kit. The undeployment occur
 | `components` | `components` | body | array of [DataKitUnDeployComponentDetails](#datakitundeploycomponentdetails) | yes | Components from the data kit. Since v63.0. |
 
 ```sql
-CALL cdp.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')]);
+CALL d360.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')]);
 ```
 
 **Result**
@@ -417,7 +417,7 @@ Get one data kit by developer name. This comes from Salesforce's MCP server, not
 | `fbdk_accessible_in_lob` | `fbdkAccessibleInLob` | query | boolean |  | Filter by FBDK accessible in LOB flag |
 
 ```sql
-CALL cdp.datakit_get (data_kit_dev_name => 'Customer_Kit');
+CALL d360.datakit_get (data_kit_dev_name => 'Customer_Kit');
 ```
 
 **Result**
@@ -443,7 +443,7 @@ Get the state of a data kit deployment job started by `datakit_deploy`. Poll it 
 | `job_id` | `jobId` | path | string | yes | The deployment job ID |
 
 ```sql
-CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+CALL d360.datakit_deploy_status (job_id => '08Paj00000tPyr4');
 ```
 
 **Result**

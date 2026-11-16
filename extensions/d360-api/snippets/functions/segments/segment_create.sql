@@ -4,7 +4,7 @@
  * Segment SQL is a dialect of its own: it goes in `include_dbt => (models = (models = [...]))`, and aliases or `EXISTS` are rejected. The segment starts as `PROCESSING`, so wait for `segment_status` to be `ACTIVE` before you publish. Any calculated insight it filters on has to be `ACTIVE` first.
  */
 
-call cdp.segment_create (
+call d360.segment_create (
     dataspace => 'default',
     developer_name => 'High_Value_Order_Buyers',
     display_name => 'High Value Order Buyers',
@@ -34,4 +34,4 @@ call cdp.segment_create (
     )
 );
 
-call cdp.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');
+call d360.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');

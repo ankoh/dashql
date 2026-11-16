@@ -2,7 +2,7 @@
 
 # Data Streams
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data stream is the ingestion pipeline of Data 360. It reads from a connection on a schedule and writes into a data lake object (DLO), the raw table you later map to the data model. Streams come after connections, and before DMO mappings, segments and insights.
 
@@ -18,8 +18,8 @@ What matters most:
 - `should_delete_data_lake_object => true` can return success and leave the DLO in place.
 
 ```sql
-CALL cdp.connection_list (connector_type => 'AwsS3');
-CALL cdp.datastream_create (
+CALL d360.connection_list (connector_type => 'AwsS3');
+CALL d360.datastream_create (
   name => 'Bookings', label => 'Bookings',
   data_source => 'AwsS3_S3Connection', data_stream_type => 'CONNECTORSFRAMEWORK',
   connector_info => (connector_type = 'DataConnector', connector_details = (name = 'S3Connection')),
@@ -30,8 +30,8 @@ CALL cdp.datastream_create (
   source_fields => [(name = 'booking_id', data_type = 'Text')],
   mappings => [(source_field_label = 'booking_id', target_field_name = 'booking_id', target_field_returntype = 'Text')],
   refresh_config => (refresh_mode = 'UPSERT', frequency = (frequency_type = 'DAILY', hours = [12])));
-CALL cdp.datastream_get (record_id_or_developer_name => 'Bookings'); /* until status is ACTIVE */
-CALL cdp.datastream_run (record_id_or_developer_name => 'Bookings');
+CALL d360.datastream_get (record_id_or_developer_name => 'Bookings'); /* until status is ACTIVE */
+CALL d360.datastream_run (record_id_or_developer_name => 'Bookings');
 ```
 
 **Functions:** [`datastream_delete`](#datastream_delete), [`datastream_list`](#datastream_list), [`datastream_get`](#datastream_get), [`datastream_update`](#datastream_update), [`datastream_create`](#datastream_create), [`datastream_run`](#datastream_run)
@@ -50,7 +50,7 @@ Delete a data stream. Since v60.0.
 | `should_delete_data_lake_object` | `shouldDeleteDataLakeObject` | query | boolean |  | Indicates whether to delete the data lake objects (DLOs) associated with the data stream (`true`) or not (`false`). The default value is `false`. Since v60.0. |
 
 ```sql
-CALL cdp.datastream_delete (record_id_or_developer_name => 'S3Stream', should_delete_data_lake_object => true);
+CALL d360.datastream_delete (record_id_or_developer_name => 'S3Stream', should_delete_data_lake_object => true);
 ```
 
 **Result**
@@ -64,11 +64,11 @@ With `true`, one community project reports that the call returns 204 and [silent
 So don't trust the 204. A safe order, following that report:
 
 ```sql
-CALL cdp.datastream_get (record_id_or_developer_name => 'Orders_stream'); /* note data_lake_object_info.name, it can't be looked up afterwards */
-CALL cdp.datastream_delete (record_id_or_developer_name => 'Orders_stream', should_delete_data_lake_object => true);
-CALL cdp.dlo_get (record_id_or_developer_name => 'Orders__dll'); /* 404 means the DLO is gone */
+CALL d360.datastream_get (record_id_or_developer_name => 'Orders_stream'); /* note data_lake_object_info.name, it can't be looked up afterwards */
+CALL d360.datastream_delete (record_id_or_developer_name => 'Orders_stream', should_delete_data_lake_object => true);
+CALL d360.dlo_get (record_id_or_developer_name => 'Orders__dll'); /* 404 means the DLO is gone */
 /* If it still exists: remove its mappings with dmo_mapping_delete, then */
-CALL cdp.dlo_delete (record_id_or_developer_name => 'Orders__dll');
+CALL d360.dlo_delete (record_id_or_developer_name => 'Orders__dll');
 ```
 
 Removing the DLO breaks every DMO mapping that reads it, so don't pass `true` on platform-provisioned CRM streams such as `Account_Home` that other assets depend on (community).
@@ -91,7 +91,7 @@ Get a list of data streams. Since v60.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Possible values are: - `Id` - `DataConnectorId` - `DataConnectorType` - `DataSourceId` - `DeveloperName` Since v60.0. |
 
 ```sql
-CALL cdp.datastream_list (filter => 'SFDC', limit => 50);
+CALL d360.datastream_list (filter => 'SFDC', limit => 50);
 ```
 
 **Result**
@@ -150,7 +150,7 @@ Get a data stream. Since v60.0.
 | `include_mappings` | `includeMappings` | query | string |  | Whether to include mappings, as `'true'` or `'false'`. |
 
 ```sql
-CALL cdp.datastream_get (record_id_or_developer_name => 'Account_Home', include_mappings => 'true');
+CALL d360.datastream_get (record_id_or_developer_name => 'Account_Home', include_mappings => 'true');
 ```
 
 **Result**
@@ -221,7 +221,7 @@ Change a stream's label, refresh settings, source fields or mappings, or disable
 | `advanced_attributes` | `advancedAttributes` | body | [datastream_update_advancedAttributes](#datastream_update_advancedattributes) |  | Not in the spec schema: from the spec's examples. |
 
 ```sql
-CALL cdp.datastream_update (record_id_or_developer_name => '0dkRM000000001XYAQ', data_stream_type => 'SFDC', mappings => [(target_field_name = 'IsEnrollmentRequired', transformation_formula = NULL), (target_field_name = 'customField_c', transformation_formula = NULL)]);
+CALL d360.datastream_update (record_id_or_developer_name => '0dkRM000000001XYAQ', data_stream_type => 'SFDC', mappings => [(target_field_name = 'IsEnrollmentRequired', transformation_formula = NULL), (target_field_name = 'customField_c', transformation_formula = NULL)]);
 ```
 
 **Result**
@@ -259,11 +259,11 @@ One row. Schema `DataStreamRepresentation`.
 **What can change.** The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/datastream/DataStreamTools.java) lists `refresh_config` (`refresh_mode`, `frequency`, `is_acceleration_enabled`), `label`, `mappings` and `source_fields` as updatable, and `shouldFetchImmediately`, `last_run_status` and `total_records` as read-only. For Ingestion API streams, the [official page](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-create-ingestion-data-stream.md) says refresh mode "cannot be changed" after creation. One community project [deletes and recreates on any drift](https://github.com/javrrr/afd360/blob/main/src/resources/data-stream.ts) instead of patching.
 
 ```sql
-CALL cdp.datastream_update (record_id_or_developer_name => 'S3Stream',
+CALL d360.datastream_update (record_id_or_developer_name => 'S3Stream',
   refresh_config => (refresh_mode = 'UPSERT', frequency = (frequency_type = 'WEEKLY', refresh_day_of_week = 'Monday', hours = [8])));
 
 /* Add a source column and map it */
-CALL cdp.datastream_update (record_id_or_developer_name => 'S3Stream',
+CALL d360.datastream_update (record_id_or_developer_name => 'S3Stream',
   source_fields => [(name = 'NewField', data_type = 'Text')],
   mappings => [(source_field_label = 'NewField', target_field_name = 'NewField', target_field_returntype = 'Text')]);
 ```
@@ -295,7 +295,7 @@ Create a data stream. Since v60.0.
 | `source_fields` | `sourceFields` | body | array of [DataStreamSourceFieldInput](#datastreamsourcefieldinputrepresentation) |  | The spec marks this required, but the example here leaves it out. Source fields for the data stream. Since v60.0. |
 
 ```sql
-CALL cdp.datastream_create (name => 'S3Stream', label => 'S3Stream', data_source => 'AwsS3_S3Connection', data_stream_type => 'CONNECTORSFRAMEWORK', connector_info => (connector_type = 'DataConnector', connector_details = (name = 'S3Connection')), data_lake_object_info => (label = 'S3Stream', name = 'S3Stream__dll', category = 'Profile', dataspace_info = [(name = 'Default')], data_lake_field_input_representations = [(name = 'bikeid', label = 'bikeid', data_type = 'Number', is_primary_key = true), (name = 'trip_id', label = 'trip_id', data_type = 'Number', is_primary_key = false), (name = 'formulaDate', label = 'formulaDate', data_type = 'DateTime', is_primary_key = false), (name = 'DateDifference', label = 'DateDifference', data_type = 'DateTime', is_primary_key = false), (name = 'usertype', label = 'usertype', data_type = 'Text', is_primary_key = false)]), source_fields => [(name = 'bikeid', data_type = 'Number'), (name = 'trip_id', data_type = 'Number'), (name = 'starttime', data_type = 'DateTime'), (name = 'usertype', data_type = 'Text')], mappings => [(source_field_label = 'bikeid', target_field_name = 'bikeid'), (source_field_label = 'trip_id', target_field_name = 'trip_id'), (transformation_formula = 'DAYPRECISION(sourceField[''starttime''])', target_field_name = 'formulaDate', target_field_returntype = 'DateTime'), (transformation_formula = 'DAYSBETWEEN(NOW(),sourceField[''starttime''])', target_field_name = 'DateDifference', target_field_returntype = 'DateTime'), (source_field_label = 'usertype', target_field_name = 'usertype', target_field_returntype = 'Text')], refresh_config => (is_acceleration_enabled = true, refresh_mode = 'UPSERT', frequency = (frequency_type = 'WEEKLY', refresh_day_of_week = 'Sunday', hours = [7])), advanced_attributes => (fileName = '*', fileType = 'CSV', importDirectory = 'divvy', isMissingFileFailure = true, areHeadersIncludedInFile = false));
+CALL d360.datastream_create (name => 'S3Stream', label => 'S3Stream', data_source => 'AwsS3_S3Connection', data_stream_type => 'CONNECTORSFRAMEWORK', connector_info => (connector_type = 'DataConnector', connector_details = (name = 'S3Connection')), data_lake_object_info => (label = 'S3Stream', name = 'S3Stream__dll', category = 'Profile', dataspace_info = [(name = 'Default')], data_lake_field_input_representations = [(name = 'bikeid', label = 'bikeid', data_type = 'Number', is_primary_key = true), (name = 'trip_id', label = 'trip_id', data_type = 'Number', is_primary_key = false), (name = 'formulaDate', label = 'formulaDate', data_type = 'DateTime', is_primary_key = false), (name = 'DateDifference', label = 'DateDifference', data_type = 'DateTime', is_primary_key = false), (name = 'usertype', label = 'usertype', data_type = 'Text', is_primary_key = false)]), source_fields => [(name = 'bikeid', data_type = 'Number'), (name = 'trip_id', data_type = 'Number'), (name = 'starttime', data_type = 'DateTime'), (name = 'usertype', data_type = 'Text')], mappings => [(source_field_label = 'bikeid', target_field_name = 'bikeid'), (source_field_label = 'trip_id', target_field_name = 'trip_id'), (transformation_formula = 'DAYPRECISION(sourceField[''starttime''])', target_field_name = 'formulaDate', target_field_returntype = 'DateTime'), (transformation_formula = 'DAYSBETWEEN(NOW(),sourceField[''starttime''])', target_field_name = 'DateDifference', target_field_returntype = 'DateTime'), (source_field_label = 'usertype', target_field_name = 'usertype', target_field_returntype = 'Text')], refresh_config => (is_acceleration_enabled = true, refresh_mode = 'UPSERT', frequency = (frequency_type = 'WEEKLY', refresh_day_of_week = 'Sunday', hours = [7])), advanced_attributes => (fileName = '*', fileType = 'CSV', importDirectory = 'divvy', isMissingFileFailure = true, areHeadersIncludedInFile = false));
 ```
 
 **Result**
@@ -338,7 +338,7 @@ One row. Schema `DataStreamRepresentation`.
 **Salesforce CRM.** Only `name` and `source_object` go in `connector_details`. The platform reads the object's columns itself, so send only the primary key ([community, one org](https://github.com/javrrr/afd360/blob/main/src/resources/data-stream.ts)). Call `connection_list (connector_type => 'SalesforceDotCom')` first. The connection name is `SalesforceDotCom_<alias>`, usually `SalesforceDotCom_Home`.
 
 ```sql
-CALL cdp.datastream_create (
+CALL d360.datastream_create (
   name => 'Task_Home', label => 'Task_Home', data_stream_type => 'SFDC',
   connector_info => (connector_type = 'SalesforceDotCom',
     connector_details = (name = 'SalesforceDotCom_Home', source_object = 'Task')),
@@ -356,7 +356,7 @@ Sources disagree on the details. The MCP tool names the DLO `<object>_<alias>` w
 **Snowflake and BigQuery (`Direct_Access`).** No data is copied. `advanced_attributes` always uses `database`, `schema` and `object`. For BigQuery these hold project, dataset and table ([community](https://github.com/javrrr/data-360-sdk/blob/main/src/schemas.ts); the spec's Snowflake example is named `GBQ_Retail` and uses these keys). Add `incrementalColumn` for incremental refresh. In the [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/datastream/SnowflakeDataStreamTools.java), a field's `label` is the source column and its `name` is the DLO field.
 
 ```sql
-CALL cdp.datastream_create (
+CALL d360.datastream_create (
   name => 'Orders_snow', label => 'Orders', data_stream_type => 'EXTERNAL', data_access_mode => 'Direct_Access',
   connector_info => (connector_type = 'DataConnector', connector_details = (name = 'SnowflakeConn')),
   advanced_attributes => (database = 'ANALYTICS', schema = 'PUBLIC', object = 'CUSTOMER_ORDERS'),
@@ -376,7 +376,7 @@ Community findings: without `Direct_Access` the server answers `DATA_CONNECTORS 
 **Other connectors.** Discover objects and fields with `connection_objects_list` and `connection_object_fields_describe`. Describe types differ, so send `VARCHAR` as `Text`, `FLOAT` as `Number` and `TIMESTAMP` as `DateTime` ([MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/datastream/ThirdPartyConnectorsDataStreamTools.java)). The DLO name must end in `__dll`. Copy `format` from the describe result onto date fields, and set `advanced_attributes.incrementalColumn` for `INCREMENTAL`.
 
 ```sql
-CALL cdp.datastream_create (
+CALL d360.datastream_create (
   name => 'Tasks_airtable_conn', label => 'Tasks airtable conn',
   data_source => 'Airtable_airtable_conn', data_stream_type => 'CONNECTORSFRAMEWORK', data_access_mode => 'Ingest',
   connector_info => (connector_type = 'DataConnector', connector_details = (name = 'airtable_conn')),
@@ -396,7 +396,7 @@ CALL cdp.datastream_create (
 **Ingestion API.** Upload the schema first with `connection_schema_upsert`. The spec says `data_lake_field_input_representations` must contain only the primary key. The rest of this shape is [community](https://github.com/javrrr/afd360/blob/main/src/resources/data-stream.ts): `events` holds the schema object name, a mismatch fails with an opaque 400, and the platform rewrites `name` and `label` on create. The spec lists the type as `INGEST_API`, while community code sends `INGESTAPI`. The [official page](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-create-ingestion-data-stream.md) says data can take up to 1 hour to appear.
 
 ```sql
-CALL cdp.datastream_create (
+CALL d360.datastream_create (
   name => 'Orders_stream', label => 'Orders', data_source => 'my_ingest_conn', data_stream_type => 'INGESTAPI',
   connector_info => (connector_type = 'IngestApi', connector_details = (name = 'my_ingest_conn', events = ['Orders'])),
   data_lake_object_info => (name = 'Orders__dll', label = 'Orders', category = 'Other', dataspace_info = [(name = 'default')],
@@ -409,7 +409,7 @@ CALL cdp.datastream_create (
 **Marketing Cloud.** From the spec's examples. `connector_details` holds `sub_type`, `eid`, `mid`, and for a data extension `custom_object_id` and `custom_object_name`. `advanced_attributes.mcDataExtractMode` is `FullRefresh`, `DeltaExtractByDate` or `DeltaExtractByNumber`, with `mcDeltaExtractField` naming the delta column. A data extension sends every column in `source_fields` and `mappings`. A bundle uses `sub_type = 'SalesforceMarketingCloudStandard'` and `source_object_name`, and sends empty `refresh_config`, `source_fields`, `data_lake_object_info` and `mappings`.
 
 ```sql
-CALL cdp.datastream_create (
+CALL d360.datastream_create (
   name => 'Scoring', label => 'Scoring', refresh_config => (),
   connector_info => (connector_type = 'SalesforceMarketingCloud', connector_details = (
     sub_type = 'SalesforceMarketingCloudStandard', eid = '524000862', mid = '524000862',
@@ -460,7 +460,7 @@ Start a data stream run to ingest data from the source and refresh the data lake
 | `interactive` | `interactive` | query | boolean |  | Indicates whether to execute fast forward conversion for the data stream (`true`) or not (`false`). The default value is `false`. `true` is supported only for file upload connector types. Since v62.0. |
 
 ```sql
-CALL cdp.datastream_run (record_id_or_developer_name => 'S3Stream');
+CALL d360.datastream_run (record_id_or_developer_name => 'S3Stream');
 ```
 
 **Result**

@@ -4,9 +4,9 @@
  * Everything not in the request is replaced, so read the connection first and copy its settings. Resend `credentials`, reads return them masked.
  */
 
-call cdp.connection_get (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_get (connection_id => '9cgaj0000012O5hAAE');
 
-call cdp.connection_replace (
+call d360.connection_replace (
     connection_id => '9cgaj0000012O5hAAE',
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake prod',

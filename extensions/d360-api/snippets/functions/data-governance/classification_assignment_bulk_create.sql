@@ -4,7 +4,7 @@
  * A bulk call can succeed with failed items, so check `has_errors` and each `results[].statusCode`.
  */
 
-call cdp.classification_assignment_bulk_create (
+call d360.classification_assignment_bulk_create (
     assignments => [
         (
             classification_fully_qualified_name = 'Compliance_Classifications.PII',
@@ -21,6 +21,6 @@ call cdp.classification_assignment_bulk_create (
     ]
 );
 
-call cdp.classification_assignment_list (
+call d360.classification_assignment_list (
     classification_fully_qualified_name => 'Compliance_Classifications.Sensitive'
 );

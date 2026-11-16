@@ -4,7 +4,7 @@
  * Validation runs against the state before the batch, so an item doesn't see the re-parenting of another.
  */
 
-call cdp.tag_bulk_update (
+call d360.tag_bulk_update (
     items => [
         (fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'),
         (
@@ -21,4 +21,4 @@ call cdp.tag_bulk_update (
     ]
 );
 
-call cdp.tag_list (taxonomy_name => 'Compliance_Tags', search_string => 'PII');
+call d360.tag_list (taxonomy_name => 'Compliance_Tags', search_string => 'PII');

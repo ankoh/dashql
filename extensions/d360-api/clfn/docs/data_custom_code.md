@@ -2,14 +2,14 @@
 
 # Data Custom Code
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Code extension runs your own Python in Data 360. A deployment holds a zipped package. A script runs inside a data transform, and a function runs in a search index's chunking step ([docs](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/use-custom-code.md)). These calls manage deployments and read their run history. None of them starts a run.
 
 A deployment takes three steps, as in the [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py):
 
 1. `custom_code_deployment_create` returns a `file_upload_url`.
-2. You PUT the zip to that URL. This isn't a Connect API call, so no `CALL cdp.` function does it.
+2. You PUT the zip to that URL. This isn't a Connect API call, so no `CALL d360.` function does it.
 3. You poll `deployment_status` until it is `Deployed`.
 
 A script then needs a transform that names it, and `transform_run` starts it. Runs show up in `custom_code_execution_list`.
@@ -22,18 +22,18 @@ The main traps:
 - The docs deploy to a sandbox and [move to production with a DevOps data kit](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/migrate-code-to-prod.md).
 
 ```sql
-CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS');
+CALL d360.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS');
 /* PUT deployment.zip to file_upload_url, outside DashQL */
-CALL cdp.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup'); /* until deployment_status = 'Deployed' */
-CALL cdp.transform_create (name => 'account_rollup', label => 'account_rollup', type => 'BATCH', dataspace_name => 'default', definition => $$
+CALL d360.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup'); /* until deployment_status = 'Deployed' */
+CALL d360.transform_create (name => 'account_rollup', label => 'account_rollup', type => 'BATCH', dataspace_name => 'default', definition => $$
   {"type": "DCSQL", "version": "56.0", "manifest": {
     "nodes": {"node1": {"relation_name": "Account_std_copy__dll", "config": {"materialized": "table"}, "compiled_code": ""}},
     "sources": {"source1": {"relation_name": "Account_std__dll"}},
     "macros": {"macro.byoc": {"arguments": [{"name": "account_rollup", "type": "BYOC_SCRIPT"}]}}
   }}
 $$);
-CALL cdp.transform_run (data_transform_name_or_id => 'account_rollup');
-CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);
+CALL d360.transform_run (data_transform_name_or_id => 'account_rollup');
+CALL d360.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);
 ```
 
 **Functions:** [`custom_code_deployment_delete`](#custom_code_deployment_delete), [`custom_code_deployment_list`](#custom_code_deployment_list), [`custom_code_deployment_get`](#custom_code_deployment_get), [`custom_code_execution_list`](#custom_code_execution_list), [`custom_code_execution_get`](#custom_code_execution_get), [`custom_code_deployment_update`](#custom_code_deployment_update), [`custom_code_deployment_create`](#custom_code_deployment_create)
@@ -51,7 +51,7 @@ Permanently delete a deployment. Use it to remove code that nothing depends on a
 | `custom_code_name_or_id` | `customCodeNameOrId` | path | string | yes | Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`. |
 
 ```sql
-CALL cdp.custom_code_deployment_delete (custom_code_name_or_id => 'account_rollup');
+CALL d360.custom_code_deployment_delete (custom_code_name_or_id => 'account_rollup');
 ```
 
 **Result**
@@ -80,7 +80,7 @@ List the deployments in the org, with optional filters on type, status and label
 | `order_by` | `orderBy` | query | enum(CodeTypeAsc, CodeTypeDesc, DeployedByAsc, DeployedByDesc, DeployedOnAsc, DeployedOnDesc, DeploymentStatusAsc, DeploymentStatusDesc, NameAsc, NameDesc, VersionDesc) |  | - |
 
 ```sql
-CALL cdp.custom_code_deployment_list (code_type => 'Script', deployment_status => 'Error', order_by => 'DeployedOnDesc', limit => 50);
+CALL d360.custom_code_deployment_list (code_type => 'Script', deployment_status => 'Error', order_by => 'DeployedOnDesc', limit => 50);
 ```
 
 **Result**
@@ -126,7 +126,7 @@ Read one deployment by name or id. Poll it after uploading a package to see whet
 | `custom_code_name_or_id` | `customCodeNameOrId` | path | string | yes | Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`. |
 
 ```sql
-CALL cdp.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup');
+CALL d360.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup');
 ```
 
 **Result**
@@ -176,7 +176,7 @@ List the runs of one deployment, with status, row counts and timings. Use it as 
 | `offset` | `offset` | query | integer |  | - |
 
 ```sql
-CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 20);
+CALL d360.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 20);
 ```
 
 **Result**
@@ -215,7 +215,7 @@ Read one run of a deployment. Use it to check a run's status or error once you h
 | `custom_code_name_or_id` | `customCodeNameOrId` | path | string | yes | Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`. |
 
 ```sql
-CALL cdp.custom_code_execution_get (custom_code_name_or_id => 'account_rollup', custom_code_execution_id => :execution_id);
+CALL d360.custom_code_execution_get (custom_code_name_or_id => 'account_rollup', custom_code_execution_id => :execution_id);
 ```
 
 **Result**
@@ -257,7 +257,7 @@ Change a deployment's label, description, compute size or version. Use it to res
 | `version` | `version` | body | string |  | - |
 
 ```sql
-CALL cdp.custom_code_deployment_update (custom_code_name_or_id => 'account_rollup', compute_type => 'Cpu_s', description => 'Nightly account rollup');
+CALL d360.custom_code_deployment_update (custom_code_name_or_id => 'account_rollup', compute_type => 'Cpu_s', description => 'Nightly account rollup');
 ```
 
 **Result**
@@ -309,7 +309,7 @@ Register a new deployment and get the URL to upload its zip package to. Deployme
 | `label` | `label` | body | string |  | Display name in the UI, called Deployment Name there. The SDK sends the API name. |
 
 ```sql
-CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS', description => 'Rolls accounts up by region');
+CALL d360.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS', description => 'Rolls accounts up by region');
 ```
 
 **Result**
@@ -342,7 +342,7 @@ One row. Schema `CustomCodeDeploymentRepresentation`.
 
 **Notes:** **This call only registers the deployment.** Nothing runs until the package is uploaded.
 
-**Upload.** The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) sends the PUT below. It isn't a Connect API call, so no `CALL cdp.` function does it.
+**Upload.** The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) sends the PUT below. It isn't a Connect API call, so no `CALL d360.` function does it.
 
 - Pass the `file_upload_url` through an HTML unescape first. The SDK does this, so the value can contain entities such as `&amp;`.
 - Send `Content-Type: application/zip` with the raw zip as the body, and no `Authorization` header. Any status under 400 counts as success.

@@ -4,7 +4,7 @@
  * `data_graph_entity_name` is the name of the graph, not of a DMO. `lookup_keys` is one string with the brackets included. `no_cache` reads the standard graph instead of the real-time one.
  */
 
-call cdp.datagraph_lookup (
+call d360.datagraph_lookup (
     data_graph_entity_name => 'Customer_Graph',
     dataspace => 'default',
     lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]',

@@ -2,7 +2,7 @@
 
 # Communication Capping
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Communication capping limits how many messages a customer, lead or prospect receives, for regulation, message fatigue or budget ([Trailhead](https://trailhead.salesforce.com/content/learn/modules/communication-capping-in-data-cloud-quick-look/get-to-know-communication-capping)). You define dimensions, which the UI calls parameters, such as channel and line of business. You give each dimension values, then write rules that cap a combination of values over a date window. A capping activation target is mapped to the same values, and segments activated through it get filtered.
 
@@ -18,11 +18,11 @@ The gotchas that matter most:
 The spec has no descriptions for this family. Field meanings below come from Trailhead and from search excerpts of the [API reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) and Salesforce Help, whose full text couldn't be downloaded.
 
 ```sql
-CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')]);
-CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
-CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
-CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
-CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+CALL d360.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')]);
+CALL d360.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+CALL d360.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+CALL d360.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+CALL d360.communication_capping_enable (id => 'CONFIGURATION_ID');
 ```
 
 **Functions:** [`communication_capping_activation_target_metadata_delete`](#communication_capping_activation_target_metadata_delete), [`communication_capping_rule_delete`](#communication_capping_rule_delete), [`communication_capping_configuration_get`](#communication_capping_configuration_get), [`communication_capping_activation_target_list`](#communication_capping_activation_target_list), [`communication_capping_rule_list`](#communication_capping_rule_list), [`communication_capping_activation_target_metadata_get`](#communication_capping_activation_target_metadata_get), [`communication_capping_dimension_list`](#communication_capping_dimension_list), [`communication_capping_configuration_update`](#communication_capping_configuration_update), [`communication_capping_rule_update`](#communication_capping_rule_update), [`communication_capping_dimension_update`](#communication_capping_dimension_update), [`communication_capping_dimension_priority_update`](#communication_capping_dimension_priority_update), [`communication_capping_configuration_create`](#communication_capping_configuration_create), [`communication_capping_disable`](#communication_capping_disable), [`communication_capping_enable`](#communication_capping_enable), [`communication_capping_rule_create`](#communication_capping_rule_create), [`communication_capping_activation_target_metadata_map`](#communication_capping_activation_target_metadata_map), [`communication_capping_dimension_create`](#communication_capping_dimension_create)
@@ -40,7 +40,7 @@ Removes the dimension mapping of a capping activation target. Use it to detach a
 | `activation_target_id` | `activationTargetId` | path | string | yes | - |
 
 ```sql
-CALL cdp.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID');
+CALL d360.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID');
 ```
 
 **Result**
@@ -62,7 +62,7 @@ Deletes a capping rule. Use it to retire a cap before its end date passes.
 | `rule_id_or_name` | `ruleIdOrName` | path | string | yes | Rule `id`, or a name. The sources don't say which name; `api_name` is the only name in the rule schema. |
 
 ```sql
-CALL cdp.communication_capping_rule_delete (rule_id_or_name => 'Email_daily');
+CALL d360.communication_capping_rule_delete (rule_id_or_name => 'Email_daily');
 ```
 
 **Result**
@@ -84,7 +84,7 @@ Returns one capping configuration with its data spaces, dimensions and status. U
 | `id` | `id` | path | string | yes | Configuration id, the `id` that `communication_capping_configuration_create` returns. |
 
 ```sql
-CALL cdp.communication_capping_configuration_get (id => 'CONFIGURATION_ID');
+CALL d360.communication_capping_configuration_get (id => 'CONFIGURATION_ID');
 ```
 
 **Result**
@@ -120,7 +120,7 @@ Lists the activation targets of a configuration, one row per target mapping with
 | `order_by_direction` | `orderByDirection` | query | enum(ASC, DESC) |  | - |
 
 ```sql
-CALL cdp.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC');
+CALL d360.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC');
 ```
 
 **Result**
@@ -156,7 +156,7 @@ Lists the rules of a configuration with their limits and date windows. Use it to
 | `order_by_direction` | `orderByDirection` | query | enum(ASC, DESC) |  | - |
 
 ```sql
-CALL cdp.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC');
+CALL d360.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC');
 ```
 
 **Result**
@@ -191,7 +191,7 @@ Returns the dimensions and dimension values mapped to one activation target. Use
 | `activation_target_id` | `activationTargetId` | path | string | yes | - |
 
 ```sql
-CALL cdp.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID');
+CALL d360.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID');
 ```
 
 **Result**
@@ -220,7 +220,7 @@ Lists capping dimensions with their values and hierarchy order. Use it to find t
 | `dataspace_id` | `dataSpaceId` | query | string |  | - |
 
 ```sql
-CALL cdp.communication_capping_dimension_list ();
+CALL d360.communication_capping_dimension_list ();
 ```
 
 **Result**
@@ -258,7 +258,7 @@ Changes a configuration's name, description, data spaces or related dimensions.
 | `name` | `name` | body | string |  | - |
 
 ```sql
-CALL cdp.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends');
+CALL d360.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends');
 ```
 
 **Result**
@@ -298,7 +298,7 @@ Changes a rule's limit, date window or dimension values. Use it to adjust a cap 
 | `start_date` | `startDate` | body | string (date-time) |  | Start of the window when the rule is valid. |
 
 ```sql
-CALL cdp.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5);
+CALL d360.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5);
 ```
 
 **Result**
@@ -338,7 +338,7 @@ Changes a dimension or its values. Use it when the possible values change, for e
 | `name` | `name` | body | string |  | - |
 
 ```sql
-CALL cdp.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')]);
+CALL d360.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')]);
 ```
 
 **Result**
@@ -370,7 +370,7 @@ Changes the hierarchy order of dimensions. Use it to swap which dimension comes 
 | `dimensions` | `dimensions` | body | array of [CommunicationCappingDimInput](#communicationcappingdiminputrepresentation) |  | Dimensions whose priority changes, each with `id` and its new `hierarchy_order`. |
 
 ```sql
-CALL cdp.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)]);
+CALL d360.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)]);
 ```
 
 **Result**
@@ -407,7 +407,7 @@ Creates a capping configuration, which ties dimensions to data spaces and holds 
 | `name` | `name` | body | string |  | - |
 
 ```sql
-CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+CALL d360.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
 ```
 
 **Result**
@@ -443,7 +443,7 @@ Turns off a capping configuration.
 | `id` | `id` | path | string | yes | Configuration id, the `id` that `communication_capping_configuration_create` returns. |
 
 ```sql
-CALL cdp.communication_capping_disable (id => 'CONFIGURATION_ID');
+CALL d360.communication_capping_disable (id => 'CONFIGURATION_ID');
 ```
 
 **Result**
@@ -470,7 +470,7 @@ Turns on a capping configuration.
 | `id` | `id` | path | string | yes | Configuration id, the `id` that `communication_capping_configuration_create` returns. |
 
 ```sql
-CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+CALL d360.communication_capping_enable (id => 'CONFIGURATION_ID');
 ```
 
 **Result**
@@ -502,7 +502,7 @@ Adds a rule to a configuration: a maximum message count for a combination of dim
 | `start_date` | `startDate` | body | string (date-time) |  | Start of the window when the rule is valid. |
 
 ```sql
-CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+CALL d360.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
 ```
 
 **Result**
@@ -537,7 +537,7 @@ Maps a capping activation target to dimension values. Segments activated through
 | `data_comm_cap_dim_info` | `dataCommCapDimInfo` | body | array of [CommunicationCappingActivationTargetDimInput](#communicationcappingactivationtargetdiminputrepresentation) |  | Dimension and dimension value pairs for the target. |
 
 ```sql
-CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+CALL d360.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
 ```
 
 **Result**
@@ -573,7 +573,7 @@ Creates a dimension and its possible values, such as Channel with Email and SMS.
 | `name` | `name` | body | string |  | - |
 
 ```sql
-CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')]);
+CALL d360.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')]);
 ```
 
 **Result**

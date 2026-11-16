@@ -4,6 +4,6 @@
  * The spec doesn't list the `provisioning_status` values. This object spells the data space column `dataspace`, knowledge spaces use `dataSpace`.
  */
 
-call cdp.knowledge_space_configuration_list ();
+call d360.knowledge_space_configuration_list ();
 
-call cdp.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
+call d360.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');

@@ -4,7 +4,7 @@
  * Acceleration is a setting of the stream, the connection is the same as for a live query. The cache is a copy with a storage cost, and its schedule can be set from 15 minutes to 7 days. The shape of the stream comes from Snowflake, no source shows one for Redshift. Wait for the connection to be `Active` before the second call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'REDSHIFT',
     label => 'Redshift accelerated',
     name => 'Redshift_Accelerated',
@@ -21,7 +21,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_redshift_accelerated',
     label => 'Orders (Redshift accelerated)',
     data_stream_type => 'EXTERNAL',
@@ -55,4 +55,4 @@ call cdp.datastream_create (
     )
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_redshift_accelerated');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_redshift_accelerated');

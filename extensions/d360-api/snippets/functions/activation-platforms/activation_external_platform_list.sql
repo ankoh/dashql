@@ -4,4 +4,4 @@
  * Values come in upper case here (`ACTIVE`, `ADVERTISING`). The items may have no `id`, so key on `name` and `key_prefix_name`. `batch_size` goes up to 20.
  */
 
-call cdp.activation_external_platform_list (limit => 20, offset => 0, order_by => 'createdDate desc');
+call d360.activation_external_platform_list (limit => 20, offset => 0, order_by => 'createdDate desc');

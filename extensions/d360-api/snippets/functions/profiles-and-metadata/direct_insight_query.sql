@@ -4,7 +4,7 @@
  * The page size is `limit`, filter values are case-sensitive, and the default is 4,999 rows.
  */
 
-call cdp.direct_insight_query (
+call d360.direct_insight_query (
     ci_name => 'Customer_Order_Summary__cio',
     dimensions => 'ssot__Id__c,Country__c',
     measures => 'Total_Spend__c',

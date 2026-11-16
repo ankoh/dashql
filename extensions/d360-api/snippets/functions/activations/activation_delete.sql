@@ -4,6 +4,6 @@
  * There are no dependency checks, and Data 360 stops sending data to every downstream system tied to the activation as soon as it is gone. An id that doesn't exist returns "Activation not found for Id".
  */
 
-call cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+call d360.activation_get (activation_id => '85RVF000000CEf72AG');
 
-call cdp.activation_delete (activation_id => '85RVF000000CEf72AG');
+call d360.activation_delete (activation_id => '85RVF000000CEf72AG');

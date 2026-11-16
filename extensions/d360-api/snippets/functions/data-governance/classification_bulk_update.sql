@@ -4,7 +4,7 @@
  * Tags are validated against the state before the batch. If a tag link fails the classification is still updated, but the link change isn't applied and an error is reported.
  */
 
-call cdp.classification_bulk_update (
+call d360.classification_bulk_update (
     items => [
         (fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'),
         (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'),
@@ -15,4 +15,4 @@ call cdp.classification_bulk_update (
     ]
 );
 
-call cdp.classification_list (taxonomy_name => 'Compliance_Classifications');
+call d360.classification_list (taxonomy_name => 'Compliance_Classifications');

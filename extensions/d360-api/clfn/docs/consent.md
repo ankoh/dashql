@@ -2,7 +2,7 @@
 
 # Consent
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 The Consent API records and reads a person's privacy requests against their Data 360 profile: stop processing their data, export it, or delete it. It's the core REST API at `/services/data/vXX.X/consent/action/{action}`, not a Connect API, so it's absent from the spec. The sources are the [Data 360 Consent page](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-consent-cdp-params.md) and the general [read](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-consent-action.md) and [write](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-consent-write.md) pages.
 
@@ -16,8 +16,8 @@ The gotchas that matter most:
 - The sources don't say how long a request takes or how to tell it finished.
 
 ```sql
-CALL cdp.consent_update (action => 'processing', ids => '100000695', mode => 'cdp', status => 'optout');
-CALL cdp.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');
+CALL d360.consent_update (action => 'processing', ids => '100000695', mode => 'cdp', status => 'optout');
+CALL d360.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');
 ```
 
 **Functions:** [`consent_get`](#consent_get), [`consent_update`](#consent_update)
@@ -37,7 +37,7 @@ Reads the consent flag of one action for a list of Data 360 profiles. Use it to 
 | `mode` | `mode` | query | string |  | Send `cdp` to read the Data 360 profile. The API default is `normal`, which reads CRM consent records. |
 
 ```sql
-CALL cdp.consent_get (action => 'portability', ids => '00932I3SU92', mode => 'cdp');
+CALL d360.consent_get (action => 'portability', ids => '00932I3SU92', mode => 'cdp');
 ```
 
 **Result**
@@ -83,7 +83,7 @@ Records a consent request on Data 360 profiles: restrict processing, export the 
 | `aws_region` | `aws_region` | body | string |  | AWS region of the S3 bucket. Required when `action` is `portability`. |
 
 ```sql
-CALL cdp.consent_update (
+CALL d360.consent_update (
   action => 'portability',
   ids => '100000695',
   mode => 'cdp',

@@ -4,7 +4,7 @@
  * `offset` needs `order_by` on this route.
  */
 
-call cdp.profile_insight (
+call d360.profile_insight (
     data_model_name => 'ssot__Individual__dlm',
     id => '100005',
     ci_name => 'Customer_Order_Summary__cio',

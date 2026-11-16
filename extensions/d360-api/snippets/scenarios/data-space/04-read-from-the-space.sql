@@ -4,4 +4,4 @@
  * Other calls now read from the space through `dataspace`.
  */
 
-call cdp.segment_list (dataspace => 'nonDefault');
+call d360.segment_list (dataspace => 'nonDefault');

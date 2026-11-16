@@ -4,7 +4,7 @@
  * `source` defaults to `Organization`, so add `source => 'Global'` to see the global ones. The other filters are the schema, the category, the connector and the data space. Paging is by `limit` (1-299, default 50) and `offset`.
  */
 
-call cdp.p13n_transformer_list (
+call d360.p13n_transformer_list (
     channel_type => 'WebApp',
     transformer_type => 'Handlebars',
     is_enabled => true,

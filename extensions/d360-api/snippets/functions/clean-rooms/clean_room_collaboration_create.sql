@@ -4,7 +4,7 @@
  * `provider_dev_name` and `specification_dev_name` are the `name` values of the provider and of your specification, not ids. `data_cloud_org_id` is the org where the clean room is enabled. The new collaboration is inactive until the invitation is accepted. Read it in the list afterwards.
  */
 
-call cdp.clean_room_collaboration_create (
+call d360.clean_room_collaboration_create (
     label => 'collab21',
     description => 'Overlap of our email segments with the partner',
     dataspace_name => 'default',
@@ -15,4 +15,4 @@ call cdp.clean_room_collaboration_create (
     data_cloud_org_id => '00Dxx00nZbkbQgmEIE'
 );
 
-call cdp.clean_room_collaboration_list (order_by => 'created_date DESC', limit => 5);
+call d360.clean_room_collaboration_list (order_by => 'created_date DESC', limit => 5);

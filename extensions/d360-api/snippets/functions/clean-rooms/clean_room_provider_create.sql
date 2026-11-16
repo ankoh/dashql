@@ -4,7 +4,7 @@
  * The template is a table layout for each side and a SQL query. `:threshold_count` in the query is a parameter that `clean_room_query_run` fills in. The SQL is a verbatim string.
  */
 
-call cdp.clean_room_provider_create (
+call d360.clean_room_provider_create (
     label => 'package_AWS',
     description => 'AWS',
     provider_name => 'package_AWS',

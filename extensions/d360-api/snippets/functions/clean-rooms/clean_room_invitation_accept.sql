@@ -4,9 +4,9 @@
  * The invitation id is `members[].invitationId` in the collaboration list, and the specification id is the `id` of your own specification. The call only starts the change: wait until the invitation shows as accepted and the collaboration is `Active` before you run a query.
  */
 
-call cdp.clean_room_collaboration_list (order_by => 'created_date DESC', limit => 5);
+call d360.clean_room_collaboration_list (order_by => 'created_date DESC', limit => 5);
 
-call cdp.clean_room_invitation_accept (
+call d360.clean_room_invitation_accept (
     collaboration_id_or_api_name => 'collab21_00DSB00000eMue3',
     invitation_id => '1TOxx0000004CQoGAM',
     specification_id => '1TIxx0000004CH6GAM',

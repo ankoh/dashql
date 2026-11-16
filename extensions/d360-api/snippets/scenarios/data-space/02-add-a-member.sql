@@ -4,7 +4,7 @@
  * Add an object to it.
  */
 
-call cdp.dataspace_member_add (
+call d360.dataspace_member_add (
     id_or_name => 'nonDefault',
     members => (
         members = [(

@@ -4,7 +4,7 @@
  * Each `attribute_id` is an `id` from `configuration.memberConfigs[].attributeConfigs` of the template, and `collaboration_entity` is the central DMO of the mapping. `template_version_id` is the id of the template version.
  */
 
-call cdp.clean_room_specification_create (
+call d360.clean_room_specification_create (
     name => 'sampleMapping',
     label => 'sampleMapping',
     dataspace_name => 'default',
@@ -41,4 +41,4 @@ call cdp.clean_room_specification_create (
     )
 );
 
-call cdp.clean_room_specification_list (order_by => 'created_date DESC', limit => 5);
+call d360.clean_room_specification_list (order_by => 'created_date DESC', limit => 5);

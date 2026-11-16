@@ -4,7 +4,7 @@
  * Points refer to the schema by `schema_name`, transformers by `schema_reference`. `personalization_type` is one of `ExperienceVariation`, `FlowPath`, `ManualContent` and `Recommendations`. The data space and the content object must exist. `Product__dll` is how the sources write the content object, although DMOs normally end in `__dlm`.
  */
 
-call cdp.p13n_schema_create (
+call d360.p13n_schema_create (
     name => 'product_recommendations_schema',
     label => 'Product Recommendations Schema',
     dataspace_name => 'default',

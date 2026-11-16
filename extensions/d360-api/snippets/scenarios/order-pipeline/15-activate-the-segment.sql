@@ -4,7 +4,7 @@
  * Take `:activation_id` from the result of the first call to follow its runs.
  */
 
-call cdp.activation_create (
+call d360.activation_create (
     name => 'high_value_s3',
     dataspace_name => 'default',
     segment_api_name => 'High_Value_Order_Buyers',
@@ -24,6 +24,6 @@ call cdp.activation_create (
     )
 );
 
-call cdp.activation_get (activation_id => :activation_id);
+call d360.activation_get (activation_id => :activation_id);
 
-call cdp.activation_history_list (activation_id => :activation_id);
+call d360.activation_history_list (activation_id => :activation_id);

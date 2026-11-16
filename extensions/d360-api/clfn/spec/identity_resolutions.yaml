@@ -13,11 +13,11 @@ description: |
   - The sources disagree on enum casing. See [`ir_create`](#ir_create).
 
   ```sql
-  CALL cdp.ir_create (label => 'Email Match', configuration_type => 'Individual', ruleset_id => 'mail',
+  CALL d360.ir_create (label => 'Email Match', configuration_type => 'Individual', ruleset_id => 'mail',
     match_rules => [(label = 'Normalized Email', criteria = [(entity_name = 'ssot__ContactPointEmail__dlm', field_name = 'ssot__EmailAddress__c', match_method_type = 'exactnormalized', should_match_on_blank = false)])],
     reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true)]);
-  CALL cdp.ir_run (identity_resolution => '1irfj000000IWhWAAW');
-  CALL cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+  CALL d360.ir_run (identity_resolution => '1irfj000000IWhWAAW');
+  CALL d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');
   ```
 
 functions:
@@ -28,7 +28,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Identity-Resolutions/paths/~1ssot~1identity-resolutions~1%7BidentityResolution%7D/delete
     tools: [d360_ir_delete]
     description: Delete an identity resolution ruleset in Data 360. Since v57.0.
-    example: CALL cdp.ir_delete (identity_resolution => '1irfj000000IWhWAAW');
+    example: CALL d360.ir_delete (identity_resolution => '1irfj000000IWhWAAW');
     options:
       - {name: identity_resolution, api_name: identityResolution, in: path, type: string, required: true, description: "Developer name or ID of the ruleset (spec). Use `id`: see [`ir_get`](#ir_get)."}
     effect: write
@@ -43,7 +43,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Identity-Resolutions/paths/~1ssot~1identity-resolutions/get
     tools: [d360_ir_list]
     description: Get identity resolution rulesets in Data 360. Since v57.0.
-    example: CALL cdp.ir_list ();
+    example: CALL d360.ir_list ();
     rows: /identityResolutions
     columns:
       - {name: anonymous_unified_profiles, api_name: anonymousUnifiedProfiles, type: BIGINT, description: "Count of anonymous unified profiles created by running the identity resolution ruleset. Since v57.0."}
@@ -78,7 +78,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Identity-Resolutions/paths/~1ssot~1identity-resolutions~1%7BidentityResolution%7D/get
     tools: [d360_ir_get]
     description: Get an identity resolution ruleset in Data 360. Since v57.0.
-    example: CALL cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+    example: CALL d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');
     options:
       - {name: identity_resolution, api_name: identityResolution, in: path, type: string, required: true, description: "Developer name or ID of the ruleset (spec). Use `id`, see the notes."}
     columns:
@@ -127,7 +127,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Identity-Resolutions/paths/~1ssot~1identity-resolutions~1%7BidentityResolution%7D/patch
     tools: [d360_ir_update, d360_ir_full_update]
     description: Update an identity resolution ruleset in Data 360. Since v57.0.
-    example: CALL cdp.ir_update (identity_resolution => '1irfj000000IWhWAAW', label => 'Customer Match', does_run_automatically => true, reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true), (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)]);
+    example: CALL d360.ir_update (identity_resolution => '1irfj000000IWhWAAW', label => 'Customer Match', does_run_automatically => true, reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true), (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)]);
     options:
       - {name: identity_resolution, api_name: identityResolution, in: path, type: string, required: true, description: "Developer name or ID of the ruleset (spec). Use `id`: see [`ir_get`](#ir_get)."}
       - {name: description, in: body, type: string, description: "Description of the identity resolution ruleset. Since v57.0."}
@@ -174,7 +174,7 @@ functions:
     tools: [d360_ir_create]
     description: Create an identity resolution ruleset in Data 360. Since v57.0.
     example: |
-      CALL cdp.ir_create (
+      CALL d360.ir_create (
         label => 'Customer Match',
         description => 'Email, or name plus phone, or device serial number',
         configuration_type => 'Individual',
@@ -293,7 +293,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Identity-Resolutions/paths/~1ssot~1identity-resolutions~1%7BidentityResolution%7D~1actions~1run-now/post
     tools: [d360_ir_run]
     description: Run an identity resolution ruleset job on demand in Data 360. Since v57.0.
-    example: CALL cdp.ir_run (identity_resolution => '1irfj000000IWhWAAW');
+    example: CALL d360.ir_run (identity_resolution => '1irfj000000IWhWAAW');
     options:
       - {name: identity_resolution, api_name: identityResolution, in: path, type: string, required: true, description: "Developer name or ID of the ruleset (spec). Use `id`: see [`ir_get`](#ir_get)."}
       - {name: calling_app, api_name: callingApp, in: body, type: string, description: "Calling application. Since v57.0."}
@@ -329,7 +329,7 @@ functions:
     path: /ssot/identity-resolutions/{id}/actions/publish
     tools: [d360_ir_publish]
     description: Publish a ruleset so identity resolution can use it. This call comes from Salesforce's MCP server and isn't in the spec.
-    example: CALL cdp.ir_publish (identity_resolution_id => '1irfj000000IWhWAAW');
+    example: CALL d360.ir_publish (identity_resolution_id => '1irfj000000IWhWAAW');
     options:
       - {name: identity_resolution_id, api_name: id, in: path, type: string, required: true, description: "The identity resolution ID"}
     effect: write

@@ -4,7 +4,7 @@
  * Give the name without the `__dll` suffix, you read it back as `Loyalty_Member__dll`, and a field `Member_Id` comes back as `Member_Id__c`. An `Engagement` DLO also needs `event_date_time_field_name`. Read it back and wait for the status to become active.
  */
 
-call cdp.dlo_create (
+call d360.dlo_create (
     name => 'Loyalty_Member',
     label => 'Loyalty Member',
     category => 'Profile',
@@ -15,4 +15,4 @@ call cdp.dlo_create (
     ]
 );
 
-call cdp.dlo_get (record_id_or_developer_name => 'Loyalty_Member__dll');
+call d360.dlo_get (record_id_or_developer_name => 'Loyalty_Member__dll');

@@ -2,7 +2,7 @@
 
 # Activations
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 An activation delivers an audience to an activation target. It says which rows to send (a segment or a DMO), what to send about each one (`attributes_config`), how to reach them (`contact_points_config`), and which records to keep (`direct_dmo_filters_config`, `related_dmo_filters_config`).
 
@@ -16,14 +16,14 @@ Gotchas:
 - **`activation_list`:** it omits attributes, contact points and filters, and takes no data space ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
 
 ```sql
-CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
-CALL cdp.activation_create (
+CALL d360.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+CALL d360.activation_create (
   name => 'high_value_s3', dataspace_name => 'default', segment_api_name => 'High_Value',
   activation_target_name => 's3_target', refresh_type => 'INCREMENTAL',
   activation_target_subject_config => (developer_name = 'ssot__Individual__dlm'),
   attributes_config => (attributes = [(name = 'ssot__Id__c', label = 'Individual Id', entity_name = 'ssot__Individual__dlm', data_source_type = 'Text', reference_attribute_name = 'Id', source = 'DIRECT', type = 'MODEL')]));
-CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
-CALL cdp.activation_history_list (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_get (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_history_list (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Functions:** [`activation_delete`](#activation_delete), [`activation_list`](#activation_list), [`activation_get`](#activation_get), [`activation_record_list`](#activation_record_list), [`activation_history_list`](#activation_history_list), [`activation_data_object_category_list`](#activation_data_object_category_list), [`activation_channel_preference_list`](#activation_channel_preference_list), [`activation_channel_list`](#activation_channel_list), [`activation_consent_dmo_list`](#activation_consent_dmo_list), [`activation_data_source_list`](#activation_data_source_list), [`activation_related_attribute_quota_list`](#activation_related_attribute_quota_list), [`activation_related_attribute_limit_list`](#activation_related_attribute_limit_list), [`match_boost_identity_provider_list`](#match_boost_identity_provider_list), [`activation_streaming_eligibility_list`](#activation_streaming_eligibility_list), [`activation_create`](#activation_create), [`activation_publish`](#activation_publish), [`activation_disable`](#activation_disable), [`activation_enable`](#activation_enable), [`activation_full_refresh_run`](#activation_full_refresh_run), [`activation_sync_retry`](#activation_sync_retry), [`activation_update`](#activation_update)
@@ -41,7 +41,7 @@ Delete an activation. Because there are no dependency checks, ensure that there 
 | `activation_id` | `activationId` | path | string | yes | Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org). |
 
 ```sql
-CALL cdp.activation_delete (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_delete (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -64,7 +64,7 @@ Get a list of activations with selected filters. Since v60.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set by `created_date`. If unspecified, items are returned by ID in ascending order. Since v60.0. |
 
 ```sql
-CALL cdp.activation_list (filters => 'activationStatus in active AND activationRefreshType in incremental', order_by => 'createdDate desc', batch_size => 200);
+CALL d360.activation_list (filters => 'activationStatus in active AND activationRefreshType in incremental', order_by => 'createdDate desc', batch_size => 200);
 ```
 
 **Result**
@@ -147,7 +147,7 @@ Get an activation by ID. Since v60.0.
 | `activation_id` | `activationId` | path | string | yes | Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org). |
 
 ```sql
-CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_get (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -232,7 +232,7 @@ Query activation data. Get a list of all activation records from Audience data m
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. Must be greater than or equal to `0`. If unspecified, no rows are skipped. Maximum value is 10 million. Since v61.0. |
 
 ```sql
-CALL cdp.activation_record_list ("X-Chatter-Entity-Encoding" => 'false', activation_id => '85RVF000000CEf72AG', filters => 'delta_type__c in ''A''', batch_size => 1000);
+CALL d360.activation_record_list ("X-Chatter-Entity-Encoding" => 'false', activation_id => '85RVF000000CEf72AG', filters => 'delta_type__c in ''A''', batch_size => 1000);
 ```
 
 **Result**
@@ -282,7 +282,7 @@ Returns a paginated list of publish-history records. With a market segment activ
 | `page_token` | `pageToken` | query | string |  | Snapshot anchor for consistent pagination. Omit this value on the first request. The response's `next_page_url` includes the `page_token` for subsequent pages, which keeps the result set stable as new activations are published. Follow `next_page_url` rather than constructing this value. Since v67.0. |
 
 ```sql
-CALL cdp.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
+CALL d360.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
 ```
 
 **Result**
@@ -316,7 +316,7 @@ Returns the data object category types that are available for activation, option
 | `dataspace` | `dataSpace` | query | string |  | Name of the data space to scope the lookup. If unspecified, the request's data space context is used. Since v67.0. |
 
 ```sql
-CALL cdp.activation_data_object_category_list (dataspace => 'default');
+CALL d360.activation_data_object_category_list (dataspace => 'default');
 ```
 
 **Result**
@@ -343,7 +343,7 @@ Returns the channel preference options for a channel and data model object (DMO)
 | `data_model_object_api_name` | `dataModelObjectApiName` | query | string | yes | API name of the contact point data model object (DMO). Since v67.0. |
 
 ```sql
-CALL cdp.activation_channel_preference_list (channel => 'Email', data_model_object_api_name => 'ssot__ContactPointEmail__dlm');
+CALL d360.activation_channel_preference_list (channel => 'Email', data_model_object_api_name => 'ssot__ContactPointEmail__dlm');
 ```
 
 **Result**
@@ -375,7 +375,7 @@ Returns the available activation channels for a data space. Since v67.0.
 | `order_by` | `orderBy` | query | string |  | Sort expression in the form `field [asc\|desc][, field [asc\|desc]]*`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+CALL d360.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
 ```
 
 **Result**
@@ -407,7 +407,7 @@ Returns the standard consent data model objects (DMOs) for a data space. Since v
 | `dataspace` | `dataSpace` | query | string | yes | Name of the data space to scope the consent data model object lookup. Since v67.0. |
 
 ```sql
-CALL cdp.activation_consent_dmo_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+CALL d360.activation_consent_dmo_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
 ```
 
 **Result**
@@ -438,7 +438,7 @@ Returns the data sources for a data model object (DMO). When you provide a chann
 | `order_by` | `orderBy` | query | string |  | Sort expression in the form `field [asc\|desc][, field [asc\|desc]]*`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_data_source_list (data_model_object_api_name => 'ssot__ContactPointEmail__dlm', channel => 'Email');
+CALL d360.activation_data_source_list (data_model_object_api_name => 'ssot__ContactPointEmail__dlm', channel => 'Email');
 ```
 
 **Result**
@@ -468,7 +468,7 @@ Returns the related-attribute activation quota for the org. When you supply an a
 | `activation_id` | `activationId` | query | string |  | Record ID of an activation to exclude from the current count. Used during edit flows so that the activation being edited doesn't count against itself. Since v67.0. |
 
 ```sql
-CALL cdp.activation_related_attribute_quota_list (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_related_attribute_quota_list (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -494,7 +494,7 @@ Returns the static configuration limits for related-attribute activations, such 
 None.
 
 ```sql
-CALL cdp.activation_related_attribute_limit_list ();
+CALL d360.activation_related_attribute_limit_list ();
 ```
 
 **Result**
@@ -528,7 +528,7 @@ Returns the identity providers for an activation target and data model object (D
 | `selected_provider_id` | `selectedProviderId` | query | string |  | Record ID of the previously saved identity provider. Used in edit mode only. Since v67.0. |
 
 ```sql
-CALL cdp.match_boost_identity_provider_list (activate_on => 'ssot__Individual__dlm', activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+CALL d360.match_boost_identity_provider_list (activate_on => 'ssot__Individual__dlm', activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
 ```
 
 **Result**
@@ -556,7 +556,7 @@ Indicates whether streaming activation is allowed for a data model object (DMO),
 | `data_model_object_api_name` | `dataModelObjectApiName` | query | string | yes | API name of the data model object (DMO) to check streaming eligibility for. Since v67.0. |
 
 ```sql
-CALL cdp.activation_streaming_eligibility_list (data_model_object_api_name => 'ssot__Individual__dlm');
+CALL d360.activation_streaming_eligibility_list (data_model_object_api_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -618,7 +618,7 @@ Create an activation. Since v60.0.
 | `identity_provider_config` | `identityProviderConfig` | body | array |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.activation_create (
+CALL d360.activation_create (
   name => 'test_1234',
   dataspace_name => 'default',
   segment_api_name => 'seg_test',
@@ -752,7 +752,7 @@ Initiate an on-demand publish job for a Batch data model object (DMO) activation
 | `full_refresh` | `fullRefresh` | body | boolean |  | Indicates whether the activation publish type is a full refresh (`true`) or incremental (`false`). **Note:** Execution behavior varies by DMO configuration. >**For Full Refresh DMOs**: Always performs a full refresh, regardless of this value. >**For Incremental DMOs**: - *Initial publish (day 0)*: Always performs a full refresh, regardless of this value. - *Subsequent publishes*: Defaults to incremental if `false` or omitted. Set to `true` to force a full refresh. Since v66.0. |
 
 ```sql
-CALL cdp.activation_publish (activation_id => '85RVF000000CEf72AG', full_refresh => true);
+CALL d360.activation_publish (activation_id => '85RVF000000CEf72AG', full_refresh => true);
 ```
 
 **Result**
@@ -783,7 +783,7 @@ Disables a market segment activation. Since v67.0.
 | `dataspace` | `dataSpace` | query | string |  | Name of the data space to use as context for the request. Since v67.0. |
 
 ```sql
-CALL cdp.activation_disable (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_disable (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -811,7 +811,7 @@ Enables a market segment activation. Since v67.0.
 | `dataspace` | `dataSpace` | query | string |  | Name of the data space to use as context for the request. Since v67.0. |
 
 ```sql
-CALL cdp.activation_enable (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_enable (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -838,7 +838,7 @@ Triggers a full-refresh publish for an activation. Since v67.0.
 | `activation_id` | `activationId` | path | string | yes | Record ID (15- or 18-character) of the market segment activation. Since v67.0. |
 
 ```sql
-CALL cdp.activation_full_refresh_run (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_full_refresh_run (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -867,7 +867,7 @@ Retries the sync for an activation. Since v67.0.
 | `activation_id` | `activationId` | path | string | yes | Record ID (15- or 18-character) of the market segment activation. Since v67.0. |
 
 ```sql
-CALL cdp.activation_sync_retry (activation_id => '85RVF000000CEf72AG');
+CALL d360.activation_sync_retry (activation_id => '85RVF000000CEf72AG');
 ```
 
 **Result**
@@ -928,7 +928,7 @@ Update a specific activation by ID. Since v60.0.
 | `identity_provider_config` | `identityProviderConfig` | body | array |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.activation_update (activation_id => '85RVF000000CEf72AG', refresh_type => 'INCREMENTAL', should_exclude_deletes => true, should_exclude_updates => true, static_data_config => (static_data = [(name = 'Test_1', value = 'TestValue_1')]));
+CALL d360.activation_update (activation_id => '85RVF000000CEf72AG', refresh_type => 'INCREMENTAL', should_exclude_deletes => true, should_exclude_updates => true, static_data_config => (static_data = [(name = 'Test_1', value = 'TestValue_1')]));
 ```
 
 **Result**

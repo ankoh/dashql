@@ -4,6 +4,6 @@
  * Take the developer name from the list.
  */
 
-call cdp.access_policy_list (search_string => 'Restrict');
+call d360.access_policy_list (search_string => 'Restrict');
 
-call cdp.access_policy_get (name => 'RestrictSensitiveFields');
+call d360.access_policy_get (name => 'RestrictSensitiveFields');

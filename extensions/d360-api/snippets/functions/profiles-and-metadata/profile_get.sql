@@ -4,13 +4,13 @@
  * `offset` needs `order_by` on this route.
  */
 
-call cdp.profile_query (
+call d360.profile_query (
     data_model_name => 'ssot__Individual__dlm',
     filters => '[ssot__LastName__c=Dupont]',
     fields => 'ssot__Id__c,ssot__FirstName__c'
 );
 
-call cdp.profile_get (
+call d360.profile_get (
     data_model_name => 'ssot__Individual__dlm',
     id => 'Jean',
     search_key => 'ssot__FirstName__c',

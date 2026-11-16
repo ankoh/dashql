@@ -2,7 +2,7 @@
 
 # Activation Targets
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 An activation target is a destination for segment data: a file drop such as Amazon S3 or SFTP, Marketing Cloud, Data 360 itself, or an ad platform. You set it up once, then [`activation_create`](activations.md#activation_create) sends a segment to it by `activation_target_name`. So the order is: find the platform, create the target, check that it's active, and only then create the activation.
 
@@ -15,9 +15,9 @@ The gotchas that matter most:
 - **Gated orgs.** `CdpActivationTarget` or `CdpActivationExternalPlatform` means the surface is [gated for this org or user](https://github.com/forcedotcom/sf-skills/blob/2476476dda1b671762c6e963b9d10c4a7056f1c4/skills/data360-activate/SKILL.md), so don't retry blindly.
 
 ```sql
-CALL cdp.activation_platform_metadata_list (platform_type => 'Sftp');
+CALL d360.activation_platform_metadata_list (platform_type => 'Sftp');
 
-CALL cdp.activation_target_create (
+CALL d360.activation_target_create (
   name => 'sftp_exports',
   dataspace_name => 'default',
   platform_type => 'Sftp',
@@ -26,7 +26,7 @@ CALL cdp.activation_target_create (
 );
 
 /* Wait for status Active, using the id from the create result */
-CALL cdp.activation_target_get (activation_target_id => '85USB000004ADXx2AO');
+CALL d360.activation_target_get (activation_target_id => '85USB000004ADXx2AO');
 ```
 
 **Functions:** [`activation_target_delete`](#activation_target_delete), [`activation_target_list`](#activation_target_list), [`activation_target_get`](#activation_target_get), [`activation_target_ad_account_list`](#activation_target_ad_account_list), [`activation_target_partner_object_list`](#activation_target_partner_object_list), [`activation_platform_metadata_list`](#activation_platform_metadata_list), [`communication_capping_data_space_list`](#communication_capping_data_space_list), [`ad_account_availability_get`](#ad_account_availability_get), [`marketing_cloud_enterprise_list`](#marketing_cloud_enterprise_list), [`activation_target_platform_field_list`](#activation_target_platform_field_list), [`activation_target_update`](#activation_target_update), [`activation_target_create`](#activation_target_create), [`activation_target_ad_account_assign`](#activation_target_ad_account_assign), [`activation_target_disable`](#activation_target_disable), [`activation_target_enable`](#activation_target_enable), [`activation_target_sync_retry`](#activation_target_sync_retry)
@@ -44,7 +44,7 @@ Delete an activation target by ID or developer name. Since v60.0.
 | `activation_target_id` | `activationTargetId` | path | string | yes | ID or developer name, per the spec. See the conflict noted on `activation_target_get`. |
 
 ```sql
-CALL cdp.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC');
+CALL d360.activation_target_delete (activation_target_id => '85UVF000000Dr4v2AC');
 ```
 
 **Result**
@@ -69,7 +69,7 @@ Get a list of activation targets with selected filters. Since v60.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set by `created_date`. If unspecified, items are returned by ID in ascending order. Since v60.0. |
 
 ```sql
-CALL cdp.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50);
+CALL d360.activation_target_list (filters => 'targetStatus in active AND platformName in Amazon S3', order_by => 'createdDate desc', batch_size => 50);
 ```
 
 **Result**
@@ -120,7 +120,7 @@ Get an activation target by ID or developer name. Since v60.0.
 | `activation_target_id` | `activationTargetId` | path | string | yes | ID or developer name, per the spec. One org found id only (community), see notes. |
 
 ```sql
-CALL cdp.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC');
+CALL d360.activation_target_get (activation_target_id => '85UVF000000Dr4v2AC');
 ```
 
 **Result**
@@ -174,7 +174,7 @@ Returns the ad accounts that aren't already assigned in the specified data space
 | `platform_id_or_name` | `platformIdOrName` | query | string | yes | Record ID (15- or 18-character) or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+CALL d360.activation_target_ad_account_list (activation_target_id => '85UVF000000NaQz2AK', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
 ```
 
 **Result**
@@ -207,7 +207,7 @@ Returns partner-platform objects of the specified type. Results are cursor-pagin
 | `partner_object_type` | `partnerObjectType` | query | enum(App, ConversionRule, CrmEventSet, MobileApp, OfflineEventSet, Pixel) | yes | Type of partner object to retrieve. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule');
+CALL d360.activation_target_partner_object_list (activation_target_id => '85UVF000000NaQz2AK', partner_object_type => 'ConversionRule');
 ```
 
 **Result**
@@ -244,7 +244,7 @@ Lists the platforms you can create a target on, including their `api_name`, cate
 | `platform_type` | `platformType` | query | enum(AzureBlob, DataCloud, External, GoogleCloudStorage, InteractionStudio, S3, S3V2, SfApp, Sfcc, Sfmc, Sftp, Strategic, StreamingFlow) |  | Filter results by platform type, such as `Sfmc`, `Sftp`, `External`, or `Strategic`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc');
+CALL d360.activation_platform_metadata_list (platform_type => 'Strategic', order_by => 'name asc');
 ```
 
 **Result**
@@ -282,7 +282,7 @@ Returns all data spaces with communication capping definitions linked to activat
 | `order_by` | `orderBy` | query | string |  | Sort expression in the form `field [asc\|desc][, field [asc\|desc]]*`. Since v67.0. |
 
 ```sql
-CALL cdp.communication_capping_data_space_list ();
+CALL d360.communication_capping_data_space_list ();
 ```
 
 **Result**
@@ -316,7 +316,7 @@ Indicates whether an ad account is available to assign to an activation target. 
 | `platform_id_or_name` | `platformIdOrName` | query | string | yes | Record ID (15- or 18-character) or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+CALL d360.ad_account_availability_get (account_id => '6586160339', dataspace => 'default', platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
 ```
 
 **Result**
@@ -343,7 +343,7 @@ Returns Marketing Cloud enterprises and their business units. Since v67.0.
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0. |
 
 ```sql
-CALL cdp.marketing_cloud_enterprise_list ();
+CALL d360.marketing_cloud_enterprise_list ();
 ```
 
 **Result**
@@ -374,7 +374,7 @@ Returns the target-level configuration fields for an activation platform. Since 
 | `platform_id_or_name` | `platformIdOrName` | query | string | yes | Record ID (15- or 18-character) or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+CALL d360.activation_target_platform_field_list (platform_id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
 ```
 
 **Result**
@@ -416,7 +416,7 @@ Update a specific activation target by ID or developer name. Since v60.0.
 | `platform_type` | `platformType` | body | enum(AccountEngagement, AmazonS3, AmazonS3V2, AwsKinesisDS, AzureBlob, BigQuery, ConnectorsFramework, ConversationStorage, CuratedEntity, DataCloud, ExternalPlatform, Generic, GoogleCloudStorage, Ibm, IngestApi, RedShift, S3Arn, SalesforceCommerceCloud, SalesforceDotCom, SalesforceInteractionStudio, SalesforceMarketingCloud, Sftp, Snowflake, StreamingApp, StreamingFlow, Upload) |  | Platform type for the activation target. Since v60.0. |
 
 ```sql
-CALL cdp.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports');
+CALL d360.activation_target_update (activation_target_id => '85UVF000000Dr4v2AC', dataspace_name => 'default', name => 's3_target2', description => 'Nightly audience exports');
 ```
 
 **Result**
@@ -477,7 +477,7 @@ Creates the destination that activations send segment data to. Call it after cho
 | `config` | `config` | body | [activation_target_create_config](#activation_target_create_config) |  | Not in the spec schema: from the MCP server's payload example. |
 
 ```sql
-CALL cdp.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
+CALL d360.activation_target_create (name => 's3_target2', dataspace_name => 'default', platform_type => 'AmazonS3', connector => (name = 's3_conn_1', output_format = 'CSV', bucket_name = 'audience-exports', folder_name = 'nightly', access_key = :s3_access_key, secret_key = :s3_secret_key));
 ```
 
 **Result**
@@ -557,7 +557,7 @@ Assigns the specified ad account to the activation target. Since v67.0.
 | `manager_account_id` | `managerAccountId` | body | string |  | Manager account ID for the ad account. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default');
+CALL d360.activation_target_ad_account_assign (activation_target_id => '85UVF000000NaQz2AK', account_number => '6586160339', manager_account_id => '6586160339', dataspace => 'default');
 ```
 
 **Result**
@@ -585,7 +585,7 @@ Disables an activation target. Since v67.0.
 | `dataspace` | `dataSpace` | query | string |  | Name of the data space to use as context for the request. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+CALL d360.activation_target_disable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
 ```
 
 **Result**
@@ -613,7 +613,7 @@ Enables an activation target. Since v67.0.
 | `dataspace` | `dataSpace` | query | string |  | Name of the data space to use as context for the request. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+CALL d360.activation_target_enable (activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
 ```
 
 **Result**
@@ -640,7 +640,7 @@ Retries the sync for an activation target. Since v67.0.
 | `activation_target_id` | `activationTargetId` | path | string | yes | Record ID (15- or 18-character) of the activation target. Since v67.0. |
 
 ```sql
-CALL cdp.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4');
+CALL d360.activation_target_sync_retry (activation_target_id => '85USB000004LBZF2A4');
 ```
 
 **Result**

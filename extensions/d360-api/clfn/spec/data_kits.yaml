@@ -15,11 +15,11 @@ description: |
 
   ```sql
   /* In the source org */
-  CALL cdp.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))]);
+  CALL d360.datakit_create (data_kit_dev_name => 'Customer_Kit', label => 'Customer Kit', data_kit_type => 'None', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer'))]);
 
   /* In the target org, after installing the package */
-  CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => []);
-  CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+  CALL d360.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, components => []);
+  CALL d360.datakit_deploy_status (job_id => '08Paj00000tPyr4');
   ```
 
 functions:
@@ -29,7 +29,7 @@ functions:
     path: /ssot/data-kits/{dataKitDevName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/delete
     description: Delete a data kit. Since v64.0.
-    example: CALL cdp.datakit_delete (data_kit_dev_name => 'Customer_Kit');
+    example: CALL d360.datakit_delete (data_kit_dev_name => 'Customer_Kit');
     options:
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
     effect: write
@@ -44,7 +44,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits/get
     tools: [d360_datakit_list]
     description: Get a list of data kits by namespace. Since v63.0.
-    example: CALL cdp.datakit_list (namespace => 'acme');
+    example: CALL d360.datakit_list (namespace => 'acme');
     options:
       - {name: namespace, in: query, type: string, description: "Namespace prefix of the data kit package. Since v63.0."}
     rows: /dataKitDetails
@@ -72,7 +72,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1components~1%7BcomponentName%7D~1dependencies/get
     tools: [d360_datakit_component_deps]
     description: Get the dependencies for components deployed from a data kit. Since v63.0.
-    example: CALL cdp.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject');
+    example: CALL d360.datakit_component_deps (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll', component_type => 'DataLakeObject');
     options:
       - {name: component_name, api_name: componentName, in: path, type: string, required: true, description: "Name of the component, for example `Customer__dll` for a DLO."}
       - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit."}
@@ -95,7 +95,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1components~1%7BcomponentName%7D~1deployment-status/get
     tools: [d360_datakit_component_status]
     description: Get the status of a component deployed from a data kit. Since v62.0.
-    example: CALL cdp.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll');
+    example: CALL d360.datakit_component_status (data_kit_name => 'Customer_Kit', component_name => 'Customer__dll');
     options:
       - {name: component_name, api_name: componentName, in: path, type: string, required: true, description: "Name of the component, for example `Customer__dll` for a DLO."}
       - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit."}
@@ -114,7 +114,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1available-components/get
     tools: [d360_datakit_components]
     description: List components in the org that can be added to a data kit, optionally by component type. Use it to find names for `datakit_create`. Since v63.0.
-    example: CALL cdp.datakit_components (component_type => 'DataLakeObject', limit => 50);
+    example: CALL d360.datakit_components (component_type => 'DataLakeObject', limit => 50);
     options:
       - {name: component_type, api_name: componentType, in: query, type: string, description: "Type of components to return. These values are supported: - `DataStreamBundle` - `CalculatedInsight` - `DataLakeObject` - `DataTransform` - `EngagementSignal` - `PersonalizationObjective` - `PersonalizationRecommender` - `PersonalizationPoint` - `PersonalizationSchema` Since v63.0."}
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: query, type: string, description: "Developer name of the data kit. Since v63.0."}
@@ -137,7 +137,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1datakit~1%7BdataKitDevName%7D~1manifest/get
     tools: [d360_datakit_manifest]
     description: Get a list of all member components and dependencies for a data kit. Since v63.0.
-    example: CALL cdp.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
+    example: CALL d360.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
     options:
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit or name of the `DataPackageKitDefinition`. Since v63.0."}
     rows: /dataKitMembers
@@ -161,7 +161,7 @@ functions:
     path: /ssot/data-kits/{dataKitDevName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/patch
     description: "Update the components of an existing data kit. Updating components is a destructive sync: newly provided components replace the existing set, and any omitted components are removed. Since v64.0."
-    example: CALL cdp.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))]);
+    example: CALL d360.datakit_components_update (data_kit_dev_name => 'Customer_Kit', components => [(type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')), (type = 'DataLakeObject', info = (name = 'Order__dll', label = 'Order'))]);
     options:
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
       - {name: components, in: body, schema: DataKitComponentInputRepresentation, array: 1, required: true, description: "List of data kit components. Since v63.0."}
@@ -180,7 +180,7 @@ functions:
     path: /ssot/data-kits
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits/post
     description: Create a standard data kit. Since v63.0.
-    example: CALL cdp.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))]);
+    example: CALL d360.datakit_create (data_kit_dev_name => 'NewDataKit', label => 'New Data Kit From API', data_kit_type => 'None', components => [(type = 'DataStreamBundle', info = (name = 'CRMBundle', connector_type = 'CRM', streams = [(dev_name = 'Lead_Home__dll', label = 'Lead_Home'), (dev_name = 'User_Home__dll', label = 'User_Home')]))]);
     options:
       - {name: components, in: body, schema: DataKitComponentInputRepresentation, array: 1, required: true, description: "List of components to be included in the data kit. Since v63.0."}
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: body, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
@@ -208,7 +208,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitDevName%7D/post
     tools: [d360_datakit_deploy]
     description: Deploy multiple components from a specific data kit. Since v64.0. **Note:** See [Supported Component Types for Data Kit Deployment](https://developer.salesforce.com/docs/data/connectapi/guide/deploy-data-kit-payloads.html) for the complete list of component types and their corresponding payload configurations.
-    example: CALL cdp.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))]);
+    example: CALL d360.datakit_deploy (data_kit_dev_name => 'Customer_Kit', async_mode => true, dataspace => 'default', components => [(type = 'DataLakeObject', config = (data_source_object_dev_name = 'Namespace__Customer', api_name = 'Customer', label = 'Customer', dataspace_name = 'default')), (type = 'CalculatedInsight', config = (api_name = 'Namespace__Revenue', api_name_override = 'Revenue', label = 'Revenue', publish_interval = 'NotScheduled'))]);
     options:
       - {name: data_kit_dev_name, api_name: dataKitDevName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v64.0."}
       - {name: async_mode, api_name: asyncMode, in: query, type: boolean, required: true, description: "Specifies asynchronous data kit deployment. Must be set to `true`; other values are not currently supported. Since v64.0."}
@@ -300,7 +300,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Kits/paths/~1ssot~1data-kits~1%7BdataKitName%7D~1undeploy/post
     tools: [d360_datakit_undeploy]
     description: Undeploy a component previously deployed from a data kit. The undeployment occurs in the sequential order of components specified in the request body. Since v63.0.
-    example: CALL cdp.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')]);
+    example: CALL d360.datakit_undeploy (data_kit_name => 'Customer_Kit', async_mode => true, components => [(type = 'DataTransform', name = 'Customer_Transform'), (type = 'DataLakeObject', name = 'Customer__dll')]);
     options:
       - {name: data_kit_name, api_name: dataKitName, in: path, type: string, required: true, description: "Developer name of the data kit. Since v63.0."}
       - {name: async_mode, api_name: asyncMode, in: query, type: boolean, required: true, description: "Indicates whether the deployment is asynchronous. Only the `true` value is accepted. Since v63.0."}
@@ -326,7 +326,7 @@ functions:
     path: /ssot/data-kits/{id}
     tools: [d360_datakit_get]
     description: Get one data kit by developer name. This comes from Salesforce's MCP server, not the spec, so prefer `datakit_list` or `datakit_manifest` when you need a documented response.
-    example: CALL cdp.datakit_get (data_kit_dev_name => 'Customer_Kit');
+    example: CALL d360.datakit_get (data_kit_dev_name => 'Customer_Kit');
     options:
       - {name: data_kit_dev_name, api_name: id, in: path, type: string, required: true, description: "The data kit developer name"}
       - {name: fbdk_accessible_in_lob, api_name: fbdkAccessibleInLob, in: query, type: boolean, description: "Filter by FBDK accessible in LOB flag"}
@@ -347,7 +347,7 @@ functions:
     path: /ssot/data-kits/deployment-jobs/{jobId}
     tools: [d360_datakit_deploy_status]
     description: Get the state of a data kit deployment job started by `datakit_deploy`. Poll it until the job reaches a final status. It isn't in the spec.
-    example: CALL cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+    example: CALL d360.datakit_deploy_status (job_id => '08Paj00000tPyr4');
     options:
       - {name: job_id, api_name: jobId, in: path, type: string, required: true, description: "The deployment job ID"}
     columns:

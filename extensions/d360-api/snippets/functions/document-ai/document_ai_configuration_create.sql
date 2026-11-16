@@ -4,7 +4,7 @@
  * Without `source_dmo_developer_name` the configuration serves ad hoc extraction. For batch runs, set it to an unstructured DMO. Read the configuration to see the `status` of its sync, which shows `SYNCED` or `Synced`.
  */
 
-call cdp.document_ai_configuration_create (
+call d360.document_ai_configuration_create (
     name => 'Vendor_Invoice',
     label => 'Vendor Invoice',
     description => 'Supplier invoices as PDF or image',
@@ -24,4 +24,4 @@ call cdp.document_ai_configuration_create (
   $$
 );
 
-call cdp.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
+call d360.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');

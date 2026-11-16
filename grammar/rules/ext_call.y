@@ -15,7 +15,7 @@ call_stmt:
             &[attr(Key::SQL_CALL_NAME, $2), attr(Key::SQL_CALL_ARGS, ctx.array(loc(&[@3, @4, @5]), $4))],
         )
     }
-  // The name while it is typed, `CALL cdp.`
+  // The name while it is typed, `CALL d360.`
   | CALL_P sql_col_id ext_dot_trailing {
         let name = ctx.array(loc(&[@2, @3]), &[$2, ctx.trailing_dot(@3)]);
         ctx.object(@$, NodeType::OBJECT_SQL_CALL, &[attr(Key::SQL_CALL_NAME, name)])

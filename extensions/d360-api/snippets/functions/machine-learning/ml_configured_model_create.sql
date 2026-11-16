@@ -4,7 +4,7 @@
  * Actionable fields are those prescriptions can be generated on. The model starts `Disabled`, send `status => 'Enabled'` to enable it right away, or do it later with `ml_configured_model_update`.
  */
 
-call cdp.ml_configured_model_create (
+call d360.ml_configured_model_create (
     label => 'Attrition Predictor (Catboost)',
     description => 'Scores the risk that an employee leaves within a year.',
     artifact => (name = 'Attrition_Risk_Predictor_v1__mla'),
@@ -17,4 +17,4 @@ call cdp.ml_configured_model_create (
     ]
 );
 
-call cdp.ml_configured_model_list (model_type => 'Predictive', search => 'Attrition');
+call d360.ml_configured_model_list (model_type => 'Predictive', search => 'Attrition');

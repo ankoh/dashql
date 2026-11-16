@@ -19,10 +19,10 @@ description: |
   This family's own calls take `id_or_name`. Salesforce's [MCP tools](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataSpaceTools.java) call it `dataSpaceNameOrId`, and `dataSpaceNameOrID` on the member list only. Those are Java parameter names, not API names.
 
   ```sql
-  CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
-  CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]));
-  CALL cdp.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll'); /* repeat until status is ACTIVE */
-  CALL cdp.segment_list (dataspace => 'nonDefault');
+  CALL d360.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+  CALL d360.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]));
+  CALL d360.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll'); /* repeat until status is ACTIVE */
+  CALL d360.segment_list (dataspace => 'nonDefault');
   ```
 
 functions:
@@ -32,7 +32,7 @@ functions:
     path: /ssot/data-spaces/{idOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/delete
     description: Deletes a data space by ID or API name.
-    example: CALL cdp.dataspace_delete (id_or_name => 'nonDefault');
+    example: CALL d360.dataspace_delete (id_or_name => 'nonDefault');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID (`0vhSB000001bqwjYAA`) or API name (`nonDefault`) of the data space."}
     effect: write
@@ -47,7 +47,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/delete
     tools: [d360_dataspace_member_remove]
     description: Delete the specified data lake objects (DLOs) from a data space. Since v66.0.
-    example: CALL cdp.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll');
+    example: CALL d360.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space. Since v66.0."}
       - {name: member_names, api_name: memberNames, in: query, type: string, required: true, description: "DLO names separated by commas, for example, `DataSpaceMember1__dll,DataSpaceMember2__dll`. Maximum 10 members per request. Since v66.0."}
@@ -63,7 +63,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces/get
     tools: [d360_dataspace_list]
     description: Get a collection of all data spaces that a user is assigned to. Since v62.0.
-    example: CALL cdp.dataspace_list ();
+    example: CALL d360.dataspace_list ();
     options:
       - {name: limit, in: query, type: integer, description: "The maximum number of items to return in each response. Values are from `1` through `4999`. The default value is `50` if unspecified. Since v62.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v62.0."}
@@ -98,7 +98,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/get
     tools: [d360_dataspace_get]
     description: Get a data space by ID or API name. Since v62.0.
-    example: CALL cdp.dataspace_get (id_or_name => 'default');
+    example: CALL d360.dataspace_get (id_or_name => 'default');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID (`0vhSB000001bqwjYAA`) or API name (`default`) of the data space."}
     columns:
@@ -126,7 +126,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/get
     tools: [d360_dataspace_member_list]
     description: Get information about the objects that can access a data space. Currently, only data lake objects (DLOs) are supported. Since v61.0.
-    example: CALL cdp.dataspace_member_list (id_or_name => 'default', batch_size => 200);
+    example: CALL d360.dataspace_member_list (id_or_name => 'default', batch_size => 200);
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "The maximum number of items to return in each response. Values are from `1` through `2000`. The default value is `50` if unspecified. Since v61.0."}
@@ -164,7 +164,7 @@ functions:
     path: /ssot/data-spaces/{idOrName}/members/{dataSpaceMemberObjectName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members~1%7BdataSpaceMemberObjectName%7D/get
     description: Get details about a data space member for a given data lake object (DLO). Since v62.0.
-    example: CALL cdp.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default');
+    example: CALL d360.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default');
     options:
       - {name: dataspace_member_object_name, api_name: dataSpaceMemberObjectName, in: path, type: string, required: true, description: "Developer name of the DLO that is the member, as in `member_name`."}
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
@@ -193,7 +193,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D/patch
     tools: [d360_dataspace_update]
     description: Update an existing data space. Since v62.0.
-    example: CALL cdp.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
+    example: CALL d360.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
       - {name: description, in: body, type: string, required: true, description: "Description of the data space. Since v62.0."}
@@ -223,7 +223,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces/post
     tools: [d360_dataspace_create]
     description: Create a new data space based on the input details provided. Since v62.0.
-    example: CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+    example: CALL d360.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -261,7 +261,7 @@ functions:
     path: /ssot/data-spaces/{idOrName}/actions/retry
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1actions~1retry/post
     description: Retries the sync of a data space. The spec gives only the summary "Sync data space" and the path `actions/retry`.
-    example: CALL cdp.dataspace_sync (id_or_name => 'nonDefault');
+    example: CALL d360.dataspace_sync (id_or_name => 'nonDefault');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
     effect: write
@@ -278,7 +278,7 @@ functions:
     path: /ssot/data-spaces/{idOrName}/members/{dataSpaceMemberObjectName}/actions/retry
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members~1%7BdataSpaceMemberObjectName%7D~1actions~1retry/post
     description: Retries the sync of one data space member. The spec gives only the summary "Sync data space member" and the path `actions/retry`.
-    example: CALL cdp.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault');
+    example: CALL d360.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault');
     options:
       - {name: dataspace_member_object_name, api_name: dataSpaceMemberObjectName, in: path, type: string, required: true, description: "Developer name of the DLO that is the member, as in `member_name`."}
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
@@ -297,7 +297,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Spaces/paths/~1ssot~1data-spaces~1%7BidOrName%7D~1members/put
     tools: [d360_dataspace_member_add]
     description: Add members to a data space or update existing data space filters. Currently, only data lake objects (DLOs) are supported. Both create and update are acceptable methods. Since v61.0.
-    example: CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]));
+    example: CALL d360.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]));
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "ID or API name of the data space."}
       - {name: members, in: body, schema: DataSpaceMemberInputListRepresentation, array: 1, required: true, description: "A list of members to either create or update in the data space. Since v62.0."}

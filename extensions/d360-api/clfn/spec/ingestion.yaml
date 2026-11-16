@@ -14,15 +14,15 @@ description: |
 
   ```sql
   /* Streaming: validate, then send */
-  CALL cdp.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
-  CALL cdp.ingest_insert (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
+  CALL d360.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
+  CALL d360.ingest_insert (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
 
   /* Bulk: create, upload, close */
-  CALL cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
-  CALL cdp.ingest_job_upload (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', csv => $$id,total
+  CALL d360.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
+  CALL d360.ingest_job_upload (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', csv => $$id,total
   o-1,77506
   $$);
-  CALL cdp.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');
+  CALL d360.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');
   ```
 
 functions:
@@ -33,7 +33,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-insert-records.md
     description: "Streaming upsert: inserts new records and updates existing ones in the object's data lake table. Use it for small micro-batches in near-real time. Use a bulk job for large loads."
     example: |
-      CALL cdp.ingest_insert (
+      CALL d360.ingest_insert (
         name => 'ecomm',
         object_name => 'Orders',
         data => [
@@ -80,7 +80,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-delete-records.md
     description: Streaming delete of up to 200 records by primary key. Use a bulk job with `operation => 'delete'` for more.
     example: |
-      CALL cdp.ingest_delete (
+      CALL d360.ingest_delete (
         name => 'ecomm',
         object_name => 'Orders',
         ids => '001xx000003DGb2AAG,003xx000004TmiQAAS'
@@ -110,7 +110,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-synchronous-record-validation.md
     description: Validates records against the object's schema and reports failures right away, without loading anything. For development only.
     example: |
-      CALL cdp.ingest_test (
+      CALL d360.ingest_test (
         name => 'ecomm',
         object_name => 'Orders',
         data => [
@@ -145,7 +145,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-create-a-job.md
     description: Creates a bulk job for one object and one operation. The job starts in `Open`, ready for uploads.
     example: |
-      CALL cdp.ingest_job_create (
+      CALL d360.ingest_job_create (
         object => 'Orders',
         source_name => 'ecomm',
         operation => 'upsert'
@@ -183,7 +183,7 @@ functions:
     path: /api/v1/ingest/jobs
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-get-all-jobs.md
     description: Lists bulk jobs, optionally filtered by state.
-    example: CALL cdp.ingest_job_list (states => 'Open,UploadComplete', limit => 100);
+    example: CALL d360.ingest_job_list (states => 'Open,UploadComplete', limit => 100);
     options:
       - {name: limit, in: query, type: integer, description: "Records to return. Defaults to 20, maximum 100."}
       - {name: offset, in: query, type: integer, description: "Rows to skip before returning."}
@@ -220,7 +220,7 @@ functions:
     path: /api/v1/ingest/jobs/{id}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-get-job-info.md
     description: Returns one bulk job. Poll it after closing the job to see whether processing finished.
-    example: CALL cdp.ingest_job_get (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
+    example: CALL d360.ingest_job_get (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
     options:
       - {name: id, in: path, type: string, required: true, description: "Job id from [`ingest_job_create`](#ingest_job_create)."}
     columns:
@@ -264,7 +264,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-upload-job-data.md
     description: Uploads one CSV file to an `Open` job. Call it once per file, then close the job with `ingest_job_update`.
     example: |
-      CALL cdp.ingest_job_upload (
+      CALL d360.ingest_job_upload (
         id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',
         csv => $$id,contact_name,created_date,tax_exempt,total
       f19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506
@@ -305,7 +305,7 @@ functions:
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-close-or-abort-a-job.md
     description: Closes a job with `UploadComplete`, which queues its data for processing, or aborts it with `Aborted`, which deletes its uploaded data.
     example: |
-      CALL cdp.ingest_job_update (
+      CALL d360.ingest_job_update (
         id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',
         state => 'UploadComplete'
       );
@@ -343,7 +343,7 @@ functions:
     path: /api/v1/ingest/jobs/{id}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-int/references/data-cloud-ingestionapi-ref/c360-a-api-delete-a-job.md
     description: Deletes a closed job, along with its stored job data and metadata. The job then no longer appears in the get or list calls.
-    example: CALL cdp.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
+    example: CALL d360.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
     options:
       - {name: id, in: path, type: string, required: true, description: "Job id from [`ingest_job_create`](#ingest_job_create)."}
     effect: write

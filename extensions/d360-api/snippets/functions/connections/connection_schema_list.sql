@@ -4,6 +4,6 @@
  * Only some connector types work: `DataConnectionEvent`, `IngestApi` and `StreamingApp`. Others, such as `AwsS3` or `SalesforceDotCom`, are rejected with an illegal query parameter error.
  */
 
-call cdp.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
 
-call cdp.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');

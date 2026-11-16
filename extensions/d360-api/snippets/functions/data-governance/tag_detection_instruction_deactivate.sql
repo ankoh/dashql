@@ -4,6 +4,6 @@
  * This deactivates the instruction and leaves the tag in place.
  */
 
-call cdp.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+call d360.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
 
-call cdp.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+call d360.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');

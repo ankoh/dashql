@@ -4,4 +4,4 @@
  * Repeat until `status` is `ACTIVE`.
  */
 
-call cdp.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll');
+call d360.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll');

@@ -4,7 +4,7 @@
  * A request holds up to 200 items. If a tag link of an item fails, the classification is still created.
  */
 
-call cdp.classification_bulk_create (
+call d360.classification_bulk_create (
     classifications => [
         (
             fully_qualified_name = 'Compliance_Classifications.PII',
@@ -20,4 +20,4 @@ call cdp.classification_bulk_create (
     ]
 );
 
-call cdp.classification_list (taxonomy_name => 'Compliance_Classifications');
+call d360.classification_list (taxonomy_name => 'Compliance_Classifications');

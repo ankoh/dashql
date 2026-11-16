@@ -2,7 +2,7 @@
 
 # Document AI
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Document AI uses an LLM to read documents such as PDFs and images, and returns structured data that follows a JSON schema you define. The [architect guide](https://architect.salesforce.com/docs/architect/fundamentals/guide/data360-document-ai) calls Agentforce a hard prerequisite: all Document AI APIs are unavailable until it is active, and they stop if it or the chosen model is disabled.
 
@@ -16,9 +16,9 @@ The usual order is to read the valid models and file types with `document_ai_glo
 The gotchas that matter most, per the guide: 10 MB per file, 50 extraction calls per minute per tenant, and credits spent on processing. Fields not found come back as null, and content past the model's context is dropped silently. The spec's schemas and examples also disagree in several places, noted per function.
 
 ```sql
-CALL cdp.document_ai_global_configuration_get ();
-CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
-CALL cdp.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+CALL d360.document_ai_global_configuration_get ();
+CALL d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+CALL d360.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
 ```
 
 **Functions:** [`document_ai_configuration_delete`](#document_ai_configuration_delete), [`document_ai_configuration_list`](#document_ai_configuration_list), [`document_ai_configuration_get`](#document_ai_configuration_get), [`document_ai_global_configuration_get`](#document_ai_global_configuration_get), [`document_ai_configuration_update`](#document_ai_configuration_update), [`document_ai_schema_detect`](#document_ai_schema_detect), [`document_ai_data_extract`](#document_ai_data_extract), [`document_ai_schema_generate`](#document_ai_schema_generate), [`document_ai_configuration_create`](#document_ai_configuration_create), [`document_ai_process_run`](#document_ai_process_run)
@@ -36,7 +36,7 @@ Delete a Document AI configuration. Since v63.0.
 | `id_or_api_name` | `idOrApiName` | path | string | yes | ID or API name of the configuration. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice');
+CALL d360.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice');
 ```
 
 **Result**
@@ -62,7 +62,7 @@ Get all Document AI configurations. Since v63.0.
 | `search` | `search` | query | string |  | Return only records that contain a specific search term. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25);
+CALL d360.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25);
 ```
 
 **Result**
@@ -108,7 +108,7 @@ Get the details of a Document AI configuration. Since v63.0.
 | `id_or_api_name` | `idOrApiName` | path | string | yes | ID or API name of the configuration. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
+CALL d360.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
 ```
 
 **Result**
@@ -154,7 +154,7 @@ Reads which file types, size limits and models this org accepts for Document AI.
 None.
 
 ```sql
-CALL cdp.document_ai_global_configuration_get ();
+CALL d360.document_ai_global_configuration_get ();
 ```
 
 **Result**
@@ -185,7 +185,7 @@ Update an existing Document AI configuration. Since v63.0.
 | `label` | `label` | body | string |  | New display label for the configuration. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated');
+CALL d360.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated');
 ```
 
 **Result**
@@ -237,7 +237,7 @@ Detects which extraction schema best matches a document using single or multi-sc
 | `schema_configurations` | `schemaConfigurations` | body | array of string |  | List of Document AI schema configuration IDs to match against. Since v67.0. |
 
 ```sql
-CALL cdp.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9);
+CALL d360.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9);
 ```
 
 **Result**
@@ -276,7 +276,7 @@ Extracts structured data from a file and returns it synchronously as JSON, witho
 | `schema_config` | `schemaConfig` | body | string |  | The schema of the data to be extracted in JSON format. Use the root `description` field to provide a schema-level prompt for global instructions, such as setting the extraction language or sections to ignore. This document-wide guidance works with field-level prompts to enhance extraction accuracy across complex documents. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_data_extract (
+CALL d360.document_ai_data_extract (
   ml_model => 'llmgateway__VertexAIGemini25Flash001',
   files => [(file_id = '068xxxxxxxxxxxxxxx')],
   extract_data_with_confidence_score => true,
@@ -334,7 +334,7 @@ Asks a model to propose a JSON extraction schema from sample files. Use it to dr
 | `ml_model` | `mlModel` | body | string | yes | The ID of the ML model to use for schema extraction. Use the [get Document AI global configuration](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get) endpoint to retrieve the list of acceptable values. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+CALL d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
 ```
 
 **Result**
@@ -370,7 +370,7 @@ Create a new Document AI configuration. Since v63.0.
 | `source_dmo_developer_name` | `sourceDmoDeveloperName` | body | string |  | The API name of the unstructured DMO used as input to the data extraction process. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_configuration_create (
+CALL d360.document_ai_configuration_create (
   name => 'Vendor_Invoice',
   label => 'Vendor Invoice',
   ml_model => 'llmgateway__VertexAIGemini25Flash001',
@@ -443,7 +443,7 @@ Starts a batch run of a saved configuration over the documents in its source DMO
 | `id_or_api_name` | `idOrApiName` | path | string | yes | ID or API name of the configuration. Since v63.0. |
 
 ```sql
-CALL cdp.document_ai_process_run (id_or_api_name => 'Vendor_Invoice');
+CALL d360.document_ai_process_run (id_or_api_name => 'Vendor_Invoice');
 ```
 
 **Result**

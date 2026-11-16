@@ -13,12 +13,12 @@ description: |
 
   ```sql
   /* A packaged platform: find it, then point a target at it. */
-  CALL cdp.activation_external_platform_list ();
-  CALL cdp.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'));
+  CALL d360.activation_external_platform_list ();
+  CALL d360.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'));
 
   /* Your own platform, after activation_platform_create: */
-  CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
-  CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+  CALL d360.activation_platform_get (id_or_name => 'abc_user_identifiers');
+  CALL d360.activation_platform_publish (id_or_name => 'abc_user_identifiers');
   ```
 
 functions:
@@ -28,7 +28,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/delete
     description: Deletes an activation platform. Returns a 412 error if the platform is referenced by activation targets or market segment activations. Since v67.0.
-    example: CALL cdp.activation_platform_delete (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_delete (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
     effect: write
@@ -42,7 +42,7 @@ functions:
     path: /ssot/activation-external-platforms
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-External-Platforms/paths/~1ssot~1activation-external-platforms/get
     description: Lists the org's activation external platforms with their status, type, namespace prefix and destination attributes. Use it to find the name and prefix that a target's connector needs.
-    example: CALL cdp.activation_external_platform_list ();
+    example: CALL d360.activation_external_platform_list ();
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of external platforms to return. Values are from `1` through `20`. If unspecified, the default value is `20`. Since v64.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of external platforms to return. If unspecified, the default value is `20`. Since v64.0."}
@@ -86,7 +86,7 @@ functions:
     path: /ssot/activation-external-platforms/{idOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-External-Platforms/paths/~1ssot~1activation-external-platforms~1%7BidOrName%7D/get
     description: Returns one external platform with its attribute configuration. Pass an event name and action source to scope the attributes to that event.
-    example: CALL cdp.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website');
+    example: CALL d360.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique identifier of a specific activation external platform, such as the ID or developer name. Since v67.0."}
       - {name: action_source, api_name: actionSource, in: query, type: string, description: "Action source used, together with `event_name`, to scope the returned attribute configuration. Since v67.0."}
@@ -123,7 +123,7 @@ functions:
     path: /ssot/activation-platforms
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms/get
     description: Returns a paginated list of activation platforms. Since v67.0.
-    example: CALL cdp.activation_platform_list ();
+    example: CALL d360.activation_platform_list ();
     options:
       - {name: activation_platform_view, api_name: activationPlatformView, in: query, type: string, enum: [All, Developer, Subscriber], description: "Set of platforms to return. If unspecified, the default value is `All`. Since v67.0."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
@@ -155,7 +155,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/get
     description: Returns an activation platform by record ID or API name. Since v67.0.
-    example: CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_get (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
     columns:
@@ -207,7 +207,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/metadata/action-sources
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1action-sources/get
     description: Returns the action sources valid for an event on the platform. Use it after activation_platform_event_list, to pick the pairing that scopes activation_external_platform_get.
-    example: CALL cdp.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase');
+    example: CALL d360.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
       - {name: event_name, api_name: eventName, in: query, type: string, required: true, description: "Name of the event whose action sources to return. Since v67.0."}
@@ -231,7 +231,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/metadata/events
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1events/get
     description: Returns the standard event names configured for the activation platform's streaming metadata, such as Purchase or AddToCart. Since v67.0.
-    example: CALL cdp.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API');
+    example: CALL d360.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
@@ -254,7 +254,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/metadata/partner-object-types
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1metadata~1partner-object-types/get
     description: Returns the partner-object types valid for the activation platform, such as Pixel, App, or ConversionRule, each with a display label. Since v67.0.
-    example: CALL cdp.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform');
+    example: CALL d360.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "15- or 18-character ID or API name of the activation platform. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
@@ -278,7 +278,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D/patch
     description: Updates an activation platform by record ID or API name. Only the fields you provide are modified. Since v67.0.
-    example: CALL cdp.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'));
+    example: CALL d360.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'));
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID or API name of the activation platform."}
       - {name: activation_platform_attributes, api_name: activationPlatformAttributes, in: body, schema: ActivationPlatformAttributeInputRepresentation, array: 1, description: "Activation attributes for data mapping. Replaces the full set. Any existing attributes not included are removed. Since v67.0."}
@@ -347,7 +347,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms/post
     description: Creates an activation platform. Since v67.0.
     example: |
-      CALL cdp.activation_platform_create (
+      CALL d360.activation_platform_create (
         name => 'abc_user_identifiers',
         label => 'abc-user-identifiers',
         description => 'Activates only user identifiers',
@@ -437,7 +437,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/actions/disable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1disable/post
     description: Disables an activation platform. Since v67.0.
-    example: CALL cdp.activation_platform_disable (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_disable (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
     columns:
@@ -454,7 +454,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/actions/enable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1enable/post
     description: Enables an activation platform. Since v67.0.
-    example: CALL cdp.activation_platform_enable (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_enable (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
     columns:
@@ -470,7 +470,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/actions/publish
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1publish/post
     description: Publishes an activation platform and sets its status to active. Since v67.0.
-    example: CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_publish (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Record ID (18-character) or API name of the activation platform to publish. Since v67.0."}
     columns:
@@ -490,7 +490,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/actions/retry-sync
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1retry-sync/post
     description: Retries the sync operation for an activation platform that previously failed. Since v67.0.
-    example: CALL cdp.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers');
+    example: CALL d360.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
     columns:
@@ -510,7 +510,7 @@ functions:
     path: /ssot/activation-platforms/{idOrName}/actions/set-privacy-type
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activation-Platforms/paths/~1ssot~1activation-platforms~1%7BidOrName%7D~1actions~1set-privacy-type/post
     description: Sets the privacy type classification for an activation platform. Since v67.0.
-    example: CALL cdp.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable');
+    example: CALL d360.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "18-character ID or API name of the activation platform. Since v67.0."}
       - {name: privacy_type, api_name: privacyType, in: body, type: string, enum: [ThirdParty, ServiceProvider, UpdateFailed, NotApplicable], required: true, description: "Privacy type classification for the platform. Since v67.0."}

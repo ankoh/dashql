@@ -4,7 +4,7 @@
  * `file_path` is `collections/<library id>/<file name>`. Accepted types are PDF, TXT and HTML. Indexing takes minutes and the call can return a 500 after it started, so read the file status before you send it again, a second send can start a duplicate job. Poll `fileStatus` in `libraries[].sources[].files[]` until it is `INDEXED` or `FAILED`.
  */
 
-call cdp.files_index (
+call d360.files_index (
     knowledge_artifact_id => '1aQxx00000000JNEAY',
     knowledge_artifact_source => 'FILE_UPLOAD',
     knowledge_source_files_list => [
@@ -13,4 +13,4 @@ call cdp.files_index (
     ]
 );
 
-call cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+call d360.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');

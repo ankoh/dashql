@@ -9,9 +9,9 @@ description: |
   - **The spec disagrees with itself on request bodies.** Which key holds the fields, and whether a data space goes in `dataspace_name` or `dataspace_info`, varies by source. The notes on `dlo_create` and `dlo_update` list the conflicts.
 
   ```sql
-  CALL cdp.dlo_list ();
-  CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
-  CALL cdp.dlo_update (record_id_or_developer_name => 'Account_Home__dll', label => 'Account Home');
+  CALL d360.dlo_list ();
+  CALL d360.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+  CALL d360.dlo_update (record_id_or_developer_name => 'Account_Home__dll', label => 'Account Home');
   ```
 
 functions:
@@ -22,7 +22,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/delete
     tools: [d360_dlo_delete]
     description: Delete a data lake object (DLO). Since v60.0.
-    example: CALL cdp.dlo_delete (record_id_or_developer_name => 'Loyalty_Member__dll');
+    example: CALL d360.dlo_delete (record_id_or_developer_name => 'Loyalty_Member__dll');
     options:
       - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
     effect: write
@@ -37,7 +37,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects/get
     tools: [d360_dlo_list]
     description: Get a collection of all data lake objects (DLOs). Since v60.0.
-    example: CALL cdp.dlo_list ();
+    example: CALL d360.dlo_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of DLOs per page. The default is `20`. The spec's text says \"relationships\". Values above 20 are reported to be cut to 20 (community). Since v60.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v60.0."}
@@ -88,7 +88,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/get
     tools: [d360_dlo_get]
     description: Get a data lake object (DLO). Since v60.0.
-    example: CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+    example: CALL d360.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
     options:
       - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of relationships to return. If unspecified, the default value is `20`. Since v60.0."}
@@ -130,7 +130,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects~1%7BrecordIdOrDeveloperName%7D/patch
     tools: [d360_dlo_update]
     description: Update a data lake object (DLO) by adding new fields or changing the label. Since v60.0.
-    example: CALL cdp.dlo_update (record_id_or_developer_name => 'Loyalty_Member__dll', label => 'Loyalty Member', fields => [(name = 'Tier', label = 'Tier', data_type = 'Text', is_primary_key = false)]);
+    example: CALL d360.dlo_update (record_id_or_developer_name => 'Loyalty_Member__dll', label => 'Loyalty Member', fields => [(name = 'Tier', label = 'Tier', data_type = 'Text', is_primary_key = false)]);
     options:
       - {name: record_id_or_developer_name, api_name: recordIdOrDeveloperName, in: path, type: string, required: true, description: "ID or developer name of the DLO. Since v60.0."}
       - {name: fields, in: body, schema: DataLakeFieldInputRepresentation, array: 1, description: "Fields of the DLO. Since v60.0."}
@@ -172,7 +172,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Lake-Objects/paths/~1ssot~1data-lake-objects/post
     tools: [d360_dlo_create]
     description: Create a data lake object (DLO). Since v60.0.
-    example: CALL cdp.dlo_create (name => 'Loyalty_Member', label => 'Loyalty Member', category => 'Profile', dataspace_info => [(name = 'default')], data_lake_field_input_representations => [(name = 'Member_Id', label = 'Member Id', data_type = 'Text', is_primary_key = true), (name = 'Joined_On', label = 'Joined On', data_type = 'DateTime', is_primary_key = false)]);
+    example: CALL d360.dlo_create (name => 'Loyalty_Member', label => 'Loyalty Member', category => 'Profile', dataspace_info => [(name = 'default')], data_lake_field_input_representations => [(name = 'Member_Id', label = 'Member Id', data_type = 'Text', is_primary_key = true), (name = 'Joined_On', label = 'Joined On', data_type = 'DateTime', is_primary_key = false)]);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
       - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}

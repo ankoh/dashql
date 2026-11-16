@@ -1,8 +1,8 @@
-# CDP Functions
+# Data 360 Functions
 
-Status: work in progress, part of the [CDP SQL](overview.md) spec. Nothing here is implemented, and nothing has been tested against an org.
+Status: work in progress, part of the spec of the [Data 360 extension](overview.md). Nothing here is implemented, and nothing has been tested against an org.
 
-This is the reference for `CALL cdp.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading. The family documents are generated from `extensions/d360-api/clfn/spec/*.yaml`, so edit those.
+This is the reference for `CALL d360.<function>(...)`: 534 functions, one per Data 360 API call, in one document per family. For each function, it gives the API call and its reference, every option with its type, an example, and the result schema. Nested objects are documented under each family's **Schemas** heading. The family documents are generated from `extensions/d360-api/clfn/spec/*.yaml`, so edit those.
 
 The spec holds all of it, so completion offers exactly what a position takes and a misplaced attribute gets a diagnostic. See [the Data 360 doc](overview.md) and [client functions](../../../../docs/design/client_functions.md).
 
@@ -114,7 +114,7 @@ If no source documents a response, the function says so, and it returns one row 
 
 Many date fields are plain `string` in the spec, so they stay `VARCHAR`. A value that can't be converted to its column type goes to `_raw`, and the column is `NULL`, so a schema that disagrees with a response doesn't fail the statement.
 
-For example, `CALL cdp.segment_list (batch_size => 2);` returns:
+For example, `CALL d360.segment_list (batch_size => 2);` returns:
 
 | `api_name` | `display_name` | ... | `_status` | `_meta` | `_raw` |
 |---|---|---|---|---|---|
@@ -133,4 +133,4 @@ This shows the shape only. These values are made up, since nothing has run again
 | `search`, `execute`, `payload_examples` | The MCP server's own discovery tools |
 | The Query API: `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2`, `/ssot/query-sql` | Left out on purpose: the Salesforce connection subsumes it, since a script's `SELECT` already runs over that connection. This leaves out 7 of the contract's 414 operations |
 
-Anything else goes through `cdp.request`, see [the escape hatch](overview.md#the-escape-hatch).
+Anything else goes through `d360.request`, see [the escape hatch](overview.md#the-escape-hatch).

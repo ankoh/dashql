@@ -4,7 +4,7 @@
  * Create the data model object `SalesOrders__dlm`, the schema that the insight and the segment read.
  */
 
-call cdp.dmo_create (
+call d360.dmo_create (
     name => 'SalesOrders',
     label => 'Sales Orders',
     dataspace_name => 'default',

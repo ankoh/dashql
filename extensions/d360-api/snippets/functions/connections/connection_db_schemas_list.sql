@@ -4,9 +4,9 @@
  * Which keys `advanced_attributes` takes varies by connector. For Snowflake it is `database`.
  */
 
-call cdp.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
 
-call cdp.connection_db_schemas_list (
+call d360.connection_db_schemas_list (
     connection_id => '9cgaj0000012O5hAAE',
     advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA')
 );

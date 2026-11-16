@@ -4,7 +4,7 @@
  * Use it for small micro-batches and a bulk job for large loads. The body can be 200 KB at most. Keys are the field names of the uploaded schema. The 202 only means the request was accepted: processing runs about every 3 minutes, so query the object later. The first call validates the same records without loading them.
  */
 
-call cdp.ingest_test (
+call d360.ingest_test (
     name => 'ecomm',
     object_name => 'Orders',
     data => [
@@ -25,7 +25,7 @@ call cdp.ingest_test (
     ]
 );
 
-call cdp.ingest_insert (
+call d360.ingest_insert (
     name => 'ecomm',
     object_name => 'Orders',
     data => [

@@ -4,7 +4,7 @@
  * Every read runs on the warehouse of the connection, and Snowflake bills it. `unloadData` only affects accelerated streams, but a community recipe found that creating a stream fails without it. Wait for the connection to be `Active` before the second call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake live',
     name => 'Snowflake_Live',
@@ -23,7 +23,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_snowflake_live',
     label => 'Orders (Snowflake live)',
     data_stream_type => 'EXTERNAL',
@@ -53,4 +53,4 @@ call cdp.datastream_create (
     refresh_config => (refresh_mode = 'TOTAL_REPLACE')
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_snowflake_live');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_snowflake_live');

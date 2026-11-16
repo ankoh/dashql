@@ -18,9 +18,9 @@ description: |
   - Deletes can't be undone, and no source says the server checks for references.
 
   ```sql
-  CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
-  CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
-  CALL cdp.p13n_experience_config_create (
+  CALL d360.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+  CALL d360.p13n_point_get (id_or_name => 'home_page_experience');
+  CALL d360.p13n_experience_config_create (
       id_or_app_source_id_or_name => 'my_website_connector',
       name => 'homepage_hero_banner',
       label => 'Homepage Hero Banner',
@@ -37,7 +37,7 @@ functions:
     path: /personalization/engagement-signals
     tools: [d360_p13n_engagement_signals_list]
     description: Lists the engagement signals configured for a personalization data graph, such as click, view, purchase or add-to-cart. They feed recommender attribution and objective optimization, so read them before configuring a recommender.
-    example: CALL cdp.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph');
+    example: CALL d360.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph');
     options:
       - {name: dataspace_id, api_name: dataSpaceId, in: query, type: string, required: true, description: "Data Space ID — the isolated workspace the recommender operates in"}
       - {name: data_graph_id, api_name: dataGraphId, in: query, type: string, required: true, description: "Data Graph ID — the profile or item data graph to query signals for"}
@@ -53,7 +53,7 @@ functions:
     path: /personalization/external-apps/org
     tools: [d360_p13n_org_info_get]
     description: Returns the org's Data Cloud Tenant Specific Endpoint. Use it to confirm the endpoint before configuring personalization.
-    example: CALL cdp.p13n_org_info_get ();
+    example: CALL d360.p13n_org_info_get ();
     columns:
       - {name: dc_tse, api_name: dcTse, type: VARCHAR, description: "Data Cloud Tenant Specific Endpoint."}
     effect: read
@@ -69,7 +69,7 @@ functions:
     tools: [d360_p13n_mobile_preview_create]
     description: Generates a time-limited link for previewing an experience config or transformer in a mobile app, before deploying it.
     example: |
-      CALL cdp.p13n_mobile_preview_create (
+      CALL d360.p13n_mobile_preview_create (
           data_connector_id => 'mobile_app_connector_123',
           experience_config => (
               name = 'test_experience',
@@ -103,7 +103,7 @@ functions:
     path: /personalization/external-apps/{id}/personalization-experience-configs
     tools: [d360_p13n_experience_config_list]
     description: Lists a data connector's experience configs, optionally filtered by point, transformer or data space. An experience config defines what personalized content to show and where.
-    example: CALL cdp.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50);
+    example: CALL d360.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50);
     options:
       - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
       - {name: limit, in: query, type: integer, description: "Limits the number returned (1-299, default 50)"}
@@ -127,7 +127,7 @@ functions:
     path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
     tools: [d360_p13n_experience_config_get]
     description: Returns one experience config by name, with its data provider, source matchers and transformation configuration.
-    example: CALL cdp.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true);
+    example: CALL d360.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true);
     options:
       - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
       - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to retrieve"}
@@ -160,7 +160,7 @@ functions:
     tools: [d360_p13n_experience_config_create]
     description: "Creates an experience config on a data connector: what content to show (`data_provider`), where to show it (`source_matchers`) and how to render it (`transformation_config`). The connector, transformer and point must exist."
     example: |
-      CALL cdp.p13n_experience_config_create (
+      CALL d360.p13n_experience_config_create (
           id_or_app_source_id_or_name => 'my_website_connector',
           name => 'homepage_hero_banner',
           label => 'Homepage Hero Banner Personalization',
@@ -214,7 +214,7 @@ functions:
     path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
     tools: [d360_p13n_experience_config_update]
     description: Changes an experience config, for example to turn it on or off with `is_enabled`. The connector and name identify it.
-    example: CALL cdp.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false);
+    example: CALL d360.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false);
     options:
       - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
       - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to update"}
@@ -239,7 +239,7 @@ functions:
     path: /personalization/external-apps/{id}/personalization-experience-configs/{name}
     tools: [d360_p13n_experience_config_delete]
     description: Deletes an experience config, which stops its delivery to the app. This can't be undone.
-    example: CALL cdp.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner');
+    example: CALL d360.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner');
     options:
       - {name: id_or_app_source_id_or_name, api_name: id, in: path, type: string, required: true, description: "Unique id, appSourceId or name of Streaming App Data Connector"}
       - {name: name_param, api_name: name, in: path, type: string, required: true, description: "Unique name of Personalization Experience Config to delete"}
@@ -255,7 +255,7 @@ functions:
     path: /personalization/external-apps/transformers
     tools: [d360_p13n_transformer_list]
     description: Lists transformers, which define how content renders through HTML templates, scripts or mobile components. Filter by source, schema, category, channel, type, enabled status, connector, data space or attachment.
-    example: CALL cdp.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true);
+    example: CALL d360.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true);
     options:
       - {name: limit, in: query, type: integer, description: "Limits the number returned (1-299, default 50)"}
       - {name: offset, in: query, type: integer, description: "Number to skip (default 0)"}
@@ -283,7 +283,7 @@ functions:
     path: /personalization/external-apps/transformer
     tools: [d360_p13n_transformer_get]
     description: Returns one transformer by id or name, with its substitution definitions, type details and data connectors.
-    example: CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+    example: CALL d360.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
     options:
       - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to retrieve"}
     columns:
@@ -312,7 +312,7 @@ functions:
     tools: [d360_p13n_transformer_create]
     description: "Creates a transformer: a template, script, HTML modifier or mobile component that renders personalized content, with substitution variables that each experience can customize."
     example: |
-      CALL cdp.p13n_transformer_create (
+      CALL d360.p13n_transformer_create (
           name => 'promo_banner_transformer',
           label => 'Promotional Banner Transformer',
           channel => 'WebApp',
@@ -354,7 +354,7 @@ functions:
     path: /personalization/external-apps/transformer
     tools: [d360_p13n_transformer_update]
     description: Changes a transformer, identified by id or name.
-    example: CALL cdp.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer');
+    example: CALL d360.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer');
     options:
       - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to update"}
       - {name: name, in: body, type: string, description: "Experience configs reference it through `transformer_name`."}
@@ -381,7 +381,7 @@ functions:
     path: /personalization/external-apps/transformer
     tools: [d360_p13n_transformer_delete]
     description: Deletes a transformer. Experience configs that reference it break, and this can't be undone, so check for active experiences first.
-    example: CALL cdp.p13n_transformer_delete (id_or_name => 'promo_banner_transformer');
+    example: CALL d360.p13n_transformer_delete (id_or_name => 'promo_banner_transformer');
     options:
       - {name: id_or_name, api_name: idOrName, in: query, type: string, required: true, description: "Unique id or name of Personalization Transformer to delete"}
     effect: write
@@ -397,7 +397,7 @@ functions:
     tools: [d360_p13n_schema_create]
     description: "Creates a personalization schema, which defines the structure of personalized content: its attributes, content object and related objects. The data space and content DMO must exist."
     example: |
-      CALL cdp.p13n_schema_create (
+      CALL d360.p13n_schema_create (
           name => 'product_recommendations_schema',
           label => 'Product Recommendations Schema',
           dataspace_name => 'default',
@@ -433,7 +433,7 @@ functions:
     path: /personalization/personalization-schemas/{idOrName}
     tools: [d360_p13n_schema_get]
     description: Returns one schema by id or name, with its attributes, content object and related content objects. Use it to inspect a schema before creating points.
-    example: CALL cdp.p13n_schema_get (id_or_name => 'product_recommendations_schema');
+    example: CALL d360.p13n_schema_get (id_or_name => 'product_recommendations_schema');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to retrieve"}
     columns:
@@ -458,7 +458,7 @@ functions:
     path: /personalization/personalization-schemas/{idOrName}
     tools: [d360_p13n_schema_update]
     description: Changes a schema's attributes, content object or related objects. Points that use the schema may be affected.
-    example: CALL cdp.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')]);
+    example: CALL d360.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')]);
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to update"}
       - {name: name, in: body, type: string, description: "Points reference it through `schema_name`, transformers through `schema_reference`."}
@@ -481,7 +481,7 @@ functions:
     path: /personalization/personalization-schemas/{idOrName}
     tools: [d360_p13n_schema_delete]
     description: Deletes a schema. Points that reference it break, and this can't be undone, so check for active points first.
-    example: CALL cdp.p13n_schema_delete (id_or_name => 'product_recommendations_schema');
+    example: CALL d360.p13n_schema_delete (id_or_name => 'product_recommendations_schema');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Schema to delete"}
     effect: write
@@ -497,7 +497,7 @@ functions:
     tools: [d360_p13n_point_create]
     description: "Creates a personalization point: a set of prioritized decision rules whose attribute values determine the content or experience at that point. The data space, profile data graph and schema must exist."
     example: |
-      CALL cdp.p13n_point_create (
+      CALL d360.p13n_point_create (
           name => 'home_page_experience',
           label => 'Home Page Experience Point',
           dataspace_name => 'default',
@@ -560,7 +560,7 @@ functions:
     path: /personalization/personalization-points/{idOrName}
     tools: [d360_p13n_point_get]
     description: Returns one point by id or name, with its decisions, schema configuration, authentication settings and current sync status.
-    example: CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
+    example: CALL d360.p13n_point_get (id_or_name => 'home_page_experience');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Point to retrieve"}
     columns:
@@ -590,7 +590,7 @@ functions:
     tools: [d360_p13n_point_update]
     description: Replaces a point. It's a full `PUT`, so send the complete object with all required fields, including the unchanged `name`.
     example: |
-      CALL cdp.p13n_point_update (
+      CALL d360.p13n_point_update (
           id_or_name => 'home_page_experience',
           name => 'home_page_experience',
           label => 'Updated Home Page Experience',
@@ -634,7 +634,7 @@ functions:
     path: /personalization/personalization-points/{idOrName}
     tools: [d360_p13n_point_delete]
     description: Deletes a point, which immediately stops personalization at that point in experience or flow execution. References from experiments or batch decisions break, and this can't be undone.
-    example: CALL cdp.p13n_point_delete (id_or_name => 'home_page_experience');
+    example: CALL d360.p13n_point_delete (id_or_name => 'home_page_experience');
     options:
       - {name: id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Unique id or name of Personalization Point to delete"}
     effect: write

@@ -5,7 +5,7 @@ import { loadClientFunctionSpec } from './clfn_specs.js';
 describe('client function specs', () => {
     it('loads the generated spec of an extension', async () => {
         const spec = await loadClientFunctionSpec('d360-api');
-        expect(spec.namespace).toEqual('cdp');
+        expect(spec.namespace).toEqual('d360');
         expect(spec.functions.length).toBeGreaterThan(500);
     });
 

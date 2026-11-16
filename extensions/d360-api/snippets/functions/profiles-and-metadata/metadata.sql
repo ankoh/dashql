@@ -4,7 +4,7 @@
  * Always pass `entity_name`, since unfiltered responses are large. The result is one row with the entities in its `metadata` array, and only the DMOs in use appear here.
  */
 
-call cdp.metadata (
+call d360.metadata (
     entity_name => 'ssot__Individual__dlm',
     entity_type => 'DataModelObject',
     entity_category => 'Profile',

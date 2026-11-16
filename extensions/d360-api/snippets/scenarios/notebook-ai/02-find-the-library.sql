@@ -4,4 +4,4 @@
  * Read `:knowledge_space_id`. The `PERSONAL` library of `libraries` is the `:library_id` of the next steps.
  */
 
-call cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => :knowledge_space_id);
+call d360.knowledge_space_details_get (knowledge_space_api_name_or_id => :knowledge_space_id);

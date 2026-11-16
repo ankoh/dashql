@@ -4,9 +4,9 @@
  * The call has no paging options. `dimension_values` comes back as JSON, with the ids of the values inside.
  */
 
-call cdp.communication_capping_dimension_list ();
+call d360.communication_capping_dimension_list ();
 
-call cdp.communication_capping_dimension_update (
+call d360.communication_capping_dimension_update (
     dimension_id => '1CDxx0000000001GAA',
     dimension_values => [(value = 'WhatsApp')]
 );

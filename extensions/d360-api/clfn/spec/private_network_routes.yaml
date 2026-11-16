@@ -13,14 +13,14 @@ description: |
   - Salesforce's `sf-pi` calls this family [feature gated](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/endpoint-families.md), and says it can return internal errors when the org has no routes.
 
   ```sql
-  CALL cdp.private_network_route_create (
+  CALL d360.private_network_route_create (
     name => 'Snowflake_Prod',
     label => 'Snowflake Prod',
     description => 'PrivateLink route to the prod Snowflake account',
     route => (type = 'Snowflake', service_name = 'com.amazonaws.vpce.us-west-2.vpce-svc-0123456789abcdef0', account_url = 'https://my-account.snowflakecomputing.com')
   );
-  CALL cdp.private_network_route_get (route_id_or_name => 'Snowflake_Prod'); /* repeat until cloud_provider.status is Ready, then update the Snowflake network policy */
-  CALL cdp.connection_create (
+  CALL d360.private_network_route_get (route_id_or_name => 'Snowflake_Prod'); /* repeat until cloud_provider.status is Ready, then update the Snowflake network policy */
+  CALL d360.connection_create (
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake prod',
     name => 'snowflake_prod',
@@ -46,7 +46,7 @@ functions:
     path: /ssot/private-network-routes/{routeIdOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Private-Network-Routes/paths/~1ssot~1private-network-routes~1%7BrouteIdOrName%7D/delete
     description: Delete a Private Network Route. Since v65.0.
-    example: CALL cdp.private_network_route_delete (route_id_or_name => 'Redshift_Prod');
+    example: CALL d360.private_network_route_delete (route_id_or_name => 'Redshift_Prod');
     options:
       - {name: route_id_or_name, api_name: routeIdOrName, in: path, type: string, required: true, description: "ID or name of the Private Network Route. Since v65.0."}
     effect: write
@@ -64,7 +64,7 @@ functions:
     path: /ssot/private-network-routes
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Private-Network-Routes/paths/~1ssot~1private-network-routes/get
     description: Get a paginated list of Private Network Routes. Since v65.0.
-    example: CALL cdp.private_network_route_list ();
+    example: CALL d360.private_network_route_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of rows to return from `1` through `1000`. By default, the endpoint returns `100` rows. Since v65.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. By default, the endpoint skips `0` rows. Since v65.0."}
@@ -97,7 +97,7 @@ functions:
     path: /ssot/private-network-routes/{routeIdOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Private-Network-Routes/paths/~1ssot~1private-network-routes~1%7BrouteIdOrName%7D/get
     description: Get detailed information about a Private Network Route. Since v65.0.
-    example: CALL cdp.private_network_route_get (route_id_or_name => 'Redshift_Prod');
+    example: CALL d360.private_network_route_get (route_id_or_name => 'Redshift_Prod');
     options:
       - {name: route_id_or_name, api_name: routeIdOrName, in: path, type: string, required: true, description: "ID or name of the Private Network Route. Since v65.0."}
     columns:
@@ -129,7 +129,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Private-Network-Routes/paths/~1ssot~1private-network-routes/post
     description: Create a private network route from the Data 360 tenant to a data source's private endpoint, for Amazon MSK, Redshift, Snowflake or Databricks. Create it before the connection that uses it. Since v65.0.
     example: |
-      CALL cdp.private_network_route_create (
+      CALL d360.private_network_route_create (
         name => 'Redshift_Prod',
         label => 'Redshift Prod',
         description => 'PrivateLink route to the prod Redshift cluster',

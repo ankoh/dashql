@@ -18,19 +18,19 @@ formatter-snapshots:
 
   - name: coverage_call_options
     input: |-
-      CALL cdp.segment_list (BATCH_SIZE=>200,"Quoted"=>'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$)
+      CALL d360.segment_list (BATCH_SIZE=>200,"Quoted"=>'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$)
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              call cdp.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
+              call d360.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
           - mode: compact
             expected: |-
-              call cdp.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
+              call d360.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
           - mode: pretty
             expected: |-
-              call cdp.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
+              call d360.segment_list (BATCH_SIZE => 200, "Quoted" => 'x', b => -1.5, c => TRUE, d => null, e => $$raw  text$$);
 
   - name: coverage_call_nested
     input: |-
@@ -90,16 +90,16 @@ formatter-snapshots:
 
   - name: coverage_call_long
     input: |-
-      call cdp.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
+      call d360.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              call cdp.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
+              call d360.segment_create (dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000', include_dbt => (models = (models = [(name = 'any_high_value_order', sql = (select distinct a from b join c on d = e where f > 5000))])));
           - mode: compact
             expected: |-
-              call cdp.segment_create (
+              call d360.segment_create (
                 dataspace => 'default', display_name => 'Any high-value order', description => 'Individuals with an order over 5000',
                 include_dbt => (
                   models = (
@@ -109,7 +109,7 @@ formatter-snapshots:
               );
           - mode: pretty
             expected: |-
-              call cdp.segment_create (
+              call d360.segment_create (
                 dataspace => 'default',
                 display_name => 'Any high-value order',
                 description => 'Individuals with an order over 5000',
@@ -130,21 +130,21 @@ formatter-snapshots:
 
   - name: coverage_call_one_argument_per_line
     input: |-
-      call cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
+      call d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              call cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
+              call d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22);
           - mode: compact
             expected: |-
-              call cdp.document_ai_schema_generate (
+              call d360.document_ai_schema_generate (
                 ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = :file_id)], x => 1, yy => 22
               );
           - mode: pretty
             expected: |-
-              call cdp.document_ai_schema_generate (
+              call d360.document_ai_schema_generate (
                 ml_model => 'llmgateway__VertexAIGemini25Flash001',
                 files => [(file_id = :file_id)],
                 x => 1,
@@ -153,16 +153,16 @@ formatter-snapshots:
 
   - name: coverage_call_array_of_objects
     input: |-
-      call cdp.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
+      call d360.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
     dialects:
       hyper:
         formatted:
           - mode: inline
             expected: |-
-              call cdp.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
+              call d360.dmo_mapping_create (single => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c', other_field_developer_name = 'x')], field_mapping => [(source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c'), (source_field_developer_name = 'individual_id__c', target_field_developer_name = 'IndividualId__c')]);
           - mode: compact
             expected: |-
-              call cdp.dmo_mapping_create (
+              call d360.dmo_mapping_create (
                 single => [(
                   source_field_developer_name = 'order_id__c', target_field_developer_name = 'OrderId__c',
                   other_field_developer_name = 'x'
@@ -175,7 +175,7 @@ formatter-snapshots:
               );
           - mode: pretty
             expected: |-
-              call cdp.dmo_mapping_create (
+              call d360.dmo_mapping_create (
                 single => [(
                   source_field_developer_name = 'order_id__c',
                   target_field_developer_name = 'OrderId__c',

@@ -15,11 +15,11 @@ description: |
 
   ```sql
   /* Inventory, without fields */
-  CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+  CALL d360.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
   /* Fields, keys and relationships of one object */
-  CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+  CALL d360.metadata (entity_name => 'ssot__Individual__dlm');
   /* Records */
-  CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c');
+  CALL d360.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c');
   ```
 
 functions:
@@ -30,7 +30,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1calculated-insights~1%7BciName%7D/get
     tools: [d360_insights_query]
     description: Query a Calculated Insight object in Data 360. Since v52.0.
-    example: CALL cdp.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', batch_size => 100);
+    example: CALL d360.insights_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', batch_size => 100);
     options:
       - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `4999`. Since v52.0."}
@@ -57,7 +57,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1metadata/get
     tools: [d360_insights_metadata]
     description: Get Insight metadata, including Calculated Insight objects, their dimensions, and their measures in Data 360. Since v52.0.
-    example: CALL cdp.insights_metadata ();
+    example: CALL d360.insights_metadata ();
     columns:
       - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
     effect: read
@@ -71,7 +71,7 @@ functions:
     path: /ssot/insight/metadata/{ciName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Insights/paths/~1ssot~1insight~1metadata~1%7BciName%7D/get
     description: Get metadata for a Calculated Insight object in Data 360. Metadata includes dimensions and measures. Since v52.0.
-    example: CALL cdp.insights_metadata_get (ci_name => 'Avg_Spends__cio');
+    example: CALL d360.insights_metadata_get (ci_name => 'Avg_Spends__cio');
     options:
       - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
     columns:
@@ -87,7 +87,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Metadata/paths/~1ssot~1metadata/get
     tools: [d360_metadata]
     description: Get all metadata, including Calculated Insights, Engagement, Profile, and other objects, as well as their relationships to other objects in Data 360. Since v52.0.
-    example: CALL cdp.metadata (entity_name => 'ssot__Individual__dlm');
+    example: CALL d360.metadata (entity_name => 'ssot__Individual__dlm');
     options:
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v55.0."}
       - {name: entity_category, api_name: entityCategory, in: query, type: string, description: "Category of the metadata entity. Valid values are `Profile`, `Engagement`, and `Related`. If unspecified, all category entities are returned. Since v54.0."}
@@ -124,7 +124,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Metadata/paths/~1ssot~1metadata-entities/get
     tools: [d360_metadata_entities]
     description: Get a list of metadata entities. This endpoint provides a high-performance way to retrieve metadata for Data 360 entities. By returning only essential fields like name, type, and category, it allows you to efficiently view entities at scale. Request detailed field and relationship data only for the specific objects you need. Since v66.0.
-    example: CALL cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+    example: CALL d360.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
     options:
       - {name: dataspace, in: query, type: string, description: "Name of the data space in which the metadata is requested. Since v66.0."}
       - {name: entity_category, api_name: entityCategory, in: query, type: string, description: "Category of the metadata entity. If unspecified, all categories are returned. Supported values are: - `Activation_Audience` - `CG_Audience` - `Content` - `Directory_Table` - `Engagement` - `Profile` - `Related` - `Segment_Membership` - `Vector_Embedding` Since v66.0."}
@@ -154,7 +154,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D/get
     tools: [d360_profile_query]
     description: Query a profile data model object using filters in Data 360. Since v52.0.
-    example: CALL cdp.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c', batch_size => 100);
+    example: CALL d360.profile_query (data_model_name => 'ssot__Individual__dlm', filters => '[ssot__FirstName__c=Jean]', fields => 'ssot__Id__c,ssot__LastName__c', batch_size => 100);
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "Name of the data model object. Since v52.0."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items to return. Values are from `1` through `4999`. If unspecified, the default value is `100`. Since v52.0."}
@@ -182,7 +182,7 @@ functions:
     path: /ssot/profile/{dataModelName}/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D/get
     description: Get profile records by the value of a key. Without `search_key`, `id` matches the primary key. With it, `id` matches that field.
-    example: CALL cdp.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', search_key => 'ssot__FirstName__c', fields => 'ssot__Id__c,ssot__LastName__c');
+    example: CALL d360.profile_get (data_model_name => 'ssot__Individual__dlm', id => 'Jean', search_key => 'ssot__FirstName__c', fields => 'ssot__Id__c,ssot__LastName__c');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
       - {name: id, in: path, type: string, required: true, description: "Value to match: the primary key, or the field named in `search_key` if set."}
@@ -208,7 +208,7 @@ functions:
     path: /ssot/profile/{dataModelName}/{id}/{childDataModelName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D~1%7BchildDataModelName%7D/get
     description: Get the child records of a profile record, such as an Individual's email addresses. `filters` applies to the parent only, and `fields` to the child only.
-    example: CALL cdp.profile_child (data_model_name => 'ssot__Individual__dlm', id => '100005', child_data_model_name => 'ContactPointEmail__dlm');
+    example: CALL d360.profile_child (data_model_name => 'ssot__Individual__dlm', id => '100005', child_data_model_name => 'ContactPointEmail__dlm');
     options:
       - {name: child_data_model_name, api_name: childDataModelName, in: path, type: string, required: true, description: "API name of the child DMO, such as `ContactPointEmail__dlm`."}
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the parent DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
@@ -235,7 +235,7 @@ functions:
     path: /ssot/profile/{dataModelName}/{id}/calculated-insights/{ciName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1%7BdataModelName%7D~1%7Bid%7D~1calculated-insights~1%7BciName%7D/get
     description: Get a calculated insight's values for one profile record.
-    example: CALL cdp.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100005', ci_name => 'Avg_Spends__cio', measures => 'Avg_Spend__c');
+    example: CALL d360.profile_insight (data_model_name => 'ssot__Individual__dlm', id => '100005', ci_name => 'Avg_Spends__cio', measures => 'Avg_Spend__c');
     options:
       - {name: ci_name, api_name: ciName, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`."}
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
@@ -266,7 +266,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1metadata/get
     tools: [d360_profile_metadata]
     description: Get metadata for data model objects in the profile category, including Individual, Contact Point Email, Unified Individual, and Contact Point Address objects in Data 360. Metadata includes the objects, their fields, and their categories. Since v52.0.
-    example: CALL cdp.profile_metadata ();
+    example: CALL d360.profile_metadata ();
     columns:
       - {name: metadata, type: JSON, description: "Result metadata set. Since v52.0."}
     effect: read
@@ -280,7 +280,7 @@ functions:
     path: /ssot/profile/metadata/{dataModelName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Profile/paths/~1ssot~1profile~1metadata~1%7BdataModelName%7D/get
     description: Get metadata for a data model object (DMO) in the profile category, such as Individual, Contact Point Email, Unified Individual, and Contact Point Address in Data 360. Metadata includes the list of fields, data types, and indexes available for lookup. Since v52.0.
-    example: CALL cdp.profile_metadata_get (data_model_name => 'ssot__Individual__dlm');
+    example: CALL d360.profile_metadata_get (data_model_name => 'ssot__Individual__dlm');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, with the `__dlm` suffix, such as `ssot__Individual__dlm`."}
     columns:
@@ -295,7 +295,7 @@ functions:
     path: /ssot/universalIdLookup/{entityName}/{dataSourceId}/{dataSourceObjectId}/{sourceRecordId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Universal-ID-Lookup/paths/~1ssot~1universalIdLookup~1%7BentityName%7D~1%7BdataSourceId%7D~1%7BdataSourceObjectId%7D~1%7BsourceRecordId%7D/get
     description: Starting from one source record, return the records from every source that are linked to the same unified record. Use it to find a person's IDs across systems.
-    example: CALL cdp.universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', data_source_id => 'SFMC1487860', data_source_object_id => 'SFMC1487860_EmailProfile', source_record_id => '100060522');
+    example: CALL d360.universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', data_source_id => 'SFMC1487860', data_source_object_id => 'SFMC1487860_EmailProfile', source_record_id => '100060522');
     options:
       - {name: data_source_id, api_name: dataSourceId, in: path, type: string, required: true, description: "Data source ID, such as `SFMC1487860`."}
       - {name: data_source_object_id, api_name: dataSourceObjectId, in: path, type: string, required: true, description: "Data source object ID, such as `SFMC1487860_EmailProfile`."}
@@ -314,7 +314,7 @@ functions:
     path: /connect/search/metadata/results
     tools: [d360_metadata_search]
     description: Search metadata in natural language, without listing every entity. Each result's `api_name` is what `metadata` takes as `entity_name`.
-    example: CALL cdp.metadata_search (query => 'AI Agent Interaction', pagination => (limit = 5), filters => [(field = 'metadataType', values = ['DataModelObject'])]);
+    example: CALL d360.metadata_search (query => 'AI Agent Interaction', pagination => (limit = 5), filters => [(field = 'metadataType', values = ['DataModelObject'])]);
     options:
       - {name: query, in: body, type: string, required: true, description: "Search text, such as `AI Agent Interaction`."}
       - {name: pagination, in: body, schema: MetadataSearchPagination, description: "Page settings."}
@@ -343,7 +343,7 @@ functions:
     path: /api/v1/metadata
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-metadata-api.md
     description: "Get metadata about all entities on the tenant host: DMOs, DLOs and calculated insights, with their fields, keys and relationships. It's the tenant host form of `metadata`."
-    example: CALL cdp.direct_metadata (entity_name => 'ssot__Individual__dlm');
+    example: CALL d360.direct_metadata (entity_name => 'ssot__Individual__dlm');
     options:
       - {name: entity_name, api_name: entityName, in: query, type: string, description: "Name of the entity, such as `UnifiedIndividual__dlm`. If unset, all entities are returned."}
       - {name: entity_type, api_name: entityType, in: query, type: string, description: "`DataLakeObject`, `DataModelObject` or `CalculatedInsight`. If unset, all types are returned."}
@@ -375,7 +375,7 @@ functions:
     path: /api/v1/profile/metadata
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta.md
     description: List the Profile category DMOs with their fields, indexes and relationships. It's the tenant host form of `profile_metadata`.
-    example: CALL cdp.direct_profile_metadata ();
+    example: CALL d360.direct_profile_metadata ();
     rows: /metadata
     columns:
       - {name: name, type: VARCHAR, description: "API name of the DMO."}
@@ -397,7 +397,7 @@ functions:
     path: /api/v1/profile/metadata/{dataModelName}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-meta-dmname.md
     description: Get the fields, indexes and relationships of one Profile category DMO. It's the tenant host form of `profile_metadata_get`.
-    example: CALL cdp.direct_profile_metadata_get (data_model_name => 'Individual__dlm');
+    example: CALL d360.direct_profile_metadata_get (data_model_name => 'Individual__dlm');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
     rows: /metadata
@@ -424,7 +424,7 @@ functions:
     path: /api/v1/profile/{dataModelName}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname.md
     description: Query the records of a Profile category DMO using equality filters. It's the tenant host form of `profile_query`.
-    example: CALL cdp.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'FirstName__c,LastName__c', filters => '[FirstName__c=John]', limit => 10);
+    example: CALL d360.direct_profile_list (data_model_name => 'Individual__dlm', fields => 'FirstName__c,LastName__c', filters => '[FirstName__c=John]', limit => 10);
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
       - {name: fields, in: query, type: string, description: "Comma-separated fields, such as `FirstName__c,LastName__c`. If unset, up to 10 arbitrary fields are returned."}
@@ -455,7 +455,7 @@ functions:
     path: /api/v1/profile/{dataModelName}/{Id}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id.md
     description: "Get profile records by a key: the primary key, or with `search_key`, another field. It's the tenant host form of `profile_get`."
-    example: CALL cdp.direct_profile_get (data_model_name => 'Individual__dlm', id => '123', fields => 'FirstName__c,LastName__c');
+    example: CALL d360.direct_profile_get (data_model_name => 'Individual__dlm', id => '123', fields => 'FirstName__c,LastName__c');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
       - {name: id, api_name: Id, in: path, type: string, required: true, description: "Value to match: the record's primary key, or the field named in `search_key` if set."}
@@ -479,7 +479,7 @@ functions:
     path: /api/v1/profile/{dataModelName}/{Id}/{childDataModelName}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-child-dmname.md
     description: Get the child records of a profile record through a parent-child relationship. It's the tenant host form of `profile_child`.
-    example: CALL cdp.direct_profile_child (data_model_name => 'Individual__dlm', id => '123', child_data_model_name => 'ContactPointEmail__dlm', fields => 'Email__c,IsPrimary__c');
+    example: CALL d360.direct_profile_child (data_model_name => 'Individual__dlm', id => '123', child_data_model_name => 'ContactPointEmail__dlm', fields => 'Email__c,IsPrimary__c');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the parent DMO, such as `Individual__dlm`."}
       - {name: id, api_name: Id, in: path, type: string, required: true, description: "Key of the parent record."}
@@ -508,7 +508,7 @@ functions:
     path: /api/v1/profile/{dataModelName}/{Id}/calculated-insights/{ci-name}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-profile-dmname-id-ci-ci-name.md
     description: Get a calculated insight's values for one profile record. It's the tenant host form of `profile_insight`, with far fewer options.
-    example: CALL cdp.direct_profile_insight (data_model_name => 'Individual__dlm', id => '123', ci_name => 'TotalSales__cio', fields => 'TotalAmount__c,LastPurchaseDate__c');
+    example: CALL d360.direct_profile_insight (data_model_name => 'Individual__dlm', id => '123', ci_name => 'TotalSales__cio', fields => 'TotalAmount__c,LastPurchaseDate__c');
     options:
       - {name: data_model_name, api_name: dataModelName, in: path, type: string, required: true, description: "API name of the DMO, such as `Individual__dlm`."}
       - {name: id, api_name: Id, in: path, type: string, required: true, description: "Key of the record."}
@@ -532,7 +532,7 @@ functions:
     path: /api/v1/insight/metadata
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-insight-metadata.md
     description: List the calculated insights with their dimensions, measures and relationships. It's the tenant host form of `insights_metadata`.
-    example: CALL cdp.direct_insight_metadata ();
+    example: CALL d360.direct_insight_metadata ();
     rows: /metadata
     columns:
       - {name: name, type: VARCHAR, description: "API name of the insight."}
@@ -553,7 +553,7 @@ functions:
     path: /api/v1/insight/metadata/{ci-name}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-meta-ci-name.md
     description: Get the dimensions, measures and relationships of one calculated insight. It's the tenant host form of `insights_metadata_get`.
-    example: CALL cdp.direct_insight_metadata_get (ci_name => 'Avg_Spends__cio');
+    example: CALL d360.direct_insight_metadata_get (ci_name => 'Avg_Spends__cio');
     options:
       - {name: ci_name, api_name: ci-name, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`. It fills the `{ci-name}` path segment."}
     rows: /metadata
@@ -579,7 +579,7 @@ functions:
     path: /api/v1/insight/calculated-insights/{ci-name}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-insights-ci-ci-name.md
     description: Query a calculated insight with chosen dimensions, measures and filters. It's the tenant host form of `insights_query`.
-    example: CALL cdp.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', limit => 3);
+    example: CALL d360.direct_insight_query (ci_name => 'Avg_Spends__cio', dimensions => 'Id__c,FirstName__c', measures => 'Avg_Spend__c', limit => 3);
     options:
       - {name: ci_name, api_name: ci-name, in: path, type: string, required: true, description: "API name of the insight, such as `Avg_Spends__cio`. It fills the `{ci-name}` path segment."}
       - {name: dimensions, in: query, type: string, description: "Comma-separated dimensions. If unset, all are returned."}
@@ -608,7 +608,7 @@ functions:
     path: /api/v1/dataGraph/metadata
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-metadata.md
     description: List the data graphs with their primary objects, related objects and fields. Use it to find the names `lookup_keys` needs. It's the tenant host form of `datagraph_metadata`.
-    example: CALL cdp.direct_datagraph_metadata (entity_name => 'UnifiedIndividual_DG');
+    example: CALL d360.direct_datagraph_metadata (entity_name => 'UnifiedIndividual_DG');
     options:
       - {name: entity_name, api_name: entityName, in: query, type: string, description: "Name of one data graph, such as `UnifiedIndividual_DG`. The reference's example and the lookup page use this name."}
       - {name: data_graph_name, api_name: dataGraphName, in: query, type: string, description: "Name of one data graph. The reference's parameter table uses this name."}
@@ -641,7 +641,7 @@ functions:
     path: /api/v1/dataGraph/{dataGraphEntityName}/{id}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-name-id.md
     description: Get one data graph record by the primary key of the graph's primary DMO. It's the tenant host form of `datagraph_query`.
-    example: CALL cdp.direct_datagraph_get (data_graph_entity_name => 'individual_eng_dg', id => '100005');
+    example: CALL d360.direct_datagraph_get (data_graph_entity_name => 'individual_eng_dg', id => '100005');
     options:
       - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "Name of the data graph, such as `UnifiedIndividual_DG`."}
       - {name: id, in: path, type: string, required: true, description: "Primary key of the primary DMO, such as `100005`."}
@@ -665,7 +665,7 @@ functions:
     path: /api/v1/dataGraph/{dataGraphEntityName}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-v1-data-graphs-lookup.md
     description: Get data graph records by lookup keys on any participating DMO, optionally with only some fields. It's the tenant host form of `datagraph_lookup`, and the best documented.
-    example: CALL cdp.direct_datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
+    example: CALL d360.direct_datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
     options:
       - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "Name of the data graph, such as `UnifiedIndividual_DG`."}
       - {name: lookup_keys, api_name: lookupKeys, in: query, type: string, required: true, description: "Keys in the form `[DMO__dlm.field__c=value]`, brackets included. Several keys must all match."}
@@ -711,7 +711,7 @@ functions:
     path: /api/v1/universalIdLookup/{entityName}/{DataSourceId__c}/{DataSourceObjectId__c}/{SourceRecordId__c}
     reference_url: https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-universalidlookup-entity-name-datasourceid.md
     description: Starting from one source record, return the records from every source that are linked to the same unified record. It's the tenant host form of `universal_id_lookup`.
-    example: CALL cdp.direct_universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', DataSourceId__c => 'SFMC1487860', DataSourceObjectId__c => 'SFMC1487860_EmailProfile', SourceRecordId__c => '100060522');
+    example: CALL d360.direct_universal_id_lookup (entity_name => 'IndividualIdentityLink__dlm', DataSourceId__c => 'SFMC1487860', DataSourceObjectId__c => 'SFMC1487860_EmailProfile', SourceRecordId__c => '100060522');
     options:
       - {name: entity_name, api_name: entityName, in: path, type: string, required: true, description: "Name of the bridge table, such as `IndividualIdentityLink__dlm`."}
       - {name: DataSourceId__c, in: path, type: string, required: true, description: "Data source ID, such as `SFMC1487860`."}

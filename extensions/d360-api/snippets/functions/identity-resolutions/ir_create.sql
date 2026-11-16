@@ -4,7 +4,7 @@
  * Criteria in one match rule are ANDed, and the rules are ORed. Reconciliation has a default rule per DMO, and one field can override it with its own rule and its own source order. Map the data lake objects to the DMOs first. The ruleset starts as a draft; look it up in the list for its `id`.
  */
 
-call cdp.ir_create (
+call d360.ir_create (
     label => 'Customer Match',
     description => 'Email, or name plus phone, or device serial number',
     configuration_type => 'Individual',
@@ -78,4 +78,4 @@ call cdp.ir_create (
     ]
 );
 
-call cdp.ir_list ();
+call d360.ir_list ();

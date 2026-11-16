@@ -2,7 +2,7 @@
 
 # Personalization
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 This family configures Salesforce Personalization: which content a website or mobile app shows, to whom, and how it renders. It's setup only. The runtime call that asks for a decision is the [Decisioning API](https://developer.salesforce.com/docs/marketing/einstein-personalization/guide/decisioning-api-reference.md), which has no function here.
 
@@ -22,9 +22,9 @@ Gotchas:
 - Deletes can't be undone, and no source says the server checks for references.
 
 ```sql
-CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
-CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
-CALL cdp.p13n_experience_config_create (
+CALL d360.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+CALL d360.p13n_point_get (id_or_name => 'home_page_experience');
+CALL d360.p13n_experience_config_create (
     id_or_app_source_id_or_name => 'my_website_connector',
     name => 'homepage_hero_banner',
     label => 'Homepage Hero Banner',
@@ -50,7 +50,7 @@ Lists the engagement signals configured for a personalization data graph, such a
 | `data_graph_id` | `dataGraphId` | query | string | yes | Data Graph ID — the profile or item data graph to query signals for |
 
 ```sql
-CALL cdp.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph');
+CALL d360.p13n_engagement_signals_list (dataspace_id => 'default', data_graph_id => 'user_profile_graph');
 ```
 
 **Result**
@@ -70,7 +70,7 @@ Returns the org's Data Cloud Tenant Specific Endpoint. Use it to confirm the end
 None.
 
 ```sql
-CALL cdp.p13n_org_info_get ();
+CALL d360.p13n_org_info_get ();
 ```
 
 **Result**
@@ -99,7 +99,7 @@ Generates a time-limited link for previewing an experience config or transformer
 | `decision_request_body` | `decisionRequestBody` | body | [PersonalizationDecisionRequestBody](#personalizationdecisionrequestbody) |  | Decision request used to generate the preview. |
 
 ```sql
-CALL cdp.p13n_mobile_preview_create (
+CALL d360.p13n_mobile_preview_create (
     data_connector_id => 'mobile_app_connector_123',
     experience_config => (
         name = 'test_experience',
@@ -145,7 +145,7 @@ Lists a data connector's experience configs, optionally filtered by point, trans
 | `is_wpm_url_required` | `isWpmUrlRequired` | query | boolean |  | Include Web Personalization Manager URLs in response (default false) |
 
 ```sql
-CALL cdp.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50);
+CALL d360.p13n_experience_config_list (id_or_app_source_id_or_name => 'my_website_connector', transformer_name_or_id => 'promo_banner_transformer', limit => 50);
 ```
 
 **Result**
@@ -171,7 +171,7 @@ Returns one experience config by name, with its data provider, source matchers a
 | `is_wpm_url_required` | `isWpmUrlRequired` | query | boolean |  | Include Web Personalization Manager URL in response (default false) |
 
 ```sql
-CALL cdp.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true);
+CALL d360.p13n_experience_config_get (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_wpm_url_required => true);
 ```
 
 **Result**
@@ -219,7 +219,7 @@ Creates an experience config on a data connector: what content to show (`data_pr
 | `disable_related_experiences` | `disableRelatedExperiences` | query | boolean |  | Disable other experiences in the same content zone (default false) |
 
 ```sql
-CALL cdp.p13n_experience_config_create (
+CALL d360.p13n_experience_config_create (
     id_or_app_source_id_or_name => 'my_website_connector',
     name => 'homepage_hero_banner',
     label => 'Homepage Hero Banner Personalization',
@@ -280,7 +280,7 @@ Changes an experience config, for example to turn it on or off with `is_enabled`
 | `disable_related_experiences` | `disableRelatedExperiences` | query | boolean |  | Disable other experiences in the same content zone (default false) |
 
 ```sql
-CALL cdp.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false);
+CALL d360.p13n_experience_config_update (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner', is_enabled => false);
 ```
 
 **Result**
@@ -303,7 +303,7 @@ Deletes an experience config, which stops its delivery to the app. This can't be
 | `name_param` | `name` | path | string | yes | Unique name of Personalization Experience Config to delete |
 
 ```sql
-CALL cdp.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner');
+CALL d360.p13n_experience_config_delete (id_or_app_source_id_or_name => 'my_website_connector', name_param => 'homepage_hero_banner');
 ```
 
 **Result**
@@ -335,7 +335,7 @@ Lists transformers, which define how content renders through HTML templates, scr
 | `is_data_connector_attached` | `isDataConnectorAttached` | query | boolean |  | Filter by attachment status. When false, returns unattached transformers. Combine with connector_name_or_id to get transformers matching that connector OR unattached |
 
 ```sql
-CALL cdp.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true);
+CALL d360.p13n_transformer_list (channel_type => 'WebApp', transformer_type => 'Handlebars', is_enabled => true);
 ```
 
 **Result**
@@ -359,7 +359,7 @@ Returns one transformer by id or name, with its substitution definitions, type d
 | `id_or_name` | `idOrName` | query | string | yes | Unique id or name of Personalization Transformer to retrieve |
 
 ```sql
-CALL cdp.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
+CALL d360.p13n_transformer_get (id_or_name => 'promo_banner_transformer');
 ```
 
 **Result**
@@ -406,7 +406,7 @@ Creates a transformer: a template, script, HTML modifier or mobile component tha
 | `transformer_type_details` | `transformerTypeDetails` | body | [PersonalizationTransformerDetails](#personalizationtransformerdetails) |  | Data specific to `transformer_type`. |
 
 ```sql
-CALL cdp.p13n_transformer_create (
+CALL d360.p13n_transformer_create (
     name => 'promo_banner_transformer',
     label => 'Promotional Banner Transformer',
     channel => 'WebApp',
@@ -456,7 +456,7 @@ Changes a transformer, identified by id or name.
 | `transformer_type_details` | `transformerTypeDetails` | body | [PersonalizationTransformerDetails](#personalizationtransformerdetails) |  | Data specific to `transformer_type`. |
 
 ```sql
-CALL cdp.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer');
+CALL d360.p13n_transformer_update (id_or_name => 'promo_banner_transformer', is_enabled => true, label => 'Updated Banner Transformer');
 ```
 
 **Result**
@@ -478,7 +478,7 @@ Deletes a transformer. Experience configs that reference it break, and this can'
 | `id_or_name` | `idOrName` | query | string | yes | Unique id or name of Personalization Transformer to delete |
 
 ```sql
-CALL cdp.p13n_transformer_delete (id_or_name => 'promo_banner_transformer');
+CALL d360.p13n_transformer_delete (id_or_name => 'promo_banner_transformer');
 ```
 
 **Result**
@@ -507,7 +507,7 @@ Creates a personalization schema, which defines the structure of personalized co
 | `related_content_objects` | `relatedContentObjects` | body | array of [PersonalizationRelatedContentObject](#personalizationrelatedcontentobject) |  | Related content objects, which can nest. |
 
 ```sql
-CALL cdp.p13n_schema_create (
+CALL d360.p13n_schema_create (
     name => 'product_recommendations_schema',
     label => 'Product Recommendations Schema',
     dataspace_name => 'default',
@@ -542,7 +542,7 @@ Returns one schema by id or name, with its attributes, content object and relate
 | `id_or_name` | `idOrName` | path | string | yes | Unique id or name of Personalization Schema to retrieve |
 
 ```sql
-CALL cdp.p13n_schema_get (id_or_name => 'product_recommendations_schema');
+CALL d360.p13n_schema_get (id_or_name => 'product_recommendations_schema');
 ```
 
 **Result**
@@ -584,7 +584,7 @@ Changes a schema's attributes, content object or related objects. Points that us
 | `related_content_objects` | `relatedContentObjects` | body | array of [PersonalizationRelatedContentObject](#personalizationrelatedcontentobject) |  | Related content objects, which can nest. |
 
 ```sql
-CALL cdp.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')]);
+CALL d360.p13n_schema_update (id_or_name => 'product_recommendations_schema', label => 'Updated Product Recommendations', attributes => [(name = 'new_attribute', label = 'New Attribute', default_value = 'default_value')]);
 ```
 
 **Result**
@@ -606,7 +606,7 @@ Deletes a schema. Points that reference it break, and this can't be undone, so c
 | `id_or_name` | `idOrName` | path | string | yes | Unique id or name of Personalization Schema to delete |
 
 ```sql
-CALL cdp.p13n_schema_delete (id_or_name => 'product_recommendations_schema');
+CALL d360.p13n_schema_delete (id_or_name => 'product_recommendations_schema');
 ```
 
 **Result**
@@ -638,7 +638,7 @@ Creates a personalization point: a set of prioritized decision rules whose attri
 | `decisions` | `decisions` | body | array of [PersonalizationDecision](#personalizationdecision) | yes | Prioritized rules with criteria and attribute values. |
 
 ```sql
-CALL cdp.p13n_point_create (
+CALL d360.p13n_point_create (
     name => 'home_page_experience',
     label => 'Home Page Experience Point',
     dataspace_name => 'default',
@@ -697,7 +697,7 @@ Returns one point by id or name, with its decisions, schema configuration, authe
 | `id_or_name` | `idOrName` | path | string | yes | Unique id or name of Personalization Point to retrieve |
 
 ```sql
-CALL cdp.p13n_point_get (id_or_name => 'home_page_experience');
+CALL d360.p13n_point_get (id_or_name => 'home_page_experience');
 ```
 
 **Result**
@@ -746,7 +746,7 @@ Replaces a point. It's a full `PUT`, so send the complete object with all requir
 | `decisions` | `decisions` | body | array of [PersonalizationDecision](#personalizationdecision) | yes | Prioritized rules with criteria and attribute values. |
 
 ```sql
-CALL cdp.p13n_point_update (
+CALL d360.p13n_point_update (
     id_or_name => 'home_page_experience',
     name => 'home_page_experience',
     label => 'Updated Home Page Experience',
@@ -786,7 +786,7 @@ Deletes a point, which immediately stops personalization at that point in experi
 | `id_or_name` | `idOrName` | path | string | yes | Unique id or name of Personalization Point to delete |
 
 ```sql
-CALL cdp.p13n_point_delete (id_or_name => 'home_page_experience');
+CALL d360.p13n_point_delete (id_or_name => 'home_page_experience');
 ```
 
 **Result**

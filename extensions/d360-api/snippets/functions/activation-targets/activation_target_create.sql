@@ -4,7 +4,7 @@
  * The access key goes in `:s3_access_key` and the secret in `:s3_secret_key`. Wait until `status` of `activation_target_get` is `Active`, compared without case, before you create an activation on it. Its connector has more attributes than the spec's schema shows, depending on the platform.
  */
 
-call cdp.activation_target_create (
+call d360.activation_target_create (
     name => 's3_target2',
     dataspace_name => 'default',
     platform_type => 'AmazonS3',

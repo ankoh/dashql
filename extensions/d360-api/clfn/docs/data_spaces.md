@@ -2,7 +2,7 @@
 
 # Data Spaces
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data space is an [isolated workspace](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) inside one org. Create a space, add data lake objects (DLOs) as members, wait for member `status`, then name the space on later calls. Most calls that accept a space fall back to `default` when you omit it.
 
@@ -23,10 +23,10 @@ For the last row, [filter the response yourself (community, one org with one spa
 This family's own calls take `id_or_name`. Salesforce's [MCP tools](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/DataSpaceTools.java) call it `dataSpaceNameOrId`, and `dataSpaceNameOrID` on the member list only. Those are Java parameter names, not API names.
 
 ```sql
-CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
-CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]));
-CALL cdp.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll'); /* repeat until status is ACTIVE */
-CALL cdp.segment_list (dataspace => 'nonDefault');
+CALL d360.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+CALL d360.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'NoneOperator', conditions = (conditions = [])))]));
+CALL d360.dataspace_member_get (id_or_name => 'nonDefault', dataspace_member_object_name => 'Orders__dll'); /* repeat until status is ACTIVE */
+CALL d360.segment_list (dataspace => 'nonDefault');
 ```
 
 **Functions:** [`dataspace_delete`](#dataspace_delete), [`dataspace_member_remove`](#dataspace_member_remove), [`dataspace_list`](#dataspace_list), [`dataspace_get`](#dataspace_get), [`dataspace_member_list`](#dataspace_member_list), [`dataspace_member_get`](#dataspace_member_get), [`dataspace_update`](#dataspace_update), [`dataspace_create`](#dataspace_create), [`dataspace_sync`](#dataspace_sync), [`dataspace_member_sync`](#dataspace_member_sync), [`dataspace_member_add`](#dataspace_member_add)
@@ -44,7 +44,7 @@ Deletes a data space by ID or API name.
 | `id_or_name` | `idOrName` | path | string | yes | ID (`0vhSB000001bqwjYAA`) or API name (`nonDefault`) of the data space. |
 
 ```sql
-CALL cdp.dataspace_delete (id_or_name => 'nonDefault');
+CALL d360.dataspace_delete (id_or_name => 'nonDefault');
 ```
 
 **Result**
@@ -67,7 +67,7 @@ Delete the specified data lake objects (DLOs) from a data space. Since v66.0.
 | `member_names` | `memberNames` | query | string | yes | DLO names separated by commas, for example, `DataSpaceMember1__dll,DataSpaceMember2__dll`. Maximum 10 members per request. Since v66.0. |
 
 ```sql
-CALL cdp.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll');
+CALL d360.dataspace_member_remove (id_or_name => 'nonDefault', member_names => 'Orders__dll,Returns__dll');
 ```
 
 **Result**
@@ -91,7 +91,7 @@ Get a collection of all data spaces that a user is assigned to. Since v62.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v62.0. |
 
 ```sql
-CALL cdp.dataspace_list ();
+CALL d360.dataspace_list ();
 ```
 
 **Result**
@@ -130,7 +130,7 @@ Get a data space by ID or API name. Since v62.0.
 | `id_or_name` | `idOrName` | path | string | yes | ID (`0vhSB000001bqwjYAA`) or API name (`default`) of the data space. |
 
 ```sql
-CALL cdp.dataspace_get (id_or_name => 'default');
+CALL d360.dataspace_get (id_or_name => 'default');
 ```
 
 **Result**
@@ -171,7 +171,7 @@ Get information about the objects that can access a data space. Currently, only 
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v61.0. |
 
 ```sql
-CALL cdp.dataspace_member_list (id_or_name => 'default', batch_size => 200);
+CALL d360.dataspace_member_list (id_or_name => 'default', batch_size => 200);
 ```
 
 **Result**
@@ -213,7 +213,7 @@ Get details about a data space member for a given data lake object (DLO). Since 
 | `id_or_name` | `idOrName` | path | string | yes | ID or API name of the data space. |
 
 ```sql
-CALL cdp.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default');
+CALL d360.dataspace_member_get (dataspace_member_object_name => 'Orders__dll', id_or_name => 'default');
 ```
 
 **Result**
@@ -252,7 +252,7 @@ Update an existing data space. Since v62.0.
 | `label` | `label` | body | string | yes | Label of the data space. Since v62.0. |
 
 ```sql
-CALL cdp.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
+CALL d360.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
 ```
 
 **Result**
@@ -295,7 +295,7 @@ Create a new data space based on the input details provided. Since v62.0.
 | `description` | `description` | body | string |  | Not in the spec schema: from the spec's examples. |
 
 ```sql
-CALL cdp.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
+CALL d360.dataspace_create (label => 'nonDefault', prefix => 'ndf', description => 'Custom data space.');
 ```
 
 **Result**
@@ -336,7 +336,7 @@ Retries the sync of a data space. The spec gives only the summary "Sync data spa
 | `id_or_name` | `idOrName` | path | string | yes | ID or API name of the data space. |
 
 ```sql
-CALL cdp.dataspace_sync (id_or_name => 'nonDefault');
+CALL d360.dataspace_sync (id_or_name => 'nonDefault');
 ```
 
 **Result**
@@ -361,7 +361,7 @@ Retries the sync of one data space member. The spec gives only the summary "Sync
 | `id_or_name` | `idOrName` | path | string | yes | ID or API name of the data space. |
 
 ```sql
-CALL cdp.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault');
+CALL d360.dataspace_member_sync (dataspace_member_object_name => 'Orders__dll', id_or_name => 'nonDefault');
 ```
 
 **Result**
@@ -386,7 +386,7 @@ Add members to a data space or update existing data space filters. Currently, on
 | `members` | `members` | body | array of [DataSpaceMemberInputList](#dataspacememberinputlistrepresentation) | yes | A list of members to either create or update in the data space. Since v62.0. |
 
 ```sql
-CALL cdp.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]));
+CALL d360.dataspace_member_add (id_or_name => 'nonDefault', members => (members = [(member_name = 'Orders__dll', filter = (conjunctive_operator = 'OrOperator', condition_groups = [], conditions = (conditions = [(field_name = 'Region__c', filter_value = 'EMEA', operator = 'EqualsOperator', table_name = 'Orders__dll')])))]));
 ```
 
 **Result**

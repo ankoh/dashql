@@ -12,9 +12,9 @@ description: |
   - **Join on `RecordId__c`.** Salesforce's templates join index and chunk on `RecordId__c`. `vector_search` returns `score__c`, and `hybrid_search` returns `hybrid_score__c`, `keyword_score__c` and `vector_score__c`.
 
   ```sql
-  CALL cdp.search_index_config ();
+  CALL d360.search_index_config ();
   /* search_index_create goes here, see its example */
-  CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+  CALL d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');
   SELECT v."hybrid_score__c", c."Chunk__c", c."SourceRecordId__c"
   FROM hybrid_search(TABLE("Articles_Search_index__dlm"), 'reset password', '', 5) AS v
   INNER JOIN "Articles_Search_chunk__dlm" AS c ON c."RecordId__c" = v."RecordId__c"
@@ -30,7 +30,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/delete
     tools: [d360_search_index_delete]
     description: Delete a search index definition and the DMOs generated for it. Since v60.0.
-    example: CALL cdp.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY');
+    example: CALL d360.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY');
     options:
       - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id of the index, such as `18lTC0000001qPZYAY`. A developer name is reported to return 404 (community)."}
     effect: write
@@ -48,7 +48,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index/get
     tools: [d360_search_index_list]
     description: Get all search index definition details. Since v60.0.
-    example: CALL cdp.search_index_list ();
+    example: CALL d360.search_index_list ();
     rows: /semanticSearchDefinitionDetails
     columns:
       - {name: attachment_dmo_id, api_name: attachmentDmoId, type: VARCHAR, description: "Attachment data model object's (DMO's) ID. Since v60.0."}
@@ -98,7 +98,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/get
     tools: [d360_search_index_get]
     description: Get one search index definition, including the names of its generated chunk and index DMOs. Poll this after create or update to see whether the index is ready. Since v60.0.
-    example: CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+    example: CALL d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');
     options:
       - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id or developer name of the index. The developer name has no `__dlm` suffix."}
     columns:
@@ -152,7 +152,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1config/get
     tools: [d360_search_index_config]
     description: "Get the valid options for search indexes: chunking strategies, embedding models, index types, similarity metrics and transcription models. Since v60.0."
-    example: CALL cdp.search_index_config ();
+    example: CALL d360.search_index_config ();
     columns:
       - {name: config, type: VARCHAR, description: "The semantic search configuration. Since v60.0."}
     effect: read
@@ -176,7 +176,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index~1%7BsearchIndexApiNameOrId%7D/patch
     tools: [d360_search_index_update]
     description: Update a search index. The spec requires the full definition in the body, not only the fields that change. Since v60.0.
-    example: CALL cdp.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+    example: CALL d360.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
     options:
       - {name: search_index_api_name_or_id, api_name: searchIndexApiNameOrId, in: path, type: string, required: true, description: "Id or developer name of the index, according to Salesforce's tool."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -238,7 +238,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Search-Index/paths/~1ssot~1search-index/post
     tools: [d360_search_index_create]
     description: Create a search index over a DMO. The platform generates the chunk and index DMOs, then chunks and embeds the data in the background. Since v60.0.
-    example: CALL cdp.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+    example: CALL d360.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -316,7 +316,7 @@ functions:
     path: /ssot/search-index/{id}/process-history
     tools: [d360_search_index_process_history]
     description: Get the processing runs of one search index. Use it to see why an index isn't ready or when it last ran.
-    example: CALL cdp.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20);
+    example: CALL d360.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20);
     options:
       - {name: search_index_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "ID or API Name of the search index"}
       - {name: limit, in: query, type: integer, description: "Maximum number of records to return (default 50)"}

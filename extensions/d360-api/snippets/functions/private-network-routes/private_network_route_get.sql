@@ -4,6 +4,6 @@
  * `cloud_provider.status` is the readiness signal. For Snowflake, `cloud_provider.dataCloudVpceId` is the value to allow in the network policy.
  */
 
-call cdp.private_network_route_list (limit => 20);
+call d360.private_network_route_list (limit => 20);
 
-call cdp.private_network_route_get (route_id_or_name => 'Redshift_Prod');
+call d360.private_network_route_get (route_id_or_name => 'Redshift_Prod');

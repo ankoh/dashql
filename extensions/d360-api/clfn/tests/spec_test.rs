@@ -24,7 +24,7 @@ fn spec_text() -> String {
 
 fn catalog() -> Catalog {
     let mut catalog = Catalog::new();
-    assert_eq!(&*catalog.register_client_functions(&spec_text()).expect("the core reads the spec"), "cdp");
+    assert_eq!(&*catalog.register_client_functions(&spec_text()).expect("the core reads the spec"), "d360");
     catalog
 }
 
@@ -38,7 +38,7 @@ fn documented_examples() -> Vec<(String, String)> {
         let text = std::fs::read_to_string(path).unwrap();
         for block in text.split("```sql\n").skip(1) {
             let block = block.split("```").next().unwrap();
-            if block.contains("cdp.") && !block.contains("(...)") {
+            if block.contains("d360.") && !block.contains("(...)") {
                 out.push((name.clone(), block.to_string()));
             }
         }
@@ -73,7 +73,7 @@ fn documented_examples_pass_the_checks() {
 }
 
 fn first_line(text: &str) -> &str {
-    text.lines().find(|l| l.contains("cdp.")).unwrap_or("")
+    text.lines().find(|l| l.contains("d360.")).unwrap_or("")
 }
 
 /// The candidates at the end of a text
@@ -100,7 +100,7 @@ fn names(attributes: Option<&Value>) -> BTreeSet<String> {
 #[test]
 fn completion_describes_what_the_spec_describes() {
     let catalog = catalog();
-    let text = "call cdp.";
+    let text = "call d360.";
     let entry_id = catalog.allocate_entry_id();
     let scanned = Arc::new(scan(text, 0, entry_id));
     let parsed = Arc::new(parse(scanned.clone()));
@@ -137,7 +137,7 @@ fn completion_describes_what_the_spec_describes() {
 fn completion_offers_every_function() {
     let spec: Value = serde_json::from_str(&spec_text()).unwrap();
     let expected: BTreeSet<String> = spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
-    assert_eq!(complete(&catalog(), "call cdp."), expected);
+    assert_eq!(complete(&catalog(), "call d360."), expected);
 }
 
 #[test]
@@ -155,7 +155,7 @@ fn completion_offers_the_options_of_every_function() {
                 expected.insert("_pages".to_string());
             }
         }
-        assert_eq!(complete(&catalog, &format!("call cdp.{name} (")), expected, "{name}");
+        assert_eq!(complete(&catalog, &format!("call d360.{name} (")), expected, "{name}");
     }
 }
 
@@ -177,12 +177,12 @@ fn completion_offers_the_attributes_of_every_object_option() {
             }
             // The keys of a map are free, its values have the attributes
             let value = if option["map"] == true {
-                assert!(complete(&catalog, &format!("call cdp.{name} ({option_name} => (")).is_empty(), "{name}.{option_name}");
+                assert!(complete(&catalog, &format!("call d360.{name} ({option_name} => (")).is_empty(), "{name}.{option_name}");
                 "(key = ("
             } else {
                 "("
             };
-            let actual = complete(&catalog, &format!("call cdp.{name} ({option_name} => {value}"));
+            let actual = complete(&catalog, &format!("call d360.{name} ({option_name} => {value}"));
             assert_eq!(actual, expected, "{name}.{option_name}");
             checked += 1;
         }
@@ -203,7 +203,7 @@ fn messages(catalog: &Catalog, text: &str) -> Vec<String> {
 #[test]
 fn unions_check_one_variant() {
     let catalog = catalog();
-    let check = |call: &str, expected: &[&str]| assert_eq!(messages(&catalog, &format!("call cdp.{call};")), expected, "{call}");
+    let check = |call: &str, expected: &[&str]| assert_eq!(messages(&catalog, &format!("call d360.{call};")), expected, "{call}");
     let route = |fields: &str| format!("private_network_route_create (name => 'n', label => 'l', description => 'd', route => ({fields}))");
 
     // The tag selects the variant
@@ -259,7 +259,7 @@ fn tags_select_by_values_of_their_enums() {
 #[test]
 fn unions_narrow_completion() {
     let catalog = catalog();
-    let route = "call cdp.private_network_route_create (route => (";
+    let route = "call d360.private_network_route_create (route => (";
     let names = |text: &str| complete(&catalog, text);
     let set = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<BTreeSet<_>>();
     assert_eq!(names(route), set(&["account_url", "broker_endpoints", "service_name", "type"]));

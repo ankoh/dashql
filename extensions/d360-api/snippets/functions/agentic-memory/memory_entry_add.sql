@@ -4,7 +4,7 @@
  * A `Message` entry carries `content`, a `Trace` entry such as a tool call carries its data in `variable`. Entries are processed in the order received, so send timestamps. The call returns once storage is committed and doesn't wait for extraction. The docs give no idempotency key, so a retry may add the entries twice.
  */
 
-call cdp.memory_entry_add (
+call d360.memory_entry_add (
     agent_id => 'ACE_Demo_Agent',
     conversation_id => 'conv-2025-001',
     session_id => 'sess-9001',

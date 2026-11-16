@@ -15,10 +15,10 @@ description: |
   - The spec's create example uses attributes its schema doesn't have, including the one that makes a draft.
 
   ```sql
-  CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', type = 'standard', json_path = '$', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE')], related_objects = []));
-  CALL cdp.data_graph_get (data_graph_name => 'Customer_Graph'); /* poll status */
-  CALL cdp.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]');
-  CALL cdp.data_graph_refresh (data_graph_name => 'Customer_Graph');
+  CALL d360.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', type = 'standard', json_path = '$', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE')], related_objects = []));
+  CALL d360.data_graph_get (data_graph_name => 'Customer_Graph'); /* poll status */
+  CALL d360.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]');
+  CALL d360.data_graph_refresh (data_graph_name => 'Customer_Graph');
   ```
 
 functions:
@@ -28,7 +28,7 @@ functions:
     path: /ssot/data-graphs/{dataGraphName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1%7BdataGraphName%7D/delete
     description: Delete a data graph. Since v59.0.
-    example: CALL cdp.data_graph_delete (data_graph_name => 'Customer_Graph');
+    example: CALL d360.data_graph_delete (data_graph_name => 'Customer_Graph');
     options:
       - {name: data_graph_name, api_name: dataGraphName, in: path, type: string, required: true, description: "API name: `name` from the create response, or `developer_name` from `datagraph_metadata`."}
     effect: write
@@ -47,7 +47,7 @@ functions:
     path: /ssot/data-graphs/{dataGraphName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1%7BdataGraphName%7D/get
     description: Read one graph's definition and status. Use it to poll a graph after create, activate or refresh. For the graph's records, use `datagraph_lookup` or `datagraph_query`. Since v59.0.
-    example: CALL cdp.data_graph_get (data_graph_name => 'Customer_Graph');
+    example: CALL d360.data_graph_get (data_graph_name => 'Customer_Graph');
     options:
       - {name: data_graph_name, api_name: dataGraphName, in: path, type: string, required: true, description: "API name: `name` from the create response, or `developer_name` from `datagraph_metadata`."}
     columns:
@@ -92,7 +92,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1data~1%7BdataGraphEntityName%7D/get
     tools: [d360_datagraph_lookup]
     description: Query a data graph by the primary key of either the primary data model object (DMO) or the Individual linked DMO. For real-time data graphs, the endpoint attempts to retrieve data from the real-time data graph but falls back to the standard data graph if the real-time data graph is unavailable. Since v59.0.
-    example: CALL cdp.datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
+    example: CALL d360.datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
     options:
       - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "API name of the data graph to query. Since v59.0."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space in which to query the data graph. By default, the endpoint queries the `default` dataspace. Since v59.0."}
@@ -136,7 +136,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1data~1%7BdataGraphEntityName%7D~1%7Bid%7D/get
     tools: [d360_datagraph_query]
     description: Query data graph data by ID. For real-time data graphs, the API retrieves data from the real-time data graph and only falls back to the standard data graph if the real-time data graph is unavailable. Since v59.0.
-    example: CALL cdp.datagraph_query (data_graph_entity_name => 'UnifiedIndividual_DG', id => '100005', live => true);
+    example: CALL d360.datagraph_query (data_graph_entity_name => 'UnifiedIndividual_DG', id => '100005', live => true);
     options:
       - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: path, type: string, required: true, description: "API name of the data graph to query. Since v59.0."}
       - {name: id, in: path, type: string, required: true, description: "Record ID to query for, which is matched against the primary key field of the primary data model object (DMO) in the data graph. Since v59.0."}
@@ -174,7 +174,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1metadata/get
     tools: [d360_datagraph_metadata]
     description: Query data graph metadata. This API supports both standard and real-time data graphs that allow you to retrieve metadata from each respective graph type. Since v59.0.
-    example: CALL cdp.datagraph_metadata (data_graph_entity_name => 'UnifiedIndividual_DG');
+    example: CALL d360.datagraph_metadata (data_graph_entity_name => 'UnifiedIndividual_DG');
     options:
       - {name: data_graph_entity_name, api_name: dataGraphEntityName, in: query, type: string, description: "API name of the data graph to query. If unspecified, metadata for all data graphs is returned. Since v59.0."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space to query. If unspecified, the `default` data space is used. Since v59.0."}
@@ -209,7 +209,7 @@ functions:
     path: /ssot/data-graphs
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs/post
     description: Create a data graph. Since v59.0.
-    example: CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', label = 'Individual', json_path = '$', type = 'standard', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE'), (source_field_name = 'KQ_Id__c', is_key_column = false, is_projected = true, data_type = 'Text', usage_tag = 'KEY_QUALIFIER')], related_objects = []));
+    example: CALL d360.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', label = 'Individual', json_path = '$', type = 'standard', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE'), (source_field_name = 'KQ_Id__c', is_key_column = false, is_projected = true, data_type = 'Text', usage_tag = 'KEY_QUALIFIER')], related_objects = []));
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0. Sources also spell it `dataspaceName`: quote that name to send that spelling."}
       - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
@@ -280,7 +280,7 @@ functions:
     path: /ssot/data-graphs/{dataGraphName}/actions/activate
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1%7BdataGraphName%7D~1actions~1activate/post
     description: Activate a data graph draft. Activation saves the draft configuration and builds the data graph, which starts a materialization job to process the data according to the graph definition. In the Data 360 UI, this action corresponds to **Save and Build**. Since v67.0.
-    example: CALL cdp.data_graph_activate (data_graph_name => 'Customer_Graph', full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day')));
+    example: CALL d360.data_graph_activate (data_graph_name => 'Customer_Graph', full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day')));
     options:
       - {name: data_graph_name, api_name: dataGraphName, in: path, type: string, required: true, description: "Name of the data graph. Since v67.0."}
       - {name: full_refresh_config, api_name: fullRefreshConfig, in: body, schema: DataGraphFullRefreshConfigInputRepresentation, description: "Configuration of the full refresh schedule for standard data graphs. Since v67.0."}
@@ -303,7 +303,7 @@ functions:
     path: /ssot/data-graphs/{dataGraphName}/actions/refresh
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Graphs/paths/~1ssot~1data-graphs~1%7BdataGraphName%7D~1actions~1refresh/post
     description: Start a rebuild of a data graph's materialized data, outside its schedule. Since v64.0.
-    example: CALL cdp.data_graph_refresh (data_graph_name => 'Customer_Graph');
+    example: CALL d360.data_graph_refresh (data_graph_name => 'Customer_Graph');
     options:
       - {name: data_graph_name, api_name: dataGraphName, in: path, type: string, required: true, description: "Name of the data graph. Since v64.0."}
     columns:

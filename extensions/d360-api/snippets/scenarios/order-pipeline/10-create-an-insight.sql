@@ -4,7 +4,7 @@
  * Compute the total order amount per individual. Repeat the last call until `calculated_insight_status` is `ACTIVE`.
  */
 
-call cdp.ci_create (
+call d360.ci_create (
     api_name => 'Customer_Order_Summary__cio',
     display_name => 'Customer Order Summary',
     description => 'Total order amount per individual.',
@@ -19,4 +19,4 @@ call cdp.ci_create (
   $$
 );
 
-call cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+call d360.ci_get (api_name => 'Customer_Order_Summary__cio');

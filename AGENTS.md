@@ -62,7 +62,7 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/client_functions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, results, security, the core, the runtime)
     - `docs/design/extensions/api_survey.md` (the format measured against Snowflake, GitHub and Stripe, similar formats)
 
-- CDP SQL (the first extension, `CALL cdp.*` over the Salesforce Data 360 API: the spec and the calls that read are
+- Data 360 (the first extension, `CALL d360.*` over the Salesforce Data 360 API: the spec and the calls that read are
   built, calls that write fail before anything is sent, not tested against an org)
     - `extensions/d360-api/clfn/docs/overview.md` (the Salesforce binding, how Data 360 fits the format, naming, where attributes come from)
     - `extensions/d360-api/clfn/docs/functions.md` (the function reference and result schema, with one document per family in the same directory, generated from `extensions/d360-api/clfn/spec/*.yaml`, the source of the spec as well)

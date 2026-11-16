@@ -6,11 +6,11 @@ parser-snapshots:
   # A qualified name and named options
   - name: call_options
     input: |
-      CALL cdp.segment_list (batch_size => 200, offset => 0);
+      CALL d360.segment_list (batch_size => 200, offset => 0);
   # Every keyword is a valid name
   - name: call_keyword_names
     input: |
-      CALL cdp.select (limit => 1, name => 'a', select => 2, table => 3, values => 4, with => 5, offset => 6);
+      CALL d360.select (limit => 1, name => 'a', select => 2, table => 3, values => 4, with => 5, offset => 6);
   # Objects, arrays, and the empty forms of both
   - name: call_nested
     input: |
@@ -46,7 +46,7 @@ parser-snapshots:
   # The name while it is typed
   - name: call_trailing_dot
     input: |
-      CALL cdp.
+      CALL d360.
   # Top-level options take =>
   - name: call_error_equals
     input: |

@@ -4,7 +4,7 @@
  * A second rule is refused with `MULTIPLE_RULES_NOT_ALLOWED`. The rule has an effect (`Permit`, `Forbid` or `Transform`) and a category, and a Transform rule takes a transform with its arguments. When several Transform rules apply to a field, the lower `transform_precedence` wins.
  */
 
-call cdp.access_policy_create (
+call d360.access_policy_create (
     name => 'RestrictSensitiveFields',
     label => 'Restrict Sensitive Fields',
     description => 'Restricts read access to sensitive account fields.',
@@ -24,4 +24,4 @@ call cdp.access_policy_create (
     )]
 );
 
-call cdp.access_policy_get (name => 'RestrictSensitiveFields');
+call d360.access_policy_get (name => 'RestrictSensitiveFields');

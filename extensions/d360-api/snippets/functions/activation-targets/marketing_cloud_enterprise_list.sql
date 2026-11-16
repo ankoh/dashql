@@ -4,4 +4,4 @@
  * The id of a business unit is described as the MID, but the sample shows a record id with the numeric MID only in the name. Page with `offset` and `batch_size`.
  */
 
-call cdp.marketing_cloud_enterprise_list (batch_size => 50, offset => 0);
+call d360.marketing_cloud_enterprise_list (batch_size => 50, offset => 0);

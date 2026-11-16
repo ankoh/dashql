@@ -4,9 +4,9 @@
  * Acceleration is a setting of the stream, the connection is the same as for a live query. The cache is a copy with a storage cost, and its schedule can be set from 15 minutes to 7 days. No source gives the API names of the attributes: `clientId`, `clientSecret`, `url` and `httpPath` are guesses from the setup page, so check them against the first call. The shape of the stream comes from Snowflake, community code says Databricks takes `Direct_Access` as well. Wait for the connection to be `Active` before the third call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connector_metadata (connector_type => 'Databricks');
+call d360.connector_metadata (connector_type => 'Databricks');
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'Databricks',
     label => 'Databricks accelerated',
     name => 'Databricks_Accelerated',
@@ -23,7 +23,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_databricks_accelerated',
     label => 'Orders (Databricks accelerated)',
     data_stream_type => 'EXTERNAL',
@@ -57,4 +57,4 @@ call cdp.datastream_create (
     )
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_databricks_accelerated');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_databricks_accelerated');

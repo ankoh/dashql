@@ -4,4 +4,4 @@
  * Read it back.
  */
 
-call cdp.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');
+call d360.consent_get (action => 'processing', ids => '100000695', mode => 'cdp');

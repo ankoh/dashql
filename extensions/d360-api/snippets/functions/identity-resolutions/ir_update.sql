@@ -4,7 +4,7 @@
  * The spec requires `label` and `reconciliation_rules` in every update, so send both even for a small change. Read the ruleset afterwards to see what the server kept.
  */
 
-call cdp.ir_update (
+call d360.ir_update (
     identity_resolution => '1irfj000000IWhWAAW',
     label => 'Customer Match',
     description => 'Email, or name plus phone, or device serial number',
@@ -15,4 +15,4 @@ call cdp.ir_update (
     ]
 );
 
-call cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+call d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');

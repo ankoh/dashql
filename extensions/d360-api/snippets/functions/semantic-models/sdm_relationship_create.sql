@@ -4,7 +4,7 @@
  * `cardinality` says how many right rows match one left row. Each criterion compares one field of each side.
  */
 
-call cdp.sdm_relationship_create (
+call d360.sdm_relationship_create (
     model_api_name_or_id => 'AccountRevenue',
     label => 'Account to Opportunity',
     api_name => 'Account_to_Opportunity',
@@ -22,7 +22,7 @@ call cdp.sdm_relationship_create (
     )]
 );
 
-call cdp.sdm_relationship_get (
+call d360.sdm_relationship_get (
     model_api_name_or_id => 'AccountRevenue',
     relationship_name_or_id => 'Account_to_Opportunity'
 );

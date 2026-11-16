@@ -4,9 +4,9 @@
  * `success = true` only means the action started: read the graph until `status` is `ready`. The schedule here is a full refresh every day. This is for drafts, which a graph created with `creation_mode` set to `draft` is.
  */
 
-call cdp.data_graph_activate (
+call d360.data_graph_activate (
     data_graph_name => 'Customer_Graph',
     full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day'))
 );
 
-call cdp.data_graph_get (data_graph_name => 'Customer_Graph');
+call d360.data_graph_get (data_graph_name => 'Customer_Graph');

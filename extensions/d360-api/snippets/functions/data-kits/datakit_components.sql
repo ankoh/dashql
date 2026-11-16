@@ -4,7 +4,7 @@
  * Filter by type and page with `limit` (1 to 200) and `offset`. On orgs with large kit inventories the call has returned a 500.
  */
 
-call cdp.datakit_components (
+call d360.datakit_components (
     component_type => 'DataLakeObject',
     data_kit_dev_name => 'Customer_Kit',
     limit => 50,

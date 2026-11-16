@@ -4,4 +4,4 @@
  * List the data model objects of the org, without their fields. All of this workflow only reads.
  */
 
-call cdp.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');
+call d360.metadata_entities (entity_type => 'DataModelObject', entity_category => 'Profile');

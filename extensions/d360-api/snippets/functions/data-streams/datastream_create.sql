@@ -4,7 +4,7 @@
  * The create returns with the status `PROCESSING`. Read the stream until it is `ACTIVE`, then map the DLO. `Profile` and `Engagement` DLOs need a primary key.
  */
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Bike_Trips',
     label => 'Bike Trips',
     data_source => 'AwsS3_S3Connection',
@@ -43,4 +43,4 @@ call cdp.datastream_create (
     )
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Bike_Trips');
+call d360.datastream_get (record_id_or_developer_name => 'Bike_Trips');

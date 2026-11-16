@@ -4,7 +4,7 @@
  * Entries land in the `category` partition, such as `sys_PROFILE_PREFERENCES` or `sys_PROFILE_FACT`. The result lists the new IDs. This call and `memory_update` send the same verb and path, and the response `status_code` shows which one ran.
  */
 
-call cdp.memory_create (
+call d360.memory_create (
     agent_id => 'ACE_Demo_Agent',
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',
@@ -12,7 +12,7 @@ call cdp.memory_create (
     memories => [(content = 'Prefers EST scheduling'), (content = 'Wants order updates by email, not SMS')]
 );
 
-call cdp.memory_list (
+call d360.memory_list (
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',
     category => 'sys_PROFILE_PREFERENCES'

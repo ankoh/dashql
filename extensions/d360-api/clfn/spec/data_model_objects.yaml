@@ -14,8 +14,8 @@ description: |
   - Empty results vary: a DMO with no relationships returns 204, and one with no mappings returns 404 (community).
 
   ```sql
-  CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
-  CALL cdp.dmo_mapping_create (
+  CALL d360.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+  CALL d360.dmo_mapping_create (
     dataspace => 'default',
     label => 'S3_Subscribers_Individual',
     source_entity_developer_name => 'S3_Subscribers__dll',
@@ -26,7 +26,7 @@ description: |
     ]
   );
   /* Repeat until status is ACTIVE */
-  CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+  CALL d360.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
   ```
 
 functions:
@@ -37,7 +37,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D/delete
     tools: [d360_dmo_mapping_delete]
     description: Delete a mapping between a data lake object (DLO) source and a data model object (DMO) target. Since v61.0.
-    example: CALL cdp.dmo_mapping_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    example: CALL d360.dmo_mapping_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
     options:
       - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object mapping. Retrieve it from `dmo_mapping_list`, or from the `developer_name` that `dmo_mapping_create` returns."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
@@ -52,7 +52,7 @@ functions:
     path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}/field-mappings
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D~1field-mappings/delete
     description: Delete a field mapping between a data lake object (DLO) source and a data model object (DMO) target. Since v61.0.
-    example: CALL cdp.dmo_field_mappings_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    example: CALL d360.dmo_field_mappings_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
     options:
       - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object source target mapping between a DLO and a DMO. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
@@ -68,7 +68,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/delete
     tools: [d360_dmo_delete]
     description: Delete a standard or custom data model object (DMO). Since v61.0.
-    example: CALL cdp.dmo_delete (data_model_object_name => 'CustomDMO__dlm');
+    example: CALL d360.dmo_delete (data_model_object_name => 'CustomDMO__dlm');
     options:
       - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
     effect: write
@@ -82,7 +82,7 @@ functions:
     path: /ssot/data-model-objects/relationships/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1relationships~1%7Bname%7D/delete
     description: Delete a data model object (DMO) relationship between a field in the source DMO and a field in the target DMO. Since v64.0.
-    example: CALL cdp.dmo_relationship_delete (name => 'ds1_Individual_Id_map_ds1_DataSpace1Dmo_Id_1726382174104');
+    example: CALL d360.dmo_relationship_delete (name => 'ds1_Individual_Id_map_ds1_DataSpace1Dmo_Id_1726382174104');
     options:
       - {name: name, in: path, type: string, required: true, description: "ID or developer name of the field source target relationship. Since v64.0."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v64.0."}
@@ -97,7 +97,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings/get
     tools: [d360_dmo_mapping_list]
     description: Get the details of all mappings associated with a data model object (DMO). Since v61.0.
-    example: CALL cdp.dmo_mapping_list (dmo_developer_name => 'ssot__Individual__dlm');
+    example: CALL d360.dmo_mapping_list (dmo_developer_name => 'ssot__Individual__dlm');
     options:
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
       - {name: dlo_developer_name, api_name: dloDeveloperName, in: query, type: string, description: "Developer name of the data lake object (DLO) source object. Since v61.0."}
@@ -128,7 +128,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D/get
     tools: [d360_dmo_mapping_get]
     description: Get one DLO-to-DMO mapping by developer name, with its field mappings and status. Use it to check that a new or changed mapping became active.
-    example: CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+    example: CALL d360.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
     options:
       - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object mapping. Retrieve it from `dmo_mapping_list`, or from the `developer_name` that `dmo_mapping_create` returns."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
@@ -150,7 +150,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects/get
     tools: [d360_dmo_list]
     description: Get a paginated list of all data model objects (DMOs). Since v61.0.
-    example: CALL cdp.dmo_list ();
+    example: CALL d360.dmo_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of DMOs to return. If unspecified, the default value is `50`. Since v61.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v61.0."}
@@ -198,7 +198,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/get
     tools: [d360_dmo_get]
     description: Get a data model object (DMO). Since v61.0.
-    example: CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+    example: CALL d360.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
     options:
       - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
     columns:
@@ -234,7 +234,7 @@ functions:
     path: /ssot/data-model-objects/{dataModelObjectName}/relationships
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D~1relationships/get
     description: Get the details of all data model object (DMO) relationships between fields in the source DMO and fields in the target DMO. Since v64.0.
-    example: CALL cdp.dmo_relationship_list (data_model_object_name => 'ssot__Individual__dlm', status => 'Active');
+    example: CALL d360.dmo_relationship_list (data_model_object_name => 'ssot__Individual__dlm', status => 'Active');
     options:
       - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
       - {name: creation_type, api_name: creationType, in: query, type: string, enum: [CalculatedInsight, Curated, Custom, SegmentMembership, Standard, System], description: "Filter the returned results based on relationship creation type. Since v64.0."}
@@ -277,7 +277,7 @@ functions:
     path: /ssot/data-model-object-mappings/{objectSourceTargetMapDeveloperName}/field-mappings/{fieldSourceTargetMapDeveloperName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings~1%7BobjectSourceTargetMapDeveloperName%7D~1field-mappings~1%7BfieldSourceTargetMapDeveloperName%7D/patch
     description: Add or update field mappings on an existing mapping, with one field mapping named in the path. To add fields without naming one, see `dmo_field_mapping_add`.
-    example: CALL cdp.dmo_field_mapping_update (object_source_target_map_developer_name => 'StaticCurrencyRates_Home_map_StaticCurrencyRates_Home_1754427001213', field_source_target_map_developer_name => 'InternalOrganization__c_fieldmap_InternalOrganizationId__c', source_entity_developer_name => 'StaticCurrencyRates_Home__dll', target_entity_developer_name => 'StaticCurrencyRates_Home__dlm', field_mapping => [(source_field_developer_name = 'InternalOrganization__c', target_field_developer_name = 'InternalOrganizationId__c')]);
+    example: CALL d360.dmo_field_mapping_update (object_source_target_map_developer_name => 'StaticCurrencyRates_Home_map_StaticCurrencyRates_Home_1754427001213', field_source_target_map_developer_name => 'InternalOrganization__c_fieldmap_InternalOrganizationId__c', source_entity_developer_name => 'StaticCurrencyRates_Home__dll', target_entity_developer_name => 'StaticCurrencyRates_Home__dlm', field_mapping => [(source_field_developer_name = 'InternalOrganization__c', target_field_developer_name = 'InternalOrganizationId__c')]);
     options:
       - {name: field_source_target_map_developer_name, api_name: fieldSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the field source target mapping between a DLO and a DMO. Required when adding new field mappings. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
       - {name: object_source_target_map_developer_name, api_name: objectSourceTargetMapDeveloperName, in: path, type: string, required: true, description: "Developer name of the object source target mapping between a DLO and a DMO. Retrieve this value from the [get data model object mappings](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObjectMappingCollection) endpoint. Since v61.0."}
@@ -312,7 +312,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D/patch
     tools: [d360_dmo_update]
     description: Update a custom data model object (DMO). The state of the DMO prior to the patch update is returned. To view the latest updates, send this request again or use the [get data model object](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getDataModelObject) endpoint. Since v61.0.
-    example: CALL cdp.dmo_update (data_model_object_name => 'CustomDMO__dlm', label => 'Custom DMO', fields => [(name = 'CustomDMO789', label = 'CustomDMO789', is_primary_key = false, data_type = 'DateTime')]);
+    example: CALL d360.dmo_update (data_model_object_name => 'CustomDMO__dlm', label => 'Custom DMO', fields => [(name = 'CustomDMO789', label = 'CustomDMO789', is_primary_key = false, data_type = 'DateTime')]);
     options:
       - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the DMO, with the `__dlm` suffix."}
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
@@ -360,7 +360,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-object-mappings/post
     tools: [d360_dmo_mapping_create, d360_standard_mapping_create]
     description: Create one mapping from a DLO to a DMO, with its field pairs. Call it once per source and target pair.
-    example: CALL cdp.dmo_mapping_create (dataspace => 'default', label => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'), (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c'), (source_field_developer_name = 'FirstName__c', target_field_developer_name = 'ssot__FirstName__c')]);
+    example: CALL d360.dmo_mapping_create (dataspace => 'default', label => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'), (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c'), (source_field_developer_name = 'FirstName__c', target_field_developer_name = 'ssot__FirstName__c')]);
     options:
       - {name: dataspace, in: query, type: string, required: true, description: "Name of the data space. If unspecified, the `default` data space is used. Since v61.0."}
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
@@ -404,7 +404,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects/post
     tools: [d360_dmo_create]
     description: Create a custom data model object (DMO). Since v61.0.
-    example: CALL cdp.dmo_create (name => 'CustomDMO', label => 'Custom DMO', dataspace_name => 'default', category => 'Profile', fields => [(name = 'CustomId', label = 'Custom Id', is_primary_key = true, data_type = 'Text'), (name = 'SignupDate', label = 'Signup Date', is_primary_key = false, data_type = 'DateTime')]);
+    example: CALL d360.dmo_create (name => 'CustomDMO', label => 'Custom DMO', dataspace_name => 'default', category => 'Profile', fields => [(name = 'CustomId', label = 'Custom Id', is_primary_key = true, data_type = 'Text'), (name = 'SignupDate', label = 'Signup Date', is_primary_key = false, data_type = 'DateTime')]);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Set it explicitly: mapping a custom DMO created without it returns `DMO not found` (payload examples)."}
       - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
@@ -469,7 +469,7 @@ functions:
     path: /ssot/data-model-objects/{dataModelObjectName}/relationships
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Model-Objects/paths/~1ssot~1data-model-objects~1%7BdataModelObjectName%7D~1relationships/post
     description: Create bulk data model object (DMO) relationships between fields in the source DMO and fields in the target DMO. If a relationship already exists, it is skipped. Since v64.0.
-    example: CALL cdp.dmo_relationship_create (data_model_object_name => 'SalesOrder__dlm', dataspace => 'default', relationships => [(source_object_name = 'SalesOrder__dlm', target_object_name = 'ssot__Individual__dlm', source_field_name = 'CustomerId__c', target_field_name = 'ssot__Id__c', cardinality = 'ManyToOne', relationship_owner = 'DataCloud')]);
+    example: CALL d360.dmo_relationship_create (data_model_object_name => 'SalesOrder__dlm', dataspace => 'default', relationships => [(source_object_name = 'SalesOrder__dlm', target_object_name = 'ssot__Individual__dlm', source_field_name = 'CustomerId__c', target_field_name = 'ssot__Id__c', cardinality = 'ManyToOne', relationship_owner = 'DataCloud')]);
     options:
       - {name: data_model_object_name, api_name: dataModelObjectName, in: path, type: string, required: true, description: "Developer name of the source DMO, with the `__dlm` suffix. The spec doesn't say which end goes here, but afd360 passes the source (community)."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v64.0."}
@@ -509,7 +509,7 @@ functions:
     path: /ssot/data-model-object-mappings/{mappingName}/field-mappings
     tools: [d360_dmo_field_mapping_add]
     description: Add field mappings to an existing DLO-to-DMO mapping without recreating it. Use it when the source gains a field or a mapping missed one.
-    example: CALL cdp.dmo_field_mapping_add (mapping_name => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'DateOfBirth__c', target_field_developer_name = 'ssot__BirthDate__c')]);
+    example: CALL d360.dmo_field_mapping_add (mapping_name => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'DateOfBirth__c', target_field_developer_name = 'ssot__BirthDate__c')]);
     options:
       - {name: mapping_name, api_name: mappingName, in: path, type: string, required: true, description: "Developer name of the object mapping, for example `Contact_00D000000000000_map_ContactPointAddress_1714460254874`."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
@@ -540,7 +540,7 @@ functions:
     path: /ssot/data-model-object-mappings/{mappingName}/field-mappings/{fieldMappingName}
     tools: [d360_dmo_field_mapping_delete]
     description: Delete one field mapping and keep the rest of the DLO-to-DMO mapping. Use it to remove a field for governance or cleanup.
-    example: CALL cdp.dmo_field_mapping_delete (mapping_name => 'S3_Subscribers_Individual', field_mapping_name => 'DateOfBirth__c_fieldmap_ssot__BirthDate__c');
+    example: CALL d360.dmo_field_mapping_delete (mapping_name => 'S3_Subscribers_Individual', field_mapping_name => 'DateOfBirth__c_fieldmap_ssot__BirthDate__c');
     options:
       - {name: mapping_name, api_name: mappingName, in: path, type: string, required: true, description: "Developer name of the object mapping"}
       - {name: field_mapping_name, api_name: fieldMappingName, in: path, type: string, required: true, description: "Developer name of the field mapping to delete (e.g. MailingCity__c_fieldmap_ssot__CityId__c)"}

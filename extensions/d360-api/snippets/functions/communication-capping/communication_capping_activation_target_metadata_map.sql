@@ -4,7 +4,7 @@
  * The target has to be of the capping type already, from `activation_target_create`, in a data space linked to the configuration. Read the mapping back afterwards.
  */
 
-call cdp.communication_capping_activation_target_metadata_map (
+call d360.communication_capping_activation_target_metadata_map (
     activation_target_id => '85UVF000000Dr4v2AC',
     activation_target_name => 'Email_capped',
     data_comm_cap_dim_info => [
@@ -13,4 +13,4 @@ call cdp.communication_capping_activation_target_metadata_map (
     ]
 );
 
-call cdp.communication_capping_activation_target_metadata_get (activation_target_id => '85UVF000000Dr4v2AC');
+call d360.communication_capping_activation_target_metadata_get (activation_target_id => '85UVF000000Dr4v2AC');

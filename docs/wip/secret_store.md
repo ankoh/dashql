@@ -5,7 +5,7 @@ Status: an idea, deferred. Nothing here is built.
 An app-wide key-value store, whose keys scripts read as scalar parameters. It's a tool to use in place of a normal scalar parameter, so nothing is classified as secret and a key can go wherever a parameter can.
 
 ```sql
-CALL cdp.connection_create (
+CALL d360.connection_create (
   connector_type => 'SNOWFLAKE',
   label => 'Snowflake prod',
   name => 'SnowflakeConn',

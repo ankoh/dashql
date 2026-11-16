@@ -4,7 +4,7 @@
  * Here the object has chosen dimensions and measurements and a filter that limits the rows it contributes. `filter_logic` combines the filters by their 1-based index.
  */
 
-call cdp.sdm_data_object_create (
+call d360.sdm_data_object_create (
     model_api_name_or_id => 'AccountRevenue',
     data_object_name => 'ssot__Account__dlm',
     data_object_type => 'Dmo',

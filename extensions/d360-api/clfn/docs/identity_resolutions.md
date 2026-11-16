@@ -2,7 +2,7 @@
 
 # Identity Resolutions
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Identity resolution merges records of the same person or account from different sources into one unified profile. A ruleset has two parts. Match rules decide which records belong together. Reconciliation rules decide which value wins on the unified profile.
 
@@ -17,11 +17,11 @@ The traps:
 - The sources disagree on enum casing. See [`ir_create`](#ir_create).
 
 ```sql
-CALL cdp.ir_create (label => 'Email Match', configuration_type => 'Individual', ruleset_id => 'mail',
+CALL d360.ir_create (label => 'Email Match', configuration_type => 'Individual', ruleset_id => 'mail',
   match_rules => [(label = 'Normalized Email', criteria = [(entity_name = 'ssot__ContactPointEmail__dlm', field_name = 'ssot__EmailAddress__c', match_method_type = 'exactnormalized', should_match_on_blank = false)])],
   reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true)]);
-CALL cdp.ir_run (identity_resolution => '1irfj000000IWhWAAW');
-CALL cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+CALL d360.ir_run (identity_resolution => '1irfj000000IWhWAAW');
+CALL d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');
 ```
 
 **Functions:** [`ir_delete`](#ir_delete), [`ir_list`](#ir_list), [`ir_get`](#ir_get), [`ir_update`](#ir_update), [`ir_create`](#ir_create), [`ir_run`](#ir_run), [`ir_publish`](#ir_publish)
@@ -39,7 +39,7 @@ Delete an identity resolution ruleset in Data 360. Since v57.0.
 | `identity_resolution` | `identityResolution` | path | string | yes | Developer name or ID of the ruleset (spec). Use `id`: see [`ir_get`](#ir_get). |
 
 ```sql
-CALL cdp.ir_delete (identity_resolution => '1irfj000000IWhWAAW');
+CALL d360.ir_delete (identity_resolution => '1irfj000000IWhWAAW');
 ```
 
 **Result**
@@ -59,7 +59,7 @@ Get identity resolution rulesets in Data 360. Since v57.0.
 None.
 
 ```sql
-CALL cdp.ir_list ();
+CALL d360.ir_list ();
 ```
 
 **Result**
@@ -104,7 +104,7 @@ Get an identity resolution ruleset in Data 360. Since v57.0.
 | `identity_resolution` | `identityResolution` | path | string | yes | Developer name or ID of the ruleset (spec). Use `id`, see the notes. |
 
 ```sql
-CALL cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+CALL d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');
 ```
 
 **Result**
@@ -168,7 +168,7 @@ Update an identity resolution ruleset in Data 360. Since v57.0.
 | `ruleset_id` | `rulesetId` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.ir_update (identity_resolution => '1irfj000000IWhWAAW', label => 'Customer Match', does_run_automatically => true, reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true), (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)]);
+CALL d360.ir_update (identity_resolution => '1irfj000000IWhWAAW', label => 'Customer Match', does_run_automatically => true, reconciliation_rules => [(entity_name = 'ssot__Individual__dlm', rule_type = 'lastupdated', should_ignore_empty_value = true), (entity_name = 'ssot__ContactPointEmail__dlm', rule_type = 'mostfrequent', should_ignore_empty_value = true)]);
 ```
 
 **Result**
@@ -221,7 +221,7 @@ Create an identity resolution ruleset in Data 360. Since v57.0.
 | `ruleset_id` | `rulesetId` | body | string |  | Extended ID of the ruleset used to differentiate between rulesets created for comparison. The ruleset ID must be unique and can't be longer than 4 characters. Since v57.0. |
 
 ```sql
-CALL cdp.ir_create (
+CALL d360.ir_create (
   label => 'Customer Match',
   description => 'Email, or name plus phone, or device serial number',
   configuration_type => 'Individual',
@@ -344,7 +344,7 @@ Run an identity resolution ruleset job on demand in Data 360. Since v57.0.
 | `calling_app_info` | `callingAppInfo` | body | string |  | Calling application information. Since v57.0. |
 
 ```sql
-CALL cdp.ir_run (identity_resolution => '1irfj000000IWhWAAW');
+CALL d360.ir_run (identity_resolution => '1irfj000000IWhWAAW');
 ```
 
 **Result**
@@ -387,7 +387,7 @@ Publish a ruleset so identity resolution can use it. This call comes from Salesf
 | `identity_resolution_id` | `id` | path | string | yes | The identity resolution ID |
 
 ```sql
-CALL cdp.ir_publish (identity_resolution_id => '1irfj000000IWhWAAW');
+CALL d360.ir_publish (identity_resolution_id => '1irfj000000IWhWAAW');
 ```
 
 **Result**

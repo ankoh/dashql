@@ -4,9 +4,9 @@
  * The SQL warehouse must be Pro or Serverless, and clusters need Runtime 13.1 or later. `database` holds the catalog. No source gives the API names of the attributes: `clientId`, `clientSecret`, `url` and `httpPath` are guesses from the setup page, so check them against the first call. The shape of the stream comes from Snowflake, community code says Databricks takes `Direct_Access` as well. Wait for the connection to be `Active` before the third call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connector_metadata (connector_type => 'Databricks');
+call d360.connector_metadata (connector_type => 'Databricks');
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'Databricks',
     label => 'Databricks live',
     name => 'Databricks_Live',
@@ -23,7 +23,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_databricks_live',
     label => 'Orders (Databricks live)',
     data_stream_type => 'EXTERNAL',
@@ -53,4 +53,4 @@ call cdp.datastream_create (
     refresh_config => (refresh_mode = 'TOTAL_REPLACE')
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_databricks_live');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_databricks_live');

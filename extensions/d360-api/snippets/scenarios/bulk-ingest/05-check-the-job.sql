@@ -4,4 +4,4 @@
  * Repeat until `state` is `JobComplete` or `Failed`.
  */
 
-call cdp.ingest_job_get (id => :job_id);
+call d360.ingest_job_get (id => :job_id);

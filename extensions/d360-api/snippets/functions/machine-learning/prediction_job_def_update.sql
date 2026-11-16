@@ -4,7 +4,7 @@
  * This call sets the definition inactive and edits it. Activation has no call of its own, it is this update with `activation_status`.
  */
 
-call cdp.prediction_job_def_update (
+call d360.prediction_job_def_update (
     prediction_job_def_id_or_name => 'attrition_scores',
     activation_status => 'Inactive',
     label => 'Attrition Scores',
@@ -17,4 +17,4 @@ call cdp.prediction_job_def_update (
     )
 );
 
-call cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+call d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');

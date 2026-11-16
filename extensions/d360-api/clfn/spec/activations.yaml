@@ -12,14 +12,14 @@ description: |
   - **`activation_list`:** it omits attributes, contact points and filters, and takes no data space ([community](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md)).
 
   ```sql
-  CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
-  CALL cdp.activation_create (
+  CALL d360.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+  CALL d360.activation_create (
     name => 'high_value_s3', dataspace_name => 'default', segment_api_name => 'High_Value',
     activation_target_name => 's3_target', refresh_type => 'INCREMENTAL',
     activation_target_subject_config => (developer_name = 'ssot__Individual__dlm'),
     attributes_config => (attributes = [(name = 'ssot__Id__c', label = 'Individual Id', entity_name = 'ssot__Individual__dlm', data_source_type = 'Text', reference_attribute_name = 'Id', source = 'DIRECT', type = 'MODEL')]));
-  CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
-  CALL cdp.activation_history_list (activation_id => '85RVF000000CEf72AG');
+  CALL d360.activation_get (activation_id => '85RVF000000CEf72AG');
+  CALL d360.activation_history_list (activation_id => '85RVF000000CEf72AG');
   ```
 
 functions:
@@ -30,7 +30,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/delete
     tools: [d360_activation_delete]
     description: "Delete an activation. Because there are no dependency checks, ensure that there are no downstream systems that expect data from this activation before deleting it. After you delete an activation, Data 360 stops sending data to any downstream systems that are associated with the deleted activation. To identify the downstream system (activation target) that is associated with the activation, use the [get activation](https://developer.salesforce.com/docs/data/connectapi/references/spec?meta=getActivation) endpoint. The get activation endpoint provides the activation target details needed to evaluate the impact before deleting the activation. In the case of an invalid activation ID, the error message “Activation not found for Id: *activation_id*” is returned. Since v61.0."
-    example: CALL cdp.activation_delete (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_delete (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
     effect: write
@@ -44,7 +44,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations/get
     tools: [d360_activation_list]
     description: Get a list of activations with selected filters. Since v60.0.
-    example: CALL cdp.activation_list (filters => 'activationStatus in active AND activationRefreshType in incremental', order_by => 'createdDate desc', batch_size => 200);
+    example: CALL d360.activation_list (filters => 'activationStatus in active AND activationRefreshType in incremental', order_by => 'createdDate desc', batch_size => 200);
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of results to return. Values are from `1` through `200`. If unspecified, the default value is `20`. Since v60.0."}
       - {name: filters, in: query, type: string, description: "Filter the result set to a more narrow scope or specific type. These filters are supported: - name (field name: name; description: name of the activation) - market_segment_id (field name: segment_id; description: segment ID of the activation) - activation_target_id (field name: activation_target.id; description: activation target ID of the activation) - activationRefreshType (field name: refresh_type; description: refresh type of the activation; example: incremental) - activation_status (field name: status; description: status of the activation, which accepts only the values in the `status` response field; example: active). **Example requests with filters:** - GET `https://{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = name in Activation001` - GET `https://{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = marketsegmentid in 00sgxx0001AAA` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationRefreshType in incremental` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationrefreshtype in incremental AND activationstatus in active` - GET `https//{dne_cdpInstanceUrl}/services/data/v60.0/ssot/activations?filters = activationtargetid in 85Uxx0000004CKKEA2 AND activationstatus in active&orderby = createddate desc&offset=0&batchsize=20` Since v60.0."}
@@ -124,7 +124,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/get
     tools: [d360_activation_get]
     description: Get an activation by ID. Since v60.0.
-    example: CALL cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_get (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
     columns:
@@ -196,7 +196,7 @@ functions:
     path: /ssot/activations/{activationId}/data
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1data/get
     description: Query activation data. Get a list of all activation records from Audience data model objects (DMOs). Since v61.0.
-    example: CALL cdp.activation_record_list ("X-Chatter-Entity-Encoding" => 'false', activation_id => '85RVF000000CEf72AG', filters => 'delta_type__c in ''A''', batch_size => 1000);
+    example: CALL d360.activation_record_list ("X-Chatter-Entity-Encoding" => 'false', activation_id => '85RVF000000CEf72AG', filters => 'delta_type__c in ''A''', batch_size => 1000);
     options:
       - {name: X-Chatter-Entity-Encoding, in: header, type: string, required: true, description: "Required. Value must be `false`."}
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
@@ -239,7 +239,7 @@ functions:
     path: /ssot/activations/{activationId}/history
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1history/get
     description: Returns a paginated list of publish-history records. With a market segment activation ID, returns the history for that single activation. With a market segment ID, returns the history for all activations under that segment. Routing is determined automatically based on the record ID. For paginated results, set `offset` to `0` in the initial request, then follow the `next_page_url` value in each response to retrieve subsequent pages. Since v67.0.
-    example: CALL cdp.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
+    example: CALL d360.activation_history_list (activation_id => '1sgVF000000LfbFYAS', limit => 50);
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of a market segment activation or a market segment. Routing to single-activation or segment-wide history is determined automatically based on the record ID. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of history records to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
@@ -269,7 +269,7 @@ functions:
     path: /ssot/activations/metadata/activatable-data-object-categories
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1activatable-data-object-categories/get
     description: Returns the data object category types that are available for activation, optionally scoped to a data space. Since v67.0.
-    example: CALL cdp.activation_data_object_category_list (dataspace => 'default');
+    example: CALL d360.activation_data_object_category_list (dataspace => 'default');
     options:
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to scope the lookup. If unspecified, the request's data space context is used. Since v67.0."}
     columns:
@@ -285,7 +285,7 @@ functions:
     path: /ssot/activations/metadata/channel-preferences
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1channel-preferences/get
     description: Returns the channel preference options for a channel and data model object (DMO) pair, such as Primary phone or Secondary phone. Since v67.0.
-    example: CALL cdp.activation_channel_preference_list (channel => 'Email', data_model_object_api_name => 'ssot__ContactPointEmail__dlm');
+    example: CALL d360.activation_channel_preference_list (channel => 'Email', data_model_object_api_name => 'ssot__ContactPointEmail__dlm');
     options:
       - {name: channel, in: query, type: string, enum: [DigitalId, Email, Phone, Push, Whatsapp], required: true, description: "Contact point channel, such as `Email`, `Phone`, `Push`, `Whatsapp`, or `DigitalId`. Since v67.0."}
       - {name: data_model_object_api_name, api_name: dataModelObjectApiName, in: query, type: string, required: true, description: "API name of the contact point data model object (DMO). Since v67.0."}
@@ -304,7 +304,7 @@ functions:
     path: /ssot/activations/metadata/channels
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1channels/get
     description: Returns the available activation channels for a data space. Since v67.0.
-    example: CALL cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+    example: CALL d360.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
     options:
       - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO) to activate on, such as `ssot__Individual__dlm`. The namespace prefix of the DMO resolves the contact point DMOs (Email, Phone, Push, and so on) for the data space. Since v67.0."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
@@ -333,7 +333,7 @@ functions:
     path: /ssot/activations/metadata/consent-data-model-objects
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1consent-data-model-objects/get
     description: Returns the standard consent data model objects (DMOs) for a data space. Since v67.0.
-    example: CALL cdp.activation_consent_dmo_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+    example: CALL d360.activation_consent_dmo_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
     options:
       - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO) to activate on, such as `ssot__Individual__dlm`. The namespace prefix of the DMO resolves the standard consent DMOs (ContactPointConsent, CommunicationSubscriptionConsent) for the data space. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, required: true, description: "Name of the data space to scope the consent data model object lookup. Since v67.0."}
@@ -350,7 +350,7 @@ functions:
     path: /ssot/activations/metadata/data-sources
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1data-sources/get
     description: Returns the data sources for a data model object (DMO). When you provide a channel, results are filtered to data sources compatible with that channel. The data space context is derived from the DMO. Since v67.0.
-    example: CALL cdp.activation_data_source_list (data_model_object_api_name => 'ssot__ContactPointEmail__dlm', channel => 'Email');
+    example: CALL d360.activation_data_source_list (data_model_object_api_name => 'ssot__ContactPointEmail__dlm', channel => 'Email');
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum number of results to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0."}
       - {name: channel, in: query, type: string, enum: [DigitalId, Email, Phone, Push, Whatsapp], description: "Contact point channel. If unspecified, data sources are returned for all channels compatible with the data model object (DMO). Since v67.0."}
@@ -378,7 +378,7 @@ functions:
     path: /ssot/activations/metadata/limits/related-attribute-activation-quota
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1limits~1related-attribute-activation-quota/get
     description: Returns the related-attribute activation quota for the org. When you supply an activation ID, that activation is excluded from the current count, which supports edit flows. Since v67.0.
-    example: CALL cdp.activation_related_attribute_quota_list (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_related_attribute_quota_list (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: query, type: string, description: "Record ID of an activation to exclude from the current count. Used during edit flows so that the activation being edited doesn't count against itself. Since v67.0."}
     columns:
@@ -396,7 +396,7 @@ functions:
     path: /ssot/activations/metadata/limits/related-attribute-configuration-limits
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1limits~1related-attribute-configuration-limits/get
     description: Returns the static configuration limits for related-attribute activations, such as maximum hops and attributes per activation. Since v67.0.
-    example: CALL cdp.activation_related_attribute_limit_list ();
+    example: CALL d360.activation_related_attribute_limit_list ();
     columns:
       - {name: attributes_per_activation, api_name: attributesPerActivation, type: BIGINT, description: "Maximum number of related attributes allowed per activation. Since v67.0."}
       - {name: data_model_objects_per_activation, api_name: dataModelObjectsPerActivation, type: BIGINT, description: "Maximum number of data model objects (DMOs) referenced by a single activation. Since v67.0."}
@@ -415,7 +415,7 @@ functions:
     path: /ssot/activations/metadata/match-boost-identity-providers
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1match-boost-identity-providers/get
     description: Returns the identity providers for an activation target and data model object (DMO). Since v67.0.
-    example: CALL cdp.match_boost_identity_provider_list (activate_on => 'ssot__Individual__dlm', activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
+    example: CALL d360.match_boost_identity_provider_list (activate_on => 'ssot__Individual__dlm', activation_target_id => '85UVF000000Dr4v2AC', dataspace => 'default');
     options:
       - {name: activate_on, api_name: activateOn, in: query, type: string, required: true, description: "API name of the data model object (DMO), such as `ssot__Individual__dlm`. Since v67.0."}
       - {name: activation_target_id, api_name: activationTargetId, in: query, type: string, required: true, description: "Record ID (15- or 18-character) of the activation target. Since v67.0."}
@@ -437,7 +437,7 @@ functions:
     path: /ssot/activations/metadata/streaming-eligibility
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1metadata~1streaming-eligibility/get
     description: Indicates whether streaming activation is allowed for a data model object (DMO), and provides the reason when it isn't. Since v67.0.
-    example: CALL cdp.activation_streaming_eligibility_list (data_model_object_api_name => 'ssot__Individual__dlm');
+    example: CALL d360.activation_streaming_eligibility_list (data_model_object_api_name => 'ssot__Individual__dlm');
     options:
       - {name: data_model_object_api_name, api_name: dataModelObjectApiName, in: query, type: string, required: true, description: "API name of the data model object (DMO) to check streaming eligibility for. Since v67.0."}
     columns:
@@ -456,7 +456,7 @@ functions:
     tools: [d360_activation_create]
     description: Create an activation. Since v60.0.
     example: |
-      CALL cdp.activation_create (
+      CALL d360.activation_create (
         name => 'test_1234',
         dataspace_name => 'default',
         segment_api_name => 'seg_test',
@@ -615,7 +615,7 @@ functions:
     path: /ssot/activations/{activationId}/actions/publish
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D~1actions~1publish/post
     description: Initiate an on-demand publish job for a Batch data model object (DMO) activation. Since v66.0.
-    example: CALL cdp.activation_publish (activation_id => '85RVF000000CEf72AG', full_refresh => true);
+    example: CALL d360.activation_publish (activation_id => '85RVF000000CEf72AG', full_refresh => true);
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Unique identifier of a specific activation, such as the market segment activation ID or developer name. Since v66.0."}
       - {name: full_refresh, api_name: fullRefresh, in: body, type: boolean, description: "Indicates whether the activation publish type is a full refresh (`true`) or incremental (`false`). **Note:** Execution behavior varies by DMO configuration. >**For Full Refresh DMOs**: Always performs a full refresh, regardless of this value. >**For Incremental DMOs**: - *Initial publish (day 0)*: Always performs a full refresh, regardless of this value. - *Subsequent publishes*: Defaults to incremental if `false` or omitted. Set to `true` to force a full refresh. Since v66.0."}
@@ -637,7 +637,7 @@ functions:
     path: /ssot/activations/actions/{activationId}/disable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1disable/post
     description: Disables a market segment activation. Since v67.0.
-    example: CALL cdp.activation_disable (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_disable (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation to disable. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
@@ -655,7 +655,7 @@ functions:
     path: /ssot/activations/actions/{activationId}/enable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1enable/post
     description: Enables a market segment activation. Since v67.0.
-    example: CALL cdp.activation_enable (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_enable (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (18-character) of the activation to enable. Since v67.0."}
       - {name: dataspace, api_name: dataSpace, in: query, type: string, description: "Name of the data space to use as context for the request. Since v67.0."}
@@ -673,7 +673,7 @@ functions:
     path: /ssot/activations/actions/{activationId}/full-refresh
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1full-refresh/post
     description: Triggers a full-refresh publish for an activation. Since v67.0.
-    example: CALL cdp.activation_full_refresh_run (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_full_refresh_run (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the market segment activation. Since v67.0."}
     columns:
@@ -693,7 +693,7 @@ functions:
     path: /ssot/activations/actions/{activationId}/retry-sync
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1actions~1%7BactivationId%7D~1retry-sync/post
     description: Retries the sync for an activation. Since v67.0.
-    example: CALL cdp.activation_sync_retry (activation_id => '85RVF000000CEf72AG');
+    example: CALL d360.activation_sync_retry (activation_id => '85RVF000000CEf72AG');
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Record ID (15- or 18-character) of the market segment activation. Since v67.0."}
     columns:
@@ -714,7 +714,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Activations/paths/~1ssot~1activations~1%7BactivationId%7D/put
     tools: [d360_activation_update]
     description: Update a specific activation by ID. Since v60.0.
-    example: CALL cdp.activation_update (activation_id => '85RVF000000CEf72AG', refresh_type => 'INCREMENTAL', should_exclude_deletes => true, should_exclude_updates => true, static_data_config => (static_data = [(name = 'Test_1', value = 'TestValue_1')]));
+    example: CALL d360.activation_update (activation_id => '85RVF000000CEf72AG', refresh_type => 'INCREMENTAL', should_exclude_deletes => true, should_exclude_updates => true, static_data_config => (static_data = [(name = 'Test_1', value = 'TestValue_1')]));
     options:
       - {name: activation_id, api_name: activationId, in: path, type: string, required: true, description: "Spec: the ID or developer name. A community live test got 400 or 404 for names, so use the ID ([quirk T1](https://github.com/szymonlewandowski/config-snapshot-data360/blob/main/docs/api-quirks.md), one org)."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}

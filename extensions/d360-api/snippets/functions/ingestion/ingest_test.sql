@@ -4,7 +4,7 @@
  * Nothing is loaded, and it is meant for development only. A failure is an HTTP 400 whose `details.validationReport` lists each record with the exceptions that rejected it, such as a wrong type.
  */
 
-call cdp.ingest_test (
+call d360.ingest_test (
     name => 'ecomm',
     object_name => 'Orders',
     data => [
@@ -25,7 +25,7 @@ call cdp.ingest_test (
     ]
 );
 
-call cdp.ingest_insert (
+call d360.ingest_insert (
     name => 'ecomm',
     object_name => 'Orders',
     data => [

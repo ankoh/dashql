@@ -4,7 +4,7 @@
  * Connect to Snowflake as `SnowflakeConn`. `:snowflake_user` and `:snowflake_private_key` are the credentials, as parameters so that they stay out of the script.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake prod',
     name => 'SnowflakeConn',

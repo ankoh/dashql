@@ -4,7 +4,7 @@
  * The sessions and entries of the conversation go inside it. The docs list no error for a duplicate `conversation_id`, so pick a fresh one.
  */
 
-call cdp.memory_conversation_create (
+call d360.memory_conversation_create (
     agent_id => 'ACE_Demo_Agent',
     conversation_id => 'conv-2025-001',
     conversation_owner_id => '003AB000000XYZ',

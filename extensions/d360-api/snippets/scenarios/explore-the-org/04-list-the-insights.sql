@@ -4,4 +4,4 @@
  * List the calculated insights and what they measure.
  */
 
-call cdp.insights_metadata ();
+call d360.insights_metadata ();

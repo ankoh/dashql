@@ -4,7 +4,7 @@
  * The S3 credentials go in `:s3_access_key` and `:s3_secret_key`. The server renames attributes and fields it creates, so read the names back before an update. Publish once `status` is `Active` and `can_publish_now` is `true`.
  */
 
-call cdp.activation_platform_create (
+call d360.activation_platform_create (
     name => 'abc_user_identifiers',
     label => 'abc-user-identifiers',
     description => 'Activates only user identifiers',
@@ -28,4 +28,4 @@ call cdp.activation_platform_create (
     additional_metadata => (hash_method = 'SHA256')
 );
 
-call cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+call d360.activation_platform_get (id_or_name => 'abc_user_identifiers');

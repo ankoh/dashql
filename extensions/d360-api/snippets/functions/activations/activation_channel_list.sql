@@ -4,7 +4,7 @@
  * A channel with `is_mapped` false has no data mapped to its contact point DMO in this data space. Here `filters` takes `field eq value`, unlike `activation_list`.
  */
 
-call cdp.activation_channel_list (
+call d360.activation_channel_list (
     activate_on => 'ssot__Individual__dlm',
     dataspace => 'default',
     filters => 'channelType eq Email',

@@ -4,7 +4,7 @@
  * `gauges` picks what to return, a comma-separated subset. It defaults to `Overview`.
  */
 
-call cdp.ml_setup_version_inspector_metrics_get (
+call d360.ml_setup_version_inspector_metrics_get (
     model_setup_id_or_name => 'Attrition_Risk_Predictor',
     version_id => '14kSB0000005d8nYAA',
     gauges => 'Overview,GainTable,FeatureImportances'

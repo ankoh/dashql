@@ -4,7 +4,7 @@
  * Create the target that receives the share.
  */
 
-call cdp.data_share_target_create (
+call d360.data_share_target_create (
     target_type => 'BigQuery',
     name => 'BigQuery_Analytics_Target',
     label => 'BigQuery Analytics',

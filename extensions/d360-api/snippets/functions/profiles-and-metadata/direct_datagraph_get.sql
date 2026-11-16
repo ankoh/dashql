@@ -4,7 +4,7 @@
  * `live` fetches the latest data, which costs more latency and credits and isn't available for real-time graphs.
  */
 
-call cdp.direct_datagraph_get (
+call d360.direct_datagraph_get (
     data_graph_entity_name => 'individual_eng_dg',
     id => '100005',
     live => true,

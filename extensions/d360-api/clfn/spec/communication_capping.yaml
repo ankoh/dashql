@@ -14,11 +14,11 @@ description: |
   The spec has no descriptions for this family. Field meanings below come from Trailhead and from search excerpts of the [API reference](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping) and Salesforce Help, whose full text couldn't be downloaded.
 
   ```sql
-  CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')]);
-  CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
-  CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
-  CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
-  CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+  CALL d360.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', hierarchy_order => 1, dimension_values => [(value = 'Email')]);
+  CALL d360.communication_capping_configuration_create (name => 'Marketing caps', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+  CALL d360.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Email_daily', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+  CALL d360.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+  CALL d360.communication_capping_enable (id => 'CONFIGURATION_ID');
   ```
 
 functions:
@@ -28,7 +28,7 @@ functions:
     path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/delete
     description: Removes the dimension mapping of a capping activation target. Use it to detach a target from its dimension values.
-    example: CALL cdp.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID');
+    example: CALL d360.communication_capping_activation_target_metadata_delete (activation_target_id => 'TARGET_ID');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "-"}
     effect: write
@@ -42,7 +42,7 @@ functions:
     path: /ssot/communication-capping/rules/{ruleIdOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1rules~1%7BruleIdOrName%7D/delete
     description: Deletes a capping rule. Use it to retire a cap before its end date passes.
-    example: CALL cdp.communication_capping_rule_delete (rule_id_or_name => 'Email_daily');
+    example: CALL d360.communication_capping_rule_delete (rule_id_or_name => 'Email_daily');
     options:
       - {name: rule_id_or_name, api_name: ruleIdOrName, in: path, type: string, required: true, description: "Rule `id`, or a name. The sources don't say which name; `api_name` is the only name in the rule schema."}
     effect: write
@@ -56,7 +56,7 @@ functions:
     path: /ssot/communication-capping/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D/get
     description: Returns one capping configuration with its data spaces, dimensions and status. Use it to check the state of a configuration after you create or change it.
-    example: CALL cdp.communication_capping_configuration_get (id => 'CONFIGURATION_ID');
+    example: CALL d360.communication_capping_configuration_get (id => 'CONFIGURATION_ID');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
     columns:
@@ -78,7 +78,7 @@ functions:
     path: /ssot/communication-capping/{id}/activation-targets
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1activation-targets/get
     description: Lists the activation targets of a configuration, one row per target mapping with its dimension and dimension value. Use it to audit which targets a configuration governs.
-    example: CALL cdp.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC');
+    example: CALL d360.communication_capping_activation_target_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'Name', order_by_direction => 'ASC');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
       - {name: limit, in: query, type: integer, description: "-"}
@@ -107,7 +107,7 @@ functions:
     path: /ssot/communication-capping/{id}/rules
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules/get
     description: Lists the rules of a configuration with their limits and date windows. Use it to review caps or find a rule's id.
-    example: CALL cdp.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC');
+    example: CALL d360.communication_capping_rule_list (id => 'CONFIGURATION_ID', limit => 50, offset => 0, order_by_column => 'StartDate', order_by_direction => 'DESC');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
       - {name: limit, in: query, type: integer, description: "-"}
@@ -139,7 +139,7 @@ functions:
     path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/get
     description: Returns the dimensions and dimension values mapped to one activation target. Use it to check a mapping against the rule it should match.
-    example: CALL cdp.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID');
+    example: CALL d360.communication_capping_activation_target_metadata_get (activation_target_id => 'TARGET_ID');
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "-"}
     rows: /activationTargets
@@ -159,7 +159,7 @@ functions:
     path: /ssot/communication-capping/dimensions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions/get
     description: Lists capping dimensions with their values and hierarchy order. Use it to find the dimension and value ids that rules and target mappings need.
-    example: CALL cdp.communication_capping_dimension_list ();
+    example: CALL d360.communication_capping_dimension_list ();
     options:
       - {name: cc_id, api_name: ccId, in: query, type: string, description: "-"}
       - {name: dataspace_id, api_name: dataSpaceId, in: query, type: string, description: "-"}
@@ -183,7 +183,7 @@ functions:
     path: /ssot/communication-capping/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D/patch
     description: Changes a configuration's name, description, data spaces or related dimensions.
-    example: CALL cdp.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends');
+    example: CALL d360.communication_capping_configuration_update (id => 'CONFIGURATION_ID', description => 'Caps for all marketing sends');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
       - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, in: body, schema: CommunicationCappingDataSpaceInputRepresentation, array: 1, description: "Data spaces associated with the configuration."}
@@ -213,7 +213,7 @@ functions:
     path: /ssot/communication-capping/{id}/rules/{ruleIdOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules~1%7BruleIdOrName%7D/patch
     description: Changes a rule's limit, date window or dimension values. Use it to adjust a cap without recreating the rule.
-    example: CALL cdp.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5);
+    example: CALL d360.communication_capping_rule_update (id => 'CONFIGURATION_ID', rule_id_or_name => 'Email_daily', limits => 5);
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
       - {name: rule_id_or_name, api_name: ruleIdOrName, in: path, type: string, required: true, description: "Rule `id`, or a name. The sources don't say which name; `api_name` is the only name in the rule schema."}
@@ -242,7 +242,7 @@ functions:
     path: /ssot/communication-capping/dimensions/{dimensionId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions~1%7BdimensionId%7D/patch
     description: Changes a dimension or its values. Use it when the possible values change, for example when a channel is added.
-    example: CALL cdp.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')]);
+    example: CALL d360.communication_capping_dimension_update (dimension_id => '1CDxx0000000001GAA', dimension_values => [(value = 'WhatsApp')]);
     options:
       - {name: dimension_id, api_name: dimensionId, in: path, type: string, required: true, description: "Dimension `id` from `communication_capping_dimension_list`."}
       - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
@@ -271,7 +271,7 @@ functions:
     path: /ssot/communication-capping/dimensions/actions/swap-priority
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions~1actions~1swap-priority/patch
     description: Changes the hierarchy order of dimensions. Use it to swap which dimension comes first.
-    example: CALL cdp.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)]);
+    example: CALL d360.communication_capping_dimension_priority_update (dimensions => [(id = '1CDxx0000000002GAA', hierarchy_order = 1), (id = '1CDxx0000000001GAA', hierarchy_order = 2)]);
     options:
       - {name: dimensions, in: body, schema: CommunicationCappingDimInputRepresentation, array: 1, description: "Dimensions whose priority changes, each with `id` and its new `hierarchy_order`."}
     rows: /dimensions
@@ -294,7 +294,7 @@ functions:
     path: /ssot/communication-capping
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping/post
     description: Creates a capping configuration, which ties dimensions to data spaces and holds the rules. Create the dimensions first, because the configuration refers to their ids.
-    example: CALL cdp.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
+    example: CALL d360.communication_capping_configuration_create (name => 'Marketing caps', description => 'Caps for marketing sends', data_comm_cap_dataspaces => [(dataspace_id = 'DATA_SPACE_ID')], data_comm_cap_related_dims => [(api_name = 'Channel', data_comm_cap_dim_id = 'DIMENSION_ID')]);
     options:
       - {name: data_comm_cap_dataspaces, api_name: dataCommCapDataSpaces, in: body, schema: CommunicationCappingDataSpaceInputRepresentation, array: 1, description: "Data spaces to associate with the configuration."}
       - {name: data_comm_cap_related_dims, api_name: dataCommCapRelatedDims, in: body, schema: CommunicationCappingRelatedDimInputRepresentation, array: 1, description: "Dimensions related to the configuration."}
@@ -326,7 +326,7 @@ functions:
     path: /ssot/communication-capping/{id}/actions/disable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1actions~1disable/post
     description: Turns off a capping configuration.
-    example: CALL cdp.communication_capping_disable (id => 'CONFIGURATION_ID');
+    example: CALL d360.communication_capping_disable (id => 'CONFIGURATION_ID');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
     columns:
@@ -343,7 +343,7 @@ functions:
     path: /ssot/communication-capping/{id}/actions/enable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1actions~1enable/post
     description: Turns on a capping configuration.
-    example: CALL cdp.communication_capping_enable (id => 'CONFIGURATION_ID');
+    example: CALL d360.communication_capping_enable (id => 'CONFIGURATION_ID');
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
     columns:
@@ -360,7 +360,7 @@ functions:
     path: /ssot/communication-capping/{id}/rules
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1%7Bid%7D~1rules/post
     description: "Adds a rule to a configuration: a maximum message count for a combination of dimension values, valid over a date window."
-    example: CALL cdp.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
+    example: CALL d360.communication_capping_rule_create (id => 'CONFIGURATION_ID', api_name => 'Sms_daily_hnw', limits => 10, start_date => '2027-05-01T00:00:00Z', end_date => '2027-05-31T00:00:00Z', data_comm_cap_rule_dim => [(dim_id = 'DIMENSION_ID', dim_value_ids = ['DIMENSION_VALUE_ID'])]);
     options:
       - {name: id, in: path, type: string, required: true, description: "Configuration id, the `id` that `communication_capping_configuration_create` returns."}
       - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
@@ -388,7 +388,7 @@ functions:
     path: /ssot/communication-capping/activation-target-capping-metadata/{activationTargetId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1activation-target-capping-metadata~1%7BactivationTargetId%7D/post
     description: Maps a capping activation target to dimension values. Segments activated through the target are then evaluated against the rules, so choose values that match the rule, such as Channel = SMS.
-    example: CALL cdp.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
+    example: CALL d360.communication_capping_activation_target_metadata_map (activation_target_id => 'TARGET_ID', activation_target_name => 'Email_capped', data_comm_cap_dim_info => [(data_comm_cap_dim_id = 'DIMENSION_ID', data_comm_cap_dim_value_id = 'DIMENSION_VALUE_ID')]);
     options:
       - {name: activation_target_id, api_name: activationTargetId, in: path, type: string, required: true, description: "Capping activation target, from `activation_target_create`."}
       - {name: activation_target_name, api_name: activationTargetName, in: body, type: string, description: "Name of the activation target."}
@@ -411,7 +411,7 @@ functions:
     path: /ssot/communication-capping/dimensions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping/paths/~1ssot~1communication-capping~1dimensions/post
     description: Creates a dimension and its possible values, such as Channel with Email and SMS. Dimensions come first, because configurations, rules and target mappings refer to their ids.
-    example: CALL cdp.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')]);
+    example: CALL d360.communication_capping_dimension_create (api_name => 'Channel', dimension_name => 'ssot__CommunicationChannel__dlm', function_type => 'NON_FUNCTIONAL_TYPE', hierarchy_order => 1, dimension_values => [(value = 'Email'), (value = 'SMS')]);
     options:
       - {name: api_name, api_name: apiName, in: body, type: string, description: "-"}
       - {name: dimension_name, api_name: dimensionName, in: body, type: string, description: "API name of the dimension object, such as `ssot__CommunicationChannel__dlm` in the [reference's sample](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Communication-Capping)."}

@@ -4,7 +4,7 @@
  * Limit the emails of a month in `:configuration_id`, for `:dimension_id` and `:dimension_value_id`.
  */
 
-call cdp.communication_capping_rule_create (
+call d360.communication_capping_rule_create (
     id => :configuration_id,
     api_name => 'Email_daily',
     limits => 10,

@@ -2,7 +2,7 @@
 
 # Notebook AI
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Notebook AI keeps documents in searchable notebooks. The API calls a notebook a *knowledge space*. A space holds libraries, a library holds sources, and a source holds files. Deep research jobs produce reports that can be added back to a space as a source. Intelligent Context lenses and Agentforce Data Libraries (`1JD` IDs) are separate surfaces.
 
@@ -17,11 +17,11 @@ The gotchas that matter most:
 - The spec has no call that creates a deep research job.
 
 ```sql
-CALL cdp.knowledge_space_create (label => 'Diagnosis', developer_name => 'Diagnosis', dataspace => 'default');
-CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
-CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['report.pdf']);
+CALL d360.knowledge_space_create (label => 'Diagnosis', developer_name => 'Diagnosis', dataspace => 'default');
+CALL d360.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+CALL d360.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['report.pdf']);
 /* PUT the file to the returned URL outside SQL */
-CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+CALL d360.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
 ```
 
 **Functions:** [`knowledge_space_delete`](#knowledge_space_delete), [`knowledge_space_configuration_delete`](#knowledge_space_configuration_delete), [`knowledge_space_session_delete`](#knowledge_space_session_delete), [`knowledge_space_list`](#knowledge_space_list), [`knowledge_space_get`](#knowledge_space_get), [`knowledge_space_details_get`](#knowledge_space_details_get), [`session_conversation_list`](#session_conversation_list), [`knowledge_space_session_list`](#knowledge_space_session_list), [`knowledge_space_configuration_list`](#knowledge_space_configuration_list), [`knowledge_space_configuration_get`](#knowledge_space_configuration_get), [`deep_research_status_get`](#deep_research_status_get), [`knowledge_library_list`](#knowledge_library_list), [`knowledge_library_details_get`](#knowledge_library_details_get), [`knowledge_space_session_get`](#knowledge_space_session_get), [`knowledge_space_update`](#knowledge_space_update), [`deep_research_plan_update`](#deep_research_plan_update), [`knowledge_library_update`](#knowledge_library_update), [`knowledge_space_create`](#knowledge_space_create), [`knowledge_space_session_create`](#knowledge_space_session_create), [`knowledge_space_configuration_create`](#knowledge_space_configuration_create), [`deep_research_cancel`](#deep_research_cancel), [`deep_research_report_get`](#deep_research_report_get), [`deep_research_run`](#deep_research_run), [`file_status_get`](#file_status_get), [`knowledge_import_get`](#knowledge_import_get), [`knowledge_import`](#knowledge_import), [`files_index`](#files_index), [`knowledge_library_create`](#knowledge_library_create), [`knowledge_library_remove`](#knowledge_library_remove), [`knowledge_library_search`](#knowledge_library_search), [`presigned_urls_get`](#presigned_urls_get), [`knowledge_space_provision`](#knowledge_space_provision), [`files_remove`](#files_remove), [`deep_research_as_knowledge_source_add`](#deep_research_as_knowledge_source_add), [`file_chunks_summary_get`](#file_chunks_summary_get)
@@ -39,7 +39,7 @@ Delete a knowledge space. Since v65.0.
 | `knowledge_space_api_name_or_id` | `knowledgeSpaceApiNameOrId` | path | string | yes | API name or ID of the knowledge space. |
 
 ```sql
-CALL cdp.knowledge_space_delete (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+CALL d360.knowledge_space_delete (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
 ```
 
 **Result**
@@ -61,7 +61,7 @@ Delete a knowledge space configuration. Since v65.0.
 | `knowledge_space_config_api_name_or_id` | `knowledgeSpaceConfigApiNameOrId` | path | string | yes | API name or ID of the knowledge space configuration. |
 
 ```sql
-CALL cdp.knowledge_space_configuration_delete (knowledge_space_config_api_name_or_id => 'Default_Config');
+CALL d360.knowledge_space_configuration_delete (knowledge_space_config_api_name_or_id => 'Default_Config');
 ```
 
 **Result**
@@ -83,7 +83,7 @@ Delete a knowledge space session. Since v65.0.
 | `knowledge_space_session_id` | `knowledgeSpaceSessionId` | path | string | yes | ID of the knowledge space session. |
 
 ```sql
-CALL cdp.knowledge_space_session_delete (knowledge_space_session_id => 'session-123');
+CALL d360.knowledge_space_session_delete (knowledge_space_session_id => 'session-123');
 ```
 
 **Result**
@@ -101,7 +101,7 @@ Get all knowledge spaces in the current data space. Since v65.0.
 None.
 
 ```sql
-CALL cdp.knowledge_space_list ();
+CALL d360.knowledge_space_list ();
 ```
 
 **Result**
@@ -135,7 +135,7 @@ Get a knowledge space. Since v65.0.
 | `knowledge_space_api_name_or_id` | `knowledgeSpaceApiNameOrId` | path | string | yes | API name or ID of the knowledge space. |
 
 ```sql
-CALL cdp.knowledge_space_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+CALL d360.knowledge_space_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
 ```
 
 **Result**
@@ -169,7 +169,7 @@ Reads one knowledge space with its libraries, sources and files. Use it to find 
 | `knowledge_space_api_name_or_id` | `knowledgeSpaceApiNameOrId` | path | string | yes | API name or ID of the knowledge space. |
 
 ```sql
-CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+CALL d360.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
 ```
 
 **Result**
@@ -206,7 +206,7 @@ Get conversation messages for a knowledge space session. Since v65.0.
 | `knowledge_space_session_id` | `knowledgeSpaceSessionId` | path | string | yes | ID of the knowledge space session. |
 
 ```sql
-CALL cdp.session_conversation_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_session_id => 'session-123');
+CALL d360.session_conversation_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_session_id => 'session-123');
 ```
 
 **Result**
@@ -243,7 +243,7 @@ Get all sessions for a knowledge space. Since v65.0.
 | `limit` | `limit` | query | integer |  | Maximum number of sessions to return. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_session_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', limit => 20);
+CALL d360.knowledge_space_session_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', limit => 20);
 ```
 
 **Result**
@@ -272,7 +272,7 @@ Get all knowledge space configuration details. Since v65.0.
 None.
 
 ```sql
-CALL cdp.knowledge_space_configuration_list ();
+CALL d360.knowledge_space_configuration_list ();
 ```
 
 **Result**
@@ -311,7 +311,7 @@ Get the details of a specific knowledge space configuration record. Since v65.0.
 | `knowledge_space_config_api_name_or_id` | `knowledgeSpaceConfigApiNameOrId` | path | string | yes | API name or ID of the knowledge space configuration. |
 
 ```sql
-CALL cdp.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
+CALL d360.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
 ```
 
 **Result**
@@ -348,7 +348,7 @@ Get the deep research status by research ID. Since v67.0.
 | `research_id` | `researchId` | path | string | yes | Unique identifier for the deep research job. |
 
 ```sql
-CALL cdp.deep_research_status_get (research_id => 'research-abc123');
+CALL d360.deep_research_status_get (research_id => 'research-abc123');
 ```
 
 **Result**
@@ -379,7 +379,7 @@ Get all knowledge libraries. Since v65.0.
 None.
 
 ```sql
-CALL cdp.knowledge_library_list ();
+CALL d360.knowledge_library_list ();
 ```
 
 **Result**
@@ -411,7 +411,7 @@ Get detailed information about a specific knowledge library. Since v65.0.
 | `library_id` | `libraryId` | path | string | yes | ID of the knowledge library. |
 
 ```sql
-CALL cdp.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
+CALL d360.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
 ```
 
 **Result**
@@ -443,7 +443,7 @@ Get a knowledge space session. Since v65.0.
 | `knowledge_space_session_id` | `knowledgeSpaceSessionId` | path | string | yes | ID of the knowledge space session. |
 
 ```sql
-CALL cdp.knowledge_space_session_get (knowledge_space_session_id => 'session-123');
+CALL d360.knowledge_space_session_get (knowledge_space_session_id => 'session-123');
 ```
 
 **Result**
@@ -482,7 +482,7 @@ Update a knowledge space. Since v65.0.
 | `label` | `label` | body | string |  | Label of the knowledge space. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_update (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', label => 'Updated Knowledge Space', description => 'Updated description');
+CALL d360.knowledge_space_update (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', label => 'Updated Knowledge Space', description => 'Updated description');
 ```
 
 **Result**
@@ -522,7 +522,7 @@ Update the deep research plan (instructions and/or steps) before execution. Sinc
 | `research_template_id` | `researchTemplateId` | body | string |  | ID of the research template to use for the research job. Since v67.0. |
 
 ```sql
-CALL cdp.deep_research_plan_update (research_id => 'research-abc123', edit_instructions => 'Focus more on recent developments in the last 6 months', plan => (steps = [(title = 'Literature Review', description = 'Review recent publications and research papers'), (title = 'Data Analysis', description = 'Analyze trends and patterns in the collected data')]));
+CALL d360.deep_research_plan_update (research_id => 'research-abc123', edit_instructions => 'Focus more on recent developments in the last 6 months', plan => (steps = [(title = 'Literature Review', description = 'Review recent publications and research papers'), (title = 'Data Analysis', description = 'Analyze trends and patterns in the collected data')]));
 ```
 
 **Result**
@@ -563,7 +563,7 @@ Update a knowledge library. Since v65.0.
 | `label` | `label` | body | string |  | Label of the library. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_library_update (id => '1aQxx00000000JNEAY', label => 'Updated Library Name', description => 'Updated description');
+CALL d360.knowledge_library_update (id => '1aQxx00000000JNEAY', label => 'Updated Library Name', description => 'Updated description');
 ```
 
 **Result**
@@ -603,7 +603,7 @@ Create a knowledge space in the current data space. Since v65.0.
 | `label` | `label` | body | string |  | Label of the knowledge space. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_create (label => 'My Knowledge Space', developer_name => 'My_Knowledge_Space', description => 'This is my personal space', dataspace => 'default', create_default_library => true);
+CALL d360.knowledge_space_create (label => 'My Knowledge Space', developer_name => 'My_Knowledge_Space', description => 'This is my personal space', dataspace => 'default', create_default_library => true);
 ```
 
 **Result**
@@ -651,7 +651,7 @@ Create a new session for a knowledge space. Since v65.0.
 | `session_id` | `sessionId` | body | string |  | Session ID. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_session_create (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_id => '1T8xx0000004CYqCAM', session_id => 'session-123');
+CALL d360.knowledge_space_session_create (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_id => '1T8xx0000004CYqCAM', session_id => 'session-123');
 ```
 
 **Result**
@@ -696,7 +696,7 @@ Create a knowledge space configuration. Since v65.0.
 | `provisioning_status` | `provisioningStatus` | body | string |  | Provisioning status of the knowledge space. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_configuration_create (developer_name => 'My_Config', label => 'My Configuration', dataspace => 'default');
+CALL d360.knowledge_space_configuration_create (developer_name => 'My_Config', label => 'My Configuration', dataspace => 'default');
 ```
 
 **Result**
@@ -741,7 +741,7 @@ Cancel a running deep research job, optionally requesting a partial report from 
 | `partial_report` | `partialReport` | body | boolean |  | Indicates whether to request a partial report from completed steps (`true`) or not (`false`). Since v67.0. |
 
 ```sql
-CALL cdp.deep_research_cancel (research_id => 'research-abc123', partial_report => true);
+CALL d360.deep_research_cancel (research_id => 'research-abc123', partial_report => true);
 ```
 
 **Result**
@@ -780,7 +780,7 @@ Get the deep research report for a research ID. Since v67.0.
 | `output_format` | `outputFormat` | body | string |  | Output format of the deep research report. `markdown` is the only value in the spec's examples. Since v67.0. |
 
 ```sql
-CALL cdp.deep_research_report_get (research_id => 'research-abc123', output_format => 'markdown');
+CALL d360.deep_research_report_get (research_id => 'research-abc123', output_format => 'markdown');
 ```
 
 **Result**
@@ -807,7 +807,7 @@ Run deep research for a research ID. Since v67.0.
 | `research_id` | `researchId` | path | string | yes | The unique identifier for the deep research job. Since v67.0. |
 
 ```sql
-CALL cdp.deep_research_run (research_id => 'research-abc123');
+CALL d360.deep_research_run (research_id => 'research-abc123');
 ```
 
 **Result**
@@ -839,7 +839,7 @@ Get the file status of a knowledge space for the specified file IDs. Since v65.0
 | `knowledge_space_id` | `knowledgeSpaceId` | body | string |  | Knowledge space ID. Since v65.0. |
 
 ```sql
-CALL cdp.file_status_get (knowledge_space_id => '1T8xx0000004CYqCAM', file_ids => ['1Utxx0000004DJcCAM', '1Utxx0000004DJdCAM']);
+CALL d360.file_status_get (knowledge_space_id => '1T8xx0000004CYqCAM', file_ids => ['1Utxx0000004DJcCAM', '1Utxx0000004DJdCAM']);
 ```
 
 **Result**
@@ -878,7 +878,7 @@ Lists the libraries and search indexes that can be imported into a knowledge spa
 | `type` | `type` | body | string |  | Type of knowledge source. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_import_get (knowledge_space_id => '1T8xx0000004CYqCAM');
+CALL d360.knowledge_import_get (knowledge_space_id => '1T8xx0000004CYqCAM');
 ```
 
 **Result**
@@ -912,7 +912,7 @@ Import selected knowledge libraries and search indexes into a target knowledge s
 | `type` | `type` | body | string |  | Type of knowledge source. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_import (knowledge_space_id => '1T8xx0000004CYqCAM', selected_list => (knowledge_ids = ['1aQxx000000003FEAQ'], search_indexes = ['18lxx0000004C92AAE']));
+CALL d360.knowledge_import (knowledge_space_id => '1T8xx0000004CYqCAM', selected_list => (knowledge_ids = ['1aQxx000000003FEAQ'], search_indexes = ['18lxx0000004C92AAE']));
 ```
 
 **Result**
@@ -947,7 +947,7 @@ Starts indexing files already uploaded to a library, or a website URL. It's the 
 | `website_url` | `websiteUrl` | body | string |  | Website URL. Since v65.0. |
 
 ```sql
-CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+CALL d360.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
 ```
 
 **Result**
@@ -996,7 +996,7 @@ Create a knowledge library in an existing knowledge space. Since v65.0.
 | `label` | `label` | body | string |  | Label of the library. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_library_create (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'My_Library', label => 'My Knowledge Library', description => 'Library for technical documentation');
+CALL d360.knowledge_library_create (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'My_Library', label => 'My Knowledge Library', description => 'Library for technical documentation');
 ```
 
 **Result**
@@ -1035,7 +1035,7 @@ Remove a knowledge library from a knowledge space. Since v65.0.
 | `label` | `label` | body | string |  | Label of the library. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_library_remove (knowledge_library_id => '1aQxx00000000G9EAI', knowledge_space_id => '1T8xx0000004CYqCAM');
+CALL d360.knowledge_library_remove (knowledge_library_id => '1aQxx00000000G9EAI', knowledge_space_id => '1T8xx0000004CYqCAM');
 ```
 
 **Result**
@@ -1074,7 +1074,7 @@ Search for a knowledge library. Since v65.0.
 | `label` | `label` | body | string |  | Label of the library. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_library_search (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'Search_Term');
+CALL d360.knowledge_library_search (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'Search_Term');
 ```
 
 **Result**
@@ -1107,7 +1107,7 @@ Gets one S3 upload URL per file name for a library. Use it before the upload, th
 | `library_id` | `libraryId` | body | string |  | ID of the knowledge space library. Since v65.0. |
 
 ```sql
-CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['document1.pdf', 'document2.pdf']);
+CALL d360.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['document1.pdf', 'document2.pdf']);
 ```
 
 **Result**
@@ -1122,7 +1122,7 @@ One row. Schema `KnowledgeSpaceUploadPresignedURLOutputRepresentation`.
 
 **Limits.** Five files per call (`Files uploaded cannot be more than: 5`), so batch larger sets. URLs come back in the order of `file_names`. This has returned a transient HTTP 500 (one org). The kit waits 2 seconds and retries once.
 
-**The upload is outside `cdp.*`.** Send the raw bytes with `PUT`, and two details break it. The URLs contain `&amp;`, and leaving it unescaped returns S3 `403 AccessDenied: No AWSAccessKey was presented`. Any extra header, including `Content-Type`, returns `403 SignatureDoesNotMatch`.
+**The upload is outside `d360.*`.** Send the raw bytes with `PUT`, and two details break it. The URLs contain `&amp;`, and leaving it unescaped returns S3 `403 AccessDenied: No AWSAccessKey was presented`. Any extra header, including `Content-Type`, returns `403 SignatureDoesNotMatch`.
 
 **Treat the URLs as credentials.** The kit keeps them out of logs and durable state, and requests new ones rather than computing an expiry, which no source documents. Uploading the same file again overwrites the same key.
 
@@ -1144,7 +1144,7 @@ Provision a knowledge space for the specified data spaces. Since v65.0.
 | `dataspaces` | `dataSpaces` | body | array of string |  | List of data space names to provision. Since v65.0. |
 
 ```sql
-CALL cdp.knowledge_space_provision (dataspaces => ['default', 'analytics']);
+CALL d360.knowledge_space_provision (dataspaces => ['default', 'analytics']);
 ```
 
 **Result**
@@ -1178,7 +1178,7 @@ Remove files from a knowledge library. Since v65.0.
 | `website_url` | `websiteUrl` | body | string |  | Website URL. Since v65.0. |
 
 ```sql
-CALL cdp.files_remove (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'old-document.pdf', file_path = 'collections/1aQxx00000000JNEAY/old-document.pdf')]);
+CALL d360.files_remove (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'old-document.pdf', file_path = 'collections/1aQxx00000000JNEAY/old-document.pdf')]);
 ```
 
 **Result**
@@ -1216,7 +1216,7 @@ Copy a completed deep research report into the knowledge space's GENERATED_RESOU
 | `research_id` | `researchId` | body | string |  | Deep research job identifier, used for logging. Since v67.0. |
 
 ```sql
-CALL cdp.deep_research_as_knowledge_source_add (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', research_id => 'research-abc123', report_file_path => '/sfdrive/temp/research-abc123-report.md', file_name => 'AI_Research_Trends_Report.md');
+CALL d360.deep_research_as_knowledge_source_add (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', research_id => 'research-abc123', report_file_path => '/sfdrive/temp/research-abc123-report.md', file_name => 'AI_Research_Trends_Report.md');
 ```
 
 **Result**
@@ -1249,7 +1249,7 @@ Get all chunks for files in a knowledge space. Since v65.0.
 | `search_index_name` | `searchIndexName` | body | string |  | Name of the search index. Since v65.0. |
 
 ```sql
-CALL cdp.file_chunks_summary_get (search_index_name => 'KnowledgeIndex', container_id => ['container-1', 'container-2']);
+CALL d360.file_chunks_summary_get (search_index_name => 'KnowledgeIndex', container_id => ['container-1', 'container-2']);
 ```
 
 **Result**

@@ -4,7 +4,7 @@
  * `async_mode` has to be `true`. The shape of `config` depends on the component `type`. The job takes 25 to 45 minutes in Salesforce's sample kits, so keep the `job_id` from the result and poll it with `datakit_deploy_status`. Redeploying overwrites changes made to the deployed components.
  */
 
-call cdp.datakit_deploy (
+call d360.datakit_deploy (
     data_kit_dev_name => 'Customer_Kit',
     async_mode => true,
     dataspace => 'default',
@@ -30,4 +30,4 @@ call cdp.datakit_deploy (
     ]
 );
 
-call cdp.datakit_deploy_status (job_id => '08Paj00000tPyr4');
+call d360.datakit_deploy_status (job_id => '08Paj00000tPyr4');

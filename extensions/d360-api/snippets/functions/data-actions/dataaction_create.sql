@@ -4,7 +4,7 @@
  * The target has to exist and be active. `action_conditions` are numbered with `order`, and `action_condition_expression` combines the numbers. `data_action_projected_fields` picks the fields that go into the event. Creation is asynchronous: read the list until `data_action_status` is `Active` for this `developer_name`, `Error` is final.
  */
 
-call cdp.dataaction_create (
+call d360.dataaction_create (
     dataspace => 'default',
     body_dataspace => 'default',
     data_action_target_names => ['contact_webhook'],
@@ -42,4 +42,4 @@ call cdp.dataaction_create (
     )]
 );
 
-call cdp.dataaction_list (dataspace => 'default', batch_size => 50);
+call d360.dataaction_list (dataspace => 'default', batch_size => 50);

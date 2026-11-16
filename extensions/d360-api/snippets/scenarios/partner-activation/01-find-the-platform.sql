@@ -4,4 +4,4 @@
  * List the packaged partner platforms, with their `name` and `key_prefix_name`.
  */
 
-call cdp.activation_external_platform_list ();
+call d360.activation_external_platform_list ();

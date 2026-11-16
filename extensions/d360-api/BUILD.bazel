@@ -1,4 +1,4 @@
-# The Data 360 extension, with client functions in the namespace `cdp` of a Salesforce connection. See
+# The Data 360 extension, with client functions in the namespace `d360` of a Salesforce connection. See
 # extensions/d360-api/clfn/docs/overview.md.
 #
 #   clfn/spec/   the source, edited by hand: clfn.yaml and a file per family with its functions, schemas and prose

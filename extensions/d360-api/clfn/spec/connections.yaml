@@ -13,13 +13,13 @@ description: |
   - `connection_databases_list`, `connection_db_schemas_list`, `connection_preview_get` and the test calls work only for JDBC-shaped connectors, according to Salesforce's own [troubleshooting notes](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md).
 
   ```sql
-  CALL cdp.connector_list (filters => 'name=SNOWFLAKE');
+  CALL d360.connector_list (filters => 'name=SNOWFLAKE');
 
-  CALL cdp.connector_metadata (connector_type => 'SNOWFLAKE');
+  CALL d360.connector_metadata (connector_type => 'SNOWFLAKE');
 
-  CALL cdp.connection_list (connector_type => 'SNOWFLAKE');
+  CALL d360.connection_list (connector_type => 'SNOWFLAKE');
 
-  CALL cdp.connection_objects_list (
+  CALL d360.connection_objects_list (
     connection_id => '9cgaj0000012O5hAAE',
     advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1')
   );
@@ -33,7 +33,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D/delete
     tools: [d360_connection_delete]
     description: Delete a Data 360 connector. Since v60.0.
-    example: CALL cdp.connection_delete (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_delete (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of the connection, from `connection_list`."}
     effect: write
@@ -51,7 +51,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections/get
     tools: [d360_connection_list, d360_snowflake_connection_list]
     description: Get a paginated list of Data 360 connections that exist in an org by connector type. Since v60.0.
-    example: CALL cdp.connection_list (connector_type => 'SNOWFLAKE', order_by => 'label', limit => 50);
+    example: CALL d360.connection_list (connector_type => 'SNOWFLAKE', order_by => 'label', limit => 50);
     options:
       - {name: connector_type, api_name: connectorType, in: query, type: string, required: true, description: "Type of the connector. For example, `AwsRdsPostgres`, `AzureBlob`, `Databricks`, `Gcs`, `IngestApi`, `SalesforceDotCom`, `SalesforceMarketingCloud`, `Sftp`, `StreamingApp`, and so forth. Since v62.0."}
       - {name: dev_name, api_name: devName, in: query, type: string, description: "Developer name of the connector. Since v62.0."}
@@ -112,7 +112,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D/get
     tools: [d360_connection_get]
     description: Get information about a Data 360 connection. Different connector types return different response payloads. For example, the response for a `StreamingApp` connector is different from the response for a `SalesforceMarketingCloud` connector. Since v60.0.
-    example: CALL cdp.connection_get (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_get (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of the connection, from `connection_list`."}
     columns:
@@ -172,7 +172,7 @@ functions:
     path: /ssot/connections/{connectionId}/endpoints
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1endpoints/get
     description: Get the endpoints of an Ingestion API connector as a binary stream. The stream contains a YAML file that includes the OpenAPI definitions of the endpoints for the connector. You can push the returned data to a data lake object (DLO). Since v61.0.
-    example: CALL cdp.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of an `IngestApi` connection."}
     effect: read
@@ -186,7 +186,7 @@ functions:
     path: /ssot/connections/{connectionId}/schema
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1schema/get
     description: Get the schema model for a connection. Since v60.0.
-    example: CALL cdp.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of the connection."}
     rows: /schemas
@@ -208,7 +208,7 @@ functions:
     path: /ssot/connections/{connectionId}/sitemap
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1sitemap/get
     description: Get the sitemap for a Streaming App connection. Since v60.0.
-    example: CALL cdp.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of a `StreamingApp` connection."}
     columns:
@@ -226,7 +226,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connectors/get
     tools: [d360_connector_list]
     description: Get a paginated list of Data 360 connectors, including high-level information and attributes for each connector. Since v62.0.
-    example: CALL cdp.connector_list (field_group => 'BIG', order_by => 'label ASC');
+    example: CALL d360.connector_list (field_group => 'BIG', order_by => 'label ASC');
     options:
       - {name: field_group, api_name: fieldGroup, in: query, type: string, description: "Number of fields to include in the results. Specify one of these values: - `SMALL` returns the fewest number of fields, including `name`, `label`, and a few others. - `MEDIUM` returns a greater number of fields. - `BIG` returns all fields. The default is `SMALL`. Since v62.0."}
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of values of the form `field=value`. For example, `name=AwsRdsPostgres` returns connectors whose name matches `AwsRdsPostgres`. By default, no filter is applied. Since v62.0."}
@@ -257,7 +257,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connectors~1%7BconnectorType%7D/get
     tools: [d360_connector_metadata]
     description: Get metadata about a Data 360 connector. Since v59.0.
-    example: CALL cdp.connector_metadata (connector_type => 'AwsRdsSqlServer');
+    example: CALL d360.connector_metadata (connector_type => 'AwsRdsSqlServer');
     options:
       - {name: connector_type, api_name: connectorType, in: path, type: string, required: true, description: "Type of the connector for which to return metadata. For example, possible connector types are `AccountEngagement`, `AwsRdsPostgres`, `Databricks`, `IngestApi`, `SalesforceDotCom`, `SalesforceMarketingCloud`, `StreamingApp`, and so forth. Since v62.0."}
     columns:
@@ -288,7 +288,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D/patch
     tools: [d360_connection_update]
     description: Update a Data 360 connector, replacing only the data passed in the request. Since v63.0.
-    example: CALL cdp.connection_update (connection_id => '1WMX40000000IZdOAM', connector_type => 'SalesforceMarketingCloud', add_ingestion_business_units => ['524002279'], remove_ingestion_business_units => ['524002280'], add_business_units_to_dataspaces => [(dataspace_name = 'default', mid = '524002279')]);
+    example: CALL d360.connection_update (connection_id => '1WMX40000000IZdOAM', connector_type => 'SalesforceMarketingCloud', add_ingestion_business_units => ['524002279'], remove_ingestion_business_units => ['524002280'], add_business_units_to_dataspaces => [(dataspace_name = 'default', mid = '524002279')]);
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "Record id of the connection, from `connection_list`."}
       - {name: organization_id, api_name: organizationId, in: body, type: string, description: "-"}
@@ -364,7 +364,7 @@ functions:
     tools: [d360_connection_create, d360_connection_create_snowflake]
     description: Create a Data 360 connector. Since v64.0.
     example: |
-      CALL cdp.connection_create (
+      CALL d360.connection_create (
         connector_type => 'SNOWFLAKE',
         label => 'Snowflake prod',
         name => 'snowflake_prod',
@@ -484,7 +484,7 @@ functions:
     path: /ssot/connections/{connectionId}/actions/{command}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1actions~1%7Bcommand%7D/post
     description: Run a command on an existing connection. Since v64.0.
-    example: CALL cdp.existing_connection_action_run (command => 'GET_SCHEMAS', connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.existing_connection_action_run (command => 'GET_SCHEMAS', connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: command, in: path, type: string, required: true, description: "Name of the command to run, for example, `GET_SCHEMAS`. Since v64.0."}
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v64.0."}
@@ -506,7 +506,7 @@ functions:
     path: /ssot/connections/{connectionId}/actions/test
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1actions~1test/post
     description: Test an existing connection and update its status based on the test result. Since v62.0.
-    example: CALL cdp.existing_connection_action_test (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.existing_connection_action_test (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
     columns:
@@ -524,7 +524,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1database-schemas/post
     tools: [d360_connection_db_schemas_list]
     description: Get a list of database schema names for a connection. Since v63.0.
-    example: CALL cdp.connection_db_schemas_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA'));
+    example: CALL d360.connection_db_schemas_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA'));
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
       - {name: advanced_attributes, api_name: advancedAttributes, in: body, map: true, type: string, description: "Map of strings, written `(database = 'X')`. Keys vary by connector, see the notes. Use `()` when no keys are needed. Since v63.0."}
@@ -551,7 +551,7 @@ functions:
     path: /ssot/connections/{connectionId}/databases
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1databases/post
     description: Get a list of databases for a connection. This `POST` endpoint doesn't accept a request body. Since v63.0.
-    example: CALL cdp.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
     columns:
@@ -568,7 +568,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1objects/post
     tools: [d360_connection_objects_list]
     description: Get a list of source objects for a connection. Since v62.0.
-    example: CALL cdp.connection_objects_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
+    example: CALL d360.connection_objects_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
       - {name: advanced_attributes, api_name: advancedAttributes, in: body, map: true, type: string, description: "Map of strings, written `(database = 'X')`. Keys vary by connector: see [`connection_db_schemas_list`](#connection_db_schemas_list). Use `()` when no keys are needed. Example keys: `database`, `schema`, `includeDataExtensionSize` (for the `SalesforceMarketingCloudDataExtension` subtype). Since v62.0."}
@@ -590,7 +590,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1objects~1%7BresourceName%7D~1fields/post
     tools: [d360_connection_object_fields_describe]
     description: Get a list of fields for a connection object. Since v62.0.
-    example: CALL cdp.connection_object_fields_describe (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
+    example: CALL d360.connection_object_fields_describe (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
       - {name: resource_name, api_name: resourceName, in: path, type: string, required: true, description: "- Use `files` for file-based connectors. The actual file name or wildcard expression of the folder is part of the request body. - Use the object name for object, blob, or app-based connectors. - Use the table name or view name for database connectors. - Use the custom object ID for data extension source objects. - Use the data stream name for Standard Marketing Cloud bundle streams. Since v62.0."}
@@ -615,7 +615,7 @@ functions:
     path: /ssot/connections/{connectionId}/objects/{resourceName}/preview
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1objects~1%7BresourceName%7D~1preview/post
     description: Get a preview of the data in an object and pass it through parser settings. Since v62.0.
-    example: CALL cdp.connection_preview_get (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'), fields => ['C_CUSTKEY', 'C_NAME'], limit => 10);
+    example: CALL d360.connection_preview_get (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'), fields => ['C_CUSTKEY', 'C_NAME'], limit => 10);
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
       - {name: resource_name, api_name: resourceName, in: path, type: string, required: true, description: "Resource name for the connection: - Use `files` for file-based connectors. The actual file name or wildcard expression of the folder is part of the request body. - Use the object name for object, blob, or app-based connectors. - Use the table name or view name for database connectors. Since v62.0."}
@@ -636,7 +636,7 @@ functions:
     path: /ssot/connections/{connectionId}/schema/actions/test
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1schema~1actions~1test/post
     description: Test a schema for an existing connection. Since v62.0.
-    example: CALL cdp.existing_connection_schema_action_test (connection_id => '9cgaj0000012O5hAAE');
+    example: CALL d360.existing_connection_schema_action_test (connection_id => '9cgaj0000012O5hAAE');
     options:
       - {name: connection_id, api_name: connectionId, in: path, type: string, required: true, description: "ID of the connection. Since v62.0."}
     columns:
@@ -652,7 +652,7 @@ functions:
     path: /ssot/connections/actions/{command}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1actions~1%7Bcommand%7D/post
     description: Run a command on a connection without creating the connection. Since v64.0.
-    example: CALL cdp.connection_action_run (command => 'GET_SCHEMAS', connector_type => 'SNOWFLAKE', method => 'Ingress');
+    example: CALL d360.connection_action_run (command => 'GET_SCHEMAS', connector_type => 'SNOWFLAKE', method => 'Ingress');
     options:
       - {name: command, in: path, type: string, required: true, description: "Name of the command to run, for example, `GET_SCHEMAS`. Since v64.0."}
       - {name: command_attributes, api_name: commandAttributes, in: body, map: true, type: object, description: "Map of key-value pairs for command attributes in the form `Map<String, String>`. Since v64.0."}
@@ -674,7 +674,7 @@ functions:
     tools: [d360_connection_test]
     description: Test a connection without creating it. Since v62.0.
     example: |
-      CALL cdp.connection_test (
+      CALL d360.connection_test (
         connector_type => 'AwsRdsSqlServer',
         method => 'Ingress',
         credentials => [
@@ -712,7 +712,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D/put
     description: Update a Data 360 connector, completely replacing all existing data for the connector with the data passed in the request. Since v61.0.
     example: |
-      CALL cdp.connection_replace (
+      CALL d360.connection_replace (
         connection_id => '9cgaj0000012O5hAAE',
         connector_type => 'SNOWFLAKE',
         label => 'Snowflake prod',
@@ -791,7 +791,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1schema/put
     description: Create or update a schema model for a connection. Since v60.0.
     example: |
-      CALL cdp.connection_schema_upsert (
+      CALL d360.connection_schema_upsert (
         connection_id => '9cgaj0000012O5hAAE',
         schemas => [(
           name = 'Orders',
@@ -837,7 +837,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Connections/paths/~1ssot~1connections~1%7BconnectionId%7D~1sitemap/put
     description: Create or update the sitemap for a Streaming App connection. Since v60.0.
     example: |
-      CALL cdp.connection_sitemap_upsert (
+      CALL d360.connection_sitemap_upsert (
         connection_id => '9cgaj0000012O5hAAE',
         sitemap => $$
           SalesforceInteractions.init().then(() => {

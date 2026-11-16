@@ -4,7 +4,7 @@
  * It is a `PUT` and the spec still requires `refresh_type`. No source says whether omitted fields keep their values, so compare with `activation_get` afterwards.
  */
 
-call cdp.activation_update (
+call d360.activation_update (
     activation_id => '85RVF000000CEf72AG',
     refresh_type => 'INCREMENTAL',
     should_exclude_deletes => true,
@@ -14,4 +14,4 @@ call cdp.activation_update (
     )
 );
 
-call cdp.activation_get (activation_id => '85RVF000000CEf72AG');
+call d360.activation_get (activation_id => '85RVF000000CEf72AG');

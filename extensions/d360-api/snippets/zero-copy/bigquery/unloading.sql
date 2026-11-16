@@ -4,9 +4,9 @@
  * Unloading is a setting of the connection and only affects accelerated streams. It needs a bucket that the service account can use with the role Storage Object User, and a temporary dataset whose tables expire after six hours. No source gives the API names of these settings: `unloadData` comes from the Snowflake connector, and `gcsBucket` and `temporaryDataset` are guesses, so check all three against the result of the first call. Wait for the connection to be `Active` before the third call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connector_metadata (connector_type => 'BIGQUERY');
+call d360.connector_metadata (connector_type => 'BIGQUERY');
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'BIGQUERY',
     label => 'BigQuery unload',
     name => 'BigQuery_Unload',
@@ -24,7 +24,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_bigquery_unload',
     label => 'Orders (BigQuery unload)',
     data_stream_type => 'EXTERNAL',
@@ -58,4 +58,4 @@ call cdp.datastream_create (
     )
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_bigquery_unload');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_bigquery_unload');

@@ -4,4 +4,4 @@
  * Data 360 only processes a job once it is closed.
  */
 
-call cdp.ingest_job_update (id => :job_id, state => 'UploadComplete');
+call d360.ingest_job_update (id => :job_id, state => 'UploadComplete');

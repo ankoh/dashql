@@ -4,7 +4,7 @@
  * Build the audience: individuals with at least one order over 5000. Segment SQL is its own dialect, see the Data 360 notes on Segment SQL.
  */
 
-call cdp.segment_create (
+call d360.segment_create (
     dataspace => 'default',
     developer_name => 'High_Value_Order_Buyers',
     display_name => 'High Value Order Buyers',

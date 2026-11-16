@@ -1,6 +1,6 @@
 # Data 360 API Notes
 
-The research behind [CDP SQL](overview.md), as of 2026-11. It records API quirks, usage order, what Salesforce's skills teach, what Snowflake and competitors do, where sources disagree, and what to check once an org is available.
+The research behind [the Data 360 extension](overview.md), as of 2026-11. It records API quirks, usage order, what Salesforce's skills teach, what Snowflake and competitors do, where sources disagree, and what to check once an org is available.
 
 **Nothing here was tested against an org.** Everything is what the sources claim.
 
@@ -272,11 +272,11 @@ The Redshift connection comes from a [community example](https://github.com/Jaga
 | Publish status | `PUBLISHED` in the kit (S) | `publishStatus: "SUCCESS"` in the [hosted docs](https://developer.salesforce.com/docs/platform/hosted-mcp-servers/references/reference/data360-mcp.md) (D) |
 | Connect host | Core host and core token (C, DashQL) | Tenant host after exchange (D) |
 | Agentic memory | [Create](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-memories.md) and [Update](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-update-memories.md) share `POST /api/v1/agentic/memory` (D) | The overview names only POST and DELETE as write methods, so possibly intended |
-| Query v3 paths | Public docs: `/rows`, `/chunks/{id}` (D) | DashQL's `hyperdb_http_client.ts` and `docs/misc/salesforce_v3_http.md`: `/row`, `/chunk/{id}`. No CDP function uses these; this concerns only the existing client |
+| Query v3 paths | Public docs: `/rows`, `/chunks/{id}` (D) | DashQL's `hyperdb_http_client.ts` and `docs/misc/salesforce_v3_http.md`: `/row`, `/chunk/{id}`. No `d360` function uses these; this concerns only the existing client |
 | `dataSpaceName` | Schemas on agents, data graphs and data shares (D) | Their examples and one lab: `dataspaceName` (D, C) |
 | API version | v64 (schema skill) | v66+ (hosted server), v67, v68 (docs) |
 
-Where the tool text and the guide disagree, the rule text is more specific about rejections, but neither has been tested here. CDP SQL doesn't depend on these, because the server decides.
+Where the tool text and the guide disagree, the rule text is more specific about rejections, but neither has been tested here. The extension doesn't depend on these, because the server decides.
 
 ## Skill files
 
@@ -320,7 +320,7 @@ Snowflake is the main model for "everything in SQL".
 | `GET_DDL` | Not always executable, and not available for every object type |
 | No DDL transactions | Each DDL commits alone, and `CREATE OR ALTER` can apply partially |
 
-CDP SQL has one encoding by construction, since every operation is a `CALL`. Most of the rest don't arise, because it passes the API's own values through and has no properties grammar of its own to be inconsistent. Results are the exception: the `_raw` column keeps `SHOW`-style drift out of the known columns, but it still follows the API's names.
+The extension has one encoding by construction, since every operation is a `CALL`. Most of the rest don't arise, because it passes the API's own values through and has no properties grammar of its own to be inconsistent. Results are the exception: the `_raw` column keeps `SHOW`-style drift out of the known columns, but it still follows the API's names.
 
 **Sources:** [SHOW TABLES](https://docs.snowflake.com/en/sql-reference/sql/show-tables), [CREATE TASK](https://docs.snowflake.com/en/sql-reference/sql/create-task), [CALL](https://docs.snowflake.com/en/sql-reference/sql/call), [CREATE SECRET](https://docs.snowflake.com/en/sql-reference/sql/create-secret), [CREATE SEMANTIC VIEW](https://docs.snowflake.com/en/sql-reference/sql/create-semantic-view), [Classes](https://docs.snowflake.com/en/sql-reference/snowflake-db-classes), [CREATE OR ALTER](https://docs.snowflake.com/en/sql-reference/sql/create-or-alter), [GET_DDL](https://docs.snowflake.com/en/sql-reference/functions/get_ddl), [DCM Projects](https://docs.snowflake.com/en/user-guide/dcm-projects/dcm-projects-overview), [Transactions](https://docs.snowflake.com/en/sql-reference/transactions), [REST APIs](https://docs.snowflake.com/en/developer-guide/snowflake-rest-api/snowflake-rest-api).
 

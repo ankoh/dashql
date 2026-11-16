@@ -4,6 +4,6 @@
  * The result is one row, with all insights in its `metadata` array.
  */
 
-call cdp.insights_metadata ();
+call d360.insights_metadata ();
 
-call cdp.insights_metadata_get (ci_name => 'Customer_Order_Summary__cio');
+call d360.insights_metadata_get (ci_name => 'Customer_Order_Summary__cio');

@@ -2,7 +2,7 @@
 
 # Calculated Insights
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A calculated insight is a SQL aggregate over data model objects. Data 360 keeps the result as its own object, named `<name>__cio`, and recomputes it on a schedule or on demand. Segments can filter on insights, so insights come [after identity resolution and before segments](https://github.com/salesforce-misc/Data360AgentforceSolutionKitRetail/blob/main/.claude/skills/refresh-data-cloud-components/SKILL.md).
 
@@ -17,7 +17,7 @@ The gotchas that matter most:
 - **Spec gaps.** `ci_enable`, `ci_disable`, `ci_run_status` and `ci_validate` aren't in the spec. Poll with `ci_get`.
 
 ```sql
-CALL cdp.ci_create (
+CALL d360.ci_create (
     api_name => 'Customer_Order_Summary__cio',
     display_name => 'Customer Order Summary',
     definition_type => 'CALCULATED_METRIC',
@@ -30,11 +30,11 @@ CALL cdp.ci_create (
     $$
 );
 /* Repeat until calculated_insight_status = 'ACTIVE'. */
-CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
-CALL cdp.ci_run (api_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_get (api_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_run (api_name => 'Customer_Order_Summary__cio');
 /* Repeat until last_run_status = 'SUCCESS', then start the next insight. */
-CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
-CALL cdp.insights_query (ci_name => 'Customer_Order_Summary__cio', batch_size => 10);
+CALL d360.ci_get (api_name => 'Customer_Order_Summary__cio');
+CALL d360.insights_query (ci_name => 'Customer_Order_Summary__cio', batch_size => 10);
 ```
 
 **Functions:** [`ci_delete`](#ci_delete), [`ci_list`](#ci_list), [`ci_get`](#ci_get), [`ci_update`](#ci_update), [`ci_create`](#ci_create), [`ci_run`](#ci_run), [`ci_enable`](#ci_enable), [`ci_disable`](#ci_disable), [`ci_run_status`](#ci_run_status), [`ci_validate`](#ci_validate)
@@ -52,7 +52,7 @@ Delete a calculated insight in Data 360. Since v57.0.
 | `api_name` | `apiName` | path | string | yes | API name of the insight, ending in `__cio`. |
 
 ```sql
-CALL cdp.ci_delete (api_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_delete (api_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -86,7 +86,7 @@ Get calculated insights in Data 360. Since v57.0.
 | `page_token` | `pageToken` | query | string |  | Specifies the page token to use to view a page of information. Page tokens are returned as part of the response, such as `currentPageToken` or `nextPageToken`. If unspecified, the first page is returned. Since v57.0. |
 
 ```sql
-CALL cdp.ci_list (offset => 0, definition_type => 'CALCULATED_METRIC', batch_size => 100);
+CALL d360.ci_list (offset => 0, definition_type => 'CALCULATED_METRIC', batch_size => 100);
 ```
 
 **Result**
@@ -138,7 +138,7 @@ Get a calculated insight in Data 360. Since v57.0.
 | `api_name` | `apiName` | path | string | yes | API name of the insight, ending in `__cio`. |
 
 ```sql
-CALL cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_get (api_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -209,7 +209,7 @@ Update a calculated insight in Data 360. Since v57.0. **Root XML tag:** `<cdpCal
 | `source_developer_name` | `sourceDeveloperName` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.ci_update (
+CALL d360.ci_update (
     api_name => 'Customer_Order_Summary__cio',
     description => 'Total order amount per customer, refreshed twice a day.',
     publish_schedule_interval => 'Twelve',
@@ -279,7 +279,7 @@ Create a calculated insight in Data 360. Since v57.0. **Root XML tag:** `<cdpCal
 | `source_developer_name` | `sourceDeveloperName` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.ci_create (
+CALL d360.ci_create (
     api_name => 'Customer_Order_Summary__cio',
     display_name => 'Customer Order Summary',
     description => 'Total order amount per customer.',
@@ -368,7 +368,7 @@ Trigger a run on a calculated insight in Data 360. This `POST` endpoint doesn't 
 | `api_name` | `apiName` | path | string | yes | API name of the insight, ending in `__cio`. |
 
 ```sql
-CALL cdp.ci_run (api_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_run (api_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -403,7 +403,7 @@ Enable a calculated insight. Per sf-pi, this can make it available to downstream
 | `ci_name` | `ciName` | path | string | yes | The calculated insight API name |
 
 ```sql
-CALL cdp.ci_enable (ci_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_enable (ci_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -427,7 +427,7 @@ Disable a calculated insight. Per sf-pi, this can affect dependent segments and 
 | `ci_name` | `ciName` | path | string | yes | The calculated insight API name |
 
 ```sql
-CALL cdp.ci_disable (ci_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_disable (ci_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -449,7 +449,7 @@ Ask Data 360 to refresh and report a calculated insight's run status after `ci_r
 | `ci_name` | `ciName` | path | string | yes | The calculated insight API name |
 
 ```sql
-CALL cdp.ci_run_status (ci_name => 'Customer_Order_Summary__cio');
+CALL d360.ci_run_status (ci_name => 'Customer_Order_Summary__cio');
 ```
 
 **Result**
@@ -478,7 +478,7 @@ Check an insight expression before creating or updating an insight.
 | `created_from_package` | `createdFromPackage` | body | boolean |  | Whether the insight is created from an installed package (`true`). |
 
 ```sql
-CALL cdp.ci_validate (
+CALL d360.ci_validate (
     definition_type => 'CALCULATED_METRIC',
     dataspace_name => 'default',
     expression => $$

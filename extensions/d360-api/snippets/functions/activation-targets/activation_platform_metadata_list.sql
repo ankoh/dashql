@@ -4,7 +4,7 @@
  * The `platform_type` here (`Strategic`, `Sfmc`, `S3`) isn't the one `activation_target_create` takes (`ExternalPlatform`, `SalesforceMarketingCloud`, `AmazonS3`). A `Strategic` platform such as Google Ads is created as `ExternalPlatform`.
  */
 
-call cdp.activation_platform_metadata_list (
+call d360.activation_platform_metadata_list (
     platform_type => 'Strategic',
     dataspace => 'default',
     order_by => 'name asc',

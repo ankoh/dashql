@@ -4,7 +4,7 @@
  * Both DMOs need mappings first, otherwise the call fails with `No ObjectSourceTargetMaps were found`. A relationship that already exists is skipped. A new one starts as `CREATING`, so find it by its name in the list until it is `ACTIVE`.
  */
 
-call cdp.dmo_relationship_create (
+call d360.dmo_relationship_create (
     data_model_object_name => 'SalesOrders__dlm',
     dataspace => 'default',
     relationships => [(
@@ -17,4 +17,4 @@ call cdp.dmo_relationship_create (
     )]
 );
 
-call cdp.dmo_relationship_list (data_model_object_name => 'SalesOrders__dlm', dataspace => 'default');
+call d360.dmo_relationship_list (data_model_object_name => 'SalesOrders__dlm', dataspace => 'default');

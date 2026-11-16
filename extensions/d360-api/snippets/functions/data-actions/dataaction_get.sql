@@ -4,6 +4,6 @@
  * This path isn't in the public spec, it comes from Salesforce's MCP source. If it fails in your org, page the list instead.
  */
 
-call cdp.dataaction_list (dataspace => 'default', batch_size => 50);
+call d360.dataaction_list (dataspace => 'default', batch_size => 50);
 
-call cdp.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
+call d360.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');

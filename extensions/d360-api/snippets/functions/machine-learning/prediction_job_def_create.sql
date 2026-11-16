@@ -4,7 +4,7 @@
  * `input_config` maps each field the model was trained on to a field of the data object, along a relationship path when the field lives in a related object. The settings must match the job type: here `binary_classification_settings` for `BinaryClassification`.
  */
 
-call cdp.prediction_job_def_create (
+call d360.prediction_job_def_create (
     type => 'BinaryClassification',
     label => 'Attrition Scores',
     api_name => 'attrition_scores',
@@ -35,4 +35,4 @@ call cdp.prediction_job_def_create (
     )
 );
 
-call cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+call d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');

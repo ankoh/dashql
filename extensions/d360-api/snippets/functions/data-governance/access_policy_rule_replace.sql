@@ -4,9 +4,9 @@
  * It is a full overwrite, so read the rule first. `rule_name` in the path and `body_name` must be equal or the call returns `NAME_MISMATCH`. `rule_consumer` limits which product enforces it.
  */
 
-call cdp.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
+call d360.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
 
-call cdp.access_policy_rule_replace (
+call d360.access_policy_rule_replace (
     name => 'RestrictSensitiveFields',
     rule_name => 'Mask_SSN',
     body_name => 'Mask_SSN',

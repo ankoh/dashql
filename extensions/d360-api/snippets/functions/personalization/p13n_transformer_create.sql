@@ -4,7 +4,7 @@
  * `SchemaPath` variables take data from the personalization point, `Static` ones are fixed values. Experience configs refer to the transformer by its `name`. The HTML is a verbatim string.
  */
 
-call cdp.p13n_transformer_create (
+call d360.p13n_transformer_create (
     name => 'promo_banner_transformer',
     label => 'Promotional Banner Transformer',
     channel => 'WebApp',

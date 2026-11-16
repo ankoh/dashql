@@ -4,7 +4,7 @@
  * Use it to look up the `memory_id` an update or delete needs. The call has no paging.
  */
 
-call cdp.memory_list (
+call d360.memory_list (
     agent_id => 'ACE_Demo_Agent',
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',

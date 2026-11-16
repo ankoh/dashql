@@ -4,6 +4,6 @@
  * The result is one row with a `categories` list. Leave `dataspace` out to use the data space of the request.
  */
 
-call cdp.activation_data_object_category_list (dataspace => 'default');
+call d360.activation_data_object_category_list (dataspace => 'default');
 
-call cdp.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');
+call d360.activation_channel_list (activate_on => 'ssot__Individual__dlm', dataspace => 'default');

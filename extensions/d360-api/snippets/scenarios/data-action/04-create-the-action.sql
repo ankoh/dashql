@@ -4,7 +4,7 @@
  * Call the webhook when a currency rate changes.
  */
 
-call cdp.dataaction_create (
+call d360.dataaction_create (
     data_action_target_names => ['contact_webhook'],
     body_dataspace => 'default',
     data_action_name => 'Rate changed',

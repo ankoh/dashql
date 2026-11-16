@@ -13,11 +13,11 @@ description: |
   - **Extraction will cost credits.** It [consumes flex credits once pricing applies, and is free during Limited GA](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-billing.md).
 
   ```sql
-  CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual');
-  CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')]);
-  CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')]);
-  CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
-  CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+  CALL d360.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual');
+  CALL d360.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')]);
+  CALL d360.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')]);
+  CALL d360.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+  CALL d360.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
   ```
 
 functions:
@@ -27,7 +27,7 @@ functions:
     path: /api/v1/agentic/conversations
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-conversation.md
     description: Create a conversation with an ID you choose and an owner. This is the first call of the ingest flow; sessions and entries go inside it.
-    example: CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'));
+    example: CALL d360.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'));
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name, such as `ACE_Demo_Agent`."}
       - {name: conversation_id, api_name: conversationId, in: body, type: string, required: true, description: "Caller-supplied unique ID for this conversation."}
@@ -51,7 +51,7 @@ functions:
     path: /api/v1/agentic/conversations
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-list-conversations.md
     description: List a person's conversations as summary rows, without sessions or entries. Use it to find a `conversation_id`.
-    example: CALL cdp.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual');
+    example: CALL d360.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual');
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
       - {name: owner_id, in: query, type: string, required: true, description: "End user's Individual ID."}
@@ -86,7 +86,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-conversation-data-graph.md
     description: "Read one conversation in full: its sessions, entries and metadata. Use it to inspect what was ingested."
-    example: CALL cdp.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages');
+    example: CALL d360.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages');
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -123,7 +123,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/close
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-close-conversation.md
     description: Mark a conversation complete across all its sessions. This also closes any sessions still open.
-    example: CALL cdp.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001');
+    example: CALL d360.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001');
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -145,7 +145,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/entries
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-add-entries.md
     description: Send messages and traces to a session, in order. This is the main way data enters the memory pipeline, and several entries can go in one call.
-    example: CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))]);
+    example: CALL d360.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))]);
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -167,7 +167,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/sessions
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-session.md
     description: Open a session inside a conversation, with an ID you choose and at least one participant. A conversation can hold several sessions, for pauses and agent handoffs.
-    example: CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')]);
+    example: CALL d360.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')]);
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Parent conversation ID."}
@@ -192,7 +192,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/sessions
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-list-sessions.md
     description: List a conversation's sessions as summary rows, without entries.
-    example: CALL cdp.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual');
+    example: CALL d360.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual');
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Agent identifier. [Requests without it are rejected](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-conversation-retrieval-apis.md)."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -226,7 +226,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/sessions/{sessionId}/close
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-close-session.md
     description: End a session. This triggers a final memory extraction for any messages not yet processed.
-    example: CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+    example: CALL d360.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -250,7 +250,7 @@ functions:
     path: /api/v1/agentic/conversations/{conversationId}/sessions/{sessionId}/participants
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-add-participants.md
     description: Add participants to an active session, for agent handoffs or several agents working together.
-    example: CALL cdp.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')]);
+    example: CALL d360.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')]);
     options:
       - {name: agent_id, in: header, type: string, required: true, description: "Registered agent API name."}
       - {name: conversation_id, api_name: conversationId, in: path, type: string, required: true, description: "Conversation ID."}
@@ -272,7 +272,7 @@ functions:
     path: /api/v1/agentic/memory
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-create-memories.md
     description: Add memory entries to a profile by hand, alongside what extraction produces. Each entry gets a system-generated memory ID.
-    example: CALL cdp.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')]);
+    example: CALL d360.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')]);
     options:
       - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
       - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
@@ -300,7 +300,7 @@ functions:
     path: /api/v1/agentic/memory
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-read-memories.md
     description: Read a profile's memory entries in one category. Use it to see what extraction or manual curation has stored.
-    example: CALL cdp.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT');
+    example: CALL d360.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT');
     options:
       - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
       - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
@@ -325,7 +325,7 @@ functions:
     path: /api/v1/agentic/memory
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-update-memories.md
     description: Replace the content of existing memory entries, each identified by its memory ID.
-    example: CALL cdp.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')]);
+    example: CALL d360.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')]);
     options:
       - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
       - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
@@ -353,7 +353,7 @@ functions:
     path: /api/v1/agentic/memory
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-delete-memories.md
     description: Delete memory entries by memory ID. Deletion is permanent.
-    example: CALL cdp.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')]);
+    example: CALL d360.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')]);
     options:
       - {name: agent_id, in: header, type: string, description: "Registered agent API name. [Optional, because clients can also call these APIs](https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-memory-apis.md)."}
       - {name: profile_id, in: query, type: string, required: true, description: "Individual or User ID. Not derived from authentication."}
@@ -376,7 +376,7 @@ functions:
     path: /api/v1/agentic/context
     reference_url: https://developer.salesforce.com/docs/data/agentic-memory-context/references/agentic-memory-context-api-ref/agentic-memory-api-get-context.md
     description: Assemble context for an agent turn from memories, conversation history, profile data and any additional data graphs, as text ready for an LLM prompt.
-    example: CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+    example: CALL d360.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
     options:
       - {name: agent_id, in: query, type: string, required: true, description: "Agent identifier, the registered API name. A query parameter on this call only."}
       - {name: conversation_id, in: query, type: string, required: true, description: "Conversation to read messages and summaries from."}

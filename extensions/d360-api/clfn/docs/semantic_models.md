@@ -2,7 +2,7 @@
 
 # Semantic Models
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A semantic model (SDM) is a named layer over existing DMOs, DLOs and calculated insights. It gives their columns business names and adds joins, formulas and metrics, so a query names fields and the engine writes the SQL. This family is separate from the Connect spec, and its [own guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/get-started.md) calls it Tableau Semantics.
 
@@ -16,11 +16,11 @@ What matters most:
 - **Deletes.** Deleting a data object or relationship breaks what joins through it. Check each definition's `dependencies`.
 
 ```sql
-CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue', dataspace => 'default');
-CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
-CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Revenue', api_name => 'Total_Revenue', data_type => 'Number', aggregation_type => 'UserAgg', expression => $$SUM([Account].[AnnualRevenue])$$);
-CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
-CALL cdp.sdm_query (semantic_model_api_name => 'AccountRevenue', structured_semantic_query => (fields = [(expression = (semantic_field = (name = 'Total_Revenue')), alias = 'revenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_USER_AGG')]));
+CALL d360.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue', dataspace => 'default');
+CALL d360.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+CALL d360.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Revenue', api_name => 'Total_Revenue', data_type => 'Number', aggregation_type => 'UserAgg', expression => $$SUM([Account].[AnnualRevenue])$$);
+CALL d360.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_query (semantic_model_api_name => 'AccountRevenue', structured_semantic_query => (fields = [(expression = (semantic_field = (name = 'Total_Revenue')), alias = 'revenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_USER_AGG')]));
 ```
 
 **Functions:** [`sdm_list`](#sdm_list), [`sdm_get`](#sdm_get), [`sdm_create`](#sdm_create), [`sdm_update`](#sdm_update), [`sdm_delete`](#sdm_delete), [`sdm_clone`](#sdm_clone), [`sdm_validate`](#sdm_validate), [`sdm_dependencies`](#sdm_dependencies), [`sdm_data_object_create`](#sdm_data_object_create), [`sdm_data_objects_list`](#sdm_data_objects_list), [`sdm_data_object_get`](#sdm_data_object_get), [`sdm_data_object_update`](#sdm_data_object_update), [`sdm_data_object_delete`](#sdm_data_object_delete), [`sdm_dimensions_list`](#sdm_dimensions_list), [`sdm_measurements_list`](#sdm_measurements_list), [`sdm_calc_dims_list`](#sdm_calc_dims_list), [`sdm_calc_dim_create`](#sdm_calc_dim_create), [`sdm_calc_dim_get`](#sdm_calc_dim_get), [`sdm_calc_dim_update`](#sdm_calc_dim_update), [`sdm_calc_dim_delete`](#sdm_calc_dim_delete), [`sdm_calc_measures_list`](#sdm_calc_measures_list), [`sdm_calc_measure_create`](#sdm_calc_measure_create), [`sdm_calc_measure_get`](#sdm_calc_measure_get), [`sdm_calc_measure_update`](#sdm_calc_measure_update), [`sdm_calc_measure_delete`](#sdm_calc_measure_delete), [`sdm_metrics_list`](#sdm_metrics_list), [`sdm_metric_create`](#sdm_metric_create), [`sdm_metric_get`](#sdm_metric_get), [`sdm_metric_update`](#sdm_metric_update), [`sdm_metric_delete`](#sdm_metric_delete), [`sdm_relationships_list`](#sdm_relationships_list), [`sdm_relationship_create`](#sdm_relationship_create), [`sdm_relationship_get`](#sdm_relationship_get), [`sdm_relationship_update`](#sdm_relationship_update), [`sdm_relationship_delete`](#sdm_relationship_delete), [`sdm_formula_metadata`](#sdm_formula_metadata), [`sdm_permissions`](#sdm_permissions), [`sdm_query`](#sdm_query)
@@ -48,7 +48,7 @@ List the semantic models in the org, optionally filtered by data space, label or
 | `source_creation_name` | `sourceCreationName` | query | string |  | Source-creation-name filter |
 
 ```sql
-CALL cdp.sdm_list (dataspace => 'default', limit => 100, order_by => 'apiName ASC');
+CALL d360.sdm_list (dataspace => 'default', limit => 100, order_by => 'apiName ASC');
 ```
 
 **Result**
@@ -87,7 +87,7 @@ Read a whole model, with its data objects, relationships, calculated fields and 
 | `include_table_keys` | `includeTableKeys` | query | boolean |  | Add key qualifiers and primary key indicators. |
 
 ```sql
-CALL cdp.sdm_get (model_api_name_or_id => 'AccountRevenue', include_table_keys => true);
+CALL d360.sdm_get (model_api_name_or_id => 'AccountRevenue', include_table_keys => true);
 ```
 
 **Result**
@@ -168,7 +168,7 @@ Create a semantic model. The first step of every build: either an empty shell th
 | `inherit_dc_relationship` | `inheritDcRelationship` | query | boolean |  | Flag to inherit data cloud relationships |
 
 ```sql
-CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue Model', description => 'Accounts and revenue', dataspace => 'default');
+CALL d360.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue Model', description => 'Accounts and revenue', dataspace => 'default');
 ```
 
 **Result**
@@ -239,7 +239,7 @@ Change model-level fields such as the label or description. It leaves data objec
 | `allow_unmapped` | `allowUnmapped` | query | boolean |  | Flag to allow unmapped fields |
 
 ```sql
-CALL cdp.sdm_update (model_api_name_or_id => 'AccountRevenue', description => 'Accounts and revenue, used by the sales dashboard');
+CALL d360.sdm_update (model_api_name_or_id => 'AccountRevenue', description => 'Accounts and revenue, used by the sales dashboard');
 ```
 
 **Result**
@@ -296,7 +296,7 @@ Permanently delete a model and everything in it.
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_delete (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_delete (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -323,7 +323,7 @@ Copy a model to a new one that can change independently. Use it for variations o
 | `api_name` | `apiName` | body | string |  | API name of the new model. |
 
 ```sql
-CALL cdp.sdm_clone (model_api_name_or_id => 'AccountRevenue', api_name => 'AccountRevenue_Test');
+CALL d360.sdm_clone (model_api_name_or_id => 'AccountRevenue', api_name => 'AccountRevenue_Test');
 ```
 
 **Result**
@@ -380,7 +380,7 @@ Check a model's structure and configuration and report errors. Run it after buil
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_validate (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -408,7 +408,7 @@ List what a model depends on outside itself. Read it before deleting or changing
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_dependencies (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_dependencies (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -442,7 +442,7 @@ Add an existing DMO, DLO or calculated insight to a model. This is the second bu
 | `allow_unmapped` | `allowUnmapped` | query | boolean |  | Flag to allow unmapped fields |
 
 ```sql
-CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+CALL d360.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
 ```
 
 **Result**
@@ -493,7 +493,7 @@ List the data objects in a model with their fields. This is where the semantic f
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_data_objects_list (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_data_objects_list (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -516,7 +516,7 @@ Read one data object in a model, with its dimensions and measurements.
 | `data_object_name_or_id` | `oid` | path | string | yes | Data object name or ID |
 
 ```sql
-CALL cdp.sdm_data_object_get (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+CALL d360.sdm_data_object_get (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
 ```
 
 **Result**
@@ -561,7 +561,7 @@ Change a data object in a model, such as its label or whether it includes all fi
 | `should_include_all_fields` | `shouldIncludeAllFields` | body | boolean |  | Whether to include all fields of the source. |
 
 ```sql
-CALL cdp.sdm_data_object_update (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account', label => 'Customer Account');
+CALL d360.sdm_data_object_update (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account', label => 'Customer Account');
 ```
 
 **Result**
@@ -585,7 +585,7 @@ Remove a data object from a model. A data object is only a reference to an exist
 | `relationship_cascade_delete` | `relationshipCascadeDelete` | query | boolean |  | Also delete the relationships that depend on this object. |
 
 ```sql
-CALL cdp.sdm_data_object_delete (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Opportunity', relationship_cascade_delete => true);
+CALL d360.sdm_data_object_delete (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Opportunity', relationship_cascade_delete => true);
 ```
 
 **Result**
@@ -609,7 +609,7 @@ List the dimensions of one data object in a model, the fields used for grouping 
 | `name` | `name` | query | string |  | Dimension name filter |
 
 ```sql
-CALL cdp.sdm_dimensions_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+CALL d360.sdm_dimensions_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
 ```
 
 **Result**
@@ -633,7 +633,7 @@ List the measurements of one data object in a model, the numeric fields a query 
 | `name` | `name` | query | string |  | Measurement name filter |
 
 ```sql
-CALL cdp.sdm_measurements_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+CALL d360.sdm_measurements_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
 ```
 
 **Result**
@@ -654,7 +654,7 @@ List the calculated dimensions of a model.
 | `name` | `name` | query | string |  | Calculated dimension name filter |
 
 ```sql
-CALL cdp.sdm_calc_dims_list (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_calc_dims_list (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -687,7 +687,7 @@ Add a calculated dimension: a formula over model fields whose value classifies o
 | `filter_logic` | `filterLogic` | body | string |  | Combines `filters` by 1-based index, such as `1 AND 2`. |
 
 ```sql
-CALL cdp.sdm_calc_dim_create (model_api_name_or_id => 'AccountRevenue', label => 'Revenue Tier', api_name => 'Revenue_Tier', data_type => 'Text', expression => $$IF [Account].[AnnualRevenue] > 1000000 THEN 'Enterprise' ELSEIF [Account].[AnnualRevenue] > 100000 THEN 'Mid-Market' ELSE 'SMB' END$$);
+CALL d360.sdm_calc_dim_create (model_api_name_or_id => 'AccountRevenue', label => 'Revenue Tier', api_name => 'Revenue_Tier', data_type => 'Text', expression => $$IF [Account].[AnnualRevenue] > 1000000 THEN 'Enterprise' ELSEIF [Account].[AnnualRevenue] > 100000 THEN 'Mid-Market' ELSE 'SMB' END$$);
 ```
 
 **Result**
@@ -739,7 +739,7 @@ Read one calculated dimension, including its formula and dependencies.
 | `calculated_dimension_name_or_id` | `dimId` | path | string | yes | Calculated dimension name or ID |
 
 ```sql
-CALL cdp.sdm_calc_dim_get (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+CALL d360.sdm_calc_dim_get (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
 ```
 
 **Result**
@@ -786,7 +786,7 @@ Change a calculated dimension, usually its formula.
 | `data_type` | `dataType` | body | string |  | New data type, see [`sdm_calc_dim_create`](#sdm_calc_dim_create). |
 
 ```sql
-CALL cdp.sdm_calc_dim_update (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier', expression => $$IF [Account].[AnnualRevenue] > 5000000 THEN 'Enterprise' ELSE 'SMB' END$$);
+CALL d360.sdm_calc_dim_update (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier', expression => $$IF [Account].[AnnualRevenue] > 5000000 THEN 'Enterprise' ELSE 'SMB' END$$);
 ```
 
 **Result**
@@ -810,7 +810,7 @@ Delete a calculated dimension from a model.
 | `relationship_cascade_delete` | `relationshipCascadeDelete` | query | boolean |  | Also delete the relationships that depend on this field. |
 
 ```sql
-CALL cdp.sdm_calc_dim_delete (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+CALL d360.sdm_calc_dim_delete (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
 ```
 
 **Result**
@@ -833,7 +833,7 @@ List the calculated measurements of a model.
 | `name` | `name` | query | string |  | Calculated measurement name filter |
 
 ```sql
-CALL cdp.sdm_calc_measures_list (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_calc_measures_list (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -870,7 +870,7 @@ Add a calculated measurement: a numeric formula over model fields, computed at q
 | `filter_logic` | `filterLogic` | body | string |  | Combines `filters` by 1-based index, such as `1 AND 2`. |
 
 ```sql
-CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Pipeline', api_name => 'Total_Pipeline', data_type => 'Number', aggregation_type => 'UserAgg', decimal_place => 2, expression => $$SUM([Opportunity].[Amount])$$);
+CALL d360.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Pipeline', api_name => 'Total_Pipeline', data_type => 'Number', aggregation_type => 'UserAgg', decimal_place => 2, expression => $$SUM([Opportunity].[Amount])$$);
 ```
 
 **Result**
@@ -927,7 +927,7 @@ Read one calculated measurement, including its formula and dependencies.
 | `calculated_measurement_name_or_id` | `mid` | path | string | yes | Calculated measurement name or ID |
 
 ```sql
-CALL cdp.sdm_calc_measure_get (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+CALL d360.sdm_calc_measure_get (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
 ```
 
 **Result**
@@ -980,7 +980,7 @@ Change a calculated measurement, usually its formula or aggregation.
 | `aggregation_type` | `aggregationType` | body | string |  | New aggregation, see [`sdm_calc_measure_create`](#sdm_calc_measure_create). |
 
 ```sql
-CALL cdp.sdm_calc_measure_update (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline', expression => $$SUM(IIF([Opportunity].[IsClosed], 0, [Opportunity].[Amount]))$$);
+CALL d360.sdm_calc_measure_update (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline', expression => $$SUM(IIF([Opportunity].[IsClosed], 0, [Opportunity].[Amount]))$$);
 ```
 
 **Result**
@@ -1004,7 +1004,7 @@ Delete a calculated measurement from a model.
 | `relationship_cascade_delete` | `relationshipCascadeDelete` | query | boolean |  | Also delete the relationships that depend on this field. |
 
 ```sql
-CALL cdp.sdm_calc_measure_delete (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+CALL d360.sdm_calc_measure_delete (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
 ```
 
 **Result**
@@ -1026,7 +1026,7 @@ List the metrics of a model.
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_metrics_list (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_metrics_list (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -1049,7 +1049,7 @@ Add a metric: a business KPI tracked over time, made of one measurement, one tim
 | `definition` | `definition` | body | [SemanticMetricDefinition](#semanticmetricdefinition) | yes | What the metric measures. |
 
 ```sql
-CALL cdp.sdm_metric_create (model_api_name_or_id => 'AccountRevenue', name => 'Annual_Revenue_md', label => 'Annual Revenue', definition => (measurement_reference = (table_field_reference = (field_api_name = 'AnnualRevenue', table_api_name = 'Account')), time_dimension_reference = (table_field_reference = (field_api_name = 'CreatedDate', table_api_name = 'Account')), aggregation_type = 'Sum', time_grains = ['Month', 'Quarter'], additional_dimensions = [(table_field_reference = (field_api_name = 'Region', table_api_name = 'Account'))]));
+CALL d360.sdm_metric_create (model_api_name_or_id => 'AccountRevenue', name => 'Annual_Revenue_md', label => 'Annual Revenue', definition => (measurement_reference = (table_field_reference = (field_api_name = 'AnnualRevenue', table_api_name = 'Account')), time_dimension_reference = (table_field_reference = (field_api_name = 'CreatedDate', table_api_name = 'Account')), aggregation_type = 'Sum', time_grains = ['Month', 'Quarter'], additional_dimensions = [(table_field_reference = (field_api_name = 'Region', table_api_name = 'Account'))]));
 ```
 
 **Result**
@@ -1099,7 +1099,7 @@ Read one metric.
 | `metric_name_or_id` | `mid` | path | string | yes | Metric name or ID |
 
 ```sql
-CALL cdp.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+CALL d360.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
 ```
 
 **Result**
@@ -1146,7 +1146,7 @@ Change a metric.
 | `definition` | `definition` | body | [SemanticMetricDefinition](#semanticmetricdefinition) |  | New definition. |
 
 ```sql
-CALL cdp.sdm_metric_update (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md', label => 'Annual Revenue (booked)');
+CALL d360.sdm_metric_update (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md', label => 'Annual Revenue (booked)');
 ```
 
 **Result**
@@ -1169,7 +1169,7 @@ Delete a metric from a model.
 | `metric_name_or_id` | `mid` | path | string | yes | Metric name or ID |
 
 ```sql
-CALL cdp.sdm_metric_delete (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+CALL d360.sdm_metric_delete (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
 ```
 
 **Result**
@@ -1191,7 +1191,7 @@ List the joins defined between data objects in a model, including those imported
 | `model_api_name_or_id` | `id` | path | string | yes | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_relationships_list (model_api_name_or_id => 'AccountRevenue');
+CALL d360.sdm_relationships_list (model_api_name_or_id => 'AccountRevenue');
 ```
 
 **Result**
@@ -1219,7 +1219,7 @@ Define the join between two data objects in a model. A query across objects need
 | `is_enabled` | `isEnabled` | body | boolean |  | Whether the relationship is active. |
 
 ```sql
-CALL cdp.sdm_relationship_create (model_api_name_or_id => 'AccountRevenue', label => 'Account to Opportunity', left_semantic_definition_api_name => 'Account', right_semantic_definition_api_name => 'Opportunity', cardinality => 'OneToMany', join_type => 'Auto', criteria => [(join_operator = 'Equals', left_field_type = 'TableField', left_semantic_field_api_name = 'Account_Id', right_field_type = 'TableField', right_semantic_field_api_name = 'AccountId')]);
+CALL d360.sdm_relationship_create (model_api_name_or_id => 'AccountRevenue', label => 'Account to Opportunity', left_semantic_definition_api_name => 'Account', right_semantic_definition_api_name => 'Opportunity', cardinality => 'OneToMany', join_type => 'Auto', criteria => [(join_operator = 'Equals', left_field_type = 'TableField', left_semantic_field_api_name = 'Account_Id', right_field_type = 'TableField', right_semantic_field_api_name = 'AccountId')]);
 ```
 
 **Result**
@@ -1267,7 +1267,7 @@ Read one relationship, including its join criteria.
 | `relationship_name_or_id` | `rid` | path | string | yes | Relationship name or ID |
 
 ```sql
-CALL cdp.sdm_relationship_get (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+CALL d360.sdm_relationship_get (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
 ```
 
 **Result**
@@ -1311,7 +1311,7 @@ Change a relationship's join criteria, cardinality or join type.
 | `join_type` | `joinType` | body | string |  | `Auto` (the default), `Inner`, `Left`, `Right` or `Full`. |
 
 ```sql
-CALL cdp.sdm_relationship_update (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity', cardinality => 'ManyToOne');
+CALL d360.sdm_relationship_update (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity', cardinality => 'ManyToOne');
 ```
 
 **Result**
@@ -1334,7 +1334,7 @@ Delete a relationship from a model.
 | `relationship_name_or_id` | `rid` | path | string | yes | Relationship name or ID |
 
 ```sql
-CALL cdp.sdm_relationship_delete (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+CALL d360.sdm_relationship_delete (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
 ```
 
 **Result**
@@ -1356,7 +1356,7 @@ List the functions the semantic engine supports in formulas. Use it to check a c
 | `model_api_name_or_id` | `modelApiNameOrId` | query | string |  | Model API name or ID |
 
 ```sql
-CALL cdp.sdm_formula_metadata ();
+CALL d360.sdm_formula_metadata ();
 ```
 
 **Result**
@@ -1376,7 +1376,7 @@ Read the semantic layer permissions. The sources don't say more about what it re
 None.
 
 ```sql
-CALL cdp.sdm_permissions ();
+CALL d360.sdm_permissions ();
 ```
 
 **Result**
@@ -1405,7 +1405,7 @@ Run a query against a semantic model. You name fields, filters and groupings, an
 | `source` | `source` | body | string |  | Identifies the source of the query. In the [metric guide](https://developer.salesforce.com/docs/data/semantic-layer/guide/metric-query-api-in-depth-fields.md) it is for usage reporting. |
 
 ```sql
-CALL cdp.sdm_query (
+CALL d360.sdm_query (
   semantic_model_api_name => 'AccountRevenue',
   structured_semantic_query => (
     fields = [

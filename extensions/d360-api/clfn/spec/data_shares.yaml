@@ -14,10 +14,10 @@ description: |
   Salesforce Help pages linked here could only be read as search excerpts, so check them before relying on a detail.
 
   ```sql
-  CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', data_share_objects => ['Sales_Order__dlm', 'Account_Home__dll']);
-  CALL cdp.data_share_get (name_or_id => 'Sales_Data_Share'); /* repeat until status is Active */
-  CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
-  CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
+  CALL d360.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', data_share_objects => ['Sales_Order__dlm', 'Account_Home__dll']);
+  CALL d360.data_share_get (name_or_id => 'Sales_Data_Share'); /* repeat until status is Active */
+  CALL d360.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
+  CALL d360.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
   ```
 
 functions:
@@ -27,7 +27,7 @@ functions:
     path: /ssot/data-share-target/{nameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share-target~1%7BnameOrId%7D/delete
     description: Deletes a data share target. Since v63.0.
-    example: CALL cdp.data_share_target_delete (name_or_id => 'BigQuery_Analytics_Target');
+    example: CALL d360.data_share_target_delete (name_or_id => 'BigQuery_Analytics_Target');
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or record ID of the data share target. Since v63.0."}
     effect: write
@@ -41,7 +41,7 @@ functions:
     path: /ssot/data-share/{nameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share~1%7BnameOrId%7D/delete
     description: Deletes a data share. Since v63.0.
-    example: CALL cdp.data_share_delete (name_or_id => 'Sales_Data_Share');
+    example: CALL d360.data_share_delete (name_or_id => 'Sales_Data_Share');
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or record ID of the data share. Since v63.0."}
     effect: write
@@ -55,7 +55,7 @@ functions:
     path: /ssot/data-share-target/{nameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share-target~1%7BnameOrId%7D/get
     description: Returns a data share target. Since v63.0.
-    example: CALL cdp.data_share_target_get (name_or_id => 'Snowflake_Prod_Target');
+    example: CALL d360.data_share_target_get (name_or_id => 'Snowflake_Prod_Target');
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or record ID of the data share target. Since v63.0."}
     columns:
@@ -96,7 +96,7 @@ functions:
     path: /ssot/data-share-targets/{targetType}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share-targets~1%7BtargetType%7D/get
     description: Returns all data share targets of a given target type. Since v63.0.
-    example: CALL cdp.data_share_target_list (target_type => 'Snowflake');
+    example: CALL d360.data_share_target_list (target_type => 'Snowflake');
     options:
       - {name: target_type, api_name: targetType, in: path, type: string, required: true, description: "Type of data share target. Possible values are `Aws`, `BigQuery`, `Databricks`, `Datacloud`, `Ibm`, `Other`, `Snowflake`, and `SnowflakeOpenFlow`. Since v63.0."}
     rows: /dataShareTargets
@@ -139,7 +139,7 @@ functions:
     path: /ssot/data-share/{nameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share~1%7BnameOrId%7D/get
     description: Returns a data share with its object names. Since v63.0.
-    example: CALL cdp.data_share_get (name_or_id => 'Sales_Data_Share');
+    example: CALL d360.data_share_get (name_or_id => 'Sales_Data_Share');
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or record ID of the data share. Since v63.0."}
     columns:
@@ -169,7 +169,7 @@ functions:
     path: /ssot/data-shares
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-shares/get
     description: Returns all data shares in the org, ordered by developer name. Since v63.0.
-    example: CALL cdp.data_share_list ();
+    example: CALL d360.data_share_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of data shares to return. Since v63.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v63.0."}
@@ -199,7 +199,7 @@ functions:
     path: /ssot/data-share/{nameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share~1%7BnameOrId%7D/patch
     description: Updates a data share's label, description or objects. Use it to add objects to a share or remove them from it. Since v63.0.
-    example: CALL cdp.data_share_update (name_or_id => 'Sales_Data_Share', label => 'Sales Data Share (Updated)', description => 'Added order-line DMO', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Sales_Order_Line__dlm', 'Contact_Point_Email__cio']);
+    example: CALL d360.data_share_update (name_or_id => 'Sales_Data_Share', label => 'Sales Data Share (Updated)', description => 'Added order-line DMO', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Sales_Order_Line__dlm', 'Contact_Point_Email__cio']);
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or record ID of the data share. Since v63.0."}
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0."}
@@ -238,7 +238,7 @@ functions:
     path: /ssot/data-share
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share/post
     description: Creates a data share and adds the data model object (DMO), data lake object (DLO), and calculated insight object (CIO) to it. Since v63.0.
-    example: CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', description => 'Shares sales DMOs and DLOs with external partners', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Contact_Point_Email__cio']);
+    example: CALL d360.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', description => 'Shares sales DMOs and DLOs with external partners', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Contact_Point_Email__cio']);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0. Sources also spell it `dataspaceName`: quote that name to send that spelling."}
       - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
@@ -278,7 +278,7 @@ functions:
     path: /ssot/data-share-target
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share-target/post
     description: Creates a data share target of a particular target type. Since v63.0.
-    example: CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', dataspace_name => 'default', description => 'BigQuery target for analytics team', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
+    example: CALL d360.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', dataspace_name => 'default', description => 'BigQuery target for analytics team', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. This property is required for data graph resources. Since v59.0. Sources also spell it `dataspaceName`: quote that name to send that spelling."}
       - {name: description, in: body, type: string, description: "Description of the object to create. Since v59.0."}
@@ -356,7 +356,7 @@ functions:
     path: /ssot/data-share/{nameOrId}/actions/link
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share~1%7BnameOrId%7D~1actions~1link/post
     description: Links a data share with a data share target. If the target is already linked, the operation is idempotent and no changes are made. Since v63.0.
-    example: CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['Snowflake_Prod_Target', 'BigQuery_Analytics_Target']);
+    example: CALL d360.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['Snowflake_Prod_Target', 'BigQuery_Analytics_Target']);
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or ID of the data share. Since v63.0."}
       - {name: data_share_target_names, api_name: dataShareTargetNames, in: body, array: 1, type: string, description: "List of developer names for the data share targets to link. Since v63.0."}
@@ -391,7 +391,7 @@ functions:
     path: /ssot/data-share/{nameOrId}/actions/unlink
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Shares/paths/~1ssot~1data-share~1%7BnameOrId%7D~1actions~1unlink/post
     description: Unlinks a data share from a data share target. If the target is already unlinked, the operation is idempotent and no changes are made. Since v63.0.
-    example: CALL cdp.data_share_unlink (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
+    example: CALL d360.data_share_unlink (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
     options:
       - {name: name_or_id, api_name: nameOrId, in: path, type: string, required: true, description: "API name or ID of the data share. Since v63.0."}
       - {name: data_share_target_names, api_name: dataShareTargetNames, in: body, array: 1, type: string, description: "List of developer names for the data share targets to unlink. Since v63.0."}

@@ -4,7 +4,7 @@
  * `fields` picks child fields, while `filters` applies to the parent only. `offset` needs `order_by` on this route.
  */
 
-call cdp.profile_child (
+call d360.profile_child (
     data_model_name => 'ssot__Individual__dlm',
     id => '100005',
     child_data_model_name => 'ContactPointEmail__dlm',

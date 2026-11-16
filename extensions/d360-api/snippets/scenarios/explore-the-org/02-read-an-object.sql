@@ -4,4 +4,4 @@
  * Read the fields, keys and relationships of one object.
  */
 
-call cdp.metadata (entity_name => 'ssot__Individual__dlm');
+call d360.metadata (entity_name => 'ssot__Individual__dlm');

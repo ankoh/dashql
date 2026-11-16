@@ -4,6 +4,6 @@
  * This is not the sitemap of the Web Content connector.
  */
 
-call cdp.connection_get (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_get (connection_id => '9cgaj0000012O5hAAE');
 
-call cdp.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');

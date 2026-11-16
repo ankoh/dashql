@@ -4,7 +4,7 @@
  * The attribute names in `credentials` and `parameters` differ per connector, `connector_metadata` lists them. The private key is passed as its content, not a path. Read `status` of the connection afterwards, it is `Processing` while the handshake runs, then `Active` or `Error`.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake prod',
     name => 'snowflake_prod',
@@ -22,4 +22,4 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.connection_list (connector_type => 'SNOWFLAKE', label => 'Snowflake prod');
+call d360.connection_list (connector_type => 'SNOWFLAKE', label => 'Snowflake prod');

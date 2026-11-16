@@ -2,7 +2,7 @@
 
 # Connections
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A connection is the stored link between Data 360 and one outside system, such as Snowflake, S3, a CRM org or a website. A connector is the type, and a connection is one configured instance of it. Data streams read through a connection, so it comes first in any pipeline.
 
@@ -17,13 +17,13 @@ What matters most:
 - `connection_databases_list`, `connection_db_schemas_list`, `connection_preview_get` and the test calls work only for JDBC-shaped connectors, according to Salesforce's own [troubleshooting notes](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/troubleshooting.md).
 
 ```sql
-CALL cdp.connector_list (filters => 'name=SNOWFLAKE');
+CALL d360.connector_list (filters => 'name=SNOWFLAKE');
 
-CALL cdp.connector_metadata (connector_type => 'SNOWFLAKE');
+CALL d360.connector_metadata (connector_type => 'SNOWFLAKE');
 
-CALL cdp.connection_list (connector_type => 'SNOWFLAKE');
+CALL d360.connection_list (connector_type => 'SNOWFLAKE');
 
-CALL cdp.connection_objects_list (
+CALL d360.connection_objects_list (
   connection_id => '9cgaj0000012O5hAAE',
   advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1')
 );
@@ -44,7 +44,7 @@ Delete a Data 360 connector. Since v60.0.
 | `connection_id` | `connectionId` | path | string | yes | Record id of the connection, from `connection_list`. |
 
 ```sql
-CALL cdp.connection_delete (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_delete (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -74,7 +74,7 @@ Get a paginated list of Data 360 connections that exist in an org by connector t
 | `organization_id` | `organizationId` | query | string |  | Organization ID to filter on. Since v62.0. |
 
 ```sql
-CALL cdp.connection_list (connector_type => 'SNOWFLAKE', order_by => 'label', limit => 50);
+CALL d360.connection_list (connector_type => 'SNOWFLAKE', order_by => 'label', limit => 50);
 ```
 
 **Result**
@@ -135,7 +135,7 @@ Get information about a Data 360 connection. Different connector types return di
 | `connection_id` | `connectionId` | path | string | yes | Record id of the connection, from `connection_list`. |
 
 ```sql
-CALL cdp.connection_get (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_get (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -204,7 +204,7 @@ Get the endpoints of an Ingestion API connector as a binary stream. The stream c
 | `connection_id` | `connectionId` | path | string | yes | Record id of an `IngestApi` connection. |
 
 ```sql
-CALL cdp.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_endpoint_list (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -226,7 +226,7 @@ Get the schema model for a connection. Since v60.0.
 | `connection_id` | `connectionId` | path | string | yes | Record id of the connection. |
 
 ```sql
-CALL cdp.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -257,7 +257,7 @@ Get the sitemap for a Streaming App connection. Since v60.0.
 | `connection_id` | `connectionId` | path | string | yes | Record id of a `StreamingApp` connection. |
 
 ```sql
-CALL cdp.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_sitemap_get (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -286,7 +286,7 @@ Get a paginated list of Data 360 connectors, including high-level information an
 | `order_by` | `orderBy` | query | string |  | Sort order for the results. You can order results by the field name `label` or `name`; by default, results are ordered by name. You can also list results in ascending (`ASC`) or descending (`DESC`) order; by default, results are listed in ascending order. For example, specify `label` or `label ASC` to list results by the `label` field and in ascending order. Omit both a field name and sort order to list results by connector name and in ascending order by default. Since v62.0. |
 
 ```sql
-CALL cdp.connector_list (field_group => 'BIG', order_by => 'label ASC');
+CALL d360.connector_list (field_group => 'BIG', order_by => 'label ASC');
 ```
 
 **Result**
@@ -321,7 +321,7 @@ Get metadata about a Data 360 connector. Since v59.0.
 | `connector_type` | `connectorType` | path | string | yes | Type of the connector for which to return metadata. For example, possible connector types are `AccountEngagement`, `AwsRdsPostgres`, `Databricks`, `IngestApi`, `SalesforceDotCom`, `SalesforceMarketingCloud`, `StreamingApp`, and so forth. Since v62.0. |
 
 ```sql
-CALL cdp.connector_metadata (connector_type => 'AwsRdsSqlServer');
+CALL d360.connector_metadata (connector_type => 'AwsRdsSqlServer');
 ```
 
 **Result**
@@ -378,7 +378,7 @@ Update a Data 360 connector, replacing only the data passed in the request. Sinc
 | `create_profile_bu_mappings` | `createProfileBuMappings` | body | string |  | Not in the spec schema: from the spec's examples. |
 
 ```sql
-CALL cdp.connection_update (connection_id => '1WMX40000000IZdOAM', connector_type => 'SalesforceMarketingCloud', add_ingestion_business_units => ['524002279'], remove_ingestion_business_units => ['524002280'], add_business_units_to_dataspaces => [(dataspace_name = 'default', mid = '524002279')]);
+CALL d360.connection_update (connection_id => '1WMX40000000IZdOAM', connector_type => 'SalesforceMarketingCloud', add_ingestion_business_units => ['524002279'], remove_ingestion_business_units => ['524002280'], add_business_units_to_dataspaces => [(dataspace_name = 'default', mid = '524002279')]);
 ```
 
 **Result**
@@ -471,7 +471,7 @@ Create a Data 360 connector. Since v64.0.
 | `values` | `values` | body | array |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.connection_create (
+CALL d360.connection_create (
   connector_type => 'SNOWFLAKE',
   label => 'Snowflake prod',
   name => 'snowflake_prod',
@@ -574,7 +574,7 @@ Run a command on an existing connection. Since v64.0.
 | `command_attributes` | `commandAttributes` | body | map to object |  | Map of key-value pairs for command attributes in the form `Map<String, String>`. Since v64.0. |
 
 ```sql
-CALL cdp.existing_connection_action_run (command => 'GET_SCHEMAS', connection_id => '9cgaj0000012O5hAAE');
+CALL d360.existing_connection_action_run (command => 'GET_SCHEMAS', connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -603,7 +603,7 @@ Test an existing connection and update its status based on the test result. Sinc
 | `connection_id` | `connectionId` | path | string | yes | ID of the connection. Since v62.0. |
 
 ```sql
-CALL cdp.existing_connection_action_test (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.existing_connection_action_test (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -631,7 +631,7 @@ Get a list of database schema names for a connection. Since v63.0.
 | `advanced_attributes` | `advancedAttributes` | body | map to string |  | Map of strings, written `(database = 'X')`. Keys vary by connector, see the notes. Use `()` when no keys are needed. Since v63.0. |
 
 ```sql
-CALL cdp.connection_db_schemas_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA'));
+CALL d360.connection_db_schemas_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA'));
 ```
 
 **Result**
@@ -666,7 +666,7 @@ Get a list of databases for a connection. This `POST` endpoint doesn't accept a 
 | `connection_id` | `connectionId` | path | string | yes | ID of the connection. Since v62.0. |
 
 ```sql
-CALL cdp.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.connection_databases_list (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -694,7 +694,7 @@ Get a list of source objects for a connection. Since v62.0.
 | `filters` | `filters` | body | [ResourceFiltersInput](#resourcefiltersinputrepresentation) |  | Criteria that filter and retrieve objects based on a subset of fields and values. Since v62.0. |
 
 ```sql
-CALL cdp.connection_objects_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
+CALL d360.connection_objects_list (connection_id => '9cgaj0000012O5hAAE', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
 ```
 
 **Result**
@@ -725,7 +725,7 @@ Get a list of fields for a connection object. Since v62.0.
 | `filters` | `filters` | body | [ResourceFiltersInput](#resourcefiltersinputrepresentation) |  | Criteria that filter and retrieve fields based on a subset of fields and values. Since v63.0. |
 
 ```sql
-CALL cdp.connection_object_fields_describe (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
+CALL d360.connection_object_fields_describe (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'));
 ```
 
 **Result**
@@ -760,7 +760,7 @@ Get a preview of the data in an object and pass it through parser settings. Sinc
 | `limit` | `limit` | body | integer |  | Maximum number of records to return in the preview. The default is `100`. Since v62.0. |
 
 ```sql
-CALL cdp.connection_preview_get (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'), fields => ['C_CUSTKEY', 'C_NAME'], limit => 10);
+CALL d360.connection_preview_get (connection_id => '9cgaj0000012O5hAAE', resource_name => 'CUSTOMER', advanced_attributes => (database = 'SNOWFLAKE_SAMPLE_DATA', schema = 'TPCH_SF1'), fields => ['C_CUSTKEY', 'C_NAME'], limit => 10);
 ```
 
 **Result**
@@ -787,7 +787,7 @@ Test a schema for an existing connection. Since v62.0.
 | `connection_id` | `connectionId` | path | string | yes | ID of the connection. Since v62.0. |
 
 ```sql
-CALL cdp.existing_connection_schema_action_test (connection_id => '9cgaj0000012O5hAAE');
+CALL d360.existing_connection_schema_action_test (connection_id => '9cgaj0000012O5hAAE');
 ```
 
 **Result**
@@ -815,7 +815,7 @@ Run a command on a connection without creating the connection. Since v64.0.
 | `method` | `method` | body | enum(Egress, Ingress) | yes | Type of the data connection. Since v64.0. |
 
 ```sql
-CALL cdp.connection_action_run (command => 'GET_SCHEMAS', connector_type => 'SNOWFLAKE', method => 'Ingress');
+CALL d360.connection_action_run (command => 'GET_SCHEMAS', connector_type => 'SNOWFLAKE', method => 'Ingress');
 ```
 
 **Result**
@@ -845,7 +845,7 @@ Test a connection without creating it. Since v62.0.
 | `parameters` | `parameters` | body | array of [DataConnectionParameterInput](#dataconnectionparameterinputrepresentation) |  | List of key-value pairs that provide parameters for the data connection. Since v62.0. |
 
 ```sql
-CALL cdp.connection_test (
+CALL d360.connection_test (
   connector_type => 'AwsRdsSqlServer',
   method => 'Ingress',
   credentials => [
@@ -905,7 +905,7 @@ Update a Data 360 connector, completely replacing all existing data for the conn
 | `name` | `name` | body | string |  | Developer name of the connector. Since v60.0. |
 
 ```sql
-CALL cdp.connection_replace (
+CALL d360.connection_replace (
   connection_id => '9cgaj0000012O5hAAE',
   connector_type => 'SNOWFLAKE',
   label => 'Snowflake prod',
@@ -976,7 +976,7 @@ Create or update a schema model for a connection. Since v60.0.
 | `schemas` | `schemas` | body | array of [ConnectionSchemaInput](#connectionschemainputrepresentation) | yes | List of connection schemas. Use the connection schema input object that corresponds to the schema type. For example, use the Connectors Framework Connection Schema Input for the `DataConnectionEvent` schema type. Since v60.0. |
 
 ```sql
-CALL cdp.connection_schema_upsert (
+CALL d360.connection_schema_upsert (
   connection_id => '9cgaj0000012O5hAAE',
   schemas => [(
     name = 'Orders',
@@ -1029,7 +1029,7 @@ Create or update the sitemap for a Streaming App connection. Since v60.0.
 | `sitemap` | `sitemap` | body | string | yes | JavaScript text of the [Web SDK sitemap](https://developer.salesforce.com/docs/data/salesforce-interactions-sdk/guide/c360a-api-sitemap.md), best written as `$$...$$`. Since v60.0. |
 
 ```sql
-CALL cdp.connection_sitemap_upsert (
+CALL d360.connection_sitemap_upsert (
   connection_id => '9cgaj0000012O5hAAE',
   sitemap => $$
     SalesforceInteractions.init().then(() => {

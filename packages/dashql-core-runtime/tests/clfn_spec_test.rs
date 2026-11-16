@@ -44,7 +44,7 @@ fn describe(catalog: &Catalog, text: &str) -> Vec<Value> {
 #[test]
 fn loads_the_generated_spec_of_an_extension() {
     let spec = spec();
-    assert_eq!(spec.namespace, "cdp");
+    assert_eq!(spec.namespace, "d360");
     assert!(spec.functions.len() > 500);
     let paths = ["/bundle/extensions/d360-api/clfn/spec/spec.json", "/bundle/other/x.json"];
     assert_eq!(find_client_function_spec(paths, "d360-api").unwrap(), paths[0]);
@@ -108,7 +108,7 @@ fn connection(connector: ConnectorType) -> ConnectionState {
 
 /// The calls in the namespace of the Data 360 client functions
 fn calls(state: &ConnectionState) -> usize {
-    describe(&state.catalog().borrow(), "call cdp.segment_list ();").len()
+    describe(&state.catalog().borrow(), "call d360.segment_list ();").len()
 }
 
 /// Register the client functions of a connection with the spec
@@ -126,10 +126,10 @@ fn come_with_a_salesforce_connection_before_any_login() {
     assert_eq!(calls(&state), 0);
     assert_eq!(sync(&mut registrations, &state), [ClientFunctionRegistryEffect::Updated { connection_id: "c".into() }]);
     assert_eq!(calls(&state), 1);
-    assert_eq!(registrations.spec(&state).unwrap().namespace, "cdp");
+    assert_eq!(registrations.spec(&state).unwrap().namespace, "d360");
 
     let catalog = state.catalog().borrow();
-    let text = "call cdp.segment_pub";
+    let text = "call d360.segment_pub";
     let scanned = Arc::new(scan(text, 0, catalog.allocate_entry_id()));
     let parsed = Arc::new(parse(scanned.clone()));
     let analyzed = Arc::new(analyze(parsed.clone(), &catalog).unwrap());
@@ -229,9 +229,9 @@ fn tokens() -> SalesforceTokens {
     }
 }
 
-fn cdp(name: &str, options: Value, explain: bool) -> ClientFunctionCallDescription {
+fn d360(name: &str, options: Value, explain: bool) -> ClientFunctionCallDescription {
     ClientFunctionCallDescription {
-        namespace: "cdp".into(),
+        namespace: "d360".into(),
         function: name.into(),
         effect: "read".into(),
         explain,
@@ -267,7 +267,7 @@ fn execute(description: &ClientFunctionCallDescription, tokens: Option<&Salesfor
 #[test]
 fn sends_the_request_of_the_spec_to_its_host_with_its_token() {
     let tokens = tokens();
-    let (result, sent) = execute(&cdp("segment_list", json!({ "batch_size": 10 }), false), Some(&tokens), json!({ "segments": [{ "apiName": "Vip" }] })).unwrap();
+    let (result, sent) = execute(&d360("segment_list", json!({ "batch_size": 10 }), false), Some(&tokens), json!({ "segments": [{ "apiName": "Vip" }] })).unwrap();
     assert_eq!(sent[0].url, "https://org.my.salesforce.com/services/data/v68.0/ssot/segments?batchSize=10");
     assert_eq!(sent[0].header("Authorization"), Some("Bearer core-token"));
     assert_eq!(result.cell(0, "api_name").and_then(Cell::as_str), Some("Vip"));
@@ -277,7 +277,7 @@ fn sends_the_request_of_the_spec_to_its_host_with_its_token() {
 
 #[test]
 fn prints_a_request_without_a_login_and_sends_nothing() {
-    let (result, sent) = execute(&cdp("segment_delete", json!({ "segment_api_name": "Vip" }), true), None, json!({})).unwrap();
+    let (result, sent) = execute(&d360("segment_delete", json!({ "segment_api_name": "Vip" }), true), None, json!({})).unwrap();
     assert!(sent.is_empty());
     assert_eq!(result.cell(0, "method").and_then(Cell::as_str), Some("DELETE"));
     assert_eq!(result.cell(0, "path").and_then(Cell::as_str), Some("/services/data/v68.0/ssot/segments/Vip"));
@@ -285,14 +285,14 @@ fn prints_a_request_without_a_login_and_sends_nothing() {
 
 #[test]
 fn fails_without_a_login() {
-    let error = execute(&cdp("segment_list", json!({}), false), None, json!({})).unwrap_err();
+    let error = execute(&d360("segment_list", json!({}), false), None, json!({})).unwrap_err();
     assert!(error.message.contains("not set up"), "{error}");
 }
 
 #[test]
 fn sends_a_write_such_as_creating_a_connection() {
     let tokens = tokens();
-    let mut create = cdp("connection_create", json!({ "connector_type": "SNOWFLAKE", "label": "Snowflake prod", "name": "snowflake_prod", "method": "Ingress" }), false);
+    let mut create = d360("connection_create", json!({ "connector_type": "SNOWFLAKE", "label": "Snowflake prod", "name": "snowflake_prod", "method": "Ingress" }), false);
     create.effect = "write".into();
     let (result, sent) = execute(&create, Some(&tokens), json!({ "id": "0Xx000000000001", "name": "snowflake_prod" })).unwrap();
     assert_eq!((sent[0].method.as_str(), sent[0].url.as_str()), ("POST", "https://org.my.salesforce.com/services/data/v68.0/ssot/connections"));
@@ -303,9 +303,9 @@ fn sends_a_write_such_as_creating_a_connection() {
 
 #[test]
 fn fails_on_a_connector_without_the_namespace() {
-    let error = start_connection_client_function(ConnectorType::Hyper, spec(), &cdp("segment_list", json!({}), false), NOW).unwrap_err();
+    let error = start_connection_client_function(ConnectorType::Hyper, spec(), &d360("segment_list", json!({}), false), NOW).unwrap_err();
     assert!(error.message.contains("no client functions"), "{error}");
-    let other = ClientFunctionCallDescription { namespace: "other".into(), ..cdp("x", json!({}), false) };
+    let other = ClientFunctionCallDescription { namespace: "other".into(), ..d360("x", json!({}), false) };
     let error = start_connection_client_function(ConnectorType::SalesforceDataCloud, spec(), &other, NOW).unwrap_err();
     assert!(error.message.contains("no client functions in other"), "{error}");
 }

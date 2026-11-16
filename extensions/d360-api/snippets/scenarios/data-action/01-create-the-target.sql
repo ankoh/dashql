@@ -4,7 +4,7 @@
  * Create the webhook that receives the action.
  */
 
-call cdp.dataaction_target_create (
+call d360.dataaction_target_create (
     type => 'WebHook',
     label => 'Contact webhook',
     api_name => 'contact_webhook',

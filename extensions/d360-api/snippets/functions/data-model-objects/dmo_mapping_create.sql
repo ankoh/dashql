@@ -4,7 +4,7 @@
  * One call covers one source and target pair. The `label` becomes the developer name of the mapping. The mapping is `CREATING` at first: read it until its status is `ACTIVE`.
  */
 
-call cdp.dmo_mapping_create (
+call d360.dmo_mapping_create (
     dataspace => 'default',
     label => 'Orders_snow_SalesOrders',
     source_entity_developer_name => 'Orders_snow__dll',
@@ -17,7 +17,7 @@ call cdp.dmo_mapping_create (
     ]
 );
 
-call cdp.dmo_mapping_get (
+call d360.dmo_mapping_get (
     object_source_target_map_developer_name => 'Orders_snow_SalesOrders',
     dataspace => 'default'
 );

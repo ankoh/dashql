@@ -4,7 +4,7 @@
  * The result has one row per model. Page with `offset` and `limit`, or follow the next page URL the response carries.
  */
 
-call cdp.sdm_list (
+call d360.sdm_list (
     dataspace => 'default',
     category => 'Sales',
     search_term => 'Revenue',

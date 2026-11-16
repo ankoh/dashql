@@ -4,7 +4,7 @@
  * Share two objects of the data space.
  */
 
-call cdp.data_share_create (
+call d360.data_share_create (
     name => 'Sales_Data_Share',
     label => 'Sales Data Share',
     dataspace_name => 'default',

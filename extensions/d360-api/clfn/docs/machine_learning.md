@@ -2,7 +2,7 @@
 
 # Machine Learning
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 This family trains predictive models, serves them, and manages retrievers for AI search. Everything sits under `/ssot/machine-learning`. Functions with evidence `S` come from Salesforce's [MCP server](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp) and aren't in the spec.
 
@@ -18,11 +18,11 @@ The gotchas that matter most:
 - Keying differs: `model_setup_id_or_name` takes either, but a setup version takes only its ID.
 
 ```sql
-CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', status => 'Training');
-CALL cdp.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
-CALL cdp.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
-CALL cdp.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
-CALL cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', status => 'Training');
+CALL d360.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
+CALL d360.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
+CALL d360.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
+CALL d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
 ```
 
 **Functions:** [`ml_configured_model_delete`](#ml_configured_model_delete), [`ml_model_artifact_delete`](#ml_model_artifact_delete), [`prediction_job_def_delete`](#prediction_job_def_delete), [`retriever_delete`](#retriever_delete), [`retriever_config_delete`](#retriever_config_delete), [`ml_configured_model_list`](#ml_configured_model_list), [`ml_configured_model_get`](#ml_configured_model_get), [`ml_job_list`](#ml_job_list), [`ml_job_get`](#ml_job_get), [`ml_job_task_list`](#ml_job_task_list), [`ml_job_task_get`](#ml_job_task_get), [`ml_model_artifact_list`](#ml_model_artifact_list), [`ml_model_artifact_get`](#ml_model_artifact_get), [`ml_setup_version_list`](#ml_setup_version_list), [`ml_setup_version_get`](#ml_setup_version_get), [`ml_setup_version_partition_list`](#ml_setup_version_partition_list), [`ml_setup_version_partition_get`](#ml_setup_version_partition_get), [`prediction_job_def_list`](#prediction_job_def_list), [`prediction_job_def_get`](#prediction_job_def_get), [`retriever_list`](#retriever_list), [`retriever_get`](#retriever_get), [`retriever_config_list`](#retriever_config_list), [`retriever_config_get`](#retriever_config_get), [`ml_alert_update`](#ml_alert_update), [`ml_configured_model_update`](#ml_configured_model_update), [`ml_model_artifact_update`](#ml_model_artifact_update), [`ml_setup_version_update`](#ml_setup_version_update), [`prediction_job_def_update`](#prediction_job_def_update), [`retriever_update`](#retriever_update), [`retriever_config_update`](#retriever_config_update), [`ml_alerts_query`](#ml_alerts_query), [`ml_setup_version_create`](#ml_setup_version_create), [`ml_predict`](#ml_predict), [`prediction_job_def_create`](#prediction_job_def_create), [`retriever_create`](#retriever_create), [`retriever_config_create`](#retriever_config_create), [`retriever_review`](#retriever_review), [`prediction_job_run`](#prediction_job_run), [`ml_setup_version_inspector_metrics_get`](#ml_setup_version_inspector_metrics_get), [`ml_configured_model_create`](#ml_configured_model_create), [`ml_configured_model_history_list`](#ml_configured_model_history_list), [`ml_configured_model_history_get`](#ml_configured_model_history_get), [`ml_query_setup_fields`](#ml_query_setup_fields), [`ml_query_data_profile`](#ml_query_data_profile), [`ml_query_outcome`](#ml_query_outcome), [`ml_query_row_count`](#ml_query_row_count), [`ml_model_setup_list`](#ml_model_setup_list), [`ml_model_setup_get`](#ml_model_setup_get), [`ml_model_setup_create`](#ml_model_setup_create), [`ml_model_setup_update`](#ml_model_setup_update), [`ml_model_setup_delete`](#ml_model_setup_delete)
@@ -40,7 +40,7 @@ Delete a configured model. Since v61.0.
 | `configured_model_id_or_name` | `configuredModelIdOrName` | path | string | yes | Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`. |
 
 ```sql
-CALL cdp.ml_configured_model_delete (configured_model_id_or_name => '...');
+CALL d360.ml_configured_model_delete (configured_model_id_or_name => '...');
 ```
 
 **Result**
@@ -60,7 +60,7 @@ Delete the model artifact. Since v61.0.
 | `model_artifact_id_or_name` | `modelArtifactIdOrName` | path | string | yes | Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`. |
 
 ```sql
-CALL cdp.ml_model_artifact_delete (model_artifact_id_or_name => '...');
+CALL d360.ml_model_artifact_delete (model_artifact_id_or_name => '...');
 ```
 
 **Result**
@@ -82,7 +82,7 @@ Delete a specific prediction job definition. Since v59.0.
 | `prediction_job_def_id_or_name` | `predictionJobDefIdOrName` | path | string | yes | Prediction job definition ID or API name. |
 
 ```sql
-CALL cdp.prediction_job_def_delete (prediction_job_def_id_or_name => '...');
+CALL d360.prediction_job_def_delete (prediction_job_def_id_or_name => '...');
 ```
 
 **Result**
@@ -104,7 +104,7 @@ Deletes a retriever and all its configuration versions. The retriever must not b
 | `retriever_id_or_name` | `retrieverIdOrName` | path | string | yes | Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`. |
 
 ```sql
-CALL cdp.retriever_delete (retriever_id_or_name => '...');
+CALL d360.retriever_delete (retriever_id_or_name => '...');
 ```
 
 **Result**
@@ -127,7 +127,7 @@ Deletes one configuration version of a retriever. The spec marks this endpoint a
 | `retriever_id_or_name` | `retrieverIdOrName` | path | string | yes | Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`. |
 
 ```sql
-CALL cdp.retriever_config_delete (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
+CALL d360.retriever_config_delete (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
 ```
 
 **Result**
@@ -156,7 +156,7 @@ Get the set of configured models and their properties. Since v61.0.
 | `source_type` | `sourceType` | query | enum(EdcNoCode, ModelConnector, OutOfTheBox) |  | The model's source. - `OutOfTheBox` — a model managed by Salesforce. - `ModelConnector` — an external model exposed to Salesforce through a connector. - `EdcNoCode` — a model created using a no-code or low-code model builder. Since v61.0. |
 
 ```sql
-CALL cdp.ml_configured_model_list (asset_id_or_name => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact');
+CALL d360.ml_configured_model_list (asset_id_or_name => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact');
 ```
 
 **Result**
@@ -217,7 +217,7 @@ Get the configured model. If using the model's name, use `<namespace>__<devname>
 | `filter_group` | `filterGroup` | query | string |  | Group on which to filter response results. Valid values are `Big`, `Medium`, and `Small`. - `Big` provides comprehensive results by returning properties whose filter group is `Big`, `Medium`, or `Small`. - `Medium` provides moderate results by returning properties whose filter group is `Medium` or `Small`. - `Small` provides essential results by returning only properties whose filter group is `Small`. The default is `Big`. Since v61.0. |
 
 ```sql
-CALL cdp.ml_configured_model_get (configured_model_id_or_name => 'Attrition_Predictor_Catboost');
+CALL d360.ml_configured_model_get (configured_model_id_or_name => 'Attrition_Predictor_Catboost');
 ```
 
 **Result**
@@ -278,7 +278,7 @@ Get a list of predict jobs. Since v59.0.
 | `type` | `type` | query | enum(Prediction, Training) |  | Type of job. Since v59.0. |
 
 ```sql
-CALL cdp.ml_job_list (type => 'Prediction', limit => 25);
+CALL d360.ml_job_list (type => 'Prediction', limit => 25);
 ```
 
 **Result**
@@ -325,7 +325,7 @@ Get a specific predict job. Since v59.0.
 | `job_id` | `jobId` | path | string | yes | ID of the predict job. Since v59.0. |
 
 ```sql
-CALL cdp.ml_job_get (job_id => '...');
+CALL d360.ml_job_get (job_id => '...');
 ```
 
 **Result**
@@ -370,7 +370,7 @@ Get a list of tasks associated with a specific predict job. Since v59.0.
 | `job_id` | `jobId` | path | string | yes | ID of the predict job. Since v59.0. |
 
 ```sql
-CALL cdp.ml_job_task_list (job_id => '...');
+CALL d360.ml_job_task_list (job_id => '...');
 ```
 
 **Result**
@@ -411,7 +411,7 @@ Get a task associated with a specific predict job. Since v59.0.
 | `task_id` | `taskId` | path | string | yes | ID of the task. Since v59.0. |
 
 ```sql
-CALL cdp.ml_job_task_get (job_id => '...', task_id => '...');
+CALL d360.ml_job_task_get (job_id => '...', task_id => '...');
 ```
 
 **Result**
@@ -454,7 +454,7 @@ Get model artifacts. Since v61.0.
 | `source_type` | `sourceType` | query | enum(EdcNoCode, ModelConnector, OutOfTheBox) |  | The model's source. - `OutOfTheBox` — a model managed by Salesforce. - `ModelConnector` — an external model exposed to Salesforce through a connector. - `EdcNoCode` — a model created using a no-code or low-code model builder. Since v61.0. |
 
 ```sql
-CALL cdp.ml_model_artifact_list ();
+CALL d360.ml_model_artifact_list ();
 ```
 
 **Result**
@@ -509,7 +509,7 @@ Get the model artifact. Since v61.0.
 | `model_artifact_id_or_name` | `modelArtifactIdOrName` | path | string | yes | Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`. |
 
 ```sql
-CALL cdp.ml_model_artifact_get (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla');
+CALL d360.ml_model_artifact_get (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla');
 ```
 
 **Result**
@@ -565,7 +565,7 @@ Retrieve a list of model setup versions. Since v59.0.
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v59.0. |
 
 ```sql
-CALL cdp.ml_setup_version_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', limit => 25);
+CALL d360.ml_setup_version_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', limit => 25);
 ```
 
 **Result**
@@ -620,7 +620,7 @@ Retrieve a specific model setup version. Since v59.0.
 | `model_setup_version_id` | `modelSetupVersionId` | path | string | yes | Setup version ID. A name is not accepted. Get it from `ml_setup_version_list` or the `ml_setup_version_create` result. |
 
 ```sql
-CALL cdp.ml_setup_version_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
+CALL d360.ml_setup_version_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
 ```
 
 **Result**
@@ -673,7 +673,7 @@ Retrieve all partitions of a specific model setup version. Since v59.0.
 | `model_setup_id_or_name` | `modelSetupIdOrName` | path | string | yes | In the path, but missing from the spec's parameters. |
 
 ```sql
-CALL cdp.ml_setup_version_partition_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
+CALL d360.ml_setup_version_partition_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
 ```
 
 **Result**
@@ -711,7 +711,7 @@ Retrieve a partition of a specific model setup version. Since v59.0.
 | `model_setup_version_id` | `modelSetupVersionId` | path | string | yes | Setup version ID. A name is not accepted. Get it from `ml_setup_version_list` or the `ml_setup_version_create` result. |
 
 ```sql
-CALL cdp.ml_setup_version_partition_get (model_setup_id_or_name => '...', model_setup_partition_id => '...', model_setup_version_id => '...');
+CALL d360.ml_setup_version_partition_get (model_setup_id_or_name => '...', model_setup_partition_id => '...', model_setup_version_id => '...');
 ```
 
 **Result**
@@ -745,7 +745,7 @@ Get a list of existing prediction job definitions. Since v59.0.
 | `model_id` | `modelId` | query | string |  | ID of the machine learning model. Since v59.0. |
 
 ```sql
-CALL cdp.prediction_job_def_list ();
+CALL d360.prediction_job_def_list ();
 ```
 
 **Result**
@@ -793,7 +793,7 @@ Get a specific prediction job definition. Since v59.0.
 | `prediction_job_def_id_or_name` | `predictionJobDefIdOrName` | path | string | yes | Prediction job definition ID or API name. |
 
 ```sql
-CALL cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+CALL d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
 ```
 
 **Result**
@@ -848,7 +848,7 @@ Lists retrievers one page at a time, out-of-the-box retrievers first. Use it to 
 | `source_dmo` | `sourceDmo` | query | string |  | Filter by source data model object (DMO) ID or API name. Since v61.0. |
 
 ```sql
-CALL cdp.retriever_list (search => 'Bathroom', detail_level => 'Basic', limit => 50);
+CALL d360.retriever_list (search => 'Bathroom', detail_level => 'Basic', limit => 50);
 ```
 
 **Result**
@@ -899,7 +899,7 @@ Get a retriever with its latest and active configurations. Since v61.0.
 | `retriever_id_or_name` | `retrieverIdOrName` | path | string | yes | Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`. |
 
 ```sql
-CALL cdp.retriever_get (retriever_id_or_name => 'DIY_Bathroom_Retriever_1Cx_9H02ce17169');
+CALL d360.retriever_get (retriever_id_or_name => 'DIY_Bathroom_Retriever_1Cx_9H02ce17169');
 ```
 
 **Result**
@@ -950,7 +950,7 @@ Lists all configuration versions of a retriever. The spec marks this endpoint as
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v61.0. |
 
 ```sql
-CALL cdp.retriever_config_list (retriever_id_or_name => '...');
+CALL d360.retriever_config_list (retriever_id_or_name => '...');
 ```
 
 **Result**
@@ -995,7 +995,7 @@ Gets one configuration version, with query type, output fields, filters and cita
 | `retriever_id_or_name` | `retrieverIdOrName` | path | string | yes | Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`. |
 
 ```sql
-CALL cdp.retriever_config_get (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
+CALL d360.retriever_config_get (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
 ```
 
 **Result**
@@ -1050,7 +1050,7 @@ Partially update an existing data alert. Since v61.0.
 | `id` | `id` | body | string |  | ID of the alert. Since v61.0. |
 
 ```sql
-CALL cdp.ml_alert_update (alert_id => '...', accepted => true);
+CALL d360.ml_alert_update (alert_id => '...', accepted => true);
 ```
 
 **Result**
@@ -1098,7 +1098,7 @@ Update a configured model. If using the model's name, use `<namespace>__<devname
 | `visibility` | `visibility` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
+CALL d360.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
 ```
 
 **Result**
@@ -1160,7 +1160,7 @@ Update the model artifact. Since v61.0.
 | `output_fields` | `outputFields` | body | array of [ml_model_artifact_update_outputFields](#ml_model_artifact_update_outputfields) |  | Not in the spec schema: from the MCP server's payload example. |
 
 ```sql
-CALL cdp.ml_model_artifact_update (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla', status => 'Enabled');
+CALL d360.ml_model_artifact_update (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla', status => 'Enabled');
 ```
 
 **Result**
@@ -1216,7 +1216,7 @@ Partially update an existing model setup version. Since v59.0.
 | `status` | `status` | body | string |  | Not in the spec schema: send `Training` to start training (MCP server). |
 
 ```sql
-CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode');
+CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode');
 ```
 
 **Result**
@@ -1258,7 +1258,7 @@ One row. Schema `CdpMlSetupBaseRepresentation`.
 **Notes:** This is the call that starts training, but the spec's base schema omits the attributes that matter. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/machinelearning/setup/ModelSetupTools.java) sends `type = 'EdcNoCode'` plus `status` and `description`, the only mutable fields:
 
 ```sql
-CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode', status => 'Training');
+CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode', status => 'Training');
 ```
 
 To change the input, outcomes, fields or algorithm, create a new version with `source_setup_version_number` set to the prior version. An [MCP test](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/machinelearning/setup/ModelSetupToolsTest.java) also sends `status = 'Canceled'`, which is the only evidence for that value.
@@ -1289,7 +1289,7 @@ Update a specific prediction job definition. Since v59.0.
 | `binary_classification_settings` | `binaryClassificationSettings` | body | [MlBinaryClassificationJobDefSettingsInput](#mlbinaryclassificationjobdefsettingsinputrepresentation) |  | - |
 
 ```sql
-CALL cdp.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
+CALL d360.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
 ```
 
 **Result**
@@ -1336,7 +1336,7 @@ Changes the label or description of a retriever. To change how it retrieves, cre
 | `label` | `label` | body | string |  | Label of the retriever. Since v67.0. |
 
 ```sql
-CALL cdp.retriever_update (retriever_id_or_name => '...', label => 'Enriched Search Index UDMO Retriever', description => 'A NoCode retriever from a search index with enriched index configured. The search index source DMO is unstructured for a document file.');
+CALL d360.retriever_update (retriever_id_or_name => '...', label => 'Enriched Search Index UDMO Retriever', description => 'A NoCode retriever from a search index with enriched index configured. The search index source DMO is unstructured for a document file.');
 ```
 
 **Result**
@@ -1385,7 +1385,7 @@ Activates or deactivates a configuration version. `is_active => true` also deact
 | `is_active` | `isActive` | body | boolean | yes | Indicates whether to activate the configuration (`true`) or not (`false`). At most one configuration can be active per retriever. Since v61.0. |
 
 ```sql
-CALL cdp.retriever_config_update (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...', is_active => true);
+CALL d360.retriever_config_update (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...', is_active => true);
 ```
 
 **Result**
@@ -1439,7 +1439,7 @@ Reads data alerts for a model artifact: training-time findings such as `ObviousP
 | `source_types` | `sourceTypes` | body | array of enum(ModelTraining, Runtime) |  | Deployed or stored artifact of an ML model. Since v61.0. |
 
 ```sql
-CALL cdp.ml_alerts_query (asset => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact', source_types => ['ModelTraining', 'Runtime']);
+CALL d360.ml_alerts_query (asset => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact', source_types => ['ModelTraining', 'Runtime']);
 ```
 
 **Result**
@@ -1484,7 +1484,7 @@ Create a new model setup version. Since v59.0.
 | `runtime_type` | `runtimeType` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.ml_setup_version_create (model_setup_id_or_name => '...', description => 'Initial version of the Customer Churn Prediction model setup.', type => 'EdcNoCode');
+CALL d360.ml_setup_version_create (model_setup_id_or_name => '...', description => 'Initial version of the Customer Churn Prediction model setup.', type => 'EdcNoCode');
 ```
 
 **Result**
@@ -1539,7 +1539,7 @@ One row. Schema `CdpMlSetupBaseRepresentation`.
 | `runtime_type` | | `Internal` or `InternalV2`, default `InternalV2` |
 
 ```sql
-CALL cdp.ml_setup_version_create (model_setup_id_or_name => 'Attrition_Risk_Predictor', type => 'EdcNoCode',
+CALL d360.ml_setup_version_create (model_setup_id_or_name => 'Attrition_Risk_Predictor', type => 'EdcNoCode',
   input => (type = 'DataModelObject', source = (name = 'Attrition__dlm'), dataspace = (name = 'default')),
   outcomes => [(type = 'Binary', name = 'Attrition__c', label = 'Attrition', goal = 'Minimize', success_value = 'Yes', failure_value = 'No')],
   fields => [(type = 'Number', name = 'Age__c', min = 18, max = 60, bucketing_strategy = (type = 'Percentile', number_of_buckets = 10)),
@@ -1567,7 +1567,7 @@ Make a prediction using the specified model and parameters. This request is sync
 | `type` | `type` | body | enum(RawData) | yes | Type of prediction. Since v61.0. |
 
 ```sql
-CALL cdp.ml_predict (model => (name = 'Attrition_Predictor_Catboost'), type => 'RawData', field_names => ['age', 'income', 'tenure_months'], rows => [['25', '50000', '12'], ['54', '120000', '240']], settings => (maxTopFactors = 3, maxPrescriptions = 5));
+CALL d360.ml_predict (model => (name = 'Attrition_Predictor_Catboost'), type => 'RawData', field_names => ['age', 'income', 'tenure_months'], rows => [['25', '50000', '12'], ['54', '120000', '240']], settings => (maxTopFactors = 3, maxPrescriptions = 5));
 ```
 
 **Result**
@@ -1609,7 +1609,7 @@ Create a new prediction job definition. Since v59.0.
 | `binary_classification_settings` | `binaryClassificationSettings` | body | [MlBinaryClassificationJobDefSettingsInput](#mlbinaryclassificationjobdefsettingsinputrepresentation) |  | - |
 
 ```sql
-CALL cdp.prediction_job_def_create (type => 'BinaryClassification', label => 'Binary Classification Job', description => 'Binary classification prediction job', model => (id = '12lSB000000UWdZYAW'), output_config => (object_name = 'Customer_Segments', description = 'Output description'), scoring_mode => 'Batch', input_config => (data_object = (id = '0gjSB00000SQccbYAD'), fields = [(model_field = (id = '0xmSB0000008UovYAE'), mapped_field = (id = '0gYSB00006XqM852AF', data_object = (id = '0gjSB00000SQccbYAD'), relationship_path = [(source_field = (id = '0gYSB00006XqM8F2AV', data_object = (id = '0gjSB00000SQccbYAD')), target_field = (id = '0gYSB00006W3U0t2AF', data_object = (id = '0gjSB00000SJ2xFYAT')))]), update_score = true)]), binary_classification_settings => (max_top_contributors = 3, max_prescriptions = 3, prescription_threshold = 22, show_class_probabilities = true));
+CALL d360.prediction_job_def_create (type => 'BinaryClassification', label => 'Binary Classification Job', description => 'Binary classification prediction job', model => (id = '12lSB000000UWdZYAW'), output_config => (object_name = 'Customer_Segments', description = 'Output description'), scoring_mode => 'Batch', input_config => (data_object = (id = '0gjSB00000SQccbYAD'), fields = [(model_field = (id = '0xmSB0000008UovYAE'), mapped_field = (id = '0gYSB00006XqM852AF', data_object = (id = '0gjSB00000SQccbYAD'), relationship_path = [(source_field = (id = '0gYSB00006XqM8F2AV', data_object = (id = '0gjSB00000SQccbYAD')), target_field = (id = '0gYSB00006W3U0t2AF', data_object = (id = '0gjSB00000SJ2xFYAT')))]), update_score = true)]), binary_classification_settings => (max_top_contributors = 3, max_prescriptions = 3, prescription_threshold = 22, show_class_probabilities = true));
 ```
 
 **Result**
@@ -1672,7 +1672,7 @@ Creates a retriever and its first configuration, to query Data 360 objects or se
 | `data_source_type` | `dataSourceType` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.retriever_create (label => 'DIY Bathroom Retriever', owner_type => 'Api', dataspaces => ['default'], configuration => (query_type = 'NoCode', is_active = true, number_of_results = 10, input = (name = 'DIY_Bathroom', type = 'SearchIndex'), output_fields = [(label = 'Chunk', relatedDmoName = 'DIY_Bathroom_chunk__dlm', relatedDmoFieldName = 'Chunk__c', relationships = [(relationSourceDmoName = 'DIY_Bathroom_chunk__dlm', relationSourceDmoFieldName = 'SourceRecordId__c', relationTargetDmoName = 'DIY_Bathroom__dlm', relationTargetDmoFieldName = 'FilePath__c')])]));
+CALL d360.retriever_create (label => 'DIY Bathroom Retriever', owner_type => 'Api', dataspaces => ['default'], configuration => (query_type = 'NoCode', is_active = true, number_of_results = 10, input = (name = 'DIY_Bathroom', type = 'SearchIndex'), output_fields = [(label = 'Chunk', relatedDmoName = 'DIY_Bathroom_chunk__dlm', relatedDmoFieldName = 'Chunk__c', relationships = [(relationSourceDmoName = 'DIY_Bathroom_chunk__dlm', relationSourceDmoFieldName = 'SourceRecordId__c', relationTargetDmoName = 'DIY_Bathroom__dlm', relationTargetDmoFieldName = 'FilePath__c')])]));
 ```
 
 **Result**
@@ -1741,7 +1741,7 @@ Adds a configuration version to a retriever, the way to change how it retrieves.
 | `website_filters` | `websiteFilters` | body | array |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.retriever_config_create (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345', query_type => 'Ensemble', is_active => true, number_of_results => 10, referenced_retrievers => [(name = 'Knowledge_Retriever_1Cx_tGW8aac9aec'), (name = 'DIY_Bathroom_Retriever_1Cx_9H02ce17169')]);
+CALL d360.retriever_config_create (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345', query_type => 'Ensemble', is_active => true, number_of_results => 10, referenced_retrievers => [(name = 'Knowledge_Retriever_1Cx_tGW8aac9aec'), (name = 'DIY_Bathroom_Retriever_1Cx_9H02ce17169')]);
 ```
 
 **Result**
@@ -1796,7 +1796,7 @@ Reviews a `CustomSql` retriever input and returns errors and suggestions. Use it
 | `retriever_input` | `retrieverInput` | body | [MlRetrieverInput](#mlretrieverinputrepresentation) | yes | Retriever input to review. Since v67.0. |
 
 ```sql
-CALL cdp.retriever_review (retriever_input => (label = 'CustomSql retriever for ADL knowledge.', description = 'CustomSql retriever matching ADL knowledge internally created retriever.', owner_type = 'Api', dataspaces = ['default'], configuration = (query_type = 'CustomSql', is_active = true, number_of_results = 5, is_citation_enabled = false, retrieval_mode = 'Basic', retriever_query_template_definition = (retriever_query_template = 'SELECT
+CALL d360.retriever_review (retriever_input => (label = 'CustomSql retriever for ADL knowledge.', description = 'CustomSql retriever matching ADL knowledge internally created retriever.', owner_type = 'Api', dataspaces = ['default'], configuration = (query_type = 'CustomSql', is_active = true, number_of_results = 5, is_citation_enabled = false, retrieval_mode = 'Basic', retriever_query_template_definition = (retriever_query_template = 'SELECT
     "v"."hybrid_score__c" AS "Score",
     "c"."Chunk__c" AS "Chunk",
     "c"."SourceRecordId__c" AS "SourceRecordId",
@@ -1842,7 +1842,7 @@ Submits a run of a prediction job definition, which scores the input DMO and wri
 | `type` | `type` | body | enum(Prediction) | yes | Job type. The MCP tool always sends `Prediction`. |
 
 ```sql
-CALL cdp.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
+CALL d360.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
 ```
 
 **Result**
@@ -1873,7 +1873,7 @@ Gets the evaluation of a trained setup version: AUC, gini, MCC, MSE, RMSE, confu
 | `gauges` | `gauges` | query | string |  | Comma-separated subset of `All`, `Overview`, `GainTable`, `Residuals`, `Correlations`, `FeatureImportances`, `Coefficients`, `DataSegments`, `CrossValidations`, `OutcomeDistribution`, `PairwiseCorrelations`. Defaults to `Overview`. |
 
 ```sql
-CALL cdp.ml_setup_version_inspector_metrics_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', version_id => '14kSB0000005d8nYAA', gauges => 'All');
+CALL d360.ml_setup_version_inspector_metrics_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', version_id => '14kSB0000005d8nYAA', gauges => 'All');
 ```
 
 **Result**
@@ -1904,7 +1904,7 @@ Wraps a model artifact in a configured model, the object that predictions run ag
 | `actionable_fields` | `actionableFields` | body | array of [CustomizableFieldInput](#customizablefieldinput) |  | Actionable variables. Prescriptions can be generated on these variables. |
 
 ```sql
-CALL cdp.ml_configured_model_create (label => 'Attrition Predictor (Catboost)', artifact => (name = 'Attrition_Risk_Predictor_v1__mla'), capability => 'BinaryClassification', visibility => 'Shown', parameter_overrides => [(parameter_name = 'decisionThreshold', continuous_value = 0.5)], actionable_fields => [(name = 'Over_Time__c', type = 'ActionableVariable'), (name = 'Monthly_Income__c', type = 'TopFactor')]);
+CALL d360.ml_configured_model_create (label => 'Attrition Predictor (Catboost)', artifact => (name = 'Attrition_Risk_Predictor_v1__mla'), capability => 'BinaryClassification', visibility => 'Shown', parameter_overrides => [(parameter_name = 'decisionThreshold', continuous_value = 0.5)], actionable_fields => [(name = 'Over_Time__c', type = 'ActionableVariable'), (name = 'Monthly_Income__c', type = 'TopFactor')]);
 ```
 
 **Result**
@@ -1938,7 +1938,7 @@ Lists the history snapshots of a configured model. Use it to see how a model cha
 | `offset` | `offset` | query | integer |  | Pagination offset. |
 
 ```sql
-CALL cdp.ml_configured_model_history_list (configured_model_id_or_name => '...');
+CALL d360.ml_configured_model_history_list (configured_model_id_or_name => '...');
 ```
 
 **Result**
@@ -1963,7 +1963,7 @@ Gets one history snapshot of a configured model, as it was when the entry was re
 | `history_id` | `historyId` | path | string | yes | History entry id (15- or 18-character Salesforce id). |
 
 ```sql
-CALL cdp.ml_configured_model_history_get (configured_model_id_or_name => '...', history_id => '...');
+CALL d360.ml_configured_model_history_get (configured_model_id_or_name => '...', history_id => '...');
 ```
 
 **Result**
@@ -1992,7 +1992,7 @@ Lists the fields and applicable transformations of a data source. This is the fi
 | `related_field_names` | `relatedFieldNames` | body | array of [FieldSourceInput](#fieldsourceinput) |  | Optional. Typed field references to include from related sources (use with multi-source inputs/joins). |
 
 ```sql
-CALL cdp.ml_query_setup_fields (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter_fields => false);
+CALL d360.ml_query_setup_fields (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter_fields => false);
 ```
 
 **Result**
@@ -2017,7 +2017,7 @@ Profiles the values of a data source: minimum, maximum and bucketing for numeric
 | `profile_field_names` | `profileFieldNames` | body | array of [FieldSourceInput](#fieldsourceinput) |  | Optional. Fields to profile, each as a typed reference (works for multi-source / related-object fields). Omit to profile all eligible fields on the primary source. |
 
 ```sql
-CALL cdp.ml_query_data_profile (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), profile_field_names => [(name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), (name = 'CloseDate__c', source = 'Sales__dlm', type = 'DataModelObject')]);
+CALL d360.ml_query_data_profile (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), profile_field_names => [(name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), (name = 'CloseDate__c', source = 'Sales__dlm', type = 'DataModelObject')]);
 ```
 
 **Result**
@@ -2043,7 +2043,7 @@ Lists the columns of a data source that could be a training target. `prediction_
 | `prediction_type` | `predictionType` | body | string |  | Optional. Narrow outcome candidates to a prediction type. One of: Regression, BinaryClassification, MulticlassClassification. |
 
 ```sql
-CALL cdp.ml_query_outcome (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), prediction_type => 'BinaryClassification');
+CALL d360.ml_query_outcome (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), prediction_type => 'BinaryClassification');
 ```
 
 **Result**
@@ -2067,7 +2067,7 @@ Counts the rows of a data source after filters and joins. Use it to check that t
 | `join` | `join` | body | [JoinInput](#joininput) |  | Optional join applied to multi-source inputs. |
 
 ```sql
-CALL cdp.ml_query_row_count (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter => (criteria = [(filter_field = (name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), operator = 'GreaterThan', values = [(value = '1000', type = 'Constant')])], conjunctive_operator = 'And'));
+CALL d360.ml_query_row_count (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter => (criteria = [(filter_field = (name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), operator = 'GreaterThan', values = [(value = '1000', type = 'Constant')])], conjunctive_operator = 'And'));
 ```
 
 **Result**
@@ -2099,7 +2099,7 @@ Lists model setups, the parent records that group setup versions. Filter by `sea
 | `offset` | `offset` | query | integer |  | Pagination offset. |
 
 ```sql
-CALL cdp.ml_model_setup_list (model_type => 'Predictive', model_capability => 'BinaryClassification', limit => 50);
+CALL d360.ml_model_setup_list (model_type => 'Predictive', model_capability => 'BinaryClassification', limit => 50);
 ```
 
 **Result**
@@ -2121,7 +2121,7 @@ Gets one model setup by ID or developer name.
 | `model_setup_id_or_name` | `idOrName` | path | string | yes | Model-setup id or developer name. |
 
 ```sql
-CALL cdp.ml_model_setup_get (model_setup_id_or_name => 'Attrition_Risk_Predictor');
+CALL d360.ml_model_setup_get (model_setup_id_or_name => 'Attrition_Risk_Predictor');
 ```
 
 **Result**
@@ -2151,7 +2151,7 @@ Creates a model setup, the parent record for setup versions. This is step 1 of 3
 | `outcome_definition` | `outcomeDefinition` | body | [ModelOutcomeDefinitionInput](#modeloutcomedefinitioninput) |  | Optional outcome hints at the container level (per-version OutcomeInput is authoritative). |
 
 ```sql
-CALL cdp.ml_model_setup_create (label => 'Attrition Risk Predictor', description => 'Predict whether an employee will leave the company.', model_type => 'Predictive', model_capability => 'BinaryClassification', setup_type => 'EdcNoCode', outcome_definition => (goal = 'Minimize', field_names = ['Attrition__c']));
+CALL d360.ml_model_setup_create (label => 'Attrition Risk Predictor', description => 'Predict whether an employee will leave the company.', model_type => 'Predictive', model_capability => 'BinaryClassification', setup_type => 'EdcNoCode', outcome_definition => (goal = 'Minimize', field_names = ['Attrition__c']));
 ```
 
 **Result**
@@ -2181,7 +2181,7 @@ Changes the label, description, capability or outcome hint of a model setup. Sen
 | `outcome_definition` | `outcomeDefinition` | body | [ModelOutcomeDefinitionInput](#modeloutcomedefinitioninput) |  | Updated outcome hint. |
 
 ```sql
-CALL cdp.ml_model_setup_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', description => 'Updated description for the attrition predictor.');
+CALL d360.ml_model_setup_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', description => 'Updated description for the attrition predictor.');
 ```
 
 **Result**
@@ -2207,7 +2207,7 @@ Deletes a model setup and all its versions.
 | `model_setup_id_or_name` | `idOrName` | path | string | yes | Model-setup id or developer name. |
 
 ```sql
-CALL cdp.ml_model_setup_delete (model_setup_id_or_name => 'Attrition_Risk_Predictor');
+CALL d360.ml_model_setup_delete (model_setup_id_or_name => 'Attrition_Risk_Predictor');
 ```
 
 **Result**

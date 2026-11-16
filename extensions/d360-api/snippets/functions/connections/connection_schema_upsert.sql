@@ -4,7 +4,7 @@
  * Always send the field `label`, the server fails without it. The schema is effectively immutable, adding a field means a new schema, stream and mapping. A stream's source object must match the schema `name`.
  */
 
-call cdp.connection_schema_upsert (
+call d360.connection_schema_upsert (
     connection_id => '9cgaj0000012O5hAAE',
     schemas => [(
         name = 'Orders',
@@ -18,4 +18,4 @@ call cdp.connection_schema_upsert (
     )]
 );
 
-call cdp.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');
+call d360.connection_schema_list (connection_id => '9cgaj0000012O5hAAE');

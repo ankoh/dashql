@@ -16,7 +16,7 @@ use yaml_rust2::{Yaml, YamlLoader};
 
 /// What a person writes in the documents, they aren't generated
 const HAND_WRITTEN: [&str; 3] = ["overview.md", "functions.md", "api_notes.md"];
-const PART_OF: &str = "Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).";
+const PART_OF: &str = "Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).";
 const SCHEMAS_INTRO: &str = "Attribute names are keywords inside the object they belong to, so completion offers exactly these.";
 
 /// What only the documents read, a function of the spec goes without it. Its `description`, `example` and

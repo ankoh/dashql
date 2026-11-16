@@ -4,7 +4,7 @@
  * Point an activation target at one of them.
  */
 
-call cdp.activation_target_create (
+call d360.activation_target_create (
     name => 'google_ads_target',
     dataspace_name => 'default',
     platform_type => 'ExternalPlatform',

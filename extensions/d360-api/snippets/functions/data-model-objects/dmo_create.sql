@@ -4,7 +4,7 @@
  * Pass the bare name: the `__dlm` suffix is added. At least one field must be a primary key, and `dataspace_name` should be set, because mapping a DMO created without it fails with `DMO not found`. The DMO can take a minute or more: wait until `dmo_get` returns a `dataSpaceName` in `_raw`.
  */
 
-call cdp.dmo_create (
+call d360.dmo_create (
     name => 'LoyaltyMembers',
     label => 'Loyalty Members',
     description => 'Members of the loyalty program',
@@ -17,4 +17,4 @@ call cdp.dmo_create (
     ]
 );
 
-call cdp.dmo_get (data_model_object_name => 'LoyaltyMembers__dlm');
+call d360.dmo_get (data_model_object_name => 'LoyaltyMembers__dlm');

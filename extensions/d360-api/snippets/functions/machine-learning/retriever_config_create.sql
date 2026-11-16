@@ -4,7 +4,7 @@
  * At most one configuration is active at a time. `NoCode` generates its SQL from the configuration and `CustomSql` takes your own.
  */
 
-call cdp.retriever_config_create (
+call d360.retriever_config_create (
     retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345',
     query_type => 'Ensemble',
     is_active => true,
@@ -15,4 +15,4 @@ call cdp.retriever_config_create (
     ]
 );
 
-call cdp.retriever_config_list (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345');
+call d360.retriever_config_list (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345');

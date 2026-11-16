@@ -4,13 +4,13 @@
  * The docs say an update creates a new memory ID, yet show the old one in the response. Take the ID from the result.
  */
 
-call cdp.memory_list (
+call d360.memory_list (
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',
     category => 'sys_PROFILE_PREFERENCES'
 );
 
-call cdp.memory_update (
+call d360.memory_update (
     agent_id => 'ACE_Demo_Agent',
     profile_id => '003AB000000XYZ',
     profile_type => 'individual',

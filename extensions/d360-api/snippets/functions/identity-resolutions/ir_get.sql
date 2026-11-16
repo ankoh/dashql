@@ -4,6 +4,6 @@
  * Wait on `last_job_status`: it tells whether the current run finished. Treat `FAIL` and `FAILED` as failures. Find the `id` in the list.
  */
 
-call cdp.ir_list ();
+call d360.ir_list ();
 
-call cdp.ir_get (identity_resolution => '1irfj000000IWhWAAW');
+call d360.ir_get (identity_resolution => '1irfj000000IWhWAAW');

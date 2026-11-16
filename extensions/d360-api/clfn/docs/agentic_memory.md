@@ -2,7 +2,7 @@
 
 # Agentic Memory & Context
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Agentic Memory stores what agents and users say, then extracts session summaries, profile facts and preferences from it. Agents read that knowledge back as prompt context. These calls feed a conversation into Data 360, inspect it, curate memories by hand and fetch context for an LLM.
 
@@ -17,11 +17,11 @@ Gotchas:
 - **Extraction will cost credits.** It [consumes flex credits once pricing applies, and is free during Limited GA](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-billing.md).
 
 ```sql
-CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual');
-CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')]);
-CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')]);
-CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
-CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+CALL d360.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual');
+CALL d360.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner'), (id = 'ACE_Demo_Agent', type = 'agent', role = 'participant')]);
+CALL d360.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?')]);
+CALL d360.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+CALL d360.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
 ```
 
 **Functions:** [`memory_conversation_create`](#memory_conversation_create), [`memory_conversation_list`](#memory_conversation_list), [`memory_conversation_get`](#memory_conversation_get), [`memory_conversation_close`](#memory_conversation_close), [`memory_entry_add`](#memory_entry_add), [`memory_session_create`](#memory_session_create), [`memory_session_list`](#memory_session_list), [`memory_session_close`](#memory_session_close), [`memory_participant_add`](#memory_participant_add), [`memory_create`](#memory_create), [`memory_list`](#memory_list), [`memory_update`](#memory_update), [`memory_delete`](#memory_delete), [`memory_context_get`](#memory_context_get)
@@ -45,7 +45,7 @@ Create a conversation with an ID you choose and an owner. This is the first call
 | `variable` | `variable` | body | map to string |  | Arbitrary key-value metadata. |
 
 ```sql
-CALL cdp.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'));
+CALL d360.memory_conversation_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', name => 'Support, onboarding', channel => (type = 'chat', id = 'slack-C0123'));
 ```
 
 **Result**
@@ -79,7 +79,7 @@ List a person's conversations as summary rows, without sessions or entries. Use 
 | `page_token` | `page_token` | query | string |  | `nextPageToken` from the previous page. |
 
 ```sql
-CALL cdp.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual');
+CALL d360.memory_conversation_list (agent_id => 'ACE_Demo_Agent', owner_id => '003AB000000XYZ', owner_type => 'individual');
 ```
 
 **Result**
@@ -120,7 +120,7 @@ Read one conversation in full: its sessions, entries and metadata. Use it to ins
 | `page_token` | `page_token` | query | string |  | `nextPageToken` from the previous page. |
 
 ```sql
-CALL cdp.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages');
+CALL d360.memory_conversation_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', scope => 'messages');
 ```
 
 **Result**
@@ -158,7 +158,7 @@ Mark a conversation complete across all its sessions. This also closes any sessi
 | `conversation_id` | `conversationId` | path | string | yes | Conversation ID. |
 
 ```sql
-CALL cdp.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001');
+CALL d360.memory_conversation_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001');
 ```
 
 **Result**
@@ -190,7 +190,7 @@ Send messages and traces to a session, in order. This is the main way data enter
 | `entries` | `entries` | body | array of [ConversationEntry](#conversationentry) | yes | Ordered entries. At least one. |
 
 ```sql
-CALL cdp.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))]);
+CALL d360.memory_entry_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', entries => [(participant_id = '003AB000000XYZ', category = 'Message', type = 'user_message', content = 'How do I reset my password?'), (participant_id = 'ACE_Demo_Agent', category = 'Trace', type = 'tool_call', variable = (tool = 'kb_search', query = 'password reset'))]);
 ```
 
 **Result**
@@ -224,7 +224,7 @@ Open a session inside a conversation, with an ID you choose and at least one par
 | `variable` | `variable` | body | map to any |  | Arbitrary metadata. |
 
 ```sql
-CALL cdp.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')]);
+CALL d360.memory_session_create (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', conversation_owner_id => '003AB000000XYZ', owner_type => 'individual', participants => [(id = '003AB000000XYZ', type = 'individual', role = 'owner', start_time = '2026-01-01T00:00:00Z')]);
 ```
 
 **Result**
@@ -260,7 +260,7 @@ List a conversation's sessions as summary rows, without entries.
 | `page_token` | `page_token` | query | string |  | `nextPageToken` from the previous page. |
 
 ```sql
-CALL cdp.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual');
+CALL d360.memory_session_list (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual');
 ```
 
 **Result**
@@ -294,7 +294,7 @@ End a session. This triggers a final memory extraction for any messages not yet 
 | `session_id` | `sessionId` | path | string | yes | Session ID. |
 
 ```sql
-CALL cdp.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
+CALL d360.memory_session_close (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001');
 ```
 
 **Result**
@@ -327,7 +327,7 @@ Add participants to an active session, for agent handoffs or several agents work
 | `participants` | `participants` | body | array of [AddedParticipant](#addedparticipant) | yes | Participants to add. At least one. |
 
 ```sql
-CALL cdp.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')]);
+CALL d360.memory_participant_add (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', session_id => 'sess-9001', participants => [(id = 'Billing_Agent', type = 'agent', role = 'participant')]);
 ```
 
 **Result**
@@ -359,7 +359,7 @@ Add memory entries to a profile by hand, alongside what extraction produces. Eac
 | `memories` | `memories` | body | array of [MemoryCreateItem](#memorycreateitem) | yes | Entries to create. At least one. |
 
 ```sql
-CALL cdp.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')]);
+CALL d360.memory_create (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(content = 'Prefers EST scheduling')]);
 ```
 
 **Result**
@@ -393,7 +393,7 @@ Read a profile's memory entries in one category. Use it to see what extraction o
 | `category` | `category` | query | string | yes | Partition key that filters the entries, such as `sys_PROFILE_FACT`. |
 
 ```sql
-CALL cdp.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT');
+CALL d360.memory_list (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_FACT');
 ```
 
 **Result**
@@ -426,7 +426,7 @@ Replace the content of existing memory entries, each identified by its memory ID
 | `memories` | `memories` | body | array of [MemoryUpdateItem](#memoryupdateitem) | yes | Entries to update. At least one. |
 
 ```sql
-CALL cdp.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')]);
+CALL d360.memory_update (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123', content = 'Prefers PST scheduling')]);
 ```
 
 **Result**
@@ -461,7 +461,7 @@ Delete memory entries by memory ID. Deletion is permanent.
 | `memories` | `memories` | body | array of [MemoryDeleteItem](#memorydeleteitem) | yes | Entries to delete. At least one. |
 
 ```sql
-CALL cdp.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')]);
+CALL d360.memory_delete (profile_id => '003AB000000XYZ', profile_type => 'individual', category => 'sys_PROFILE_PREFERENCES', memories => [(memory_id = 'mem_abc123')]);
 ```
 
 **Result**
@@ -496,7 +496,7 @@ Assemble context for an agent turn from memories, conversation history, profile 
 | `ctx_dataspace_ds_name` | `ctx_dataspace_ds_name` | header | string | yes | Sent as header `ctx-dataspace-ds_name`. Data space the agent belongs to, such as `default`. |
 
 ```sql
-CALL cdp.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
+CALL d360.memory_context_get (agent_id => 'ACE_Demo_Agent', conversation_id => 'conv-2025-001', owner_id => '003AB000000XYZ', owner_type => 'individual', ctx_agent_id => 'ACE_Demo_Agent', ctx_dataspace_ds_name => 'default');
 ```
 
 **Result**

@@ -4,7 +4,7 @@
  * Take the ids of the chunking strategy and the embedding model from `search_index_config`. The source DMO has to be ready. Read the index until `runtime_status` is `READY`, `FAILED` is final. That can take several minutes.
  */
 
-call cdp.search_index_create (
+call d360.search_index_create (
     label => 'Articles Search',
     description => 'Help articles, chunked by passage',
     developer_name => 'Articles_Search',
@@ -42,4 +42,4 @@ call cdp.search_index_create (
     )
 );
 
-call cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+call d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');

@@ -4,7 +4,7 @@
  * Every item has a tag and a list of targets, an object and a field each. Check the result of each item, a failed target doesn't fail the call.
  */
 
-call cdp.tag_assignment_bulk_create (
+call d360.tag_assignment_bulk_create (
     assignments => [
         (
             tag_fully_qualified_name = 'Compliance_Tags.PII.Email',
@@ -20,4 +20,4 @@ call cdp.tag_assignment_bulk_create (
     ]
 );
 
-call cdp.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
+call d360.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');

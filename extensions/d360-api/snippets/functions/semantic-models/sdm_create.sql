@@ -4,7 +4,7 @@
  * Formulas are Tableau-style and go in `$$ ... $$`. A measurement whose formula aggregates needs `aggregation_type => 'UserAgg'`. Authoring uses semantic `api_name` values, not `__dlm` or `__c` names.
  */
 
-call cdp.sdm_create (
+call d360.sdm_create (
     api_name => 'AccountRevenue',
     label => 'Account Revenue Model',
     dataspace => 'default',

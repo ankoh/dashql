@@ -4,7 +4,7 @@
  * Call it once per file: a job takes up to 100 files of 150 MB each, one at a time. The CSV is the whole request body, and its first line is the header, so it starts right after the opening quotes. Nothing is processed until the job is closed.
  */
 
-call cdp.ingest_job_upload (
+call d360.ingest_job_upload (
     id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',
     csv => $$id,contact_name,created_date,tax_exempt,total
 f19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506
@@ -12,4 +12,4 @@ f19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,
 $$
 );
 
-call cdp.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');
+call d360.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');

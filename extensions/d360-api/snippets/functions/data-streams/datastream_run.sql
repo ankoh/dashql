@@ -4,6 +4,6 @@
  * The run is done when `last_run_status` of the stream is `SUCCESS`, `FAILURE` or `CANCELLED`, and not `PENDING`, `IN_PROGRESS` or `EXTRACTING`.
  */
 
-call cdp.datastream_run (record_id_or_developer_name => 'Bike_Trips', interactive => false);
+call d360.datastream_run (record_id_or_developer_name => 'Bike_Trips', interactive => false);
 
-call cdp.datastream_get (record_id_or_developer_name => 'Bike_Trips');
+call d360.datastream_get (record_id_or_developer_name => 'Bike_Trips');

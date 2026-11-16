@@ -4,7 +4,7 @@
  * `:service_account_key` is the whole JSON key file of the service account, not just its private key. The account needs the roles BigQuery Metadata Viewer, Job User, Data Viewer and Read Session User. `database`, `schema` and `object` hold the project, the dataset and the table. Wait for the connection to be `Active` before the second call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'BIGQUERY',
     label => 'BigQuery live',
     name => 'BigQuery_Live',
@@ -17,7 +17,7 @@ call cdp.connection_create (
     parameters => [(param_name = 'projectId', value = 'my-project')]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_bigquery_live',
     label => 'Orders (BigQuery live)',
     data_stream_type => 'EXTERNAL',
@@ -47,4 +47,4 @@ call cdp.datastream_create (
     refresh_config => (refresh_mode = 'TOTAL_REPLACE')
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_bigquery_live');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_bigquery_live');

@@ -4,10 +4,10 @@
  * The search may not work in an org whose search index isn't built. Fall back to the entity list then.
  */
 
-call cdp.metadata_search (
+call d360.metadata_search (
     query => 'customer orders',
     filters => [(field = 'metadata_type', values = ['DataModelObject', 'CalculatedInsight'])],
     pagination => (limit = 10)
 );
 
-call cdp.metadata (entity_name => 'ssot__Individual__dlm');
+call d360.metadata (entity_name => 'ssot__Individual__dlm');

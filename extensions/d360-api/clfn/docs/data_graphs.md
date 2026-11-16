@@ -2,7 +2,7 @@
 
 # Data Graphs
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data graph joins a primary DMO and its related objects into a [materialized JSON view](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-data-graphs-overview.md), so an app can fetch a whole customer by key without writing joins.
 
@@ -19,10 +19,10 @@ What matters most:
 - The spec's create example uses attributes its schema doesn't have, including the one that makes a draft.
 
 ```sql
-CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', type = 'standard', json_path = '$', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE')], related_objects = []));
-CALL cdp.data_graph_get (data_graph_name => 'Customer_Graph'); /* poll status */
-CALL cdp.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]');
-CALL cdp.data_graph_refresh (data_graph_name => 'Customer_Graph');
+CALL d360.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', type = 'standard', json_path = '$', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE')], related_objects = []));
+CALL d360.data_graph_get (data_graph_name => 'Customer_Graph'); /* poll status */
+CALL d360.datagraph_lookup (data_graph_entity_name => 'Customer_Graph', lookup_keys => '[ssot__Individual__dlm.ssot__Id__c=10000001]');
+CALL d360.data_graph_refresh (data_graph_name => 'Customer_Graph');
 ```
 
 **Functions:** [`data_graph_delete`](#data_graph_delete), [`data_graph_get`](#data_graph_get), [`datagraph_lookup`](#datagraph_lookup), [`datagraph_query`](#datagraph_query), [`datagraph_metadata`](#datagraph_metadata), [`data_graph_create`](#data_graph_create), [`data_graph_activate`](#data_graph_activate), [`data_graph_refresh`](#data_graph_refresh)
@@ -40,7 +40,7 @@ Delete a data graph. Since v59.0.
 | `data_graph_name` | `dataGraphName` | path | string | yes | API name: `name` from the create response, or `developer_name` from `datagraph_metadata`. |
 
 ```sql
-CALL cdp.data_graph_delete (data_graph_name => 'Customer_Graph');
+CALL d360.data_graph_delete (data_graph_name => 'Customer_Graph');
 ```
 
 **Result**
@@ -66,7 +66,7 @@ Read one graph's definition and status. Use it to poll a graph after create, act
 | `data_graph_name` | `dataGraphName` | path | string | yes | API name: `name` from the create response, or `developer_name` from `datagraph_metadata`. |
 
 ```sql
-CALL cdp.data_graph_get (data_graph_name => 'Customer_Graph');
+CALL d360.data_graph_get (data_graph_name => 'Customer_Graph');
 ```
 
 **Result**
@@ -122,7 +122,7 @@ Query a data graph by the primary key of either the primary data model object (D
 | `no_cache` | `noCache` | query | boolean |  | Indicates whether to read data from the standard, non-real-time data graph (`true`) or the real-time data graph (`false`). The default is `false`. Since v59.0. |
 
 ```sql
-CALL cdp.datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
+CALL d360.datagraph_lookup (data_graph_entity_name => 'UnifiedIndividual_DG', lookup_keys => '[UnifiedLinkssotIndividualIr1__dlm.SourceRecordId__c=10000001]');
 ```
 
 **Result**
@@ -174,7 +174,7 @@ Query data graph data by ID. For real-time data graphs, the API retrieves data f
 | `live` | `live` | query | boolean |  | Indicates whether live lookup for the data graph is enabled (`true`) or not (`false`). Since v63.0. |
 
 ```sql
-CALL cdp.datagraph_query (data_graph_entity_name => 'UnifiedIndividual_DG', id => '100005', live => true);
+CALL d360.datagraph_query (data_graph_entity_name => 'UnifiedIndividual_DG', id => '100005', live => true);
 ```
 
 **Result**
@@ -218,7 +218,7 @@ Query data graph metadata. This API supports both standard and real-time data gr
 | `dataspace` | `dataspace` | query | string |  | Name of the data space to query. If unspecified, the `default` data space is used. Since v59.0. |
 
 ```sql
-CALL cdp.datagraph_metadata (data_graph_entity_name => 'UnifiedIndividual_DG');
+CALL d360.datagraph_metadata (data_graph_entity_name => 'UnifiedIndividual_DG');
 ```
 
 **Result**
@@ -269,7 +269,7 @@ Create a data graph. Since v59.0.
 | `incremental_refresh_config` | `incrementalRefreshConfig` | body | [data_graph_create_incrementalRefreshConfig](#data_graph_create_incrementalrefreshconfig) |  | Not in the spec schema: from the spec's examples. |
 
 ```sql
-CALL cdp.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', label = 'Individual', json_path = '$', type = 'standard', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE'), (source_field_name = 'KQ_Id__c', is_key_column = false, is_projected = true, data_type = 'Text', usage_tag = 'KEY_QUALIFIER')], related_objects = []));
+CALL d360.data_graph_create (name => 'Customer_Graph', label => 'Customer Graph', type => 'NONE', primary_object_name => 'ssot__Individual__dlm', source_object => (name = 'ssot__Individual__dlm', label = 'Individual', json_path = '$', type = 'standard', fields = [(source_field_name = 'ssot__Id__c', is_key_column = true, is_projected = true, data_type = 'Text', usage_tag = 'NONE'), (source_field_name = 'KQ_Id__c', is_key_column = false, is_projected = true, data_type = 'Text', usage_tag = 'KEY_QUALIFIER')], related_objects = []));
 ```
 
 **Result**
@@ -341,7 +341,7 @@ Activate a data graph draft. Activation saves the draft configuration and builds
 | `full_refresh_config` | `fullRefreshConfig` | body | [DataGraphFullRefreshConfigInput](#datagraphfullrefreshconfiginputrepresentation) |  | Configuration of the full refresh schedule for standard data graphs. Since v67.0. |
 
 ```sql
-CALL cdp.data_graph_activate (data_graph_name => 'Customer_Graph', full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day')));
+CALL d360.data_graph_activate (data_graph_name => 'Customer_Graph', full_refresh_config => (schedule = (frequency = 1, time_granularity = 'Day')));
 ```
 
 **Result**
@@ -372,7 +372,7 @@ Start a rebuild of a data graph's materialized data, outside its schedule. Since
 | `data_graph_name` | `dataGraphName` | path | string | yes | Name of the data graph. Since v64.0. |
 
 ```sql
-CALL cdp.data_graph_refresh (data_graph_name => 'Customer_Graph');
+CALL d360.data_graph_refresh (data_graph_name => 'Customer_Graph');
 ```
 
 **Result**

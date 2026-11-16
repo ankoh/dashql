@@ -4,6 +4,6 @@
  * Page with `limit` and `offset`.
  */
 
-call cdp.data_share_list (limit => 20, offset => 0);
+call d360.data_share_list (limit => 20, offset => 0);
 
-call cdp.data_share_get (name_or_id => 'Sales_Data_Share');
+call d360.data_share_get (name_or_id => 'Sales_Data_Share');

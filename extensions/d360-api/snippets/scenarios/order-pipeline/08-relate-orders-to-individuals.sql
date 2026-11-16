@@ -4,7 +4,7 @@
  * Declare that an order belongs to an individual. The join of the segment in step 12 relies on this relationship.
  */
 
-call cdp.dmo_relationship_create (
+call d360.dmo_relationship_create (
     data_model_object_name => 'SalesOrders__dlm',
     dataspace => 'default',
     relationships => [(

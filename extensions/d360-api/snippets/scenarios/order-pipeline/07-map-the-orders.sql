@@ -4,7 +4,7 @@
  * Map the data lake object onto the data model object, then repeat the second call until `status` is `ACTIVE`.
  */
 
-call cdp.dmo_mapping_create (
+call d360.dmo_mapping_create (
     dataspace => 'default',
     label => 'Orders_snow_SalesOrders',
     source_entity_developer_name => 'Orders_snow__dll',
@@ -17,4 +17,4 @@ call cdp.dmo_mapping_create (
     ]
 );
 
-call cdp.dmo_mapping_get (object_source_target_map_developer_name => 'Orders_snow_SalesOrders');
+call d360.dmo_mapping_get (object_source_target_map_developer_name => 'Orders_snow_SalesOrders');

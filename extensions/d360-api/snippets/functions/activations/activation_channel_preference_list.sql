@@ -4,12 +4,12 @@
  * Both `channel` and the contact point DMO are required. The sample answers with `ANY`, `PERSONAL`, `BUSINESS` and `PRIMARY`.
  */
 
-call cdp.activation_channel_preference_list (
+call d360.activation_channel_preference_list (
     channel => 'Phone',
     data_model_object_api_name => 'ssot__ContactPointPhone__dlm'
 );
 
-call cdp.activation_channel_preference_list (
+call d360.activation_channel_preference_list (
     channel => 'Email',
     data_model_object_api_name => 'ssot__ContactPointEmail__dlm'
 );

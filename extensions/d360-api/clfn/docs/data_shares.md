@@ -2,7 +2,7 @@
 
 # Data Shares
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Data shares publish Data 360 objects to another platform without copying them there. This is the outbound direction of zero copy. Reading external data into Data 360 is federation, and it uses connections and data streams instead. A share is a list of objects in one data space. A target is the connection to one external account or org. A [link](https://trailhead.salesforce.com/content/learn/modules/data-cloud-with-zero-copy/get-started-with-zero-copy-data-sharing) between them exposes the objects on the other side.
 
@@ -18,10 +18,10 @@ The gotchas that matter most:
 Salesforce Help pages linked here could only be read as search excerpts, so check them before relying on a detail.
 
 ```sql
-CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', data_share_objects => ['Sales_Order__dlm', 'Account_Home__dll']);
-CALL cdp.data_share_get (name_or_id => 'Sales_Data_Share'); /* repeat until status is Active */
-CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
-CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
+CALL d360.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', data_share_objects => ['Sales_Order__dlm', 'Account_Home__dll']);
+CALL d360.data_share_get (name_or_id => 'Sales_Data_Share'); /* repeat until status is Active */
+CALL d360.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
+CALL d360.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
 ```
 
 **Functions:** [`data_share_target_delete`](#data_share_target_delete), [`data_share_delete`](#data_share_delete), [`data_share_target_get`](#data_share_target_get), [`data_share_target_list`](#data_share_target_list), [`data_share_get`](#data_share_get), [`data_share_list`](#data_share_list), [`data_share_update`](#data_share_update), [`data_share_create`](#data_share_create), [`data_share_target_create`](#data_share_target_create), [`data_share_link`](#data_share_link), [`data_share_unlink`](#data_share_unlink)
@@ -39,7 +39,7 @@ Deletes a data share target. Since v63.0.
 | `name_or_id` | `nameOrId` | path | string | yes | API name or record ID of the data share target. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_target_delete (name_or_id => 'BigQuery_Analytics_Target');
+CALL d360.data_share_target_delete (name_or_id => 'BigQuery_Analytics_Target');
 ```
 
 **Result**
@@ -61,7 +61,7 @@ Deletes a data share. Since v63.0.
 | `name_or_id` | `nameOrId` | path | string | yes | API name or record ID of the data share. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_delete (name_or_id => 'Sales_Data_Share');
+CALL d360.data_share_delete (name_or_id => 'Sales_Data_Share');
 ```
 
 **Result**
@@ -83,7 +83,7 @@ Returns a data share target. Since v63.0.
 | `name_or_id` | `nameOrId` | path | string | yes | API name or record ID of the data share target. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_target_get (name_or_id => 'Snowflake_Prod_Target');
+CALL d360.data_share_target_get (name_or_id => 'Snowflake_Prod_Target');
 ```
 
 **Result**
@@ -133,7 +133,7 @@ Returns all data share targets of a given target type. Since v63.0.
 | `target_type` | `targetType` | path | string | yes | Type of data share target. Possible values are `Aws`, `BigQuery`, `Databricks`, `Datacloud`, `Ibm`, `Other`, `Snowflake`, and `SnowflakeOpenFlow`. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_target_list (target_type => 'Snowflake');
+CALL d360.data_share_target_list (target_type => 'Snowflake');
 ```
 
 **Result**
@@ -183,7 +183,7 @@ Returns a data share with its object names. Since v63.0.
 | `name_or_id` | `nameOrId` | path | string | yes | API name or record ID of the data share. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_get (name_or_id => 'Sales_Data_Share');
+CALL d360.data_share_get (name_or_id => 'Sales_Data_Share');
 ```
 
 **Result**
@@ -223,7 +223,7 @@ Returns all data shares in the org, ordered by developer name. Since v63.0.
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_list ();
+CALL d360.data_share_list ();
 ```
 
 **Result**
@@ -265,7 +265,7 @@ Updates a data share's label, description or objects. Use it to add objects to a
 | `data_share_objects` | `dataShareObjects` | body | array of string |  | List of data share object names to include in the data share. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_update (name_or_id => 'Sales_Data_Share', label => 'Sales Data Share (Updated)', description => 'Added order-line DMO', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Sales_Order_Line__dlm', 'Contact_Point_Email__cio']);
+CALL d360.data_share_update (name_or_id => 'Sales_Data_Share', label => 'Sales Data Share (Updated)', description => 'Added order-line DMO', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Sales_Order_Line__dlm', 'Contact_Point_Email__cio']);
 ```
 
 **Result**
@@ -312,7 +312,7 @@ Creates a data share and adds the data model object (DMO), data lake object (DLO
 | `data_share_objects` | `dataShareObjects` | body | array of string |  | List of data share object names to include in the data share. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', description => 'Shares sales DMOs and DLOs with external partners', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Contact_Point_Email__cio']);
+CALL d360.data_share_create (name => 'Sales_Data_Share', label => 'Sales Data Share', dataspace_name => 'default', description => 'Shares sales DMOs and DLOs with external partners', data_share_objects => ['Account_Home__dll', 'Sales_Order__dlm', 'Contact_Point_Email__cio']);
 ```
 
 **Result**
@@ -374,7 +374,7 @@ Creates a data share target of a particular target type. Since v63.0.
 | `aws_role_arn` | `awsRoleArn` | body | string |  | - |
 
 ```sql
-CALL cdp.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', dataspace_name => 'default', description => 'BigQuery target for analytics team', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
+CALL d360.data_share_target_create (target_type => 'BigQuery', name => 'BigQuery_Analytics_Target', label => 'BigQuery Analytics', dataspace_name => 'default', description => 'BigQuery target for analytics team', target_email_id => 'analytics-team@example.com', target_email_type => 'Group');
 ```
 
 **Result**
@@ -445,7 +445,7 @@ Links a data share with a data share target. If the target is already linked, th
 | `data_share_target_names` | `dataShareTargetNames` | body | array of string |  | List of developer names for the data share targets to link. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['Snowflake_Prod_Target', 'BigQuery_Analytics_Target']);
+CALL d360.data_share_link (name_or_id => 'Sales_Data_Share', data_share_target_names => ['Snowflake_Prod_Target', 'BigQuery_Analytics_Target']);
 ```
 
 **Result**
@@ -489,7 +489,7 @@ Unlinks a data share from a data share target. If the target is already unlinked
 | `data_share_target_names` | `dataShareTargetNames` | body | array of string |  | List of developer names for the data share targets to unlink. Since v63.0. |
 
 ```sql
-CALL cdp.data_share_unlink (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
+CALL d360.data_share_unlink (name_or_id => 'Sales_Data_Share', data_share_target_names => ['BigQuery_Analytics_Target']);
 ```
 
 **Result**

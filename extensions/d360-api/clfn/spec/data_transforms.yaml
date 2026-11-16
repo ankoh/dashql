@@ -17,12 +17,12 @@ description: |
 
   ```sql
   /* Same body for validate and create */
-  CALL cdp.transform_validate (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
-  CALL cdp.transform_create (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
+  CALL d360.transform_validate (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
+  CALL d360.transform_create (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
   /* Once status is Active */
-  CALL cdp.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
-  CALL cdp.transform_run (data_transform_name_or_id => 'account_summary');
-  CALL cdp.transform_get (data_transform_name_or_id => 'account_summary');
+  CALL d360.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
+  CALL d360.transform_run (data_transform_name_or_id => 'account_summary');
+  CALL d360.transform_get (data_transform_name_or_id => 'account_summary');
   ```
 
 functions:
@@ -33,7 +33,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D/delete
     tools: [d360_transform_delete]
     description: Initiate the deletion of a data transform. Since v60.0.
-    example: CALL cdp.transform_delete (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_delete (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform to delete."}
     effect: write
@@ -54,7 +54,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms/get
     tools: [d360_transform_list]
     description: Get a list of data transforms. Since v60.0.
-    example: CALL cdp.transform_list ();
+    example: CALL d360.transform_list ();
     options:
       - {name: filter_group, api_name: filterGroup, in: query, type: string, description: "Group on which to filter response results. Valid values are `Big`, `Medium`, and `Small`. - `Big` provides comprehensive results by returning properties whose filter group is `Big`, `Medium`, or `Small`. - `Medium` provides moderate results by returning properties whose filter group is `Medium` or `Small`. - `Small` provides essential results by returning only properties whose filter group is `Small`. The default is `Big`. Since v60.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of rows to return from `1` through `20`. If unspecified, the default number of rows is `20`. Since v60.0."}
@@ -105,7 +105,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D/get
     tools: [d360_transform_get]
     description: Get a data transform. Since v60.0.
-    example: CALL cdp.transform_get (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_get (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform. In a non-default data space, the [not-found message](https://github.com/salesforce/sf-pi/blob/main/extensions/sf-data360/references/data-shapes.md) says to use `<dataspace prefix>_<API name>`."}
       - {name: filter_group, api_name: filterGroup, in: query, type: string, description: "Group on which to filter response results. Valid values are `Big`, `Medium`, and `Small`. - `Big` provides comprehensive results by returning properties whose filter group is `Big`, `Medium`, or `Small`. - `Medium` provides moderate results by returning properties whose filter group is `Medium` or `Small`. - `Small` provides essential results by returning only properties whose filter group is `Small`. The default is `Big`. Since v60.0."}
@@ -156,7 +156,7 @@ functions:
     path: /ssot/data-transforms/{dataTransformNameOrId}/run-history
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1run-history/get
     description: Get information about all the jobs that the batch or streaming data transform has run. Only information about completed jobs is returned. Return the history of each job, such as the job's duration and end time. For batch data transforms, return information about the output node such as the node's name and type. For more information about data transforms, see [Data Cleansing and Preparation](https://help.salesforce.com/s/articleView?id=data.c360_a_cleansing_data.htm&type=5). Since v62.0.
-    example: CALL cdp.transform_run_history_list (data_transform_name_or_id => 'account_summary', limit => 20);
+    example: CALL d360.transform_run_history_list (data_transform_name_or_id => 'account_summary', limit => 20);
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Developer name or ID of the data transform."}
       - {name: limit, in: query, type: integer, description: "Maximum number of run jobs to return. Since v62.0."}
@@ -192,7 +192,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1schedule/get
     tools: [d360_transform_schedule_get]
     description: Get a data transform's schedule. The response contains different fields depending on its frequency. Since v60.0.
-    example: CALL cdp.transform_schedule_get (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_schedule_get (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform."}
     columns:
@@ -223,7 +223,7 @@ functions:
     tools: [d360_transform_create]
     description: Create a data transform. Since v60.0.
     example: |
-      CALL cdp.transform_create (
+      CALL d360.transform_create (
         name => 'account_summary',
         label => 'Account Summary',
         description => 'Accounts over one million in revenue',
@@ -337,7 +337,7 @@ functions:
     tools: [d360_transform_prepare, d360_transform_validate]
     description: Validate your data transform before you create it. - If the data transform is valid, this request returns an example of the data structure of the target object's output. - If the data transform is invalid, this request returns a list of issues that contain information about errors and possible resolutions. Since v62.0.
     example: |
-      CALL cdp.transform_validate (
+      CALL d360.transform_validate (
         name => 'AccountAnon',
         label => 'Account Anon',
         type => 'STREAMING',
@@ -382,7 +382,7 @@ functions:
     path: /ssot/data-transforms/{dataTransformNameOrId}/actions/cancel
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1actions~1cancel/post
     description: Cancel a data transform. Since v60.0.
-    example: CALL cdp.transform_cancel (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_cancel (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform to cancel."}
     columns:
@@ -407,7 +407,7 @@ functions:
     path: /ssot/data-transforms/{dataTransformNameOrId}/actions/rebuild
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1actions~1rebuild/post
     description: Rebuild a streaming data transform. Since v61.0.
-    example: CALL cdp.transform_rebuild (data_transform_name_or_id => 'AccountAnon');
+    example: CALL d360.transform_rebuild (data_transform_name_or_id => 'AccountAnon');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Record ID or API name of the data transform. Since v61.0."}
       - {name: requested_by, api_name: requestedBy, in: query, type: string, description: "ID of the user requesting the rebuild. Since v61.0."}
@@ -435,7 +435,7 @@ functions:
     path: /ssot/data-transforms/{dataTransformNameOrId}/actions/refresh-status
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1actions~1refresh-status/post
     description: Refresh the status of a data transform. Since v60.0.
-    example: CALL cdp.transform_status_refresh (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_status_refresh (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform to refresh."}
     columns:
@@ -458,7 +458,7 @@ functions:
     path: /ssot/data-transforms/{dataTransformNameOrId}/actions/retry
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1actions~1retry/post
     description: Retry a data transform. Since v60.0.
-    example: CALL cdp.transform_retry (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_retry (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform to retry."}
     columns:
@@ -481,7 +481,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1actions~1run/post
     tools: [d360_transform_run]
     description: Run a data transform. Since v60.0.
-    example: CALL cdp.transform_run (data_transform_name_or_id => 'account_summary');
+    example: CALL d360.transform_run (data_transform_name_or_id => 'account_summary');
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform to run."}
       - {name: definition_name, api_name: definitionName, in: body, type: string, description: "Not in the spec schema (MCP server)."}
@@ -517,7 +517,7 @@ functions:
     tools: [d360_transform_update]
     description: Update a data transform. Since v60.0.
     example: |
-      CALL cdp.transform_update (
+      CALL d360.transform_update (
         data_transform_name_or_id => 'account_summary',
         name => 'account_summary',
         label => 'Account Summary',
@@ -602,7 +602,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Transforms/paths/~1ssot~1data-transforms~1%7BdataTransformNameOrId%7D~1schedule/put
     tools: [d360_transform_schedule_set]
     description: Update a data transform's schedule. Since v60.0.
-    example: CALL cdp.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
+    example: CALL d360.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
     options:
       - {name: data_transform_name_or_id, api_name: dataTransformNameOrId, in: path, type: string, required: true, description: "Name or ID of the data transform."}
       - {name: definition_name, api_name: definitionName, in: body, type: string, description: "Name of the schedule definition. Since v63.0."}

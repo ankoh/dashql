@@ -4,7 +4,7 @@
  * Validation failures come back as a normal answer, so read `issues` for `error_code`, `error_message` and the severity. A `Warning` is not always a failure. A valid body also returns the output object the transform would write, but set the primary key and category yourself before you create.
  */
 
-call cdp.transform_validate (
+call d360.transform_validate (
     name => 'AccountAnon',
     label => 'Account Anon',
     description => 'Account ids without names',

@@ -4,7 +4,7 @@
  * The filters work together. Leave the asset options out to list every configured model.
  */
 
-call cdp.ml_configured_model_list (
+call d360.ml_configured_model_list (
     model_type => 'Predictive',
     capabilities => 'BinaryClassification',
     source_type => 'EdcNoCode',

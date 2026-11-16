@@ -4,7 +4,7 @@
  * The page documents `id`, `type` and `role` of a participant.
  */
 
-call cdp.memory_participant_add (
+call d360.memory_participant_add (
     agent_id => 'ACE_Demo_Agent',
     conversation_id => 'conv-2025-001',
     session_id => 'sess-9001',

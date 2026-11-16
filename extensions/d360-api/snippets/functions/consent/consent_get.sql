@@ -4,4 +4,4 @@
  * The flag in `proceed` is the string "true" or "false". A 200 response can still contain errors, so read the `result` column of every row.
  */
 
-call cdp.consent_get (action => 'portability', ids => '100000695,100000696', mode => 'cdp');
+call d360.consent_get (action => 'portability', ids => '100000695,100000696', mode => 'cdp');

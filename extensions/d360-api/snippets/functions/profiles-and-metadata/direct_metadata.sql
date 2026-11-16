@@ -4,7 +4,7 @@
  * It always needs the token exchange. Pass `entity_name`, since the unfiltered answer is large.
  */
 
-call cdp.direct_metadata (
+call d360.direct_metadata (
     entity_name => 'ssot__Individual__dlm',
     entity_type => 'DataModelObject',
     entity_category => 'Profile'

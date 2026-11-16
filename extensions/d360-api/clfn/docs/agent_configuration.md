@@ -2,7 +2,7 @@
 
 # Agent Configuration
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 An agent in this family is a registration for [Agentic Memory and Context](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-agent-registration.md). The spec gives it a name, a label, a data space and data sources, and no prompts or behavior. Registering provisions what the [memory calls](agentic_memory.md) need: ingestion connectors, data lake objects, DMOs and data graphs.
 
@@ -17,12 +17,12 @@ What matters most:
 - Agentic Memory and Context is free during Limited GA. [Memory extraction will consume flex credits](https://developer.salesforce.com/docs/data/agentic-memory-context/guide/agentic-memory-billing.md) once pricing takes effect.
 
 ```sql
-CALL cdp.agent_create (name => 'support_agent', label => 'Support Agent');
+CALL d360.agent_create (name => 'support_agent', label => 'Support Agent');
 
 /* Repeat until status is Active. */
-CALL cdp.agent_get (agent_id_or_api_name => 'support_agent');
+CALL d360.agent_get (agent_id_or_api_name => 'support_agent');
 
-CALL cdp.agent_list (limit => 50);
+CALL d360.agent_list (limit => 50);
 ```
 
 **Functions:** [`agent_delete`](#agent_delete), [`agent_get`](#agent_get), [`agent_list`](#agent_list), [`agent_create`](#agent_create)
@@ -40,7 +40,7 @@ Deletes an existing agent. Since v66.0.
 | `agent_id_or_api_name` | `agentIdOrApiName` | path | string | yes | The agent's `id` or its API name (`name` at creation). |
 
 ```sql
-CALL cdp.agent_delete (agent_id_or_api_name => 'support_agent');
+CALL d360.agent_delete (agent_id_or_api_name => 'support_agent');
 ```
 
 **Result**
@@ -64,7 +64,7 @@ Returns one agent. Use it to poll `status` after `agent_create`, and to read its
 | `agent_id_or_api_name` | `agentIdOrApiName` | path | string | yes | The agent's `id` or its API name (`name` at creation). |
 
 ```sql
-CALL cdp.agent_get (agent_id_or_api_name => 'support_agent');
+CALL d360.agent_get (agent_id_or_api_name => 'support_agent');
 ```
 
 **Result**
@@ -109,7 +109,7 @@ Returns a list of all registered agents. Since v66.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v66.0. |
 
 ```sql
-CALL cdp.agent_list ();
+CALL d360.agent_list ();
 ```
 
 **Result**
@@ -153,7 +153,7 @@ Registers an agent for Agentic Memory and Context and provisions its infrastruct
 | `configuration` | `configuration` | body | [AgentConfigurationInput](#agentconfigurationinputrepresentation) |  | Configuration of the agent. Since v66.0. |
 
 ```sql
-CALL cdp.agent_create (name => 'support_agent', label => 'Support Agent', description => 'Support chat with customer memory', configuration => (profile_dmos = [(name = 'UnifiedIndividual__dlm')], context_data_sources = (data_graphs = [(name = 'CustomerDG1')])));
+CALL d360.agent_create (name => 'support_agent', label => 'Support Agent', description => 'Support chat with customer memory', configuration => (profile_dmos = [(name = 'UnifiedIndividual__dlm')], context_data_sources = (data_graphs = [(name = 'CustomerDG1')])));
 ```
 
 **Result**

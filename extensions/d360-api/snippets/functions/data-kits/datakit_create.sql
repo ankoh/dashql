@@ -4,7 +4,7 @@
  * The kit holds metadata, not data. Creating it deploys nothing: it still has to reach the target org in a package. `data_kit_type` takes `None` or `Sandbox` and is effectively required, and `components` may be empty on a first create.
  */
 
-call cdp.datakit_create (
+call d360.datakit_create (
     data_kit_dev_name => 'NewDataKit',
     label => 'New Data Kit From API',
     data_kit_type => 'None',

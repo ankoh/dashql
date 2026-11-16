@@ -4,7 +4,7 @@
  * The tenant form documents no `filters`. Descending order takes a `-` prefix.
  */
 
-call cdp.direct_profile_child (
+call d360.direct_profile_child (
     data_model_name => 'Individual__dlm',
     id => '123',
     child_data_model_name => 'ContactPointEmail__dlm',

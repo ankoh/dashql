@@ -4,7 +4,7 @@
  * Create a data transform that runs the code.
  */
 
-call cdp.transform_create (
+call d360.transform_create (
     name => 'account_rollup',
     label => 'account_rollup',
     type => 'BATCH',

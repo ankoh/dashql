@@ -4,7 +4,7 @@
  * Only `expression` is required, so the insight doesn't need to exist. The call is not in the spec, and no source says which SQL rules it enforces or how it reports a failure.
  */
 
-call cdp.ci_validate (
+call d360.ci_validate (
     definition_type => 'CALCULATED_METRIC',
     dataspace_name => 'default',
     expression => $$

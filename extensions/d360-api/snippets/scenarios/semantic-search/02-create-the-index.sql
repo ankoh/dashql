@@ -4,7 +4,7 @@
  * Create the hybrid search index `Articles_Search` over the `Body__c` field of `Articles__dlm`.
  */
 
-call cdp.search_index_create (
+call d360.search_index_create (
     label => 'Articles Search',
     developer_name => 'Articles_Search',
     source_dmo_developer_name => 'Articles__dlm',

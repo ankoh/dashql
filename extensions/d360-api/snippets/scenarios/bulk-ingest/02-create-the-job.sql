@@ -4,4 +4,4 @@
  * Create the job. Its `id` in the result is the `:job_id` of the next steps.
  */
 
-call cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
+call d360.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');

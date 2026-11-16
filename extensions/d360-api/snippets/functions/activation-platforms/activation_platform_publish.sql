@@ -4,8 +4,8 @@
  * Check `can_publish_now` on the platform first. `success` and `message` report the call, so read `status` afterwards.
  */
 
-call cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+call d360.activation_platform_get (id_or_name => 'abc_user_identifiers');
 
-call cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+call d360.activation_platform_publish (id_or_name => 'abc_user_identifiers');
 
-call cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+call d360.activation_platform_get (id_or_name => 'abc_user_identifiers');

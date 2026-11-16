@@ -4,7 +4,7 @@
  * In the source org, put a data lake object into a kit.
  */
 
-call cdp.datakit_create (
+call d360.datakit_create (
     data_kit_dev_name => 'Customer_Kit',
     label => 'Customer Kit',
     data_kit_type => 'None',

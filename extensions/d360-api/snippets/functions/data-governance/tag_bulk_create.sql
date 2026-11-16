@@ -4,7 +4,7 @@
  * Send parents and children in separate calls, parents first. Up to 200 items per request.
  */
 
-call cdp.tag_bulk_create (
+call d360.tag_bulk_create (
     tags => [
         (
             fully_qualified_name = 'Compliance_Tags.PII.Phone',
@@ -23,4 +23,4 @@ call cdp.tag_bulk_create (
     ]
 );
 
-call cdp.tag_list (taxonomy_name => 'Compliance_Tags', search_string => 'PII');
+call d360.tag_list (taxonomy_name => 'Compliance_Tags', search_string => 'PII');

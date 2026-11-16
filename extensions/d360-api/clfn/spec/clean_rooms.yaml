@@ -14,12 +14,12 @@ description: |
   **Evidence** is thin: the spec, its examples and one Trailhead unit. [`FamilyCatalog.java`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java) has no clean room tools.
 
   ```sql
-  CALL cdp.clean_room_template_list ();
-  CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462', specification_dev_name => 'sampleMapping', template_name => 'Overlap', data_cloud_org_id => '00DSB00000eMue32AC');
+  CALL d360.clean_room_template_list ();
+  CALL d360.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462', specification_dev_name => 'sampleMapping', template_name => 'Overlap', data_cloud_org_id => '00DSB00000eMue32AC');
   /* The other member, in its own org */
-  CALL cdp.clean_room_invitation_accept (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOSB000000COGH4A4', specification_id => '1TIxx0000004CSOGA2');
-  CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'overlap_run_1', query_parameters => (threshold_count = '4'));
-  CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+  CALL d360.clean_room_invitation_accept (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOSB000000COGH4A4', specification_id => '1TIxx0000004CSOGA2');
+  CALL d360.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'overlap_run_1', query_parameters => (threshold_count = '4'));
+  CALL d360.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
   ```
 
 functions:
@@ -29,7 +29,7 @@ functions:
     path: /ssot/data-clean-room/specifications/{specificationIdOrApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1specifications~1%7BspecificationIdOrApiName%7D/delete
     description: Deletes a specific clean room specification. Since v66.0.
-    example: CALL cdp.clean_room_specification_delete (specification_id_or_api_name => 'sampleMapping');
+    example: CALL d360.clean_room_specification_delete (specification_id_or_api_name => 'sampleMapping');
     options:
       - {name: specification_id_or_api_name, api_name: specificationIdOrApiName, in: path, type: string, required: true, description: "ID or API name of the clean room specification. Since v66.0."}
     effect: write
@@ -43,7 +43,7 @@ functions:
     path: /ssot/data-clean-room/collaborations
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations/get
     description: Get a list of clean room collaborations. Since v63.0.
-    example: CALL cdp.clean_room_collaboration_list (order_by => 'createdDate DESC', limit => 20);
+    example: CALL d360.clean_room_collaboration_list (order_by => 'createdDate DESC', limit => 20);
     options:
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of clean room collaborations to return from `1` through `20`. By default, `20` collaborations are returned. Since v63.0."}
@@ -85,7 +85,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/jobs
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1jobs/get
     description: Get a list of clean room query jobs. Since v63.0.
-    example: CALL cdp.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', limit => 20);
+    example: CALL d360.clean_room_query_job_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', limit => 20);
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v63.0."}
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
@@ -135,7 +135,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/result-data-objects
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1result-data-objects/get
     description: Retrieve a list of all data model objects (DMOs) created by a specific clean room collaboration. Since v66.0.
-    example: CALL cdp.clean_room_collaboration_result_object_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+    example: CALL d360.clean_room_collaboration_result_object_list (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v66.0."}
     rows: /collaborationResultDataObjects
@@ -164,7 +164,7 @@ functions:
     path: /ssot/data-clean-room/providers
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1providers/get
     description: Get a list of clean room providers. Since v63.0.
-    example: CALL cdp.clean_room_provider_list ();
+    example: CALL d360.clean_room_provider_list ();
     options:
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of clean room providers to return from `1` through `20`. By default, `20` providers are returned. Since v63.0."}
@@ -213,7 +213,7 @@ functions:
     path: /ssot/data-clean-room/providers/{providerIdOrName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1providers~1%7BproviderIdOrName%7D/get
     description: Get a clean room provider. Since v63.0.
-    example: CALL cdp.clean_room_provider_get (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
+    example: CALL d360.clean_room_provider_get (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
     options:
       - {name: provider_id_or_name, api_name: providerIdOrName, in: path, type: string, required: true, description: "ID or developer name of the clean room provider. Since v63.0."}
     columns:
@@ -249,7 +249,7 @@ functions:
     path: /ssot/data-clean-room/providers/{providerIdOrName}/templates
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1providers~1%7BproviderIdOrName%7D~1templates/get
     description: Get a list of all templates associated with a clean room provider. Since v63.0.
-    example: CALL cdp.clean_room_provider_template_list (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
+    example: CALL d360.clean_room_provider_template_list (provider_id_or_name => 'X00DSB00000eLeZh2AK_ReportsPackage1763536436462');
     options:
       - {name: provider_id_or_name, api_name: providerIdOrName, in: path, type: string, required: true, description: "ID or developer name of the clean room provider. Since v63.0."}
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
@@ -290,7 +290,7 @@ functions:
     path: /ssot/data-clean-room/specifications
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1specifications/get
     description: Get a list of all clean room specifications. Since v63.0.
-    example: CALL cdp.clean_room_specification_list ();
+    example: CALL d360.clean_room_specification_list ();
     options:
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of clean room specifications to return from `1` through `20`. By default, `20` specifications are returned. Since v63.0."}
@@ -332,7 +332,7 @@ functions:
     path: /ssot/data-clean-room/templates
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1templates/get
     description: Get a list of all clean room templates. Since v63.0.
-    example: CALL cdp.clean_room_template_list ();
+    example: CALL d360.clean_room_template_list ();
     options:
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of clean room templates to return from `1` through `20`. By default, `20` templates are returned. Since v63.0."}
@@ -376,7 +376,7 @@ functions:
     path: /ssot/data-clean-room/templates/{useCaseTemplateType}/collaborations
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1templates~1%7BuseCaseTemplateType%7D~1collaborations/get
     description: Retrieve a paginated list of all collaborations for a specific type of use case template. Since v66.0.
-    example: CALL cdp.clean_room_template_collaboration_list (use_case_template_type => 'Overlap');
+    example: CALL d360.clean_room_template_collaboration_list (use_case_template_type => 'Overlap');
     options:
       - {name: use_case_template_type, api_name: useCaseTemplateType, in: path, type: string, required: true, description: "Type of use case template. Since v66.0."}
       - {name: filters, in: query, type: string, description: "Field names by which to filter results. Specify a comma-separated list of equality expressions, such as `developer_name eq extensiblepackage0123456789012`. By default, no filter is applied. Since v66.0."}
@@ -417,7 +417,7 @@ functions:
     path: /ssot/data-clean-room/collaborations
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations/post
     description: Create a new clean room collaboration. Since v63.0.
-    example: CALL cdp.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00Dxx00nZbkbQyW_TestProviderName1746172733791', template_version_id => '00Dxx00nZbkbBjk8ef', template_name => 'OVERLAP', specification_dev_name => 'X00Dxx00MhXCjA7M_null1746504015424', data_cloud_org_id => '00Dxx00nZbkbQgmEIE');
+    example: CALL d360.clean_room_collaboration_create (label => 'collab21', provider_dev_name => 'X00Dxx00nZbkbQyW_TestProviderName1746172733791', template_version_id => '00Dxx00nZbkbBjk8ef', template_name => 'OVERLAP', specification_dev_name => 'X00Dxx00MhXCjA7M_null1746504015424', data_cloud_org_id => '00Dxx00nZbkbQgmEIE');
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space where the collaboration is to be created. Since v63.0."}
       - {name: description, in: body, type: string, description: "Description of the collaboration. Since v59.0."}
@@ -464,7 +464,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1actions~1accept-invitation/post
     description: Accept an invitation for a clean room collaboration. Since v63.0.
     example: |
-      CALL cdp.clean_room_invitation_accept (
+      CALL d360.clean_room_invitation_accept (
         collaboration_id_or_api_name => 'collab21_00DSB00000eMue3',
         invitation_id => '1TOxx0000004CQoGAM',
         specification_id => '1TIxx0000004CH6GAM',
@@ -522,7 +522,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/actions/disable
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1actions~1disable/post
     description: Disable a clean room collaboration. Since v66.0.
-    example: CALL cdp.clean_room_collaboration_disable (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+    example: CALL d360.clean_room_collaboration_disable (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v66.0."}
     columns:
@@ -552,7 +552,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/actions/reject-invitation
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1actions~1reject-invitation/post
     description: Reject an invitation for a clean room collaboration. Since v63.0.
-    example: CALL cdp.clean_room_invitation_reject (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOxx0000004D3UGAU');
+    example: CALL d360.clean_room_invitation_reject (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', invitation_id => '1TOxx0000004D3UGAU');
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v63.0."}
       - {name: invitation_id, api_name: invitationId, in: body, type: string, required: true, description: "Record ID of the collaboration invitation. Since v63.0."}
@@ -591,7 +591,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/actions/run
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1actions~1run/post
     description: Run a query job on a clean room. You can start a query run only if the collaboration status is `ACTIVE`. Since v63.0.
-    example: CALL cdp.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'rawtalks1', query_parameters => (threshold_count = '4'));
+    example: CALL d360.clean_room_query_run (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3', query_execution_name => 'rawtalks1', query_parameters => (threshold_count = '4'));
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v63.0."}
       - {name: query_execution_name, api_name: queryExecutionName, in: body, type: string, required: true, description: "Name of the query that is to be executed. Since v63.0."}
@@ -639,7 +639,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1providers/post
     description: "Registers a provider definition: where its data lives and which templates it offers. Since v63.0."
     example: |
-      CALL cdp.clean_room_provider_create (
+      CALL d360.clean_room_provider_create (
         label => 'package_AWS',
         description => 'AWS',
         provider_name => 'package_AWS',
@@ -742,7 +742,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1specifications/post
     description: Maps a template's attributes to one member's DMO fields. A member needs a specification to create or accept a collaboration. Since v63.0.
     example: |
-      CALL cdp.clean_room_specification_create (
+      CALL d360.clean_room_specification_create (
         name => 'sampleMapping',
         label => 'sampleMapping',
         dataspace_name => 'default',
@@ -810,7 +810,7 @@ functions:
     path: /ssot/data-clean-room/test-connection
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1test-connection/post
     description: Test the connection between the clean room and the provider's external storage. Since v66.0.
-    example: CALL cdp.clean_room_connection_test (consumer_org_id => '00D000000000001', connector_type => 'CleanroomAwsS3', connection_attributes => (authenticationOption = 'idp', bucketName = 'cleanroom-data-bucket', parentDirectory = '/shared-data/', iamRoleName = 'arn:aws:iam::123456789012:role/CleanroomDataAccessRole', externalId = 'app:DE809C7E:A1B2C3D4'));
+    example: CALL d360.clean_room_connection_test (consumer_org_id => '00D000000000001', connector_type => 'CleanroomAwsS3', connection_attributes => (authenticationOption = 'idp', bucketName = 'cleanroom-data-bucket', parentDirectory = '/shared-data/', iamRoleName = 'arn:aws:iam::123456789012:role/CleanroomDataAccessRole', externalId = 'app:DE809C7E:A1B2C3D4'));
     options:
       - {name: connection_attributes, api_name: connectionAttributes, in: body, map: true, type: string, description: "Map of connection attributes. Since v66.0."}
       - {name: connector_type, api_name: connectorType, in: body, type: string, enum: [CleanroomAwsS3, CleanroomSnowflake], description: "Type of connector. Since v66.0."}
@@ -836,7 +836,7 @@ functions:
     path: /ssot/data-clean-room/collaborations/{collaborationIdOrApiName}/actions/refresh-metadata
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Clean-Rooms/paths/~1ssot~1data-clean-room~1collaborations~1%7BcollaborationIdOrApiName%7D~1actions~1refresh-metadata/put
     description: Refresh metadata for a clean room collaboration. Since v66.0.
-    example: CALL cdp.clean_room_collaboration_metadata_refresh (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
+    example: CALL d360.clean_room_collaboration_metadata_refresh (collaboration_id_or_api_name => 'collab21_00DSB00000eMue3');
     options:
       - {name: collaboration_id_or_api_name, api_name: collaborationIdOrApiName, in: path, type: string, required: true, description: "ID or developer name of the clean room collaboration. Since v66.0."}
     columns:

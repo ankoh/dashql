@@ -2,7 +2,7 @@
 
 # Segments
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A segment is a named audience built on a data model object (DMO), such as every individual with an order over 5000. Activations then send it to external systems. It depends on the DMO, its relationships, and any calculated insights it filters on, which [must be `ACTIVE`](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SegmentTools.java) first.
 
@@ -17,7 +17,7 @@ What matters most:
 - **Publishing is asynchronous.** Sources disagree on the finished `publish_status`. See [`segment_publish`](#segment_publish).
 
 ```sql
-CALL cdp.segment_create (
+CALL d360.segment_create (
   developer_name => 'Robots', display_name => 'Robots', description => 'Individuals named Robot',
   segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'NoRefresh',
   include_dbt => (models = (models = [(name = 'robots', sql = (
@@ -27,10 +27,10 @@ CALL cdp.segment_create (
       AND trim(cast(Individuals__dlm.IndividualId__c as varchar(255))) <> ''
   ))])));
 /* Wait for segment_status = 'ACTIVE' and copy market_segment_id */
-CALL cdp.segment_get (segment_api_name => 'Robots');
-CALL cdp.segment_publish (segment_id => '1sgxx00000000PpAAI');
+CALL d360.segment_get (segment_api_name => 'Robots');
+CALL d360.segment_publish (segment_id => '1sgxx00000000PpAAI');
 /* After publishing finishes */
-CALL cdp.segment_member_list (segment_api_name => 'Robots', limit => 100);
+CALL d360.segment_member_list (segment_api_name => 'Robots', limit => 100);
 ```
 
 **Functions:** [`segment_delete`](#segment_delete), [`segment_list`](#segment_list), [`segment_get`](#segment_get), [`segment_get_by_id`](#segment_get_by_id), [`segment_member_list`](#segment_member_list), [`segment_update`](#segment_update), [`segment_create`](#segment_create), [`segment_count`](#segment_count), [`segment_deactivate`](#segment_deactivate), [`segment_deactivate_by_id`](#segment_deactivate_by_id), [`segment_publish`](#segment_publish)
@@ -48,7 +48,7 @@ Delete a segment in Data 360. Since v56.0.
 | `segment_api_name` | `segmentApiName` | path | string | yes | The segment's `api_name`, not its `1sg` id. |
 
 ```sql
-CALL cdp.segment_delete (segment_api_name => 'High_Value_Order_Buyers');
+CALL d360.segment_delete (segment_api_name => 'High_Value_Order_Buyers');
 ```
 
 **Result**
@@ -75,7 +75,7 @@ Get the segments of a data space, one row each. Use it to find API names and che
 | `segment_creation_flow` | `segmentCreationFlow` | query | string |  | - |
 
 ```sql
-CALL cdp.segment_list (dataspace => 'default', batch_size => 100, offset => 0, filters => 'SegmentStatus eq Active AND MarketSegmentType eq Dbt', order_by => 'Name ASC');
+CALL d360.segment_list (dataspace => 'default', batch_size => 100, offset => 0, filters => 'SegmentStatus eq Active AND MarketSegmentType eq Dbt', order_by => 'Name ASC');
 ```
 
 **Result**
@@ -145,7 +145,7 @@ Get one segment by its API name. Use it to check `segment_status` and `publish_s
 | `segment_creation_flow` | `segmentCreationFlow` | query | string |  | - |
 
 ```sql
-CALL cdp.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');
+CALL d360.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');
 ```
 
 **Result**
@@ -204,7 +204,7 @@ Get one segment by its `1sg` record id. Use it when you hold the id rather than 
 | `segment_creation_flow` | `segmentCreationFlow` | query | string |  | - |
 
 ```sql
-CALL cdp.segment_get_by_id (segment_id => '1sgxx00000000PpAAI');
+CALL d360.segment_get_by_id (segment_id => '1sgxx00000000PpAAI');
 ```
 
 **Result**
@@ -265,7 +265,7 @@ Get segment members in Data 360. Since v58.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set, such as `Segment_Id__c ASC` or `Timestamp__c DESC`. If unspecified, items are returned by ID in ascending order. Supported fields for sorting are: - `Delta_Type__c` - `Id__c` - `KQ_Id__c` - `Parent_Segment_Id__c` - `Segment_Id__c` - `Snapshot_Type__c` - `Timestamp__c` - `Version_Stamp__c` Since v58.0. |
 
 ```sql
-CALL cdp.segment_member_list (segment_api_name => 'High_Value_Order_Buyers', fields => ['Id__c', 'KQ_Id__c', 'Timestamp__c'], limit => 100, offset => 0);
+CALL d360.segment_member_list (segment_api_name => 'High_Value_Order_Buyers', fields => ['Id__c', 'KQ_Id__c', 'Timestamp__c'], limit => 100, offset => 0);
 ```
 
 **Result**
@@ -327,7 +327,7 @@ Update a segment by API name. The spec subjects `sql` to the [DBT validations](h
 | `segment_type` | `segmentType` | body | enum(Dbt, Dynamic, EinsteinGptSegmentsUI, Lookalike, Realtimez, Waterfall) | yes | Type of segment. `Dbt` is data build tool. Required for POST. Not supported for PATCH. After a segment is created, the segment type can't be changed. Since v55.0. |
 
 ```sql
-CALL cdp.segment_update (segment_api_name => 'High_Value_Order_Buyers', display_name => 'High Value Order Buyers', description => 'Refreshed every 24 hours', segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'TwentyFour');
+CALL d360.segment_update (segment_api_name => 'High_Value_Order_Buyers', display_name => 'High Value Order Buyers', description => 'Refreshed every 24 hours', segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'TwentyFour');
 ```
 
 **Result**
@@ -410,7 +410,7 @@ Create a segment. The `sql` of a `Dbt` segment is subject to the [DBT validation
 | `segment_type` | `segmentType` | body | enum(Dbt, Dynamic, EinsteinGptSegmentsUI, Lookalike, Realtimez, Waterfall) | yes | Type of segment. `Dbt` is data build tool. Required for POST. Not supported for PATCH. After a segment is created, the segment type can't be changed. Since v55.0. |
 
 ```sql
-CALL cdp.segment_create (
+CALL d360.segment_create (
   dataspace => 'default',
   developer_name => 'High_Value_Order_Buyers',
   display_name => 'High Value Order Buyers',
@@ -502,7 +502,7 @@ One row. Schema `CdpSegmentOutputRepresentation`.
 **Publish schedule:** `publish_schedule` is the refresh interval in hours, or `NoRefresh`. `publish_schedule_info` is the finer form (since v63), and the spec's examples use it without `publish_schedule`:
 
 ```sql
-CALL cdp.segment_create (
+CALL d360.segment_create (
   developer_name => 'Daily_Refresh', display_name => 'Daily Refresh', description => 'Every 12 hours on three weekdays',
   segment_on_api_name => 'ssot__Account__dlm', segment_type => 'Waterfall',
   publish_schedule_start_date_time => '2026-03-10T23:59:59.999Z',
@@ -531,7 +531,7 @@ Trigger a segment count on demand. Since v61.0.
 | `prefer_approx_count` | `preferApproxCount` | body | boolean | yes | Indicates whether to use approximate count (`true`) or not (`false`). Approximate Segment Population feature must be enabled to set the value as (`true`). Since v61.0. |
 
 ```sql
-CALL cdp.segment_count (segment_api_name => 'High_Value_Order_Buyers', prefer_approx_count => false);
+CALL d360.segment_count (segment_api_name => 'High_Value_Order_Buyers', prefer_approx_count => false);
 ```
 
 **Result**
@@ -571,7 +571,7 @@ Deactivate a segment by its API name. Since v59.0.
 | `segment_api_name` | `segmentApiName` | path | string | yes | The segment's `api_name`, not its `1sg` id. |
 
 ```sql
-CALL cdp.segment_deactivate (segment_api_name => 'High_Value_Order_Buyers');
+CALL d360.segment_deactivate (segment_api_name => 'High_Value_Order_Buyers');
 ```
 
 **Result**
@@ -603,7 +603,7 @@ Deactivate a segment on demand by ID. Since v59.0.
 | `segment_id` | `segmentId` | path | string | yes | The segment's `market_segment_id`, 18 characters starting with `1sg`. Not `market_segment_definition_id` (`3HX`) or `segment_on_id` (`0gj`). |
 
 ```sql
-CALL cdp.segment_deactivate_by_id (segment_id => '1sgxx00000000PpAAI');
+CALL d360.segment_deactivate_by_id (segment_id => '1sgxx00000000PpAAI');
 ```
 
 **Result**
@@ -635,7 +635,7 @@ Publish a segment in Data 360. This `POST` endpoint doesn't accept request param
 | `segment_id` | `segmentId` | path | string | yes | The segment's `market_segment_id`, 18 characters starting with `1sg`. Not `market_segment_definition_id` (`3HX`) or `segment_on_id` (`0gj`). |
 
 ```sql
-CALL cdp.segment_publish (segment_id => '1sgxx00000000PpAAI');
+CALL d360.segment_publish (segment_id => '1sgxx00000000PpAAI');
 ```
 
 **Result**

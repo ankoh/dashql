@@ -4,4 +4,4 @@
  * The spec's `status`, `number_of_tasks` and `tasks_url` are not columns, read them from `_raw`.
  */
 
-call cdp.ml_job_list (type => 'Prediction', limit => 25, offset => 0, _pages => 2);
+call d360.ml_job_list (type => 'Prediction', limit => 25, offset => 0, _pages => 2);

@@ -4,7 +4,7 @@
  * Pass each field as `ml_query_setup_fields` returned it. The platform needs at least three fields and 400 rows after filters. The call leaves the version in `Draft` and trains nothing, check `status` in the result and then send `Training` with `ml_setup_version_update`.
  */
 
-call cdp.ml_setup_version_create (
+call d360.ml_setup_version_create (
     model_setup_id_or_name => 'Attrition_Risk_Predictor',
     type => 'EdcNoCode',
     description => 'First version of the attrition model.',

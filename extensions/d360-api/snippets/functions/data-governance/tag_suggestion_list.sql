@@ -4,4 +4,4 @@
  * `status` is `New`, `Approved`, `Rejected` or `AutoRejected`. The new ones are those waiting for a decision.
  */
 
-call cdp.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New', limit => 50);
+call d360.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New', limit => 50);

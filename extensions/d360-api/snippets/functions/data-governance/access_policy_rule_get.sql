@@ -4,6 +4,6 @@
  * Reading it first is also what you want before replacing it.
  */
 
-call cdp.access_policy_get (name => 'RestrictSensitiveFields');
+call d360.access_policy_get (name => 'RestrictSensitiveFields');
 
-call cdp.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
+call d360.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');

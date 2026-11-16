@@ -4,9 +4,9 @@
  * Unloading is a setting of the connection and only affects accelerated streams. It is on by default, and `unloadData = 'false'` turns it off, which can slow down moving the data. The attribute name comes from a community recipe, `connector_metadata` lists the names of your org. Wait for the connection to be `Active` before the third call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connector_metadata (connector_type => 'SNOWFLAKE');
+call d360.connector_metadata (connector_type => 'SNOWFLAKE');
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'SNOWFLAKE',
     label => 'Snowflake unload',
     name => 'Snowflake_Unload',
@@ -25,7 +25,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_snowflake_unload',
     label => 'Orders (Snowflake unload)',
     data_stream_type => 'EXTERNAL',
@@ -59,4 +59,4 @@ call cdp.datastream_create (
     )
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_snowflake_unload');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_snowflake_unload');

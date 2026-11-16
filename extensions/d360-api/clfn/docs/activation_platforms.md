@@ -2,7 +2,7 @@
 
 # Activation Platforms
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 An activation platform defines a destination: its output format, attributes, identifiers and connector. An [activation target](activation_targets.md) is a configured use of a platform in a data space, and an [activation](activations.md) sends a segment to a target. So the order is platform, target, activation.
 
@@ -17,12 +17,12 @@ Things to watch:
 
 ```sql
 /* A packaged platform: find it, then point a target at it. */
-CALL cdp.activation_external_platform_list ();
-CALL cdp.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'));
+CALL d360.activation_external_platform_list ();
+CALL d360.activation_target_create (name => 'google_ads_target', dataspace_name => 'default', platform_type => 'ExternalPlatform', connector => (name = 'PremiumPartnerGoogle', key_prefix_name = 'cdpactvstrgptnr'));
 
 /* Your own platform, after activation_platform_create: */
-CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
-CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_get (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_publish (id_or_name => 'abc_user_identifiers');
 ```
 
 **Functions:** [`activation_platform_delete`](#activation_platform_delete), [`activation_external_platform_list`](#activation_external_platform_list), [`activation_external_platform_get`](#activation_external_platform_get), [`activation_platform_list`](#activation_platform_list), [`activation_platform_get`](#activation_platform_get), [`activation_platform_action_source_list`](#activation_platform_action_source_list), [`activation_platform_event_list`](#activation_platform_event_list), [`activation_platform_partner_object_type_list`](#activation_platform_partner_object_type_list), [`activation_platform_update`](#activation_platform_update), [`activation_platform_create`](#activation_platform_create), [`activation_platform_disable`](#activation_platform_disable), [`activation_platform_enable`](#activation_platform_enable), [`activation_platform_publish`](#activation_platform_publish), [`activation_platform_sync_retry`](#activation_platform_sync_retry), [`activation_platform_privacy_type_set`](#activation_platform_privacy_type_set)
@@ -40,7 +40,7 @@ Deletes an activation platform. Returns a 412 error if the platform is reference
 | `id_or_name` | `idOrName` | path | string | yes | Record ID or API name of the activation platform. |
 
 ```sql
-CALL cdp.activation_platform_delete (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_delete (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -65,7 +65,7 @@ Lists the org's activation external platforms with their status, type, namespace
 | `order_by` | `orderBy` | query | string |  | Order in which to sort the results based on the `created_date` field. Specify the field name followed by `asc` for ascending order or `desc` for descending order. If you specify only the field name or omit the parameter, results are sorted in ascending order. For example, `created_date asc` and `created_date` yield the same results. Since v64.0. |
 
 ```sql
-CALL cdp.activation_external_platform_list ();
+CALL d360.activation_external_platform_list ();
 ```
 
 **Result**
@@ -115,7 +115,7 @@ Returns one external platform with its attribute configuration. Pass an event na
 | `event_name` | `eventName` | query | string |  | Standard event name used, together with `action_source`, to scope the returned attribute configuration. For example, the platform's standard event. Since v67.0. |
 
 ```sql
-CALL cdp.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website');
+CALL d360.activation_external_platform_get (id_or_name => '1sqxx0000000087AAA', event_name => 'Purchase', action_source => 'Website');
 ```
 
 **Result**
@@ -162,7 +162,7 @@ Returns a paginated list of activation platforms. Since v67.0.
 | `order_by` | `orderBy` | query | string |  | Sort expression in the form `<field_name> <ASC\|DESC>`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_list ();
+CALL d360.activation_platform_list ();
 ```
 
 **Result**
@@ -198,7 +198,7 @@ Returns an activation platform by record ID or API name. Since v67.0.
 | `id_or_name` | `idOrName` | path | string | yes | Record ID or API name of the activation platform. |
 
 ```sql
-CALL cdp.activation_platform_get (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_get (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -263,7 +263,7 @@ Returns the action sources valid for an event on the platform. Use it after acti
 | `page_size` | `pageSize` | query | integer |  | Maximum number of action sources to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase');
+CALL d360.activation_platform_action_source_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API', event_name => 'Purchase');
 ```
 
 **Result**
@@ -293,7 +293,7 @@ Returns the standard event names configured for the activation platform's stream
 | `page_size` | `pageSize` | query | integer |  | Maximum number of events to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API');
+CALL d360.activation_platform_event_list (id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API');
 ```
 
 **Result**
@@ -323,7 +323,7 @@ Returns the partner-object types valid for the activation platform, such as Pixe
 | `page_size` | `pageSize` | query | integer |  | Maximum number of partner-object types to return. Values are `1` through `200`. If unspecified, the default value is `20`. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform');
+CALL d360.activation_platform_partner_object_type_list (id_or_name => 'cdpactvstrgptnr__LinkedInPlatform');
 ```
 
 **Result**
@@ -365,7 +365,7 @@ Updates an activation platform by record ID or API name. Only the fields you pro
 | `refresh_settings` | `refreshSettings` | body | [RefreshSettingsInput](#refreshsettingsinputrepresentation) |  | Refresh configuration for the platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'));
+CALL d360.activation_platform_update (id_or_name => 'abc_user_identifiers', description => 'Activates only user identifiers', refresh_settings => (mode = 'Incremental', frequency = 'TwentyFourHours', periodic_full_refresh = 'Every30Days'));
 ```
 
 **Result**
@@ -443,7 +443,7 @@ Creates an activation platform. Since v67.0.
 | `refresh_settings` | `refreshSettings` | body | [RefreshSettingsInput](#refreshsettingsinputrepresentation) | yes | Refresh configuration for the platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_create (
+CALL d360.activation_platform_create (
   name => 'abc_user_identifiers',
   label => 'abc-user-identifiers',
   description => 'Activates only user identifiers',
@@ -528,7 +528,7 @@ Disables an activation platform. Since v67.0.
 | `id_or_name` | `idOrName` | path | string | yes | 18-character ID or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_disable (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_disable (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -555,7 +555,7 @@ Enables an activation platform. Since v67.0.
 | `id_or_name` | `idOrName` | path | string | yes | 18-character ID or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_enable (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_enable (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -580,7 +580,7 @@ Publishes an activation platform and sets its status to active. Since v67.0.
 | `id_or_name` | `idOrName` | path | string | yes | Record ID (18-character) or API name of the activation platform to publish. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_publish (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_publish (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -609,7 +609,7 @@ Retries the sync operation for an activation platform that previously failed. Si
 | `id_or_name` | `idOrName` | path | string | yes | 18-character ID or API name of the activation platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers');
+CALL d360.activation_platform_sync_retry (id_or_name => 'abc_user_identifiers');
 ```
 
 **Result**
@@ -639,7 +639,7 @@ Sets the privacy type classification for an activation platform. Since v67.0.
 | `privacy_type` | `privacyType` | body | enum(ThirdParty, ServiceProvider, UpdateFailed, NotApplicable) | yes | Privacy type classification for the platform. Since v67.0. |
 
 ```sql
-CALL cdp.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable');
+CALL d360.activation_platform_privacy_type_set (id_or_name => 'abc_user_identifiers', privacy_type => 'NotApplicable');
 ```
 
 **Result**

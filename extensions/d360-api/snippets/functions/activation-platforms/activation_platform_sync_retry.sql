@@ -4,6 +4,6 @@
  * Use it when `status` is `Error`. It is done when `status` leaves `Processing` for `Active` or `Error`.
  */
 
-call cdp.activation_platform_get (id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+call d360.activation_platform_get (id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
 
-call cdp.activation_platform_sync_retry (id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');
+call d360.activation_platform_sync_retry (id_or_name => 'cdpactvstrgptnr__PremiumPartnerGoogle');

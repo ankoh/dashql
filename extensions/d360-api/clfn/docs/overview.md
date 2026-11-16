@@ -1,8 +1,8 @@
-# CDP SQL
+# The Data 360 extension
 
 Status: the spec is in `extensions/d360-api/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion, and calls that read run in the app. Calls that write fail before anything is sent, and nothing has been tested against an org.
 
-CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [extension](../../../../docs/design/extensions.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [extensions.md](../../../../docs/design/extensions.md) describes them.
+The Data 360 extension lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [extension](../../../../docs/design/extensions.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [extensions.md](../../../../docs/design/extensions.md) describes them.
 
 - [functions.md](functions.md) is the function reference, with one document per family in this directory.
 - [api_notes.md](api_notes.md) holds the research: API quirks, usage order, sources and a list of checks to run on an org.
@@ -13,12 +13,12 @@ CDP SQL lets a DashQL script reach the whole Salesforce Data 360 API, with one f
 2. **Know the API.** Completion and checks cover every function, option and nested attribute.
 3. **Prove the extension point.** Anything Data 360 needs goes into the generic format or the binding. Core and the runtime stay free of Salesforce.
 
-**Why functions and not `CREATE SEGMENT`:** a verb-and-kind language needs a design for each kind of object, and it falls behind the API whenever an operation doesn't fit. High-level forms can come later and compile to `CALL cdp.*`, and `EXPLAIN` would show the calls they produce.
+**Why functions and not `CREATE SEGMENT`:** a verb-and-kind language needs a design for each kind of object, and it falls behind the API whenever an operation doesn't fit. High-level forms can come later and compile to `CALL d360.*`, and `EXPLAIN` would show the calls they produce.
 
 ## The statement
 
 ```sql
-CALL cdp.segment_create (
+CALL d360.segment_create (
   dataspace => 'default',
   display_name => 'Any high-value order',
   description => 'Individuals with an order over 5000',
@@ -36,21 +36,21 @@ CALL cdp.segment_create (
   )]))
 );
 
-CALL cdp.segment_list (batch_size => 200, offset => 0);
-CALL cdp.segment_list (batch_size => 200, _pages => 5);
-CALL cdp.segment_publish (segment_id => '1sgRM0000000001');
-CALL cdp.segment_get (segment_api_name => :segment);
+CALL d360.segment_list (batch_size => 200, offset => 0);
+CALL d360.segment_list (batch_size => 200, _pages => 5);
+CALL d360.segment_publish (segment_id => '1sgRM0000000001');
+CALL d360.segment_get (segment_api_name => :segment);
 
 /* Any endpoint the spec doesn't know yet */
-CALL cdp.request (method => 'POST', path => '/ssot/new-thing', body => (a = 1));
+CALL d360.request (method => 'POST', path => '/ssot/new-thing', body => (a = 1));
 
 /* Prints the resolved HTTP request, sends nothing */
-EXPLAIN CALL cdp.segment_delete (segment_api_name => 'vip');
+EXPLAIN CALL d360.segment_delete (segment_api_name => 'vip');
 ```
 
 ## The Salesforce binding
 
-The binding of the Salesforce connector (`ClientFunctionBinding` of `clfn/connection.rs` in `dashql_core_runtime`) enables the spec, so the spec shadows `cdp.` on Salesforce connections: nothing under it reaches the backend, and a function the spec doesn't know is an error. On any other connection, `CALL cdp.*` goes to the backend as written.
+The binding of the Salesforce connector (`ClientFunctionBinding` of `clfn/connection.rs` in `dashql_core_runtime`) enables the spec, so the spec shadows `d360.` on Salesforce connections: nothing under it reaches the backend, and a function the spec doesn't know is an error. On any other connection, `CALL d360.*` goes to the backend as written.
 
 | Spec host | Base path | Token | Used by |
 |---|---|---|---|
@@ -77,7 +77,7 @@ The binding of the Salesforce connector (`ClientFunctionBinding` of `clfn/connec
 | `offset` with `limit` or `batch_size` | Kind `offset` |
 | `page_token`, from `nextPageToken` | Kind `token` |
 | `continuationToken` in the response | Kind `token`, with a pointer to it |
-| `nextBatchId`, which the spec gives no way to send | No `paging`. The function reads the first batch, and the rest goes through `cdp.request` |
+| `nextBatchId`, which the spec gives no way to send | No `paging`. The function reads the first batch, and the rest goes through `d360.request` |
 | A short page that isn't the end (DLOs) | No `short_page` on that function. It follows its next URL until that's absent |
 | `calculated_insights` requires `offset` alongside `page_token` | An ordinary option the script sets |
 | Options in the path, query, header or body | `in`: 411, 542, 18 and 1,279 rows in the reference |
@@ -94,7 +94,7 @@ Data 360's contract doesn't exercise the format much: it has no top-level array 
 
 ## The spec is the source
 
-The extension lives in `extensions/d360-api/`, while its namespace is `cdp`. `clfn/spec/*.yaml` is edited by hand and holds everything, prose included: `clfn.yaml` the spec itself, and every other file one family with its functions and schemas. `clfn/spec/generate_spec.rs` generates two things from it and reads nothing back:
+The extension lives in `extensions/d360-api/`, while its namespace is `d360`. `clfn/spec/*.yaml` is edited by hand and holds everything, prose included: `clfn.yaml` the spec itself, and every other file one family with its functions and schemas. `clfn/spec/generate_spec.rs` generates two things from it and reads nothing back:
 
 - `spec.json`, the facts that the core and the runtime read, and the descriptions, examples and result descriptions that completion shows. It's a build output, `//extensions/d360-api:spec`, and isn't checked in.
 - The family documents of [the reference](functions.md), which are checked in so that they can be read anywhere.
@@ -186,13 +186,13 @@ The contract declares no discriminators: variants inherit the attribute from a s
 
 The other 5 have no such attribute inside the object, so only their attributes decide: `CdpDataKitDeployComponentRepresentation.config`, `CdpDataKitDeployComponentConfigForBundle.bundle_config`, `ConnectorInputRepresentation.connector_details`, `DataKitComponentInputRepresentation.info` and `dataaction_target_create.config`. Variants that overlap stay possible together: `config = (template_dev_name = 'x')` fits several of the 27 variants of `config`.
 
-The mapping is unverified until it runs against an org. A wrong entry rejects a valid call. Quoting the attribute that doesn't fit gets past that, and `cdp.request` takes anything.
+The mapping is unverified until it runs against an org. A wrong entry rejects a valid call. Quoting the attribute that doesn't fit gets past that, and `d360.request` takes anything.
 
 **The spec also disagrees with itself on values.** Enums often differ in case between schema and examples (`Direct` and `DIRECT`), and the field names `dataSpaceName` and `dataspaceName` both appear. Values aren't checked, so those reach the server, and the family documents call out the known conflicts.
 
 ## Functions and options
 
-- **The Query API is left out on purpose.** The Salesforce connection subsumes it: a script's `SELECT` already runs over that connection, so `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` and `/ssot/query-sql` get no functions. `cdp.request` can still reach them.
+- **The Query API is left out on purpose.** The Salesforce connection subsumes it: a script's `SELECT` already runs over that connection, so `/api/v1/query`, `/api/v2/query`, `/api/v3/query`, `/ssot/query`, `/ssot/queryv2` and `/ssot/query-sql` get no functions. `d360.request` can still reach them.
 - **One function per HTTP operation.** Variants collapse: `datastream_create_snowflake` is an ordinary `datastream_create` with particular attributes.
 - **Function names** follow Salesforce's MCP tool names without `d360_` where a tool exists, so its skills and examples transfer. Others follow the same `<noun>_<verb>` pattern, derived from the spec's summary.
 - **Option names** are the API's names in snake_case. The rare clash between a body field and a path or query parameter gets a prefix on the body field: `segment_create` has both `dataspace` (query) and `body_dataspace` (body). A handful of functions need this.
@@ -234,7 +234,7 @@ Data 360 has several SQL dialects (see [the notes](api_notes.md#sql-dialects)), 
 ## Credentials
 
 ```sql
-CALL cdp.connection_create (
+CALL d360.connection_create (
   label => 'prod',
   connector_type => 'SNOWFLAKE',
   credentials => [
@@ -248,10 +248,10 @@ Connection credentials are a list of `(param_name, value)` pairs, as the API has
 
 ## The escape hatch
 
-`cdp.request` is the spec's [raw function](../../../../docs/design/client_functions.md#the-escape-hatch):
+`d360.request` is the spec's [raw function](../../../../docs/design/client_functions.md#the-escape-hatch):
 
 ```sql
-CALL cdp.request (method => 'POST', path => '/ssot/new-thing', host => 'tenant', body => (a = 1), someParam => 1);
+CALL d360.request (method => 'POST', path => '/ssot/new-thing', host => 'tenant', body => (a = 1), someParam => 1);
 ```
 
 It's the only function with a `body` option.
@@ -288,7 +288,7 @@ The [client function roadmap](../../../../docs/design/client_functions.md#roadma
 1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Built. It still needs a browser CORS check on the tenant host, since only `GET` on `/services/data` is exercised today.
 2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
 3. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.
-4. **High-level forms**, if wanted, compiling to `CALL cdp.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.
+4. **High-level forms**, if wanted, compiling to `CALL d360.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.
 
 ## Open questions
 
@@ -296,4 +296,4 @@ The [client function roadmap](../../../../docs/design/client_functions.md#roadma
 2. **CORS for writes.** If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
 3. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
 4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.
-5. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `cdp.request` for now.
+5. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `d360.request` for now.

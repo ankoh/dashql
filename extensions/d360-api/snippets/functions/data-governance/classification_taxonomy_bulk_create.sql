@@ -4,7 +4,7 @@
  * Check `has_errors` and each `results[].statusCode`, since single items can fail.
  */
 
-call cdp.classification_taxonomy_bulk_create (
+call d360.classification_taxonomy_bulk_create (
     taxonomies => [
         (
             name = 'Compliance_Classifications',
@@ -19,4 +19,4 @@ call cdp.classification_taxonomy_bulk_create (
     ]
 );
 
-call cdp.classification_taxonomy_list (search_string => 'Classifications');
+call d360.classification_taxonomy_list (search_string => 'Classifications');

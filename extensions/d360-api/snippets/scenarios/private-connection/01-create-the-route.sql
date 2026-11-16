@@ -4,7 +4,7 @@
  * Create a PrivateLink route to Snowflake.
  */
 
-call cdp.private_network_route_create (
+call d360.private_network_route_create (
     name => 'Snowflake_Prod',
     label => 'Snowflake Prod',
     description => 'PrivateLink route to the prod Snowflake account',

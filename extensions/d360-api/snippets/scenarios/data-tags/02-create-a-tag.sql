@@ -4,4 +4,4 @@
  * Create a tag in the taxonomy.
  */
 
-call cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
+call d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');

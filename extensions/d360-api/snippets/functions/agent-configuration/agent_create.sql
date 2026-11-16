@@ -4,7 +4,7 @@
  * Registration provisions the infrastructure and takes a while. Read the agent until `status` is `Active`, comparing case-insensitively. The profile DMO applies to the whole data space and can't be changed afterwards.
  */
 
-call cdp.agent_create (
+call d360.agent_create (
     name => 'support_agent',
     label => 'Support Agent',
     description => 'Support chat with customer memory',
@@ -14,4 +14,4 @@ call cdp.agent_create (
     )
 );
 
-call cdp.agent_get (agent_id_or_api_name => 'support_agent');
+call d360.agent_get (agent_id_or_api_name => 'support_agent');

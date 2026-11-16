@@ -4,7 +4,7 @@
  * Read the values of one insight.
  */
 
-call cdp.insights_query (
+call d360.insights_query (
     ci_name => 'Avg_Spends__cio',
     dimensions => 'Id__c,FirstName__c',
     measures => 'Avg_Spend__c',

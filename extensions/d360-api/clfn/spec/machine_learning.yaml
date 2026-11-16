@@ -14,11 +14,11 @@ description: |
   - Keying differs: `model_setup_id_or_name` takes either, but a setup version takes only its ID.
 
   ```sql
-  CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', status => 'Training');
-  CALL cdp.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
-  CALL cdp.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
-  CALL cdp.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
-  CALL cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+  CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', status => 'Training');
+  CALL d360.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
+  CALL d360.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
+  CALL d360.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
+  CALL d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
   ```
 
 functions:
@@ -29,7 +29,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1configured-models~1%7BconfiguredModelIdOrName%7D/delete
     tools: [d360_ml_configured_model_delete]
     description: Delete a configured model. Since v61.0.
-    example: CALL cdp.ml_configured_model_delete (configured_model_id_or_name => '...');
+    example: CALL d360.ml_configured_model_delete (configured_model_id_or_name => '...');
     options:
       - {name: configured_model_id_or_name, api_name: configuredModelIdOrName, in: path, type: string, required: true, description: "Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`."}
     effect: write
@@ -43,7 +43,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-artifacts~1%7BmodelArtifactIdOrName%7D/delete
     tools: [d360_ml_model_artifact_delete]
     description: Delete the model artifact. Since v61.0.
-    example: CALL cdp.ml_model_artifact_delete (model_artifact_id_or_name => '...');
+    example: CALL d360.ml_model_artifact_delete (model_artifact_id_or_name => '...');
     options:
       - {name: model_artifact_id_or_name, api_name: modelArtifactIdOrName, in: path, type: string, required: true, description: "Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`."}
     effect: write
@@ -58,7 +58,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1prediction-job-definitions~1%7BpredictionJobDefIdOrName%7D/delete
     tools: [d360_prediction_job_def_delete]
     description: Delete a specific prediction job definition. Since v59.0.
-    example: CALL cdp.prediction_job_def_delete (prediction_job_def_id_or_name => '...');
+    example: CALL d360.prediction_job_def_delete (prediction_job_def_id_or_name => '...');
     options:
       - {name: prediction_job_def_id_or_name, api_name: predictionJobDefIdOrName, in: path, type: string, required: true, description: "Prediction job definition ID or API name."}
     effect: write
@@ -73,7 +73,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D/delete
     tools: [d360_retriever_delete]
     description: Deletes a retriever and all its configuration versions. The retriever must not be used by other entities. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_delete (retriever_id_or_name => '...');
+    example: CALL d360.retriever_delete (retriever_id_or_name => '...');
     options:
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
     effect: write
@@ -88,7 +88,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D~1configurations~1%7BretrieverConfigurationIdOrName%7D/delete
     tools: [d360_retriever_config_delete]
     description: Deletes one configuration version of a retriever. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_config_delete (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
+    example: CALL d360.retriever_config_delete (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
     options:
       - {name: retriever_configuration_id_or_name, api_name: retrieverConfigurationIdOrName, in: path, type: string, required: true, description: "Configuration ID or name."}
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
@@ -103,7 +103,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1configured-models/get
     tools: [d360_ml_configured_model_list]
     description: Get the set of configured models and their properties. Since v61.0.
-    example: CALL cdp.ml_configured_model_list (asset_id_or_name => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact');
+    example: CALL d360.ml_configured_model_list (asset_id_or_name => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact');
     options:
       - {name: asset_id_or_name, api_name: assetIdOrName, in: query, type: string, description: "The model's name or ID. If not provided, information for all configured models is returned. Since v61.0."}
       - {name: asset_type, api_name: assetType, in: query, type: string, enum: [ModelArtifact, ModelSetup], description: "Whether the model is a configured model or a model artifact. Since v61.0."}
@@ -166,7 +166,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1configured-models~1%7BconfiguredModelIdOrName%7D/get
     tools: [d360_ml_configured_model_get]
     description: Get the configured model. If using the model's name, use `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`. Since v61.0.
-    example: CALL cdp.ml_configured_model_get (configured_model_id_or_name => 'Attrition_Predictor_Catboost');
+    example: CALL d360.ml_configured_model_get (configured_model_id_or_name => 'Attrition_Predictor_Catboost');
     options:
       - {name: configured_model_id_or_name, api_name: configuredModelIdOrName, in: path, type: string, required: true, description: "Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`."}
       - {name: filter_group, api_name: filterGroup, in: query, type: string, description: "Group on which to filter response results. Valid values are `Big`, `Medium`, and `Small`. - `Big` provides comprehensive results by returning properties whose filter group is `Big`, `Medium`, or `Small`. - `Medium` provides moderate results by returning properties whose filter group is `Medium` or `Small`. - `Small` provides essential results by returning only properties whose filter group is `Small`. The default is `Big`. Since v61.0."}
@@ -215,7 +215,7 @@ functions:
     path: /ssot/machine-learning/jobs
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1jobs/get
     description: Get a list of predict jobs. Since v59.0.
-    example: CALL cdp.ml_job_list (type => 'Prediction', limit => 25);
+    example: CALL d360.ml_job_list (type => 'Prediction', limit => 25);
     options:
       - {name: job_id_or_name, api_name: jobIdOrName, in: query, type: string, description: "ID or API name of the predict job. Since v59.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of predict jobs to return. Since v59.0."}
@@ -258,7 +258,7 @@ functions:
     path: /ssot/machine-learning/jobs/{jobId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1jobs~1%7BjobId%7D/get
     description: Get a specific predict job. Since v59.0.
-    example: CALL cdp.ml_job_get (job_id => '...');
+    example: CALL d360.ml_job_get (job_id => '...');
     options:
       - {name: job_id, api_name: jobId, in: path, type: string, required: true, description: "ID of the predict job. Since v59.0."}
     columns:
@@ -293,7 +293,7 @@ functions:
     path: /ssot/machine-learning/jobs/{jobId}/tasks
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1jobs~1%7BjobId%7D~1tasks/get
     description: Get a list of tasks associated with a specific predict job. Since v59.0.
-    example: CALL cdp.ml_job_task_list (job_id => '...');
+    example: CALL d360.ml_job_task_list (job_id => '...');
     options:
       - {name: job_id, api_name: jobId, in: path, type: string, required: true, description: "ID of the predict job. Since v59.0."}
     rows: /tasks
@@ -325,7 +325,7 @@ functions:
     path: /ssot/machine-learning/jobs/{jobId}/tasks/{taskId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1jobs~1%7BjobId%7D~1tasks~1%7BtaskId%7D/get
     description: Get a task associated with a specific predict job. Since v59.0.
-    example: CALL cdp.ml_job_task_get (job_id => '...', task_id => '...');
+    example: CALL d360.ml_job_task_get (job_id => '...', task_id => '...');
     options:
       - {name: job_id, api_name: jobId, in: path, type: string, required: true, description: "ID of the predict job. Since v59.0."}
       - {name: task_id, api_name: taskId, in: path, type: string, required: true, description: "ID of the task. Since v59.0."}
@@ -358,7 +358,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-artifacts/get
     tools: [d360_ml_model_artifact_list]
     description: Get model artifacts. Since v61.0.
-    example: CALL cdp.ml_model_artifact_list ();
+    example: CALL d360.ml_model_artifact_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of artifacts to return. Since v61.0."}
       - {name: model_type, api_name: modelType, in: query, type: string, enum: [Generative, Predictive, Unknown], description: "Type of artifacts to return. Since v61.0."}
@@ -410,7 +410,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-artifacts~1%7BmodelArtifactIdOrName%7D/get
     tools: [d360_ml_model_artifact_get]
     description: Get the model artifact. Since v61.0.
-    example: CALL cdp.ml_model_artifact_get (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla');
+    example: CALL d360.ml_model_artifact_get (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla');
     options:
       - {name: model_artifact_id_or_name, api_name: modelArtifactIdOrName, in: path, type: string, required: true, description: "Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`."}
     columns:
@@ -454,7 +454,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions/get
     tools: [d360_ml_setup_version_list]
     description: Retrieve a list of model setup versions. Since v59.0.
-    example: CALL cdp.ml_setup_version_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', limit => 25);
+    example: CALL d360.ml_setup_version_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', limit => 25);
     options:
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: active, in: query, type: boolean, description: "Indicates whether the model setup is active (`true`) or not (`false`). Since v59.0."}
@@ -505,7 +505,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions~1%7BmodelSetupVersionId%7D/get
     tools: [d360_ml_setup_version_get]
     description: Retrieve a specific model setup version. Since v59.0.
-    example: CALL cdp.ml_setup_version_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
+    example: CALL d360.ml_setup_version_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
     options:
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: model_setup_version_id, api_name: modelSetupVersionId, in: path, type: string, required: true, description: "Setup version ID. A name is not accepted. Get it from `ml_setup_version_list` or the `ml_setup_version_create` result."}
@@ -548,7 +548,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{modelSetupIdOrName}/setup-versions/{modelSetupVersionId}/partitions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions~1%7BmodelSetupVersionId%7D~1partitions/get
     description: Retrieve all partitions of a specific model setup version. Since v59.0.
-    example: CALL cdp.ml_setup_version_partition_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
+    example: CALL d360.ml_setup_version_partition_list (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA');
     options:
       - {name: model_setup_version_id, api_name: modelSetupVersionId, in: path, type: string, required: true, description: "In the path, but missing from the spec's parameters."}
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "In the path, but missing from the spec's parameters."}
@@ -576,7 +576,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{modelSetupIdOrName}/setup-versions/{modelSetupVersionId}/partitions/{modelSetupPartitionId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions~1%7BmodelSetupVersionId%7D~1partitions~1%7BmodelSetupPartitionId%7D/get
     description: Retrieve a partition of a specific model setup version. Since v59.0.
-    example: CALL cdp.ml_setup_version_partition_get (model_setup_id_or_name => '...', model_setup_partition_id => '...', model_setup_version_id => '...');
+    example: CALL d360.ml_setup_version_partition_get (model_setup_id_or_name => '...', model_setup_partition_id => '...', model_setup_version_id => '...');
     options:
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: model_setup_partition_id, api_name: modelSetupPartitionId, in: path, type: string, required: true, description: "ID of the model setup partition. Since v59.0."}
@@ -604,7 +604,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1prediction-job-definitions/get
     tools: [d360_prediction_job_def_list]
     description: Get a list of existing prediction job definitions. Since v59.0.
-    example: CALL cdp.prediction_job_def_list ();
+    example: CALL d360.prediction_job_def_list ();
     options:
       - {name: model_id, api_name: modelId, in: query, type: string, description: "ID of the machine learning model. Since v59.0."}
     rows: /predictionJobDefinitions
@@ -644,7 +644,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1prediction-job-definitions~1%7BpredictionJobDefIdOrName%7D/get
     tools: [d360_prediction_job_def_get]
     description: Get a specific prediction job definition. Since v59.0.
-    example: CALL cdp.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
+    example: CALL d360.prediction_job_def_get (prediction_job_def_id_or_name => 'attrition_scores');
     options:
       - {name: prediction_job_def_id_or_name, api_name: predictionJobDefIdOrName, in: path, type: string, required: true, description: "Prediction job definition ID or API name."}
     columns:
@@ -680,7 +680,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers/get
     tools: [d360_retriever_list]
     description: Lists retrievers one page at a time, out-of-the-box retrievers first. Use it to find the `name` that the other retriever calls take, and to check for an existing label before you create one. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_list (search => 'Bathroom', detail_level => 'Basic', limit => 50);
+    example: CALL d360.retriever_list (search => 'Bathroom', detail_level => 'Basic', limit => 50);
     options:
       - {name: data_cloud_one_visibility, api_name: dataCloudOneVisibility, in: query, type: string, enum: [All, Consumable, Local, Remote], description: "Filter retrievers by visibility across organizations in Data Cloud One. Since v61.0."}
       - {name: detail_level, api_name: detailLevel, in: query, type: string, enum: [Basic, Detailed], description: "Response detail level. If unspecified, the default value is `Detailed`. Since v61.0."}
@@ -735,7 +735,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D/get
     tools: [d360_retriever_get]
     description: Get a retriever with its latest and active configurations. Since v61.0.
-    example: CALL cdp.retriever_get (retriever_id_or_name => 'DIY_Bathroom_Retriever_1Cx_9H02ce17169');
+    example: CALL d360.retriever_get (retriever_id_or_name => 'DIY_Bathroom_Retriever_1Cx_9H02ce17169');
     options:
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
     columns:
@@ -775,7 +775,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D~1configurations/get
     tools: [d360_retriever_config_list]
     description: Lists all configuration versions of a retriever. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_config_list (retriever_id_or_name => '...');
+    example: CALL d360.retriever_config_list (retriever_id_or_name => '...');
     options:
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
       - {name: limit, in: query, type: integer, description: "Maximum number of configurations to return. Values are `1` through `200`. `-1` is no limit. If unspecified, `25` configurations are returned. Since v61.0."}
@@ -814,7 +814,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D~1configurations~1%7BretrieverConfigurationIdOrName%7D/get
     tools: [d360_retriever_config_get]
     description: Gets one configuration version, with query type, output fields, filters and citation settings. The active configuration is what the retriever uses at runtime. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_config_get (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
+    example: CALL d360.retriever_config_get (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...');
     options:
       - {name: retriever_configuration_id_or_name, api_name: retrieverConfigurationIdOrName, in: path, type: string, required: true, description: "Configuration ID or name."}
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
@@ -859,7 +859,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1alerts~1%7BalertId%7D/patch
     tools: [d360_ml_alert_update]
     description: Partially update an existing data alert. Since v61.0.
-    example: CALL cdp.ml_alert_update (alert_id => '...', accepted => true);
+    example: CALL d360.ml_alert_update (alert_id => '...', accepted => true);
     options:
       - {name: alert_id, api_name: alertId, in: path, type: string, required: true, description: "ID of the data alert. Since v61.0."}
       - {name: accepted, in: body, type: boolean, description: "Indicates whether the alert is accepted (`true`) or not (`false`). Include only one of the properties, `accepted` or `dismissed`, with the request. Since v61.0."}
@@ -893,7 +893,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1configured-models~1%7BconfiguredModelIdOrName%7D/patch
     tools: [d360_ml_configured_model_update, d360_ml_configured_model_activate]
     description: Update a configured model. If using the model's name, use `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`. Since v61.0.
-    example: CALL cdp.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
+    example: CALL d360.ml_configured_model_update (configured_model_id_or_name => 'Attrition_Predictor_Catboost', status => 'Enabled');
     options:
       - {name: configured_model_id_or_name, api_name: configuredModelIdOrName, in: path, type: string, required: true, description: "Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`."}
       - {name: actionable_fields, api_name: actionableFields, in: body, array: 1, type: object, description: "The spec marks this required, but the example here leaves it out. List of actionable fields. An actionable field is a data field or variable in your dataset that you can use to drive actions based on the model's predictions. These fields are typically used to trigger workflows, automation, or other follow-up actions in Salesforce. Since v61.0."}
@@ -950,7 +950,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-artifacts~1%7BmodelArtifactIdOrName%7D/patch
     tools: [d360_ml_model_artifact_update]
     description: Update the model artifact. Since v61.0.
-    example: CALL cdp.ml_model_artifact_update (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla', status => 'Enabled');
+    example: CALL d360.ml_model_artifact_update (model_artifact_id_or_name => 'Attrition_Risk_Predictor_v1__mla', status => 'Enabled');
     options:
       - {name: model_artifact_id_or_name, api_name: modelArtifactIdOrName, in: path, type: string, required: true, description: "Model artifact ID or developer name, for example `Attrition_Risk_Predictor_v1__mla`."}
       - {name: description, in: body, type: string, description: "The spec marks this required, but the example here leaves it out. The model artifact's description. Since v61.0."}
@@ -998,7 +998,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions~1%7BmodelSetupVersionId%7D/patch
     tools: [d360_ml_setup_version_update]
     description: Partially update an existing model setup version. Since v59.0.
-    example: CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode');
+    example: CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode');
     options:
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: model_setup_version_id, api_name: modelSetupVersionId, in: path, type: string, required: true, description: "Setup version ID. A name is not accepted. Get it from `ml_setup_version_list` or the `ml_setup_version_create` result."}
@@ -1041,7 +1041,7 @@ functions:
       **Notes:** This is the call that starts training, but the spec's base schema omits the attributes that matter. The [MCP tool](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/machinelearning/setup/ModelSetupTools.java) sends `type = 'EdcNoCode'` plus `status` and `description`, the only mutable fields:
 
       ```sql
-      CALL cdp.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode', status => 'Training');
+      CALL d360.ml_setup_version_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', model_setup_version_id => '14kSB0000005d8nYAA', type => 'EdcNoCode', status => 'Training');
       ```
 
       To change the input, outcomes, fields or algorithm, create a new version with `source_setup_version_number` set to the prior version. An [MCP test](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/test/java/com/salesforce/data360/mcp/tools/machinelearning/setup/ModelSetupToolsTest.java) also sends `status = 'Canceled'`, which is the only evidence for that value.
@@ -1053,7 +1053,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1prediction-job-definitions~1%7BpredictionJobDefIdOrName%7D/patch
     tools: [d360_prediction_job_def_update, d360_prediction_job_def_activate, d360_prediction_job_def_deactivate]
     description: Update a specific prediction job definition. Since v59.0.
-    example: CALL cdp.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
+    example: CALL d360.prediction_job_def_update (prediction_job_def_id_or_name => 'attrition_scores', activation_status => 'Active');
     options:
       - {name: prediction_job_def_id_or_name, api_name: predictionJobDefIdOrName, in: path, type: string, required: true, description: "Prediction job definition ID or API name."}
       - {name: clustering_settings, api_name: clusteringSettings, in: body, schema: MlClusteringJobDefSettingsInputRepresentation, description: "-"}
@@ -1102,7 +1102,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D/patch
     tools: [d360_retriever_update]
     description: Changes the label or description of a retriever. To change how it retrieves, create a new configuration version. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_update (retriever_id_or_name => '...', label => 'Enriched Search Index UDMO Retriever', description => 'A NoCode retriever from a search index with enriched index configured. The search index source DMO is unstructured for a document file.');
+    example: CALL d360.retriever_update (retriever_id_or_name => '...', label => 'Enriched Search Index UDMO Retriever', description => 'A NoCode retriever from a search index with enriched index configured. The search index source DMO is unstructured for a document file.');
     options:
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
       - {name: description, in: body, type: string, description: "Description of the retriever. Since v67.0."}
@@ -1143,7 +1143,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D~1configurations~1%7BretrieverConfigurationIdOrName%7D/patch
     tools: [d360_retriever_config_update]
     description: Activates or deactivates a configuration version. `is_active => true` also deactivates the previously active one. `is_active => false` on the active one deactivates the retriever, which must not be in use by other entities at that point. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_config_update (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...', is_active => true);
+    example: CALL d360.retriever_config_update (retriever_configuration_id_or_name => '...', retriever_id_or_name => '...', is_active => true);
     options:
       - {name: retriever_configuration_id_or_name, api_name: retrieverConfigurationIdOrName, in: path, type: string, required: true, description: "Configuration ID or name."}
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
@@ -1189,7 +1189,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1alerts/post
     tools: [d360_ml_alerts_query]
     description: "Reads data alerts for a model artifact: training-time findings such as `ObviousPredictor` or `CollinearFields`, and runtime drift. Each alert carries `directives` that can be applied on retrain."
-    example: CALL cdp.ml_alerts_query (asset => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact', source_types => ['ModelTraining', 'Runtime']);
+    example: CALL d360.ml_alerts_query (asset => 'Attrition_Risk_Predictor_v1__mla', asset_type => 'ModelArtifact', source_types => ['ModelTraining', 'Runtime']);
     options:
       - {name: asset, in: body, type: string, description: "Asset name or ID of the alert. Since v61.0."}
       - {name: asset_type, api_name: assetType, in: body, type: string, enum: [ModelArtifact], description: "Asset type of the alert. Since v61.0."}
@@ -1213,7 +1213,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1model-setups~1%7BmodelSetupIdOrName%7D~1setup-versions/post
     tools: [d360_ml_setup_version_create]
     description: Create a new model setup version. Since v59.0.
-    example: CALL cdp.ml_setup_version_create (model_setup_id_or_name => '...', description => 'Initial version of the Customer Churn Prediction model setup.', type => 'EdcNoCode');
+    example: CALL d360.ml_setup_version_create (model_setup_id_or_name => '...', description => 'Initial version of the Customer Churn Prediction model setup.', type => 'EdcNoCode');
     options:
       - {name: model_setup_id_or_name, api_name: modelSetupIdOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: description, in: body, type: string, description: "Description of the setup. Since v59.0."}
@@ -1280,7 +1280,7 @@ functions:
       | `runtime_type` | | `Internal` or `InternalV2`, default `InternalV2` |
 
       ```sql
-      CALL cdp.ml_setup_version_create (model_setup_id_or_name => 'Attrition_Risk_Predictor', type => 'EdcNoCode',
+      CALL d360.ml_setup_version_create (model_setup_id_or_name => 'Attrition_Risk_Predictor', type => 'EdcNoCode',
         input => (type = 'DataModelObject', source = (name = 'Attrition__dlm'), dataspace = (name = 'default')),
         outcomes => [(type = 'Binary', name = 'Attrition__c', label = 'Attrition', goal = 'Minimize', success_value = 'Yes', failure_value = 'No')],
         fields => [(type = 'Number', name = 'Age__c', min = 18, max = 60, bucketing_strategy = (type = 'Percentile', number_of_buckets = 10)),
@@ -1298,7 +1298,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1predict/post
     tools: [d360_ml_predict]
     description: Make a prediction using the specified model and parameters. This request is synchronous. Since v61.0.
-    example: CALL cdp.ml_predict (model => (name = 'Attrition_Predictor_Catboost'), type => 'RawData', field_names => ['age', 'income', 'tenure_months'], rows => [['25', '50000', '12'], ['54', '120000', '240']], settings => (maxTopFactors = 3, maxPrescriptions = 5));
+    example: CALL d360.ml_predict (model => (name = 'Attrition_Predictor_Catboost'), type => 'RawData', field_names => ['age', 'income', 'tenure_months'], rows => [['25', '50000', '12'], ['54', '120000', '240']], settings => (maxTopFactors = 3, maxPrescriptions = 5));
     options:
       - {name: field_names, api_name: fieldNames, in: body, array: 1, type: string, required: true, description: "The names of the input fields that the model uses when making the prediction. The fields must be in the same order specified in the model artifact's `input_fields` parameter."}
       - {name: model, in: body, schema: CdpMlPredictInputBase_model, required: true, description: "The model's name or ID, for example: ```json { \"name\": \"titanic_simple\" } ``` or ```json { \"id\": \"12lX40000000DAKIA2\" } ``` Since v60.0."}
@@ -1323,7 +1323,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1prediction-job-definitions/post
     tools: [d360_prediction_job_def_create, d360_prediction_job_def_create_regression, d360_prediction_job_def_create_binary_classification, d360_prediction_job_def_create_multiclass_classification, d360_prediction_job_def_create_sentiment_detection, d360_prediction_job_def_create_topic_classification, d360_prediction_job_def_create_clustering]
     description: Create a new prediction job definition. Since v59.0.
-    example: CALL cdp.prediction_job_def_create (type => 'BinaryClassification', label => 'Binary Classification Job', description => 'Binary classification prediction job', model => (id = '12lSB000000UWdZYAW'), output_config => (object_name = 'Customer_Segments', description = 'Output description'), scoring_mode => 'Batch', input_config => (data_object = (id = '0gjSB00000SQccbYAD'), fields = [(model_field = (id = '0xmSB0000008UovYAE'), mapped_field = (id = '0gYSB00006XqM852AF', data_object = (id = '0gjSB00000SQccbYAD'), relationship_path = [(source_field = (id = '0gYSB00006XqM8F2AV', data_object = (id = '0gjSB00000SQccbYAD')), target_field = (id = '0gYSB00006W3U0t2AF', data_object = (id = '0gjSB00000SJ2xFYAT')))]), update_score = true)]), binary_classification_settings => (max_top_contributors = 3, max_prescriptions = 3, prescription_threshold = 22, show_class_probabilities = true));
+    example: CALL d360.prediction_job_def_create (type => 'BinaryClassification', label => 'Binary Classification Job', description => 'Binary classification prediction job', model => (id = '12lSB000000UWdZYAW'), output_config => (object_name = 'Customer_Segments', description = 'Output description'), scoring_mode => 'Batch', input_config => (data_object = (id = '0gjSB00000SQccbYAD'), fields = [(model_field = (id = '0xmSB0000008UovYAE'), mapped_field = (id = '0gYSB00006XqM852AF', data_object = (id = '0gjSB00000SQccbYAD'), relationship_path = [(source_field = (id = '0gYSB00006XqM8F2AV', data_object = (id = '0gjSB00000SQccbYAD')), target_field = (id = '0gYSB00006W3U0t2AF', data_object = (id = '0gjSB00000SJ2xFYAT')))]), update_score = true)]), binary_classification_settings => (max_top_contributors = 3, max_prescriptions = 3, prescription_threshold = 22, show_class_probabilities = true));
     options:
       - {name: clustering_settings, api_name: clusteringSettings, in: body, schema: MlClusteringJobDefSettingsInputRepresentation, description: "-"}
       - {name: multiclass_classification_settings, api_name: multiclassClassificationSettings, in: body, schema: MlMulticlassClassificationJobDefSettingsInputRepresentation, description: "-"}
@@ -1385,7 +1385,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers/post
     tools: [d360_retriever_create]
     description: Creates a retriever and its first configuration, to query Data 360 objects or search indexes for AI use. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_create (label => 'DIY Bathroom Retriever', owner_type => 'Api', dataspaces => ['default'], configuration => (query_type = 'NoCode', is_active = true, number_of_results = 10, input = (name = 'DIY_Bathroom', type = 'SearchIndex'), output_fields = [(label = 'Chunk', relatedDmoName = 'DIY_Bathroom_chunk__dlm', relatedDmoFieldName = 'Chunk__c', relationships = [(relationSourceDmoName = 'DIY_Bathroom_chunk__dlm', relationSourceDmoFieldName = 'SourceRecordId__c', relationTargetDmoName = 'DIY_Bathroom__dlm', relationTargetDmoFieldName = 'FilePath__c')])]));
+    example: CALL d360.retriever_create (label => 'DIY Bathroom Retriever', owner_type => 'Api', dataspaces => ['default'], configuration => (query_type = 'NoCode', is_active = true, number_of_results = 10, input = (name = 'DIY_Bathroom', type = 'SearchIndex'), output_fields = [(label = 'Chunk', relatedDmoName = 'DIY_Bathroom_chunk__dlm', relatedDmoFieldName = 'Chunk__c', relationships = [(relationSourceDmoName = 'DIY_Bathroom_chunk__dlm', relationSourceDmoFieldName = 'SourceRecordId__c', relationTargetDmoName = 'DIY_Bathroom__dlm', relationTargetDmoFieldName = 'FilePath__c')])]));
     options:
       - {name: configuration, in: body, schema: MlRetrieverConfigurationBaseInputRepresentation, required: true, description: "Initial configuration. Use the configuration input object that corresponds to the type of query. For example, use the Ml Retriever Configuration Custom Sql Input for the `CustomSql` type. Since v61.0."}
       - {name: dataspaces, api_name: dataSpaces, in: body, array: 1, type: string, description: "List of data space names. Required for `CustomSql` and `NoCode` retrievers. Derive the data space from the referenced retrievers for `Ensemble` retrievers. Since v61.0."}
@@ -1435,7 +1435,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1%7BretrieverIdOrName%7D~1configurations/post
     tools: [d360_retriever_config_create]
     description: Adds a configuration version to a retriever, the way to change how it retrieves. `NoCode` generates a SQL template from the configuration, `CustomSql` takes your template, and `Ensemble` combines sub-retrievers with reranking. At most one configuration is active at a time. The spec marks this endpoint as pilot or beta. Since v61.0.
-    example: CALL cdp.retriever_config_create (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345', query_type => 'Ensemble', is_active => true, number_of_results => 10, referenced_retrievers => [(name = 'Knowledge_Retriever_1Cx_tGW8aac9aec'), (name = 'DIY_Bathroom_Retriever_1Cx_9H02ce17169')]);
+    example: CALL d360.retriever_config_create (retriever_id_or_name => 'Combined_Retriever_1Cx_7H01ab12345', query_type => 'Ensemble', is_active => true, number_of_results => 10, referenced_retrievers => [(name = 'Knowledge_Retriever_1Cx_tGW8aac9aec'), (name = 'DIY_Bathroom_Retriever_1Cx_9H02ce17169')]);
     options:
       - {name: retriever_id_or_name, api_name: retrieverIdOrName, in: path, type: string, required: true, description: "Retriever ID or the parent retriever's top-level `name`. The `active_configuration.name` value returns `ITEM_NOT_FOUND`."}
       - {name: output_fields, api_name: outputFields, in: body, array: 1, type: string, description: "-"}
@@ -1496,7 +1496,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Machine-Learning/paths/~1ssot~1machine-learning~1retrievers~1actions~1review/post
     description: Reviews a `CustomSql` retriever input and returns errors and suggestions. Use it to validate the SQL before you create or update a retriever configuration. The spec marks this endpoint as pilot or beta. Since v67.0.
     example: |
-      CALL cdp.retriever_review (retriever_input => (label = 'CustomSql retriever for ADL knowledge.', description = 'CustomSql retriever matching ADL knowledge internally created retriever.', owner_type = 'Api', dataspaces = ['default'], configuration = (query_type = 'CustomSql', is_active = true, number_of_results = 5, is_citation_enabled = false, retrieval_mode = 'Basic', retriever_query_template_definition = (retriever_query_template = 'SELECT
+      CALL d360.retriever_review (retriever_input => (label = 'CustomSql retriever for ADL knowledge.', description = 'CustomSql retriever matching ADL knowledge internally created retriever.', owner_type = 'Api', dataspaces = ['default'], configuration = (query_type = 'CustomSql', is_active = true, number_of_results = 5, is_citation_enabled = false, retrieval_mode = 'Basic', retriever_query_template_definition = (retriever_query_template = 'SELECT
           "v"."hybrid_score__c" AS "Score",
           "c"."Chunk__c" AS "Chunk",
           "c"."SourceRecordId__c" AS "SourceRecordId",
@@ -1532,7 +1532,7 @@ functions:
     path: /ssot/machine-learning/jobs
     tools: [d360_prediction_job_run]
     description: Submits a run of a prediction job definition, which scores the input DMO and writes the output DMO. The definition must be `Active`. The call returns before the run finishes.
-    example: CALL cdp.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
+    example: CALL d360.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
     options:
       - {name: input, in: body, schema: CdpAssetReferenceInputRepresentation, required: true, description: "The prediction job definition, by `id` or `name`."}
       - {name: type, in: body, type: string, enum: [Prediction], required: true, description: "Job type. The MCP tool always sends `Prediction`."}
@@ -1554,7 +1554,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{idOrName}/setup-versions/{versionId}/inspector/metrics
     tools: [d360_ml_setup_version_inspector_metrics_get]
     description: "Gets the evaluation of a trained setup version: AUC, gini, MCC, MSE, RMSE, confusion matrices at 100 thresholds, a gain table and the outcome distribution. Use it after the version reaches `Published` to judge the model."
-    example: CALL cdp.ml_setup_version_inspector_metrics_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', version_id => '14kSB0000005d8nYAA', gauges => 'All');
+    example: CALL d360.ml_setup_version_inspector_metrics_get (model_setup_id_or_name => 'Attrition_Risk_Predictor', version_id => '14kSB0000005d8nYAA', gauges => 'All');
     options:
       - {name: model_setup_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: version_id, api_name: versionId, in: path, type: string, required: true, description: "Setup version ID. A name is not accepted. Get it from `ml_setup_version_list` or the `ml_setup_version_create` result."}
@@ -1572,7 +1572,7 @@ functions:
     path: /ssot/machine-learning/configured-models
     tools: [d360_ml_configured_model_create]
     description: Wraps a model artifact in a configured model, the object that predictions run against. Use it after a setup version reaches `Published`.
-    example: CALL cdp.ml_configured_model_create (label => 'Attrition Predictor (Catboost)', artifact => (name = 'Attrition_Risk_Predictor_v1__mla'), capability => 'BinaryClassification', visibility => 'Shown', parameter_overrides => [(parameter_name = 'decisionThreshold', continuous_value = 0.5)], actionable_fields => [(name = 'Over_Time__c', type = 'ActionableVariable'), (name = 'Monthly_Income__c', type = 'TopFactor')]);
+    example: CALL d360.ml_configured_model_create (label => 'Attrition Predictor (Catboost)', artifact => (name = 'Attrition_Risk_Predictor_v1__mla'), capability => 'BinaryClassification', visibility => 'Shown', parameter_overrides => [(parameter_name = 'decisionThreshold', continuous_value = 0.5)], actionable_fields => [(name = 'Over_Time__c', type = 'ActionableVariable'), (name = 'Monthly_Income__c', type = 'TopFactor')]);
     options:
       - {name: artifact, in: body, schema: CdpAssetReferenceInputRepresentation, required: true, description: "Reference to the underlying ML model artifact (typically discovered via the published setup-version's modelArtifact field). Required."}
       - {name: label, in: body, type: string, description: "Display label for the configured model."}
@@ -1602,7 +1602,7 @@ functions:
     path: /ssot/machine-learning/configured-models/{idOrName}/histories
     tools: [d360_ml_configured_model_history_list]
     description: Lists the history snapshots of a configured model. Use it to see how a model changed over time.
-    example: CALL cdp.ml_configured_model_history_list (configured_model_id_or_name => '...');
+    example: CALL d360.ml_configured_model_history_list (configured_model_id_or_name => '...');
     options:
       - {name: configured_model_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`."}
       - {name: limit, in: query, type: integer, description: "Page size."}
@@ -1624,7 +1624,7 @@ functions:
     path: /ssot/machine-learning/configured-models/{idOrName}/histories/{historyId}
     tools: [d360_ml_configured_model_history_get]
     description: Gets one history snapshot of a configured model, as it was when the entry was recorded.
-    example: CALL cdp.ml_configured_model_history_get (configured_model_id_or_name => '...', history_id => '...');
+    example: CALL d360.ml_configured_model_history_get (configured_model_id_or_name => '...', history_id => '...');
     options:
       - {name: configured_model_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Configured model ID or name. A name has the form `<namespace>__<devname>`, for example `mynamespace__ourGPT35Turbo`."}
       - {name: history_id, api_name: historyId, in: path, type: string, required: true, description: "History entry id (15- or 18-character Salesforce id)."}
@@ -1642,7 +1642,7 @@ functions:
     path: /ssot/machine-learning/query-setup-fields
     tools: [d360_ml_query_setup_fields]
     description: Lists the fields and applicable transformations of a data source. This is the first call when you author a model setup.
-    example: CALL cdp.ml_query_setup_fields (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter_fields => false);
+    example: CALL d360.ml_query_setup_fields (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter_fields => false);
     options:
       - {name: input, in: body, schema: InputSourceInput, required: true, description: "Data source to introspect. Set type=DataModelObject/CalculatedInsightObject/SdmObject with source+dataspace for single-source, or type=MultiSourceObjects with sources[] for joined sources."}
       - {name: filter, in: body, schema: FilterInput, description: "Optional row-level filter applied before processing."}
@@ -1662,7 +1662,7 @@ functions:
     path: /ssot/machine-learning/query-data-profile
     tools: [d360_ml_query_data_profile]
     description: "Profiles the values of a data source: minimum, maximum and bucketing for numeric fields, and distinct values with row counts for text fields. Use it to spot constant numerics, class imbalance and dominant categories."
-    example: CALL cdp.ml_query_data_profile (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), profile_field_names => [(name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), (name = 'CloseDate__c', source = 'Sales__dlm', type = 'DataModelObject')]);
+    example: CALL d360.ml_query_data_profile (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), profile_field_names => [(name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), (name = 'CloseDate__c', source = 'Sales__dlm', type = 'DataModelObject')]);
     options:
       - {name: input, in: body, schema: InputSourceInput, required: true, description: "Data source to introspect. Set type=DataModelObject/CalculatedInsightObject/SdmObject with source+dataspace for single-source, or type=MultiSourceObjects with sources[] for joined sources."}
       - {name: filter, in: body, schema: FilterInput, description: "Optional row-level filter applied before processing."}
@@ -1681,7 +1681,7 @@ functions:
     path: /ssot/machine-learning/query-outcome
     tools: [d360_ml_query_outcome]
     description: Lists the columns of a data source that could be a training target. `prediction_type` narrows the list to one prediction type.
-    example: CALL cdp.ml_query_outcome (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), prediction_type => 'BinaryClassification');
+    example: CALL d360.ml_query_outcome (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), prediction_type => 'BinaryClassification');
     options:
       - {name: input, in: body, schema: InputSourceInput, required: true, description: "Data source to introspect. Set type=DataModelObject/CalculatedInsightObject/SdmObject with source+dataspace for single-source, or type=MultiSourceObjects with sources[] for joined sources."}
       - {name: filter, in: body, schema: FilterInput, description: "Optional row-level filter applied before processing."}
@@ -1701,7 +1701,7 @@ functions:
     path: /ssot/machine-learning/query-row-count
     tools: [d360_ml_query_row_count]
     description: Counts the rows of a data source after filters and joins. Use it to check that there is enough data to train.
-    example: CALL cdp.ml_query_row_count (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter => (criteria = [(filter_field = (name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), operator = 'GreaterThan', values = [(value = '1000', type = 'Constant')])], conjunctive_operator = 'And'));
+    example: CALL d360.ml_query_row_count (input => (type = 'DataModelObject', source = (name = 'Sales__dlm'), dataspace = (name = 'default')), filter => (criteria = [(filter_field = (name = 'Amount__c', source = 'Sales__dlm', type = 'DataModelObject'), operator = 'GreaterThan', values = [(value = '1000', type = 'Constant')])], conjunctive_operator = 'And'));
     options:
       - {name: input, in: body, schema: InputSourceInput, required: true, description: "Data source to introspect. Set type=DataModelObject/CalculatedInsightObject/SdmObject with source+dataspace for single-source, or type=MultiSourceObjects with sources[] for joined sources."}
       - {name: filter, in: body, schema: FilterInput, description: "Optional row-level filter applied before processing."}
@@ -1720,7 +1720,7 @@ functions:
     path: /ssot/machine-learning/model-setups
     tools: [d360_ml_model_setup_list]
     description: Lists model setups, the parent records that group setup versions. Filter by `search`, `model_type`, `model_capability`, `setup_type` or `connector_type`.
-    example: CALL cdp.ml_model_setup_list (model_type => 'Predictive', model_capability => 'BinaryClassification', limit => 50);
+    example: CALL d360.ml_model_setup_list (model_type => 'Predictive', model_capability => 'BinaryClassification', limit => 50);
     options:
       - {name: search, in: query, type: string, description: "Free-text search across labels and descriptions."}
       - {name: model_type, api_name: modelType, in: query, type: string, description: "Filter by model type. One of: Predictive, Generative, Transcribe, SpeechSynthesis, Summarization, Unknown."}
@@ -1743,7 +1743,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{idOrName}
     tools: [d360_ml_model_setup_get]
     description: Gets one model setup by ID or developer name.
-    example: CALL cdp.ml_model_setup_get (model_setup_id_or_name => 'Attrition_Risk_Predictor');
+    example: CALL d360.ml_model_setup_get (model_setup_id_or_name => 'Attrition_Risk_Predictor');
     options:
       - {name: model_setup_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Model-setup id or developer name."}
     columns:
@@ -1759,7 +1759,7 @@ functions:
     path: /ssot/machine-learning/model-setups
     tools: [d360_ml_model_setup_create]
     description: Creates a model setup, the parent record for setup versions. This is step 1 of 3 and starts no training. Follow with `ml_setup_version_create`.
-    example: CALL cdp.ml_model_setup_create (label => 'Attrition Risk Predictor', description => 'Predict whether an employee will leave the company.', model_type => 'Predictive', model_capability => 'BinaryClassification', setup_type => 'EdcNoCode', outcome_definition => (goal = 'Minimize', field_names = ['Attrition__c']));
+    example: CALL d360.ml_model_setup_create (label => 'Attrition Risk Predictor', description => 'Predict whether an employee will leave the company.', model_type => 'Predictive', model_capability => 'BinaryClassification', setup_type => 'EdcNoCode', outcome_definition => (goal = 'Minimize', field_names = ['Attrition__c']));
     options:
       - {name: label, in: body, type: string, required: true, description: "Display label for the model setup container."}
       - {name: description, in: body, type: string, description: "Free-form description."}
@@ -1782,7 +1782,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{idOrName}
     tools: [d360_ml_model_setup_update]
     description: Changes the label, description, capability or outcome hint of a model setup. Send only the attributes to change.
-    example: CALL cdp.ml_model_setup_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', description => 'Updated description for the attrition predictor.');
+    example: CALL d360.ml_model_setup_update (model_setup_id_or_name => 'Attrition_Risk_Predictor', description => 'Updated description for the attrition predictor.');
     options:
       - {name: model_setup_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Model setup ID or developer name."}
       - {name: label, in: body, type: string, description: "New display label."}
@@ -1803,7 +1803,7 @@ functions:
     path: /ssot/machine-learning/model-setups/{idOrName}
     tools: [d360_ml_model_setup_delete]
     description: Deletes a model setup and all its versions.
-    example: CALL cdp.ml_model_setup_delete (model_setup_id_or_name => 'Attrition_Risk_Predictor');
+    example: CALL d360.ml_model_setup_delete (model_setup_id_or_name => 'Attrition_Risk_Predictor');
     options:
       - {name: model_setup_id_or_name, api_name: idOrName, in: path, type: string, required: true, description: "Model-setup id or developer name."}
     effect: write

@@ -4,7 +4,7 @@
  * Group fields set `row_grouping`, and a field to total sets `semantic_aggregation_method`. Name the model by `semantic_model_api_name`, the way the guide prefers.
  */
 
-call cdp.sdm_query (
+call d360.sdm_query (
     semantic_model_api_name => 'AccountRevenue',
     dataspace => 'default',
     structured_semantic_query => (

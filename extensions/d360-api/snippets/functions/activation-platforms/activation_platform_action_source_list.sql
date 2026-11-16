@@ -4,7 +4,7 @@
  * Names are display text with spaces, such as `Business Messaging - WhatsApp`. Follow `next_page_url` to get further pages.
  */
 
-call cdp.activation_platform_action_source_list (
+call d360.activation_platform_action_source_list (
     id_or_name => 'cdpactvstrgptnr__Meta_Conversions_API',
     event_name => 'Purchase',
     page_size => 50,

@@ -4,9 +4,9 @@
  * The update is destructive: whatever you leave out is removed, so always send the complete list. The body can't change the kit's name or label, which means recreating the kit for that.
  */
 
-call cdp.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
+call d360.datakit_manifest (data_kit_dev_name => 'Customer_Kit');
 
-call cdp.datakit_components_update (
+call d360.datakit_components_update (
     data_kit_dev_name => 'Customer_Kit',
     components => [
         (type = 'DataLakeObject', info = (name = 'Customer__dll', label = 'Customer')),

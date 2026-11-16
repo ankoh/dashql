@@ -2,7 +2,7 @@
 
 # Data Lake Objects
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data lake object (DLO) is a table of raw ingested data, named `<Name>__dll`. It sits between a data stream and a data model object (DMO): stream, then DLO, then mapping, then DMO. Salesforce's server describes DLOs as ["usually auto-created by data streams"](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/runtime/FamilyCatalog.java), so `datastream_create` is the normal way to get one, and `dlo_create` is for custom cases. Most people use this family to read: `dlo_list` to find names, then `dlo_get` to get the exact field names a mapping needs.
 
@@ -13,9 +13,9 @@ Three things matter most:
 - **The spec disagrees with itself on request bodies.** Which key holds the fields, and whether a data space goes in `dataspace_name` or `dataspace_info`, varies by source. The notes on `dlo_create` and `dlo_update` list the conflicts.
 
 ```sql
-CALL cdp.dlo_list ();
-CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
-CALL cdp.dlo_update (record_id_or_developer_name => 'Account_Home__dll', label => 'Account Home');
+CALL d360.dlo_list ();
+CALL d360.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+CALL d360.dlo_update (record_id_or_developer_name => 'Account_Home__dll', label => 'Account Home');
 ```
 
 **Functions:** [`dlo_delete`](#dlo_delete), [`dlo_list`](#dlo_list), [`dlo_get`](#dlo_get), [`dlo_update`](#dlo_update), [`dlo_create`](#dlo_create)
@@ -33,7 +33,7 @@ Delete a data lake object (DLO). Since v60.0.
 | `record_id_or_developer_name` | `recordIdOrDeveloperName` | path | string | yes | ID or developer name of the DLO. Since v60.0. |
 
 ```sql
-CALL cdp.dlo_delete (record_id_or_developer_name => 'Loyalty_Member__dll');
+CALL d360.dlo_delete (record_id_or_developer_name => 'Loyalty_Member__dll');
 ```
 
 **Result**
@@ -57,7 +57,7 @@ Get a collection of all data lake objects (DLOs). Since v60.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v60.0. |
 
 ```sql
-CALL cdp.dlo_list ();
+CALL d360.dlo_list ();
 ```
 
 **Result**
@@ -115,7 +115,7 @@ Get a data lake object (DLO). Since v60.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v60.0. |
 
 ```sql
-CALL cdp.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
+CALL d360.dlo_get (record_id_or_developer_name => 'Account_Home__dll');
 ```
 
 **Result**
@@ -165,7 +165,7 @@ Update a data lake object (DLO) by adding new fields or changing the label. Sinc
 | `data_lake_field_input_representations` | `dataLakeFieldInputRepresentations` | body | array of [dlo_update_dataLakeFieldInputRepresentations](#dlo_update_datalakefieldinputrepresentations) |  | Not in the spec schema: from the spec's examples. |
 
 ```sql
-CALL cdp.dlo_update (record_id_or_developer_name => 'Loyalty_Member__dll', label => 'Loyalty Member', fields => [(name = 'Tier', label = 'Tier', data_type = 'Text', is_primary_key = false)]);
+CALL d360.dlo_update (record_id_or_developer_name => 'Loyalty_Member__dll', label => 'Loyalty Member', fields => [(name = 'Tier', label = 'Tier', data_type = 'Text', is_primary_key = false)]);
 ```
 
 **Result**
@@ -226,7 +226,7 @@ Create a data lake object (DLO). Since v60.0.
 | `status` | `status` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.dlo_create (name => 'Loyalty_Member', label => 'Loyalty Member', category => 'Profile', dataspace_info => [(name = 'default')], data_lake_field_input_representations => [(name = 'Member_Id', label = 'Member Id', data_type = 'Text', is_primary_key = true), (name = 'Joined_On', label = 'Joined On', data_type = 'DateTime', is_primary_key = false)]);
+CALL d360.dlo_create (name => 'Loyalty_Member', label => 'Loyalty Member', category => 'Profile', dataspace_info => [(name = 'default')], data_lake_field_input_representations => [(name = 'Member_Id', label = 'Member Id', data_type = 'Text', is_primary_key = true), (name = 'Joined_On', label = 'Joined On', data_type = 'DateTime', is_primary_key = false)]);
 ```
 
 **Result**

@@ -4,7 +4,7 @@
  * Check `has_errors` and each `results[].statusCode`, since single items can fail.
  */
 
-call cdp.tag_taxonomy_bulk_create (
+call d360.tag_taxonomy_bulk_create (
     taxonomies => [
         (name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'),
         (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'),
@@ -12,4 +12,4 @@ call cdp.tag_taxonomy_bulk_create (
     ]
 );
 
-call cdp.tag_taxonomy_list (search_string => 'Tags');
+call d360.tag_taxonomy_list (search_string => 'Tags');

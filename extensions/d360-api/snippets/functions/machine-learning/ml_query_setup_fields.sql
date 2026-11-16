@@ -4,7 +4,7 @@
  * With `filter_fields => true` the result also lists the fields that are eligible for filters. Pass the fields to `ml_setup_version_create` as they come back.
  */
 
-call cdp.ml_query_setup_fields (
+call d360.ml_query_setup_fields (
     input => (type = 'DataModelObject', source = (name = 'Attrition__dlm'), dataspace = (name = 'default')),
     filter_fields => true
 );

@@ -1,5 +1,5 @@
 format: 1
-namespace: cdp
+namespace: d360
 title: Salesforce Data 360
 hosts:
   core: {base_path: "/services/data/v{api_version}"}

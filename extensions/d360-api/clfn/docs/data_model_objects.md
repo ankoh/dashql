@@ -2,7 +2,7 @@
 
 # Data Model Objects
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data lake object (DLO, `__dll`) holds ingested rows as they arrived. A data model object (DMO, `__dlm`) is the shared schema that identity resolution, insights and segments read. This family defines DMOs, maps DLO fields onto them, and declares relationships between DMOs.
 
@@ -18,8 +18,8 @@ The traps:
 - Empty results vary: a DMO with no relationships returns 204, and one with no mappings returns 404 (community).
 
 ```sql
-CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
-CALL cdp.dmo_mapping_create (
+CALL d360.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+CALL d360.dmo_mapping_create (
   dataspace => 'default',
   label => 'S3_Subscribers_Individual',
   source_entity_developer_name => 'S3_Subscribers__dll',
@@ -30,7 +30,7 @@ CALL cdp.dmo_mapping_create (
   ]
 );
 /* Repeat until status is ACTIVE */
-CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+CALL d360.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
 ```
 
 **Functions:** [`dmo_mapping_delete`](#dmo_mapping_delete), [`dmo_field_mappings_delete`](#dmo_field_mappings_delete), [`dmo_delete`](#dmo_delete), [`dmo_relationship_delete`](#dmo_relationship_delete), [`dmo_mapping_list`](#dmo_mapping_list), [`dmo_mapping_get`](#dmo_mapping_get), [`dmo_list`](#dmo_list), [`dmo_get`](#dmo_get), [`dmo_relationship_list`](#dmo_relationship_list), [`dmo_field_mapping_update`](#dmo_field_mapping_update), [`dmo_update`](#dmo_update), [`dmo_mapping_create`](#dmo_mapping_create), [`dmo_create`](#dmo_create), [`dmo_relationship_create`](#dmo_relationship_create), [`dmo_field_mapping_add`](#dmo_field_mapping_add), [`dmo_field_mapping_delete`](#dmo_field_mapping_delete)
@@ -49,7 +49,7 @@ Delete a mapping between a data lake object (DLO) source and a data model object
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. |
 
 ```sql
-CALL cdp.dmo_mapping_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+CALL d360.dmo_mapping_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
 ```
 
 **Result**
@@ -72,7 +72,7 @@ Delete a field mapping between a data lake object (DLO) source and a data model 
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. Since v61.0. |
 
 ```sql
-CALL cdp.dmo_field_mappings_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+CALL d360.dmo_field_mappings_delete (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
 ```
 
 **Result**
@@ -94,7 +94,7 @@ Delete a standard or custom data model object (DMO). Since v61.0.
 | `data_model_object_name` | `dataModelObjectName` | path | string | yes | Developer name of the DMO, with the `__dlm` suffix. |
 
 ```sql
-CALL cdp.dmo_delete (data_model_object_name => 'CustomDMO__dlm');
+CALL d360.dmo_delete (data_model_object_name => 'CustomDMO__dlm');
 ```
 
 **Result**
@@ -117,7 +117,7 @@ Delete a data model object (DMO) relationship between a field in the source DMO 
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. Since v64.0. |
 
 ```sql
-CALL cdp.dmo_relationship_delete (name => 'ds1_Individual_Id_map_ds1_DataSpace1Dmo_Id_1726382174104');
+CALL d360.dmo_relationship_delete (name => 'ds1_Individual_Id_map_ds1_DataSpace1Dmo_Id_1726382174104');
 ```
 
 **Result**
@@ -139,7 +139,7 @@ Get the details of all mappings associated with a data model object (DMO). Since
 | `dmo_developer_name` | `dmoDeveloperName` | query | string | yes | Developer name of the DMO target object. Since v61.0. |
 
 ```sql
-CALL cdp.dmo_mapping_list (dmo_developer_name => 'ssot__Individual__dlm');
+CALL d360.dmo_mapping_list (dmo_developer_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -174,7 +174,7 @@ Get one DLO-to-DMO mapping by developer name, with its field mappings and status
 | `dataspace` | `dataspace` | query | string |  | Name of the data space. If unspecified, the `default` data space is used. |
 
 ```sql
-CALL cdp.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
+CALL d360.dmo_mapping_get (object_source_target_map_developer_name => 'S3_Subscribers_Individual');
 ```
 
 **Result**
@@ -206,7 +206,7 @@ Get a paginated list of all data model objects (DMOs). Since v61.0.
 | `order_by` | `orderBy` | query | string |  | Sort order for the result set: `ASC` for ascending or `DESC` for descending. If unspecified, results are returned in ascending order. Since v61.0. |
 
 ```sql
-CALL cdp.dmo_list ();
+CALL d360.dmo_list ();
 ```
 
 **Result**
@@ -258,7 +258,7 @@ Get a data model object (DMO). Since v61.0.
 | `data_model_object_name` | `dataModelObjectName` | path | string | yes | Developer name of the DMO, with the `__dlm` suffix. |
 
 ```sql
-CALL cdp.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
+CALL d360.dmo_get (data_model_object_name => 'ssot__Individual__dlm');
 ```
 
 **Result**
@@ -311,7 +311,7 @@ Get the details of all data model object (DMO) relationships between fields in t
 | `status` | `status` | query | enum(Active, Creating, DeactivateByUser, Deleting, Error, Inactive, Updating) |  | Filter the returned results based on relationship status. Since v64.0. |
 
 ```sql
-CALL cdp.dmo_relationship_list (data_model_object_name => 'ssot__Individual__dlm', status => 'Active');
+CALL d360.dmo_relationship_list (data_model_object_name => 'ssot__Individual__dlm', status => 'Active');
 ```
 
 **Result**
@@ -363,7 +363,7 @@ Add or update field mappings on an existing mapping, with one field mapping name
 | `target_entity_developer_name` | `targetEntityDeveloperName` | body | string |  | Target DMO entity developer name. Since v61.0. |
 
 ```sql
-CALL cdp.dmo_field_mapping_update (object_source_target_map_developer_name => 'StaticCurrencyRates_Home_map_StaticCurrencyRates_Home_1754427001213', field_source_target_map_developer_name => 'InternalOrganization__c_fieldmap_InternalOrganizationId__c', source_entity_developer_name => 'StaticCurrencyRates_Home__dll', target_entity_developer_name => 'StaticCurrencyRates_Home__dlm', field_mapping => [(source_field_developer_name = 'InternalOrganization__c', target_field_developer_name = 'InternalOrganizationId__c')]);
+CALL d360.dmo_field_mapping_update (object_source_target_map_developer_name => 'StaticCurrencyRates_Home_map_StaticCurrencyRates_Home_1754427001213', field_source_target_map_developer_name => 'InternalOrganization__c_fieldmap_InternalOrganizationId__c', source_entity_developer_name => 'StaticCurrencyRates_Home__dll', target_entity_developer_name => 'StaticCurrencyRates_Home__dlm', field_mapping => [(source_field_developer_name = 'InternalOrganization__c', target_field_developer_name = 'InternalOrganizationId__c')]);
 ```
 
 **Result**
@@ -407,7 +407,7 @@ Update a custom data model object (DMO). The state of the DMO prior to the patch
 | `status` | `status` | body | enum(Active, Error, Inactive, Processing) |  | Status of DMO. Since v60.0. |
 
 ```sql
-CALL cdp.dmo_update (data_model_object_name => 'CustomDMO__dlm', label => 'Custom DMO', fields => [(name = 'CustomDMO789', label = 'CustomDMO789', is_primary_key = false, data_type = 'DateTime')]);
+CALL d360.dmo_update (data_model_object_name => 'CustomDMO__dlm', label => 'Custom DMO', fields => [(name = 'CustomDMO789', label = 'CustomDMO789', is_primary_key = false, data_type = 'DateTime')]);
 ```
 
 **Result**
@@ -461,7 +461,7 @@ Create one mapping from a DLO to a DMO, with its field pairs. Call it once per s
 | `target_entity_developer_name` | `targetEntityDeveloperName` | body | string |  | Target DMO developer name, with the `__dlm` suffix. |
 
 ```sql
-CALL cdp.dmo_mapping_create (dataspace => 'default', label => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'), (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c'), (source_field_developer_name = 'FirstName__c', target_field_developer_name = 'ssot__FirstName__c')]);
+CALL d360.dmo_mapping_create (dataspace => 'default', label => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'Subscriber_ID__c', target_field_developer_name = 'ssot__SourceSystemId__c'), (source_field_developer_name = 'LastName__c', target_field_developer_name = 'ssot__LastName__c'), (source_field_developer_name = 'FirstName__c', target_field_developer_name = 'ssot__FirstName__c')]);
 ```
 
 **Result**
@@ -515,7 +515,7 @@ Create a custom data model object (DMO). Since v61.0.
 | `status` | `status` | body | enum(Active, Error, Inactive, Processing) |  | Status of DMO. Since v60.0. |
 
 ```sql
-CALL cdp.dmo_create (name => 'CustomDMO', label => 'Custom DMO', dataspace_name => 'default', category => 'Profile', fields => [(name = 'CustomId', label = 'Custom Id', is_primary_key = true, data_type = 'Text'), (name = 'SignupDate', label = 'Signup Date', is_primary_key = false, data_type = 'DateTime')]);
+CALL d360.dmo_create (name => 'CustomDMO', label => 'Custom DMO', dataspace_name => 'default', category => 'Profile', fields => [(name = 'CustomId', label = 'Custom Id', is_primary_key = true, data_type = 'Text'), (name = 'SignupDate', label = 'Signup Date', is_primary_key = false, data_type = 'DateTime')]);
 ```
 
 **Result**
@@ -582,7 +582,7 @@ Create bulk data model object (DMO) relationships between fields in the source D
 | `relationships` | `relationships` | body | array of [FieldSrcTrgtRelationshipInput](#fieldsrctrgtrelationshipinputrepresentation) | yes | List of relationships to be created. Since v64.0. |
 
 ```sql
-CALL cdp.dmo_relationship_create (data_model_object_name => 'SalesOrder__dlm', dataspace => 'default', relationships => [(source_object_name = 'SalesOrder__dlm', target_object_name = 'ssot__Individual__dlm', source_field_name = 'CustomerId__c', target_field_name = 'ssot__Id__c', cardinality = 'ManyToOne', relationship_owner = 'DataCloud')]);
+CALL d360.dmo_relationship_create (data_model_object_name => 'SalesOrder__dlm', dataspace => 'default', relationships => [(source_object_name = 'SalesOrder__dlm', target_object_name = 'ssot__Individual__dlm', source_field_name = 'CustomerId__c', target_field_name = 'ssot__Id__c', cardinality = 'ManyToOne', relationship_owner = 'DataCloud')]);
 ```
 
 **Result**
@@ -634,7 +634,7 @@ Add field mappings to an existing DLO-to-DMO mapping without recreating it. Use 
 | `name` | `name` | body | string |  | Name of the mapping. The guide sends it. |
 
 ```sql
-CALL cdp.dmo_field_mapping_add (mapping_name => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'DateOfBirth__c', target_field_developer_name = 'ssot__BirthDate__c')]);
+CALL d360.dmo_field_mapping_add (mapping_name => 'S3_Subscribers_Individual', source_entity_developer_name => 'S3_Subscribers__dll', target_entity_developer_name => 'ssot__Individual__dlm', field_mapping => [(source_field_developer_name = 'DateOfBirth__c', target_field_developer_name = 'ssot__BirthDate__c')]);
 ```
 
 **Result**
@@ -668,7 +668,7 @@ Delete one field mapping and keep the rest of the DLO-to-DMO mapping. Use it to 
 | `dataspace` | `dataspace` | query | string |  | Dataspace name |
 
 ```sql
-CALL cdp.dmo_field_mapping_delete (mapping_name => 'S3_Subscribers_Individual', field_mapping_name => 'DateOfBirth__c_fieldmap_ssot__BirthDate__c');
+CALL d360.dmo_field_mapping_delete (mapping_name => 'S3_Subscribers_Individual', field_mapping_name => 'DateOfBirth__c_fieldmap_ssot__BirthDate__c');
 ```
 
 **Result**

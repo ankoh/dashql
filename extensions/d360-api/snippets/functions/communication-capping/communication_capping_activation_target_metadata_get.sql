@@ -4,6 +4,6 @@
  * The mapping comes from `communication_capping_activation_target_metadata_map`.
  */
 
-call cdp.communication_capping_activation_target_metadata_get (activation_target_id => '85UVF000000Dr4v2AC');
+call d360.communication_capping_activation_target_metadata_get (activation_target_id => '85UVF000000Dr4v2AC');
 
-call cdp.communication_capping_rule_list (id => '1CCxx0000004C92AAE', limit => 50);
+call d360.communication_capping_rule_list (id => '1CCxx0000004C92AAE', limit => 50);

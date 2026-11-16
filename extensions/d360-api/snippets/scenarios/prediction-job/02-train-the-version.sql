@@ -4,7 +4,7 @@
  * Start the training of `:model_setup_version_id`.
  */
 
-call cdp.ml_setup_version_update (
+call d360.ml_setup_version_update (
     model_setup_id_or_name => 'Attrition_Risk_Predictor',
     model_setup_version_id => :model_setup_version_id,
     status => 'Training'

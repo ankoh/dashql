@@ -4,6 +4,6 @@
  * The spec requires both, so resend the one you aren't changing. The name, prefix and filter can't be changed with this call.
  */
 
-call cdp.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
+call d360.dataspace_update (id_or_name => 'nonDefault', label => 'nonDefault', description => 'Custom data space.');
 
-call cdp.dataspace_get (id_or_name => 'nonDefault');
+call d360.dataspace_get (id_or_name => 'nonDefault');

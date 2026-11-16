@@ -13,11 +13,11 @@ description: |
   - The spec has no call that creates a deep research job.
 
   ```sql
-  CALL cdp.knowledge_space_create (label => 'Diagnosis', developer_name => 'Diagnosis', dataspace => 'default');
-  CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
-  CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['report.pdf']);
+  CALL d360.knowledge_space_create (label => 'Diagnosis', developer_name => 'Diagnosis', dataspace => 'default');
+  CALL d360.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+  CALL d360.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['report.pdf']);
   /* PUT the file to the returned URL outside SQL */
-  CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+  CALL d360.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
   ```
 
 functions:
@@ -27,7 +27,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/delete
     description: Delete a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_space_delete (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    example: CALL d360.knowledge_space_delete (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
     effect: write
@@ -41,7 +41,7 @@ functions:
     path: /ssot/knowledge-space/config/{knowledgeSpaceConfigApiNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config~1%7BknowledgeSpaceConfigApiNameOrId%7D/delete
     description: Delete a knowledge space configuration. Since v65.0.
-    example: CALL cdp.knowledge_space_configuration_delete (knowledge_space_config_api_name_or_id => 'Default_Config');
+    example: CALL d360.knowledge_space_configuration_delete (knowledge_space_config_api_name_or_id => 'Default_Config');
     options:
       - {name: knowledge_space_config_api_name_or_id, api_name: knowledgeSpaceConfigApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space configuration."}
     effect: write
@@ -55,7 +55,7 @@ functions:
     path: /ssot/knowledge-space/session/{knowledgeSpaceSessionId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1session~1%7BknowledgeSpaceSessionId%7D/delete
     description: Delete a knowledge space session. Since v65.0.
-    example: CALL cdp.knowledge_space_session_delete (knowledge_space_session_id => 'session-123');
+    example: CALL d360.knowledge_space_session_delete (knowledge_space_session_id => 'session-123');
     options:
       - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
     effect: write
@@ -68,7 +68,7 @@ functions:
     path: /ssot/knowledge-space
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space/get
     description: Get all knowledge spaces in the current data space. Since v65.0.
-    example: CALL cdp.knowledge_space_list ();
+    example: CALL d360.knowledge_space_list ();
     rows: /knowledgeSpaces
     columns:
       - {name: client_context, api_name: clientContext, type: VARCHAR, description: "Client context of the knowledge space. Since v65.0."}
@@ -91,7 +91,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/get
     description: Get a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_space_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    example: CALL d360.knowledge_space_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
     columns:
@@ -115,7 +115,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/details
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1details/get
     description: Reads one knowledge space with its libraries, sources and files. Use it to find the library to upload into and to poll file indexing. Since v65.0.
-    example: CALL cdp.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
+    example: CALL d360.knowledge_space_details_get (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
     columns:
@@ -142,7 +142,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/session/{knowledgeSpaceSessionId}/conversation
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1session~1%7BknowledgeSpaceSessionId%7D~1conversation/get
     description: Get conversation messages for a knowledge space session. Since v65.0.
-    example: CALL cdp.session_conversation_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_session_id => 'session-123');
+    example: CALL d360.session_conversation_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_session_id => 'session-123');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
       - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
@@ -170,7 +170,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/sessions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1sessions/get
     description: Get all sessions for a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_space_session_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', limit => 20);
+    example: CALL d360.knowledge_space_session_list (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', limit => 20);
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
       - {name: limit, in: query, type: integer, description: "Maximum number of sessions to return. Since v65.0."}
@@ -193,7 +193,7 @@ functions:
     path: /ssot/knowledge-space/config
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config/get
     description: Get all knowledge space configuration details. Since v65.0.
-    example: CALL cdp.knowledge_space_configuration_list ();
+    example: CALL d360.knowledge_space_configuration_list ();
     rows: /knowledgeSpaceConfigs
     columns:
       - {name: dataspace, type: VARCHAR, description: "Name of the data space that the knowledge space configuration belongs to. Since v65.0."}
@@ -221,7 +221,7 @@ functions:
     path: /ssot/knowledge-space/config/{knowledgeSpaceConfigApiNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config~1%7BknowledgeSpaceConfigApiNameOrId%7D/get
     description: Get the details of a specific knowledge space configuration record. Since v65.0.
-    example: CALL cdp.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
+    example: CALL d360.knowledge_space_configuration_get (knowledge_space_config_api_name_or_id => 'Default_Config');
     options:
       - {name: knowledge_space_config_api_name_or_id, api_name: knowledgeSpaceConfigApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space configuration."}
     columns:
@@ -249,7 +249,7 @@ functions:
     path: /ssot/knowledge-space/deep-research/{researchId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D/get
     description: Get the deep research status by research ID. Since v67.0.
-    example: CALL cdp.deep_research_status_get (research_id => 'research-abc123');
+    example: CALL d360.deep_research_status_get (research_id => 'research-abc123');
     options:
       - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job."}
     columns:
@@ -272,7 +272,7 @@ functions:
     path: /ssot/knowledge-space/library
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library/get
     description: Get all knowledge libraries. Since v65.0.
-    example: CALL cdp.knowledge_library_list ();
+    example: CALL d360.knowledge_library_list ();
     rows: /knowledgeSpaceLibraries
     columns:
       - {name: developer_name, api_name: developerName, type: VARCHAR, description: "Developer name of the library. Since v65.0."}
@@ -293,7 +293,7 @@ functions:
     path: /ssot/knowledge-space/library/{libraryId}/details
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1%7BlibraryId%7D~1details/get
     description: Get detailed information about a specific knowledge library. Since v65.0.
-    example: CALL cdp.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
+    example: CALL d360.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
     options:
       - {name: library_id, api_name: libraryId, in: path, type: string, required: true, description: "ID of the knowledge library."}
     columns:
@@ -315,7 +315,7 @@ functions:
     path: /ssot/knowledge-space/session/{knowledgeSpaceSessionId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1session~1%7BknowledgeSpaceSessionId%7D/get
     description: Get a knowledge space session. Since v65.0.
-    example: CALL cdp.knowledge_space_session_get (knowledge_space_session_id => 'session-123');
+    example: CALL d360.knowledge_space_session_get (knowledge_space_session_id => 'session-123');
     options:
       - {name: knowledge_space_session_id, api_name: knowledgeSpaceSessionId, in: path, type: string, required: true, description: "ID of the knowledge space session."}
     columns:
@@ -336,7 +336,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D/patch
     description: Update a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_space_update (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', label => 'Updated Knowledge Space', description => 'Updated description');
+    example: CALL d360.knowledge_space_update (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', label => 'Updated Knowledge Space', description => 'Updated description');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -368,7 +368,7 @@ functions:
     path: /ssot/knowledge-space/deep-research/{researchId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D/patch
     description: Update the deep research plan (instructions and/or steps) before execution. Since v67.0.
-    example: CALL cdp.deep_research_plan_update (research_id => 'research-abc123', edit_instructions => 'Focus more on recent developments in the last 6 months', plan => (steps = [(title = 'Literature Review', description = 'Review recent publications and research papers'), (title = 'Data Analysis', description = 'Analyze trends and patterns in the collected data')]));
+    example: CALL d360.deep_research_plan_update (research_id => 'research-abc123', edit_instructions => 'Focus more on recent developments in the last 6 months', plan => (steps = [(title = 'Literature Review', description = 'Review recent publications and research papers'), (title = 'Data Analysis', description = 'Analyze trends and patterns in the collected data')]));
     options:
       - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -397,7 +397,7 @@ functions:
     path: /ssot/knowledge-space/library/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1%7Bid%7D/patch
     description: Update a knowledge library. Since v65.0.
-    example: CALL cdp.knowledge_library_update (id => '1aQxx00000000JNEAY', label => 'Updated Library Name', description => 'Updated description');
+    example: CALL d360.knowledge_library_update (id => '1aQxx00000000JNEAY', label => 'Updated Library Name', description => 'Updated description');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the knowledge library."}
       - {name: body_id, api_name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -428,7 +428,7 @@ functions:
     path: /ssot/knowledge-space
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space/post
     description: Create a knowledge space in the current data space. Since v65.0.
-    example: CALL cdp.knowledge_space_create (label => 'My Knowledge Space', developer_name => 'My_Knowledge_Space', description => 'This is my personal space', dataspace => 'default', create_default_library => true);
+    example: CALL d360.knowledge_space_create (label => 'My Knowledge Space', developer_name => 'My_Knowledge_Space', description => 'This is my personal space', dataspace => 'default', create_default_library => true);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -468,7 +468,7 @@ functions:
     path: /ssot/knowledge-space/{knowledgeSpaceApiNameOrId}/sessions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1%7BknowledgeSpaceApiNameOrId%7D~1sessions/post
     description: Create a new session for a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_space_session_create (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_id => '1T8xx0000004CYqCAM', session_id => 'session-123');
+    example: CALL d360.knowledge_space_session_create (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', knowledge_space_id => '1T8xx0000004CYqCAM', session_id => 'session-123');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -498,7 +498,7 @@ functions:
     path: /ssot/knowledge-space/config
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1config/post
     description: Create a knowledge space configuration. Since v65.0.
-    example: CALL cdp.knowledge_space_configuration_create (developer_name => 'My_Config', label => 'My Configuration', dataspace => 'default');
+    example: CALL d360.knowledge_space_configuration_create (developer_name => 'My_Config', label => 'My Configuration', dataspace => 'default');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -542,7 +542,7 @@ functions:
     path: /ssot/knowledge-space/deep-research/{researchId}/cancel
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1cancel/post
     description: Cancel a running deep research job, optionally requesting a partial report from completed steps. Since v67.0.
-    example: CALL cdp.deep_research_cancel (research_id => 'research-abc123', partial_report => true);
+    example: CALL d360.deep_research_cancel (research_id => 'research-abc123', partial_report => true);
     options:
       - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job to cancel. Since v67.0."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -572,7 +572,7 @@ functions:
     path: /ssot/knowledge-space/deep-research/{researchId}/report
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1report/post
     description: Get the deep research report for a research ID. Since v67.0.
-    example: CALL cdp.deep_research_report_get (research_id => 'research-abc123', output_format => 'markdown');
+    example: CALL d360.deep_research_report_get (research_id => 'research-abc123', output_format => 'markdown');
     options:
       - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "Unique identifier for the deep research job. Since v67.0."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -593,7 +593,7 @@ functions:
     path: /ssot/knowledge-space/deep-research/{researchId}/run
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1deep-research~1%7BresearchId%7D~1run/post
     description: Run deep research for a research ID. Since v67.0.
-    example: CALL cdp.deep_research_run (research_id => 'research-abc123');
+    example: CALL d360.deep_research_run (research_id => 'research-abc123');
     options:
       - {name: research_id, api_name: researchId, in: path, type: string, required: true, description: "The unique identifier for the deep research job. Since v67.0."}
     columns:
@@ -612,7 +612,7 @@ functions:
     path: /ssot/knowledge-space/files/status
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1files~1status/post
     description: Get the file status of a knowledge space for the specified file IDs. Since v65.0.
-    example: CALL cdp.file_status_get (knowledge_space_id => '1T8xx0000004CYqCAM', file_ids => ['1Utxx0000004DJcCAM', '1Utxx0000004DJdCAM']);
+    example: CALL d360.file_status_get (knowledge_space_id => '1T8xx0000004CYqCAM', file_ids => ['1Utxx0000004DJcCAM', '1Utxx0000004DJdCAM']);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -639,7 +639,7 @@ functions:
     path: /ssot/knowledge-space/getKnowledgeForImport
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1getKnowledgeForImport/post
     description: Lists the libraries and search indexes that can be imported into a knowledge space, without changing anything. Use it to get the IDs for `knowledge_import`. Since v65.0.
-    example: CALL cdp.knowledge_import_get (knowledge_space_id => '1T8xx0000004CYqCAM');
+    example: CALL d360.knowledge_import_get (knowledge_space_id => '1T8xx0000004CYqCAM');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -663,7 +663,7 @@ functions:
     path: /ssot/knowledge-space/importKnowledge
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1importKnowledge/post
     description: Import selected knowledge libraries and search indexes into a target knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_import (knowledge_space_id => '1T8xx0000004CYqCAM', selected_list => (knowledge_ids = ['1aQxx000000003FEAQ'], search_indexes = ['18lxx0000004C92AAE']));
+    example: CALL d360.knowledge_import (knowledge_space_id => '1T8xx0000004CYqCAM', selected_list => (knowledge_ids = ['1aQxx000000003FEAQ'], search_indexes = ['18lxx0000004C92AAE']));
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -687,7 +687,7 @@ functions:
     path: /ssot/knowledge-space/index-files
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1index-files/post
     description: Starts indexing files already uploaded to a library, or a website URL. It's the last step of the upload flow, after `presigned_urls_get` and the S3 `PUT`. Since v65.0.
-    example: CALL cdp.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
+    example: CALL d360.files_index (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'report.pdf', file_path = 'collections/1aQxx00000000JNEAY/report.pdf', file_type = 'PDF')]);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -728,7 +728,7 @@ functions:
     path: /ssot/knowledge-space/library
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library/post
     description: Create a knowledge library in an existing knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_library_create (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'My_Library', label => 'My Knowledge Library', description => 'Library for technical documentation');
+    example: CALL d360.knowledge_library_create (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'My_Library', label => 'My Knowledge Library', description => 'Library for technical documentation');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -757,7 +757,7 @@ functions:
     path: /ssot/knowledge-space/library/remove-library
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1remove-library/post
     description: Remove a knowledge library from a knowledge space. Since v65.0.
-    example: CALL cdp.knowledge_library_remove (knowledge_library_id => '1aQxx00000000G9EAI', knowledge_space_id => '1T8xx0000004CYqCAM');
+    example: CALL d360.knowledge_library_remove (knowledge_library_id => '1aQxx00000000G9EAI', knowledge_space_id => '1T8xx0000004CYqCAM');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -786,7 +786,7 @@ functions:
     path: /ssot/knowledge-space/library/search
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1library~1search/post
     description: Search for a knowledge library. Since v65.0.
-    example: CALL cdp.knowledge_library_search (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'Search_Term');
+    example: CALL d360.knowledge_library_search (knowledge_space_id => '1T8xx0000004CYqCAM', developer_name => 'Search_Term');
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -816,7 +816,7 @@ functions:
     path: /ssot/knowledge-space/presigned-urls
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1presigned-urls/post
     description: Gets one S3 upload URL per file name for a library. Use it before the upload, then call `files_index`. Since v65.0.
-    example: CALL cdp.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['document1.pdf', 'document2.pdf']);
+    example: CALL d360.presigned_urls_get (library_id => '1aQxx00000000JNEAY', file_names => ['document1.pdf', 'document2.pdf']);
     options:
       - {name: file_names, api_name: fileNames, in: body, array: 1, type: string, description: "List of file names to upload. Since v65.0."}
       - {name: library_id, api_name: libraryId, in: body, type: string, description: "ID of the knowledge space library. Since v65.0."}
@@ -830,7 +830,7 @@ functions:
 
       **Limits.** Five files per call (`Files uploaded cannot be more than: 5`), so batch larger sets. URLs come back in the order of `file_names`. This has returned a transient HTTP 500 (one org). The kit waits 2 seconds and retries once.
 
-      **The upload is outside `cdp.*`.** Send the raw bytes with `PUT`, and two details break it. The URLs contain `&amp;`, and leaving it unescaped returns S3 `403 AccessDenied: No AWSAccessKey was presented`. Any extra header, including `Content-Type`, returns `403 SignatureDoesNotMatch`.
+      **The upload is outside `d360.*`.** Send the raw bytes with `PUT`, and two details break it. The URLs contain `&amp;`, and leaving it unescaped returns S3 `403 AccessDenied: No AWSAccessKey was presented`. Any extra header, including `Content-Type`, returns `403 SignatureDoesNotMatch`.
 
       **Treat the URLs as credentials.** The kit keeps them out of logs and durable state, and requests new ones rather than computing an expiry, which no source documents. Uploading the same file again overwrites the same key.
 
@@ -842,7 +842,7 @@ functions:
     path: /ssot/knowledge-space/provision
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1provision/post
     description: Provision a knowledge space for the specified data spaces. Since v65.0.
-    example: CALL cdp.knowledge_space_provision (dataspaces => ['default', 'analytics']);
+    example: CALL d360.knowledge_space_provision (dataspaces => ['default', 'analytics']);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -861,7 +861,7 @@ functions:
     path: /ssot/knowledge-space/remove-files
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1remove-files/post
     description: Remove files from a knowledge library. Since v65.0.
-    example: CALL cdp.files_remove (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'old-document.pdf', file_path = 'collections/1aQxx00000000JNEAY/old-document.pdf')]);
+    example: CALL d360.files_remove (knowledge_artifact_id => '1aQxx00000000JNEAY', knowledge_artifact_source => 'FILE_UPLOAD', knowledge_source_files_list => [(file_name = 'old-document.pdf', file_path = 'collections/1aQxx00000000JNEAY/old-document.pdf')]);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}
@@ -891,7 +891,7 @@ functions:
     path: /ssot/knowledge-space/space/{knowledgeSpaceApiNameOrId}/deep-research/source
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1space~1%7BknowledgeSpaceApiNameOrId%7D~1deep-research~1source/post
     description: Copy a completed deep research report into the knowledge space's GENERATED_RESOURCES library and trigger indexing. This causes the research findings to be available for future queries. Since v67.0.
-    example: CALL cdp.deep_research_as_knowledge_source_add (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', research_id => 'research-abc123', report_file_path => '/sfdrive/temp/research-abc123-report.md', file_name => 'AI_Research_Trends_Report.md');
+    example: CALL d360.deep_research_as_knowledge_source_add (knowledge_space_api_name_or_id => '1T8xx0000004CYqCAM', research_id => 'research-abc123', report_file_path => '/sfdrive/temp/research-abc123-report.md', file_name => 'AI_Research_Trends_Report.md');
     options:
       - {name: knowledge_space_api_name_or_id, api_name: knowledgeSpaceApiNameOrId, in: path, type: string, required: true, description: "API name or ID of the knowledge space. Since v67.0."}
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
@@ -915,7 +915,7 @@ functions:
     path: /ssot/knowledge-space/summary
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Notebook-AI/paths/~1ssot~1knowledge-space~1summary/post
     description: Get all chunks for files in a knowledge space. Since v65.0.
-    example: CALL cdp.file_chunks_summary_get (search_index_name => 'KnowledgeIndex', container_id => ['container-1', 'container-2']);
+    example: CALL d360.file_chunks_summary_get (search_index_name => 'KnowledgeIndex', container_id => ['container-1', 'container-2']);
     options:
       - {name: id, in: body, type: string, description: "ID of the asset. Since v58.0."}
       - {name: name, in: body, type: string, description: "Name of the asset. Since v58.0."}

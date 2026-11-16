@@ -4,7 +4,7 @@
  * The spec requires the whole definition in the body, not only the fields that change, and it can't be copied from the read as it is. Read `search_index_config` and the index before, and read the index until `runtime_status` is `READY` after.
  */
 
-call cdp.search_index_update (
+call d360.search_index_update (
     search_index_api_name_or_id => 'Articles_Search',
     label => 'Articles Search v2',
     description => 'Help articles, chunked by passage',
@@ -43,4 +43,4 @@ call cdp.search_index_update (
     )
 );
 
-call cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+call d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');

@@ -4,7 +4,7 @@
  * It is a full `PUT`: send every required field, including the unchanged `name`, or the missing ones are gone. Read the point afterwards.
  */
 
-call cdp.p13n_point_update (
+call d360.p13n_point_update (
     id_or_name => 'home_page_experience',
     name => 'home_page_experience',
     label => 'Updated Home Page Experience',
@@ -24,4 +24,4 @@ call cdp.p13n_point_update (
     )]
 );
 
-call cdp.p13n_point_get (id_or_name => 'home_page_experience');
+call d360.p13n_point_get (id_or_name => 'home_page_experience');

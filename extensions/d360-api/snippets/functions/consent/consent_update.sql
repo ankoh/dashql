@@ -4,7 +4,7 @@
  * Put the keys of the bucket in the parameters `:consent_s3_access_key` and `:consent_s3_secret_key`. For `portability` the bucket, the keys, the folder and the region are all required, and the status is `optin`. Check the `result` column of every row, since a 200 response can still contain errors.
  */
 
-call cdp.consent_update (
+call d360.consent_update (
     action => 'portability',
     ids => '100000695',
     mode => 'cdp',
@@ -16,4 +16,4 @@ call cdp.consent_update (
     aws_region => 'us-west-1'
 );
 
-call cdp.consent_get (action => 'portability', ids => '100000695', mode => 'cdp');
+call d360.consent_get (action => 'portability', ids => '100000695', mode => 'cdp');

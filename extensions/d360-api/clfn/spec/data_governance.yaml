@@ -18,11 +18,11 @@ description: |
   - Most deletes return 202, and tags can sit in state `Deleting`.
 
   ```sql
-  CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
-  CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
-  CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address');
-  CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
-  CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll']);
+  CALL d360.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
+  CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
+  CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address');
+  CALL d360.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+  CALL d360.tags_propagate (object_names => ['Individual_DLO__dll']);
   ```
 
 functions:
@@ -32,7 +32,7 @@ functions:
     path: /ssot/data-governance/access-policies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/delete
     description: Permanently deletes an access policy and cascades the delete to its rules. Since v67.0.
-    example: CALL cdp.access_policy_delete (name => 'RestrictSensitiveFields');
+    example: CALL d360.access_policy_delete (name => 'RestrictSensitiveFields');
     options:
       - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
     effect: write
@@ -45,7 +45,7 @@ functions:
     path: /ssot/data-governance/classification-assignments/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1%7Bid%7D/delete
     description: Deletes a data governance classification assignment by ID. Since v67.0.
-    example: CALL cdp.classification_assignment_delete (id => '9aa000000000050');
+    example: CALL d360.classification_assignment_delete (id => '9aa000000000050');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the classification assignment."}
     effect: write
@@ -58,7 +58,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/delete
     description: Deletes a classification taxonomy. Since v67.0.
-    example: CALL cdp.classification_taxonomy_delete (name => 'Data_Residency_Classifications');
+    example: CALL d360.classification_taxonomy_delete (name => 'Data_Residency_Classifications');
     options:
       - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
     effect: write
@@ -75,7 +75,7 @@ functions:
     path: /ssot/data-governance/classifications/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/delete
     description: Deletes a classification and cascades the deletion to any child classifications and assignments. Since v67.0.
-    example: CALL cdp.classification_delete (fully_qualified_name => 'Compliance_Classifications.Sensitive');
+    example: CALL d360.classification_delete (fully_qualified_name => 'Compliance_Classifications.Sensitive');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
     effect: write
@@ -92,7 +92,7 @@ functions:
     path: /ssot/data-governance/object-access-grants/{objectApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1%7BobjectApiName%7D/delete
     description: Deletes a single object access grant. Since v67.0.
-    example: CALL cdp.object_access_grant_delete (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+    example: CALL d360.object_access_grant_delete (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
     options:
       - {name: object_api_name, api_name: objectApiName, in: path, type: string, required: true, description: "API name of the Data Cloud object."}
       - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v67.0."}
@@ -108,7 +108,7 @@ functions:
     path: /ssot/data-governance/tag-assignments/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1%7Bid%7D/delete
     description: Deletes a data governance tag assignment by ID. Since v67.0.
-    example: CALL cdp.tag_assignment_delete (id => '9aa000000000001');
+    example: CALL d360.tag_assignment_delete (id => '9aa000000000001');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the tag assignment."}
     effect: write
@@ -121,7 +121,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/delete
     description: Deletes a tag taxonomy and all child tags. Since v67.0.
-    example: CALL cdp.tag_taxonomy_delete (fully_qualified_name => 'Marketing_Tags');
+    example: CALL d360.tag_taxonomy_delete (fully_qualified_name => 'Marketing_Tags');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
     effect: write
@@ -138,7 +138,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/delete
     description: Deletes a tag and cascades the deletion to any child tags and assignments. Since v67.0.
-    example: CALL cdp.tag_delete (fully_qualified_name => 'Compliance_Tags.PII.Phone');
+    example: CALL d360.tag_delete (fully_qualified_name => 'Compliance_Tags.PII.Phone');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
     effect: write
@@ -155,7 +155,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions/active
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions~1active/delete
     description: Deactivates the currently active detection instruction for a tag. Since v67.0.
-    example: CALL cdp.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+    example: CALL d360.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path)."}
     effect: write
@@ -169,7 +169,7 @@ functions:
     path: /ssot/data-governance/access-policies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies/get
     description: Returns a paginated list of builder-compatible access policies. To include system or legacy policies that aren't builder-compatible, set `include_incompatible` to `true`. Since v67.0.
-    example: CALL cdp.access_policy_list (search_string => 'mask', include_incompatible => true);
+    example: CALL d360.access_policy_list (search_string => 'mask', include_incompatible => true);
     options:
       - {name: include_incompatible, api_name: includeIncompatible, in: query, type: boolean, description: "Indicates whether to include policies that aren't builder-compatible (`true`) or not (`false`). If unspecified, the default value is `false`. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of access policies to return. Values are `5` through `200`. If unspecified, the default value is `25`. Since v67.0."}
@@ -205,7 +205,7 @@ functions:
     path: /ssot/data-governance/access-policies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/get
     description: Returns a single access policy and its rules by developer name. Since v67.0.
-    example: CALL cdp.access_policy_get (name => 'RestrictSensitiveFields');
+    example: CALL d360.access_policy_get (name => 'RestrictSensitiveFields');
     options:
       - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
     columns:
@@ -233,7 +233,7 @@ functions:
     path: /ssot/data-governance/access-policies/{name}/rules/{ruleName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D~1rules~1%7BruleName%7D/get
     description: Returns the details of a specific rule within an access policy. Since v67.0.
-    example: CALL cdp.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
+    example: CALL d360.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
     options:
       - {name: name, in: path, type: string, required: true, description: "Developer name of the parent access policy."}
       - {name: rule_name, api_name: ruleName, in: path, type: string, required: true, description: "Developer name of the rule."}
@@ -264,7 +264,7 @@ functions:
     path: /ssot/data-governance/auto-tagging-jobs
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1auto-tagging-jobs/get
     description: Returns a paginated list of data governance auto-tagging jobs, optionally filtered by object or status. Auto-tagging jobs are created by the generate tag suggestions action. Since v67.0.
-    example: CALL cdp.auto_tagging_job_list ();
+    example: CALL d360.auto_tagging_job_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of auto-tagging jobs to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
       - {name: object_name, api_name: objectName, in: query, type: string, description: "API name of the object to filter jobs by. Since v67.0."}
@@ -289,7 +289,7 @@ functions:
     path: /ssot/data-governance/auto-tagging-jobs/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1auto-tagging-jobs~1%7Bid%7D/get
     description: Returns a single data governance auto-tagging job by ID, reporting its progress and status. Since v67.0.
-    example: CALL cdp.auto_tagging_job_get (id => '...');
+    example: CALL d360.auto_tagging_job_get (id => '...');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the auto-tagging job. Since v67.0."}
     columns:
@@ -309,7 +309,7 @@ functions:
     path: /ssot/data-governance/classification-assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments/get
     description: Returns a paginated list of data governance classification assignments, optionally filtered by tag or classification. Since v67.0.
-    example: CALL cdp.classification_assignment_list ();
+    example: CALL d360.classification_assignment_list ();
     options:
       - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, in: query, type: string, description: "Fully-qualified API name of the classification to filter assignments by. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of classification assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
@@ -340,7 +340,7 @@ functions:
     path: /ssot/data-governance/classification-assignments/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1%7Bid%7D/get
     description: Returns a single data governance classification assignment by ID. Since v67.0.
-    example: CALL cdp.classification_assignment_get (id => '9aa000000000050');
+    example: CALL d360.classification_assignment_get (id => '9aa000000000050');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the classification assignment."}
     columns:
@@ -365,7 +365,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies/get
     description: Returns a paginated list of classification taxonomies. Since v67.0.
-    example: CALL cdp.classification_taxonomy_list ();
+    example: CALL d360.classification_taxonomy_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of classification taxonomies to return. Must be between `5` and `200`. If unspecified, the default value is `25`. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
@@ -401,7 +401,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/get
     description: Returns a classification taxonomy by its API name. Since v67.0.
-    example: CALL cdp.classification_taxonomy_get (name => 'Compliance_Classifications');
+    example: CALL d360.classification_taxonomy_get (name => 'Compliance_Classifications');
     options:
       - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
     columns:
@@ -428,7 +428,7 @@ functions:
     path: /ssot/data-governance/classifications
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications/get
     description: Returns a paginated list of classifications across all classification taxonomies. Since v67.0.
-    example: CALL cdp.classification_list ();
+    example: CALL d360.classification_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of classifications to return from `5` through `200`. If unspecified, the default number of rows is `25`. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v67.0."}
@@ -469,7 +469,7 @@ functions:
     path: /ssot/data-governance/classifications/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/get
     description: Returns a classification by its fully-qualified API name. Since v67.0.
-    example: CALL cdp.classification_get (fully_qualified_name => 'Compliance_Classifications.PII');
+    example: CALL d360.classification_get (fully_qualified_name => 'Compliance_Classifications.PII');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
     columns:
@@ -499,7 +499,7 @@ functions:
     path: /ssot/data-governance/classifications/{fullyQualifiedName}/assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D~1assignments/get
     description: Returns a paginated list of assignments for a specific classification, including all linked tags. Since v67.0.
-    example: CALL cdp.classification_assignments_classification_list (fully_qualified_name => 'Compliance_Classifications.PII');
+    example: CALL d360.classification_assignments_classification_list (fully_qualified_name => 'Compliance_Classifications.PII');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification (dotted path). Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of classification assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
@@ -532,7 +532,7 @@ functions:
     path: /ssot/data-governance/object-access-grants
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants/get
     description: Returns a paginated list of object access grants, with optional filters. Providing only a permission set name returns all associated grants across data spaces and objects. Providing only a data space name returns all grants for objects within that data space across all permission sets. Providing only an object name returns all permission sets that grant access to that object. Since v67.0.
-    example: CALL cdp.object_access_grant_list (permission_set_name => 'DC_Analyst_PermSet');
+    example: CALL d360.object_access_grant_list (permission_set_name => 'DC_Analyst_PermSet');
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Developer name of the data space to filter grants by. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of object access grants to return. Values are `5` through `200`. If unspecified, the default value is `25`. Since v67.0."}
@@ -561,7 +561,7 @@ functions:
     path: /ssot/data-governance/object-access-grants/{objectApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1%7BobjectApiName%7D/get
     description: Returns a single object access grant. Since v67.0.
-    example: CALL cdp.object_access_grant_get (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+    example: CALL d360.object_access_grant_get (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
     options:
       - {name: object_api_name, api_name: objectApiName, in: path, type: string, required: true, description: "API name of the Data Cloud object."}
       - {name: dataspace_name, api_name: dataSpaceName, in: query, type: string, description: "Name of the data space. If unspecified, the `default` data space is used. Since v67.0."}
@@ -583,7 +583,7 @@ functions:
     path: /ssot/data-governance/tag-assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments/get
     description: Returns a paginated list of data governance tag assignments for a given object, with optional field filtering. Since v67.0.
-    example: CALL cdp.tag_assignment_list (object_name => 'Individual_DLO__dll', field_name => 'Email');
+    example: CALL d360.tag_assignment_list (object_name => 'Individual_DLO__dll', field_name => 'Email');
     options:
       - {name: field_name, api_name: fieldName, in: query, type: string, description: "API name of the field to filter tag assignments by. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of tag assignments to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
@@ -617,7 +617,7 @@ functions:
     path: /ssot/data-governance/tag-assignments/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1%7Bid%7D/get
     description: Returns a single data governance tag assignment by ID. Since v67.0.
-    example: CALL cdp.tag_assignment_get (id => '9aa000000000001');
+    example: CALL d360.tag_assignment_get (id => '9aa000000000001');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the tag assignment."}
     columns:
@@ -641,7 +641,7 @@ functions:
     path: /ssot/data-governance/tag-suggestions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions/get
     description: Returns a paginated list of AI-generated data governance tag suggestions, optionally filtered by object, tag, or status. Since v67.0.
-    example: CALL cdp.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New');
+    example: CALL d360.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New');
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of tag suggestions to return. The spec's error text says `5` through `200`. Since v67.0."}
       - {name: object_name, api_name: objectName, in: query, type: string, description: "API name of the object to filter suggestions by. Since v67.0."}
@@ -679,7 +679,7 @@ functions:
     path: /ssot/data-governance/tag-suggestions/{id}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1%7Bid%7D/get
     description: Returns a single AI-generated tag suggestion by ID. Since v67.0.
-    example: CALL cdp.tag_suggestion_get (id => '1dg000000000001');
+    example: CALL d360.tag_suggestion_get (id => '1dg000000000001');
     options:
       - {name: id, in: path, type: string, required: true, description: "ID of the tag suggestion. Since v67.0."}
     columns:
@@ -707,7 +707,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies/get
     description: Returns a paginated list of tag taxonomies. Since v67.0.
-    example: CALL cdp.tag_taxonomy_list ();
+    example: CALL d360.tag_taxonomy_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of tag taxonomies to return. Must be between `5` and `200`. If unspecified, the default value is `25`. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0."}
@@ -743,7 +743,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/get
     description: Returns a tag taxonomy by its fully qualified API name. Since v67.0.
-    example: CALL cdp.tag_taxonomy_get (fully_qualified_name => 'Compliance_Tags');
+    example: CALL d360.tag_taxonomy_get (fully_qualified_name => 'Compliance_Tags');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
     columns:
@@ -770,7 +770,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}/tags-with-active-detection-instructions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D~1tags-with-active-detection-instructions/get
     description: Returns a paginated list of tags in a taxonomy along with their active detection instruction, if any. Since v67.0.
-    example: CALL cdp.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
+    example: CALL d360.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag taxonomy. Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of tags to return. Values are from `5` through `200`. The default value is `25` if unspecified. Since v67.0."}
@@ -791,7 +791,7 @@ functions:
     path: /ssot/data-governance/tags
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags/get
     description: Returns a paginated list of tags across all tag taxonomies. Since v67.0.
-    example: CALL cdp.tag_list ();
+    example: CALL d360.tag_list ();
     options:
       - {name: limit, in: query, type: integer, description: "Maximum number of tags to return from `5` through `200`. If unspecified, the default number of rows is `25`. Since v67.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v67.0."}
@@ -832,7 +832,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/get
     description: Returns a tag by its fully qualified API name. Since v67.0.
-    example: CALL cdp.tag_get (fully_qualified_name => 'Compliance_Tags.PII.Email');
+    example: CALL d360.tag_get (fully_qualified_name => 'Compliance_Tags.PII.Email');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
     columns:
@@ -862,7 +862,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}/assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1assignments/get
     description: Returns a paginated list of tag assignments for a specific tag. Since v67.0.
-    example: CALL cdp.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
+    example: CALL d360.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path). Since v67.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of tag assignments to return. The spec's error text says `5` through `200`. Since v67.0."}
@@ -891,7 +891,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions/active
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions~1active/get
     description: Returns the currently active detection instruction for a tag. Since v67.0.
-    example: CALL cdp.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+    example: CALL d360.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path)."}
     columns:
@@ -915,7 +915,7 @@ functions:
     path: /ssot/data-governance/access-policies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D/patch
     description: Applies an idempotent partial update to an access policy's label or description. To modify rules, use the PUT rules endpoint instead. Since v67.0.
-    example: CALL cdp.access_policy_update (name => 'RestrictSensitiveFields', label => 'Regional Masking Updated', description => 'Updated policy description.');
+    example: CALL d360.access_policy_update (name => 'RestrictSensitiveFields', label => 'Regional Masking Updated', description => 'Updated policy description.');
     options:
       - {name: name, in: path, type: string, required: true, description: "Developer name of the access policy."}
       - {name: description, in: body, type: string, description: "Description of the policy. Omit to leave unchanged. Since v67.0."}
@@ -945,7 +945,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/{name}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1%7Bname%7D/patch
     description: Updates a classification taxonomy. Omitted fields are left unchanged. Since v67.0.
-    example: CALL cdp.classification_taxonomy_update (name => 'Compliance_Classifications', description => 'Sensitivity and compliance classifications for regulated workloads.');
+    example: CALL d360.classification_taxonomy_update (name => 'Compliance_Classifications', description => 'Sensitivity and compliance classifications for regulated workloads.');
     options:
       - {name: name, in: path, type: string, required: true, description: "API name or developer name of the classification taxonomy."}
       - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
@@ -974,7 +974,7 @@ functions:
     path: /ssot/data-governance/classifications/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1%7BfullyQualifiedName%7D/patch
     description: Updates a classification. Omitted fields are left unchanged. Since v67.0.
-    example: CALL cdp.classification_update (fully_qualified_name => 'Compliance_Classifications.PII', description => 'Personally identifiable information, direct and indirect identifiers.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']);
+    example: CALL d360.classification_update (fully_qualified_name => 'Compliance_Classifications.PII', description => 'Personally identifiable information, direct and indirect identifiers.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']);
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the classification."}
       - {name: description, in: body, type: string, description: "Updated description. Since v67.0."}
@@ -1008,7 +1008,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D/patch
     description: Updates a tag taxonomy. Omitted fields are left unchanged. Since v67.0.
-    example: "CALL cdp.tag_taxonomy_update (fully_qualified_name => 'Compliance_Tags', label => 'Compliance Tags (GA)', description => 'Compliance-related tags: PII, financial and health indicators.');"
+    example: "CALL d360.tag_taxonomy_update (fully_qualified_name => 'Compliance_Tags', label => 'Compliance Tags (GA)', description => 'Compliance-related tags: PII, financial and health indicators.');"
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`."}
       - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
@@ -1037,7 +1037,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D/patch
     description: Updates a tag. Omitted fields are left unchanged. Since v67.0.
-    example: CALL cdp.tag_update (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address (PII)', description => 'Personal and work email fields.', classification_fully_qualified_names => ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive']);
+    example: CALL d360.tag_update (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address (PII)', description => 'Personal and work email fields.', classification_fully_qualified_names => ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive']);
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully qualified API name of the tag."}
       - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, in: body, array: 1, type: string, description: "Replaces all classification links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0."}
@@ -1072,7 +1072,7 @@ functions:
     path: /ssot/data-governance/access-policies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies/post
     description: Creates an access policy, with optional inline rules, using all-or-none semantics. A builder-compatible policy can contain at most one rule. Since v67.0.
-    example: CALL cdp.access_policy_create (name => 'RestrictSensitiveFields', label => 'Restrict Sensitive Fields', description => 'Restricts read access to sensitive account fields.', rules => [(name = 'Mask_SSN', label = 'Mask SSN', category = 'TRANSFORM_POLICY_RULE_DEFINITION', effect = 'Transform', action = ['Read'], resource_scope_type = 'FIELD', principal_scope_type = 'ANY', resource_domains = ['Account__dlm'], resource_transform = 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments = [(type = 'NUMBER', value = '4')], transform_precedence = 100)]);
+    example: CALL d360.access_policy_create (name => 'RestrictSensitiveFields', label => 'Restrict Sensitive Fields', description => 'Restricts read access to sensitive account fields.', rules => [(name = 'Mask_SSN', label = 'Mask SSN', category = 'TRANSFORM_POLICY_RULE_DEFINITION', effect = 'Transform', action = ['Read'], resource_scope_type = 'FIELD', principal_scope_type = 'ANY', resource_domains = ['Account__dlm'], resource_transform = 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments = [(type = 'NUMBER', value = '4')], transform_precedence = 100)]);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space. If unspecified, the `default` data space is used."}
       - {name: description, in: body, type: string, description: "Description of the policy."}
@@ -1104,7 +1104,7 @@ functions:
     path: /ssot/data-governance/classification-assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments/post
     description: Creates a single data governance classification assignment. Since v67.0.
-    example: CALL cdp.classification_assignment_create (classification_fully_qualified_name => 'Compliance_Classifications.PII', tag_fully_qualified_name => 'Compliance_Tags.PII.Email');
+    example: CALL d360.classification_assignment_create (classification_fully_qualified_name => 'Compliance_Classifications.PII', tag_fully_qualified_name => 'Compliance_Tags.PII.Email');
     options:
       - {name: classification_fully_qualified_name, api_name: classificationFullyQualifiedName, in: body, type: string, required: true, description: "Fully-qualified API name of the source classification. Since v67.0."}
       - {name: tag_fully_qualified_name, api_name: tagFullyQualifiedName, in: body, type: string, required: true, description: "Fully-qualified API name of the target tag. Since v67.0."}
@@ -1131,7 +1131,7 @@ functions:
     path: /ssot/data-governance/classification-assignments/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1actions~1bulk-create/post
     description: Bulk creates data governance classification assignments. Since v67.0.
-    example: CALL cdp.classification_assignment_bulk_create (assignments => [(classification_fully_qualified_name = 'Compliance_Classifications.PII', tag_fully_qualified_names = ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']), (classification_fully_qualified_name = 'Compliance_Classifications.Sensitive', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+    example: CALL d360.classification_assignment_bulk_create (assignments => [(classification_fully_qualified_name = 'Compliance_Classifications.PII', tag_fully_qualified_names = ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']), (classification_fully_qualified_name = 'Compliance_Classifications.Sensitive', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
     options:
       - {name: assignments, in: body, schema: ClassificationAssignmentBulkItemInputRepresentation, array: 1, required: true, description: "List of classification assignment bulk items, each containing a classification and its target tags. Since v67.0."}
     columns:
@@ -1147,7 +1147,7 @@ functions:
     path: /ssot/data-governance/classification-assignments/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-assignments~1actions~1bulk-delete/post
     description: Bulk deletes data governance classification assignments. Since v67.0.
-    example: CALL cdp.classification_assignment_bulk_delete (ids => ['9aa000000000050', '9aa000000000053']);
+    example: CALL d360.classification_assignment_bulk_delete (ids => ['9aa000000000050', '9aa000000000053']);
     options:
       - {name: ids, in: body, array: 1, type: string, required: true, description: "List of classification assignment IDs to delete. Since v67.0."}
     columns:
@@ -1163,7 +1163,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies/post
     description: Creates a classification taxonomy. Since v67.0.
-    example: CALL cdp.classification_taxonomy_create (name => 'Compliance_Classifications', label => 'Compliance Classifications', description => 'Sensitivity and compliance classifications.');
+    example: CALL d360.classification_taxonomy_create (name => 'Compliance_Classifications', label => 'Compliance Classifications', description => 'Sensitivity and compliance classifications.');
     options:
       - {name: description, in: body, type: string, description: "Description of the classification taxonomy."}
       - {name: label, in: body, type: string, description: "Label of the classification taxonomy. Must be unique."}
@@ -1193,7 +1193,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-create/post
     description: Creates multiple classification taxonomies in a single request. Since v67.0.
-    example: CALL cdp.classification_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Classifications', label = 'Compliance Classifications', description = 'Sensitivity classifications.'), (name = 'Data_Residency_Classifications', label = 'Data Residency Classifications', description = 'Region-of-origin classifications.')]);
+    example: CALL d360.classification_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Classifications', label = 'Compliance Classifications', description = 'Sensitivity classifications.'), (name = 'Data_Residency_Classifications', label = 'Data Residency Classifications', description = 'Region-of-origin classifications.')]);
     options:
       - {name: taxonomies, in: body, schema: TaxonomyCreateInputRepresentation, array: 1, description: "List of tag taxonomies to create. Since v67.0."}
     columns:
@@ -1209,7 +1209,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-delete/post
     description: Deletes multiple classification taxonomies in a single request. Since v67.0.
-    example: CALL cdp.classification_taxonomy_bulk_delete (names => ['Compliance_Classifications', 'Data_Residency_Classifications']);
+    example: CALL d360.classification_taxonomy_bulk_delete (names => ['Compliance_Classifications', 'Data_Residency_Classifications']);
     options:
       - {name: names, in: body, array: 1, type: string, description: "List tag taxonomies to delete. Since v67.0."}
     columns:
@@ -1225,7 +1225,7 @@ functions:
     path: /ssot/data-governance/classification-taxonomies/actions/bulk-update
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classification-taxonomies~1actions~1bulk-update/post
     description: Updates multiple classification taxonomies in a single request. Omitted fields are left unchanged. Since v67.0.
-    example: CALL cdp.classification_taxonomy_bulk_update (items => [(name = 'Compliance_Classifications', label = 'Compliance Classifications (GA)'), (name = 'Data_Residency_Classifications', description = 'Data residency and sovereignty classifications.')]);
+    example: CALL d360.classification_taxonomy_bulk_update (items => [(name = 'Compliance_Classifications', label = 'Compliance Classifications (GA)'), (name = 'Data_Residency_Classifications', description = 'Data residency and sovereignty classifications.')]);
     options:
       - {name: items, in: body, schema: TaxonomyBulkUpdateItemInputRepresentation, array: 1, description: "List of tag taxonomies to update. Since v67.0."}
     columns:
@@ -1241,7 +1241,7 @@ functions:
     path: /ssot/data-governance/classifications
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications/post
     description: Creates a classification under a specified classification taxonomy, with optional initial tag links. If a tag link fails, the classification is still created and the failed tag link is reported. Since v67.0.
-    example: CALL cdp.classification_create (fully_qualified_name => 'Compliance_Classifications.PII', label => 'PII', description => 'Personally identifiable information.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard']);
+    example: CALL d360.classification_create (fully_qualified_name => 'Compliance_Classifications.PII', label => 'PII', description => 'Personally identifiable information.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard']);
     options:
       - {name: description, in: body, type: string, description: "Description of the classification. Since v67.0."}
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: body, type: string, description: "Fully-qualified API name of the classification in dotted path format. Use 2-3 segments: `<TaxonomyName>.<Level1>[.<Level2>]`. Since v67.0."}
@@ -1275,7 +1275,7 @@ functions:
     path: /ssot/data-governance/classifications/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-create/post
     description: Creates multiple classifications in a single request. Maximum of 200 items per request. If a tag link fails for an item, the classification is still created. Since v67.0.
-    example: CALL cdp.classification_bulk_create (classifications => [(fully_qualified_name = 'Compliance_Classifications.PII', label = 'PII', description = 'Personally identifiable information.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive', description = 'Sensitive data requiring handling controls.', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+    example: CALL d360.classification_bulk_create (classifications => [(fully_qualified_name = 'Compliance_Classifications.PII', label = 'PII', description = 'Personally identifiable information.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive', description = 'Sensitive data requiring handling controls.', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
     options:
       - {name: classifications, in: body, schema: ClassificationCreateInputRepresentation, array: 1, description: "List of classification create inputs. Since v67.0."}
     columns:
@@ -1291,7 +1291,7 @@ functions:
     path: /ssot/data-governance/classifications/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-delete/post
     description: Deletes multiple classifications in a single request, cascading each deletion to its child classifications and assignments. Since v67.0.
-    example: CALL cdp.classification_bulk_delete (fully_qualified_names => ['Compliance_Classifications.Sensitive']);
+    example: CALL d360.classification_bulk_delete (fully_qualified_names => ['Compliance_Classifications.Sensitive']);
     options:
       - {name: fully_qualified_names, api_name: fullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of classifications to delete. Maximum of 200 items. Since v67.0."}
     columns:
@@ -1307,7 +1307,7 @@ functions:
     path: /ssot/data-governance/classifications/actions/bulk-update
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1classifications~1actions~1bulk-update/post
     description: Updates multiple classifications in a single request. Omitted fields are left unchanged. Tag validation runs against the state before the batch operation. If a tag link fails, the classification is updated, but the tag link change is not applied, and an error is reported Since v67.0.
-    example: CALL cdp.classification_bulk_update (items => [(fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'), (fully_qualified_name = 'Compliance_Classifications.Restricted', tag_fully_qualified_names = ['Compliance_Tags.PII.SSN', 'Compliance_Tags.PII.CreditCard'])]);
+    example: CALL d360.classification_bulk_update (items => [(fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'), (fully_qualified_name = 'Compliance_Classifications.Restricted', tag_fully_qualified_names = ['Compliance_Tags.PII.SSN', 'Compliance_Tags.PII.CreditCard'])]);
     options:
       - {name: items, in: body, schema: ClassificationBulkUpdateItemInputRepresentation, array: 1, description: "List of classification update items. Since v67.0."}
     columns:
@@ -1323,7 +1323,7 @@ functions:
     path: /ssot/data-governance/object-access-grants
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants/post
     description: Creates a single object access grant using an idempotent request. If a matching grant already exists, the API returns the existing record; otherwise, it creates and returns a new grant. Since v67.0.
-    example: CALL cdp.object_access_grant_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_name => 'Account__dlm');
+    example: CALL d360.object_access_grant_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_name => 'Account__dlm');
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grant belongs to. Since v67.0."}
       - {name: object_api_name, api_name: objectApiName, in: body, type: string, required: true, description: "API name of the Data Cloud object to grant access to. Since v67.0."}
@@ -1345,7 +1345,7 @@ functions:
     path: /ssot/data-governance/object-access-grants/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1actions~1bulk-create/post
     description: Creates multiple object access grants for a single combination of a data space and a permission set using an idempotent request. A request supports a maximum of 200 items. Since v67.0.
-    example: CALL cdp.object_access_grant_bulk_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'Contact__dlm', 'revenue_insights__cio']);
+    example: CALL d360.object_access_grant_bulk_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'Contact__dlm', 'revenue_insights__cio']);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grants belong to. Since v67.0."}
       - {name: object_api_names, api_name: objectApiNames, in: body, array: 1, type: string, required: true, description: "List of Data Cloud object API names to grant access to. Maximum of 200. Since v67.0."}
@@ -1364,7 +1364,7 @@ functions:
     path: /ssot/data-governance/object-access-grants/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1object-access-grants~1actions~1bulk-delete/post
     description: Deletes multiple object access grants for a single combination of a data space and a permission set using an idempotent request. If a specified grant doesn't exist, no action is taken for that item. Since v67.0.
-    example: CALL cdp.object_access_grant_bulk_delete (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'revenue_insights__cio']);
+    example: CALL d360.object_access_grant_bulk_delete (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'revenue_insights__cio']);
     options:
       - {name: dataspace_name, api_name: dataSpaceName, in: body, type: string, description: "Name of the data space that the grants belong to. Since v67.0."}
       - {name: object_api_names, api_name: objectApiNames, in: body, array: 1, type: string, required: true, description: "List of Data Cloud object API names to remove grants for. Maximum of 200. Since v67.0."}
@@ -1383,7 +1383,7 @@ functions:
     path: /ssot/data-governance/tag-assignments
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments/post
     description: Creates a single data governance tag assignment. Since v67.0.
-    example: CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+    example: CALL d360.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
     options:
       - {name: field_name, api_name: fieldName, in: body, type: string, description: "API name of the field. Requires `object_name`. Since v67.0."}
       - {name: object_name, api_name: objectName, in: body, type: string, description: "API name of the data object. Since v67.0."}
@@ -1410,7 +1410,7 @@ functions:
     path: /ssot/data-governance/tag-assignments/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1actions~1bulk-create/post
     description: Bulk creates data governance tag assignments. Since v67.0.
-    example: CALL cdp.tag_assignment_bulk_create (assignments => [(tag_fully_qualified_name = 'Compliance_Tags.PII.Email', targets = [(object_name = 'Individual_DLO__dll', field_name = 'Email'), (object_name = 'Contact_DLO__dll', field_name = 'PersonalEmail')]), (tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', targets = [(object_name = 'Payment_DLO__dll', field_name = 'CardPAN')])]);
+    example: CALL d360.tag_assignment_bulk_create (assignments => [(tag_fully_qualified_name = 'Compliance_Tags.PII.Email', targets = [(object_name = 'Individual_DLO__dll', field_name = 'Email'), (object_name = 'Contact_DLO__dll', field_name = 'PersonalEmail')]), (tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', targets = [(object_name = 'Payment_DLO__dll', field_name = 'CardPAN')])]);
     options:
       - {name: assignments, in: body, schema: TagAssignmentTargetInputRepresentation, array: 2, required: true, description: "List of tag assignment bulk items, each containing a tag and its targets. Since v67.0."}
     columns:
@@ -1427,7 +1427,7 @@ functions:
     path: /ssot/data-governance/tag-assignments/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-assignments~1actions~1bulk-delete/post
     description: Bulk deletes data governance tag assignments. Since v67.0.
-    example: CALL cdp.tag_assignment_bulk_delete (ids => ['9aa000000000001', '9aa000000000002']);
+    example: CALL d360.tag_assignment_bulk_delete (ids => ['9aa000000000001', '9aa000000000002']);
     options:
       - {name: ids, in: body, array: 1, type: string, required: true, description: "List of tag assignment IDs to delete. Since v67.0."}
     columns:
@@ -1443,7 +1443,7 @@ functions:
     path: /ssot/data-governance/tag-suggestions/actions/approve
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1approve/post
     description: Approves one or more tag suggestions. Each item returns status code 200 on success, 404 if the suggestion isn't found, or 400 if the suggestion is in a terminal state. Since v67.0.
-    example: CALL cdp.tag_suggestions_approve (ids => ['1dg000000000001', '1dg000000000002']);
+    example: CALL d360.tag_suggestions_approve (ids => ['1dg000000000001', '1dg000000000002']);
     options:
       - {name: ids, in: body, array: 1, type: string, required: true, description: "List of core record IDs (18 characters). Maximum 200. Since v67.0."}
     columns:
@@ -1460,7 +1460,7 @@ functions:
     path: /ssot/data-governance/tag-suggestions/actions/generate
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1generate/post
     description: Launches asynchronous AI-driven tag suggestion jobs for one or more objects. Returns per-object job IDs. Since v67.0.
-    example: CALL cdp.tag_suggestions_generate (object_names => ['Individual_DLO__dll', 'Account_DLO__dll'], taxonomy_names => ['Compliance_Tags']);
+    example: CALL d360.tag_suggestions_generate (object_names => ['Individual_DLO__dll', 'Account_DLO__dll'], taxonomy_names => ['Compliance_Tags']);
     options:
       - {name: object_names, api_name: objectNames, in: body, array: 1, type: string, required: true, description: "Data object API names to generate tag suggestions for. Maximum 20. Since v67.0."}
       - {name: taxonomy_names, api_name: taxonomyNames, in: body, array: 1, type: string, required: true, description: "Flat developer names of the tag taxonomies to source suggestions from. Maximum 20. Since v67.0."}
@@ -1482,7 +1482,7 @@ functions:
     path: /ssot/data-governance/tag-suggestions/actions/reject
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-suggestions~1actions~1reject/post
     description: Rejects one or more tag suggestions. Each item returns status code 200 on success, 404 if the suggestion isn't found, or 400 if the suggestion is in a terminal state. Since v67.0.
-    example: CALL cdp.tag_suggestions_reject (ids => ['1dg000000000003', '1dg000000000004']);
+    example: CALL d360.tag_suggestions_reject (ids => ['1dg000000000003', '1dg000000000004']);
     options:
       - {name: ids, in: body, array: 1, type: string, required: true, description: "List of core record IDs (18 characters). Maximum 200. Since v67.0."}
     columns:
@@ -1499,7 +1499,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies/post
     description: Creates a top-level tag taxonomy. Since v67.0.
-    example: CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags', description => 'Compliance-related tags (PII, financial, health).');
+    example: CALL d360.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags', description => 'Compliance-related tags (PII, financial, health).');
     options:
       - {name: description, in: body, type: string, description: "Description of the tag taxonomy. Since v67.0."}
       - {name: label, in: body, type: string, description: "Label of the tag taxonomy. Must be unique."}
@@ -1529,7 +1529,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/{fullyQualifiedName}/detection-instructions/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1%7BfullyQualifiedName%7D~1detection-instructions~1actions~1bulk-create/post
     description: Bulk creates active detection instructions for multiple tags under one taxonomy. Each item creates or replaces the active instruction for one tag. Since v67.0.
-    example: "CALL cdp.tag_detection_instruction_bulk_create (fully_qualified_name => 'Compliance_Tags', detection_instructions => [(tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', instruction_txt = 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.'), (tag_fully_qualified_name = 'Compliance_Tags.PII.SSN', instruction_txt = 'Detect US Social Security Numbers: NNN-NN-NNNN format or 9-digit numeric sequences.')]);"
+    example: "CALL d360.tag_detection_instruction_bulk_create (fully_qualified_name => 'Compliance_Tags', detection_instructions => [(tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', instruction_txt = 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.'), (tag_fully_qualified_name = 'Compliance_Tags.PII.SSN', instruction_txt = 'Detect US Social Security Numbers: NNN-NN-NNNN format or 9-digit numeric sequences.')]);"
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag taxonomy. Since v67.0."}
       - {name: detection_instructions, api_name: detectionInstructions, in: body, schema: TagDetectionInstructionBulkCreateItemRepresentation, array: 1, required: true, description: "List of per-tag detection instruction create items. Maximum 200. Since v67.0."}
@@ -1550,7 +1550,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-create/post
     description: Creates multiple tag taxonomies in a single request. Since v67.0.
-    example: CALL cdp.tag_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'), (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'), (name = 'Marketing_Tags', label = 'Marketing Tags', description = 'Marketing consent and preference tags.')]);
+    example: CALL d360.tag_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'), (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'), (name = 'Marketing_Tags', label = 'Marketing Tags', description = 'Marketing consent and preference tags.')]);
     options:
       - {name: taxonomies, in: body, schema: TaxonomyCreateInputRepresentation, array: 1, description: "List of tag taxonomies to create. Since v67.0."}
     columns:
@@ -1566,7 +1566,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-delete/post
     description: Deletes multiple tag taxonomies and all child tags in a single request. Since v67.0.
-    example: CALL cdp.tag_taxonomy_bulk_delete (names => ['Marketing_Tags', 'Unused_Tags']);
+    example: CALL d360.tag_taxonomy_bulk_delete (names => ['Marketing_Tags', 'Unused_Tags']);
     options:
       - {name: names, in: body, array: 1, type: string, description: "List tag taxonomies to delete. Since v67.0."}
     columns:
@@ -1582,7 +1582,7 @@ functions:
     path: /ssot/data-governance/tag-taxonomies/actions/bulk-update
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tag-taxonomies~1actions~1bulk-update/post
     description: Updates multiple tag taxonomies in a single request. Omitted fields are left unchanged. Since v67.0.
-    example: CALL cdp.tag_taxonomy_bulk_update (items => [(name = 'Compliance_Tags', label = 'Compliance Tags (GA)'), (name = 'Ethics_Tags', description = 'Ethical AI tags — caste, gender, accessibility.')]);
+    example: CALL d360.tag_taxonomy_bulk_update (items => [(name = 'Compliance_Tags', label = 'Compliance Tags (GA)'), (name = 'Ethics_Tags', description = 'Ethical AI tags — caste, gender, accessibility.')]);
     options:
       - {name: items, in: body, schema: TaxonomyBulkUpdateItemInputRepresentation, array: 1, description: "List of tag taxonomies to update. Since v67.0."}
     columns:
@@ -1598,7 +1598,7 @@ functions:
     path: /ssot/data-governance/tags
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags/post
     description: Creates a tag under a specified tag taxonomy, optionally nested under a parent tag. Since v67.0.
-    example: CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address', description => 'Personally identifiable email addresses.', classification_fully_qualified_names => ['Compliance_Classifications.PII']);
+    example: CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address', description => 'Personally identifiable email addresses.', classification_fully_qualified_names => ['Compliance_Classifications.PII']);
     options:
       - {name: classification_fully_qualified_names, api_name: classificationFullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of classifications to associate with the tag. Maximum of 200 items. Since v67.0."}
       - {name: description, in: body, type: string, description: "Description of the tag. Since v67.0."}
@@ -1632,7 +1632,7 @@ functions:
     path: /ssot/data-governance/tags/{fullyQualifiedName}/detection-instructions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1%7BfullyQualifiedName%7D~1detection-instructions/post
     description: Creates or replaces the active detection instruction for a tag. Since v67.0.
-    example: "CALL cdp.tag_detection_instruction_create (fully_qualified_name => 'Compliance_Tags.PII.CreditCard', instruction_txt => 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.');"
+    example: "CALL d360.tag_detection_instruction_create (fully_qualified_name => 'Compliance_Tags.PII.CreditCard', instruction_txt => 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.');"
     options:
       - {name: fully_qualified_name, api_name: fullyQualifiedName, in: path, type: string, required: true, description: "Fully-qualified API name of the tag (dotted path). Since v67.0."}
       - {name: instruction_txt, api_name: instructionTxt, in: body, type: string, required: true, description: "LLM detection-instruction (prompt) body. Maximum 100 characters. Posting replaces the currently active instruction with a new version. Since v67.0."}
@@ -1660,7 +1660,7 @@ functions:
     path: /ssot/data-governance/tags/actions/bulk-create
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-create/post
     description: Creates multiple tags in a single request. Maximum of 200 items per request. A parent tag and its child cannot be created in the same request. Since v67.0.
-    example: CALL cdp.tag_bulk_create (tags => [(fully_qualified_name = 'Compliance_Tags.PII.Phone', label = 'Phone Number', description = 'Phone numbers (personal or business).'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', label = 'Credit Card Number', description = 'Credit card PAN, PCI-regulated.', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+    example: CALL d360.tag_bulk_create (tags => [(fully_qualified_name = 'Compliance_Tags.PII.Phone', label = 'Phone Number', description = 'Phone numbers (personal or business).'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', label = 'Credit Card Number', description = 'Credit card PAN, PCI-regulated.', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
     options:
       - {name: tags, in: body, schema: TagCreateInputRepresentation, array: 1, description: "List of tag create inputs. Since v67.0."}
     columns:
@@ -1677,7 +1677,7 @@ functions:
     path: /ssot/data-governance/tags/actions/bulk-delete
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-delete/post
     description: Deletes multiple tags in a single request, cascading each deletion to its child tags and assignments. Since v67.0.
-    example: CALL cdp.tag_bulk_delete (fully_qualified_names => ['Compliance_Tags.PII.Phone', 'Compliance_Tags.PII.Obsolete']);
+    example: CALL d360.tag_bulk_delete (fully_qualified_names => ['Compliance_Tags.PII.Phone', 'Compliance_Tags.PII.Obsolete']);
     options:
       - {name: fully_qualified_names, api_name: fullyQualifiedNames, in: body, array: 1, type: string, description: "Fully-qualified API names of tags to delete. Maximum of 200 items. Since v67.0."}
     columns:
@@ -1693,7 +1693,7 @@ functions:
     path: /ssot/data-governance/tags/actions/bulk-update
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1bulk-update/post
     description: Updates multiple tags in a single requests. Omitted fields are left unchanged. Validation runs against the state before the batch operation. For example, if item 1 re-parents tag A and item 2 references tag A, item 2 validates against tag A's ancestry before the batch operation. Since v67.0.
-    example: CALL cdp.tag_bulk_update (items => [(fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'), (fully_qualified_name = 'Compliance_Tags.PII.Phone', parent_tag_fully_qualified_name = 'Compliance_Tags.PII.Contact'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+    example: CALL d360.tag_bulk_update (items => [(fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'), (fully_qualified_name = 'Compliance_Tags.PII.Phone', parent_tag_fully_qualified_name = 'Compliance_Tags.PII.Contact'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
     options:
       - {name: items, in: body, schema: TagBulkUpdateItemInputRepresentation, array: 1, description: "List of tag update items. Since v67.0."}
     columns:
@@ -1710,7 +1710,7 @@ functions:
     path: /ssot/data-governance/tags/actions/propagate
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1tags~1actions~1propagate/post
     description: Propagates data governance tags to the specified objects. Since v67.0.
-    example: CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll', 'Contact_DLO__dll']);
+    example: CALL d360.tags_propagate (object_names => ['Individual_DLO__dll', 'Contact_DLO__dll']);
     options:
       - {name: object_names, api_name: objectNames, in: body, array: 1, type: string, required: true, description: "List of object developer names to propagate the tag to. Since v67.0."}
     columns:
@@ -1727,7 +1727,7 @@ functions:
     path: /ssot/data-governance/access-policies/{name}/rules/{ruleName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Governance/paths/~1ssot~1data-governance~1access-policies~1%7Bname%7D~1rules~1%7BruleName%7D/put
     description: Overwrites or upserts a single rule within an access policy. Since v67.0.
-    example: CALL cdp.access_policy_rule_replace (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN', body_name => 'Mask_SSN', label => 'Mask SSN', category => 'TRANSFORM_POLICY_RULE_DEFINITION', effect => 'Transform', action => ['Read'], resource_scope_type => 'FIELD', principal_scope_type => 'ANY', resource_domains => ['Account__dlm'], resource_transform => 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments => [(type = 'NUMBER', value = '4')], transform_precedence => 100);
+    example: CALL d360.access_policy_rule_replace (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN', body_name => 'Mask_SSN', label => 'Mask SSN', category => 'TRANSFORM_POLICY_RULE_DEFINITION', effect => 'Transform', action => ['Read'], resource_scope_type => 'FIELD', principal_scope_type => 'ANY', resource_domains => ['Account__dlm'], resource_transform => 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments => [(type = 'NUMBER', value = '4')], transform_precedence => 100);
     options:
       - {name: name, in: path, type: string, required: true, description: "Developer name of the parent access policy."}
       - {name: rule_name, api_name: ruleName, in: path, type: string, required: true, description: "Developer name of the rule. Must equal `body_name`."}

@@ -4,7 +4,7 @@
  * The list of tags replaces all links. An empty list removes them, and leaving it out keeps them.
  */
 
-call cdp.classification_update (
+call d360.classification_update (
     fully_qualified_name => 'Compliance_Classifications.PII',
     label => 'Personal Data',
     description => 'Personally identifiable information, direct and indirect identifiers.',

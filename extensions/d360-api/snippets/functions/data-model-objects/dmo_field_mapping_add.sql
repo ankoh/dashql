@@ -4,7 +4,7 @@
  * The call is on the mapping, so no field mapping is named. The mapping goes through `UPDATING`: read it until it is `ACTIVE` again.
  */
 
-call cdp.dmo_field_mapping_add (
+call d360.dmo_field_mapping_add (
     mapping_name => 'Orders_snow_SalesOrders',
     dataspace => 'default',
     source_entity_developer_name => 'Orders_snow__dll',
@@ -15,7 +15,7 @@ call cdp.dmo_field_mapping_add (
     ]
 );
 
-call cdp.dmo_mapping_get (
+call d360.dmo_mapping_get (
     object_source_target_map_developer_name => 'Orders_snow_SalesOrders',
     dataspace => 'default'
 );

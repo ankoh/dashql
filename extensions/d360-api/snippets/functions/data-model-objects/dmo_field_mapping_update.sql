@@ -4,7 +4,7 @@
  * To add fields without naming one, use `dmo_field_mapping_add`. The mapping goes through `UPDATING`: read it with `dmo_mapping_get` until it is active again.
  */
 
-call cdp.dmo_field_mapping_update (
+call d360.dmo_field_mapping_update (
     object_source_target_map_developer_name => 'Orders_snow_SalesOrders',
     field_source_target_map_developer_name => 'discount_code__c_fieldmap_DiscountCode__c',
     dataspace => 'default',
@@ -16,7 +16,7 @@ call cdp.dmo_field_mapping_update (
     )]
 );
 
-call cdp.dmo_mapping_get (
+call d360.dmo_mapping_get (
     object_source_target_map_developer_name => 'Orders_snow_SalesOrders',
     dataspace => 'default'
 );

@@ -4,7 +4,7 @@
  * `dim_value_ids` are the ids of values from `communication_capping_dimension_list`. The rule has no frequency or limit type field, and no source says how the API sets them.
  */
 
-call cdp.communication_capping_rule_create (
+call d360.communication_capping_rule_create (
     id => '1CCxx0000004C92AAE',
     api_name => 'Sms_daily_hnw',
     limits => 10,

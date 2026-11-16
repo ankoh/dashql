@@ -4,6 +4,6 @@
  * It returns the one active instruction. Older versions can't be read.
  */
 
-call cdp.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
+call d360.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
 
-call cdp.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+call d360.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');

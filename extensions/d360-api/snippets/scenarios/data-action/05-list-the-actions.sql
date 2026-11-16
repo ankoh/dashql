@@ -4,4 +4,4 @@
  * List the actions of the data space.
  */
 
-call cdp.dataaction_list (dataspace => 'default');
+call d360.dataaction_list (dataspace => 'default');

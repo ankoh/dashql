@@ -4,7 +4,7 @@
  * Write the accounts over one million in revenue into the new data lake object `Account_Summary__dll`.
  */
 
-call cdp.transform_create (
+call d360.transform_create (
     name => 'account_summary',
     label => 'Account Summary',
     description => 'Accounts over one million in revenue',

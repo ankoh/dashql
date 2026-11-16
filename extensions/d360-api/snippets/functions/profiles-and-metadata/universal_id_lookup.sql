@@ -4,14 +4,14 @@
  * Each item of `data` has `SourceRecordId__c`, `UnifiedRecordId__c`, `ssot__DataSourceObjectId__c` and `ssot__DataSourceId__c`.
  */
 
-call cdp.universal_id_lookup (
+call d360.universal_id_lookup (
     entity_name => 'IndividualIdentityLink__dlm',
     data_source_id => 'SFMC1487860',
     data_source_object_id => 'SFMC1487860_EmailProfile',
     source_record_id => '100060522'
 );
 
-call cdp.profile_get (
+call d360.profile_get (
     data_model_name => 'ssot__Individual__dlm',
     id => '100060522',
     fields => 'ssot__Id__c,ssot__FirstName__c'

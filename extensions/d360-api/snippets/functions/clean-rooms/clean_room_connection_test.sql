@@ -4,7 +4,7 @@
  * A failed test is still an HTTP 200, so read `success` in the result. A failure carries an `error_code` and `details` with a `subErrorCode`.
  */
 
-call cdp.clean_room_connection_test (
+call d360.clean_room_connection_test (
     consumer_org_id => '00D000000000001',
     connector_type => 'CleanroomAwsS3',
     connection_attributes => (

@@ -12,9 +12,9 @@ description: |
   The gotchas that matter most, per the guide: 10 MB per file, 50 extraction calls per minute per tenant, and credits spent on processing. Fields not found come back as null, and content past the model's context is dropped silently. The spec's schemas and examples also disagree in several places, noted per function.
 
   ```sql
-  CALL cdp.document_ai_global_configuration_get ();
-  CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
-  CALL cdp.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+  CALL d360.document_ai_global_configuration_get ();
+  CALL d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+  CALL d360.document_ai_data_extract (idp_configuration_id_or_name => 'Vendor_Invoice', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
   ```
 
 functions:
@@ -24,7 +24,7 @@ functions:
     path: /ssot/document-processing/configurations/{idOrApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/delete
     description: Delete a Document AI configuration. Since v63.0.
-    example: CALL cdp.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice');
+    example: CALL d360.document_ai_configuration_delete (id_or_api_name => 'Vendor_Invoice');
     options:
       - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
     effect: write
@@ -38,7 +38,7 @@ functions:
     path: /ssot/document-processing/configurations
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations/get
     description: Get all Document AI configurations. Since v63.0.
-    example: CALL cdp.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25);
+    example: CALL d360.document_ai_configuration_list (activation_status => 'Activated', order_by => 'Label DESC', limit => 25);
     options:
       - {name: activation_status, api_name: activationStatus, in: query, type: string, description: "Filter by activation status, either `Activated` or `Deactivated`. Since v63.0."}
       - {name: limit, in: query, type: integer, description: "Maximum number of records to return. Since v63.0."}
@@ -81,7 +81,7 @@ functions:
     path: /ssot/document-processing/configurations/{idOrApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/get
     description: Get the details of a Document AI configuration. Since v63.0.
-    example: CALL cdp.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
+    example: CALL d360.document_ai_configuration_get (id_or_api_name => 'Vendor_Invoice');
     options:
       - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
     columns:
@@ -119,7 +119,7 @@ functions:
     path: /ssot/document-processing/global-config
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get
     description: Reads which file types, size limits and models this org accepts for Document AI. Use it to find valid `ml_model` values before creating a configuration or extracting. Since v63.0.
-    example: CALL cdp.document_ai_global_configuration_get ();
+    example: CALL d360.document_ai_global_configuration_get ();
     columns:
       - {name: supported_content_types, api_name: supportedContentTypes, type: JSON, array: 1, schema: IdpContentTypeRepresentation, description: "Content types supported for unstructured data extraction. Since v63.0."}
       - {name: supported_models, api_name: supportedModels, type: JSON, array: 1, schema: IdpSupportedModelRepresentation, description: "Models supported for unstructured data extraction. Since v63.0."}
@@ -135,7 +135,7 @@ functions:
     path: /ssot/document-processing/configurations/{idOrApiName}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D/patch
     description: Update an existing Document AI configuration. Since v63.0.
-    example: CALL cdp.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated');
+    example: CALL d360.document_ai_configuration_update (id_or_api_name => 'Vendor_Invoice', description => 'Supplier invoices, EU and US', activation_status => 'Deactivated');
     options:
       - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
       - {name: activation_status, api_name: activationStatus, in: body, type: string, enum: [Activated, Deactivated], description: "Activation status of the configuration. Since v63.0."}
@@ -176,7 +176,7 @@ functions:
     path: /ssot/document-processing/actions/detect-schema
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1detect-schema/post
     description: Detects which extraction schema best matches a document using single or multi-schema mode. Since v67.0.
-    example: CALL cdp.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9);
+    example: CALL d360.document_ai_schema_detect (schema_configurations => ['Invoice_Schema_v1', 'Receipt_Schema_v2'], ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')], mode => 'Single', threshold => 0.9);
     options:
       - {name: threshold, in: query, type: number, format: double, description: "Minimum matching score (0-1) required for a schema to be returned in the response. If unspecified, the default value is `0.80`. Since v67.0."}
       - {name: files, in: body, schema: IdpGenerateSchemaFileInputRepresentation, array: 1, description: "List of unstructured source files to detect the schema from. Supported file types are: PDF (`application/pdf`) and images (`image/png`, `image/jpg`, `image/jpeg`). Since v67.0."}
@@ -206,7 +206,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1extract-data/post
     description: Extracts structured data from a file and returns it synchronously as JSON, without storing anything. Use a saved configuration or pass `ml_model` and `schema_config` inline. Supports PDF, images, .docx, .pptx and .xlsx. Since v63.0.
     example: |
-      CALL cdp.document_ai_data_extract (
+      CALL d360.document_ai_data_extract (
         ml_model => 'llmgateway__VertexAIGemini25Flash001',
         files => [(file_id = '068xxxxxxxxxxxxxxx')],
         extract_data_with_confidence_score => true,
@@ -261,7 +261,7 @@ functions:
     path: /ssot/document-processing/actions/generate-schema
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1actions~1generate-schema/post
     description: Asks a model to propose a JSON extraction schema from sample files. Use it to draft a `schema_config` instead of writing one by hand. Nothing is saved. Since v63.0.
-    example: CALL cdp.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
+    example: CALL d360.document_ai_schema_generate (ml_model => 'llmgateway__VertexAIGemini25Flash001', files => [(file_id = '068xxxxxxxxxxxxxxx')]);
     options:
       - {name: files, in: body, schema: IdpGenerateSchemaFileInputRepresentation, array: 1, required: true, description: "The list of unstructured data source files to extract the schema from. Since v63.0."}
       - {name: ml_model, api_name: mlModel, in: body, type: string, required: true, description: "The ID of the ML model to use for schema extraction. Use the [get Document AI global configuration](https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1global-config/get) endpoint to retrieve the list of acceptable values. Since v63.0."}
@@ -280,7 +280,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations/post
     description: Create a new Document AI configuration. Since v63.0.
     example: |
-      CALL cdp.document_ai_configuration_create (
+      CALL d360.document_ai_configuration_create (
         name => 'Vendor_Invoice',
         label => 'Vendor Invoice',
         ml_model => 'llmgateway__VertexAIGemini25Flash001',
@@ -353,7 +353,7 @@ functions:
     path: /ssot/document-processing/configurations/{idOrApiName}/actions/run
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Document-AI/paths/~1ssot~1document-processing~1configurations~1%7BidOrApiName%7D~1actions~1run/post
     description: Starts a batch run of a saved configuration over the documents in its source DMO, writing results to its output DLOs. Returns as soon as the run is triggered. Since v63.0.
-    example: CALL cdp.document_ai_process_run (id_or_api_name => 'Vendor_Invoice');
+    example: CALL d360.document_ai_process_run (id_or_api_name => 'Vendor_Invoice');
     options:
       - {name: id_or_api_name, api_name: idOrApiName, in: path, type: string, required: true, description: "ID or API name of the configuration. Since v63.0."}
     effect: write

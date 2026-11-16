@@ -4,4 +4,4 @@
  * Read the target.
  */
 
-call cdp.dataaction_target_get (api_name => 'contact_webhook');
+call d360.dataaction_target_get (api_name => 'contact_webhook');

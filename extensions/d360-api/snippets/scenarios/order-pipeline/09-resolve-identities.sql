@@ -4,7 +4,7 @@
  * Merge the records of a person by their email. Take `:identity_resolution` from the result of the first call, and repeat the last call until `last_job_status` is `SUCCESS`. This can take 15 to 20 minutes.
  */
 
-call cdp.ir_create (
+call d360.ir_create (
     label => 'Email Match',
     configuration_type => 'Individual',
     ruleset_id => 'mail',
@@ -24,6 +24,6 @@ call cdp.ir_create (
     )]
 );
 
-call cdp.ir_run (identity_resolution => :identity_resolution);
+call d360.ir_run (identity_resolution => :identity_resolution);
 
-call cdp.ir_get (identity_resolution => :identity_resolution);
+call d360.ir_get (identity_resolution => :identity_resolution);

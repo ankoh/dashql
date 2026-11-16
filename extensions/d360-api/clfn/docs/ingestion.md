@@ -2,7 +2,7 @@
 
 # Ingestion
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 Ingestion pushes records from an outside system into a Data 360 data lake object. There are [two patterns](https://developer.salesforce.com/docs/data/data-cloud-int/guide/c360-a-ingestion-api.md), and one connector can serve both. Streaming takes small JSON micro-batches through `ingest_insert` and `ingest_delete`. Bulk takes CSV through a job: create it, upload, close it, then poll `ingest_job_get`.
 
@@ -18,15 +18,15 @@ What matters most:
 
 ```sql
 /* Streaming: validate, then send */
-CALL cdp.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
-CALL cdp.ingest_insert (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
+CALL d360.ingest_test (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
+CALL d360.ingest_insert (name => 'ecomm', object_name => 'Orders', data => [(id = 'o-1', total = 77506)]);
 
 /* Bulk: create, upload, close */
-CALL cdp.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
-CALL cdp.ingest_job_upload (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', csv => $$id,total
+CALL d360.ingest_job_create (object => 'Orders', source_name => 'ecomm', operation => 'upsert');
+CALL d360.ingest_job_upload (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', csv => $$id,total
 o-1,77506
 $$);
-CALL cdp.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');
+CALL d360.ingest_job_update (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab', state => 'UploadComplete');
 ```
 
 **Functions:** [`ingest_insert`](#ingest_insert), [`ingest_delete`](#ingest_delete), [`ingest_test`](#ingest_test), [`ingest_job_create`](#ingest_job_create), [`ingest_job_list`](#ingest_job_list), [`ingest_job_get`](#ingest_job_get), [`ingest_job_upload`](#ingest_job_upload), [`ingest_job_update`](#ingest_job_update), [`ingest_job_delete`](#ingest_job_delete)
@@ -46,7 +46,7 @@ Streaming upsert: inserts new records and updates existing ones in the object's 
 | `data` | `data` | body | array of map to any | yes | Records to send, each a flat map of the schema's field names to values. Keys depend on the uploaded schema, so any key is valid here and completion can't offer them. |
 
 ```sql
-CALL cdp.ingest_insert (
+CALL d360.ingest_insert (
   name => 'ecomm',
   object_name => 'Orders',
   data => [
@@ -101,7 +101,7 @@ Streaming delete of up to 200 records by primary key. Use a bulk job with `opera
 | `body_ids` | `ids` | body | array of string |  | The same primary keys as a list, sent as the body field `ids`. Send this or `ids`. |
 
 ```sql
-CALL cdp.ingest_delete (
+CALL d360.ingest_delete (
   name => 'ecomm',
   object_name => 'Orders',
   ids => '001xx000003DGb2AAG,003xx000004TmiQAAS'
@@ -137,7 +137,7 @@ Validates records against the object's schema and reports failures right away, w
 | `data` | `data` | body | array of map to any | yes | Records to send, each a flat map of the schema's field names to values. Keys depend on the uploaded schema, so any key is valid here and completion can't offer them. |
 
 ```sql
-CALL cdp.ingest_test (
+CALL d360.ingest_test (
   name => 'ecomm',
   object_name => 'Orders',
   data => [
@@ -177,7 +177,7 @@ Creates a bulk job for one object and one operation. The job starts in `Open`, r
 | `operation` | `operation` | body | enum(upsert, delete) | yes | What the job does with the uploaded records. It also sets the [CSV layout](#ingest_job_upload). |
 
 ```sql
-CALL cdp.ingest_job_create (
+CALL d360.ingest_job_create (
   object => 'Orders',
   source_name => 'ecomm',
   operation => 'upsert'
@@ -224,7 +224,7 @@ Lists bulk jobs, optionally filtered by state.
 | `states` | `states` | query | string |  | Comma-separated states. The docs list `Open`, `UploadComplete`, `Failed`, `Aborted` and `JobComplete`. |
 
 ```sql
-CALL cdp.ingest_job_list (states => 'Open,UploadComplete', limit => 100);
+CALL d360.ingest_job_list (states => 'Open,UploadComplete', limit => 100);
 ```
 
 **Result**
@@ -264,7 +264,7 @@ Returns one bulk job. Poll it after closing the job to see whether processing fi
 | `id` | `id` | path | string | yes | Job id from [`ingest_job_create`](#ingest_job_create). |
 
 ```sql
-CALL cdp.ingest_job_get (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
+CALL d360.ingest_job_get (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
 ```
 
 **Result**
@@ -316,7 +316,7 @@ Uploads one CSV file to an `Open` job. Call it once per file, then close the job
 | `csv` | `csv` | body | string (text/csv) | yes | The CSV text, normally as `$$ ... $$`. It's the whole request body, sent with `Content-Type: text/csv`, not a JSON field. |
 
 ```sql
-CALL cdp.ingest_job_upload (
+CALL d360.ingest_job_upload (
   id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',
   csv => $$id,contact_name,created_date,tax_exempt,total
 f19cae7e-5cdb-41ce-92ba-539afea04f9d,Jadyn Kozey,2021-07-22T08:57:08.118Z,false,77506
@@ -361,7 +361,7 @@ Closes a job with `UploadComplete`, which queues its data for processing, or abo
 | `state` | `state` | body | enum(UploadComplete, Aborted) | yes | State to move the job to. |
 
 ```sql
-CALL cdp.ingest_job_update (
+CALL d360.ingest_job_update (
   id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab',
   state => 'UploadComplete'
 );
@@ -406,7 +406,7 @@ Deletes a closed job, along with its stored job data and metadata. The job then 
 | `id` | `id` | path | string | yes | Job id from [`ingest_job_create`](#ingest_job_create). |
 
 ```sql
-CALL cdp.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
+CALL d360.ingest_job_delete (id => '913a8b00-7a9e-4331-aaf6-a019ae5021ab');
 ```
 
 **Result**

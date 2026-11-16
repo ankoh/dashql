@@ -2,7 +2,7 @@
  * Change a relationship's cardinality, join type or join criteria, here to an inner join on a different pair of fields.
  */
 
-call cdp.sdm_relationship_update (
+call d360.sdm_relationship_update (
     model_api_name_or_id => 'AccountRevenue',
     relationship_name_or_id => 'Account_to_Opportunity',
     label => 'Account to Opportunity (inner)',
@@ -17,7 +17,7 @@ call cdp.sdm_relationship_update (
     )]
 );
 
-call cdp.sdm_relationship_get (
+call d360.sdm_relationship_get (
     model_api_name_or_id => 'AccountRevenue',
     relationship_name_or_id => 'Account_to_Opportunity'
 );

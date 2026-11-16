@@ -2,7 +2,7 @@
 
 # Data Actions
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data action watches a source object, usually a data model object (`__dlm`), for created, updated or deleted rows. When a change passes its conditions, Data 360 sends an event to one or more targets in [near real time](https://developer.salesforce.com/blogs/2024/01/unleashing-the-power-of-data-actions-using-a-webhook-as-a-target). These targets are separate from [activation targets](activation_targets.md), which receive segments.
 
@@ -16,11 +16,11 @@ Gotchas:
 - The spec has only list and create for actions, and no update for targets. The other calls here rest on weaker sources, shown per function.
 
 ```sql
-CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
-CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
-CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
-CALL cdp.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => []);
-CALL cdp.dataaction_list (dataspace => 'default');
+CALL d360.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+CALL d360.dataaction_target_get (api_name => 'contact_webhook');
+CALL d360.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+CALL d360.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => []);
+CALL d360.dataaction_list (dataspace => 'default');
 ```
 
 **Functions:** [`dataaction_target_delete`](#dataaction_target_delete), [`dataaction_target_list`](#dataaction_target_list), [`dataaction_target_get`](#dataaction_target_get), [`dataaction_list`](#dataaction_list), [`dataaction_target_create`](#dataaction_target_create), [`dataaction_target_signing_key_generate`](#dataaction_target_signing_key_generate), [`dataaction_create`](#dataaction_create), [`dataaction_get`](#dataaction_get), [`dataaction_target_update`](#dataaction_target_update), [`dataaction_update`](#dataaction_update), [`dataaction_delete`](#dataaction_delete)
@@ -38,7 +38,7 @@ Delete a data action target. Since v58.0.
 | `api_name` | `apiName` | path | string | yes | Developer name of the target, not a record id. |
 
 ```sql
-CALL cdp.dataaction_target_delete (api_name => 'contact_webhook');
+CALL d360.dataaction_target_delete (api_name => 'contact_webhook');
 ```
 
 **Result**
@@ -62,7 +62,7 @@ Get a paginated list of data action targets. Since v58.0.
 | `order_by` | `orderby` | query | string |  | Sort order for the result set, such as `GenderId__c ASC,\u200BOccupation__c DESC`. If unspecified, items are returned in the order they are retrieved. Since v58.0. |
 
 ```sql
-CALL cdp.dataaction_target_list ();
+CALL d360.dataaction_target_list ();
 ```
 
 **Result**
@@ -97,7 +97,7 @@ Get a data action target. Since v58.0.
 | `api_name` | `apiName` | path | string | yes | Developer name of the target, not a record id. |
 
 ```sql
-CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
+CALL d360.dataaction_target_get (api_name => 'contact_webhook');
 ```
 
 **Result**
@@ -133,7 +133,7 @@ Get a paginated list of data actions in the org. Since v58.0.
 | `order_by` | `orderby` | query | string |  | Name of the field to order the results by. Since v62.0. |
 
 ```sql
-CALL cdp.dataaction_list (dataspace => 'default', batch_size => 50);
+CALL d360.dataaction_list (dataspace => 'default', batch_size => 50);
 ```
 
 **Result**
@@ -185,7 +185,7 @@ Create a new data action target. Since v58.0.
 | `name` | `name` | body | string |  | Not in the spec schema: from the MCP server's payload example. |
 
 ```sql
-CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+CALL d360.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
 ```
 
 **Result**
@@ -228,7 +228,7 @@ Generate the signing key for a data action target. Since v62.0.
 | `api_name` | `apiName` | path | string | yes | Developer name of the target, not a record id. |
 
 ```sql
-CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+CALL d360.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
 ```
 
 **Result**
@@ -280,7 +280,7 @@ Create a new data action. Since v58.0.
 | `search_config` | `searchConfig` | body | object |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')]);
+CALL d360.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')]);
 ```
 
 **Result**
@@ -336,7 +336,7 @@ Reads one data action by developer name, to inspect its conditions, sources and 
 | `dataspace` | `dataspace` | query | string |  | Dataspace name |
 
 ```sql
-CALL cdp.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
+CALL d360.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
 ```
 
 **Result**
@@ -364,7 +364,7 @@ Changes an existing data action target, such as its endpoint URL. All body attri
 | `config` | `config` | body | [DataActionTargetConfig](#dataactiontargetconfig) |  | Target configuration. Set only the attributes that apply to `type`. |
 
 ```sql
-CALL cdp.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'));
+CALL d360.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'));
 ```
 
 **Result**
@@ -386,7 +386,7 @@ Meant to change an existing data action. No public source documents this call or
 | `action_developer_name` | `name` | path | string | yes | Developer name of the data action. |
 
 ```sql
-CALL cdp.dataaction_update (action_developer_name => 'High_Rate');
+CALL d360.dataaction_update (action_developer_name => 'High_Rate');
 ```
 
 **Result**
@@ -409,7 +409,7 @@ Deletes a data action by developer name. Use it before deleting the action's tar
 | `dataspace` | `dataspace` | query | string |  | Data space that holds the action. The community source always sends it. |
 
 ```sql
-CALL cdp.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default');
+CALL d360.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default');
 ```
 
 **Result**

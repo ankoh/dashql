@@ -4,7 +4,7 @@
  * There is no idempotency documented, so don't retry this blindly. The reference's samples use hierarchy order 1 for Channel and 2 for Brand.
  */
 
-call cdp.communication_capping_dimension_create (
+call d360.communication_capping_dimension_create (
     api_name => 'Channel',
     name => 'Channel',
     dimension_name => 'ssot__CommunicationChannel__dlm',

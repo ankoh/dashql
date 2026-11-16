@@ -4,7 +4,7 @@
  * Creation is asynchronous: the response shows `PROCESSING`, so read the target until its `status` is `Active`. `Error` is final, with the reason in `status_error_code`. A webhook gets no payloads until you generate its signing key.
  */
 
-call cdp.dataaction_target_create (
+call d360.dataaction_target_create (
     type => 'WebHook',
     sub_type => 'Rest',
     label => 'Contact webhook',
@@ -12,4 +12,4 @@ call cdp.dataaction_target_create (
     config => (target_endpoint = 'https://hooks.example.com/data360')
 );
 
-call cdp.dataaction_target_get (api_name => 'contact_webhook');
+call d360.dataaction_target_get (api_name => 'contact_webhook');

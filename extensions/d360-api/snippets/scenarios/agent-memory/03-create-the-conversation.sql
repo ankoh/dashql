@@ -4,7 +4,7 @@
  * Start a conversation for an agent and its owner.
  */
 
-call cdp.memory_conversation_create (
+call d360.memory_conversation_create (
     agent_id => 'ACE_Demo_Agent',
     conversation_id => 'conv-2025-001',
     conversation_owner_id => '003AB000000XYZ',

@@ -13,7 +13,7 @@ description: |
   - **Publishing is asynchronous.** Sources disagree on the finished `publish_status`. See [`segment_publish`](#segment_publish).
 
   ```sql
-  CALL cdp.segment_create (
+  CALL d360.segment_create (
     developer_name => 'Robots', display_name => 'Robots', description => 'Individuals named Robot',
     segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'NoRefresh',
     include_dbt => (models = (models = [(name = 'robots', sql = (
@@ -23,10 +23,10 @@ description: |
         AND trim(cast(Individuals__dlm.IndividualId__c as varchar(255))) <> ''
     ))])));
   /* Wait for segment_status = 'ACTIVE' and copy market_segment_id */
-  CALL cdp.segment_get (segment_api_name => 'Robots');
-  CALL cdp.segment_publish (segment_id => '1sgxx00000000PpAAI');
+  CALL d360.segment_get (segment_api_name => 'Robots');
+  CALL d360.segment_publish (segment_id => '1sgxx00000000PpAAI');
   /* After publishing finishes */
-  CALL cdp.segment_member_list (segment_api_name => 'Robots', limit => 100);
+  CALL d360.segment_member_list (segment_api_name => 'Robots', limit => 100);
   ```
 
 functions:
@@ -37,7 +37,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D/delete
     tools: [d360_segment_delete]
     description: Delete a segment in Data 360. Since v56.0.
-    example: CALL cdp.segment_delete (segment_api_name => 'High_Value_Order_Buyers');
+    example: CALL d360.segment_delete (segment_api_name => 'High_Value_Order_Buyers');
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
     effect: write
@@ -52,7 +52,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments/get
     tools: [d360_segment_list]
     description: Get the segments of a data space, one row each. Use it to find API names and check status. Since v55.0.
-    example: CALL cdp.segment_list (dataspace => 'default', batch_size => 100, offset => 0, filters => 'SegmentStatus eq Active AND MarketSegmentType eq Dbt', order_by => 'Name ASC');
+    example: CALL d360.segment_list (dataspace => 'default', batch_size => 100, offset => 0, filters => 'SegmentStatus eq Active AND MarketSegmentType eq Dbt', order_by => 'Name ASC');
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of segments to return at one time. Values are from `1` through `200`. If unspecified, the default value is `20`. Since v56.0."}
       - {name: dataspace, in: query, type: string, description: "Name of the data space in which to perform the action. User must have permission to this data space. Valid when bulk-listing segments. If unspecified, the `default` data space is used. Since v58.0."}
@@ -115,7 +115,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D/get
     tools: [d360_segment_get]
     description: Get one segment by its API name. Use it to check `segment_status` and `publish_status`, and to find `market_segment_id`. Since v56.0.
-    example: CALL cdp.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');
+    example: CALL d360.segment_get (segment_api_name => 'High_Value_Order_Buyers', dataspace => 'default');
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Maximum records to return. [Only applies with an API name](https://github.com/forcedotcom/d360-mcp-server/blob/main/src/main/java/com/salesforce/data360/mcp/tools/SegmentTools.java)."}
@@ -173,7 +173,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentId%7D/get
     tools: [d360_segment_get]
     description: Get one segment by its `1sg` record id. Use it when you hold the id rather than the name. Since v56.0.
-    example: CALL cdp.segment_get_by_id (segment_id => '1sgxx00000000PpAAI');
+    example: CALL d360.segment_get_by_id (segment_id => '1sgxx00000000PpAAI');
     options:
       - {name: segment_id, api_name: segmentId, in: path, type: string, required: true, description: "The segment's `market_segment_id`, 18 characters starting with `1sg`. Not `market_segment_definition_id` (`3HX`) or `segment_on_id` (`0gj`)."}
       - {name: segment_creation_flow, api_name: segmentCreationFlow, in: query, type: string, description: "-"}
@@ -222,7 +222,7 @@ functions:
     path: /ssot/segments/{segmentApiName}/members
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D~1members/get
     description: Get segment members in Data 360. Since v58.0.
-    example: CALL cdp.segment_member_list (segment_api_name => 'High_Value_Order_Buyers', fields => ['Id__c', 'KQ_Id__c', 'Timestamp__c'], limit => 100, offset => 0);
+    example: CALL d360.segment_member_list (segment_api_name => 'High_Value_Order_Buyers', fields => ['Id__c', 'KQ_Id__c', 'Timestamp__c'], limit => 100, offset => 0);
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
       - {name: fields, in: query, array: 1, type: string, description: "Comma-separated list of field names that you want to include in the result. If unspecified, `Id__c` is returned. Supported fields are: - `Delta_Type__c` - `Id__c` - `KQ_Id__c` - `Parent_Segment_Id__c` - `Segment_Id__c` - `Snapshot_Type__c` - `Timestamp__c` - `Version_Stamp__c` Since v58.0."}
@@ -260,7 +260,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D/patch
     tools: [d360_segment_update]
     description: Update a segment by API name. The spec subjects `sql` to the [DBT validations](https://developer.salesforce.com/docs/data/connectapi/guide/features_cdp_dbt_validations.md), but sources disagree on whether SQL can change. Since v56.0.
-    example: CALL cdp.segment_update (segment_api_name => 'High_Value_Order_Buyers', display_name => 'High Value Order Buyers', description => 'Refreshed every 24 hours', segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'TwentyFour');
+    example: CALL d360.segment_update (segment_api_name => 'High_Value_Order_Buyers', display_name => 'High Value Order Buyers', description => 'Refreshed every 24 hours', segment_on_api_name => 'Individuals__dlm', segment_type => 'Dbt', publish_schedule => 'TwentyFour');
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
       - {name: additional_metadata, api_name: additionalMetadata, in: body, map: true, type: string, description: "Map of additional metadata. Optional for POST. Not supported for PATCH. Since v55.0."}
@@ -336,7 +336,7 @@ functions:
     tools: [d360_segment_create]
     description: Create a segment. The `sql` of a `Dbt` segment is subject to the [DBT validations](https://developer.salesforce.com/docs/data/connectapi/guide/features_cdp_dbt_validations.md). Since v55.0.
     example: |
-      CALL cdp.segment_create (
+      CALL d360.segment_create (
         dataspace => 'default',
         developer_name => 'High_Value_Order_Buyers',
         display_name => 'High Value Order Buyers',
@@ -449,7 +449,7 @@ functions:
       **Publish schedule:** `publish_schedule` is the refresh interval in hours, or `NoRefresh`. `publish_schedule_info` is the finer form (since v63), and the spec's examples use it without `publish_schedule`:
 
       ```sql
-      CALL cdp.segment_create (
+      CALL d360.segment_create (
         developer_name => 'Daily_Refresh', display_name => 'Daily Refresh', description => 'Every 12 hours on three weekdays',
         segment_on_api_name => 'ssot__Account__dlm', segment_type => 'Waterfall',
         publish_schedule_start_date_time => '2026-03-10T23:59:59.999Z',
@@ -470,7 +470,7 @@ functions:
     path: /ssot/segments/{segmentApiName}/actions/count
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D~1actions~1count/post
     description: Trigger a segment count on demand. Since v61.0.
-    example: CALL cdp.segment_count (segment_api_name => 'High_Value_Order_Buyers', prefer_approx_count => false);
+    example: CALL d360.segment_count (segment_api_name => 'High_Value_Order_Buyers', prefer_approx_count => false);
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
       - {name: prefer_approx_count, api_name: preferApproxCount, in: body, type: boolean, required: true, description: "Indicates whether to use approximate count (`true`) or not (`false`). Approximate Segment Population feature must be enabled to set the value as (`true`). Since v61.0."}
@@ -503,7 +503,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentApiName%7D~1actions~1deactivate/post
     tools: [d360_segment_deactivate]
     description: Deactivate a segment by its API name. Since v59.0.
-    example: CALL cdp.segment_deactivate (segment_api_name => 'High_Value_Order_Buyers');
+    example: CALL d360.segment_deactivate (segment_api_name => 'High_Value_Order_Buyers');
     options:
       - {name: segment_api_name, api_name: segmentApiName, in: path, type: string, required: true, description: "The segment's `api_name`, not its `1sg` id."}
     columns:
@@ -526,7 +526,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentId%7D~1actions~1deactivate/post
     tools: [d360_segment_deactivate]
     description: Deactivate a segment on demand by ID. Since v59.0.
-    example: CALL cdp.segment_deactivate_by_id (segment_id => '1sgxx00000000PpAAI');
+    example: CALL d360.segment_deactivate_by_id (segment_id => '1sgxx00000000PpAAI');
     options:
       - {name: segment_id, api_name: segmentId, in: path, type: string, required: true, description: "The segment's `market_segment_id`, 18 characters starting with `1sg`. Not `market_segment_definition_id` (`3HX`) or `segment_on_id` (`0gj`)."}
     columns:
@@ -549,7 +549,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Segments/paths/~1ssot~1segments~1%7BsegmentId%7D~1actions~1publish/post
     tools: [d360_segment_publish]
     description: Publish a segment in Data 360. This `POST` endpoint doesn't accept request parameters or a request body. Since v58.0.
-    example: CALL cdp.segment_publish (segment_id => '1sgxx00000000PpAAI');
+    example: CALL d360.segment_publish (segment_id => '1sgxx00000000PpAAI');
     options:
       - {name: segment_id, api_name: segmentId, in: path, type: string, required: true, description: "The segment's `market_segment_id`, 18 characters starting with `1sg`. Not `market_segment_definition_id` (`3HX`) or `segment_on_id` (`0gj`)."}
     columns:

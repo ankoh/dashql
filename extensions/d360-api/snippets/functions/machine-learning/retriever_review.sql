@@ -4,7 +4,7 @@
  * The template is written verbatim between `$$`, with its placeholders declared next to it. `existing_retriever_asset` names the retriever the new configuration is reviewed against.
  */
 
-call cdp.retriever_review (
+call d360.retriever_review (
     retriever_input => (
         label = 'Knowledge CustomSql Retriever',
         description = 'Finds knowledge article chunks in the online publication status.',

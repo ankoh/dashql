@@ -4,7 +4,7 @@
  * Show the point in a content zone of the website.
  */
 
-call cdp.p13n_experience_config_create (
+call d360.p13n_experience_config_create (
     id_or_app_source_id_or_name => 'my_website_connector',
     name => 'homepage_hero_banner',
     label => 'Homepage Hero Banner',

@@ -4,7 +4,7 @@
  * Create the S3 destination `s3_target`. Take `:activation_target_id` from the result of the first call, and repeat the second until `status` is `Active`. `:s3_access_key` and `:s3_secret_key` are the credentials, as parameters so that they stay out of the script.
  */
 
-call cdp.activation_target_create (
+call d360.activation_target_create (
     name => 's3_target',
     dataspace_name => 'default',
     platform_type => 'AmazonS3',
@@ -18,4 +18,4 @@ call cdp.activation_target_create (
     )
 );
 
-call cdp.activation_target_get (activation_target_id => :activation_target_id);
+call d360.activation_target_get (activation_target_id => :activation_target_id);

@@ -4,7 +4,7 @@
  * `route.type` picks the shape of the route: `AmazonMsk` also needs `broker_endpoints`, while Redshift needs only the service name. The route is usable when `cloud_provider.status` is `Ready`, which takes several minutes. Don't retry the call blindly, a route for the same connection URL answers with a conflict.
  */
 
-call cdp.private_network_route_create (
+call d360.private_network_route_create (
     name => 'MSK_Prod',
     label => 'MSK Prod',
     description => 'PrivateLink route to the prod MSK cluster',
@@ -19,4 +19,4 @@ call cdp.private_network_route_create (
     )
 );
 
-call cdp.private_network_route_get (route_id_or_name => 'MSK_Prod');
+call d360.private_network_route_get (route_id_or_name => 'MSK_Prod');

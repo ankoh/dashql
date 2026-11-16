@@ -4,9 +4,9 @@
  * Results are paged by cursor: follow `next_page_url` instead of building `page_token`. Don't filter on `status`, which can be null.
  */
 
-call cdp.activation_target_partner_object_list (
+call d360.activation_target_partner_object_list (
     activation_target_id => '85UVF000000NaQz2AK',
     partner_object_type => 'ConversionRule'
 );
 
-call cdp.activation_target_get (activation_target_id => '85UVF000000NaQz2AK');
+call d360.activation_target_get (activation_target_id => '85UVF000000NaQz2AK');

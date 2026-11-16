@@ -4,6 +4,6 @@
  * Read `status` from `_raw`, the spec's schema does not declare it.
  */
 
-call cdp.ml_job_list (type => 'Prediction', limit => 10);
+call d360.ml_job_list (type => 'Prediction', limit => 10);
 
-call cdp.ml_job_get (job_id => '14qSB0000004C92YAE');
+call d360.ml_job_get (job_id => '14qSB0000004C92YAE');

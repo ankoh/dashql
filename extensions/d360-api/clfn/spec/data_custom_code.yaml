@@ -5,7 +5,7 @@ description: |
   A deployment takes three steps, as in the [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py):
 
   1. `custom_code_deployment_create` returns a `file_upload_url`.
-  2. You PUT the zip to that URL. This isn't a Connect API call, so no `CALL cdp.` function does it.
+  2. You PUT the zip to that URL. This isn't a Connect API call, so no `CALL d360.` function does it.
   3. You poll `deployment_status` until it is `Deployed`.
 
   A script then needs a transform that names it, and `transform_run` starts it. Runs show up in `custom_code_execution_list`.
@@ -18,18 +18,18 @@ description: |
   - The docs deploy to a sandbox and [move to production with a DevOps data kit](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/migrate-code-to-prod.md).
 
   ```sql
-  CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS');
+  CALL d360.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS');
   /* PUT deployment.zip to file_upload_url, outside DashQL */
-  CALL cdp.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup'); /* until deployment_status = 'Deployed' */
-  CALL cdp.transform_create (name => 'account_rollup', label => 'account_rollup', type => 'BATCH', dataspace_name => 'default', definition => $$
+  CALL d360.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup'); /* until deployment_status = 'Deployed' */
+  CALL d360.transform_create (name => 'account_rollup', label => 'account_rollup', type => 'BATCH', dataspace_name => 'default', definition => $$
     {"type": "DCSQL", "version": "56.0", "manifest": {
       "nodes": {"node1": {"relation_name": "Account_std_copy__dll", "config": {"materialized": "table"}, "compiled_code": ""}},
       "sources": {"source1": {"relation_name": "Account_std__dll"}},
       "macros": {"macro.byoc": {"arguments": [{"name": "account_rollup", "type": "BYOC_SCRIPT"}]}}
     }}
   $$);
-  CALL cdp.transform_run (data_transform_name_or_id => 'account_rollup');
-  CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);
+  CALL d360.transform_run (data_transform_name_or_id => 'account_rollup');
+  CALL d360.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 10);
   ```
 
 functions:
@@ -39,7 +39,7 @@ functions:
     path: /ssot/data-custom-code/{customCodeNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code~1%7BcustomCodeNameOrId%7D/delete
     description: Permanently delete a deployment. Use it to remove code that nothing depends on any more.
-    example: CALL cdp.custom_code_deployment_delete (custom_code_name_or_id => 'account_rollup');
+    example: CALL d360.custom_code_deployment_delete (custom_code_name_or_id => 'account_rollup');
     options:
       - {name: custom_code_name_or_id, api_name: customCodeNameOrId, in: path, type: string, required: true, description: "Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`."}
     effect: write
@@ -56,7 +56,7 @@ functions:
     path: /ssot/data-custom-code
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code/get
     description: List the deployments in the org, with optional filters on type, status and label. Use it to find a deployment name or spot failed deployments.
-    example: CALL cdp.custom_code_deployment_list (code_type => 'Script', deployment_status => 'Error', order_by => 'DeployedOnDesc', limit => 50);
+    example: CALL d360.custom_code_deployment_list (code_type => 'Script', deployment_status => 'Error', order_by => 'DeployedOnDesc', limit => 50);
     options:
       - {name: code_type, api_name: codeType, in: query, type: string, enum: [Function, Script], description: "`Script` runs in a data transform. `Function` runs in a search index."}
       - {name: deployment_status, api_name: deploymentStatus, in: query, type: string, enum: [Deployed, Disabled, Error, Initializing, Pending, Scanning], description: "Only deployments in this state. `Deployed` means ready and `Error` means failed."}
@@ -100,7 +100,7 @@ functions:
     path: /ssot/data-custom-code/{customCodeNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code~1%7BcustomCodeNameOrId%7D/get
     description: Read one deployment by name or id. Poll it after uploading a package to see whether the deployment finished.
-    example: CALL cdp.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup');
+    example: CALL d360.custom_code_deployment_get (custom_code_name_or_id => 'account_rollup');
     options:
       - {name: custom_code_name_or_id, api_name: customCodeNameOrId, in: path, type: string, required: true, description: "Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`."}
     columns:
@@ -139,7 +139,7 @@ functions:
     path: /ssot/data-custom-code/{customCodeNameOrId}/executions
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code~1%7BcustomCodeNameOrId%7D~1executions/get
     description: List the runs of one deployment, with status, row counts and timings. Use it as the run history after running a transform.
-    example: CALL cdp.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 20);
+    example: CALL d360.custom_code_execution_list (custom_code_name_or_id => 'account_rollup', limit => 20);
     options:
       - {name: custom_code_name_or_id, api_name: customCodeNameOrId, in: path, type: string, required: true, description: "Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`."}
       - {name: limit, in: query, type: integer, description: "-"}
@@ -172,7 +172,7 @@ functions:
     path: /ssot/data-custom-code/{customCodeNameOrId}/executions/{customCodeExecutionId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code~1%7BcustomCodeNameOrId%7D~1executions~1%7BcustomCodeExecutionId%7D/get
     description: Read one run of a deployment. Use it to check a run's status or error once you have its id.
-    example: CALL cdp.custom_code_execution_get (custom_code_name_or_id => 'account_rollup', custom_code_execution_id => :execution_id);
+    example: CALL d360.custom_code_execution_get (custom_code_name_or_id => 'account_rollup', custom_code_execution_id => :execution_id);
     options:
       - {name: custom_code_execution_id, api_name: customCodeExecutionId, in: path, type: string, required: true, description: "`id` from `custom_code_execution_list`."}
       - {name: custom_code_name_or_id, api_name: customCodeNameOrId, in: path, type: string, required: true, description: "Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`."}
@@ -202,7 +202,7 @@ functions:
     path: /ssot/data-custom-code/{customCodeNameOrId}
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code~1%7BcustomCodeNameOrId%7D/patch
     description: Change a deployment's label, description, compute size or version. Use it to resize a deployment or fix its metadata.
-    example: CALL cdp.custom_code_deployment_update (custom_code_name_or_id => 'account_rollup', compute_type => 'Cpu_s', description => 'Nightly account rollup');
+    example: CALL d360.custom_code_deployment_update (custom_code_name_or_id => 'account_rollup', compute_type => 'Cpu_s', description => 'Nightly account rollup');
     options:
       - {name: custom_code_name_or_id, api_name: customCodeNameOrId, in: path, type: string, required: true, description: "Deployment `name` or `id`. The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) reads by `name`."}
       - {name: compute_type, api_name: computeType, in: body, type: string, enum: [Cpu_l, Cpu_m, Cpu_s, Cpu_xs], description: "Size of the compute the code runs on. Spelled differently from create."}
@@ -243,7 +243,7 @@ functions:
     path: /ssot/data-custom-code
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Custom-Code/paths/~1ssot~1data-custom-code/post
     description: Register a new deployment and get the URL to upload its zip package to. Deployment finishes only after that upload.
-    example: CALL cdp.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS', description => 'Rolls accounts up by region');
+    example: CALL d360.custom_code_deployment_create (name => 'account_rollup', label => 'Account rollup', code_type => 'Script', compute_type => 'CPU_XS', description => 'Rolls accounts up by region');
     options:
       - {name: id, in: body, type: string, description: "-"}
       - {name: name, in: body, type: string, description: "API name. Letters, digits and underscores, starting with a letter, [at most 40 characters and unique](https://developer.salesforce.com/docs/data/data-cloud-code-ext/guide/deploy-custom-code.md). No trailing or double underscore."}
@@ -280,7 +280,7 @@ functions:
 
       **Notes:** **This call only registers the deployment.** Nothing runs until the package is uploaded.
 
-      **Upload.** The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) sends the PUT below. It isn't a Connect API call, so no `CALL cdp.` function does it.
+      **Upload.** The [SDK](https://github.com/forcedotcom/datacloud-customcode-python-sdk/blob/main/src/datacustomcode/deploy.py) sends the PUT below. It isn't a Connect API call, so no `CALL d360.` function does it.
 
       - Pass the `file_upload_url` through an HTML unescape first. The SDK does this, so the value can contain entities such as `&amp;`.
       - Send `Content-Type: application/zip` with the raw zip as the body, and no `Authorization` header. Any status under 400 counts as success.

@@ -4,9 +4,9 @@
  * The spec's example uses the `file_path` form `collections/<library id>/<file name>`. Check the library first for the files that are there.
  */
 
-call cdp.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
+call d360.knowledge_library_details_get (library_id => '1aQxx00000000JNEAY');
 
-call cdp.files_remove (
+call d360.files_remove (
     knowledge_artifact_id => '1aQxx00000000JNEAY',
     knowledge_artifact_source => 'FILE_UPLOAD',
     knowledge_source_files_list => [

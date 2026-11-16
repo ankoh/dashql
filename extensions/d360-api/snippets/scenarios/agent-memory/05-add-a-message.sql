@@ -4,7 +4,7 @@
  * Add what was said.
  */
 
-call cdp.memory_entry_add (
+call d360.memory_entry_add (
     agent_id => 'ACE_Demo_Agent',
     conversation_id => 'conv-2025-001',
     session_id => 'sess-9001',

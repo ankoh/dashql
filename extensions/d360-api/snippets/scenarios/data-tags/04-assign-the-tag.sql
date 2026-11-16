@@ -4,7 +4,7 @@
  * Tag a field.
  */
 
-call cdp.tag_assignment_create (
+call d360.tag_assignment_create (
     tag_fully_qualified_name => 'Compliance_Tags.PII.Email',
     object_name => 'Individual_DLO__dll',
     field_name => 'Email'

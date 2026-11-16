@@ -4,7 +4,7 @@
  * Create it last in a build, since the fields it references must exist.
  */
 
-call cdp.sdm_metric_create (
+call d360.sdm_metric_create (
     model_api_name_or_id => 'AccountRevenue',
     name => 'Annual_Revenue_md',
     label => 'Annual Revenue',
@@ -24,4 +24,4 @@ call cdp.sdm_metric_create (
     )
 );
 
-call cdp.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+call d360.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');

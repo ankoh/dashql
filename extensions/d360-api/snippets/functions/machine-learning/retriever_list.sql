@@ -4,7 +4,7 @@
  * The filters combine. `limit` goes from 1 to 200, and -1 means no limit.
  */
 
-call cdp.retriever_list (
+call d360.retriever_list (
     search => 'Bathroom',
     detail_level => 'Basic',
     is_active => true,

@@ -11,7 +11,7 @@ It holds two things so far:
 
 ## Layout
 
-A folder is named for the API, which needn't equal the namespace of its client functions: `extensions/d360-api/` holds the client functions of `cdp`.
+A folder is named for the API, which needn't equal the namespace of its client functions: `extensions/d360-api/` holds the client functions of `d360`.
 
 | Folder | Holds |
 |---|---|

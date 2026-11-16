@@ -4,4 +4,4 @@
  * Refresh the graph when its data changed.
  */
 
-call cdp.data_graph_refresh (data_graph_name => 'Customer_Graph');
+call d360.data_graph_refresh (data_graph_name => 'Customer_Graph');

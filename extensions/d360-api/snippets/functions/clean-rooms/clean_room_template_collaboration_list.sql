@@ -4,7 +4,7 @@
  * The spec gives no list of values for `use_case_template_type`. Its template schemas have `Custom` and `Overlap`.
  */
 
-call cdp.clean_room_template_collaboration_list (
+call d360.clean_room_template_collaboration_list (
     use_case_template_type => 'Overlap',
     order_by => 'created_date DESC',
     limit => 20

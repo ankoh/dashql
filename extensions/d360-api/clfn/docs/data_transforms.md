@@ -2,7 +2,7 @@
 
 # Data Transforms
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A data transform reads data lake objects (DLOs) or data model objects (DMOs) and writes the result to another object. It sits after ingestion and before anything that reads the output, such as mappings or segments.
 
@@ -21,12 +21,12 @@ Links to `help.salesforce.com` were read only as search excerpts, because those 
 
 ```sql
 /* Same body for validate and create */
-CALL cdp.transform_validate (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
-CALL cdp.transform_create (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
+CALL d360.transform_validate (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
+CALL d360.transform_create (name => 'account_summary', label => 'Account Summary', type => 'BATCH', definition => (...));
 /* Once status is Active */
-CALL cdp.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
-CALL cdp.transform_run (data_transform_name_or_id => 'account_summary');
-CALL cdp.transform_get (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
+CALL d360.transform_run (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_get (data_transform_name_or_id => 'account_summary');
 ```
 
 **Functions:** [`transform_delete`](#transform_delete), [`transform_list`](#transform_list), [`transform_get`](#transform_get), [`transform_run_history_list`](#transform_run_history_list), [`transform_schedule_get`](#transform_schedule_get), [`transform_create`](#transform_create), [`transform_validate`](#transform_validate), [`transform_cancel`](#transform_cancel), [`transform_rebuild`](#transform_rebuild), [`transform_status_refresh`](#transform_status_refresh), [`transform_retry`](#transform_retry), [`transform_run`](#transform_run), [`transform_update`](#transform_update), [`transform_schedule_set`](#transform_schedule_set)
@@ -44,7 +44,7 @@ Initiate the deletion of a data transform. Since v60.0.
 | `data_transform_name_or_id` | `dataTransformNameOrId` | path | string | yes | Name or ID of the data transform to delete. |
 
 ```sql
-CALL cdp.transform_delete (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_delete (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -74,7 +74,7 @@ Get a list of data transforms. Since v60.0.
 | `order_by` | `orderBy` | query | enum(DataTransformStatusAsc, DataTransformStatusDesc, LabelAsc, LabelDesc, LastRunStatusAsc, LastRunStatusDesc, LastRunTimeAsc, LastRunTimeDesc, MruAsc, MruDesc, NameAsc, NameDesc, TypeAsc, TypeDesc) |  | Sort order for the result set. If unspecified, items are returned in the order they are retrieved. Since v60.0. |
 
 ```sql
-CALL cdp.transform_list ();
+CALL d360.transform_list ();
 ```
 
 **Result**
@@ -129,7 +129,7 @@ Get a data transform. Since v60.0.
 | `filter_group` | `filterGroup` | query | string |  | Group on which to filter response results. Valid values are `Big`, `Medium`, and `Small`. - `Big` provides comprehensive results by returning properties whose filter group is `Big`, `Medium`, or `Small`. - `Medium` provides moderate results by returning properties whose filter group is `Medium` or `Small`. - `Small` provides essential results by returning only properties whose filter group is `Small`. The default is `Big`. Since v60.0. |
 
 ```sql
-CALL cdp.transform_get (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_get (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -190,7 +190,7 @@ Get information about all the jobs that the batch or streaming data transform ha
 | `offset` | `offset` | query | integer |  | Number of run history records to skip before returning results. Must be an integer greater than zero. If unspecified, no rows are skipped. Since v62.0. |
 
 ```sql
-CALL cdp.transform_run_history_list (data_transform_name_or_id => 'account_summary', limit => 20);
+CALL d360.transform_run_history_list (data_transform_name_or_id => 'account_summary', limit => 20);
 ```
 
 **Result**
@@ -228,7 +228,7 @@ Get a data transform's schedule. The response contains different fields dependin
 | `data_transform_name_or_id` | `dataTransformNameOrId` | path | string | yes | Name or ID of the data transform. |
 
 ```sql
-CALL cdp.transform_schedule_get (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_schedule_get (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -277,7 +277,7 @@ Create a data transform. Since v60.0.
 | `creation_type` | `creationType` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.transform_create (
+CALL d360.transform_create (
   name => 'account_summary',
   label => 'Account Summary',
   description => 'Accounts over one million in revenue',
@@ -396,7 +396,7 @@ Validate your data transform before you create it. - If the data transform is va
 | `type` | `type` | body | enum(BATCH, STREAMING) | yes | Type of data transform. Since v60.0. |
 
 ```sql
-CALL cdp.transform_validate (
+CALL d360.transform_validate (
   name => 'AccountAnon',
   label => 'Account Anon',
   type => 'STREAMING',
@@ -441,7 +441,7 @@ Cancel a data transform. Since v60.0.
 | `data_transform_name_or_id` | `dataTransformNameOrId` | path | string | yes | Name or ID of the data transform to cancel. |
 
 ```sql
-CALL cdp.transform_cancel (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_cancel (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -477,7 +477,7 @@ Rebuild a streaming data transform. Since v61.0.
 | `transforms` | `transforms` | body | array of string |  | Data transform API names or record IDs to rebuild. No source explains how this list relates to the transform in the path. Since v61.0. |
 
 ```sql
-CALL cdp.transform_rebuild (data_transform_name_or_id => 'AccountAnon');
+CALL d360.transform_rebuild (data_transform_name_or_id => 'AccountAnon');
 ```
 
 **Result**
@@ -512,7 +512,7 @@ Refresh the status of a data transform. Since v60.0.
 | `data_transform_name_or_id` | `dataTransformNameOrId` | path | string | yes | Name or ID of the data transform to refresh. |
 
 ```sql
-CALL cdp.transform_status_refresh (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_status_refresh (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -544,7 +544,7 @@ Retry a data transform. Since v60.0.
 | `data_transform_name_or_id` | `dataTransformNameOrId` | path | string | yes | Name or ID of the data transform to retry. |
 
 ```sql
-CALL cdp.transform_retry (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_retry (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -577,7 +577,7 @@ Run a data transform. Since v60.0.
 | `should_force_full_run` | `shouldForceFullRun` | body | boolean |  | Not in the spec schema (MCP server). |
 
 ```sql
-CALL cdp.transform_run (data_transform_name_or_id => 'account_summary');
+CALL d360.transform_run (data_transform_name_or_id => 'account_summary');
 ```
 
 **Result**
@@ -630,7 +630,7 @@ Update a data transform. Since v60.0.
 | `creation_type` | `creationType` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.transform_update (
+CALL d360.transform_update (
   data_transform_name_or_id => 'account_summary',
   name => 'account_summary',
   label => 'Account Summary',
@@ -720,7 +720,7 @@ Update a data transform's schedule. Since v60.0.
 | `days_of_month` | `daysOfMonth` | body | array |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
+CALL d360.transform_schedule_set (data_transform_name_or_id => 'account_summary', frequency => 'Daily', time => (hour = 2, minute = 0, time_zone = 'America/Los_Angeles'));
 ```
 
 **Result**

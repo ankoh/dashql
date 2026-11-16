@@ -2,7 +2,7 @@
 
 # Data Governance
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 This family labels data and controls who can read it. [Governance runs on tags rather than per-user permissions](https://trailhead.salesforce.com/content/learn/modules/data-cloud-governance-quick-look/get-to-know-data-cloud-governance): you label objects and fields, and policies act on the labels.
 
@@ -22,11 +22,11 @@ Gotchas:
 - Most deletes return 202, and tags can sit in state `Deleting`.
 
 ```sql
-CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
-CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
-CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address');
-CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
-CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll']);
+CALL d360.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags');
+CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII', label => 'PII');
+CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address');
+CALL d360.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+CALL d360.tags_propagate (object_names => ['Individual_DLO__dll']);
 ```
 
 **Functions:** [`access_policy_delete`](#access_policy_delete), [`classification_assignment_delete`](#classification_assignment_delete), [`classification_taxonomy_delete`](#classification_taxonomy_delete), [`classification_delete`](#classification_delete), [`object_access_grant_delete`](#object_access_grant_delete), [`tag_assignment_delete`](#tag_assignment_delete), [`tag_taxonomy_delete`](#tag_taxonomy_delete), [`tag_delete`](#tag_delete), [`tag_detection_instruction_deactivate`](#tag_detection_instruction_deactivate), [`access_policy_list`](#access_policy_list), [`access_policy_get`](#access_policy_get), [`access_policy_rule_get`](#access_policy_rule_get), [`auto_tagging_job_list`](#auto_tagging_job_list), [`auto_tagging_job_get`](#auto_tagging_job_get), [`classification_assignment_list`](#classification_assignment_list), [`classification_assignment_get`](#classification_assignment_get), [`classification_taxonomy_list`](#classification_taxonomy_list), [`classification_taxonomy_get`](#classification_taxonomy_get), [`classification_list`](#classification_list), [`classification_get`](#classification_get), [`classification_assignments_classification_list`](#classification_assignments_classification_list), [`object_access_grant_list`](#object_access_grant_list), [`object_access_grant_get`](#object_access_grant_get), [`tag_assignment_list`](#tag_assignment_list), [`tag_assignment_get`](#tag_assignment_get), [`tag_suggestion_list`](#tag_suggestion_list), [`tag_suggestion_get`](#tag_suggestion_get), [`tag_taxonomy_list`](#tag_taxonomy_list), [`tag_taxonomy_get`](#tag_taxonomy_get), [`tags_active_detection_instruction_list`](#tags_active_detection_instruction_list), [`tag_list`](#tag_list), [`tag_get`](#tag_get), [`tag_assignments_tag_list`](#tag_assignments_tag_list), [`tag_detection_instruction_get`](#tag_detection_instruction_get), [`access_policy_update`](#access_policy_update), [`classification_taxonomy_update`](#classification_taxonomy_update), [`classification_update`](#classification_update), [`tag_taxonomy_update`](#tag_taxonomy_update), [`tag_update`](#tag_update), [`access_policy_create`](#access_policy_create), [`classification_assignment_create`](#classification_assignment_create), [`classification_assignment_bulk_create`](#classification_assignment_bulk_create), [`classification_assignment_bulk_delete`](#classification_assignment_bulk_delete), [`classification_taxonomy_create`](#classification_taxonomy_create), [`classification_taxonomy_bulk_create`](#classification_taxonomy_bulk_create), [`classification_taxonomy_bulk_delete`](#classification_taxonomy_bulk_delete), [`classification_taxonomy_bulk_update`](#classification_taxonomy_bulk_update), [`classification_create`](#classification_create), [`classification_bulk_create`](#classification_bulk_create), [`classification_bulk_delete`](#classification_bulk_delete), [`classification_bulk_update`](#classification_bulk_update), [`object_access_grant_create`](#object_access_grant_create), [`object_access_grant_bulk_create`](#object_access_grant_bulk_create), [`object_access_grant_bulk_delete`](#object_access_grant_bulk_delete), [`tag_assignment_create`](#tag_assignment_create), [`tag_assignment_bulk_create`](#tag_assignment_bulk_create), [`tag_assignment_bulk_delete`](#tag_assignment_bulk_delete), [`tag_suggestions_approve`](#tag_suggestions_approve), [`tag_suggestions_generate`](#tag_suggestions_generate), [`tag_suggestions_reject`](#tag_suggestions_reject), [`tag_taxonomy_create`](#tag_taxonomy_create), [`tag_detection_instruction_bulk_create`](#tag_detection_instruction_bulk_create), [`tag_taxonomy_bulk_create`](#tag_taxonomy_bulk_create), [`tag_taxonomy_bulk_delete`](#tag_taxonomy_bulk_delete), [`tag_taxonomy_bulk_update`](#tag_taxonomy_bulk_update), [`tag_create`](#tag_create), [`tag_detection_instruction_create`](#tag_detection_instruction_create), [`tag_bulk_create`](#tag_bulk_create), [`tag_bulk_delete`](#tag_bulk_delete), [`tag_bulk_update`](#tag_bulk_update), [`tags_propagate`](#tags_propagate), [`access_policy_rule_replace`](#access_policy_rule_replace)
@@ -44,7 +44,7 @@ Permanently deletes an access policy and cascades the delete to its rules. Since
 | `name` | `name` | path | string | yes | Developer name of the access policy. |
 
 ```sql
-CALL cdp.access_policy_delete (name => 'RestrictSensitiveFields');
+CALL d360.access_policy_delete (name => 'RestrictSensitiveFields');
 ```
 
 **Result**
@@ -64,7 +64,7 @@ Deletes a data governance classification assignment by ID. Since v67.0.
 | `id` | `id` | path | string | yes | ID of the classification assignment. |
 
 ```sql
-CALL cdp.classification_assignment_delete (id => '9aa000000000050');
+CALL d360.classification_assignment_delete (id => '9aa000000000050');
 ```
 
 **Result**
@@ -84,7 +84,7 @@ Deletes a classification taxonomy. Since v67.0.
 | `name` | `name` | path | string | yes | API name or developer name of the classification taxonomy. |
 
 ```sql
-CALL cdp.classification_taxonomy_delete (name => 'Data_Residency_Classifications');
+CALL d360.classification_taxonomy_delete (name => 'Data_Residency_Classifications');
 ```
 
 **Result**
@@ -108,7 +108,7 @@ Deletes a classification and cascades the deletion to any child classifications 
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully-qualified API name of the classification. |
 
 ```sql
-CALL cdp.classification_delete (fully_qualified_name => 'Compliance_Classifications.Sensitive');
+CALL d360.classification_delete (fully_qualified_name => 'Compliance_Classifications.Sensitive');
 ```
 
 **Result**
@@ -134,7 +134,7 @@ Deletes a single object access grant. Since v67.0.
 | `permission_set_name` | `permissionSetName` | query | string |  | Developer name of the permission set. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_delete (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+CALL d360.object_access_grant_delete (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
 ```
 
 **Result**
@@ -156,7 +156,7 @@ Deletes a data governance tag assignment by ID. Since v67.0.
 | `id` | `id` | path | string | yes | ID of the tag assignment. |
 
 ```sql
-CALL cdp.tag_assignment_delete (id => '9aa000000000001');
+CALL d360.tag_assignment_delete (id => '9aa000000000001');
 ```
 
 **Result**
@@ -176,7 +176,7 @@ Deletes a tag taxonomy and all child tags. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`. |
 
 ```sql
-CALL cdp.tag_taxonomy_delete (fully_qualified_name => 'Marketing_Tags');
+CALL d360.tag_taxonomy_delete (fully_qualified_name => 'Marketing_Tags');
 ```
 
 **Result**
@@ -200,7 +200,7 @@ Deletes a tag and cascades the deletion to any child tags and assignments. Since
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully qualified API name of the tag. |
 
 ```sql
-CALL cdp.tag_delete (fully_qualified_name => 'Compliance_Tags.PII.Phone');
+CALL d360.tag_delete (fully_qualified_name => 'Compliance_Tags.PII.Phone');
 ```
 
 **Result**
@@ -224,7 +224,7 @@ Deactivates the currently active detection instruction for a tag. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully-qualified API name of the tag (dotted path). |
 
 ```sql
-CALL cdp.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+CALL d360.tag_detection_instruction_deactivate (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
 ```
 
 **Result**
@@ -249,7 +249,7 @@ Returns a paginated list of builder-compatible access policies. To include syste
 | `search_string` | `searchString` | query | string |  | Case-insensitive substring to match against the policy name or label. Since v67.0. |
 
 ```sql
-CALL cdp.access_policy_list (search_string => 'mask', include_incompatible => true);
+CALL d360.access_policy_list (search_string => 'mask', include_incompatible => true);
 ```
 
 **Result**
@@ -289,7 +289,7 @@ Returns a single access policy and its rules by developer name. Since v67.0.
 | `name` | `name` | path | string | yes | Developer name of the access policy. |
 
 ```sql
-CALL cdp.access_policy_get (name => 'RestrictSensitiveFields');
+CALL d360.access_policy_get (name => 'RestrictSensitiveFields');
 ```
 
 **Result**
@@ -328,7 +328,7 @@ Returns the details of a specific rule within an access policy. Since v67.0.
 | `rule_name` | `ruleName` | path | string | yes | Developer name of the rule. |
 
 ```sql
-CALL cdp.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
+CALL d360.access_policy_rule_get (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN');
 ```
 
 **Result**
@@ -370,7 +370,7 @@ Returns a paginated list of data governance auto-tagging jobs, optionally filter
 | `status` | `status` | query | string |  | Status to filter jobs by. Values are `InProgress`, `Success`, or `Fail`. Since v67.0. |
 
 ```sql
-CALL cdp.auto_tagging_job_list ();
+CALL d360.auto_tagging_job_list ();
 ```
 
 **Result**
@@ -400,7 +400,7 @@ Returns a single data governance auto-tagging job by ID, reporting its progress 
 | `id` | `id` | path | string | yes | ID of the auto-tagging job. Since v67.0. |
 
 ```sql
-CALL cdp.auto_tagging_job_get (id => '...');
+CALL d360.auto_tagging_job_get (id => '...');
 ```
 
 **Result**
@@ -433,7 +433,7 @@ Returns a paginated list of data governance classification assignments, optional
 | `tag_fully_qualified_name` | `tagFullyQualifiedName` | query | string |  | Fully-qualified API name of the tag to filter assignments by. Since v67.0. |
 
 ```sql
-CALL cdp.classification_assignment_list ();
+CALL d360.classification_assignment_list ();
 ```
 
 **Result**
@@ -469,7 +469,7 @@ Returns a single data governance classification assignment by ID. Since v67.0.
 | `id` | `id` | path | string | yes | ID of the classification assignment. |
 
 ```sql
-CALL cdp.classification_assignment_get (id => '9aa000000000050');
+CALL d360.classification_assignment_get (id => '9aa000000000050');
 ```
 
 **Result**
@@ -506,7 +506,7 @@ Returns a paginated list of classification taxonomies. Since v67.0.
 | `search_string` | `searchString` | query | string |  | Search keyword to match against the developer name or label. Since v67.0. |
 
 ```sql
-CALL cdp.classification_taxonomy_list ();
+CALL d360.classification_taxonomy_list ();
 ```
 
 **Result**
@@ -546,7 +546,7 @@ Returns a classification taxonomy by its API name. Since v67.0.
 | `name` | `name` | path | string | yes | API name or developer name of the classification taxonomy. |
 
 ```sql
-CALL cdp.classification_taxonomy_get (name => 'Compliance_Classifications');
+CALL d360.classification_taxonomy_get (name => 'Compliance_Classifications');
 ```
 
 **Result**
@@ -587,7 +587,7 @@ Returns a paginated list of classifications across all classification taxonomies
 | `taxonomy_name` | `taxonomyName` | query | string |  | Fully-qualified API name of the classification taxonomy (for example, `Compliance_Classifications`). Scopes the list to classifications under that taxonomy. Since v67.0. |
 
 ```sql
-CALL cdp.classification_list ();
+CALL d360.classification_list ();
 ```
 
 **Result**
@@ -630,7 +630,7 @@ Returns a classification by its fully-qualified API name. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully-qualified API name of the classification. |
 
 ```sql
-CALL cdp.classification_get (fully_qualified_name => 'Compliance_Classifications.PII');
+CALL d360.classification_get (fully_qualified_name => 'Compliance_Classifications.PII');
 ```
 
 **Result**
@@ -671,7 +671,7 @@ Returns a paginated list of assignments for a specific classification, including
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0. |
 
 ```sql
-CALL cdp.classification_assignments_classification_list (fully_qualified_name => 'Compliance_Classifications.PII');
+CALL d360.classification_assignments_classification_list (fully_qualified_name => 'Compliance_Classifications.PII');
 ```
 
 **Result**
@@ -713,7 +713,7 @@ Returns a paginated list of object access grants, with optional filters. Providi
 | `permission_set_name` | `permissionSetName` | query | string |  | Developer name of the permission set or permission set group to filter grants by. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_list (permission_set_name => 'DC_Analyst_PermSet');
+CALL d360.object_access_grant_list (permission_set_name => 'DC_Analyst_PermSet');
 ```
 
 **Result**
@@ -747,7 +747,7 @@ Returns a single object access grant. Since v67.0.
 | `permission_set_name` | `permissionSetName` | query | string |  | Developer name of the permission set. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_get (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
+CALL d360.object_access_grant_get (object_api_name => 'Account__dlm', dataspace_name => 'default', permission_set_name => 'DC_Analyst_PermSet');
 ```
 
 **Result**
@@ -781,7 +781,7 @@ Returns a paginated list of data governance tag assignments for a given object, 
 | `tag_fully_qualified_name` | `tagFullyQualifiedName` | query | string |  | Fully-qualified API name of the tag to filter assignments by. Since v67.0. |
 
 ```sql
-CALL cdp.tag_assignment_list (object_name => 'Individual_DLO__dll', field_name => 'Email');
+CALL d360.tag_assignment_list (object_name => 'Individual_DLO__dll', field_name => 'Email');
 ```
 
 **Result**
@@ -818,7 +818,7 @@ Returns a single data governance tag assignment by ID. Since v67.0.
 | `id` | `id` | path | string | yes | ID of the tag assignment. |
 
 ```sql
-CALL cdp.tag_assignment_get (id => '9aa000000000001');
+CALL d360.tag_assignment_get (id => '9aa000000000001');
 ```
 
 **Result**
@@ -855,7 +855,7 @@ Returns a paginated list of AI-generated data governance tag suggestions, option
 | `tag_fully_qualified_name` | `tagFullyQualifiedName` | query | string |  | Fully-qualified API name of the tag to filter suggestions by. Since v67.0. |
 
 ```sql
-CALL cdp.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New');
+CALL d360.tag_suggestion_list (object_name => 'Individual_DLO__dll', status => 'New');
 ```
 
 **Result**
@@ -896,7 +896,7 @@ Returns a single AI-generated tag suggestion by ID. Since v67.0.
 | `id` | `id` | path | string | yes | ID of the tag suggestion. Since v67.0. |
 
 ```sql
-CALL cdp.tag_suggestion_get (id => '1dg000000000001');
+CALL d360.tag_suggestion_get (id => '1dg000000000001');
 ```
 
 **Result**
@@ -936,7 +936,7 @@ Returns a paginated list of tag taxonomies. Since v67.0.
 | `search_string` | `searchString` | query | string |  | Search keyword to match against the developer name or label. Since v67.0. |
 
 ```sql
-CALL cdp.tag_taxonomy_list ();
+CALL d360.tag_taxonomy_list ();
 ```
 
 **Result**
@@ -976,7 +976,7 @@ Returns a tag taxonomy by its fully qualified API name. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully qualified API name of the tag taxonomy. A taxonomy has one segment, so this is its developer name, such as `Compliance_Tags`. |
 
 ```sql
-CALL cdp.tag_taxonomy_get (fully_qualified_name => 'Compliance_Tags');
+CALL d360.tag_taxonomy_get (fully_qualified_name => 'Compliance_Tags');
 ```
 
 **Result**
@@ -1014,7 +1014,7 @@ Returns a paginated list of tags in a taxonomy along with their active detection
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0. |
 
 ```sql
-CALL cdp.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
+CALL d360.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
 ```
 
 **Result**
@@ -1046,7 +1046,7 @@ Returns a paginated list of tags across all tag taxonomies. Since v67.0.
 | `taxonomy_name` | `taxonomyName` | query | string |  | Fully-qualified API name of the tag taxonomy (for example, `Compliance_Tags`). Scopes the list to tags under that taxonomy. Since v67.0. |
 
 ```sql
-CALL cdp.tag_list ();
+CALL d360.tag_list ();
 ```
 
 **Result**
@@ -1089,7 +1089,7 @@ Returns a tag by its fully qualified API name. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully qualified API name of the tag. |
 
 ```sql
-CALL cdp.tag_get (fully_qualified_name => 'Compliance_Tags.PII.Email');
+CALL d360.tag_get (fully_qualified_name => 'Compliance_Tags.PII.Email');
 ```
 
 **Result**
@@ -1130,7 +1130,7 @@ Returns a paginated list of tag assignments for a specific tag. Since v67.0.
 | `offset` | `offset` | query | integer |  | Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v67.0. |
 
 ```sql
-CALL cdp.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
+CALL d360.tag_assignments_tag_list (fully_qualified_name => 'Compliance_Tags.PII.Email');
 ```
 
 **Result**
@@ -1165,7 +1165,7 @@ Returns the currently active detection instruction for a tag. Since v67.0.
 | `fully_qualified_name` | `fullyQualifiedName` | path | string | yes | Fully-qualified API name of the tag (dotted path). |
 
 ```sql
-CALL cdp.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
+CALL d360.tag_detection_instruction_get (fully_qualified_name => 'Compliance_Tags.PII.CreditCard');
 ```
 
 **Result**
@@ -1201,7 +1201,7 @@ Applies an idempotent partial update to an access policy's label or description.
 | `label` | `label` | body | string |  | Display label for the policy. Omit to leave unchanged. Since v67.0. |
 
 ```sql
-CALL cdp.access_policy_update (name => 'RestrictSensitiveFields', label => 'Regional Masking Updated', description => 'Updated policy description.');
+CALL d360.access_policy_update (name => 'RestrictSensitiveFields', label => 'Regional Masking Updated', description => 'Updated policy description.');
 ```
 
 **Result**
@@ -1241,7 +1241,7 @@ Updates a classification taxonomy. Omitted fields are left unchanged. Since v67.
 | `label` | `label` | body | string |  | Label of the tag taxonomy. Since v67.0. |
 
 ```sql
-CALL cdp.classification_taxonomy_update (name => 'Compliance_Classifications', description => 'Sensitivity and compliance classifications for regulated workloads.');
+CALL d360.classification_taxonomy_update (name => 'Compliance_Classifications', description => 'Sensitivity and compliance classifications for regulated workloads.');
 ```
 
 **Result**
@@ -1280,7 +1280,7 @@ Updates a classification. Omitted fields are left unchanged. Since v67.0.
 | `tag_fully_qualified_names` | `tagFullyQualifiedNames` | body | array of string |  | Replaces all tag links. Maximum of 200 items. Provide an empty list to remove all links. Omit to leave unchanged. Since v67.0. |
 
 ```sql
-CALL cdp.classification_update (fully_qualified_name => 'Compliance_Classifications.PII', description => 'Personally identifiable information, direct and indirect identifiers.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']);
+CALL d360.classification_update (fully_qualified_name => 'Compliance_Classifications.PII', description => 'Personally identifiable information, direct and indirect identifiers.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']);
 ```
 
 **Result**
@@ -1323,7 +1323,7 @@ Updates a tag taxonomy. Omitted fields are left unchanged. Since v67.0.
 | `label` | `label` | body | string |  | Label of the tag taxonomy. Since v67.0. |
 
 ```sql
-CALL cdp.tag_taxonomy_update (fully_qualified_name => 'Compliance_Tags', label => 'Compliance Tags (GA)', description => 'Compliance-related tags: PII, financial and health indicators.');
+CALL d360.tag_taxonomy_update (fully_qualified_name => 'Compliance_Tags', label => 'Compliance Tags (GA)', description => 'Compliance-related tags: PII, financial and health indicators.');
 ```
 
 **Result**
@@ -1363,7 +1363,7 @@ Updates a tag. Omitted fields are left unchanged. Since v67.0.
 | `parent_tag_fully_qualified_name` | `parentTagFullyQualifiedName` | body | string |  | Fully-qualified API name of the new parent tag. Provide `null` to move the tag to the root level. Must be in the same taxonomy. Since v67.0. |
 
 ```sql
-CALL cdp.tag_update (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address (PII)', description => 'Personal and work email fields.', classification_fully_qualified_names => ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive']);
+CALL d360.tag_update (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address (PII)', description => 'Personal and work email fields.', classification_fully_qualified_names => ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive']);
 ```
 
 **Result**
@@ -1408,7 +1408,7 @@ Creates an access policy, with optional inline rules, using all-or-none semantic
 | `rules` | `rules` | body | array of [AccessPolicyRuleInput](#accesspolicyruleinputrepresentation) |  | Ordered list of rules embedded in the policy. The access policy builder requires exactly one rule. Since v67.0. |
 
 ```sql
-CALL cdp.access_policy_create (name => 'RestrictSensitiveFields', label => 'Restrict Sensitive Fields', description => 'Restricts read access to sensitive account fields.', rules => [(name = 'Mask_SSN', label = 'Mask SSN', category = 'TRANSFORM_POLICY_RULE_DEFINITION', effect = 'Transform', action = ['Read'], resource_scope_type = 'FIELD', principal_scope_type = 'ANY', resource_domains = ['Account__dlm'], resource_transform = 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments = [(type = 'NUMBER', value = '4')], transform_precedence = 100)]);
+CALL d360.access_policy_create (name => 'RestrictSensitiveFields', label => 'Restrict Sensitive Fields', description => 'Restricts read access to sensitive account fields.', rules => [(name = 'Mask_SSN', label = 'Mask SSN', category = 'TRANSFORM_POLICY_RULE_DEFINITION', effect = 'Transform', action = ['Read'], resource_scope_type = 'FIELD', principal_scope_type = 'ANY', resource_domains = ['Account__dlm'], resource_transform = 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments = [(type = 'NUMBER', value = '4')], transform_precedence = 100)]);
 ```
 
 **Result**
@@ -1447,7 +1447,7 @@ Creates a single data governance classification assignment. Since v67.0.
 | `tag_fully_qualified_name` | `tagFullyQualifiedName` | body | string | yes | Fully-qualified API name of the target tag. Since v67.0. |
 
 ```sql
-CALL cdp.classification_assignment_create (classification_fully_qualified_name => 'Compliance_Classifications.PII', tag_fully_qualified_name => 'Compliance_Tags.PII.Email');
+CALL d360.classification_assignment_create (classification_fully_qualified_name => 'Compliance_Classifications.PII', tag_fully_qualified_name => 'Compliance_Tags.PII.Email');
 ```
 
 **Result**
@@ -1483,7 +1483,7 @@ Bulk creates data governance classification assignments. Since v67.0.
 | `assignments` | `assignments` | body | array of [ClassificationAssignmentBulkItemInput](#classificationassignmentbulkiteminputrepresentation) | yes | List of classification assignment bulk items, each containing a classification and its target tags. Since v67.0. |
 
 ```sql
-CALL cdp.classification_assignment_bulk_create (assignments => [(classification_fully_qualified_name = 'Compliance_Classifications.PII', tag_fully_qualified_names = ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']), (classification_fully_qualified_name = 'Compliance_Classifications.Sensitive', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+CALL d360.classification_assignment_bulk_create (assignments => [(classification_fully_qualified_name = 'Compliance_Classifications.PII', tag_fully_qualified_names = ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard', 'Compliance_Tags.PII.Phone']), (classification_fully_qualified_name = 'Compliance_Classifications.Sensitive', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
 ```
 
 **Result**
@@ -1508,7 +1508,7 @@ Bulk deletes data governance classification assignments. Since v67.0.
 | `ids` | `ids` | body | array of string | yes | List of classification assignment IDs to delete. Since v67.0. |
 
 ```sql
-CALL cdp.classification_assignment_bulk_delete (ids => ['9aa000000000050', '9aa000000000053']);
+CALL d360.classification_assignment_bulk_delete (ids => ['9aa000000000050', '9aa000000000053']);
 ```
 
 **Result**
@@ -1535,7 +1535,7 @@ Creates a classification taxonomy. Since v67.0.
 | `name` | `name` | body | string |  | Developer name of the classification taxonomy, with no `.`. A managed-package namespace prefix is allowed. |
 
 ```sql
-CALL cdp.classification_taxonomy_create (name => 'Compliance_Classifications', label => 'Compliance Classifications', description => 'Sensitivity and compliance classifications.');
+CALL d360.classification_taxonomy_create (name => 'Compliance_Classifications', label => 'Compliance Classifications', description => 'Sensitivity and compliance classifications.');
 ```
 
 **Result**
@@ -1573,7 +1573,7 @@ Creates multiple classification taxonomies in a single request. Since v67.0.
 | `taxonomies` | `taxonomies` | body | array of [TaxonomyCreateInput](#taxonomycreateinputrepresentation) |  | List of tag taxonomies to create. Since v67.0. |
 
 ```sql
-CALL cdp.classification_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Classifications', label = 'Compliance Classifications', description = 'Sensitivity classifications.'), (name = 'Data_Residency_Classifications', label = 'Data Residency Classifications', description = 'Region-of-origin classifications.')]);
+CALL d360.classification_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Classifications', label = 'Compliance Classifications', description = 'Sensitivity classifications.'), (name = 'Data_Residency_Classifications', label = 'Data Residency Classifications', description = 'Region-of-origin classifications.')]);
 ```
 
 **Result**
@@ -1598,7 +1598,7 @@ Deletes multiple classification taxonomies in a single request. Since v67.0.
 | `names` | `names` | body | array of string |  | List tag taxonomies to delete. Since v67.0. |
 
 ```sql
-CALL cdp.classification_taxonomy_bulk_delete (names => ['Compliance_Classifications', 'Data_Residency_Classifications']);
+CALL d360.classification_taxonomy_bulk_delete (names => ['Compliance_Classifications', 'Data_Residency_Classifications']);
 ```
 
 **Result**
@@ -1623,7 +1623,7 @@ Updates multiple classification taxonomies in a single request. Omitted fields a
 | `items` | `items` | body | array of [TaxonomyBulkUpdateItemInput](#taxonomybulkupdateiteminputrepresentation) |  | List of tag taxonomies to update. Since v67.0. |
 
 ```sql
-CALL cdp.classification_taxonomy_bulk_update (items => [(name = 'Compliance_Classifications', label = 'Compliance Classifications (GA)'), (name = 'Data_Residency_Classifications', description = 'Data residency and sovereignty classifications.')]);
+CALL d360.classification_taxonomy_bulk_update (items => [(name = 'Compliance_Classifications', label = 'Compliance Classifications (GA)'), (name = 'Data_Residency_Classifications', description = 'Data residency and sovereignty classifications.')]);
 ```
 
 **Result**
@@ -1651,7 +1651,7 @@ Creates a classification under a specified classification taxonomy, with optiona
 | `tag_fully_qualified_names` | `tagFullyQualifiedNames` | body | array of string |  | Fully-qualified API names of tags to associate with the classification. Maximum of 200 items. Since v67.0. |
 
 ```sql
-CALL cdp.classification_create (fully_qualified_name => 'Compliance_Classifications.PII', label => 'PII', description => 'Personally identifiable information.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard']);
+CALL d360.classification_create (fully_qualified_name => 'Compliance_Classifications.PII', label => 'PII', description => 'Personally identifiable information.', tag_fully_qualified_names => ['Compliance_Tags.PII.Email', 'Compliance_Tags.PII.CreditCard']);
 ```
 
 **Result**
@@ -1692,7 +1692,7 @@ Creates multiple classifications in a single request. Maximum of 200 items per r
 | `classifications` | `classifications` | body | array of [ClassificationCreateInput](#classificationcreateinputrepresentation) |  | List of classification create inputs. Since v67.0. |
 
 ```sql
-CALL cdp.classification_bulk_create (classifications => [(fully_qualified_name = 'Compliance_Classifications.PII', label = 'PII', description = 'Personally identifiable information.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive', description = 'Sensitive data requiring handling controls.', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
+CALL d360.classification_bulk_create (classifications => [(fully_qualified_name = 'Compliance_Classifications.PII', label = 'PII', description = 'Personally identifiable information.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive', description = 'Sensitive data requiring handling controls.', tag_fully_qualified_names = ['Compliance_Tags.PII.CreditCard'])]);
 ```
 
 **Result**
@@ -1717,7 +1717,7 @@ Deletes multiple classifications in a single request, cascading each deletion to
 | `fully_qualified_names` | `fullyQualifiedNames` | body | array of string |  | Fully-qualified API names of classifications to delete. Maximum of 200 items. Since v67.0. |
 
 ```sql
-CALL cdp.classification_bulk_delete (fully_qualified_names => ['Compliance_Classifications.Sensitive']);
+CALL d360.classification_bulk_delete (fully_qualified_names => ['Compliance_Classifications.Sensitive']);
 ```
 
 **Result**
@@ -1742,7 +1742,7 @@ Updates multiple classifications in a single request. Omitted fields are left un
 | `items` | `items` | body | array of [ClassificationBulkUpdateItemInput](#classificationbulkupdateiteminputrepresentation) |  | List of classification update items. Since v67.0. |
 
 ```sql
-CALL cdp.classification_bulk_update (items => [(fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'), (fully_qualified_name = 'Compliance_Classifications.Restricted', tag_fully_qualified_names = ['Compliance_Tags.PII.SSN', 'Compliance_Tags.PII.CreditCard'])]);
+CALL d360.classification_bulk_update (items => [(fully_qualified_name = 'Compliance_Classifications.PII', description = 'All PII classifications.'), (fully_qualified_name = 'Compliance_Classifications.Sensitive', label = 'Sensitive Data'), (fully_qualified_name = 'Compliance_Classifications.Restricted', tag_fully_qualified_names = ['Compliance_Tags.PII.SSN', 'Compliance_Tags.PII.CreditCard'])]);
 ```
 
 **Result**
@@ -1769,7 +1769,7 @@ Creates a single object access grant using an idempotent request. If a matching 
 | `permission_set_name` | `permissionSetName` | body | string | yes | Developer name of the permission set. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_name => 'Account__dlm');
+CALL d360.object_access_grant_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_name => 'Account__dlm');
 ```
 
 **Result**
@@ -1801,7 +1801,7 @@ Creates multiple object access grants for a single combination of a data space a
 | `permission_set_name` | `permissionSetName` | body | string | yes | Developer name of the permission set. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_bulk_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'Contact__dlm', 'revenue_insights__cio']);
+CALL d360.object_access_grant_bulk_create (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'Contact__dlm', 'revenue_insights__cio']);
 ```
 
 **Result**
@@ -1830,7 +1830,7 @@ Deletes multiple object access grants for a single combination of a data space a
 | `permission_set_name` | `permissionSetName` | body | string | yes | Developer name of the permission set. Since v67.0. |
 
 ```sql
-CALL cdp.object_access_grant_bulk_delete (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'revenue_insights__cio']);
+CALL d360.object_access_grant_bulk_delete (permission_set_name => 'DC_Analyst_PermSet', dataspace_name => 'default', object_api_names => ['Account__dlm', 'revenue_insights__cio']);
 ```
 
 **Result**
@@ -1859,7 +1859,7 @@ Creates a single data governance tag assignment. Since v67.0.
 | `tag_fully_qualified_name` | `tagFullyQualifiedName` | body | string | yes | Fully-qualified API name of the tag to assign. Since v67.0. |
 
 ```sql
-CALL cdp.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
+CALL d360.tag_assignment_create (tag_fully_qualified_name => 'Compliance_Tags.PII.Email', object_name => 'Individual_DLO__dll', field_name => 'Email');
 ```
 
 **Result**
@@ -1894,7 +1894,7 @@ Bulk creates data governance tag assignments. Since v67.0.
 | `assignments` | `assignments` | body | array of array of [TagAssignmentTargetInput](#tagassignmenttargetinputrepresentation) | yes | List of tag assignment bulk items, each containing a tag and its targets. Since v67.0. |
 
 ```sql
-CALL cdp.tag_assignment_bulk_create (assignments => [(tag_fully_qualified_name = 'Compliance_Tags.PII.Email', targets = [(object_name = 'Individual_DLO__dll', field_name = 'Email'), (object_name = 'Contact_DLO__dll', field_name = 'PersonalEmail')]), (tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', targets = [(object_name = 'Payment_DLO__dll', field_name = 'CardPAN')])]);
+CALL d360.tag_assignment_bulk_create (assignments => [(tag_fully_qualified_name = 'Compliance_Tags.PII.Email', targets = [(object_name = 'Individual_DLO__dll', field_name = 'Email'), (object_name = 'Contact_DLO__dll', field_name = 'PersonalEmail')]), (tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', targets = [(object_name = 'Payment_DLO__dll', field_name = 'CardPAN')])]);
 ```
 
 **Result**
@@ -1921,7 +1921,7 @@ Bulk deletes data governance tag assignments. Since v67.0.
 | `ids` | `ids` | body | array of string | yes | List of tag assignment IDs to delete. Since v67.0. |
 
 ```sql
-CALL cdp.tag_assignment_bulk_delete (ids => ['9aa000000000001', '9aa000000000002']);
+CALL d360.tag_assignment_bulk_delete (ids => ['9aa000000000001', '9aa000000000002']);
 ```
 
 **Result**
@@ -1946,7 +1946,7 @@ Approves one or more tag suggestions. Each item returns status code 200 on succe
 | `ids` | `ids` | body | array of string | yes | List of core record IDs (18 characters). Maximum 200. Since v67.0. |
 
 ```sql
-CALL cdp.tag_suggestions_approve (ids => ['1dg000000000001', '1dg000000000002']);
+CALL d360.tag_suggestions_approve (ids => ['1dg000000000001', '1dg000000000002']);
 ```
 
 **Result**
@@ -1974,7 +1974,7 @@ Launches asynchronous AI-driven tag suggestion jobs for one or more objects. Ret
 | `taxonomy_names` | `taxonomyNames` | body | array of string | yes | Flat developer names of the tag taxonomies to source suggestions from. Maximum 20. Since v67.0. |
 
 ```sql
-CALL cdp.tag_suggestions_generate (object_names => ['Individual_DLO__dll', 'Account_DLO__dll'], taxonomy_names => ['Compliance_Tags']);
+CALL d360.tag_suggestions_generate (object_names => ['Individual_DLO__dll', 'Account_DLO__dll'], taxonomy_names => ['Compliance_Tags']);
 ```
 
 **Result**
@@ -2003,7 +2003,7 @@ Rejects one or more tag suggestions. Each item returns status code 200 on succes
 | `ids` | `ids` | body | array of string | yes | List of core record IDs (18 characters). Maximum 200. Since v67.0. |
 
 ```sql
-CALL cdp.tag_suggestions_reject (ids => ['1dg000000000003', '1dg000000000004']);
+CALL d360.tag_suggestions_reject (ids => ['1dg000000000003', '1dg000000000004']);
 ```
 
 **Result**
@@ -2032,7 +2032,7 @@ Creates a top-level tag taxonomy. Since v67.0.
 | `name` | `name` | body | string |  | Developer name of the tag taxonomy, with no `.`. A managed-package namespace prefix is allowed. |
 
 ```sql
-CALL cdp.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags', description => 'Compliance-related tags (PII, financial, health).');
+CALL d360.tag_taxonomy_create (name => 'Compliance_Tags', label => 'Compliance Tags', description => 'Compliance-related tags (PII, financial, health).');
 ```
 
 **Result**
@@ -2071,7 +2071,7 @@ Bulk creates active detection instructions for multiple tags under one taxonomy.
 | `detection_instructions` | `detectionInstructions` | body | array of [TagDetectionInstructionBulkCreateItem](#tagdetectioninstructionbulkcreateitemrepresentation) | yes | List of per-tag detection instruction create items. Maximum 200. Since v67.0. |
 
 ```sql
-CALL cdp.tag_detection_instruction_bulk_create (fully_qualified_name => 'Compliance_Tags', detection_instructions => [(tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', instruction_txt = 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.'), (tag_fully_qualified_name = 'Compliance_Tags.PII.SSN', instruction_txt = 'Detect US Social Security Numbers: NNN-NN-NNNN format or 9-digit numeric sequences.')]);
+CALL d360.tag_detection_instruction_bulk_create (fully_qualified_name => 'Compliance_Tags', detection_instructions => [(tag_fully_qualified_name = 'Compliance_Tags.PII.CreditCard', instruction_txt = 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.'), (tag_fully_qualified_name = 'Compliance_Tags.PII.SSN', instruction_txt = 'Detect US Social Security Numbers: NNN-NN-NNNN format or 9-digit numeric sequences.')]);
 ```
 
 **Result**
@@ -2100,7 +2100,7 @@ Creates multiple tag taxonomies in a single request. Since v67.0.
 | `taxonomies` | `taxonomies` | body | array of [TaxonomyCreateInput](#taxonomycreateinputrepresentation) |  | List of tag taxonomies to create. Since v67.0. |
 
 ```sql
-CALL cdp.tag_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'), (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'), (name = 'Marketing_Tags', label = 'Marketing Tags', description = 'Marketing consent and preference tags.')]);
+CALL d360.tag_taxonomy_bulk_create (taxonomies => [(name = 'Compliance_Tags', label = 'Compliance Tags', description = 'Compliance-related tags.'), (name = 'Ethics_Tags', label = 'Ethics Tags', description = 'Ethical AI compliance indicators.'), (name = 'Marketing_Tags', label = 'Marketing Tags', description = 'Marketing consent and preference tags.')]);
 ```
 
 **Result**
@@ -2125,7 +2125,7 @@ Deletes multiple tag taxonomies and all child tags in a single request. Since v6
 | `names` | `names` | body | array of string |  | List tag taxonomies to delete. Since v67.0. |
 
 ```sql
-CALL cdp.tag_taxonomy_bulk_delete (names => ['Marketing_Tags', 'Unused_Tags']);
+CALL d360.tag_taxonomy_bulk_delete (names => ['Marketing_Tags', 'Unused_Tags']);
 ```
 
 **Result**
@@ -2150,7 +2150,7 @@ Updates multiple tag taxonomies in a single request. Omitted fields are left unc
 | `items` | `items` | body | array of [TaxonomyBulkUpdateItemInput](#taxonomybulkupdateiteminputrepresentation) |  | List of tag taxonomies to update. Since v67.0. |
 
 ```sql
-CALL cdp.tag_taxonomy_bulk_update (items => [(name = 'Compliance_Tags', label = 'Compliance Tags (GA)'), (name = 'Ethics_Tags', description = 'Ethical AI tags — caste, gender, accessibility.')]);
+CALL d360.tag_taxonomy_bulk_update (items => [(name = 'Compliance_Tags', label = 'Compliance Tags (GA)'), (name = 'Ethics_Tags', description = 'Ethical AI tags — caste, gender, accessibility.')]);
 ```
 
 **Result**
@@ -2178,7 +2178,7 @@ Creates a tag under a specified tag taxonomy, optionally nested under a parent t
 | `label` | `label` | body | string |  | Display label of the tag. Since v67.0. |
 
 ```sql
-CALL cdp.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address', description => 'Personally identifiable email addresses.', classification_fully_qualified_names => ['Compliance_Classifications.PII']);
+CALL d360.tag_create (fully_qualified_name => 'Compliance_Tags.PII.Email', label => 'Email Address', description => 'Personally identifiable email addresses.', classification_fully_qualified_names => ['Compliance_Classifications.PII']);
 ```
 
 **Result**
@@ -2220,7 +2220,7 @@ Creates or replaces the active detection instruction for a tag. Since v67.0.
 | `instruction_txt` | `instructionTxt` | body | string | yes | LLM detection-instruction (prompt) body. Maximum 100 characters. Posting replaces the currently active instruction with a new version. Since v67.0. |
 
 ```sql
-CALL cdp.tag_detection_instruction_create (fully_qualified_name => 'Compliance_Tags.PII.CreditCard', instruction_txt => 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.');
+CALL d360.tag_detection_instruction_create (fully_qualified_name => 'Compliance_Tags.PII.CreditCard', instruction_txt => 'Detect credit card numbers: 16-digit Luhn-valid sequences, card-type prefixes.');
 ```
 
 **Result**
@@ -2256,7 +2256,7 @@ Creates multiple tags in a single request. Maximum of 200 items per request. A p
 | `tags` | `tags` | body | array of [TagCreateInput](#tagcreateinputrepresentation) |  | List of tag create inputs. Since v67.0. |
 
 ```sql
-CALL cdp.tag_bulk_create (tags => [(fully_qualified_name = 'Compliance_Tags.PII.Phone', label = 'Phone Number', description = 'Phone numbers (personal or business).'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', label = 'Credit Card Number', description = 'Credit card PAN, PCI-regulated.', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+CALL d360.tag_bulk_create (tags => [(fully_qualified_name = 'Compliance_Tags.PII.Phone', label = 'Phone Number', description = 'Phone numbers (personal or business).'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', label = 'Credit Card Number', description = 'Credit card PAN, PCI-regulated.', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
 ```
 
 **Result**
@@ -2283,7 +2283,7 @@ Deletes multiple tags in a single request, cascading each deletion to its child 
 | `fully_qualified_names` | `fullyQualifiedNames` | body | array of string |  | Fully-qualified API names of tags to delete. Maximum of 200 items. Since v67.0. |
 
 ```sql
-CALL cdp.tag_bulk_delete (fully_qualified_names => ['Compliance_Tags.PII.Phone', 'Compliance_Tags.PII.Obsolete']);
+CALL d360.tag_bulk_delete (fully_qualified_names => ['Compliance_Tags.PII.Phone', 'Compliance_Tags.PII.Obsolete']);
 ```
 
 **Result**
@@ -2308,7 +2308,7 @@ Updates multiple tags in a single requests. Omitted fields are left unchanged. V
 | `items` | `items` | body | array of [TagBulkUpdateItemInput](#tagbulkupdateiteminputrepresentation) |  | List of tag update items. Since v67.0. |
 
 ```sql
-CALL cdp.tag_bulk_update (items => [(fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'), (fully_qualified_name = 'Compliance_Tags.PII.Phone', parent_tag_fully_qualified_name = 'Compliance_Tags.PII.Contact'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
+CALL d360.tag_bulk_update (items => [(fully_qualified_name = 'Compliance_Tags.PII.Email', label = 'Email Address (PII)'), (fully_qualified_name = 'Compliance_Tags.PII.Phone', parent_tag_fully_qualified_name = 'Compliance_Tags.PII.Contact'), (fully_qualified_name = 'Compliance_Tags.PII.CreditCard', classification_fully_qualified_names = ['Compliance_Classifications.PII', 'Compliance_Classifications.Sensitive'])]);
 ```
 
 **Result**
@@ -2335,7 +2335,7 @@ Propagates data governance tags to the specified objects. Since v67.0.
 | `object_names` | `objectNames` | body | array of string | yes | List of object developer names to propagate the tag to. Since v67.0. |
 
 ```sql
-CALL cdp.tags_propagate (object_names => ['Individual_DLO__dll', 'Contact_DLO__dll']);
+CALL d360.tags_propagate (object_names => ['Individual_DLO__dll', 'Contact_DLO__dll']);
 ```
 
 **Result**
@@ -2378,7 +2378,7 @@ Overwrites or upserts a single rule within an access policy. Since v67.0.
 | `when` | `when` | body | [ConditionGroupInput](#conditiongroupinputrepresentation) |  | Condition group that must be met for the rule to apply. Since v67.0. |
 
 ```sql
-CALL cdp.access_policy_rule_replace (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN', body_name => 'Mask_SSN', label => 'Mask SSN', category => 'TRANSFORM_POLICY_RULE_DEFINITION', effect => 'Transform', action => ['Read'], resource_scope_type => 'FIELD', principal_scope_type => 'ANY', resource_domains => ['Account__dlm'], resource_transform => 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments => [(type = 'NUMBER', value = '4')], transform_precedence => 100);
+CALL d360.access_policy_rule_replace (name => 'RestrictSensitiveFields', rule_name => 'Mask_SSN', body_name => 'Mask_SSN', label => 'Mask SSN', category => 'TRANSFORM_POLICY_RULE_DEFINITION', effect => 'Transform', action => ['Read'], resource_scope_type => 'FIELD', principal_scope_type => 'ANY', resource_domains => ['Account__dlm'], resource_transform => 'FIRST_N_CHARS_RESOURCE_TRANSFORM', resource_transform_arguments => [(type = 'NUMBER', value = '4')], transform_precedence => 100);
 ```
 
 **Result**

@@ -4,7 +4,7 @@
  * Add a calculated measure over that object.
  */
 
-call cdp.sdm_calc_measure_create (
+call d360.sdm_calc_measure_create (
     model_api_name_or_id => 'AccountRevenue',
     label => 'Total Revenue',
     api_name => 'Total_Revenue',

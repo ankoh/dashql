@@ -12,11 +12,11 @@ description: |
   - The spec has only list and create for actions, and no update for targets. The other calls here rest on weaker sources, shown per function.
 
   ```sql
-  CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
-  CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
-  CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
-  CALL cdp.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => []);
-  CALL cdp.dataaction_list (dataspace => 'default');
+  CALL d360.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+  CALL d360.dataaction_target_get (api_name => 'contact_webhook');
+  CALL d360.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+  CALL d360.dataaction_create (data_action_target_names => ['contact_webhook'], body_dataspace => 'default', data_action_name => 'Rate changed', developer_name => 'Rate_Changed', description => 'Notify on rate changes', master_label => 'Rate changed', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '', action_conditions => [], data_action_enrichment_properties => [], data_action_projected_fields => []);
+  CALL d360.dataaction_list (dataspace => 'default');
   ```
 
 functions:
@@ -27,7 +27,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D/delete
     tools: [d360_dataaction_target_delete]
     description: Delete a data action target. Since v58.0.
-    example: CALL cdp.dataaction_target_delete (api_name => 'contact_webhook');
+    example: CALL d360.dataaction_target_delete (api_name => 'contact_webhook');
     options:
       - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
     effect: write
@@ -42,7 +42,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets/get
     tools: [d360_dataaction_target_list]
     description: Get a paginated list of data action targets. Since v58.0.
-    example: CALL cdp.dataaction_target_list ();
+    example: CALL d360.dataaction_target_list ();
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items returned. Since v58.0."}
       - {name: offset, in: query, type: integer, description: "Number of rows to skip before returning results. If unspecified, no rows are skipped. Since v58.0."}
@@ -73,7 +73,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D/get
     tools: [d360_dataaction_target_get]
     description: Get a data action target. Since v58.0.
-    example: CALL cdp.dataaction_target_get (api_name => 'contact_webhook');
+    example: CALL d360.dataaction_target_get (api_name => 'contact_webhook');
     options:
       - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
     columns:
@@ -97,7 +97,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Actions/paths/~1ssot~1data-actions/get
     tools: [d360_dataaction_list]
     description: Get a paginated list of data actions in the org. Since v58.0.
-    example: CALL cdp.dataaction_list (dataspace => 'default', batch_size => 50);
+    example: CALL d360.dataaction_list (dataspace => 'default', batch_size => 50);
     options:
       - {name: batch_size, api_name: batchSize, in: query, type: integer, description: "Number of items returned. Since v62.0."}
       - {name: dataspace, in: query, type: string, description: "The Data 360 data space from which to return data actions. Since v62.0."}
@@ -140,7 +140,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets/post
     tools: [d360_dataaction_target_create]
     description: Create a new data action target. Since v58.0.
-    example: CALL cdp.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
+    example: CALL d360.dataaction_target_create (type => 'WebHook', label => 'Contact webhook', api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360'));
     options:
       - {name: api_name, api_name: apiName, in: body, type: string, required: true, description: "Data action target API name. Since v62.0."}
       - {name: config, in: body, schema: dataaction_target_create.config, required: true, description: "Configuration for the data action target. Use the config input object that corresponds to the type of data action target. For example, use the Data Action Target Internal Web Config Input for the `Internal_WebHook` type. Since v62.0."}
@@ -180,7 +180,7 @@ functions:
     path: /ssot/data-action-targets/{apiName}/signing-key
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Action-Targets/paths/~1ssot~1data-action-targets~1%7BapiName%7D~1signing-key/post
     description: Generate the signing key for a data action target. Since v62.0.
-    example: CALL cdp.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
+    example: CALL d360.dataaction_target_signing_key_generate (api_name => 'contact_webhook');
     options:
       - {name: api_name, api_name: apiName, in: path, type: string, required: true, description: "Developer name of the target, not a record id."}
     columns:
@@ -203,7 +203,7 @@ functions:
     spec_url: https://developer.salesforce.com/docs/data/connectapi/references/spec#tag/Data-Actions/paths/~1ssot~1data-actions/post
     tools: [d360_dataaction_create]
     description: Create a new data action. Since v58.0.
-    example: CALL cdp.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')]);
+    example: CALL d360.dataaction_create (dataspace => 'default', body_dataspace => 'default', data_action_target_names => ['contact_webhook'], data_action_name => 'High rate', developer_name => 'High_Rate', description => 'Notify when a rate crosses the threshold', master_label => 'High rate', data_action_sources => [(source_name = 'StaticCurrencyRates_Home__dlm', source_type = 'DataModelEntity', source_cdc_subscriptions = ['CREATE', 'UPDATE'])], action_condition_expression => '(1 AND 2)', action_conditions => [(objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateDenominatorNumber__c', operator = 'GreaterThan', order = '1', value = '0.3'), (objectName = 'StaticCurrencyRates_Home__dlm', fieldName = 'RateNumeratorNumber__c', operator = 'LessThanOrEqualTo', order = '2', value = '100')], data_action_enrichment_properties => [], data_action_projected_fields => [(objectApiName = 'StaticCurrencyRates_Home__dlm', fieldApiName = 'RateNumeratorNumber__c', fieldAliasName = 'Rate__c')]);
     options:
       - {name: dataspace, in: query, type: string, description: "The Data 360 data space fromm which to return the data action. Since v62.0."}
       - {name: action_condition_expression, api_name: actionConditionExpression, in: body, type: string, required: true, description: "The action's condition expression. Since v62.0."}
@@ -270,7 +270,7 @@ functions:
     path: /ssot/data-actions/{id}
     tools: [d360_dataaction_get]
     description: Reads one data action by developer name, to inspect its conditions, sources and targets.
-    example: CALL cdp.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
+    example: CALL d360.dataaction_get (action_developer_name => 'High_Rate', dataspace => 'default');
     options:
       - {name: action_developer_name, api_name: id, in: path, type: string, required: true, description: "The data action developer name"}
       - {name: dataspace, in: query, type: string, description: "Dataspace name"}
@@ -286,7 +286,7 @@ functions:
     path: /ssot/data-action-targets/{id}
     tools: [d360_dataaction_target_update]
     description: Changes an existing data action target, such as its endpoint URL. All body attributes are optional.
-    example: CALL cdp.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'));
+    example: CALL d360.dataaction_target_update (target_api_name => 'contact_webhook', config => (target_endpoint = 'https://hooks.example.com/data360/v2'));
     options:
       - {name: target_api_name, api_name: id, in: path, type: string, required: true, description: "Developer name of the target to change."}
       - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the target."}
@@ -306,7 +306,7 @@ functions:
     host: connect
     path: /ssot/data-actions/{name}
     description: Meant to change an existing data action. No public source documents this call or its body, so it has no body options here.
-    example: CALL cdp.dataaction_update (action_developer_name => 'High_Rate');
+    example: CALL d360.dataaction_update (action_developer_name => 'High_Rate');
     options:
       - {name: action_developer_name, api_name: name, in: path, type: string, required: true, description: "Developer name of the data action."}
     effect: write
@@ -320,7 +320,7 @@ functions:
     host: connect
     path: /ssot/data-actions/{name}
     description: Deletes a data action by developer name. Use it before deleting the action's target, or to recreate an action with new settings.
-    example: CALL cdp.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default');
+    example: CALL d360.dataaction_delete (action_developer_name => 'High_Rate', dataspace => 'default');
     options:
       - {name: action_developer_name, api_name: name, in: path, type: string, required: true, description: "Developer name of the data action."}
       - {name: dataspace, in: query, type: string, description: "Data space that holds the action. The community source always sends it."}

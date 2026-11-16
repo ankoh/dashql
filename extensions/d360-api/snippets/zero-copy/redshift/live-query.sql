@@ -4,7 +4,7 @@
  * The cluster or workgroup has to be publicly accessible, unless the connection uses a private network route, which can't be added to an existing connection. For large tables, set the maximum query execution time of Redshift to its maximum of 86,399 seconds. The shape of the stream comes from Snowflake, no source shows one for Redshift. Wait for the connection to be `Active` before the second call, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => 'REDSHIFT',
     label => 'Redshift live',
     name => 'Redshift_Live',
@@ -21,7 +21,7 @@ call cdp.connection_create (
     ]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_redshift_live',
     label => 'Orders (Redshift live)',
     data_stream_type => 'EXTERNAL',
@@ -51,4 +51,4 @@ call cdp.datastream_create (
     refresh_config => (refresh_mode = 'TOTAL_REPLACE')
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_redshift_live');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_redshift_live');

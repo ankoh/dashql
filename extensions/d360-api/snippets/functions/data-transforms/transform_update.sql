@@ -4,9 +4,9 @@
  * The call is a `PUT`, so it needs the whole body: read the transform first and send everything again, even what stays the same.
  */
 
-call cdp.transform_get (data_transform_name_or_id => 'account_summary');
+call d360.transform_get (data_transform_name_or_id => 'account_summary');
 
-call cdp.transform_update (
+call d360.transform_update (
     data_transform_name_or_id => 'account_summary',
     name => 'account_summary',
     label => 'Account Summary',

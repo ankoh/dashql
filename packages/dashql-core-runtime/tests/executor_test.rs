@@ -1507,7 +1507,7 @@ fn salesforce_tokens() -> SalesforceTokens {
 fn segment_spec() -> Rc<ClientFunctionSpec> {
     let spec = json!({
         "format": 1,
-        "namespace": "cdp",
+        "namespace": "d360",
         "hosts": { "core": { "base_path": "/services/data/v{api_version}" } },
         "functions": [{ "name": "segment_list", "method": "GET", "host": "core", "path": "/ssot/segments", "rows": "/segments" }],
     });
@@ -1516,7 +1516,7 @@ fn segment_spec() -> Rc<ClientFunctionSpec> {
 
 fn segment_call() -> ClientFunctionCallDescription {
     ClientFunctionCallDescription {
-        namespace: "cdp".into(),
+        namespace: "d360".into(),
         function: "segment_list".into(),
         effect: "read".into(),
         ..ClientFunctionCallDescription::default()
@@ -1553,7 +1553,7 @@ fn a_client_function_call_hands_over_a_page_at_a_time() {
     host.serve(move |_| json_response(pages.pop_front().unwrap_or(json!({ "segments": [] }))));
     let spec = json!({
         "format": 1,
-        "namespace": "cdp",
+        "namespace": "d360",
         "hosts": { "core": { "base_path": "/services/data/v{api_version}" } },
         "functions": [{
             "name": "segment_list", "method": "GET", "host": "core", "path": "/ssot/segments", "rows": "/segments",

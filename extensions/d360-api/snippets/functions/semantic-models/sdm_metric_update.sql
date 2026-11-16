@@ -2,7 +2,7 @@
  * Change a metric's label and definition, here by allowing the week grain and a filter that leaves out the smallest accounts.
  */
 
-call cdp.sdm_metric_update (
+call d360.sdm_metric_update (
     model_api_name_or_id => 'AccountRevenue',
     metric_name_or_id => 'Annual_Revenue_md',
     label => 'Annual Revenue (booked)',
@@ -19,4 +19,4 @@ call cdp.sdm_metric_update (
     )
 );
 
-call cdp.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+call d360.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');

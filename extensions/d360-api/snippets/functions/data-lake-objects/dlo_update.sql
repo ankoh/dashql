@@ -4,7 +4,7 @@
  * The spec requires `label`, so send the current one when you only add fields. Name new fields without `__c`. Read the DLO afterwards to see the fields as stored.
  */
 
-call cdp.dlo_update (
+call d360.dlo_update (
     record_id_or_developer_name => 'Loyalty_Member__dll',
     label => 'Loyalty Member',
     fields => [
@@ -13,4 +13,4 @@ call cdp.dlo_update (
     ]
 );
 
-call cdp.dlo_get (record_id_or_developer_name => 'Loyalty_Member__dll');
+call d360.dlo_get (record_id_or_developer_name => 'Loyalty_Member__dll');

@@ -4,7 +4,7 @@
  * The SQL is restricted: qualify the columns with the table, group by the qualified names and not by aliases, and use `APPROX_COUNT_DISTINCT` instead of `COUNT(DISTINCT ...)`. The call can take 30 to 60 seconds, and it fails with `Error getting FactTable` until the mappings of the source objects have processed data. Wait for `calculated_insight_status` to be `ACTIVE` before you run it.
  */
 
-call cdp.ci_create (
+call d360.ci_create (
     api_name => 'Customer_Order_Summary__cio',
     display_name => 'Customer Order Summary',
     description => 'Total order amount per customer.',
@@ -19,4 +19,4 @@ call cdp.ci_create (
     $$
 );
 
-call cdp.ci_get (api_name => 'Customer_Order_Summary__cio');
+call d360.ci_get (api_name => 'Customer_Order_Summary__cio');

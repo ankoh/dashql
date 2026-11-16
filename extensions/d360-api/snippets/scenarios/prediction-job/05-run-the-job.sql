@@ -4,4 +4,4 @@
  * Run the job.
  */
 
-call cdp.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));
+call d360.prediction_job_run (type => 'Prediction', input => (name = 'attrition_scores'));

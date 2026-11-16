@@ -4,11 +4,11 @@
  * This is a connector of its own, and it has no acceleration: reads are always live. The catalog and the bucket have to be publicly accessible, private connections aren't supported. Iceberg views, V2 merge-on-read deletes, V3 deletion vectors, and the types `time` and `timestamp_ntz` aren't supported. No source gives the API names of the attributes in the second call, `clientId`, `clientSecret` and `catalogUrl` are guesses from the setup page, so check them against the result of `connector_metadata`. Sending a stream of this connector through `Direct_Access` comes from community code. Wait for the connection to be `Active` before creating the stream, and repeat the last call until `status` is `ACTIVE`.
  */
 
-call cdp.connector_list (order_by => 'label ASC');
+call d360.connector_list (order_by => 'label ASC');
 
-call cdp.connector_metadata (connector_type => :connector_type);
+call d360.connector_metadata (connector_type => :connector_type);
 
-call cdp.connection_create (
+call d360.connection_create (
     connector_type => :connector_type,
     label => 'Snowflake files',
     name => 'Snowflake_Files',
@@ -23,7 +23,7 @@ call cdp.connection_create (
     )]
 );
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_snowflake_files',
     label => 'Orders (Snowflake files)',
     data_stream_type => 'EXTERNAL',
@@ -53,4 +53,4 @@ call cdp.datastream_create (
     refresh_config => (refresh_mode = 'TOTAL_REPLACE')
 );
 
-call cdp.datastream_get (record_id_or_developer_name => 'Orders_snowflake_files');
+call d360.datastream_get (record_id_or_developer_name => 'Orders_snowflake_files');

@@ -4,4 +4,4 @@
  * Read the chunking and embedding models that a search index can use.
  */
 
-call cdp.search_index_config ();
+call d360.search_index_config ();

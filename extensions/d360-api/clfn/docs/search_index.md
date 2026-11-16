@@ -2,7 +2,7 @@
 
 # Search Index
 
-Part of the [CDP function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
+Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).
 
 A search index makes the text in a data model object (DMO) searchable by meaning. Data 360 splits the text into chunks, embeds them, and generates two DMOs: `<name>_chunk__dlm` holds the chunk text and `<name>_index__dlm` holds the searchable index. You query them with SQL, and [retrievers](machine_learning.md) build on them.
 
@@ -16,9 +16,9 @@ Gotchas that matter most:
 - **Join on `RecordId__c`.** Salesforce's templates join index and chunk on `RecordId__c`. `vector_search` returns `score__c`, and `hybrid_search` returns `hybrid_score__c`, `keyword_score__c` and `vector_score__c`.
 
 ```sql
-CALL cdp.search_index_config ();
+CALL d360.search_index_config ();
 /* search_index_create goes here, see its example */
-CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+CALL d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');
 SELECT v."hybrid_score__c", c."Chunk__c", c."SourceRecordId__c"
 FROM hybrid_search(TABLE("Articles_Search_index__dlm"), 'reset password', '', 5) AS v
 INNER JOIN "Articles_Search_chunk__dlm" AS c ON c."RecordId__c" = v."RecordId__c"
@@ -41,7 +41,7 @@ Delete a search index definition and the DMOs generated for it. Since v60.0.
 | `search_index_api_name_or_id` | `searchIndexApiNameOrId` | path | string | yes | Id of the index, such as `18lTC0000001qPZYAY`. A developer name is reported to return 404 (community). |
 
 ```sql
-CALL cdp.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY');
+CALL d360.search_index_delete (search_index_api_name_or_id => '18lTC0000001qPZYAY');
 ```
 
 **Result**
@@ -63,7 +63,7 @@ Get all search index definition details. Since v60.0.
 None.
 
 ```sql
-CALL cdp.search_index_list ();
+CALL d360.search_index_list ();
 ```
 
 **Result**
@@ -121,7 +121,7 @@ Get one search index definition, including the names of its generated chunk and 
 | `search_index_api_name_or_id` | `searchIndexApiNameOrId` | path | string | yes | Id or developer name of the index. The developer name has no `__dlm` suffix. |
 
 ```sql
-CALL cdp.search_index_get (search_index_api_name_or_id => 'Articles_Search');
+CALL d360.search_index_get (search_index_api_name_or_id => 'Articles_Search');
 ```
 
 **Result**
@@ -181,7 +181,7 @@ Get the valid options for search indexes: chunking strategies, embedding models,
 None.
 
 ```sql
-CALL cdp.search_index_config ();
+CALL d360.search_index_config ();
 ```
 
 **Result**
@@ -246,7 +246,7 @@ Update a search index. The spec requires the full definition in the body, not on
 | `source_app_developer_name` | `sourceAppDeveloperName` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+CALL d360.search_index_update (search_index_api_name_or_id => 'Articles_Search', label => 'Articles Search v2', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
 ```
 
 **Result**
@@ -315,7 +315,7 @@ Create a search index over a DMO. The platform generates the chunk and index DMO
 | `source_app_developer_name` | `sourceAppDeveloperName` | body | string |  | Not in the spec schema: from the MCP server's request class. |
 
 ```sql
-CALL cdp.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
+CALL d360.search_index_create (label => 'Articles Search', developer_name => 'Articles_Search', source_dmo_developer_name => 'Articles__dlm', chunk_dmo_name => 'Articles Search chunk', chunk_dmo_developer_name => 'Articles_Search_chunk', vector_dmo_name => 'Articles Search index', vector_dmo_developer_name => 'Articles_Search_index', search_type => 'HYBRID', processing_type => 'NEAR_REALTIME', vector_embedding => (vector_embedding_related_fields = [(related_dmo_developer_name = 'Articles__dlm', related_dmo_field_developer_name = 'Id__c', relationships = [])]), chunking_configuration => (field_level_configurations = [(source_dmo_developer_name = 'Articles__dlm', source_dmo_field_developer_name = 'Body__c', config = (id = 'passage_extraction', user_values = [(id = 'strip_html', value = 'true'), (id = 'max_tokens', value = '512')]))]), vector_embedding_configuration => (embedding_model = (id = 'e5_large_v2', user_values = [(id = 'dimension', value = '1024'), (id = 'max_token_limit', value = '512')]), index = (id = 'HNSW', user_values = [(id = 'hnswEfConstruction', value = '2000'), (id = 'M', value = '64')]), similarity_metric = 'COSINE'));
 ```
 
 **Result**
@@ -374,7 +374,7 @@ Get the processing runs of one search index. Use it to see why an index isn't re
 | `offset` | `offset` | query | integer |  | 1-based offset for pagination (default 1). Must be >= 1. |
 
 ```sql
-CALL cdp.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20);
+CALL d360.search_index_process_history (search_index_api_name_or_id => 'Articles_Search', limit => 20);
 ```
 
 **Result**

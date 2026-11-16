@@ -8,7 +8,7 @@ A declarative JSON document, the **spec**, describes the client functions of a s
 
 Client functions ship in an [extension](extensions.md), the folder of a service that the app bundles.
 
-- [CDP SQL](../../extensions/d360-api/clfn/docs/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [extensions/d360-api/clfn/docs/](../../extensions/d360-api/clfn/docs/).
+- [The Data 360 extension](../../extensions/d360-api/clfn/docs/overview.md) is the first spec. It covers the Salesforce Data 360 API, and its documents live in [extensions/d360-api/clfn/docs/](../../extensions/d360-api/clfn/docs/).
 - [The API survey](extensions/api_survey.md) measures this format against Snowflake, GitHub and Stripe, and records what similar formats do.
 
 ## How a call runs
@@ -134,7 +134,7 @@ A separate Wasm module doesn't solve this. The script, cursor, analyzer and cata
 
 ## The spec
 
-One JSON document per namespace, in the `clfn/spec/` folder of an [extension](extensions.md#layout). The extension is named for the API, which needn't equal the namespace: `extensions/d360-api/` holds the client functions of `cdp`.
+One JSON document per namespace, in the `clfn/spec/` folder of an [extension](extensions.md#layout). The extension is named for the API, which needn't equal the namespace: `extensions/d360-api/` holds the client functions of `d360`.
 
 This is the whole shape of a spec, with one function:
 
@@ -275,13 +275,13 @@ A connector enables a spec through its `ClientFunctionBinding` (`clfn/connection
 
 ## Namespaces
 
-**A spec shadows its namespace on a connection.** Everything under `cdp.` belongs to the spec, so a function it doesn't know is an error, and nothing under `cdp.` reaches the backend, even if the backend has a schema of that name. Every other `CALL` goes to the backend as written: another namespace, and `CALL cdp.x` on a connection without that spec, since a Trino connection can have its own `cdp` schema.
+**A spec shadows its namespace on a connection.** Everything under `d360.` belongs to the spec, so a function it doesn't know is an error, and nothing under `d360.` reaches the backend, even if the backend has a schema of that name. Every other `CALL` goes to the backend as written: another namespace, and `CALL d360.x` on a connection without that spec, since a Trino connection can have its own `cdp` schema.
 
 - **Scope:** every `ConnectionState` owns its catalog, and a workbook belongs to the catalog it was created with, so registering on the catalog scopes the namespace to the connection.
 - **Catalog version:** registering bumps it, and the app marks the scripts of the connection as outdated, so they are analyzed again.
 - **Clearing the catalog keeps the specs:** they come with the connector and not from the backend, so a reset of the connection doesn't change what a script may call.
 - **Multiple specs:** a catalog can hold several, and two with the same namespace is a registration error. A binding registers one today.
-- **Until a spec is registered, nothing is shadowed.** While it loads, or if it failed to load, a script gets no checks and no completion, and `CALL cdp.x` goes to the backend like any other call.
+- **Until a spec is registered, nothing is shadowed.** While it loads, or if it failed to load, a script gets no checks and no completion, and `CALL d360.x` goes to the backend like any other call.
 
 ## Checks
 
@@ -343,7 +343,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 2. Among options and attributes, a required one ranks first, then one of the spec, then a standard option.
 3. Among functions, one that only reads ranks first.
 
-The editor opens the list as soon as a position takes a function, option or attribute (`client_function_name` of the completion), before the first character: right after `CALL cdp.|` or `(`, and after the `,` between options. The list holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name. `CALL |` keeps the inline hint of an empty target. The prompt of the shell opens the list after `.` and shows the inline hint after `(`.
+The editor opens the list as soon as a position takes a function, option or attribute (`client_function_name` of the completion), before the first character: right after `CALL d360.|` or `(`, and after the `,` between options. The list holds the top 10 (`DASHQL_COMPLETION_LIMIT`), so a script finds a function by typing part of its name. `CALL |` keeps the inline hint of an empty target. The prompt of the shell opens the list after `.` and shows the inline hint after `(`.
 
 **A candidate says what it is,** from the spec. Only the top candidates read it, a namespace can have many functions. See [Candidate info](core_completion.md#candidate-info).
 
@@ -454,7 +454,7 @@ select count(*), max(_status) from :open_tickets;
 A call writes if its function has `effect: write`, if the spec doesn't know the function, or if it's a raw call whose `method` isn't the literal `'GET'`. Its `EXPLAIN` sends nothing and doesn't write. The runtime sends a write like any other call: a `CREATE` of a connection is a `POST` with its body.
 
 ```sql
-CALL cdp.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake prod', name => 'snowflake_prod', method => 'Ingress');
+CALL d360.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake prod', name => 'snowflake_prod', method => 'Ingress');
 ```
 
 **A script with a write runs only on request,** like a script with a [`@manual` tag](script_references.md#scripts-that-run-on-request). A call is never cached, so a run of the whole workbook would send it again every time.

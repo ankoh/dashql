@@ -4,4 +4,4 @@
  * Repeat with `:job_id` until the deployment finished.
  */
 
-call cdp.datakit_deploy_status (job_id => :job_id);
+call d360.datakit_deploy_status (job_id => :job_id);

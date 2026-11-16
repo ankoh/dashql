@@ -4,7 +4,7 @@
  * Creation also adds system DMOs and a transform. Read the graph until `status` is `ready`, compared without regard to case. The schedule runs a full refresh daily with the incremental refresh off. `type` is `NONE`, the only value the spec has.
  */
 
-call cdp.data_graph_create (
+call d360.data_graph_create (
     name => 'Customer_Graph',
     label => 'Customer Graph',
     description => 'One document per individual with the email addresses',
@@ -38,4 +38,4 @@ call cdp.data_graph_create (
     )
 );
 
-call cdp.data_graph_get (data_graph_name => 'Customer_Graph');
+call d360.data_graph_get (data_graph_name => 'Customer_Graph');

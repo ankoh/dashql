@@ -4,7 +4,7 @@
  * The data space, the profile data graph and the schema must exist. Each decision's `criteria` is a JSON string, and `attribute_values` set the attributes of the schema. The decision order is documented two ways (first match wins, or the highest priority value), so check it on an org. Read `status` of the point afterwards: it is `Active` when the point is ready, or `Error`.
  */
 
-call cdp.p13n_point_create (
+call d360.p13n_point_create (
     name => 'home_page_experience',
     label => 'Home Page Experience Point',
     dataspace_name => 'default',
@@ -33,4 +33,4 @@ call cdp.p13n_point_create (
     ]
 );
 
-call cdp.p13n_point_get (id_or_name => 'home_page_experience');
+call d360.p13n_point_get (id_or_name => 'home_page_experience');

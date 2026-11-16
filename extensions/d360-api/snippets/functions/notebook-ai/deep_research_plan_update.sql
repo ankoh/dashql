@@ -4,7 +4,7 @@
  * The job has to be pending, the spec doesn't say what happens once it started. The spec's example sends both `edit_instructions` and `plan` without saying which one wins.
  */
 
-call cdp.deep_research_plan_update (
+call d360.deep_research_plan_update (
     research_id => 'research-abc123',
     edit_instructions => 'Focus more on recent developments in the last 6 months',
     plan => (
@@ -15,4 +15,4 @@ call cdp.deep_research_plan_update (
     )
 );
 
-call cdp.deep_research_status_get (research_id => 'research-abc123');
+call d360.deep_research_status_get (research_id => 'research-abc123');

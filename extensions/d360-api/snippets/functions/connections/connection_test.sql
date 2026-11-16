@@ -4,7 +4,7 @@
  * Send `method` even though the spec marks it optional. The attribute names come from `connector_metadata`.
  */
 
-call cdp.connection_test (
+call d360.connection_test (
     connector_type => 'AwsRdsSqlServer',
     method => 'Ingress',
     credentials => [

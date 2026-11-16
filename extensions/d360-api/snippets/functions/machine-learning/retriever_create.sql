@@ -4,7 +4,7 @@
  * Retrying this call creates a duplicate. Look up the label with `retriever_list` before you retry. Each output field names the chunk object it reads, and the relationships join it back to the source object.
  */
 
-call cdp.retriever_create (
+call d360.retriever_create (
     label => 'DIY Bathroom Retriever',
     description => 'Finds passages of the DIY bathroom guides.',
     owner_type => 'Api',
@@ -28,4 +28,4 @@ call cdp.retriever_create (
     )
 );
 
-call cdp.retriever_list (search => 'DIY Bathroom', detail_level => 'Basic');
+call d360.retriever_list (search => 'DIY Bathroom', detail_level => 'Basic');

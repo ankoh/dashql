@@ -4,7 +4,7 @@
  * The path names the taxonomy, each item a tag in it. An item replaces the active instruction of its tag. Each text is at most 100 characters. Once synced, `off_core_sync_state` is `Synced`, or `Error` when it failed.
  */
 
-call cdp.tag_detection_instruction_bulk_create (
+call d360.tag_detection_instruction_bulk_create (
     fully_qualified_name => 'Compliance_Tags',
     detection_instructions => [
         (
@@ -18,4 +18,4 @@ call cdp.tag_detection_instruction_bulk_create (
     ]
 );
 
-call cdp.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');
+call d360.tags_active_detection_instruction_list (fully_qualified_name => 'Compliance_Tags');

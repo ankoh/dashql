@@ -12,11 +12,11 @@ description: |
   - **Deletes.** Deleting a data object or relationship breaks what joins through it. Check each definition's `dependencies`.
 
   ```sql
-  CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue', dataspace => 'default');
-  CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
-  CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Revenue', api_name => 'Total_Revenue', data_type => 'Number', aggregation_type => 'UserAgg', expression => $$SUM([Account].[AnnualRevenue])$$);
-  CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
-  CALL cdp.sdm_query (semantic_model_api_name => 'AccountRevenue', structured_semantic_query => (fields = [(expression = (semantic_field = (name = 'Total_Revenue')), alias = 'revenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_USER_AGG')]));
+  CALL d360.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue', dataspace => 'default');
+  CALL d360.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+  CALL d360.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Revenue', api_name => 'Total_Revenue', data_type => 'Number', aggregation_type => 'UserAgg', expression => $$SUM([Account].[AnnualRevenue])$$);
+  CALL d360.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+  CALL d360.sdm_query (semantic_model_api_name => 'AccountRevenue', structured_semantic_query => (fields = [(expression = (semantic_field = (name = 'Total_Revenue')), alias = 'revenue', semantic_aggregation_method = 'SEMANTIC_AGGREGATION_METHOD_USER_AGG')]));
   ```
 
 functions:
@@ -26,7 +26,7 @@ functions:
     path: /ssot/semantic/models
     tools: [d360_sdm_list]
     description: List the semantic models in the org, optionally filtered by data space, label or API names. Use it to find a model's `api_name`.
-    example: CALL cdp.sdm_list (dataspace => 'default', limit => 100, order_by => 'apiName ASC');
+    example: CALL d360.sdm_list (dataspace => 'default', limit => 100, order_by => 'apiName ASC');
     options:
       - {name: dataspace, in: query, type: string, description: "Dataspace name"}
       - {name: app, in: query, type: string, description: "App filter"}
@@ -62,7 +62,7 @@ functions:
     path: /ssot/semantic/models/{id}
     tools: [d360_sdm_get]
     description: Read a whole model, with its data objects, relationships, calculated fields and metrics inline. Use it to read the generated API names and the `id` a query may need.
-    example: CALL cdp.sdm_get (model_api_name_or_id => 'AccountRevenue', include_table_keys => true);
+    example: CALL d360.sdm_get (model_api_name_or_id => 'AccountRevenue', include_table_keys => true);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: abac_filtering_mode, api_name: abacFilteringMode, in: query, type: boolean, description: "ABAC filtering mode"}
@@ -116,7 +116,7 @@ functions:
     path: /ssot/semantic/models
     tools: [d360_sdm_create]
     description: "Create a semantic model. The first step of every build: either an empty shell that later calls fill in, or the whole model in one call."
-    example: CALL cdp.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue Model', description => 'Accounts and revenue', dataspace => 'default');
+    example: CALL d360.sdm_create (api_name => 'AccountRevenue', label => 'Account Revenue Model', description => 'Accounts and revenue', dataspace => 'default');
     options:
       - {name: api_name, api_name: apiName, in: body, type: string, required: true, description: "API name of the model."}
       - {name: label, in: body, type: string, required: true, description: "Display name."}
@@ -199,7 +199,7 @@ functions:
     path: /ssot/semantic/models/{id}
     tools: [d360_sdm_update]
     description: Change model-level fields such as the label or description. It leaves data objects, relationships and calculated fields as they are.
-    example: CALL cdp.sdm_update (model_api_name_or_id => 'AccountRevenue', description => 'Accounts and revenue, used by the sales dashboard');
+    example: CALL d360.sdm_update (model_api_name_or_id => 'AccountRevenue', description => 'Accounts and revenue, used by the sales dashboard');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: label, in: body, type: string, description: "New display name."}
@@ -251,7 +251,7 @@ functions:
     path: /ssot/semantic/models/{id}
     tools: [d360_sdm_delete]
     description: Permanently delete a model and everything in it.
-    example: CALL cdp.sdm_delete (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_delete (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     effect: write
@@ -271,7 +271,7 @@ functions:
     path: /ssot/semantic/models/{id}/clone
     tools: [d360_sdm_clone]
     description: Copy a model to a new one that can change independently. Use it for variations or experiments.
-    example: CALL cdp.sdm_clone (model_api_name_or_id => 'AccountRevenue', api_name => 'AccountRevenue_Test');
+    example: CALL d360.sdm_clone (model_api_name_or_id => 'AccountRevenue', api_name => 'AccountRevenue_Test');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID to clone"}
       - {name: api_name, api_name: apiName, in: body, type: string, description: "API name of the new model."}
@@ -320,7 +320,7 @@ functions:
     path: /ssot/semantic/models/{id}/validate
     tools: [d360_sdm_validate]
     description: Check a model's structure and configuration and report errors. Run it after building and before querying.
-    example: CALL cdp.sdm_validate (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_validate (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     columns:
@@ -339,7 +339,7 @@ functions:
     path: /ssot/semantic/models/{id}/external-dependencies
     tools: [d360_sdm_dependencies]
     description: List what a model depends on outside itself. Read it before deleting or changing the model or its source objects.
-    example: CALL cdp.sdm_dependencies (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_dependencies (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     effect: read
@@ -354,7 +354,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects
     tools: [d360_sdm_data_object_create]
     description: Add an existing DMO, DLO or calculated insight to a model. This is the second build step, and the source object must already exist.
-    example: CALL cdp.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
+    example: CALL d360.sdm_data_object_create (model_api_name_or_id => 'AccountRevenue', data_object_name => 'ssot__Account__dlm', data_object_type => 'Dmo', api_name => 'Account', label => 'Account', should_include_all_fields => true);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name, api_name: dataObjectName, in: body, type: string, required: true, description: "The source object, such as `Account__dlm`."}
@@ -409,7 +409,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects
     tools: [d360_sdm_data_objects_list]
     description: List the data objects in a model with their fields. This is where the semantic field names for relationships and formulas come from.
-    example: CALL cdp.sdm_data_objects_list (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_data_objects_list (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     effect: read
@@ -424,7 +424,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects/{oid}
     tools: [d360_sdm_data_object_get]
     description: Read one data object in a model, with its dimensions and measurements.
-    example: CALL cdp.sdm_data_object_get (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    example: CALL d360.sdm_data_object_get (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
@@ -458,7 +458,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects/{oid}
     tools: [d360_sdm_data_object_update]
     description: Change a data object in a model, such as its label or whether it includes all fields.
-    example: CALL cdp.sdm_data_object_update (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account', label => 'Customer Account');
+    example: CALL d360.sdm_data_object_update (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account', label => 'Customer Account');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
@@ -477,7 +477,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects/{oid}
     tools: [d360_sdm_data_object_delete]
     description: Remove a data object from a model. A data object is only a reference to an existing DMO or calculated insight.
-    example: CALL cdp.sdm_data_object_delete (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Opportunity', relationship_cascade_delete => true);
+    example: CALL d360.sdm_data_object_delete (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Opportunity', relationship_cascade_delete => true);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
@@ -494,7 +494,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects/{oid}/dimensions
     tools: [d360_sdm_dimensions_list]
     description: List the dimensions of one data object in a model, the fields used for grouping and filtering.
-    example: CALL cdp.sdm_dimensions_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    example: CALL d360.sdm_dimensions_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
@@ -511,7 +511,7 @@ functions:
     path: /ssot/semantic/models/{id}/data-objects/{oid}/measurements
     tools: [d360_sdm_measurements_list]
     description: List the measurements of one data object in a model, the numeric fields a query can aggregate.
-    example: CALL cdp.sdm_measurements_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
+    example: CALL d360.sdm_measurements_list (model_api_name_or_id => 'AccountRevenue', data_object_name_or_id => 'Account');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: data_object_name_or_id, api_name: oid, in: path, type: string, required: true, description: "Data object name or ID"}
@@ -527,7 +527,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-dimensions
     tools: [d360_sdm_calc_dims_list]
     description: List the calculated dimensions of a model.
-    example: CALL cdp.sdm_calc_dims_list (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_calc_dims_list (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: name, in: query, type: string, description: "Calculated dimension name filter"}
@@ -542,7 +542,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-dimensions
     tools: [d360_sdm_calc_dim_create]
     description: "Add a calculated dimension: a formula over model fields whose value classifies or groups rows, such as a revenue tier. Its data objects must already be in the model."
-    example: CALL cdp.sdm_calc_dim_create (model_api_name_or_id => 'AccountRevenue', label => 'Revenue Tier', api_name => 'Revenue_Tier', data_type => 'Text', expression => $$IF [Account].[AnnualRevenue] > 1000000 THEN 'Enterprise' ELSEIF [Account].[AnnualRevenue] > 100000 THEN 'Mid-Market' ELSE 'SMB' END$$);
+    example: CALL d360.sdm_calc_dim_create (model_api_name_or_id => 'AccountRevenue', label => 'Revenue Tier', api_name => 'Revenue_Tier', data_type => 'Text', expression => $$IF [Account].[AnnualRevenue] > 1000000 THEN 'Enterprise' ELSEIF [Account].[AnnualRevenue] > 100000 THEN 'Mid-Market' ELSE 'SMB' END$$);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: label, in: body, type: string, required: true, description: "Display name."}
@@ -598,7 +598,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
     tools: [d360_sdm_calc_dim_get]
     description: Read one calculated dimension, including its formula and dependencies.
-    example: CALL cdp.sdm_calc_dim_get (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+    example: CALL d360.sdm_calc_dim_get (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
@@ -634,7 +634,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
     tools: [d360_sdm_calc_dim_update]
     description: Change a calculated dimension, usually its formula.
-    example: CALL cdp.sdm_calc_dim_update (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier', expression => $$IF [Account].[AnnualRevenue] > 5000000 THEN 'Enterprise' ELSE 'SMB' END$$);
+    example: CALL d360.sdm_calc_dim_update (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier', expression => $$IF [Account].[AnnualRevenue] > 5000000 THEN 'Enterprise' ELSE 'SMB' END$$);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
@@ -653,7 +653,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-dimensions/{dimId}
     tools: [d360_sdm_calc_dim_delete]
     description: Delete a calculated dimension from a model.
-    example: CALL cdp.sdm_calc_dim_delete (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
+    example: CALL d360.sdm_calc_dim_delete (model_api_name_or_id => 'AccountRevenue', calculated_dimension_name_or_id => 'Revenue_Tier');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_dimension_name_or_id, api_name: dimId, in: path, type: string, required: true, description: "Calculated dimension name or ID"}
@@ -670,7 +670,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-measurements
     tools: [d360_sdm_calc_measures_list]
     description: List the calculated measurements of a model.
-    example: CALL cdp.sdm_calc_measures_list (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_calc_measures_list (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: name, in: query, type: string, description: "Calculated measurement name filter"}
@@ -685,7 +685,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-measurements
     tools: [d360_sdm_calc_measure_create]
     description: "Add a calculated measurement: a numeric formula over model fields, computed at query time, such as total pipeline. Metrics usually build on these."
-    example: CALL cdp.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Pipeline', api_name => 'Total_Pipeline', data_type => 'Number', aggregation_type => 'UserAgg', decimal_place => 2, expression => $$SUM([Opportunity].[Amount])$$);
+    example: CALL d360.sdm_calc_measure_create (model_api_name_or_id => 'AccountRevenue', label => 'Total Pipeline', api_name => 'Total_Pipeline', data_type => 'Number', aggregation_type => 'UserAgg', decimal_place => 2, expression => $$SUM([Opportunity].[Amount])$$);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: label, in: body, type: string, required: true, description: "Display name."}
@@ -750,7 +750,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
     tools: [d360_sdm_calc_measure_get]
     description: Read one calculated measurement, including its formula and dependencies.
-    example: CALL cdp.sdm_calc_measure_get (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+    example: CALL d360.sdm_calc_measure_get (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
@@ -791,7 +791,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
     tools: [d360_sdm_calc_measure_update]
     description: Change a calculated measurement, usually its formula or aggregation.
-    example: CALL cdp.sdm_calc_measure_update (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline', expression => $$SUM(IIF([Opportunity].[IsClosed], 0, [Opportunity].[Amount]))$$);
+    example: CALL d360.sdm_calc_measure_update (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline', expression => $$SUM(IIF([Opportunity].[IsClosed], 0, [Opportunity].[Amount]))$$);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
@@ -811,7 +811,7 @@ functions:
     path: /ssot/semantic/models/{id}/calculated-measurements/{mid}
     tools: [d360_sdm_calc_measure_delete]
     description: Delete a calculated measurement from a model.
-    example: CALL cdp.sdm_calc_measure_delete (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
+    example: CALL d360.sdm_calc_measure_delete (model_api_name_or_id => 'AccountRevenue', calculated_measurement_name_or_id => 'Total_Pipeline');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: calculated_measurement_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Calculated measurement name or ID"}
@@ -828,7 +828,7 @@ functions:
     path: /ssot/semantic/models/{id}/metrics
     tools: [d360_sdm_metrics_list]
     description: List the metrics of a model.
-    example: CALL cdp.sdm_metrics_list (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_metrics_list (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     effect: read
@@ -842,7 +842,7 @@ functions:
     path: /ssot/semantic/models/{id}/metrics
     tools: [d360_sdm_metric_create]
     description: "Add a metric: a business KPI tracked over time, made of one measurement, one time field and allowed time grains. It comes last in a build, because it references fields that must exist."
-    example: CALL cdp.sdm_metric_create (model_api_name_or_id => 'AccountRevenue', name => 'Annual_Revenue_md', label => 'Annual Revenue', definition => (measurement_reference = (table_field_reference = (field_api_name = 'AnnualRevenue', table_api_name = 'Account')), time_dimension_reference = (table_field_reference = (field_api_name = 'CreatedDate', table_api_name = 'Account')), aggregation_type = 'Sum', time_grains = ['Month', 'Quarter'], additional_dimensions = [(table_field_reference = (field_api_name = 'Region', table_api_name = 'Account'))]));
+    example: CALL d360.sdm_metric_create (model_api_name_or_id => 'AccountRevenue', name => 'Annual_Revenue_md', label => 'Annual Revenue', definition => (measurement_reference = (table_field_reference = (field_api_name = 'AnnualRevenue', table_api_name = 'Account')), time_dimension_reference = (table_field_reference = (field_api_name = 'CreatedDate', table_api_name = 'Account')), aggregation_type = 'Sum', time_grains = ['Month', 'Quarter'], additional_dimensions = [(table_field_reference = (field_api_name = 'Region', table_api_name = 'Account'))]));
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: name, in: body, type: string, required: true, description: "API name of the metric."}
@@ -886,7 +886,7 @@ functions:
     path: /ssot/semantic/models/{id}/metrics/{mid}
     tools: [d360_sdm_metric_get]
     description: Read one metric.
-    example: CALL cdp.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+    example: CALL d360.sdm_metric_get (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
@@ -922,7 +922,7 @@ functions:
     path: /ssot/semantic/models/{id}/metrics/{mid}
     tools: [d360_sdm_metric_update]
     description: Change a metric.
-    example: CALL cdp.sdm_metric_update (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md', label => 'Annual Revenue (booked)');
+    example: CALL d360.sdm_metric_update (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md', label => 'Annual Revenue (booked)');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
@@ -941,7 +941,7 @@ functions:
     path: /ssot/semantic/models/{id}/metrics/{mid}
     tools: [d360_sdm_metric_delete]
     description: Delete a metric from a model.
-    example: CALL cdp.sdm_metric_delete (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
+    example: CALL d360.sdm_metric_delete (model_api_name_or_id => 'AccountRevenue', metric_name_or_id => 'Annual_Revenue_md');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: metric_name_or_id, api_name: mid, in: path, type: string, required: true, description: "Metric name or ID"}
@@ -957,7 +957,7 @@ functions:
     path: /ssot/semantic/models/{id}/relationships
     tools: [d360_sdm_relationships_list]
     description: List the joins defined between data objects in a model, including those imported from existing Data 360 relationships.
-    example: CALL cdp.sdm_relationships_list (model_api_name_or_id => 'AccountRevenue');
+    example: CALL d360.sdm_relationships_list (model_api_name_or_id => 'AccountRevenue');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
     effect: read
@@ -971,7 +971,7 @@ functions:
     path: /ssot/semantic/models/{id}/relationships
     tools: [d360_sdm_relationship_create]
     description: Define the join between two data objects in a model. A query across objects needs a path of these. Add it once both data objects are in the model.
-    example: CALL cdp.sdm_relationship_create (model_api_name_or_id => 'AccountRevenue', label => 'Account to Opportunity', left_semantic_definition_api_name => 'Account', right_semantic_definition_api_name => 'Opportunity', cardinality => 'OneToMany', join_type => 'Auto', criteria => [(join_operator = 'Equals', left_field_type = 'TableField', left_semantic_field_api_name = 'Account_Id', right_field_type = 'TableField', right_semantic_field_api_name = 'AccountId')]);
+    example: CALL d360.sdm_relationship_create (model_api_name_or_id => 'AccountRevenue', label => 'Account to Opportunity', left_semantic_definition_api_name => 'Account', right_semantic_definition_api_name => 'Opportunity', cardinality => 'OneToMany', join_type => 'Auto', criteria => [(join_operator = 'Equals', left_field_type = 'TableField', left_semantic_field_api_name = 'Account_Id', right_field_type = 'TableField', right_semantic_field_api_name = 'AccountId')]);
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: label, in: body, type: string, required: true, description: "Display name."}
@@ -1018,7 +1018,7 @@ functions:
     path: /ssot/semantic/models/{id}/relationships/{rid}
     tools: [d360_sdm_relationship_get]
     description: Read one relationship, including its join criteria.
-    example: CALL cdp.sdm_relationship_get (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+    example: CALL d360.sdm_relationship_get (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
@@ -1050,7 +1050,7 @@ functions:
     path: /ssot/semantic/models/{id}/relationships/{rid}
     tools: [d360_sdm_relationship_update]
     description: Change a relationship's join criteria, cardinality or join type.
-    example: CALL cdp.sdm_relationship_update (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity', cardinality => 'ManyToOne');
+    example: CALL d360.sdm_relationship_update (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity', cardinality => 'ManyToOne');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
@@ -1070,7 +1070,7 @@ functions:
     path: /ssot/semantic/models/{id}/relationships/{rid}
     tools: [d360_sdm_relationship_delete]
     description: Delete a relationship from a model.
-    example: CALL cdp.sdm_relationship_delete (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
+    example: CALL d360.sdm_relationship_delete (model_api_name_or_id => 'AccountRevenue', relationship_name_or_id => 'Account_to_Opportunity');
     options:
       - {name: model_api_name_or_id, api_name: id, in: path, type: string, required: true, description: "Model API name or ID"}
       - {name: relationship_name_or_id, api_name: rid, in: path, type: string, required: true, description: "Relationship name or ID"}
@@ -1086,7 +1086,7 @@ functions:
     path: /ssot/semantic/models/formula-metadata
     tools: [d360_sdm_formula_metadata]
     description: List the functions the semantic engine supports in formulas. Use it to check a calculated field's formula before saving it.
-    example: CALL cdp.sdm_formula_metadata ();
+    example: CALL d360.sdm_formula_metadata ();
     options:
       - {name: model_api_name_or_id, api_name: modelApiNameOrId, in: query, type: string, description: "Model API name or ID"}
     effect: read
@@ -1101,7 +1101,7 @@ functions:
     path: /ssot/semantic/permissions
     tools: [d360_sdm_permissions]
     description: Read the semantic layer permissions. The sources don't say more about what it returns.
-    example: CALL cdp.sdm_permissions ();
+    example: CALL d360.sdm_permissions ();
     effect: read
     unknown: warning
     evidence: S
@@ -1115,7 +1115,7 @@ functions:
     tools: [d360_sdm_query]
     description: Run a query against a semantic model. You name fields, filters and groupings, and the engine works out the joins and SQL, then returns rows. This is the read side of the family.
     example: |
-      CALL cdp.sdm_query (
+      CALL d360.sdm_query (
         semantic_model_api_name => 'AccountRevenue',
         structured_semantic_query => (
           fields = [

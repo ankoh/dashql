@@ -4,7 +4,7 @@
  * Filters are equality tests joined by AND, and Engagement DMOs aren't supported. Each record is a row, with its fields in `_raw`.
  */
 
-call cdp.profile_query (
+call d360.profile_query (
     data_model_name => 'ssot__Individual__dlm',
     filters => '[ssot__FirstName__c=Jean,ssot__LastName__c=Dupont]',
     fields => 'ssot__Id__c,ssot__FirstName__c,ssot__LastName__c',

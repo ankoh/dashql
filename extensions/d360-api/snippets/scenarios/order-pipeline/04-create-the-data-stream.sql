@@ -4,7 +4,7 @@
  * Read the orders from Snowflake into the data lake object `Orders_snow__dll`.
  */
 
-call cdp.datastream_create (
+call d360.datastream_create (
     name => 'Orders_snow',
     label => 'Orders',
     data_stream_type => 'EXTERNAL',

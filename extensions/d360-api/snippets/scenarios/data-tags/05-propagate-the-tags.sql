@@ -4,4 +4,4 @@
  * Pass the tags on to what is built from the object.
  */
 
-call cdp.tags_propagate (object_names => ['Individual_DLO__dll']);
+call d360.tags_propagate (object_names => ['Individual_DLO__dll']);

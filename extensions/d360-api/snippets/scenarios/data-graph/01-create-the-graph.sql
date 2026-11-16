@@ -4,7 +4,7 @@
  * Create a graph on the individual object.
  */
 
-call cdp.data_graph_create (
+call d360.data_graph_create (
     name => 'Customer_Graph',
     label => 'Customer Graph',
     type => 'NONE',

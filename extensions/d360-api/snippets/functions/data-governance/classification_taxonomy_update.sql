@@ -4,7 +4,7 @@
  * Omitted fields stay as they are.
  */
 
-call cdp.classification_taxonomy_update (
+call d360.classification_taxonomy_update (
     name => 'Compliance_Classifications',
     label => 'Compliance Classifications (GA)',
     description => 'Sensitivity and compliance classifications for regulated workloads.'
