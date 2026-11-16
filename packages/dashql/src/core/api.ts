@@ -22,6 +22,7 @@ export type DashQLBindings = Pick<
     | 'deriveSessionDataflow'
     | 'collectSessionInputs'
     | 'inputLiteral'
+    | 'textChange'
     | 'quoteIdentifier'
     | 'quoteColumnName'
     | 'processBatch'
@@ -420,6 +421,12 @@ export class DashQL {
     /// SQL text, `SqlType.sql`. Throws if the type doesn't read the value.
     public inputLiteral(value: string, type: string | null): string {
         return this.bindings.inputLiteral(value, type ?? undefined);
+    }
+
+    /// The change from one text to another: the range between their common prefix and suffix, on character boundaries,
+    /// its offsets in UTF-16 code units like those of CodeMirror
+    public textChange(from: string, to: string): glue.WorkbookTextChange {
+        return this.bindings.textChange(from, to);
     }
 
     /// Create the runtime of DashQL on a platform (docs/design/dashql_runtime.md), through the instance like a

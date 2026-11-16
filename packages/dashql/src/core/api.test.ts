@@ -238,6 +238,10 @@ describe('DashQL planner', () => {
             expect(() => dql!.inputLiteral('ten', 'integer')).toThrow();
             expect(dql!.inputLiteral('2024-01-01 10:00+02', 'timestamp with time zone')).toBe("timestamptz '2024-01-01 10:00+02'");
             expect(() => dql!.inputLiteral('1.5', 'numeric(10, 2)[]')).not.toThrow();
+            // A rewrite of the text reaches the editor as the change between the texts, in UTF-16 code units
+            expect(dql!.textChange('/** @param :min = 10 */', '/** @param :min = 20 */')).toEqual({ from: 18, to: 19, insert: '2' });
+            expect(dql!.textChange('€ 1', '€ 2')).toEqual({ from: 2, to: 3, insert: '2' });
+            expect(dql!.textChange('a😀b', 'a😁b')).toEqual({ from: 1, to: 3, insert: '😁' });
             const dataflow = dql!.deriveSessionDataflow(request).unpack() as execution.SessionDataflowT;
             expect(dataflow.inputs.map(i => i.name)).toEqual(['min', 'span', 'region', 'flag']);
             const inputEdges = dataflow.edges.filter(e => e.kind === execution.DataflowEdgeKind.INPUT).map(e => [e.fromScript, e.toScript, e.name]);

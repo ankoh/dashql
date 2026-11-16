@@ -20,7 +20,6 @@ import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql/platform/workbook/inputs/workbook_inputs';
-import { textChange } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
@@ -178,8 +177,8 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             return;
         }
         if (to === from) return;
-        view.dispatch({ changes: textChange(from, to), effects: DashQLCompletionAbortEffect.of(null) });
-    }, [view, scriptSession]);
+        view.dispatch({ changes: props.instance.textChange(from, to), effects: DashQLCompletionAbortEffect.of(null) });
+    }, [view, scriptSession, props.instance]);
 
     // The connection of a SQL draft has to be connected first, the draft stays until it is
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);

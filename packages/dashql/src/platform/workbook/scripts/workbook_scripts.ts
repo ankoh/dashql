@@ -125,14 +125,3 @@ export function scriptsOnConnection(state: Pick<WorkbookScripts, 'scriptConnecti
 export function getScriptRefs(state: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>): ScriptRef[] {
     return state.scriptOrder.map(name => state.scriptRefs[name]);
 }
-
-/// The change from one text to another: the range between their common prefix and suffix
-export function textChange(from: string, to: string): ScriptTextChange {
-    let prefix = 0;
-    const max = Math.min(from.length, to.length);
-    while (prefix < max && from.charCodeAt(prefix) === to.charCodeAt(prefix)) ++prefix;
-    let suffix = 0;
-    while (suffix < max - prefix && from.charCodeAt(from.length - 1 - suffix) === to.charCodeAt(to.length - 1 - suffix)) ++suffix;
-    return { from: prefix, to: from.length - suffix, insert: to.slice(prefix, to.length - suffix) };
-}
-

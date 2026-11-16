@@ -1464,6 +1464,14 @@ pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, Js
     dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref()).map(|l| l.to_hyper()).map_err(|e| JsError::new(&e))
 }
 
+/// The change from one text to another (`workbook::text_change`): the range between their common prefix and suffix, on
+/// character boundaries, its offsets in UTF-16 code units like those of the editors
+#[wasm_bindgen(js_name = textChange)]
+pub fn text_change(from: &str, to: &str) -> Result<tsify::Ts<runtime::workbooks::view::WorkbookTextChange>, JsError> {
+    let change = dashql_core_runtime::workbook::text_change(from, to, runtime::workbooks::Workbooks::offset_unit());
+    views::to_js(&runtime::workbooks::view::WorkbookTextChange::from(&change))
+}
+
 /// Collect the inputs of the scripts of a session (`session_inputs::collect_session_inputs`), returns the packed
 /// `SessionInputs`. Ignores the targets, the materialized scripts and the mount prefix.
 #[wasm_bindgen(js_name = collectSessionInputs)]

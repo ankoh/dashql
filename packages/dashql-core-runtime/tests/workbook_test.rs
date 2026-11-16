@@ -373,6 +373,9 @@ fn describes_a_text_change_by_its_common_prefix_and_suffix() {
     assert_eq!(text_change("€ 1", "€ 2", utf16), change(2, 3, "2"));
     assert_eq!(text_change("€ 1", "€ 2", EditorOffsetUnit::UTF8_BYTES), change(4, 5, "2"));
     assert_eq!(text_change("aé", "aè", utf16), change(1, 2, "è"));
+    // A character of two UTF-16 code units stays whole, also if the two share the first one
+    assert_eq!(text_change("a😀b", "a😁b", utf16), change(1, 3, "😁"));
+    assert_eq!(text_change("😀", "", utf16), change(0, 2, ""));
 }
 
 #[test]
