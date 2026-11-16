@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 import { createdScriptRef, deleteScript, ScriptSelection, selectedScriptRef } from './script_selection.js';
 

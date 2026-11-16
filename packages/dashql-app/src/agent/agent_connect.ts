@@ -1,4 +1,4 @@
-import type { AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import type { AgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 
 /// What the prompt of a workbook takes: SQL that runs, or nothing while an agent in the terminal writes the scripts
 export enum ComposerMode {
@@ -11,7 +11,7 @@ export type ConnectHarness = 'claude' | 'codex';
 
 /// The command that runs the CLI of DashQL from npm, the latest version: npx would otherwise keep running a version
 /// that it fetched once, and the page tells a server of an older protocol to update (agent_session_protocol.ts)
-export const DASHQL_CLI_COMMAND = 'npx -y @ankoh/dashql-cli@latest';
+export const DASHQL_CLI_COMMAND = 'npx -y @akohn/dashql-cli@latest';
 
 /// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
 const MIN_PORT = 49152;

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import type { StorageCommands } from '@ankoh/dashql/runtime/runtime_storage';
+import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 
 // The successful paths reload the app, which would reload the test frame, so only the cancelled and failed paths are

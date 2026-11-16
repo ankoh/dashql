@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type * as dashql from '@ankoh/dashql';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type * as dashql from '@akohn/dashql';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
 import { ScriptMentionTag } from './script_mention_tag.js';

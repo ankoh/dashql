@@ -1,5 +1,5 @@
 {
-  "name": "@ankoh/dashql",
+  "name": "@akohn/dashql",
   "version": "0.0.0",
   "description": "DashQL in TypeScript: the bindings of the core module, the runtime and its platforms, shared by the app and the command line tool. A source package, npm/package.json describes the package on npm",
   "private": true,

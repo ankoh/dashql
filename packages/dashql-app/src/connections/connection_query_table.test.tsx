@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider } from './compute_connection_provider.js';

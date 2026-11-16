@@ -1,4 +1,4 @@
-import type * as app_folder from '@ankoh/dashql-jsonschema/app_folder.js';
+import type * as app_folder from '@akohn/dashql-jsonschema/app_folder.js';
 
 /// The folder of the workbook tree, it registers every workbook, e.g. `workbooktree/clients/acme/dashql-folder.json`
 export const STORAGE_WORKBOOK_TREE_FOLDER = 'workbooktree';

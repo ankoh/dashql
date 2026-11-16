@@ -7,13 +7,13 @@ import {
     writeAgentSessionWorkbookFile,
     type AgentSessionTarget,
     type AgentSessionWorkbookFile,
-} from '@ankoh/dashql/platform/session/agent_session_client';
-import type { AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
-import { workbookCopyPath, type SessionWorkbook } from '@ankoh/dashql/platform/session/workbook_journal';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
-import { getOPFSRoot } from '@ankoh/dashql/platform/opfs_root';
-import { stringifyError, type Logger } from '@ankoh/dashql/platform/logger/logger';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+} from '@akohn/dashql/platform/session/agent_session_client';
+import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
+import { workbookCopyPath, type SessionWorkbook } from '@akohn/dashql/platform/session/workbook_journal';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_WORKBOOKS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
+import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
+import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logger';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
 const LOG_CTX = 'agent_session';
 

@@ -1,7 +1,7 @@
 import * as buffers from './buffers.js';
 import * as flatbuffers from 'flatbuffers';
 
-import * as glue from '@ankoh/dashql-wasm/dashql_core.js';
+import * as glue from '@akohn/dashql-wasm/dashql_core.js';
 import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
@@ -35,7 +35,7 @@ export type DashQLBindings = Pick<
 >;
 
 /// The shell of the module, the host runs its effects
-export type { Shell, ShellCompletionCandidate, ShellOperation, ShellPromptResult, ShellTerminalResult } from '@ankoh/dashql-wasm/dashql_core.js';
+export type { Shell, ShellCompletionCandidate, ShellOperation, ShellPromptResult, ShellTerminalResult } from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The placement of a script on the dataflow canvas, its `@flow` tag
 export interface DataflowPlacement {

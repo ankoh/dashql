@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type WorkbookTreeFolder } from '@ankoh/dashql/platform/storage/workbook_tree';
+import { type WorkbookTreeFolder } from '@akohn/dashql/platform/storage/workbook_tree';
 import { TOP_LEVEL_DROP_ID, flattenWorkbookListRows, resolveWorkbookListDrop } from './workbook_list_rows.js';
 
 const END = Number.MAX_SAFE_INTEGER;

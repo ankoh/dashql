@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { Wobble, WobbleMode, DEFAULT_WOBBLE_TUNING, useFlavorWobbleBrand, type WobbleTuning } from '../../agent/wobble.js';
-import { DASHQL_BRAND, DBCOM_BRAND } from '@ankoh/dashql-ui/wobble_morph';
+import { DASHQL_BRAND, DBCOM_BRAND } from '@akohn/dashql-ui/wobble_morph';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';

@@ -2,7 +2,7 @@
 //!
 //! A view crosses as a JS object (`serde-wasm-bindgen`), its TypeScript declaration is generated (`tsify`). A packed
 //! FlatBuffer of the core in a view crosses as a `Uint8Array` that the host reads with the generated accessors of
-//! `@ankoh/dashql/buffers` without copying it. The declarations type it as `FlatBuffer<T>`, the bytes of a
+//! `@akohn/dashql/buffers` without copying it. The declarations type it as `FlatBuffer<T>`, the bytes of a
 //! FlatBuffer whose root table is `T`. A payload crosses only when its key differs from the key that the host holds.
 
 use js_sys::{Array, Function, Object, Reflect};
@@ -12,14 +12,14 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-// The glue declarations are the generated package `@ankoh/dashql-wasm` of `packages/dashql`, the generated FlatBuffer
-// code is `@ankoh/dashql-flatbuffers`
+// The glue declarations are the generated package `@akohn/dashql-wasm` of `packages/dashql`, the generated FlatBuffer
+// code is `@akohn/dashql-flatbuffers`
 #[wasm_bindgen(typescript_custom_section)]
 const FLATBUFFER: &str = r#"
-import type * as buffers_editor from '@ankoh/dashql-flatbuffers/dashql/buffers/editor.js';
-import type * as buffers_diff from '@ankoh/dashql-flatbuffers/dashql/buffers/diff.js';
-import type * as buffers_execution from '@ankoh/dashql-flatbuffers/dashql/buffers/execution.js';
-import type * as buffers_profile from '@ankoh/dashql-flatbuffers/dashql/buffers/profile.js';
+import type * as buffers_editor from '@akohn/dashql-flatbuffers/dashql/buffers/editor.js';
+import type * as buffers_diff from '@akohn/dashql-flatbuffers/dashql/buffers/diff.js';
+import type * as buffers_execution from '@akohn/dashql-flatbuffers/dashql/buffers/execution.js';
+import type * as buffers_profile from '@akohn/dashql-flatbuffers/dashql/buffers/profile.js';
 /** The bytes of a packed FlatBuffer whose root table is `T`, read with the generated accessors */
 export type FlatBuffer<T> = Uint8Array & { readonly __flatbufferRoot?: T };
 "#;

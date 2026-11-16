@@ -46,7 +46,7 @@ genrule(
     srcs = ["astro.config.tpl.ts"],
     outs = ["astro.config.generated.ts"],
     cmd = """
-        sed -e "s|__UI_PATH__|../../node_modules/@ankoh/dashql-ui|g" \\
+        sed -e "s|__UI_PATH__|../../node_modules/@akohn/dashql-ui|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             $(location astro.config.tpl.ts) > $@
     """,
@@ -68,7 +68,7 @@ _astro_deps = [
     ":astro_config",
     ":node_modules",
     ":svg_symbols",
-    "//:node_modules/@ankoh/dashql-ui",
+    "//:node_modules/@akohn/dashql-ui",
     "//packages/dashql-app:favicons",
 ]
 

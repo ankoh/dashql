@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 
-import { salesforceCatalogDatabase, type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
-import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
+import { salesforceCatalogDatabase, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
+import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { CLOUD_DATABASE, type CloudQuery } from './cloud_store_schema.js';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 

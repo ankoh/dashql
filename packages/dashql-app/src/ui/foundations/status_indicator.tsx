@@ -3,7 +3,7 @@ import * as React from 'react';
 import { classNames } from '../../utils/classnames.js';
 
 import * as styles from './status_indicator.module.css';
-import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
+import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
 
 export enum IndicatorStatus {
     None,
@@ -14,7 +14,7 @@ export enum IndicatorStatus {
     Skip,
 }
 
-// The status colors are theme tokens of @ankoh/dashql-ui/styles/tokens.css, flavors can override them
+// The status colors are theme tokens of @akohn/dashql-ui/styles/tokens.css, flavors can override them
 export const STATUS_COLOR_IN_PROGRESS = 'var(--color_attention_fg)';
 export const STATUS_COLOR_SUCCESS = 'var(--color_success_fg)';
 export const STATUS_COLOR_FAILED = 'var(--color_danger_fg)';

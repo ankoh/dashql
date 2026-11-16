@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DASHQL_BRAND, DBCOM_BRAND, OMEN_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@ankoh/dashql-ui/wobble_morph';
+import { DASHQL_BRAND, DBCOM_BRAND, OMEN_BRAND, OUTLINE_POINTS, alignmentCost, morphPoints, outlineBounds, parseClosedPath, signedArea, stepSpring } from '@akohn/dashql-ui/wobble_morph';
 
 /// The frame of a morph without wobble and ripple
 const frame = (progress: number) => ({ progress, time: 0, wobble: 0, lag: 0.35, ripple: 0 });

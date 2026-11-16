@@ -2,17 +2,17 @@ import * as React from 'react';
 
 import * as baseStyles from '../ui/foundations/banner_page.module.css';
 import * as styles from './cloud_setup_page.module.css';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useConnection, useConnections, useRuntime } from '../runtime/runtime_hooks.js';
-import { newConnectionFromParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useConnectionAttach } from '../connections/attached_connection.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { createLocalCloudParams, isCloudCapable, isLocalCloud, useCloudConnectionIds, useSetCloudConnection } from '../connections/cloud_connection.js';
 import { HyperConnectorSettings } from '../connections/hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
@@ -23,7 +23,7 @@ import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
-import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
+import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 // The page that sets up the cloud, a card like the one of the app loader, shown before the workbench. See
 // docs/design/cloud.md.

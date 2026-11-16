@@ -18,7 +18,7 @@ Both workers start from `blob:` URLs and keep nothing in OPFS, so the probe work
 - Hyper: `HyperDB.create({ worker: 'blob', storage: 'memory', … })` of `hyperdb-wasm` (since 0.0.27368). The package
   fetches its worker and engine scripts with CORS, joins them into one classic `blob:` worker that also starts the
   pthreads, and keeps `/mnt/fs` in memory.
-- Core: `@ankoh/dashql/batch-worker?worker&url` gives the URL of the bundled batch worker, a classic `blob:`
+- Core: `@akohn/dashql/batch-worker?worker&url` gives the URL of the bundled batch worker, a classic `blob:`
   worker `import()`s it and queues the messages that arrive before. In an opaque origin a module worker from a
   `blob:` URL does not start at all, even an empty one, and `importScripts` can't load an ES module.
 

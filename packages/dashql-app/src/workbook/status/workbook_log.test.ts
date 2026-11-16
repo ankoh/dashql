@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { isWorkbookLogRecord } from './workbook_log.js';
-import { testLogRecord } from '@ankoh/dashql/platform/testing/test_logger';
+import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
 
 describe('Workbook log', () => {
     it('takes the records that name the workbook and the records of the traces of its queries', () => {

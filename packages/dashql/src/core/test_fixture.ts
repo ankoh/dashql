@@ -1,5 +1,5 @@
-import { wasmUrl as coreWasmUrl } from '@ankoh/dashql-wasm/dashql_core.js';
-import { wasmUrl as dataflowWasmUrl } from '@ankoh/dashql-wasm/dashql_dataflow.js';
+import { wasmUrl as coreWasmUrl } from '@akohn/dashql-wasm/dashql_core.js';
+import { wasmUrl as dataflowWasmUrl } from '@akohn/dashql-wasm/dashql_dataflow.js';
 import type { RuntimeOAuth, RuntimePlatform, RuntimeStorage } from './runtime.js';
 
 let wasmBinary: Promise<Uint8Array> | undefined;

@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { U32_MAX } from './numeric_limits.js';
 import { buildEdgePathBetweenRectangles, PathBuilder, selectHorizontalEdgeType, selectVerticalEdgeType } from '../../ui/graph/graph_edges.js';
 

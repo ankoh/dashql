@@ -5,7 +5,7 @@ and query profiles, the runtime of DashQL over its core module, and the platform
 the wasm-bindgen glue, the Wasm binaries, the generated FlatBuffer bindings, and TypeScript declarations.
 
 ```ts
-import { DashQL } from '@ankoh/dashql';
+import { DashQL } from '@akohn/dashql';
 
 const core = await DashQL.create();
 const catalog = core.createCatalog();
@@ -22,8 +22,8 @@ try {
 The generated bindings are also available directly:
 
 ```ts
-import * as buffers from '@ankoh/dashql/buffers';
-import type { VariantKind } from '@ankoh/dashql';
+import * as buffers from '@akohn/dashql/buffers';
+import type { VariantKind } from '@akohn/dashql';
 ```
 
 Native objects (catalogs, scripts, sessions, ...) live in Wasm memory and
@@ -41,7 +41,7 @@ which runs on a catalog of the module and leaves running queries to its host.
 The root export does not export browser workers. In browsers, use:
 
 ```ts
-import { createBatchWorker } from '@ankoh/dashql/browser-worker';
+import { createBatchWorker } from '@akohn/dashql/browser-worker';
 
 const worker = createBatchWorker();
 const result = await worker.processBatch({ scripts: [{ id: 'query', text: 'select 1', outputs: ['analyzed'] }] });
@@ -56,21 +56,21 @@ module-worker environment. `./batch-worker` is the script of the worker itself.
 
 ## The runtime
 
-`@ankoh/dashql/runtime` exports `createRuntime(options)`, the runtime of DashQL over the runtime object of the core
-module, and `@ankoh/dashql/node` exports `createNodePlatform`, its platform in Node:
+`@akohn/dashql/runtime` exports `createRuntime(options)`, the runtime of DashQL over the runtime object of the core
+module, and `@akohn/dashql/node` exports `createNodePlatform`, its platform in Node:
 
 ```ts
-import { createRuntime } from '@ankoh/dashql/runtime';
-import { createNodePlatform } from '@ankoh/dashql/node';
-import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
-import { NODE_FILE_SYSTEM } from '@ankoh/dashql/platform/node/node_file_system';
+import { createRuntime } from '@akohn/dashql/runtime';
+import { createNodePlatform } from '@akohn/dashql/node';
+import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
+import { NODE_FILE_SYSTEM } from '@akohn/dashql/platform/node/node_file_system';
 
 const runtime = createRuntime(await createNodePlatform({ logger, storage: new NativeStorageBackend(folder, NODE_FILE_SYSTEM) }));
 await runtime.restore();
 ```
 
-Every module of the runtime and of its platforms is a subpath, `@ankoh/dashql/runtime/<path>` and
-`@ankoh/dashql/platform/<path>`, like in the sources. The embedded Hyper of the platforms needs `hyperdb-wasm`, an
+Every module of the runtime and of its platforms is a subpath, `@akohn/dashql/runtime/<path>` and
+`@akohn/dashql/platform/<path>`, like in the sources. The embedded Hyper of the platforms needs `hyperdb-wasm`, an
 optional peer dependency, and Node 24 or later.
 
 This package is ESM-only and does not expose other internal `dist/*` paths.
@@ -135,7 +135,7 @@ configurations or compiler versions. `npm/package.json` is the only publish-vers
 source.
 
 The external test extracts `:npm_tarball` into a fresh temporary
-`node_modules/@ankoh/dashql`, copies only the FlatBuffers runtime
+`node_modules/@akohn/dashql`, copies only the FlatBuffers runtime
 dependency of the bindings from Bazel runfiles, and clears Node's resolution overrides. It uses
 no package manager or network. Package-name imports exercise every public JS
 entry point of the bindings, binary resolution, default and explicit Wasm initialization,

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './result_table_overlay.module.css';
 
-import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { useFocusTrap } from '../../ui/foundations/focus.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';

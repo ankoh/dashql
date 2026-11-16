@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import * as core from '@ankoh/dashql';
-import * as buffers from '@ankoh/dashql/buffers';
-import * as glue from '@ankoh/dashql/wasm/glue';
+import * as core from '@akohn/dashql';
+import * as buffers from '@akohn/dashql/buffers';
+import * as glue from '@akohn/dashql/wasm/glue';
 
 assert.equal(globalThis.Worker, undefined);
 assert.equal(globalThis.window, undefined);
 assert.equal('createBatchWorker' in core, false);
 assert.equal('DashQLBatchWorker' in core, false);
 assert.equal(core.buffers.parser.ParsedScript, buffers.parser.ParsedScript);
-const worker = await import('@ankoh/dashql/browser-worker');
+const worker = await import('@akohn/dashql/browser-worker');
 assert.equal(typeof worker.createBatchWorker, 'function');
 assert.equal(typeof worker.DashQLBatchWorker, 'function');
-const binary = new Uint8Array(await readFile(new URL(import.meta.resolve('@ankoh/dashql/wasm'))));
+const binary = new Uint8Array(await readFile(new URL(import.meta.resolve('@akohn/dashql/wasm'))));
 assert.equal(WebAssembly.validate(binary), true);
 const instances = [
     await core.DashQL.create(),
@@ -32,5 +32,5 @@ for (const instance of instances) {
         instance.resetUnsafe();
     }
 }
-await assert.rejects(import('@ankoh/dashql/dist/core/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+await assert.rejects(import('@akohn/dashql/dist/core/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
 console.log('Tarball package-name exports, browser-safe imports, and Wasm passed');

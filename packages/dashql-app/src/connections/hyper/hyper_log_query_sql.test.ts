@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { connectionClientContext, HyperLogMetrics, queryEndsQuery, readQueryEnds, sqlframeClientContext } from './hyper_log_metrics.js';
 import { QueryScope } from './hyper_log_stats.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';

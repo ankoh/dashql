@@ -1,16 +1,16 @@
 import * as React from 'react';
 
-import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
+import * as connectionTypes from '@akohn/dashql-jsonschema/connection.js';
 
 import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
-import { LoggableException, stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { LoggableException, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../platform/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { useRuntime } from '../runtime/runtime_hooks.js';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
-import { connectEmbeddedSession, type EmbeddedSession } from '@ankoh/dashql/runtime/embedded_session';
+import { connectEmbeddedSession, type EmbeddedSession } from '@akohn/dashql/runtime/embedded_session';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
@@ -36,7 +36,7 @@ import { useShareDialog } from './share_dialog.js';
 import { useSnippetsDialog } from '../workbook/snippets/snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
 import { splitShellScript } from '../shell/shell_script.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
 

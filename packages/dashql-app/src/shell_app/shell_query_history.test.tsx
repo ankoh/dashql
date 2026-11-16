@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 
-import { QueryType, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { newDefaultHyperWasmConnection } from '@ankoh/dashql/platform/connections/connection_params';
+import { QueryType, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import {
     SHELL_CONNECTION_ID,
     SHELL_DATABASE_ID,

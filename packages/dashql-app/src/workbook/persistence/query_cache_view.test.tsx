@@ -3,15 +3,15 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryCacheView } from './query_cache_view.js';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useRuntime } from '../../runtime/runtime_hooks.js';
 import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { memoryQueryResultCache } from '@ankoh/dashql/platform/testing/memory_query_result_cache';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestRoot } from '../../tests/react_root.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 

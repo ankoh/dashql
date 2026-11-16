@@ -13,11 +13,11 @@ import { DASHQL_FLAVOR, type AppFlavor } from '../config/flavors.js';
 import { DEMOS, type DemoEntry } from './demo_registry.js';
 import * as styles from './demos.module.css';
 
-import '@ankoh/dashql-ui/fonts/fonts.css';
-import '@ankoh/dashql-ui/styles/colors.css';
-import '@ankoh/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-ui/fonts/fonts.css';
+import '@akohn/dashql-ui/styles/colors.css';
+import '@akohn/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
-import '@ankoh/dashql-ui/styles/flavors/dbcom.css';
+import '@akohn/dashql-ui/styles/flavors/dbcom.css';
 import '../connections/bundled_clfn_specs.js';
 
 /// The pages of the demos, loaded when they are opened

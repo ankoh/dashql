@@ -24,8 +24,8 @@ export default defineConfig({
         alias: [
             { find: /^vitest$/, replacement: path.resolve(root, 'vitest_compat.ts') },
             // The generated packages of the core module that the sources of the bindings import
-            { find: /^@ankoh\/dashql-wasm\/(.+)$/, replacement: path.resolve(root, 'inputs/dependencies/dashql-wasm/$1') },
-            { find: /^@ankoh\/dashql-flatbuffers\/(.+)$/, replacement: path.resolve(root, 'inputs/dependencies/dashql-flatbuffers/$1') },
+            { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.resolve(root, 'inputs/dependencies/dashql-wasm/$1') },
+            { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.resolve(root, 'inputs/dependencies/dashql-flatbuffers/$1') },
             ...packageAliases,
         ],
     },

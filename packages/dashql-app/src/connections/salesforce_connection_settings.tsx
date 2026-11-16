@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
 
@@ -8,8 +8,8 @@ import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth, ConnectionStatus } from '@ankoh/dashql/platform/connections/connection_state';
-import { getSalesforceConnectionDetails } from '@ankoh/dashql/platform/connections/salesforce/salesforce_connection_state';
+import { ConnectionHealth, ConnectionStatus } from '@akohn/dashql/platform/connections/connection_state';
+import { getSalesforceConnectionDetails } from '@akohn/dashql/platform/connections/salesforce/salesforce_connection_state';
 import {
     TextField,
     TextFieldValidationStatus,
@@ -18,13 +18,13 @@ import {
 } from '../ui/foundations/text_field.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { classNames } from '../utils/classnames.js';
-import { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@ankoh/dashql/platform/connections/connector_descriptor';
-import type { ConnectionDetailsView } from '@ankoh/dashql';
-import type { DetailedError } from '@ankoh/dashql/platform/utils/error';
+import { Logger } from '@akohn/dashql/platform/logger/logger';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@akohn/dashql/platform/connections/connector_descriptor';
+import type { ConnectionDetailsView } from '@akohn/dashql';
+import type { DetailedError } from '@akohn/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { hyperCloudDefaultDatabaseName } from '@ankoh/dashql/platform/connections/connection_params';
+import { hyperCloudDefaultDatabaseName } from '@akohn/dashql/platform/connections/connection_params';
 
 const LOG_CTX = "sf_connector";
 

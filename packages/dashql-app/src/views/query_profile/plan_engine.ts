@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 /// Values can be megabytes large, only look at the first characters
 const PEEK_WINDOW = 4096;

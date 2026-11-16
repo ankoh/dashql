@@ -1,4 +1,4 @@
-import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
+import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { DashQLShellEnvironment } from '../shell/api.js';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
 

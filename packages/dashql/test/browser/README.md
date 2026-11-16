@@ -14,9 +14,9 @@ bazel test //packages/dashql/test/browser:test_chromium --test_arg=package_consu
 The parent package exposes these public build targets:
 
 - `:core_srcs`: `src/core/**/*.ts`, including the tests and their fixtures.
-- `:dep_wasm`: the wasm-bindgen glue and Wasm under `dependencies/dashql-wasm/`, imported as `@ankoh/dashql-wasm/*`.
+- `:dep_wasm`: the wasm-bindgen glue and Wasm under `dependencies/dashql-wasm/`, imported as `@akohn/dashql-wasm/*`.
 - `:dep_flatbuffers`: the generated FlatBuffers under `dependencies/dashql-flatbuffers/`, imported as
-  `@ankoh/dashql-flatbuffers/*`.
+  `@akohn/dashql-flatbuffers/*`.
 
 `:inputs` stages them under `inputs/src/core/` and `inputs/dependencies/`, and `vite.config.mjs` maps the two generated
 packages to their folders. Test files are discovered by `import.meta.glob('./inputs/src/core/**/*.test.ts')`; no

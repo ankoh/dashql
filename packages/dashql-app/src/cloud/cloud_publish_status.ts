@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 /// The latest publish of a workbook to a cloud
 export interface CloudPublishStatus {

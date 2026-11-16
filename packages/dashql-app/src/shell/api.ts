@@ -1,6 +1,6 @@
-import { DashQL, DashQLCatalog, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@ankoh/dashql';
-import * as dashql from '@ankoh/dashql';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { DashQL, DashQLCatalog, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@akohn/dashql';
+import * as dashql from '@akohn/dashql';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 export enum DashQLShellStatus {
     OK = 0,

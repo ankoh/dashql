@@ -1,4 +1,4 @@
-# The wasm module of the dataflow canvas layout, shipped by @ankoh/dashql next to the core module. The app loads
+# The wasm module of the dataflow canvas layout, shipped by @akohn/dashql next to the core module. The app loads
 # it when it opens the dataflow canvas, the core module stays without ELK.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).

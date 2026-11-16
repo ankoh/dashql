@@ -1,4 +1,4 @@
-import type { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
+import type { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
 import { isDesktopHost } from '../platform/native_globals.js';
 
 /// Can the connector run in the host of the app?

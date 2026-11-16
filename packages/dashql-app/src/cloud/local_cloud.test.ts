@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { TEST_CONNECTION_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { testWorkbookTables } from './cloud_test_tables.js';
 import { publishCloudWorkbook } from './cloud_store.js';
 import { createCloudFolder, listCloudEntries } from './cloud_folders.js';
 import { cloudDatabaseOf } from './cloud_query.js';
 import { dropCloudStore, inspectCloudStore, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 // The local cloud: a connection of the embedded Hyper whose session attaches only the database of the local cloud, as
 // "dashql", like a connection to a Hyper server that attaches the database of DashQL. The database outlives the window.

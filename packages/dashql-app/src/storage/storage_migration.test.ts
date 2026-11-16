@@ -1,9 +1,9 @@
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
-import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
+import { fsStore, makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
 import { migrateStorage as migrateStorageWithCore } from './storage_migration.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

@@ -1,5 +1,5 @@
 {
-  "name": "@ankoh/hyperdb-edge",
+  "name": "@akohn/hyperdb-edge",
   "version": "0.0.0",
   "description": "Runs SQL on the embedded Hyper of hyperdb-wasm, a command line tool and its library. Builds on hyperdb-wasm, not part of it",
   "private": true,

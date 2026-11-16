@@ -1,15 +1,15 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as React from 'react';
 
 import { useLogger } from '../platform/logger_provider.js';
-import { TracedLogger, stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';
+import { TracedLogger, stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { decodedContentLength } from '../utils/content_length.js';
 import { CorePanicOverlay } from './core_panic_overlay.js';
 
 // Load the WebAssembly asset through the core package export.
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import coreWasmUrl from '@ankoh/dashql/wasm?url';
+import coreWasmUrl from '@akohn/dashql/wasm?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 
 export interface InstantiationProgress {

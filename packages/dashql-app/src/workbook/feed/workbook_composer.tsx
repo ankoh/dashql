@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
@@ -11,7 +11,7 @@ import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/seg
 import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
 import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
-import type { AgentSessionOutdated } from '@ankoh/dashql/platform/session/agent_session_protocol';
+import type { AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';
 import { PromptEditor } from '../editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
@@ -20,10 +20,10 @@ import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
-import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql/platform/workbook/workbook_inputs';
-import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
-import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 /// The table parameters of a workbook for a session that is no script of it
 export interface WorkbookTableParameters {

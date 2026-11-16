@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../connections/connection_label.js';
 import { useConnectionList } from '../runtime/runtime_hooks.js';
 

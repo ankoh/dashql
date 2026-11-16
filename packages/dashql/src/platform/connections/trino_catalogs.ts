@@ -1,4 +1,4 @@
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 // The catalogs that the catalog loader reads are decided by the Rust runtime (`catalog_loader/trino.rs`).
 

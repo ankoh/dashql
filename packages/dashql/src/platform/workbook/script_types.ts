@@ -1,4 +1,4 @@
-import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
+import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 import type { TopLevelSpec } from 'vega-lite';
 
 import type * as core_buffers from '../../core/buffers.js';

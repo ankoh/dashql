@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platform/session/workbook_journal';
+import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platform/session/workbook_journal';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';

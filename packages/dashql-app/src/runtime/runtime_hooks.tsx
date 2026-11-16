@@ -1,14 +1,14 @@
 import * as React from 'react';
 import type * as arrow from 'apache-arrow';
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import { createRuntime, type ChannelConnector, type Runtime } from '@ankoh/dashql/runtime/runtime';
-import type { StoreView } from '@ankoh/dashql/runtime/store/runtime_store';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { QueryExecutionProgress, QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
-import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import { workbookExecutionIsBusy } from '@ankoh/dashql/platform/workbook/workbook_execution';
+import { createRuntime, type ChannelConnector, type Runtime } from '@akohn/dashql/runtime/runtime';
+import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { workbookExecutionIsBusy } from '@akohn/dashql/platform/workbook/workbook_execution';
 
 import { useLogger } from '../platform/logger_provider.js';
 import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';

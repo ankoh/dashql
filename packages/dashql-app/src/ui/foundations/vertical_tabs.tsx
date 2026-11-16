@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 import { IconButton, ButtonVariant } from './button.js';
 
 import * as styles from './vertical_tabs.module.css';

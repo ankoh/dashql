@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { foldedRanges, unfoldEffect } from '@codemirror/language';
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';

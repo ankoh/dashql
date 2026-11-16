@@ -186,7 +186,7 @@ pub struct QueryMetadata {
     /// earlier queries of its owner, the owner shows only its latest result.
     pub result_owner: Option<String>,
     /// Where a statement of a plan of workbook scripts comes from, as the host holds it (`PlannedStatement` of
-    /// `@ankoh/dashql`)
+    /// `@akohn/dashql`)
     pub planned: Option<serde_json::Value>,
 }
 

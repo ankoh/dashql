@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { agentSessionOf } from './agent_session.js';
-import { createAgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { createAgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 const workbook = {
     scriptRefs: { '1_orders.sql': { scriptId: 7, fileName: '1_orders.sql' } },

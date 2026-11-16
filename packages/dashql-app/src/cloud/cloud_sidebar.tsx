@@ -1,5 +1,5 @@
 import * as React from 'react';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import {
     ChevronDownIcon,
@@ -18,14 +18,14 @@ import {
 import { useRowContextMenu } from '../ui/foundations/row_context_menu.js';
 import { classNames } from '../utils/classnames.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router.js';
 import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { useWorkbooks } from '../runtime/runtime_hooks.js';
-import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/workbook_folder_row.js';
 import * as sidebarStyles from '../workbook/workbook_workbench_sidebar.module.css';
 import * as styles from './cloud_sidebar.module.css';
@@ -34,7 +34,7 @@ import { useCloudRemoval } from './cloud_deletion.js';
 import { useClouds, type CloudState } from './cloud_state.js';
 import { useCloudWorkbooks } from './cloud_workbooks.js';
 import { useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
-import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
+import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 // The clouds in the workbook list of the sidebar: a folder Clouds at the top level, above the folder of the local
 // workbooks, with a row per cloud. See docs/design/cloud.md.

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
 import { LiveQueryLoop, type LiveQueryState } from './use_live_query.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 /// Run the pending promise callbacks
 async function flush() {

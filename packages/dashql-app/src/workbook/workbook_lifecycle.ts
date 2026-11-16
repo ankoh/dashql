@@ -1,8 +1,8 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import { CONNECTOR_INFOS, type ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import { CONNECTOR_INFOS, type ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 import { useOptionalRuntime, useWorkbookList } from '../runtime/runtime_hooks.js';
 import { useScriptSelection } from './scripts/script_selection.js';

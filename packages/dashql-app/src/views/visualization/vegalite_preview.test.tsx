@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
 import type { VegaLiteViewDependencies } from './vegalite_view.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));

@@ -1,23 +1,23 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3';
 
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
 import { GraphPort } from '../../ui/graph/graph_port.js';
 import * as graphStyles from '../../ui/graph/graph.module.css';
-import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
+import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowGraph, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
-import type { SessionInput } from '@ankoh/dashql/platform/workbook/workbook_inputs';
+import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import {
     buildDataflowScene,
     dataflowRouteKey,
@@ -45,7 +45,7 @@ import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, 
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';
-import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 const FitIcon = SymbolIcon('graph_align');
 

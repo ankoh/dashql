@@ -7,11 +7,11 @@ import { test } from 'node:test';
 
 const read = name => readFileSync(resolve(process.env[name]), 'utf8');
 
-test('depends on @ankoh/dashql and the embedded Hyper that the bundle was built with', () => {
+test('depends on @akohn/dashql and the embedded Hyper that the bundle was built with', () => {
     const published = JSON.parse(read('NPM_PACKAGE_JSON'));
     const dashql = JSON.parse(read('DASHQL_PACKAGE_JSON'));
     const root = JSON.parse(read('ROOT_PACKAGE_JSON'));
-    assert.equal(published.dependencies['@ankoh/dashql'], dashql.version, 'publish @ankoh/dashql first and raise the version in npm/package.json');
+    assert.equal(published.dependencies['@akohn/dashql'], dashql.version, 'publish @akohn/dashql first and raise the version in npm/package.json');
     assert.equal(published.dependencies['hyperdb-wasm'], { ...root.devDependencies, ...root.dependencies }['hyperdb-wasm']);
     assert.equal(published.bin.dashql, './dist/dashql.js');
 });

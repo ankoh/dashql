@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type WobbleBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from '@ankoh/dashql-ui/wobble_morph';
+import { DASHQL_BRAND, OUTLINE_POINTS, DBCOM_BRAND, type WobbleBrand, VIEWBOX_SIZE, morphPoints, outlinePath, springAtRest, stepSpring, type Spring } from '@akohn/dashql-ui/wobble_morph';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import * as styles from './wobble.module.css';
 

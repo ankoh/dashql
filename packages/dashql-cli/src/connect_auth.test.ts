@@ -1,6 +1,6 @@
 import { createServer } from 'node:net';
 
-import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
+import type { OAuthFlow } from '@akohn/dashql/platform/oauth_flow';
 
 import { ConnectAuth, flowIdOf, listenForCallback, loginKind, type ConnectAuthHost, type ConnectionAuthorization, type LoginConnection, type LoginSetupOptions } from './connect_auth.js';
 

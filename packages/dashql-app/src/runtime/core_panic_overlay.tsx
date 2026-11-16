@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as React from 'react';
 
 import * as baseStyles from '../ui/foundations/banner_page.module.css';

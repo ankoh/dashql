@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
-import type { AgentSessionLogin } from '@ankoh/dashql/platform/session/agent_session_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { OAuthFlow } from '@akohn/dashql/platform/oauth_flow';
+import type { AgentSessionLogin } from '@akohn/dashql/platform/session/agent_session_state';
 
 import { agentSessionOAuth, credentialsAnswer } from './agent_session_logins.js';
 

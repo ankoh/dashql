@@ -1,9 +1,9 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 
 // The layout module is an asset of the core package, loaded when the dataflow canvas opens
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import dataflowWasmUrl from '@ankoh/dashql/dataflow-wasm?url';
+import dataflowWasmUrl from '@akohn/dashql/dataflow-wasm?url';
 const DATAFLOW_WASM_URL = typeof dataflowWasmUrl === 'string' ? dataflowWasmUrl : new URL(dataflowWasmUrl as string, import.meta.url).href;
 
 let loading: Promise<core.DashQLDataflow> | null = null;

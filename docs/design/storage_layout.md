@@ -207,7 +207,7 @@ Connections, the manifest, the workbook tree, the shell files and the instances 
 
 The embedded Hyper reads the attachments of a workbook from its OPFS folder `workbooks/<id>/attachments/` (of a
 native workbook, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
-(`platform/workbook/attachment_mounts.ts` of `@ankoh/dashql`). The app mounts the folder before a plan scans an attachment and before it
+(`platform/workbook/attachment_mounts.ts` of `@akohn/dashql`). The app mounts the folder before a plan scans an attachment and before it
 reads the columns of a Parquet attachment. A change of the attachments, in the app or in a native folder, marks the
 mount stale, its next use refreshes it so Hyper looks up the files again. Closing the workbook removes the mount.
 

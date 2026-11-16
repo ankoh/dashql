@@ -3,12 +3,12 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 
 import { ScriptConnectionPicker, type ScriptConnectionView } from './script_connection_picker.js';
 import { TestRuntime } from '../../tests/test_runtime.js';

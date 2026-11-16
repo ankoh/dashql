@@ -1,11 +1,11 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import { VariantKind } from '@ankoh/dashql/platform/utils/variant';
+import { VariantKind } from '@akohn/dashql/platform/utils/variant';
 import { TextInput, TextInputValidationStatus } from './text_input.js';
 import { CopyToClipboardAction } from './text_input_action.js';
 
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 import * as styles from './text_field.module.css';
 
 export const VALIDATION_UNKNOWN = Symbol("VALIDATION_UNKNOWN");

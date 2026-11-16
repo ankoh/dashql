@@ -65,7 +65,7 @@ Each input has a caller-defined string id, SQL text, and a mask of outputs:
 ## Worker
 
 The core package has a batch worker per main-thread `DashQL` instance (`batch_worker.ts`, `batch_worker_client.ts`,
-exported as `@ankoh/dashql/browser-worker`) for integrations that parse large files off the event loop. The app
+exported as `@akohn/dashql/browser-worker`) for integrations that parse large files off the event loop. The app
 doesn't start it: the catalog loader and the restore of the runtime parse their batches in the core module.
 
 - `initialize()` warms the module with an empty batch and memoizes readiness.

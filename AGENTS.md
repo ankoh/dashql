@@ -29,7 +29,7 @@ Please consult relevant docs in that directory before making changes.
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
-- The DashQL runtime (`packages/dashql`, `@ankoh/dashql`: the TypeScript side of the runtime, one source package with
+- The DashQL runtime (`packages/dashql`, `@akohn/dashql`: the TypeScript side of the runtime, one source package with
   `src/core` (the bindings of the core module), `src/runtime` (`createRuntime(options)` with `RuntimeOptions`, the
   `Runtime` facade, the store of its views, the adapters of its platform) and `src/platform` (browser, desktop app and
   Node, storage, OAuth, connector clients); the folder rules and `//packages/dashql:boundary_test`; views, `takeChanges`,

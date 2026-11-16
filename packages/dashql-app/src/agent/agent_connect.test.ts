@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseAgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
+import { parseAgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 
 import { agentConnectCommand, newAgentConnectTarget } from './agent_connect.js';
 
@@ -20,6 +20,6 @@ describe('agent connect', () => {
 
     it('writes the line of dashql connect', () => {
         expect(agentConnectCommand('codex', { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' }))
-            .toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
+            .toBe('npx -y @akohn/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
     });
 });

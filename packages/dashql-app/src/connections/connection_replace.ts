@@ -1,7 +1,7 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 import { isHyperWasmConnection, isListedConnection } from './connection_label.js';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 /// The connections that can replace a connection, grouped by their connector
 export interface ConnectionReplaceCandidates {

@@ -1,4 +1,4 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 

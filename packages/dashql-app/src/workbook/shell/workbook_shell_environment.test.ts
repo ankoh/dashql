@@ -1,11 +1,11 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 
-import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
+import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import {
     createWorkbookShellEnvironment,
 } from './workbook_shell_environment.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 describe('workbook shell environment', () => {
     it('reports a result with its query and row count', async () => {

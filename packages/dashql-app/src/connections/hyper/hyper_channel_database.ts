@@ -1,11 +1,11 @@
 import type * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
-import * as pb from '@ankoh/dashql/platform/proto';
+import * as pb from '@akohn/dashql/platform/proto';
 
-import type { EmbeddedClientContext } from '@ankoh/dashql/platform/embedded_database';
+import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
-import { consumeQueryResponseStream } from '@ankoh/dashql/platform/connections/query_execution';
-import type { HyperDatabaseChannel } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
+import { consumeQueryResponseStream } from '@akohn/dashql/platform/connections/query_execution';
+import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 
 /// A query on a channel to a remote Hyper, the channel keeps no session across its queries
 class HyperChannelConnection implements HyperDBSourceConnection {

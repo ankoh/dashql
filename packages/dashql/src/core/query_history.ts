@@ -1,6 +1,6 @@
 import type * as buffers from './buffers.js';
 import { DashQL, Ptr } from './api.js';
-import type * as glue from '@ankoh/dashql-wasm/dashql_core.js';
+import type * as glue from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The views of the queries of the runtime, declared by the module (`packages/dashql-core-wasm/src/query_history/view.rs`):
 /// a query is a slice `query` of the `Runtime`.
@@ -18,9 +18,9 @@ export type {
     QueryResultTableView,
     QueryStreamMetrics,
     QueryView,
-} from '@ankoh/dashql-wasm/dashql_core.js';
+} from '@akohn/dashql-wasm/dashql_core.js';
 /// The status and the kind of a query, numeric enums of the module
-export { QueryExecutionStatus, QueryType } from '@ankoh/dashql-wasm/dashql_core.js';
+export { QueryExecutionStatus, QueryType } from '@akohn/dashql-wasm/dashql_core.js';
 
 const QUERY_PROGRESS_FOLLOWER_TYPE = Symbol('QUERY_PROGRESS_FOLLOWER_TYPE');
 

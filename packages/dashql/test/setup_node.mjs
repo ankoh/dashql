@@ -10,7 +10,7 @@ import { startNodeHyperEngine, useNodeRoot } from '../src/platform/node/node_hyp
 import { PROCESS_LOCKS } from '../src/platform/node/node_locks.ts';
 
 const require = createRequire(import.meta.url);
-globalThis.DASHQL_PRECOMPILED = readFile(require.resolve('@ankoh/dashql/wasm')).then(bytes => new Uint8Array(bytes));
+globalThis.DASHQL_PRECOMPILED = readFile(require.resolve('@akohn/dashql/wasm')).then(bytes => new Uint8Array(bytes));
 // The client function specs of the extensions, vitest resolves the glob like the bundler of the app
 provideClientFunctionSpecs(import.meta.glob('@dashql/extensions/*/clfn/spec/spec.json', { import: 'default' }));
 

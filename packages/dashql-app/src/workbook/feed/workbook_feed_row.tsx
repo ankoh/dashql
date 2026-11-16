@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { flushSync } from 'react-dom';
 import * as styles from './workbook_feed.module.css';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { useOptionalRuntime, useQuery, useQueryProgress, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
 
 import type { EditorView } from '@codemirror/view';
@@ -15,12 +15,12 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
+import { getScriptRefs, type ScriptData, type ScriptDataMap } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
@@ -32,14 +32,14 @@ import { formatScriptEditor } from '../editor/script_format_editor.js';
 import { FeedEntryFooter, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { displayPath } from '../../storage/workbook_locator.js';
-import { STORAGE_SCRIPTS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
+import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { FeedEntryHeader } from './feed_entry_header.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { FEED_TOP_PADDING } from './workbook_feed_layout.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 
 const DragHandleIcon: Icon = SymbolIcon('drag_handle_16');
 

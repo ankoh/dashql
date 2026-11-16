@@ -47,15 +47,15 @@ bazel build //...
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
-| `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
-| `//packages/dashql:source_package` | `@ankoh/dashql`, linked as `//:node_modules/@ankoh/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/design/dashql_runtime.md` |
-| `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@ankoh/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@ankoh/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
+| `//packages/dashql-ui:npm_package` | `@akohn/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
+| `//packages/dashql:source_package` | `@akohn/dashql`, linked as `//:node_modules/@akohn/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/design/dashql_runtime.md` |
+| `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@akohn/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@akohn/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
-| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@ankoh/dashql`. It needs no database, hyperdb-wasm stays optional |
-| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@ankoh/dashql`, loaded when the canvas opens |
+| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
+| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
@@ -63,11 +63,11 @@ bazel build //...
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
-| `//packages/dashql:bundle` | `dist/` of `@ankoh/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
-| `//packages/dashql:npm_package` | The npm package directory of `@ankoh/dashql` (`npm/package.json`) |
-| `//packages/dashql:npm_tarball` | The npm archive of `@ankoh/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
-| `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @ankoh/dashql-cli` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
+| `//packages/dashql:bundle` | `dist/` of `@akohn/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
+| `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
+| `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
+| `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @akohn/dashql-cli` |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -121,7 +121,7 @@ bazel test //...
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
 | `//packages/dashql-core-runtime:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
 | `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
-| `//packages/dashql:all` | The tests of `@ankoh/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
+| `//packages/dashql:all` | The tests of `@akohn/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
 | `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
@@ -129,9 +129,9 @@ bazel test //...
 | `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
 | `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
-| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@ankoh/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
+| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@akohn/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
-| `//packages/dashql:tsc_typecheck_test` | Type check of `@ankoh/dashql` against the WebWorker lib, without the DOM and without the types of Node |
+| `//packages/dashql:tsc_typecheck_test` | Type check of `@akohn/dashql` against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
 | `//packages/dashql:tsc_typecheck_node_test` | Type check of the modules of Node in `src/runtime/node` and `src/platform/node` and their tests, with the types of Node |
 | `//packages/dashql:test_core_node` | The tests of the bindings in Node (vitest) |
@@ -145,8 +145,8 @@ bazel test //...
 | `//packages/hyperdb-edge:stores_typecheck_test` | Type check of the stores of agent libraries in `packages/hyperdb-edge/stores/` and their tests, against the libraries, see `docs/wip/hyperdb_edge_stores.md` |
 | `//packages/hyperdb-edge:stores_test` | The stores of the Claude Agent SDK, the OpenAI Agents SDK and LangGraph on hyperdb-wasm: each against the reference of its library, the conformance suite of LangGraph for checkpointers, and the agent loops of the OpenAI Agents SDK and LangGraph with a fake model |
 | `//packages/hyperdb-edge:stores_claude_code_test` | The session store under `query()` of the Claude Agent SDK with the pinned Claude Code and a fake model, outside the sandbox: mirroring, resuming from the store alone, sessions at once |
-| `//packages/dashql:boundary_test` | The folders of `@ankoh/dashql` keep their rules: `src/core` imports neither `src/runtime` nor `src/platform`, `src/platform` doesn't import `src/runtime`, the package imports itself relatively, nothing reaches code of the app, React, an editor or a `.tsx` module, and only the known seams of a browser or a bundler |
-| `//packages/dashql:editor_config_test` | Editors resolve every import of `@ankoh/dashql`: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
+| `//packages/dashql:boundary_test` | The folders of `@akohn/dashql` keep their rules: `src/core` imports neither `src/runtime` nor `src/platform`, `src/platform` doesn't import `src/runtime`, the package imports itself relatively, nothing reaches code of the app, React, an editor or a `.tsx` module, and only the known seams of a browser or a bundler |
+| `//packages/dashql:editor_config_test` | Editors resolve every import of `@akohn/dashql`: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), published at [coverage.dashql.app](https://coverage.dashql.app) |
@@ -283,11 +283,11 @@ targets:
 # The app, a plain build of :tsc skips the check
 bazel build //packages/dashql-app:tsc --output_groups=typecheck
 
-# @ankoh/dashql
+# @akohn/dashql
 bazel test //packages/dashql:tsc_typecheck_test //packages/dashql:tsc_typecheck_tests_test //packages/dashql:tsc_typecheck_node_test
 ```
 
-**Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@ankoh/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
+**Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@akohn/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
 
 ### Rust
 
@@ -377,7 +377,7 @@ Without a terminal, for example when an agent starts it, Astro runs the dev serv
 `node_modules/.bin/astro dev stop` in `packages/dashql-org`.
 
 Code and styles used by both the app and the website live in `packages/dashql-ui` and are imported as
-`@ankoh/dashql-ui/...`. Move code there instead of copying it between the two.
+`@akohn/dashql-ui/...`. Move code there instead of copying it between the two.
 
 `//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
 `DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.
@@ -433,7 +433,7 @@ bazel run //tests/snapshots/parser:update
 # Type check and run tests
 bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
-# The package @ankoh/dashql in Node and its bindings in the browsers
+# The package @akohn/dashql in Node and its bindings in the browsers
 bazel test //packages/dashql:all //packages/dashql/test/browser:all
 ```
 
@@ -465,7 +465,7 @@ bazel test //packages/dashql:all //packages/dashql/test/browser:all
 bazel build --config=release //packages/dashql:npm_tarball
 ```
 
-`@ankoh/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
+`@akohn/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
 `//packages/dashql-core-wasm:core_wasm`, `//packages/dashql-dataflow-wasm:dataflow_wasm` and their wasm-bindgen glue
 (`:dashql_core_bindgen`, `:dashql_dataflow_bindgen`), `:bundle` builds the JavaScript and the declarations around them.
 The release archive is `bazel-bin/packages/dashql/dashql.tgz`. Trusted CI waits for the release

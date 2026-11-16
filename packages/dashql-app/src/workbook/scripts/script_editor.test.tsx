@@ -7,7 +7,7 @@ import { EditorView } from '@codemirror/view';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { ScriptEditor, type ScriptEditorDependencies } from './script_editor.js';
 import { RuntimeContextProvider } from '../../runtime/runtime_hooks.js';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

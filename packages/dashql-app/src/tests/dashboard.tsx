@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import symbols from '@ankoh/dashql-svg-symbols';
-import coreWasmUrl from '@ankoh/dashql/wasm?url';
+import symbols from '@akohn/dashql-svg-symbols';
+import coreWasmUrl from '@akohn/dashql/wasm?url';
 
 import { createPrecompiledTestCore } from './core_pool.js';
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
@@ -25,9 +25,9 @@ import {
 } from './protocol.js';
 import { BLOCKED_BROWSER_TEST_FILES, BROWSER_TEST_FILES, getBrowserTestShard } from './test_modules.js';
 import styles from './dashboard.module.css';
-import '@ankoh/dashql-ui/fonts/fonts.css';
-import '@ankoh/dashql-ui/styles/colors.css';
-import '@ankoh/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-ui/fonts/fonts.css';
+import '@akohn/dashql-ui/styles/colors.css';
+import '@akohn/dashql-ui/styles/tokens.css';
 import '../styles/globals.css';
 
 declare global {

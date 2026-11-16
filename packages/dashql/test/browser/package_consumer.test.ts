@@ -1,6 +1,6 @@
-import { DashQL } from '@ankoh/dashql';
-import { createBatchWorker } from '@ankoh/dashql/browser-worker';
-import wasmUrl from '@ankoh/dashql/wasm?url';
+import { DashQL } from '@akohn/dashql';
+import { createBatchWorker } from '@akohn/dashql/browser-worker';
+import wasmUrl from '@akohn/dashql/wasm?url';
 import { describe, expect, it } from 'vitest';
 
 const request: Parameters<DashQL['processBatch']>[0] = {

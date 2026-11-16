@@ -38,7 +38,7 @@ for (const instance of [first, second]) {
 const worker = await load('core/browser_worker.js');
 assert.equal(typeof worker.createBatchWorker, 'function');
 
-// A runtime over the platform of Node, with the core from @ankoh/dashql/wasm and the workbooks in a folder
+// A runtime over the platform of Node, with the core from @akohn/dashql/wasm and the workbooks in a folder
 const { createRuntime } = await load('runtime/runtime.js');
 const { createNodePlatform } = await load('runtime/node/node_platform.js');
 const { NativeStorageBackend } = await load('platform/storage/native_storage_backend.js');

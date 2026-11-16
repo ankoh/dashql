@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { foldedRanges } from '@codemirror/language';
 import { gutter, GutterMarker } from '@codemirror/view';
@@ -8,7 +8,7 @@ import { editorDiagnostics } from './dashql_script_references.js';
 import { DashQLProcessorPlugin, DashQLScriptKey } from './dashql_processor.js';
 import { findVegaLiteSpecs, isFolded, toggleVegaLiteSpecAtLine, VegaLiteFoldMarker } from './dashql_vis_folding.js';
 
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 
 import './dashql_gutters.css';
 

@@ -12,21 +12,21 @@
 // - Trino with basic auth: the tab sends the user and the password of its connection, the channel connects with them.
 import http from 'node:http';
 
-import type * as dashql from '@ankoh/dashql';
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import type { OAuthFlow, OAuthLoopbackCallback } from '@ankoh/dashql/platform/oauth_flow';
-import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth_types';
-import type { HttpClient } from '@ankoh/dashql/platform/http_client';
-import { Logger } from '@ankoh/dashql/platform/logger/logger';
+import type * as dashql from '@akohn/dashql';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import type { OAuthFlow, OAuthLoopbackCallback } from '@akohn/dashql/platform/oauth_flow';
+import type { OAuthRedirectData, OAuthState } from '@akohn/dashql/platform/oauth_types';
+import type { HttpClient } from '@akohn/dashql/platform/http_client';
+import { Logger } from '@akohn/dashql/platform/logger/logger';
 import type {
     AgentSessionLogin,
     AgentSessionLoginAnswer,
     AgentSessionLoginKind,
     AgentSessionOAuth,
-} from '@ankoh/dashql/platform/session/agent_session_state';
-import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
-import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+} from '@akohn/dashql/platform/session/agent_session_state';
+import { createNodePlatform } from '@akohn/dashql/runtime/node/node_platform';
+import { createRuntime } from '@akohn/dashql/runtime/runtime';
 
 /// How long a login waits for the user
 const LOGIN_TIMEOUT_MS = 10 * 60 * 1000;

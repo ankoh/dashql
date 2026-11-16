@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { buffers } from '@ankoh/dashql';
+import { buffers } from '@akohn/dashql';
 import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const Node = buffers.visualization.MarkdownNodeT;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,8 +8,8 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { StorageCommands } from '@ankoh/dashql/runtime/runtime_storage';
+import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import { StorageWriterView } from './storage_writer_view.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 

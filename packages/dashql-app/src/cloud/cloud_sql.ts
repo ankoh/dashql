@@ -1,4 +1,4 @@
-import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteIdentifier, quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 
 // The statements that the cloud store sends to the cloud connection. See docs/design/cloud.md.
 

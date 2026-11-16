@@ -5,8 +5,8 @@ import { act } from '@dashql/browser-test-act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './data_table.module.css';
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
-import { ArrowTableFormatter } from '@ankoh/dashql/platform/compute/arrow_formatter';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
 import {
     type ColumnAggregationVariant,
     type ColumnGroup,
@@ -18,9 +18,9 @@ import {
     type TableAggregation,
     TaskStatus,
     type TrackedTask,
-} from '@ankoh/dashql/platform/compute/computation_types';
-import { ordinalAggregate, stringAggregate, summaryColumn } from '@ankoh/dashql/platform/testing/column_aggregates';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+} from '@akohn/dashql/platform/compute/computation_types';
+import { ordinalAggregate, stringAggregate, summaryColumn } from '@akohn/dashql/platform/testing/column_aggregates';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { valueColumn } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';

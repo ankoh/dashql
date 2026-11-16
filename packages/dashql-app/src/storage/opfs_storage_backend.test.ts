@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { STORAGE_MANIFEST_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
-import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { STORAGE_MANIFEST_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
 
 describe('OPFSStorageBackend V2 flat storage', () => {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import type { EditorView } from '@codemirror/view';
 
@@ -11,7 +11,7 @@ import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIc
 import { TextInput } from '../../ui/foundations/text_input.js';
 import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { ReadonlySqlView, useProjectedSqlText } from '../editor/readonly_sql_view.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../scripts/script_format.js';

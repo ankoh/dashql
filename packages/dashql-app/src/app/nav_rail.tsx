@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './nav_rail.module.css';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import { useLocation } from 'react-router-dom';
 import { Tooltip } from '../ui/foundations/tooltip.js';

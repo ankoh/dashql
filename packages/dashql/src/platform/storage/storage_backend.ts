@@ -1,5 +1,5 @@
-import type * as app_manifest from '@ankoh/dashql-jsonschema/app_manifest.js';
-import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
+import type * as app_manifest from '@akohn/dashql-jsonschema/app_manifest.js';
+import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 import type { WorkbookEntry as WorkbookTreeEntry, WorkbookTreeFolder } from './workbook_tree.js';
 
 import type { FileStamp } from '../file_system.js';

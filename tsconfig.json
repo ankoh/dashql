@@ -9,52 +9,52 @@
         "strict": true,
         "jsx": "react-jsx",
         "paths": {
-            "@ankoh/dashql-protobuf": [
+            "@akohn/dashql-protobuf": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-protobuf"
             ],
-            "@ankoh/dashql-protobuf/*": [
+            "@akohn/dashql-protobuf/*": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-protobuf/*"
             ],
-            "@ankoh/dashql-jsonschema": [
+            "@akohn/dashql-jsonschema": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-jsonschema"
             ],
-            "@ankoh/dashql-jsonschema/*": [
+            "@akohn/dashql-jsonschema/*": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-jsonschema/*"
             ],
-            "@ankoh/dashql": [
+            "@akohn/dashql": [
                 "./packages/dashql/src/core/index.ts"
             ],
-            "@ankoh/dashql/buffers": [
+            "@akohn/dashql/buffers": [
                 "./packages/dashql/src/core/buffers.ts"
             ],
-            "@ankoh/dashql/browser-worker": [
+            "@akohn/dashql/browser-worker": [
                 "./packages/dashql/src/core/browser_worker.ts"
             ],
-            "@ankoh/dashql/runtime": [
+            "@akohn/dashql/runtime": [
                 "./packages/dashql/src/runtime/runtime.ts"
             ],
-            "@ankoh/dashql/node": [
+            "@akohn/dashql/node": [
                 "./packages/dashql/src/runtime/node/node_platform.ts"
             ],
-            "@ankoh/dashql/runtime/*": [
+            "@akohn/dashql/runtime/*": [
                 "./packages/dashql/src/runtime/*.ts"
             ],
-            "@ankoh/dashql/platform/*": [
+            "@akohn/dashql/platform/*": [
                 "./packages/dashql/src/platform/*.ts"
             ],
-            "@ankoh/dashql-wasm/*": [
+            "@akohn/dashql-wasm/*": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-wasm/*"
             ],
-            "@ankoh/dashql-flatbuffers/*": [
+            "@akohn/dashql-flatbuffers/*": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-flatbuffers/*"
             ],
-            "@ankoh/hyperdb-edge/*": [
+            "@akohn/hyperdb-edge/*": [
                 "./packages/hyperdb-edge/src/*.ts"
             ],
-            "@ankoh/dashql-ui/*": [
+            "@akohn/dashql-ui/*": [
                 "./packages/dashql-ui/src/*.ts"
             ],
-            "@ankoh/dashql-svg-symbols": [
+            "@akohn/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
             ],
             "@dashql/browser-test-act": [

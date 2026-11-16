@@ -4,7 +4,7 @@
 // - The folders of src/: core/ (the bindings of the core module) imports neither runtime/ nor platform/, platform/
 //   doesn't import runtime/, runtime/ imports both. The package imports itself relatively, never by its name, and no
 //   import leaves src/.
-// - Only the bindings import the generated packages of the core module (@ankoh/dashql-wasm, @ankoh/dashql-flatbuffers),
+// - Only the bindings import the generated packages of the core module (@akohn/dashql-wasm, @akohn/dashql-flatbuffers),
 //   the other folders reach them through the bindings.
 // - No module reaches the app, React, an editor, a .tsx module or a bundler asset.
 // - In runtime/ and platform/, only the modules of Node (runtime/node, platform/node) import node: and the modules of
@@ -27,7 +27,7 @@ const REACHES = new Map([
 /// Packages that only a user interface needs
 const FORBIDDEN_PACKAGE = /^(react|react-dom|react-router-dom|react-window|vega-embed|@codemirror\/[^/]+|@lezer\/[^/]+|@primer\/[^/]+|@react-hook\/[^/]+)(\/|$)/;
 /// The generated packages of the core module, only the bindings import them
-const CORE_GENERATED = /^@ankoh\/dashql-(wasm|flatbuffers)(\/|$)/;
+const CORE_GENERATED = /^@akohn\/dashql-(wasm|flatbuffers)(\/|$)/;
 /// Bundler assets
 const ASSET = /(\?url|\?raw|\.css)$/;
 
@@ -86,7 +86,7 @@ for (const file of all) {
             else if (/\.tsx$/.test(target) || existsSync(join(SRC, target.replace(/\.js$/, '.tsx')))) violations.push(`${file}: ${specifier} is a .tsx module`);
         } else if (FORBIDDEN_PACKAGE.test(specifier)) {
             violations.push(`${file}: ${specifier}`);
-        } else if (specifier === '@ankoh/dashql' || specifier.startsWith('@ankoh/dashql/')) {
+        } else if (specifier === '@akohn/dashql' || specifier.startsWith('@akohn/dashql/')) {
             violations.push(`${file}: ${specifier} imports the package by its name, use a relative import`);
         } else if (CORE_GENERATED.test(specifier) && folder !== 'core') {
             violations.push(`${file}: ${specifier} is a generated package of the core module, import the bindings`);

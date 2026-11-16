@@ -1,4 +1,4 @@
-// For editors: the paths of the root tsconfig.json find @ankoh/dashql. Bazel checks with tsconfig.bazel.json.
+// For editors: the paths of the root tsconfig.json find @akohn/dashql. Bazel checks with tsconfig.bazel.json.
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {

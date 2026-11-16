@@ -5,7 +5,7 @@ import {
     type SalesforceLoginCommandDependencies,
     type SalesforceLoginCommandContext,
 } from './login.js';
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 function createDependencies(overrides: Partial<SalesforceLoginCommandDependencies> = {}) {
     const authentication: SalesforceLoginAuthentication = {

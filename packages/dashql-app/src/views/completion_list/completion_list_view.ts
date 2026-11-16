@@ -1,9 +1,9 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './completion_candidate_type.js';
 
 import * as styles from './completion_list.module.css';
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 
 
 // This file renders a completion list with a side pane, for the editor and for the shell.

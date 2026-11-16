@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
-import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
+import type { HttpClient, HttpFetchResult } from '@akohn/dashql/platform/http_client';
+import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 
 // A fake Salesforce for the tests of the setup and the login: the core token, the user info and the Data Cloud token
 // over the HTTP client, the requests that the setup of the Rust runtime sends.

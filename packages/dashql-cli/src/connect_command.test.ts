@@ -3,8 +3,8 @@ import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { followAgentSession } from '@ankoh/dashql/platform/session/agent_session_client';
-import type { AgentSessionState } from '@ankoh/dashql/platform/session/agent_session_state';
+import { followAgentSession } from '@akohn/dashql/platform/session/agent_session_client';
+import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 
 import { claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
 import { SESSION_NAME_ENV } from './session_journal.js';

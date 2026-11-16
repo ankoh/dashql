@@ -1,14 +1,14 @@
 import * as React from 'react';
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import symbols from '@ankoh/dashql-svg-symbols';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import * as style from './connection_inline_header.module.css';
 
 import { PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 
 import { Button, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { ConnectionHealth, ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectionHealth, ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { SegmentedControl } from '../ui/foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';

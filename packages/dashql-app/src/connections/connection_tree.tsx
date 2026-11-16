@@ -1,6 +1,6 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
-import symbols from '@ankoh/dashql-svg-symbols';
+import * as core from '@akohn/dashql';
+import symbols from '@akohn/dashql-svg-symbols';
 import { List, type RowComponentProps, useListRef } from 'react-window';
 
 import * as ActionList from '../ui/foundations/action_list.js';
@@ -27,7 +27,7 @@ import {
     TrashIcon,
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
     connectionLabelParts,
@@ -45,7 +45,7 @@ import { isCloudCapable } from './cloud_connection.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
-import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
+import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');

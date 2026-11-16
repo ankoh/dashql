@@ -1,17 +1,17 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { LoggerProvider } from '../../platform/logger_provider.js';
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { scriptResultOwner } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { scriptResultOwner } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';

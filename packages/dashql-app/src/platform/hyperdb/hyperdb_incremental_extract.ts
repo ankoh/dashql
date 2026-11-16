@@ -1,12 +1,12 @@
 import type * as arrow from 'apache-arrow';
-import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteIdentifier, quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 
 import type {
     EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedConnection,
     EmbeddedTableImportConnection,
-} from '@ankoh/dashql/platform/embedded_database';
+} from '@akohn/dashql/platform/embedded_database';
 
 /// A column of a query result or table.
 export interface HyperDBExtractColumn {

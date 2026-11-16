@@ -1,10 +1,10 @@
 import * as arrow from 'apache-arrow';
 
 import { DASHQL_VERSION } from '../globals.js';
-import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
-import { prepareHyperArrowInsert } from '@ankoh/dashql/platform/hyperdb/hyperdb_arrow_insert';
-import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
-import type { ParquetReadDatabase } from '@ankoh/dashql/runtime/workbook_archives';
+import { exportArrowTableAsParquet } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
+import { prepareHyperArrowInsert } from '@akohn/dashql/platform/hyperdb/hyperdb_arrow_insert';
+import { storageVersions } from '@akohn/dashql/platform/storage/storage_versions';
+import type { ParquetReadDatabase } from '@akohn/dashql/runtime/workbook_archives';
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,
@@ -18,9 +18,9 @@ import {
     type AttachmentRow,
     type WorkbookTableName,
     type WorkbookTables,
-} from '@ankoh/dashql/platform/storage/workbook_tables';
+} from '@akohn/dashql/platform/storage/workbook_tables';
 import { createTableSQL, insertStatements, qualifiedName, type CloudColumn } from './cloud_sql.js';
-import { quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import {
     checkCloudId,
     CLOUD_FOLDERS_TABLE,

@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
 
 import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, type DashQLShellCommand, type DashQLShellEnvironment } from './api.js';
-import * as dashql from '@ankoh/dashql';
-import { vectorFromArray } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import * as dashql from '@akohn/dashql';
+import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createEmbeddedDatabaseShellEnvironment } from '../shell_app/embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import {
     HyperDB,
     HyperDBConnection,

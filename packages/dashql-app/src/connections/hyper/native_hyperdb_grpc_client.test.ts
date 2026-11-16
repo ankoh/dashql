@@ -2,13 +2,13 @@ import * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import * as pb from '@ankoh/dashql/platform/proto';
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
-import { AsyncConsumerLambdas } from '@ankoh/dashql/platform/utils/async_consumer';
+import * as pb from '@akohn/dashql/platform/proto';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { AsyncConsumerLambdas } from '@akohn/dashql/platform/utils/async_consumer';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
-import type { HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
+import type { HyperDatabaseConnectionContext } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 const hyper = pb.salesforce_hyperdb_grpc_v1.pb;
 const PROXY = { proxyEndpoint: new URL('dashql-native://localhost') };

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './json_view.module.css';
 
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 
 import { useJsonViewerState } from './json_view_state.js';
 import { useToolVisibility } from './json_tool_state.js';

@@ -10,14 +10,14 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 # docs/design/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
 #
 # - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-wasm), the generated packages of the
-#   core module (@ankoh/dashql-wasm, @ankoh/dashql-flatbuffers) are folders of Bazel next to them,
+#   core module (@akohn/dashql-wasm, @akohn/dashql-flatbuffers) are folders of Bazel next to them,
 # - src/platform: the platforms of the runtime, the storage, the connector clients and the support of the command line
 #   tool, on the bindings,
 # - src/runtime: the facade over the runtime of the core module (createRuntime), the store of its views and the adapters
 #   that build the platform of the core from the objects of the platform.
 #
 # A source package, nothing is compiled: the app, the command line tool and the tests bundle and run the TypeScript
-# itself. Linked as //:node_modules/@ankoh/dashql with the generated Wasm, the dev server of the app reads src/ directly.
+# itself. Linked as //:node_modules/@akohn/dashql with the generated Wasm, the dev server of the app reads src/ directly.
 # :npm_tarball is the package on npm (npm/package.json): the modules as JavaScript with their declarations, the generated
 # packages inlined.
 
@@ -64,7 +64,7 @@ filegroup(
     ),
 )
 
-# @ankoh/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas. The glue loads
+# @akohn/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas. The glue loads
 # `<name>_bg.wasm` by default, the package ships the modules as `dashql_core.wasm` and `dashql_dataflow.wasm`, and every
 # glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset.
 genrule(
@@ -105,7 +105,7 @@ genrule(
     """,
 )
 
-# @ankoh/dashql-flatbuffers: the FlatBuffers of the core module in TypeScript, the bindings export them as `buffers`
+# @akohn/dashql-flatbuffers: the FlatBuffers of the core module in TypeScript, the bindings export them as `buffers`
 copy_to_directory(
     name = "dep_flatbuffers",
     srcs = ["//proto/fb:dashql_buffers_ts_gen"],
@@ -152,12 +152,12 @@ _GENERATED = [
     ":dep_wasm",
 ]
 
-# The source package, linked as //:node_modules/@ankoh/dashql. The exports of package.json name the sources and the
-# Wasm (@ankoh/dashql/wasm, which the platform of Node reads from its file). The generated packages that the sources
+# The source package, linked as //:node_modules/@akohn/dashql. The exports of package.json name the sources and the
+# Wasm (@akohn/dashql/wasm, which the platform of Node reads from its file). The generated packages that the sources
 # import are aliases of the consumers, into dependencies/ of this package.
 npm_package(
     name = "source_package",
-    package = "@ankoh/dashql",
+    package = "@akohn/dashql",
     srcs = [
         "package.json",
         ":dep_flatbuffers",
@@ -178,7 +178,7 @@ copy_to_bin(
 )
 
 _DEPENDENCIES = _GENERATED + [
-    "//:node_modules/@ankoh/hyperdb-edge",
+    "//:node_modules/@akohn/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@zip.js/zip.js",
     "//:node_modules/apache-arrow",
@@ -355,7 +355,7 @@ genrule(
 
 npm_package(
     name = "npm_package",
-    package = "@ankoh/dashql",
+    package = "@akohn/dashql",
     # No Bazel linking consumers: publish metadata comes only from npm/package.json.
     srcs = [
         "README.md",

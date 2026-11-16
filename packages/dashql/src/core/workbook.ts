@@ -1,6 +1,6 @@
 import * as buffers from './buffers.js';
 import { DashQL, FlatBufferPtr } from './api.js';
-import type { FlatBuffer } from '@ankoh/dashql-wasm/dashql_core.js';
+import type { FlatBuffer } from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The views of the workbooks of the runtime, declared by the module (`packages/dashql-core-wasm/src/runtime/workbooks/view.rs`)
 export type {
@@ -24,7 +24,7 @@ export type {
     WorkbookScriptVisualization,
     WorkbookTextChange,
     WorkbookView,
-} from '@ankoh/dashql-wasm/dashql_core.js';
+} from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The runs of the workbooks of the runtime, declared by the module (`packages/dashql-core-wasm/src/runtime/runs/view.rs`)
 export type {
@@ -39,7 +39,7 @@ export type {
     WorkbookRunState,
     WorkbookRunView,
     WorkbookScriptRunEvent,
-} from '@ankoh/dashql-wasm/dashql_core.js';
+} from '@akohn/dashql-wasm/dashql_core.js';
 
 const SCRIPT_DIFF_TYPE = Symbol('WORKBOOK_SCRIPT_DIFF_TYPE');
 

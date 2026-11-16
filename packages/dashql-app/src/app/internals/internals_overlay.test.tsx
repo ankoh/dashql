@@ -6,18 +6,18 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js';
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
-import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
-import { memoryQueryResultCache } from '@ankoh/dashql/platform/testing/memory_query_result_cache';
+import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestRoot } from '../../tests/react_root.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
-import * as core from '@ankoh/dashql';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import * as core from '@akohn/dashql';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '../../runtime/runtime_hooks.js';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';
 

@@ -1,4 +1,4 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import { describe, expect, it } from 'vitest';
 
 import { collectSalesforceAuthInfo } from './salesforce_api_client.js';

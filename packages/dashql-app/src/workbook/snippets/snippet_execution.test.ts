@@ -1,16 +1,16 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createRuntime } from '@ankoh/dashql/runtime/runtime';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { SNIPPET_DATASETS_FOLDER } from './snippet.js';
 import { getBundledSnippets, snippetText } from './snippet_registry.js';
-import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
+import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -8,7 +8,7 @@
 //    and the batch worker client its worker next to them.
 // 3. tsc writes the declarations of the staged modules next to them, the declarations of the glue are copied.
 //
-// The subpaths of the source package stay the subpaths of dist/: @ankoh/dashql/runtime/<path> is dist/runtime/<path>.js.
+// The subpaths of the source package stay the subpaths of dist/: @akohn/dashql/runtime/<path> is dist/runtime/<path>.js.
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -22,11 +22,11 @@ const STAGE = path.join(DIST, '.stage');
 
 /// The packages that dist/ inlines: the specifier prefix, the folder of its files and its folder in dist/
 const INLINED = [
-    { prefix: '@ankoh/dashql-wasm/', from: path.join(PACKAGE, 'dependencies/dashql-wasm'), to: 'wasm' },
-    { prefix: '@ankoh/dashql-flatbuffers/', from: path.join(PACKAGE, 'dependencies/dashql-flatbuffers'), to: 'gen/flatbuffers' },
-    { prefix: '@ankoh/dashql-protobuf/', from: path.join(PACKAGE, 'dependencies/dashql-protobuf'), to: 'gen/protobuf' },
-    { prefix: '@ankoh/dashql-jsonschema/', from: path.join(PACKAGE, 'dependencies/dashql-jsonschema'), to: 'gen/jsonschema' },
-    { prefix: '@ankoh/hyperdb-edge/', from: path.join(PACKAGE, '../../node_modules/@ankoh/hyperdb-edge/src'), to: 'hyperdb-edge' },
+    { prefix: '@akohn/dashql-wasm/', from: path.join(PACKAGE, 'dependencies/dashql-wasm'), to: 'wasm' },
+    { prefix: '@akohn/dashql-flatbuffers/', from: path.join(PACKAGE, 'dependencies/dashql-flatbuffers'), to: 'gen/flatbuffers' },
+    { prefix: '@akohn/dashql-protobuf/', from: path.join(PACKAGE, 'dependencies/dashql-protobuf'), to: 'gen/protobuf' },
+    { prefix: '@akohn/dashql-jsonschema/', from: path.join(PACKAGE, 'dependencies/dashql-jsonschema'), to: 'gen/jsonschema' },
+    { prefix: '@akohn/hyperdb-edge/', from: path.join(PACKAGE, '../../node_modules/@akohn/hyperdb-edge/src'), to: 'hyperdb-edge' },
 ];
 
 const SPECIFIER = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"]+)\2/g;

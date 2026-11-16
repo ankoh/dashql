@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { ConnectorConfigs, readConnectorConfigs } from '@ankoh/dashql/platform/connections/connector_configs';
+import { ConnectorConfigs, readConnectorConfigs } from '@akohn/dashql/platform/connections/connector_configs';
 import { useLogger } from '../platform/logger_provider.js';
-import { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { createTrace } from '@ankoh/dashql/platform/logger/trace_context';
+import { Logger } from '@akohn/dashql/platform/logger/logger';
+import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { AppFlavor, applyFlavorSettings } from './flavors.js';
 import { useAppFlavor } from './flavor_provider.js';
 import type { AppSettings } from './app_settings.js';

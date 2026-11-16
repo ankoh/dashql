@@ -1,6 +1,6 @@
-// dashql, the command line tool of DashQL on @ankoh/dashql: `lint` and `format` check and pretty print SQL files
+// dashql, the command line tool of DashQL on @akohn/dashql: `lint` and `format` check and pretty print SQL files
 // on disk with the core of DashQL, `run` runs the scripts of a workbook folder. See README.md.
-import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
+import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
 
 import { runDashQL } from './cli.js';
 import { EXIT_INTERRUPTED, readProcessStdin, stdoutStyle } from './cli_process.js';

@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import type { TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
+import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import type { ComputationTables } from './computation_tables.js';
 
 /// Visit the values of an integer column as numbers, like `Number(column.get(i))` (nulls become 0).

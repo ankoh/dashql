@@ -1,4 +1,4 @@
-import * as glue from '@ankoh/dashql-wasm/dashql_dataflow.js';
+import * as glue from '@akohn/dashql-wasm/dashql_dataflow.js';
 
 /// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow-wasm`)
 export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'dataflowConfig' | 'installPanicHook'>;

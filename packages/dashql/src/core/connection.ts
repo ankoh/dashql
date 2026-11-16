@@ -20,8 +20,8 @@ export type {
     ConnectionTrinoOAuthState,
     ConnectionView,
     JsonParams,
-} from '@ankoh/dashql-wasm/dashql_core.js';
+} from '@akohn/dashql-wasm/dashql_core.js';
 /// The views of the saves of connections (`packages/dashql-core-wasm/src/connection_persistence/view.rs`)
-export type { ConnectionCopyOutcome, ConnectionSaveOutcome } from '@ankoh/dashql-wasm/dashql_core.js';
+export type { ConnectionCopyOutcome, ConnectionSaveOutcome } from '@akohn/dashql-wasm/dashql_core.js';
 /// The connector, the status, the health and the catalog updates of a connection, numeric enums of the module
-export { CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionHealth, ConnectionStatus, ConnectorType } from '@ankoh/dashql-wasm/dashql_core.js';
+export { CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionHealth, ConnectionStatus, ConnectorType } from '@akohn/dashql-wasm/dashql_core.js';

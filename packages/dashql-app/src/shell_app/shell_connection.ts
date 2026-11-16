@@ -1,6 +1,6 @@
-import type { ChannelConnector } from '@ankoh/dashql/runtime/runtime';
-import { connectEmbeddedHyper } from '@ankoh/dashql/platform/connections/embedded_database_channel';
-import type { HyperParamsLike } from '@ankoh/dashql/platform/connections/hyper/local_cloud';
+import type { ChannelConnector } from '@akohn/dashql/runtime/runtime';
+import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedded_database_channel';
+import type { HyperParamsLike } from '@akohn/dashql/platform/connections/hyper/local_cloud';
 import type { EmbeddedDatabaseSetupFn } from '../platform/embedded_database_provider.js';
 
 /// The channels of the runtime of the shell: the embedded Hyper of the page. The shell runs its statements with the

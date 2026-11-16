@@ -10,7 +10,7 @@ import.meta.glob([
     '!../platform/hyperdb/hyperdb_wasm.integration.test.ts',
     '!../platform/hyperdb/integration/iceberg.test.ts',
 ], { eager: true });
-// The tests of the runtime and of the platform of @ankoh/dashql, see test_modules.ts
+// The tests of the runtime and of the platform of @akohn/dashql, see test_modules.ts
 import.meta.glob([
     '../../../dashql/src/runtime/**/*.test.ts',
     '../../../dashql/src/platform/**/*.test.ts',

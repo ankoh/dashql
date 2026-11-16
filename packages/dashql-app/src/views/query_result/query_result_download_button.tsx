@@ -2,17 +2,17 @@ import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_download_button.module.css';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
 import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
-import { exportArrowTableAsParquet, supportsParquetExport } from '@ankoh/dashql/platform/hyperdb/hyperdb_parquet_export';
+import { exportArrowTableAsParquet, supportsParquetExport } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 
 const enum DownloadFormat {

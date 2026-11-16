@@ -26,10 +26,10 @@ function runtimeProject(name) {
 export default {
     resolve: {
         alias: [
-            { find: /^@ankoh\/dashql-wasm\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-wasm/$1') },
-            { find: /^@ankoh\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-flatbuffers/$1') },
-            { find: /^@ankoh\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
-            { find: /^@ankoh\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
+            { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-wasm/$1') },
+            { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-flatbuffers/$1') },
+            { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
+            { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
             { find: /^@dashql\/extensions/, replacement: path.join(root, 'dependencies/extensions') },
         ],
     },

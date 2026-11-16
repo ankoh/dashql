@@ -3,13 +3,13 @@ import * as styles from './workbook_feed_page.module.css';
 
 import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
     isCloudPreview,
     scriptConnectionIds,
     type ModifyWorkbookScripts,
     type WorkbookScripts,
-} from '@ankoh/dashql/platform/workbook/workbook_scripts';
+} from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';

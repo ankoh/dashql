@@ -13,7 +13,7 @@ access per workbook and no prompt in natural language.
 
 The prompt switches between SQL and AI. AI keeps the white card of the prompt, disables Run and the snippets, and
 shows in the place of the editor a line to run in the folder of a project, in a field to copy with a button for a new
-port: `npx -y @ankoh/dashql-cli@latest connect --launch claude --port <port> --secret <secret>`. `@latest`, because
+port: `npx -y @akohn/dashql-cli@latest connect --launch claude --port <port> --secret <secret>`. `@latest`, because
 npx otherwise keeps running a version that it fetched once. A switch between Claude Code
 and Codex follows the switch of SQL and AI while AI is on. The editor keeps its draft for SQL.
 
@@ -372,6 +372,6 @@ To check before the runs over the server:
 
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.
-- `@ankoh/dashql` and `@ankoh/dashql-cli` are not on npm yet, the line of the prompt needs both published.
+- `@akohn/dashql` and `@akohn/dashql-cli` are not on npm yet, the line of the prompt needs both published.
 - `dashql connect` without `--launch`: the server alone, for a harness that runs already or in an IDE, with hooks
   installed once in its settings.

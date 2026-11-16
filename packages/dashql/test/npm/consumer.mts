@@ -1,6 +1,6 @@
-import { DashQL, buffers, type DashQLBindings, type DashQLModuleOptions, type VariantKind } from '@ankoh/dashql';
-import * as publicBuffers from '@ankoh/dashql/buffers';
-import * as glue from '@ankoh/dashql/wasm/glue';
+import { DashQL, buffers, type DashQLBindings, type DashQLModuleOptions, type VariantKind } from '@akohn/dashql';
+import * as publicBuffers from '@akohn/dashql/buffers';
+import * as glue from '@akohn/dashql/wasm/glue';
 import {
     createBatchWorker,
     DashQLBatchWorker,
@@ -12,7 +12,7 @@ import {
     type BatchScriptResult,
     type BatchDiagnostic,
     type BatchOutput,
-} from '@ankoh/dashql/browser-worker';
+} from '@akohn/dashql/browser-worker';
 
 const output: BatchOutput = 'analyzed';
 const script: BatchScriptInput = { id: 'query', text: 'select 1', outputs: [output] };

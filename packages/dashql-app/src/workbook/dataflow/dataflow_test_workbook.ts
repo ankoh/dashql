@@ -1,6 +1,6 @@
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { analyzeWorkbook, createTestRuntime, type TestRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
-import type { ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { analyzeWorkbook, createTestRuntime, type TestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
+import type { ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 /// A workbook of a test on a runtime of its own: the workbook, its scripts and its derived view of the last flush
 export interface TestWorkbook {

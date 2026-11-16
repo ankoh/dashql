@@ -1,5 +1,5 @@
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { EmbeddedDatabaseOptions, SetupProgress } from '../embedded_database_provider.js';
 
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from './hyperdb_wasm.js';
@@ -7,8 +7,8 @@ import {
     EXPERIMENTAL_WASM_BACKEND_SETTING,
     HYPERDB_WASM_ENGINE_SETTINGS,
     isUnknownHyperDBSettingError,
-} from '@ankoh/dashql/platform/hyperdb/hyperdb_settings';
-import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@ankoh/dashql/platform/hyperdb/hyperdb_opfs_instance';
+} from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
+import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
 import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
 
 declare global {

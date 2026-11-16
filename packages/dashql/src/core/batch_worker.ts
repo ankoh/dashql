@@ -1,4 +1,4 @@
-import { wasmUrl as coreWasmUrl } from '@ankoh/dashql-wasm/dashql_core.js';
+import { wasmUrl as coreWasmUrl } from '@akohn/dashql-wasm/dashql_core.js';
 
 import { DashQL, getCorePanic } from './api.js';
 import type { BatchWorkerRequest, BatchWorkerResponse } from './batch_worker_protocol.js';

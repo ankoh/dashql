@@ -1,4 +1,4 @@
-# The core wasm module shipped by @ankoh/dashql: the bindings of the core and the shell.
+# The core wasm module shipped by @akohn/dashql: the bindings of the core and the shell.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

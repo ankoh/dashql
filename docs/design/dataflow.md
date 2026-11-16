@@ -52,7 +52,7 @@ The position of a script on the canvas is its `@flow x=.. y=..` tag, the size of
 `layout::compute_dataflow_layout_with_routes` in `dashql-dataflow` (core-js
 `DashQLDataflow.computeDataflowLayoutWithRoutes`) lays out the boxes with the layered layout of the Eclipse Layout
 Kernel (elk-rs, `org-eclipse-elk-alg-layered`) and returns the routes of the edges between them. ELK makes the layout
-a wasm module of its own (`dashql-dataflow-wasm`, `dashql_dataflow.wasm` of `@ankoh/dashql`), the core module
+a wasm module of its own (`dashql-dataflow-wasm`, `dashql_dataflow.wasm` of `@akohn/dashql`), the core module
 stays without it: the app loads the layout module when it opens the dataflow canvas and shows that it loads until
 then (`dataflow_module.ts`).
 

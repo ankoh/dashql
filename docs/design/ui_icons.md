@@ -116,7 +116,7 @@ that the website uses must be added to that list.
 Application code imports a virtual module rather than a source SVG:
 
 ```ts
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 ```
 
 The module's default export is the URL emitted for the generated atlas. Resolution is wired in three
@@ -136,7 +136,7 @@ The imported value is an atlas URL, not parsed SVG markup and not a map of symbo
 For a direct React rendering, create the viewport and reference the atlas symbol:
 
 ```tsx
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 export function CheckIcon() {
     return (

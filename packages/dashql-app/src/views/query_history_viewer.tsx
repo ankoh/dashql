@@ -10,7 +10,7 @@ import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { JsonView } from '../ui/json/json_view.js';
-import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { observeSize } from '../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../utils/key_events.js';
 import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';

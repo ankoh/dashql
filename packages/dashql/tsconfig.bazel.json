@@ -22,22 +22,22 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@ankoh/dashql-wasm/*": [
+      "@akohn/dashql-wasm/*": [
         "./dependencies/dashql-wasm/*"
       ],
-      "@ankoh/dashql-flatbuffers/*": [
+      "@akohn/dashql-flatbuffers/*": [
         "./dependencies/dashql-flatbuffers/*"
       ],
-      "@ankoh/dashql-protobuf": [
+      "@akohn/dashql-protobuf": [
         "./dependencies/dashql-protobuf"
       ],
-      "@ankoh/dashql-protobuf/*": [
+      "@akohn/dashql-protobuf/*": [
         "./dependencies/dashql-protobuf/*"
       ],
-      "@ankoh/dashql-jsonschema": [
+      "@akohn/dashql-jsonschema": [
         "./dependencies/dashql-jsonschema"
       ],
-      "@ankoh/dashql-jsonschema/*": [
+      "@akohn/dashql-jsonschema/*": [
         "./dependencies/dashql-jsonschema/*"
       ]
     }

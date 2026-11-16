@@ -123,6 +123,6 @@ export type {
     ComputationFilterTable,
     ComputationOrderingTable,
     ComputationDataSearchTable,
-} from '@ankoh/dashql-wasm/dashql_core.js';
+} from '@akohn/dashql-wasm/dashql_core.js';
 /// The status of a task, a numeric enum of the module
-export { TaskStatus } from '@ankoh/dashql-wasm/dashql_core.js';
+export { TaskStatus } from '@akohn/dashql-wasm/dashql_core.js';

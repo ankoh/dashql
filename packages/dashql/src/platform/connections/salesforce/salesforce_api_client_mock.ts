@@ -1,5 +1,5 @@
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as auth from '@akohn/dashql-jsonschema/auth.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import * as arrow from 'apache-arrow';
 

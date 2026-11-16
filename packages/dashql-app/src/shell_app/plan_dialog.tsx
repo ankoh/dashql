@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as themes from '../workbook/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -7,8 +7,8 @@ import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
 import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
-import { rotateProfileLayoutOrientation } from '@ankoh/dashql/platform/query/profile_layout_config';
-import { ProfileExecutionState } from '@ankoh/dashql/platform/query/profile_execution_state';
+import { rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
+import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';

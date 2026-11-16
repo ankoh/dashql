@@ -1,22 +1,22 @@
 import * as React from 'react';
 import type * as arrow from 'apache-arrow';
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql';
-import { createTestConnection, setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import * as core from '@akohn/dashql';
+import { createTestConnection, setupTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 
 const CONNECTION_ID = 'trino-settings-test';

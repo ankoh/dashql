@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as styles from './keyvalue_list.module.css';
 
-import { Dispatch } from '@ankoh/dashql/platform/utils/variant';
+import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { PlusIcon, XIcon } from './symbol_icon.js';
 import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';

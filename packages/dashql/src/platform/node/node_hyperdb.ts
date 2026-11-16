@@ -5,7 +5,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { checkWasmFeatures } from '@ankoh/hyperdb-edge/node/runtime_check';
+import { checkWasmFeatures } from '@akohn/hyperdb-edge/node/runtime_check';
 
 import { HyperDB, type HyperDBEngine, type MountFile } from '../hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../hyperdb/hyperdb_settings.js';

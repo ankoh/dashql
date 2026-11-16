@@ -3,8 +3,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@ankoh/dashql/platform/session/workbook_journal';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
+import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/workbook_journal';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { readSessionConnections, SESSION_NAME_ENV } from './session_journal.js';

@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { type StorageBackend, StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backend';
+import { type StorageBackend, StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { type WorkbookLocation } from './workbook_locator.js';
-import { type WorkbookTreeFolder, emptyWorkbookTree } from '@ankoh/dashql/platform/storage/workbook_tree';
+import { type WorkbookTreeFolder, emptyWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
 import { useLogger } from '../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { migrateStorage } from './storage_migration.js';
 import { useAppHandOver } from '../platform/app_hand_over.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';

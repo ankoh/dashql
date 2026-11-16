@@ -10,21 +10,21 @@ application logic. Everything beyond running SQL (listing tables, plans, reading
 
 | Part | State |
 |---|---|
-| Package `@ankoh/hyperdb-edge` with the command `hyperdb-edge` | Built, private, not yet on npm |
+| Package `@akohn/hyperdb-edge` with the command `hyperdb-edge` | Built, private, not yet on npm |
 | Library: one call for any statement, value formats, statement splitting (`src/`), opening a database with a lock, the runtime check (`src/node/`) | Built |
 | `run` and `describe` with six topics | Built, every SQL example of a topic runs in the tests |
 | Skill `hyperdb-edge` (`skill/hyperdb-edge/SKILL.md`) | Built |
 | Harness tests for Claude Code and Codex (`tests/agents/hyperdb_edge_*_test.mjs`) | Built |
 | A session with a warm engine and the tools `run_sql` and `describe` for the Tool Runner and the Claude Agent SDK, see [In-process tools](#in-process-tools) | Built, tested with both SDKs |
 | The Hyper code of DashQL in the library (Arrow tables, the log reader) | Planned |
-| The Node platform of the DashQL runtime on `@ankoh/hyperdb-edge/node` | Planned |
+| The Node platform of the DashQL runtime on `@akohn/hyperdb-edge/node` | Planned |
 | Fixes in `hyperdb-wasm` (see [Findings](#findings)) | Raised; 0.0.27367 fixed the cancelled query, stdout, `query()` without rows and the storage path, the rest is open |
 
 ## Name
 
 The package derives from `hyperdb-wasm` and must not take the names of Hyper: `hyperdb` belongs to the main project
 and `hyperd` is its server. `hyperdb-wasm` as a command would collide with a command that `hyperdb-wasm` ships itself
-one day. The scope `@ankoh` makes clear that it is a separate package, and the description says that it builds on
+one day. The scope `@akohn` makes clear that it is a separate package, and the description says that it builds on
 `hyperdb-wasm` and is not part of it. "Edge" means the client and Node, not edge runtimes such as Cloudflare Workers:
 the engine needs Node 24, worker threads and about 0.85 GB of memory. The command, the skill and approval rules share
 the name: `Bash(hyperdb-edge describe:*)`, `Bash(hyperdb-edge run:*)`.
@@ -162,7 +162,7 @@ works on Node 24.4.1; the Node of the Bazel toolchain, 24.22.1, has exnref witho
 pass it the environment of an older Node (`runtime_check.test.ts`). When a feature is still missing, the
 check names `process.execPath`, its version and the feature, and `run` exits with 2. `--version` prints the same
 check. `describe` and `--help` don't load the engine. The embedded Hyper of the runtime of DashQL runs the same check, the
-runtime links the package as `@ankoh/hyperdb-edge`.
+runtime links the package as `@akohn/hyperdb-edge`.
 
 ## Harness tests
 
@@ -192,9 +192,9 @@ needs no shell, which products built on an SDK often turn off. The tools are the
 tool, no more: `run_sql` and `describe`.
 
 ```ts
-import { EdgeSession } from '@ankoh/hyperdb-edge/node/session';
-import { sessionTools } from '@ankoh/hyperdb-edge/node/session_tools';
-import { anthropicTools } from '@ankoh/hyperdb-edge/adapters/anthropic';
+import { EdgeSession } from '@akohn/hyperdb-edge/node/session';
+import { sessionTools } from '@akohn/hyperdb-edge/node/session_tools';
+import { anthropicTools } from '@akohn/hyperdb-edge/adapters/anthropic';
 
 const session = await EdgeSession.open({ workDirectory: process.cwd(), database: 'sales.hyper' });
 const final = await client.beta.messages.toolRunner({
@@ -299,25 +299,25 @@ Not built yet:
 ## With the DashQL runtime
 
 The runtime and the command sit side by side on `hyperdb-wasm`. The runtime depends on the library of `hyperdb-edge`
-through its platform (`@ankoh/dashql`, `platform/node/node_hyperdb.ts`), never the other way: the command would
+through its platform (`@akohn/dashql`, `platform/node/node_hyperdb.ts`), never the other way: the command would
 otherwise carry all of DashQL. Neither command calls the other, and they don't
 overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 
 ```
           dashql (Node CLI)          hyperdb-edge (command)
                  │                           │
-          @ankoh/dashql          ──────► @ankoh/hyperdb-edge (library)
+          @akohn/dashql          ──────► @akohn/hyperdb-edge (library)
                  │                           │
                  └────────► hyperdb-wasm ◄───┘
 ```
 
 | Code | Today | Goes to |
 |---|---|---|
-| One call for any statement, quoting | `@ankoh/hyperdb-edge` | Built |
-| Opening a database file with a lock, the runtime check | `@ankoh/hyperdb-edge/node` | Built, the platform of Node runs the check before the engine starts (`packages/dashql/src/platform/node/node_hyperdb.ts`) |
-| Arrow tables that Hyper reads | `packages/dashql/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@ankoh/hyperdb-edge` |
-| The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@ankoh/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
-| `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@ankoh/hyperdb-edge` |
+| One call for any statement, quoting | `@akohn/hyperdb-edge` | Built |
+| Opening a database file with a lock, the runtime check | `@akohn/hyperdb-edge/node` | Built, the platform of Node runs the check before the engine starts (`packages/dashql/src/platform/node/node_hyperdb.ts`) |
+| Arrow tables that Hyper reads | `packages/dashql/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@akohn/hyperdb-edge` |
+| The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@akohn/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
+| `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@akohn/hyperdb-edge` |
 | `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |
 | The engine settings of the app | `HYPERDB_WASM_ENGINE_SETTINGS` | Stays: the redo log is for the local cloud, the resource log every second for the connection overview, the HTTP allowlist is a choice of the app |
 | OPFS, the web worker, the Parquet export through OPFS | `hyperdb_opfs*.ts`, `hyperdb_provider_web.ts`, `hyperdb_parquet_export.ts` | Stays |
@@ -330,7 +330,7 @@ yet: that needs an `npm_link_package` in the root `BUILD.bazel` and the paths of
 ## Layout
 
 ```
-packages/hyperdb-edge             @ankoh/hyperdb-edge, Node >=24, hyperdb-wasm and apache-arrow from the root
+packages/hyperdb-edge             @akohn/hyperdb-edge, Node >=24, hyperdb-wasm and apache-arrow from the root
   src/                            the library: runStatement, splitStatements, the value and output formats, the tools
   src/node/                       the session and its engine process, openEngine, the lock, the runtime check, describe
   src/adapters/                   the tools for the Tool Runner and the Claude Agent SDK

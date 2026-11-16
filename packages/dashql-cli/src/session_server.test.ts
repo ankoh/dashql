@@ -2,11 +2,11 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, write
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
-import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql/platform/session/workbook_journal';
+import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
+import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@akohn/dashql/platform/session/workbook_journal';
 
-import { writeAgentSessionConnections, writeAgentSessionWorkbook } from '@ankoh/dashql/platform/session/agent_session_client';
-import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
+import { writeAgentSessionConnections, writeAgentSessionWorkbook } from '@akohn/dashql/platform/session/agent_session_client';
+import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
 
 import { startSessionServer, type SessionServer } from './session_server.js';
 

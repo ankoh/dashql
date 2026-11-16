@@ -1,4 +1,4 @@
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { describe, expect, it } from 'vitest';
 
 import { DataflowEdgeKind, deriveDataflowGraph, mergeDataflowGraph, statementTypeLabel, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';

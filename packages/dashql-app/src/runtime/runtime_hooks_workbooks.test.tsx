@@ -2,15 +2,15 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 
-import type * as dashql from '@ankoh/dashql';
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import type * as dashql from '@akohn/dashql';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';

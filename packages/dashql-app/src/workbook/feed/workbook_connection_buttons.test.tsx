@@ -4,8 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { WorkbookConnectionButtons, type WorkbookConnectionButtonsDependencies } from './workbook_connection_buttons.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

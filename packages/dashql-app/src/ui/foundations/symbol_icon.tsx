@@ -1,5 +1,5 @@
 import * as React from 'react';
-import icons from '@ankoh/dashql-svg-symbols';
+import icons from '@akohn/dashql-svg-symbols';
 
 export type IconSize = number | 'small' | 'medium' | 'large';
 

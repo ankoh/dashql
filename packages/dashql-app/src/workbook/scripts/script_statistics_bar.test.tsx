@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as Immutable from 'immutable';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 

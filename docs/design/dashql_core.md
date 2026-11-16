@@ -2,7 +2,7 @@
 
 The core of DashQL is Rust. One WebAssembly module, the core module, holds the SQL language of DashQL (scanner, parser,
 analyzer, catalog, completion, formatter), the editor sessions of scripts, the query profiles of Hyper and Trino, the
-shell, and the runtime of DashQL: the state of the app and its services. The TypeScript of `@ankoh/dashql` binds it
+shell, and the runtime of DashQL: the state of the app and its services. The TypeScript of `@akohn/dashql` binds it
 and supplies its I/O, see [dashql_runtime.md](dashql_runtime.md).
 
 This document is the map of the Rust side: the crates, the module, the runtime with its services, the host traits and
@@ -35,8 +35,8 @@ to DashQL and changes with it; its state crosses as views with generated types.
 
 - **Build.** `//packages/dashql-core-wasm:dashql_core_wasm` is a `rust_shared_library` for `wasm32`,
   `:dashql_core_bindgen` runs wasm-bindgen (`target = "web"`), and `:core_wasm` is the shipped `dashql_core_bg.wasm`.
-  The generated glue and the Wasm reach TypeScript as `@ankoh/dashql-wasm` (`//packages/dashql:dep_wasm`), the
-  declarations of the glue import the FlatBuffers as `@ankoh/dashql-flatbuffers`.
+  The generated glue and the Wasm reach TypeScript as `@akohn/dashql-wasm` (`//packages/dashql:dep_wasm`), the
+  declarations of the glue import the FlatBuffers as `@akohn/dashql-flatbuffers`.
 - **Release.** `--config=release` builds with `-c opt`, `-Copt-level=3` and stripping, and `optimize_wasm`
   (`bazel/wasm_tools.bzl`) runs `wasm-opt -O3` and `wasm-strip`; a dev build copies the module unchanged.
 - **One module.** The runtime is linked into the core module. A module of its own would duplicate the core and split

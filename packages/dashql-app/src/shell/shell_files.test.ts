@@ -3,9 +3,9 @@ import type {
     EmbeddedExternalDirectoryDatabase,
     EmbeddedExternalFileDatabase,
     ExternalDirectoryMode,
-} from '@ankoh/dashql/platform/embedded_database';
+} from '@akohn/dashql/platform/embedded_database';
 import type { PlatformFile } from '../platform/file/file.js';
-import type { LoggerLike } from '@ankoh/dashql/platform/logger/logger';
+import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import {
     createShellFilesCommand,
     externalDirectoryDatabase,

@@ -1,15 +1,15 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { answerSalesforceMock, type SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
-import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
-import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
-import { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
-import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
-import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { answerSalesforceMock, type SalesforceConnectorMockConfig } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
+import type { OAuthState } from '@akohn/dashql/platform/oauth_types';
+import { Logger } from '@akohn/dashql/platform/logger/logger';
+import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
+import { createNodePlatform } from '@akohn/dashql/runtime/node/node_platform';
+import { createRuntime } from '@akohn/dashql/runtime/runtime';
 
 import { ConnectAuth, coreLoginRuntime } from './connect_auth.js';
 import { RELAYED_TOKEN, RelayedConnections } from './run_relay.js';

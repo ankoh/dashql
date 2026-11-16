@@ -1,14 +1,14 @@
 import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { renderVegaLitePng } from '../../ui/vegalite/vegalite_image.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
 
 interface Props {

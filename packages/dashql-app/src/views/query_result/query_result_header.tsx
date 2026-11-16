@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_header.module.css';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';

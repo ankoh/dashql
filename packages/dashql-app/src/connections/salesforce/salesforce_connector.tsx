@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import type { SalesforceConnectorMockConfig } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { useAppConfig } from '../../config/app_config.js';
 
 const MOCK_CTX = React.createContext<SalesforceConnectorMockConfig | null>(null);

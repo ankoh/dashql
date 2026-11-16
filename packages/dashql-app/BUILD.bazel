@@ -95,9 +95,9 @@ genrule(
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
-            -e "s|__DASHQL_PATH__|../../node_modules/@ankoh/dashql|g" \\
-            -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@ankoh/dashql/dependencies|g" \\
-            -e "s|__UI_PATH__|../../node_modules/@ankoh/dashql-ui|g" \\
+            -e "s|__DASHQL_PATH__|../../node_modules/@akohn/dashql|g" \\
+            -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@akohn/dashql/dependencies|g" \\
+            -e "s|__UI_PATH__|../../node_modules/@akohn/dashql-ui|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
             -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
@@ -149,7 +149,7 @@ genrule(
     """,
 )
 
-# The tests of the runtime and of the platform of @ankoh/dashql that the browser tests run as well, relative to its src/
+# The tests of the runtime and of the platform of @akohn/dashql that the browser tests run as well, relative to its src/
 genrule(
     name = "dashql_browser_test_files",
     srcs = ["//packages/dashql:browser_test_files"],
@@ -237,8 +237,8 @@ ts_project(
         ":dep_protobuf_lib",
         ":dep_jsonschema_lib",
         "//:node_modules",
-        "//:node_modules/@ankoh/dashql",
-        "//:node_modules/@ankoh/dashql-ui",
+        "//:node_modules/@akohn/dashql",
+        "//:node_modules/@akohn/dashql-ui",
     ],
     visibility = ["//visibility:public"],
 )
@@ -251,8 +251,8 @@ _vite_web_deps = [
     ":example_snippets",
     ":extensions",
     ":vite_config",
-    "//:node_modules/@ankoh/dashql",
-    "//:node_modules/@ankoh/dashql-ui",
+    "//:node_modules/@akohn/dashql",
+    "//:node_modules/@akohn/dashql-ui",
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_svg_symbols",

@@ -1,13 +1,13 @@
 import * as flatbuffers from 'flatbuffers';
 
-import type { FlatBuffer } from '@ankoh/dashql-wasm/dashql_core.js';
+import type { FlatBuffer } from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The packed FlatBuffers of the views of the module (docs/design/dashql_runtime.md). A view carries a payload as the
 /// bytes of a FlatBuffer, typed by the table at its root, with a key that names it. The host reads the payload with the
 /// generated accessors, which read the bytes in place, and keeps the accessor object while the key doesn't move. The
 /// host tells the module the key it holds, the module leaves the bytes of that key out.
 
-export type { FlatBuffer } from '@ankoh/dashql-wasm/dashql_core.js';
+export type { FlatBuffer } from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The root table of a FlatBuffer, read in place
 export function readFlatBuffer<T>(bytes: FlatBuffer<T>, root: (bb: flatbuffers.ByteBuffer) => T): T {

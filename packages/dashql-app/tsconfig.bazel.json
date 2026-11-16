@@ -12,12 +12,12 @@
         "jsx": "react-jsx",
         "baseUrl": ".",
         "paths": {
-            "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
-            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
-            "@ankoh/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
-            "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
-            "@ankoh/dashql-wasm/*": ["../../node_modules/@ankoh/dashql/dependencies/dashql-wasm/*"],
-            "@ankoh/dashql-flatbuffers/*": ["../../node_modules/@ankoh/dashql/dependencies/dashql-flatbuffers/*"],
+            "@akohn/dashql-protobuf": ["./dependencies/dashql-protobuf"],
+            "@akohn/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
+            "@akohn/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
+            "@akohn/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
+            "@akohn/dashql-wasm/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-wasm/*"],
+            "@akohn/dashql-flatbuffers/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/*"],
             "@dashql/browser-test-act": ["./src/tests/react_act.ts"]
         },
         "types": ["node", "vitest/globals", "vite/client"],

@@ -4,11 +4,11 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { estimateRelativeDifference, type ProfileScene, type ProfileSceneOperator } from './profile_scene.js';
 import { formatCpuShare, formatEstimateSymbol, formatFragmentMetrics, formatShortBytes, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
-import { ProfileExecutionState } from '@ankoh/dashql/platform/query/profile_execution_state';
+import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);

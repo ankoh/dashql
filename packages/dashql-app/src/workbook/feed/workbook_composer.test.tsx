@@ -1,12 +1,12 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EditorView } from '@codemirror/view';
 
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import * as styles from './workbook_composer.module.css';
@@ -383,7 +383,7 @@ describe('Workbook composer', () => {
             expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
             expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
             expect(container.querySelector('[data-testid="composer-connect-harness"]')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
-            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch claude --port 51234 --secret k3x9');
+            expect(command()).toBe('npx -y @akohn/dashql-cli@latest connect --launch claude --port 51234 --secret k3x9');
             // The command is only copied, a new port and copy stay usable
             expect(container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')!.disabled).toBe(true);
             expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.disabled).toBe(false);
@@ -407,11 +407,11 @@ describe('Workbook composer', () => {
             Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
             await renderConnected(ComposerMode.Ai);
             act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-harness"][data-harness="codex"]')!.click());
-            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
+            expect(command()).toBe('npx -y @akohn/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
             await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.click());
-            expect(writeText).toHaveBeenCalledWith('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
+            expect(writeText).toHaveBeenCalledWith('npx -y @akohn/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
             act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.click());
-            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 60001 --secret z7q2');
+            expect(command()).toBe('npx -y @akohn/dashql-cli@latest connect --launch codex --port 60001 --secret z7q2');
         });
 
         it('tells which side to update when the session speaks another protocol', async () => {

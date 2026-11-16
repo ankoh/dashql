@@ -1,14 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
-import type { ConnectionState, NewConnection } from '@ankoh/dashql/platform/connections/connection_state';
-import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection } from '@ankoh/dashql/platform/connections/connection_params';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import type { ConnectionState, NewConnection } from '@akohn/dashql/platform/connections/connection_state';
+import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { testRuntime } from '@ankoh/dashql/runtime/testing/connector_state';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { testRuntime } from '@akohn/dashql/runtime/testing/connector_state';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;

@@ -1,5 +1,5 @@
 
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+import * as auth from '@akohn/dashql-jsonschema/auth.js';
 
 function b64Uri(buf: ArrayBuffer): string {
     return btoa(String.fromCharCode(...new Uint8Array(buf)))

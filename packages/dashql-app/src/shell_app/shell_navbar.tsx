@@ -9,7 +9,7 @@ import { Tag, TagVariant } from '../ui/foundations/tag.js';
 import { ShellInternals } from './internals.js';
 
 import { XIcon } from '../ui/foundations/symbol_icon.js';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './shell_navbar.module.css';
 
 interface VersionButtonProps {

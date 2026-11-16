@@ -8,13 +8,13 @@ import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/ap
 import { FlavorProvider, useAppFlavor } from '../../config/flavor_provider.js';
 import { DASHQL_FLAVOR, FLAVORS, type AppFlavor } from '../../config/flavors.js';
 import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
-import { LogLevel } from '@ankoh/dashql/platform/logger/log_buffer';
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
+import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { APP_RESTART_CTX } from '../../platform/app_hand_over.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { memoryQueryResultCache } from '@ankoh/dashql/platform/testing/memory_query_result_cache';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { type RouteContext } from '../router.js';

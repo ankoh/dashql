@@ -1,6 +1,6 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import { ReportStyle } from '@ankoh/dashql/platform/sql/sql_report';
+import { ReportStyle } from '@akohn/dashql/platform/sql/sql_report';
 
 import type { Terminal } from './term.js';
 

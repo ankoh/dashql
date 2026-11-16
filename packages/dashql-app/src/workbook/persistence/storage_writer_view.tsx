@@ -11,7 +11,7 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
 import { useRuntime, useView } from '../../runtime/runtime_hooks.js';
-import type { StorageKeyStatistics } from '@ankoh/dashql';
+import type { StorageKeyStatistics } from '@akohn/dashql';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';

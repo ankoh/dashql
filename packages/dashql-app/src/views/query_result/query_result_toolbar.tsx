@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import { useComputation, useComputationDispatch } from '../../runtime/runtime_hooks.js';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 import { useQueryResultSearch } from './use_query_result_search.js';

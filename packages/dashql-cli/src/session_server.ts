@@ -4,7 +4,7 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync
 import { open } from 'node:fs/promises';
 import path from 'node:path';
 
-import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
+import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import {
     createAgentSessionState,
     parseAgentSessionOAuth,
@@ -13,7 +13,7 @@ import {
     type AgentSessionEvent,
     type AgentSessionLoginAnswer,
     type AgentSessionState,
-} from '@ankoh/dashql/platform/session/agent_session_state';
+} from '@akohn/dashql/platform/session/agent_session_state';
 import {
     AGENT_SESSION_MIN_PROTOCOL,
     AGENT_SESSION_MIN_PROTOCOL_HEADER,
@@ -21,7 +21,7 @@ import {
     AGENT_SESSION_PROTOCOL_HEADER,
     parseAgentSessionProtocol,
     serverAcceptsAgentSessionClient,
-} from '@ankoh/dashql/platform/session/agent_session_protocol';
+} from '@akohn/dashql/platform/session/agent_session_protocol';
 import {
     isWorkbookCopyId,
     parseSessionConnections,
@@ -35,9 +35,9 @@ import {
     SESSION_JOURNAL_FOLDER,
     workbookCopyPath,
     type JournalFile,
-} from '@ankoh/dashql/platform/session/workbook_journal';
+} from '@akohn/dashql/platform/session/workbook_journal';
 import { loginKind, type ConnectAuth, type LoginConnection } from './connect_auth.js';
-import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 /// How long a request for a login waits before it answers that the login still waits
 export const LOGIN_POLL_MS = 20_000;

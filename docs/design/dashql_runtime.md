@@ -14,22 +14,22 @@ the module returns. The app, the shell of Hyper, the command line tool and the t
 This document describes the runtime from the outside in: the package, the platform, the seam between TypeScript and
 Rust, the app, Node, and the tests.
 
-## The package `@ankoh/dashql`
+## The package `@akohn/dashql`
 
-`packages/dashql` is one source package, `@ankoh/dashql`. Nothing in it is compiled: the app, the command line tool and
-the tests bundle and run its TypeScript. It is linked as `//:node_modules/@ankoh/dashql` for Bazel, and mapped in the
+`packages/dashql` is one source package, `@akohn/dashql`. Nothing in it is compiled: the app, the command line tool and
+the tests bundle and run its TypeScript. It is linked as `//:node_modules/@akohn/dashql` for Bazel, and mapped in the
 root `tsconfig.json` and the Vite config of the app for editors and the dev server. Its three folders of `src/`:
 
 | Folder | Imported as | Holds |
 |---|---|---|
-| `src/core` | `@ankoh/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
-| `src/runtime` | `@ankoh/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@ankoh/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
+| `src/core` | `@akohn/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
+| `src/runtime` | `@akohn/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
+| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
-sources import them by name: `@ankoh/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
-the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@ankoh/dashql-flatbuffers`
-(`:dep_flatbuffers`), `@ankoh/dashql-protobuf` and `@ankoh/dashql-jsonschema`. A consumer maps them with paths of
+sources import them by name: `@akohn/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
+the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@akohn/dashql-flatbuffers`
+(`:dep_flatbuffers`), `@akohn/dashql-protobuf` and `@akohn/dashql-jsonschema`. A consumer maps them with paths of
 `tsconfig.json` and aliases of Vite or vitest.
 
 ### What goes where
@@ -64,8 +64,8 @@ breaks a rule:
 
 - `core/` imports neither `runtime/` nor `platform/`, `platform/` imports `core/`, `runtime/` imports both. Nothing
   imports the app.
-- The package imports itself relatively, never as `@ankoh/dashql`, and no relative import leaves `src/`.
-- Only `core/` imports `@ankoh/dashql-wasm` and `@ankoh/dashql-flatbuffers`.
+- The package imports itself relatively, never as `@akohn/dashql`, and no relative import leaves `src/`.
+- Only `core/` imports `@akohn/dashql-wasm` and `@akohn/dashql-flatbuffers`.
 - No module imports React, an editor, a UI library or a `.tsx` module.
 - In `runtime/` and `platform/`, only the modules of Node (`runtime/node`, `platform/node`) import `node:` and other
   modules of Node.
@@ -94,7 +94,7 @@ module replaces the glue and the Wasm and reloads the page.
 ## Creating a runtime
 
 ```ts
-const runtime = createRuntime(options);   // RuntimeOptions, @ankoh/dashql/runtime/runtime
+const runtime = createRuntime(options);   // RuntimeOptions, @akohn/dashql/runtime/runtime
 await runtime.restore();
 // ...
 await runtime.destroy();
@@ -158,7 +158,7 @@ platform object no more: a call fails, a timer never fires, and the effects on h
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
 | Storage | OPFS (composite backend of the app) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
 | Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
-| Core Wasm | URL from the bundler | the same | the file of `@ankoh/dashql/wasm` (`platform/node/node_core.ts`) |
+| Core Wasm | URL from the bundler | the same | the file of `@akohn/dashql/wasm` (`platform/node/node_core.ts`) |
 | OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
 | Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | the CLI connects its embedded Hyper |
 | Archives | `createRuntimeArchives` | the same | none |
@@ -476,7 +476,7 @@ the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
   with locks of the process: a root that two processes use at once is not protected.
 - **The embedded Hyper in Node.** `hyperdb-wasm` is a wasm64 build with 64-bit memory, 64-bit tables and Wasm
   exceptions with `exnref`. Node 24.15 and later run it without flags; earlier Node 24 releases need exnref, which
-  `checkWasmFeatures` of `@ankoh/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag
+  `checkWasmFeatures` of `@akohn/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag
   on the command line would break approving the command by its prefix, and the worker of the engine gets the flag
   too. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
   (JavaScriptCore has no memory64). The CLI loads `hyperdb-wasm` only in commands that need it, so the commands without
@@ -486,7 +486,7 @@ the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
 
 ## The package on npm
 
-`//packages/dashql:npm_tarball` (`bazel-bin/packages/dashql/dashql.tgz`) is `@ankoh/dashql` on npm; its metadata is
+`//packages/dashql:npm_tarball` (`bazel-bin/packages/dashql/dashql.tgz`) is `@akohn/dashql` on npm; its metadata is
 `npm/package.json`. `:bundle` builds `dist/` with `npm/build.mjs`: Vite builds the modules of `src/` without tests, test
 helpers and mocks, every module keeps its path, tsc writes the declarations next to them, and the generated packages and
 the library of hyperdb-edge, which are not on npm, are inlined (`dist/wasm`, `dist/gen/<name>`, `dist/hyperdb-edge`).

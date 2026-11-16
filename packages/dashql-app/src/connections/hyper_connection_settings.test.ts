@@ -1,11 +1,11 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import {
     HYPERDB_WASM_ENGINE_SETTING_ELEMENTS,
     buildHyperConnectionPageState,
     buildHyperConnectionSetupParams,
 } from './hyper_connection_settings.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql/platform/hyperdb/hyperdb_settings';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 
 describe('Hyper connection settings', () => {
     it('shows every immutable embedded engine setting', () => {

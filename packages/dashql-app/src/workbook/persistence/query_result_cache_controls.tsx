@@ -3,7 +3,7 @@ import * as styles from './query_result_cache_controls.module.css';
 
 import { SyncIcon } from '../../ui/foundations/symbol_icon.js';
 
-import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { useRelativeTime } from '../../utils/time_format.js';
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { Tag } from '../../ui/foundations/tag.js';

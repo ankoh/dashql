@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import type { LogRecord } from '@ankoh/dashql/platform/logger/log_buffer';
+import type { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { findWorkbookQueries } from '@ankoh/dashql/platform/connections/connection_state';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 /// The log key of the workbook that a record is about

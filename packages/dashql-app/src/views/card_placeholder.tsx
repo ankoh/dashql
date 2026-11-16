@@ -1,10 +1,10 @@
 import * as React from 'react';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './card_placeholder.module.css';
 
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { classNames } from '../utils/classnames.js';
-import { QueryExecutionStatus, queryIsDone, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// The hint of a card before the first run
 const RUN_HINT = 'Run the query to see the result';

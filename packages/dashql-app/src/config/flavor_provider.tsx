@@ -1,5 +1,5 @@
 import * as React from 'react';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 import { useLocation } from 'react-router-dom';
 
 import { AppFlavor, DASHQL_FLAVOR } from './flavors.js';

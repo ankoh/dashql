@@ -1,4 +1,4 @@
-import type * as app_workbook from '@ankoh/dashql-jsonschema/app_workbook.js';
+import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 
 import * as core from '../../core/index.js';
 import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';

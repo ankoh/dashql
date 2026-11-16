@@ -3,8 +3,8 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, wri
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
-import type { AgentSessionEvent } from '@ankoh/dashql/platform/session/agent_session_state';
+import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
+import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { sessionEventOf } from './session_hook.js';

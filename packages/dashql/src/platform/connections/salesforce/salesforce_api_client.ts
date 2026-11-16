@@ -1,4 +1,4 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 // The setup, the token exchange, the channel and the metadata of Salesforce are the runtime's (`salesforce/` of the
 // runtime crate). The platform shows what the login of the shell returns of the tokens.

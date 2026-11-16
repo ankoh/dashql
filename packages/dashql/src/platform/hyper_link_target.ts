@@ -1,4 +1,4 @@
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 /// Hosts of this machine, e.g. of `hyperd run --ui`
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);

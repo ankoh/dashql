@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { resolveMatchingRows, type SummaryTables, type TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
+import { resolveMatchingRows, type SummaryTables, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 
 /// The Arrow tables of the view of a computation, resolved by their handles

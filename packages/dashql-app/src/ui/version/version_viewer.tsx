@@ -1,5 +1,5 @@
 import * as React from 'react';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
 
 import { SyncIcon, XIcon } from '../foundations/symbol_icon.js';

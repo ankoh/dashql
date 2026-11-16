@@ -9,7 +9,7 @@ function normalizePath(path: string): string {
     return path.startsWith('./') ? `src/tests/${path.slice(2)}` : path.replace(/^\.\.\//, 'src/');
 }
 
-/// The tests of the runtime and of the platform of @ankoh/dashql run in the browsers too, all but *.browser.test.ts also
+/// The tests of the runtime and of the platform of @akohn/dashql run in the browsers too, all but *.browser.test.ts also
 /// run in Node (//packages/dashql:test_runtime_node, //packages/dashql:test_platform_node)
 export const DASHQL_TEST_MODULES = import.meta.glob([
     '../../../dashql/src/runtime/**/*.test.ts',
@@ -18,7 +18,7 @@ export const DASHQL_TEST_MODULES = import.meta.glob([
     '!../../../dashql/src/**/*.node.test.ts',
 ]);
 
-/// The tests of @ankoh/dashql are named dashql/src/<path>
+/// The tests of @akohn/dashql are named dashql/src/<path>
 const DASHQL_SOURCE_ROOT = '/dashql/src/';
 const DASHQL_TEST_KEYS = new Map(Object.keys(DASHQL_TEST_MODULES)
     .map(key => [`dashql/src/${key.slice(key.lastIndexOf(DASHQL_SOURCE_ROOT) + DASHQL_SOURCE_ROOT.length)}`, key]));

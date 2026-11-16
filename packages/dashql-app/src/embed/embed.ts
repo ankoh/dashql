@@ -8,14 +8,14 @@
 // default, the page has an opaque origin: a worker from a URL throws, OPFS is denied, and every request to the app is
 // cross-origin, so the scripts are fetched or imported with CORS.
 
-import { DashQLBatchWorker } from '@ankoh/dashql/browser-worker';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { DashQLBatchWorker } from '@akohn/dashql/browser-worker';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 import { HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_VERSION } from '../globals.js';
 
 // eslint-disable-next-line import/no-unresolved -- resolved by Vite
-import batchWorkerUrl from '@ankoh/dashql/batch-worker?worker&url';
+import batchWorkerUrl from '@akohn/dashql/batch-worker?worker&url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import hyperEngineUrl from '@dashql/hyperdb-wasm-js?url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
@@ -23,9 +23,9 @@ import hyperWorkerUrl from '@dashql/hyperdb-wasm-worker?url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Bazel/Vite alias
 import hyperWasmUrl from '@dashql/hyperdb-wasm?url';
 
-import '@ankoh/dashql-ui/fonts/fonts.css';
-import '@ankoh/dashql-ui/styles/colors.css';
-import '@ankoh/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-ui/fonts/fonts.css';
+import '@akohn/dashql-ui/styles/colors.css';
+import '@akohn/dashql-ui/styles/tokens.css';
 import './embed.css';
 
 const QUERY = 'select count(*) as n, sum(v) as total from generate_series(1, 5000000) as s(v)';

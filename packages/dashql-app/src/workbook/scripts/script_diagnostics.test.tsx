@@ -1,13 +1,13 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act } from '@dashql/browser-test-act';
 import { createTestRoot } from '../../tests/react_root.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { collectScriptDiagnostics, ScriptDiagnosticsButton, SCRIPT_FORMATTING_WARNING } from './script_diagnostics.js';
-import type { ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
+import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

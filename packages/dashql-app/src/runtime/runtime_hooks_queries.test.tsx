@@ -1,13 +1,13 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import {
     createQueryResponseStreamMetrics,
@@ -15,17 +15,17 @@ import {
     QueryType,
     type QueryExecutionProgress,
     type QueryExecutionResponseStream,
-} from '@ankoh/dashql/platform/query/query_execution_state';
+} from '@akohn/dashql/platform/query/query_execution_state';
 
-import { vectorFromArray } from '@ankoh/dashql/platform/testing/arrow_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { AsyncConsumer } from '@ankoh/dashql/platform/utils/async_consumer';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { AsyncConsumer } from '@akohn/dashql/platform/utils/async_consumer';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
-import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql/platform/connections/query_execution_args';
+import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akohn/dashql/platform/connections/query_execution_args';
 import { useQuery, useQueryProfileDetail, useRuntime } from './runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 

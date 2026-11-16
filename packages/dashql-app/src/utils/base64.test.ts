@@ -1,8 +1,8 @@
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+import * as auth from '@akohn/dashql-jsonschema/auth.js';
 
-import type * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
+import type * as app_event from '@akohn/dashql-jsonschema/app_event.js';
 
-import { BASE64_CODEC, BASE64URL_CODEC } from "@ankoh/dashql/platform/utils/base64";
+import { BASE64_CODEC, BASE64URL_CODEC } from "@akohn/dashql/platform/utils/base64";
 
 /// 32 words of a seeded generator (mulberry32)
 function randomBuffer32(seed: number): ArrayBuffer {

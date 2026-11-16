@@ -1,12 +1,12 @@
 import * as React from 'react';
 
 import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connection.js';
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 // Deleting a local cloud. A cloud on a server only stops being a cloud, its tables stay on the server. A local cloud
 // exists only to be one, so deleting it deletes its connection and drops its database with the published workbooks.

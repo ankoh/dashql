@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { act } from '@dashql/browser-test-act';
 import { EditorView } from '@codemirror/view';

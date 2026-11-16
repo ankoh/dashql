@@ -1,12 +1,12 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as styles from './query_progress_panel.module.css';
 
-import { QueryExecutionState, QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
 import { QueryProfileView } from '../query_profile/query_profile_view.js';
-import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@ankoh/dashql/platform/query/query_progress';
-import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@ankoh/dashql/platform/query/profile_layout_config';
+import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@akohn/dashql/platform/query/query_progress';
+import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';

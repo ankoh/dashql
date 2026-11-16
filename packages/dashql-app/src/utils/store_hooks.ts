@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { UpdateScheduler } from '@ankoh/dashql/runtime/store/update_scheduler';
+import type { UpdateScheduler } from '@akohn/dashql/runtime/store/update_scheduler';
 
 import { Store } from './store.js';
 

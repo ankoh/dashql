@@ -2,19 +2,19 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { StorageCommands } from '@ankoh/dashql/runtime/runtime_storage';
-import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
+import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { newConnectionFromParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

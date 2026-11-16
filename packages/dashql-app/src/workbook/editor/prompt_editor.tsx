@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as themes from './themes/index.js';
 
 import { Compartment, EditorState, Extension, Prec } from '@codemirror/state';

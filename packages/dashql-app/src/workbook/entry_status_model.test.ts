@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import * as dashql from '@ankoh/dashql';
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { ProfileExecutionState } from '@ankoh/dashql/platform/query/profile_execution_state';
+import * as dashql from '@akohn/dashql';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { deriveEntryStatus, EntryStatusKind, getQueryStatusText } from './entry_status_model.js';
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 

@@ -1,6 +1,6 @@
 # dashql-cli
 
-`dashql`, the command line tool of DashQL on `@ankoh/dashql`. It runs the logic of the app in Node, so an agent in a
+`dashql`, the command line tool of DashQL on `@akohn/dashql`. It runs the logic of the app in Node, so an agent in a
 harness gets the answers of the app (`docs/design/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
@@ -21,10 +21,10 @@ Vite bundles the command with the sources of the runtime into one module for Nod
 `//packages/dashql-cli:bundle`). The core stays a package next to it, the command reads its Wasm file from there.
 `lint`, `format` and `run` need Node 22 or later.
 
-On npm the command is `@ankoh/dashql-cli` (`npx -y @ankoh/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
-packs the bundle with the metadata of `npm/package.json`, which depends on `@ankoh/dashql` and `hyperdb-wasm`.
-`:npm_package_test` keeps their versions those of the build, so `@ankoh/dashql` is published first. CI uploads the tarball
-next to the one of `@ankoh/dashql` (`dashql_cli_npm`), publishing is by hand.
+On npm the command is `@akohn/dashql-cli` (`npx -y @akohn/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
+packs the bundle with the metadata of `npm/package.json`, which depends on `@akohn/dashql` and `hyperdb-wasm`.
+`:npm_package_test` keeps their versions those of the build, so `@akohn/dashql` is published first. CI uploads the tarball
+next to the one of `@akohn/dashql` (`dashql_cli_npm`), publishing is by hand.
 
 ## dashql lint
 
@@ -43,7 +43,7 @@ echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 
 ### What it does
 
-Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the platform of `@ankoh/dashql`), and only the scripts with
+Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the platform of `@akohn/dashql`), and only the scripts with
 diagnostics are printed. Scripts
 are not executed.
 
@@ -79,7 +79,7 @@ complete them. They are not reported.
 dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
 ```
 
-Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the platform of `@ankoh/dashql`) in the
+Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the platform of `@akohn/dashql`) in the
 pretty mode with lowercase
 keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
 `--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where
@@ -194,7 +194,7 @@ workbook and 130 when interrupted.
 ## dashql connect
 
 ```
-npx -y @ankoh/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
+npx -y @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a

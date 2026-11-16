@@ -1,22 +1,22 @@
 import * as React from 'react';
 import * as styles from './script_connection_picker.module.css';
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
 import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
 import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
-import type { ModifyWorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { listedConnections } from '../../connections/connection_tree.js';
 import { useCloudConnectionIds } from '../../connections/cloud_connection.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
-import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
+import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 /// The fields of a connection that a script shows
 export interface ScriptConnectionView {

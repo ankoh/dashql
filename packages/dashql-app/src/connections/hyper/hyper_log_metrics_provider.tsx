@@ -2,8 +2,8 @@ import * as React from 'react';
 
 import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@ankoh/dashql/platform/storage/storage_backend';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@akohn/dashql/platform/storage/storage_backend';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import {

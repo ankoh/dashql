@@ -1,4 +1,4 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 import {
     type StorageBackend,
     type WorkbookRegistryBackend,
@@ -13,20 +13,20 @@ import {
     type ExpectedStamp,
     StorageBackendType,
     validateDataFileName,
-} from '@ankoh/dashql/platform/storage/storage_backend';
+} from '@akohn/dashql/platform/storage/storage_backend';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
     flattenWorkbookTree,
     removeWorkbookFromTree,
     upsertWorkbookInTree,
-} from '@ankoh/dashql/platform/storage/workbook_tree';
-import { type FileStamp } from '@ankoh/dashql/platform/electron_fs';
-import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
+} from '@akohn/dashql/platform/storage/workbook_tree';
+import { type FileStamp } from '@akohn/dashql/platform/electron_fs';
+import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/electron_fs';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
+import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
 
 const LOG_CTX = 'composite_storage_backend';
 

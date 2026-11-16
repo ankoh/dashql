@@ -1,9 +1,9 @@
 // @vitest-environment node
 import type * as arrow from 'apache-arrow';
 
-import type { QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
+import type { QueryExecutionArgs, QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

@@ -1,9 +1,9 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/workbook_scripts';
+import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
 import { analyzedTestWorkbook, withTestScript, type TestWorkbook } from './dataflow_test_workbook.js';
 import { loadDataflowModule } from './dataflow_module.js';

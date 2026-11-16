@@ -1,7 +1,7 @@
 import * as core from '../core/index.js';
 import * as flatbuffers from 'flatbuffers';
 import type * as arrow from 'apache-arrow';
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { clientContextJson, createComputePlatform } from './compute_platform.js';
 import { ComputeDatabase, type ComputeDatabaseProvider } from './compute_database.js';

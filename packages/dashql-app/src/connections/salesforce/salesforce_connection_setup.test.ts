@@ -1,19 +1,19 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql';
-import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as core from '@akohn/dashql';
+import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
-import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
-import { createRuntime } from '@ankoh/dashql/runtime/runtime';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql/platform/connections/connector_descriptor';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
-import type { HttpClient } from '@ankoh/dashql/platform/http_client';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@akohn/dashql/platform/connections/connector_descriptor';
+import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
+import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
+import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
-import { mockSalesforceHttp, mockSalesforceOAuthFlow, type SalesforceConnectorMockConfig } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import { mockSalesforceHttp, mockSalesforceOAuthFlow, type SalesforceConnectorMockConfig } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;

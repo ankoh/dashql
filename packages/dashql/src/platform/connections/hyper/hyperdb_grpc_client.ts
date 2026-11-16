@@ -1,4 +1,4 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
 import { ChannelMetadataProvider } from '../../channel_common.js';

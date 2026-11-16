@@ -1,14 +1,14 @@
-import coreWasmUrl from '@ankoh/dashql/wasm?url';
+import coreWasmUrl from '@akohn/dashql/wasm?url';
 // Tests that measure text need the fonts and the tokens of the app, the default font of the browser has other widths
-import '@ankoh/dashql-ui/fonts/fonts.css';
-import '@ankoh/dashql-ui/styles/colors.css';
-import '@ankoh/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-ui/fonts/fonts.css';
+import '@akohn/dashql-ui/styles/colors.css';
+import '@akohn/dashql-ui/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import '../connections/bundled_clfn_specs.js';
-import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@ankoh/dashql/platform/opfs_root';
-import { provideWorkbookTables } from '@ankoh/dashql/platform/storage/workbook_tables';
-import { provideStorageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
-import * as core from '@ankoh/dashql';
+import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@akohn/dashql/platform/opfs_root';
+import { provideWorkbookTables } from '@akohn/dashql/platform/storage/workbook_tables';
+import { provideStorageVersions } from '@akohn/dashql/platform/storage/storage_versions';
+import * as core from '@akohn/dashql';
 
 import {
     BROWSER_TEST_MESSAGE_SOURCE,

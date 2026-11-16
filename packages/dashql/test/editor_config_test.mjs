@@ -22,7 +22,7 @@ const rootPathMap = readJsonc(join(ROOT, 'tsconfig.json')).compilerOptions.paths
 const rootPaths = Object.keys(rootPathMap);
 
 // The generated packages of the package resolve to its own outputs, not to the copies of another package
-for (const name of ['@ankoh/dashql-protobuf', '@ankoh/dashql-jsonschema', '@ankoh/dashql-wasm', '@ankoh/dashql-flatbuffers']) {
+for (const name of ['@akohn/dashql-protobuf', '@akohn/dashql-jsonschema', '@akohn/dashql-wasm', '@akohn/dashql-flatbuffers']) {
     for (const path of [name, `${name}/*`]) {
         for (const target of rootPathMap[path] ?? []) {
             if (!target.startsWith('./bazel-bin/packages/dashql/dependencies/')) {
@@ -40,7 +40,7 @@ for (const name of npmExports) {
 }
 for (const name of sourceExports) {
     if (!npmExports.includes(name)) violations.push(`npm/package.json doesn't export ${name} of package.json`);
-    const specifier = name === '.' ? '@ankoh/dashql' : `@ankoh/dashql/${name.slice(2)}`;
+    const specifier = name === '.' ? '@akohn/dashql' : `@akohn/dashql/${name.slice(2)}`;
     // The Wasm files resolve through the package, editors import no module of them
     if (!specifier.includes('wasm') && !specifier.endsWith('batch-worker') && !(specifier in rootPathMap)) {
         violations.push(`the root tsconfig.json doesn't map ${specifier}`);

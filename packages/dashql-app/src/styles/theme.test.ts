@@ -1,7 +1,7 @@
-import { xcodeDarkPalette, xcodeLightPalette } from '@ankoh/dashql-ui/xcode_palette';
-import TOKENS_CSS from '@ankoh/dashql-ui/styles/tokens.css?raw';
+import { xcodeDarkPalette, xcodeLightPalette } from '@akohn/dashql-ui/xcode_palette';
+import TOKENS_CSS from '@akohn/dashql-ui/styles/tokens.css?raw';
 
-// The stylesheets of the app. The theme and its flavors live in @ankoh/dashql-ui, the app defines no colors.
+// The stylesheets of the app. The theme and its flavors live in @akohn/dashql-ui, the app defines no colors.
 // A Bazel build replaces the pattern with the declared stylesheets, bazel-bin keeps stale copies of moved sources.
 const APP_STYLESHEETS = import.meta.glob<string>([
     '../**/*.css',

@@ -1,21 +1,21 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
-import type * as dashql from '@ankoh/dashql';
+import type * as dashql from '@akohn/dashql';
 
 import type { Icon } from '../../ui/foundations/symbol_icon.js';
 import { GraphIcon, LockIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
-import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { queryIsDone, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { useOptionalRuntime, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
-import type { ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/script_types';
+import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';
 import { ScriptStatisticsBar } from '../scripts/script_statistics_bar.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/script_reference_check';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { ScriptActionMenu, type ScriptStorage } from '../scripts/script_action_menu.js';
 import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';

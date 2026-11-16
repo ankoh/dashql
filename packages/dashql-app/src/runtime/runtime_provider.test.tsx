@@ -2,11 +2,11 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 
 import { LoggerProvider, useLogger } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';

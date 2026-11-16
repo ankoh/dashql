@@ -1,4 +1,4 @@
-import type * as dashql from '@ankoh/dashql';
+import type * as dashql from '@akohn/dashql';
 import { EditorState } from '@codemirror/state';
 import { expect } from 'vitest';
 

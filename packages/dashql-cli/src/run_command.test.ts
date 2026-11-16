@@ -4,8 +4,8 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
-import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
+import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
+import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
 
 import { ConnectAuth, coreLoginRuntime } from './connect_auth.js';
 import { runRun, type RunEnvironment } from './run_command.js';

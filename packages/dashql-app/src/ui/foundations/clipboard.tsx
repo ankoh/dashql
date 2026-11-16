@@ -4,7 +4,7 @@ import { CheckIcon, CopyIcon } from './symbol_icon.js';
 import type { Icon } from './symbol_icon.js';
 
 import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from './button.js';
 
 const DEFAULT_COPY_TIMEOUT = 2000;

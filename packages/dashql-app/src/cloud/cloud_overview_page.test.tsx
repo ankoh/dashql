@@ -20,21 +20,21 @@ import { listCloudWorkbookVersions, publishCloudWorkbook } from './cloud_store.j
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@ankoh/dashql/platform/connections/connector_info';
-import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
+import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '../tests/react_root.js';
-import { quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
-import * as core from '@ankoh/dashql';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
+import * as core from '@akohn/dashql';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 import { addTestConnection } from '../tests/test_connections.js';
 

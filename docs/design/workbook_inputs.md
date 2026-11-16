@@ -101,7 +101,7 @@ workbook is free, with the inputs of every change since.
 
 The runtime collects the inputs of a workbook with the planner (`planner/session_inputs.rs`) in the derived view of the
 workbook, which moves when they change; `readSessionInputs` (`workbook/workbook_inputs.ts` of the platform of
-`@ankoh/dashql`) reads them. `WorkbookInputCard` shows an
+`@akohn/dashql`) reads them. `WorkbookInputCard` shows an
 input: the name, the type and a control that follows the type, a number field, a boolean select, a date or a datetime
 field, a number field with a unit select for an interval, and text otherwise. The control shows the value without its
 SQL, `3` and `day` for `interval '3' day` and `EU` for `'EU'`. The control owns its draft: a typed draft that rests

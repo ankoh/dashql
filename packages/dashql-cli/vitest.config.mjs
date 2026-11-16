@@ -1,4 +1,4 @@
-// The tests of dashql in Node. The generated packages that @ankoh/dashql imports are folders of Bazel (BUILD.bazel).
+// The tests of dashql in Node. The generated packages that @akohn/dashql imports are folders of Bazel (BUILD.bazel).
 import path from 'node:path';
 
 const root = import.meta.dirname;
@@ -6,10 +6,10 @@ const root = import.meta.dirname;
 export default {
     resolve: {
         alias: [
-            { find: /^@ankoh\/dashql-wasm\/(.+)$/, replacement: path.join(root, '../../node_modules/@ankoh/dashql/dependencies/dashql-wasm/$1') },
-            { find: /^@ankoh\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, '../../node_modules/@ankoh/dashql/dependencies/dashql-flatbuffers/$1') },
-            { find: /^@ankoh\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
-            { find: /^@ankoh\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
+            { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-wasm/$1') },
+            { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/$1') },
+            { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
+            { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
         ],
     },
     test: {

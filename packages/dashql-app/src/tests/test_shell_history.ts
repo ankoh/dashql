@@ -1,9 +1,9 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import { newDefaultHyperWasmConnection } from '@ankoh/dashql/platform/connections/connection_params';
-import { testRuntime } from '@ankoh/dashql/runtime/testing/connector_state';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
+import { testRuntime } from '@akohn/dashql/runtime/testing/connector_state';
 
 /// The connection of the shell in a runtime of a test, the history of the shell is its history
 export interface TestShellHistory {

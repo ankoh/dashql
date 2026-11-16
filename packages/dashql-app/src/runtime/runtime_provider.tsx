@@ -1,15 +1,15 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import { createRuntime, type QueryCommands, type Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createRuntimeArchives } from '@ankoh/dashql/runtime/workbook_archives';
-import type { HttpClient } from '@ankoh/dashql/platform/http_client';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { createRuntime, type QueryCommands, type Runtime } from '@akohn/dashql/runtime/runtime';
+import { createRuntimeArchives } from '@akohn/dashql/runtime/workbook_archives';
+import type { HttpClient } from '@akohn/dashql/platform/http_client';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { RuntimeContextProvider, useOwnedRuntime } from './runtime_hooks.js';
 import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
-import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { useHyperGrpcClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';

@@ -1,4 +1,4 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
 import {
     STORAGE_ATTACHMENTS_FOLDER,
@@ -7,7 +7,7 @@ import {
     STORAGE_CONNECTIONS_FOLDER,
     validateDataFileName,
     STORAGE_SCRIPTS_FOLDER,
-} from '@ankoh/dashql/platform/storage/storage_backend';
+} from '@akohn/dashql/platform/storage/storage_backend';
 
 interface BrowserFolderEntry {
     path: string;

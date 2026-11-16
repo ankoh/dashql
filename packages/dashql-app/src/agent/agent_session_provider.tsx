@@ -6,13 +6,13 @@ import {
     parseAgentSessionTarget,
     writeAgentSessionConnections,
     type AgentSessionTarget,
-} from '@ankoh/dashql/platform/session/agent_session_client';
-import { AgentSessionProtocolError, type AgentSessionOutdated } from '@ankoh/dashql/platform/session/agent_session_protocol';
-import type { AgentSessionLogin } from '@ankoh/dashql/platform/session/agent_session_state';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+} from '@akohn/dashql/platform/session/agent_session_client';
+import { AgentSessionProtocolError, type AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';
+import type { AgentSessionLogin } from '@akohn/dashql/platform/session/agent_session_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { Store } from '../utils/store.js';
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';

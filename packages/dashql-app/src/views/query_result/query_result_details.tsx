@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';

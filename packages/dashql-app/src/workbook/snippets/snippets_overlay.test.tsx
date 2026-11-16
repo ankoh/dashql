@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provi
 import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from './snippet_registry.js';
 import { SnippetsOverlay } from './snippets_overlay.js';
 

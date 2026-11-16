@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { useQuery } from '../runtime/runtime_hooks.js';
 
 /// The result that the overlay of the shell shows. Closing the overlay keeps the result so that it can open again, the

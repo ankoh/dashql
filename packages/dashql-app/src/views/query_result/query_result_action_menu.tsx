@@ -1,17 +1,17 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 import * as styles from '../../app/action_menu.module.css';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import * as ActionList from '../../ui/foundations/action_list.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
 import { useAppConfig } from '../../config/app_config.js';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { scriptResultOwner, type ScriptData } from '@ankoh/dashql/platform/workbook/workbook_scripts';
-import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useRuntime, useQueryResultTable } from '../../runtime/runtime_hooks.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';

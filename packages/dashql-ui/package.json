@@ -1,5 +1,5 @@
 {
-  "name": "@ankoh/dashql-ui",
+  "name": "@akohn/dashql-ui",
   "version": "0.0.0",
   "description": "Design tokens, fonts, the editor palette and the landing backdrop shared by the DashQL app and website",
   "private": true,

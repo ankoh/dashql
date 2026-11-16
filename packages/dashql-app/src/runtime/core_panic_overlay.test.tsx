@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { APP_RESTART_CTX } from '../platform/app_hand_over.js';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { CorePanicOverlay } from './core_panic_overlay.js';
-import type { CorePanicListener } from '@ankoh/dashql';
+import type { CorePanicListener } from '@akohn/dashql';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

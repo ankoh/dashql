@@ -1,10 +1,10 @@
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import type { Logger } from '@ankoh/dashql/platform/logger/logger';
-import { createStorageRoot } from '@ankoh/dashql/platform/storage/storage_root';
-import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/electron_fs';
-import { getOPFSRoot } from '@ankoh/dashql/platform/opfs_root';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
+import { createStorageRoot } from '@akohn/dashql/platform/storage/storage_root';
+import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
+import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
+import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 import { OPFS_MANIFEST_LOCK } from './opfs_storage_backend.js';
 
 // The migrations of the storage are steps of the core (`workbook_format::storage_migration`), see

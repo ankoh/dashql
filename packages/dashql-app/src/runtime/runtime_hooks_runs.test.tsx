@@ -1,20 +1,20 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from '../platform/logger_provider.js';
-import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql/platform/query/query_execution_state';
-import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@akohn/dashql/platform/query/query_execution_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { analyzeWorkbook } from '@ankoh/dashql/runtime/testing/test_runtime';
+import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
 import { useRuntime, useWorkbookExecution } from './runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 

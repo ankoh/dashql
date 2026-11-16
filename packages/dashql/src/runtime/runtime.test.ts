@@ -9,7 +9,7 @@ import { newDefaultHyperWasmConnection } from '../platform/connections/connectio
 import type { OAuthFlow } from '../platform/oauth_flow.js';
 import type { HttpClient } from '../platform/http_client.js';
 import { ConnectorType } from '../platform/connections/connector_info.js';
-import type { TrinoConnectionParams } from '@ankoh/dashql-jsonschema/connection.js';
+import type { TrinoConnectionParams } from '@akohn/dashql-jsonschema/connection.js';
 import type { WorkbookData } from '../platform/storage/storage_backend.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';

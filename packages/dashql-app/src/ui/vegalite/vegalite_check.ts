@@ -1,4 +1,4 @@
-import { stringifyError } from '@ankoh/dashql/platform/logger/logger';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { loadVega } from './vegalite_loader.js';
 import { withViewEncodings } from './vegalite_spec.js';
 

@@ -1,6 +1,6 @@
-import { getProxyErrorData, RawProxyError } from '@ankoh/dashql/platform/channel_common';
-import { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
-import { Logger, LoggableException } from '@ankoh/dashql/platform/logger/logger';
+import { getProxyErrorData, RawProxyError } from '@akohn/dashql/platform/channel_common';
+import { HttpClient, HttpFetchResult } from '@akohn/dashql/platform/http_client';
+import { Logger, LoggableException } from '@akohn/dashql/platform/logger/logger';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
 import { nativeProxyFetch } from '../electron_native_fetch.js';
 

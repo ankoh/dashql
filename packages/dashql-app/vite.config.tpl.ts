@@ -35,14 +35,14 @@ export default vite.defineConfig(({ mode, command }) => {
     const includesBrowserTests = mode === 'pages' || mode === 'development' || isCoverageBuild;
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
-    // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website.
+    // The package root of @akohn/dashql-ui, the code, tokens and fonts shared with the website.
     // A source package: the dev server reads packages/dashql-ui, Vite watches it and updates the page in place.
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
-    // The package root of @ankoh/dashql, the bindings of the core module, the runtime and its platforms. A source package
-    // like @ankoh/dashql-ui: the dev server reads packages/dashql.
+    // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms. A source package
+    // like @akohn/dashql-ui: the dev server reads packages/dashql.
     const DASHQL_PATH = path.resolve(rootDir, "__DASHQL_PATH__");
-    // The generated packages of the core module that the bindings import, folders of Bazel: @ankoh/dashql-wasm, the
-    // glue and the Wasm of the core and of the dataflow layout, and @ankoh/dashql-flatbuffers
+    // The generated packages of the core module that the bindings import, folders of Bazel: @akohn/dashql-wasm, the
+    // glue and the Wasm of the core and of the dataflow layout, and @akohn/dashql-flatbuffers
     const DASHQL_GENERATED_PATH = path.resolve(rootDir, "__DASHQL_GENERATED_PATH__");
     const DASHQL_WASM_PATH = path.join(DASHQL_GENERATED_PATH, 'dashql-wasm');
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
@@ -58,7 +58,7 @@ export default vite.defineConfig(({ mode, command }) => {
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
     const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
-    // The tests of the runtime and of the platform of @ankoh/dashql, relative to src/tests/test_modules.ts like the globs
+    // The tests of the runtime and of the platform of @akohn/dashql, relative to src/tests/test_modules.ts like the globs
     // they replace
     const dashqlTestPatterns = includesBrowserTests && command === 'build'
         ? nodeFs.readFileSync(path.join(rootDir, 'dashql_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
@@ -241,7 +241,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 transform(code: string, id: string): string | undefined {
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
-                    // The tests of @ankoh/dashql are named dashql/src/<path>, see src/tests/test_modules.ts
+                    // The tests of @akohn/dashql are named dashql/src/<path>, see src/tests/test_modules.ts
                     const dashqlIndex = cleanId.lastIndexOf('/dashql/src/');
                     const sourceIndex = cleanId.lastIndexOf('/src/');
                     if (sourceIndex < 0) return;
@@ -314,24 +314,24 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         resolve: {
             alias: [
-                { find: /^@ankoh\/dashql$/, replacement: path.join(DASHQL_PATH, 'src/core/index.ts') },
-                { find: /^@ankoh\/dashql\/buffers$/, replacement: path.join(DASHQL_PATH, 'src/core/buffers.ts') },
-                { find: /^@ankoh\/dashql\/browser-worker$/, replacement: path.join(DASHQL_PATH, 'src/core/browser_worker.ts') },
+                { find: /^@akohn\/dashql$/, replacement: path.join(DASHQL_PATH, 'src/core/index.ts') },
+                { find: /^@akohn\/dashql\/buffers$/, replacement: path.join(DASHQL_PATH, 'src/core/buffers.ts') },
+                { find: /^@akohn\/dashql\/browser-worker$/, replacement: path.join(DASHQL_PATH, 'src/core/browser_worker.ts') },
                 // The script of the core batch worker, for pages that start it from a blob: URL (the embed)
-                { find: /^@ankoh\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },
-                { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
-                { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
-                { find: /^@ankoh\/dashql\/(runtime|platform)\/(.+)$/, replacement: path.join(DASHQL_PATH, 'src/$1/$2.ts') },
-                { find: /^@ankoh\/dashql-wasm\/(.+)$/, replacement: path.join(DASHQL_WASM_PATH, '$1') },
-                { find: /^@ankoh\/dashql-flatbuffers\/(.+)$/, replacement: path.join(DASHQL_GENERATED_PATH, 'dashql-flatbuffers/$1') },
-                { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
-                { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
+                { find: /^@akohn\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },
+                { find: /^@akohn\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
+                { find: /^@akohn\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
+                { find: /^@akohn\/dashql\/(runtime|platform)\/(.+)$/, replacement: path.join(DASHQL_PATH, 'src/$1/$2.ts') },
+                { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(DASHQL_WASM_PATH, '$1') },
+                { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(DASHQL_GENERATED_PATH, 'dashql-flatbuffers/$1') },
+                { find: /@akohn\/dashql-protobuf/, replacement: PROTOBUF_PATH },
+                { find: /@akohn\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
-                    find: /^@ankoh\/dashql\/wasm(\?.*)?$/,
+                    find: /^@akohn\/dashql\/wasm(\?.*)?$/,
                     replacement: path.join(DASHQL_WASM_PATH, 'dashql_core.wasm') + "$1",
                 },
                 {
-                    find: /^@ankoh\/dashql\/dataflow-wasm(\?.*)?$/,
+                    find: /^@akohn\/dashql\/dataflow-wasm(\?.*)?$/,
                     replacement: path.join(DASHQL_WASM_PATH, 'dashql_dataflow.wasm') + "$1",
                 },
                 {
@@ -344,7 +344,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@dashql\/hyperdb-wasm\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/hyperdb-wasm.wasm.br') + '?url',
                 },
-                { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
+                { find: /@akohn\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 { find: /^@dashql\/snippets/, replacement: SNIPPETS_PATH },
                 { find: /^@dashql\/extensions/, replacement: EXTENSIONS_PATH },
                 {

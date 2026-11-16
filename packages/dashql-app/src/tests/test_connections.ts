@@ -1,9 +1,9 @@
-import type * as core from '@ankoh/dashql';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import type { QueryMetadata } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { createTestConnection, setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import type * as core from '@akohn/dashql';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { QueryMetadata } from '@akohn/dashql/platform/query/query_execution_state';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { createTestConnection, setupTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 
 /// A connection of a test of the app, created in the runtime of the app
 export interface TestConnectionSpec {

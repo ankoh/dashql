@@ -1,5 +1,5 @@
 {
-  "name": "@ankoh/dashql",
+  "name": "@akohn/dashql",
   "version": "0.0.2-dev.17",
   "description": "DashQL in TypeScript: the WebAssembly bindings of its SQL core, its runtime and the platforms of the runtime",
   "type": "module",

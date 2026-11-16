@@ -36,24 +36,24 @@ js_library(
 )
 
 # npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).
-# Dashql-app uses this plus //packages/dashql-app:ankoh_overlay via NODE_PATH (two entries), no copy_to_directory merge.
+# Dashql-app uses this plus //packages/dashql-app:akohn_overlay via NODE_PATH (two entries), no copy_to_directory merge.
 npm_link_all_packages(name = "node_modules")
 
 # DashQL in TypeScript, the bindings of the core module, the runtime and its platforms, shared by //packages/dashql-app
 # and the command line tool. The sources with the generated Wasm, see //packages/dashql.
 npm_link_package(
-    name = "node_modules/@ankoh/dashql",
+    name = "node_modules/@akohn/dashql",
     src = "//packages/dashql:source_package",
 )
 
 # The library of the embedded Hyper of hyperdb-wasm, the runtime checks the WebAssembly of Node with it.
 npm_link_package(
-    name = "node_modules/@ankoh/hyperdb-edge",
+    name = "node_modules/@akohn/hyperdb-edge",
     src = "//packages/hyperdb-edge:npm_package",
 )
 
 # The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(
-    name = "node_modules/@ankoh/dashql-ui",
+    name = "node_modules/@akohn/dashql-ui",
     src = "//packages/dashql-ui:npm_package",
 )

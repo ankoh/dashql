@@ -2,7 +2,7 @@ import { tags as t } from '@lezer/highlight';
 import { createTheme } from './theme.js';
 
 /// The Xcode theme of the editors, in the color scheme of the app.
-/// The colors are the --code_* tokens of @ankoh/dashql-ui/styles/tokens.css, which pick the light or the dark
+/// The colors are the --code_* tokens of @akohn/dashql-ui/styles/tokens.css, which pick the light or the dark
 /// Xcode palette with light-dark(). The editors switch with the color scheme without being reconfigured.
 export const xcodeTheme = createTheme({
     settings: {

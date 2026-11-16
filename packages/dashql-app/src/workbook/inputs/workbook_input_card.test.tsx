@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql';
+import * as core from '@akohn/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { WORKBOOK_INPUT_COMMIT_DELAY_MS, WorkbookInputCard } from './workbook_input_card.js';
-import type { SessionInput } from '@ankoh/dashql/platform/workbook/workbook_inputs';
+import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 
 function setInputValue(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql';
+import type * as core from '@akohn/dashql';
 
-import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useSaveBeforeConnect } from './connection_persistence.js';
 import { useAppConfig } from '../config/app_config.js';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';

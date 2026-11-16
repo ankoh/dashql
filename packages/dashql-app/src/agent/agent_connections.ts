@@ -1,6 +1,6 @@
-import type * as core from '@ankoh/dashql';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { SessionConnections } from '@ankoh/dashql/platform/session/workbook_journal';
+import type * as core from '@akohn/dashql';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { SessionConnections } from '@akohn/dashql/platform/session/workbook_journal';
 
 import { connectionLabelParts, connectionLabelText } from '../connections/connection_label.js';
 import { listedConnections } from '../connections/connection_tree.js';

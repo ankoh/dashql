@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { Tooltip, showTooltip } from '@codemirror/view';
 import { Transaction, StateField } from '@codemirror/state';

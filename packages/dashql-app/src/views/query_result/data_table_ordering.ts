@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import type { OrderByConstraint, TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
+import type { OrderByConstraint, TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import type { ComputationDispatch } from './use_cross_filters.js';
 
 export function getColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {

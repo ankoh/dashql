@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql';
+import * as dashql from '@akohn/dashql';
 
 import { Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
@@ -6,7 +6,7 @@ import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpda
 import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, comparePatches } from './dashql_completion_patches.js';
 
-import symbols from '@ankoh/dashql-svg-symbols';
+import symbols from '@akohn/dashql-svg-symbols';
 
 import * as styles from './dashql_completion_hint.module.css';
 

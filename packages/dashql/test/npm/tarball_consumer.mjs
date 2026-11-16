@@ -15,7 +15,7 @@ const consumer = await mkdtemp(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql
 const env = { ...process.env, NODE_PATH: '', NODE_OPTIONS: '' };
 
 try {
-    const packageDir = join(consumer, 'node_modules/@ankoh/dashql');
+    const packageDir = join(consumer, 'node_modules/@akohn/dashql');
     const tarball = await readFile(join(pkg, 'dashql.tgz'));
     assert.deepEqual(tarball, await readFile(join(pkg, 'dashql-rebuilt.tgz')), 'archive actions must be byte-reproducible');
     const archive = gunzipSync(tarball);
@@ -65,7 +65,7 @@ try {
     for (const file of ['consumer.mjs', 'consumer.mts']) {
         await cp(join(tests, file), join(consumer, file));
     }
-    assert.deepEqual((await readdir(join(consumer, 'node_modules'))).sort(), ['@ankoh', 'flatbuffers']);
+    assert.deepEqual((await readdir(join(consumer, 'node_modules'))).sort(), ['@akohn', 'flatbuffers']);
     const runtime = spawnSync(process.execPath, [join(consumer, 'consumer.mjs')], { cwd: consumer, env, encoding: 'utf8' });
     assert.equal(runtime.status, 0, runtime.error?.message ?? `${runtime.stdout}\n${runtime.stderr}`);
     console.log(runtime.stdout.trim());

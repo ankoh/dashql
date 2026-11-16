@@ -5,7 +5,7 @@ import { findResizableColumn, MIN_RESIZED_COLUMN_WIDTH, type DataTableColumnResi
 import { createTestRoot } from '../../tests/react_root.js';
 import * as styles from './data_table.module.css';
 import type { DataTableLayout } from './data_table_layout.js';
-import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 function createLayout(columnXOffsets: number[]): DataTableLayout {
     const columnCount = columnXOffsets.length - 1;

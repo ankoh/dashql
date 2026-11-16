@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useCloudConnections } from '../connections/cloud_connection.js';
 import { cloudDatabaseOf, useCloudQuery } from './cloud_query.js';
 import { readCloudStats, type CloudStats } from './cloud_store.js';
