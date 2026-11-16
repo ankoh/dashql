@@ -31,6 +31,7 @@ import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scrip
 import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import {
+    useCatalog,
     useOptionalRuntime,
     useRuntime,
     useScriptRun,
@@ -194,9 +195,9 @@ export interface ComposerCore {
 export function useComposerCore(workbookId: string, connectionId: string | null): ComposerCore | null {
     const runtime = useOptionalRuntime();
     const instance = runtime?.core ?? null;
+    const catalog = useCatalog(connectionId);
     return React.useMemo(() => {
         if (runtime == null || instance == null || connectionId == null) return null;
-        const catalog = runtime.catalog(connectionId);
         if (catalog == null) return null;
         return {
             instance,
@@ -204,7 +205,7 @@ export function useComposerCore(workbookId: string, connectionId: string | null)
             tableParameters: { attach: session => runtime.attachTableParameters(workbookId, session) },
             connectorType: runtime.connection(connectionId)?.connectorType as ConnectorType | undefined ?? null,
         };
-    }, [runtime, instance, workbookId, connectionId]);
+    }, [runtime, instance, workbookId, connectionId, catalog]);
 }
 
 /// Wobble moves more and faster on the empty workbook than by default, it is the only thing moving on the page

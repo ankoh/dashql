@@ -45,16 +45,25 @@ export async function setTestConnectionHealth(runtime: Runtime, connectionId: st
     }
 }
 
-/// Track a query of a test in a history of the runtime: a connection or a history without one. A finished query
-/// succeeded. Returns its id.
-export function trackTestQuery(runtime: Runtime, target: core.Target, text: string, metadata: QueryMetadata, finished: boolean): number {
-    const tracked = runtime.dispatch(target, { kind: 'trackQuery', value: { traceId: 1, text, metadata: metadata as core.QueryMetadataView } });
-    if (!tracked.ok || typeof tracked.id !== 'number') throw new Error(tracked.error ?? 'the query was not tracked');
-    const queryId = tracked.id;
-    runtime.dispatch(target, { kind: 'queryRunning', value: { queryId } });
-    if (finished) runtime.dispatch(target, { kind: 'querySucceeded', value: { queryId } });
+/// Run a query of a test on a connection with the query executor of the module, past the query commands that a test
+/// replaces. A finished query fails before it runs, like a statement whose plan failed; an active one runs on the
+/// channel of the connection until it is cancelled, e.g. on a `pendingTestChannel`. Returns its id.
+export function runTestQuery(runtime: Runtime, connectionId: string, text: string, metadata: QueryMetadata, finished: boolean): number {
+    const failure = finished ? new Error('the query of the test ended') : undefined;
+    const ticket = runtime.module.executeQuery(connectionId, { text, metadata: metadata as core.QueryMetadataView, traceId: 1 }, failure, null);
+    void ticket.done.catch(() => { });
     runtime.flush();
-    return queryId;
+    return ticket.queryId;
+}
+
+/// A channel of a test whose queries run until they are cancelled
+export function pendingTestChannel(): object {
+    return {
+        executeQuery: (_params: unknown, abort?: AbortSignal) => new Promise((_resolve, reject) => {
+            abort?.addEventListener('abort', () => reject(abort.reason), { once: true });
+        }),
+        close: () => { },
+    };
 }
 
 /// Add the connections of fakes of a test to the runtime: their ids, params, names and health

@@ -10,16 +10,16 @@
         "jsx": "react-jsx",
         "paths": {
             "@ankoh/dashql-protobuf": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf"
+                "./bazel-bin/packages/dashql/dependencies/dashql-protobuf"
             ],
             "@ankoh/dashql-protobuf/*": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf/*"
+                "./bazel-bin/packages/dashql/dependencies/dashql-protobuf/*"
             ],
             "@ankoh/dashql-jsonschema": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema"
+                "./bazel-bin/packages/dashql/dependencies/dashql-jsonschema"
             ],
             "@ankoh/dashql-jsonschema/*": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema/*"
+                "./bazel-bin/packages/dashql/dependencies/dashql-jsonschema/*"
             ],
             "@ankoh/dashql": [
                 "./packages/dashql/src/core/index.ts"
@@ -29,6 +29,12 @@
             ],
             "@ankoh/dashql/browser-worker": [
                 "./packages/dashql/src/core/browser_worker.ts"
+            ],
+            "@ankoh/dashql/runtime": [
+                "./packages/dashql/src/runtime/runtime.ts"
+            ],
+            "@ankoh/dashql/node": [
+                "./packages/dashql/src/runtime/node/node_platform.ts"
             ],
             "@ankoh/dashql/runtime/*": [
                 "./packages/dashql/src/runtime/*.ts"

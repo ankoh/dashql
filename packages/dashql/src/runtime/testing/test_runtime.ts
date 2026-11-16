@@ -6,7 +6,7 @@ import type { OAuthFlow } from '../../platform/oauth/oauth_flow.js';
 import type { EmbeddedComputeDatabase } from '../../platform/platform/database/embedded_database.js';
 import type { HttpClient } from '../../platform/platform/http/http_client.js';
 import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
-import { createRuntime, type Runtime, type RuntimePlatform } from '../runtime.js';
+import { createRuntime, type Runtime, type RuntimeOptions } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import type { StorageBackend, WorkbookData } from '../../platform/storage/storage_backend.js';
 import { storageVersions } from '../../platform/storage/storage_versions.js';
@@ -153,7 +153,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
     const offline = () => { throw new Error('the test has no network'); };
     const logger = new TestLogger();
     const instance = await testCore();
-    const platform: RuntimePlatform = {
+    const platform: RuntimeOptions = {
         logger,
         storage: options.storage ?? new WorkbookTestBackend(),
         http: options.http ?? ({ fetch: offline } as HttpClient),

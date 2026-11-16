@@ -84,6 +84,30 @@ describe('the workbooks of the runtime', () => {
         expect(storage.workbooks.get(workbookId)).toMatchObject({ scripts: [] });
     });
 
+    it('lists a file that is attached while its workbook is held, the file follows with the release', async () => {
+        const storage = new WorkbookTestBackend();
+        const rt = runtime = await createTestRuntime({ storage });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { workbookId } = rt.addWorkbook(TEST_CONNECTION_ID, [['sales.sql', 'select 1;']], { name: 'Held' });
+        await rt.storage.flush();
+
+        rt.storage.hold('externalChange', workbookId);
+        const outcome = await rt.attachFiles(workbookId, [{ name: 'orders.parquet', file: new TextEncoder().encode('abc') }]);
+        expect(outcome.attached).toEqual([{ name: 'orders.parquet', fileName: 'orders.parquet' }]);
+        expect(await storage.listDataFiles(workbookId)).toEqual([]);
+        // The write waits for the hold, the view lists the file all the same
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => [attachment.fileName, attachment.sizeBytes])).toEqual([['orders.parquet', 3]]);
+        // A refresh during the hold keeps it
+        await rt.refreshAttachments(workbookId);
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => attachment.fileName)).toEqual(['orders.parquet']);
+
+        rt.storage.release('externalChange', workbookId);
+        await rt.storage.flush();
+        expect((await storage.listDataFiles(workbookId)).map(file => file.name)).toEqual(['orders.parquet']);
+        await rt.refreshAttachments(workbookId);
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => [attachment.fileName, attachment.sizeBytes])).toEqual([['orders.parquet', 3]]);
+    });
+
     it('attaches files through the storage writer and lists them in the view of the workbook', async () => {
         const storage = new WorkbookTestBackend();
         const rt = runtime = await createTestRuntime({ storage });
@@ -234,7 +258,7 @@ describe('the workbooks of the runtime', () => {
         const rt = runtime = await createTestRuntime();
         await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
         // A restored workbook is not analyzed yet
-        const workbook = await restoreTestWorkbook(rt, rt.platform.storage!, [
+        const workbook = await restoreTestWorkbook(rt, rt.options.storage!, [
             ['a.sql', 'select 1;', TEST_CONNECTION_ID], ['b.sql', 'select 2;', TEST_CONNECTION_ID], ['c.sql', 'select 3;', TEST_CONNECTION_ID],
         ]);
         const [a, b, c] = workbook.scriptKeys;

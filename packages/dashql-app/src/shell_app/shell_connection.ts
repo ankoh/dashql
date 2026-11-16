@@ -3,8 +3,8 @@ import { connectEmbeddedHyper } from '@ankoh/dashql/platform/connections/embedde
 import type { HyperParamsLike } from '@ankoh/dashql/platform/connections/hyper/local_cloud';
 import type { EmbeddedDatabaseSetupFn } from '../platform/database/embedded_database_provider.js';
 
-/// The channels of the runtime of the shell: the embedded Hyper of the page. The shell runs its statements on the
-/// session of its connection (`connectEmbeddedSession`), the catalog loader of the runtime follows them.
+/// The channels of the runtime of the shell: the embedded Hyper of the page. The shell runs its statements with the
+/// query executor of the runtime on its connection (`connectEmbeddedSession`), the catalog loader follows them.
 export function shellChannelConnector(setupEmbeddedDatabase: EmbeddedDatabaseSetupFn): ChannelConnector {
     return {
         connect: async (_connectionId, request) => {

@@ -294,6 +294,8 @@ js_test(
 js_test(
     name = "editor_config_test",
     data = _SOURCES + [
+        "npm/package.json",
+        "package.json",
         "tsconfig.json",
         "//:package.json",
         "//:tsconfig_json",

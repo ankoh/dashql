@@ -202,7 +202,7 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
         };
         options = { channelParams };
     }
-    const cancel = () => rt.module.cancelSetup(conn.connectionId);
+    const cancel = () => rt.cancelSetup(conn.connectionId);
     signal.addEventListener('abort', cancel, { once: true });
     try {
         const outcome = await rt.setupConnection(conn.connectionId, {
@@ -449,7 +449,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
 
         // The run stops on an interrupt
-        const stopRun = () => runtime.module.stopRun(workbookId);
+        const stopRun = () => runtime.stopRun(workbookId);
         stop.signal.addEventListener('abort', stopRun, { once: true });
         let run: RunResult | null = null;
         try {

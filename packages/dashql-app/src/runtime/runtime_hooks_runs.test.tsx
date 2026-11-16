@@ -249,12 +249,15 @@ describe('the runs of workbooks in the app', () => {
         await render('second');
         await start(fixtures[1]);
         await render('second', false, false);
-        for (const f of fixtures) {
-            expect(f.signal?.aborted).toBe(true);
-            expect(f.aborted).toHaveBeenCalledTimes(1);
-            expect(f.stream.cancel).toHaveBeenCalledTimes(1);
-            expect(f.executeQuery).toHaveBeenCalledTimes(1);
-        }
+        // The runtime goes in a task after the provider unmounted
+        await vi.waitFor(() => {
+            for (const f of fixtures) {
+                expect(f.signal?.aborted).toBe(true);
+                expect(f.aborted).toHaveBeenCalledTimes(1);
+                expect(f.stream.cancel).toHaveBeenCalledTimes(1);
+                expect(f.executeQuery).toHaveBeenCalledTimes(1);
+            }
+        });
     });
 
 });

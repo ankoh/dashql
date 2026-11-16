@@ -5,10 +5,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as core from '@ankoh/dashql';
 
 import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
-import { SHELL_QUERY_HISTORY_LIMIT } from './shell_query_history.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
 import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
-import { trackTestQuery } from '../tests/test_connections.js';
+import { runTestQuery } from '../tests/test_connections.js';
 import { testShellHistory, type TestShellHistory } from '../tests/test_shell_history.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -18,7 +17,7 @@ beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQ
 
 /// Run a query of the shell to its end, returns its id
 function runShellQuery(history: TestShellHistory, n: number): number {
-    return trackTestQuery(history.runtime, history.tracker.target, `SELECT ${n}`, {
+    return runTestQuery(history.runtime, history.connectionId, `SELECT ${n}`, {
         queryType: QueryType.USER_PROVIDED,
         title: 'Shell Query',
         description: null,
@@ -42,7 +41,7 @@ describe('useShellQueryResult', () => {
         container.remove();
     });
 
-    it('keeps the computation of the open result after shell history evicts its query', () => {
+    it('keeps the computation of the open result after its query left the history', () => {
         const history = testShellHistory(dql);
         const first = runShellQuery(history, 1);
 
@@ -56,8 +55,10 @@ describe('useShellQueryResult', () => {
         act(() => result.showResultQuery(first));
         expect(result.resultQuery?.queryId).toBe(first);
 
+        // A reset of the connection clears its history
         act(() => {
-            for (let n = 2; n <= SHELL_QUERY_HISTORY_LIMIT + 1; ++n) runShellQuery(history, n);
+            history.runtime.dispatch({ connection: history.connectionId }, { kind: 'resetConnection' });
+            history.runtime.flush();
         });
 
         // The view of the query left with the history, its computation stays until another result replaces it

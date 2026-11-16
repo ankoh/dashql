@@ -135,25 +135,6 @@ export class EmbeddedDatabaseChannel {
         }
     }
 
-    /// The session of the channel for statements that the host runs itself, e.g. the statements of the shell. They take
-    /// their turns with the queries of the channel, the session stays with the channel.
-    session(): EmbeddedConnection {
-        const inTurn = async <T>(abort: AbortSignal | undefined, run: () => Promise<T>): Promise<T> => {
-            const release = await this.turn(abort);
-            try {
-                return await run();
-            } finally {
-                release();
-            }
-        };
-        return {
-            query: (query, abort) => inTurn(abort, () => this.connection.query(query, abort)),
-            execute: (statement, abort) => inTurn(abort, () => this.connection.execute(statement, abort)),
-            queryStream: () => Promise.reject(new Error('the session of a channel streams no results, the channel does')),
-            close: () => Promise.reject(new Error('the session of a channel closes with the channel')),
-        };
-    }
-
     async close(): Promise<void> {
         await this.connection.close();
     }
@@ -173,11 +154,6 @@ export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
 
     async close(): Promise<void> {
         await this.channel.close();
-    }
-
-    /// The session of the channel, see `EmbeddedDatabaseChannel.session`
-    session(): EmbeddedConnection {
-        return this.channel.session();
     }
 }
 

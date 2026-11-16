@@ -54,8 +54,8 @@ class TestSetups {
     private readonly hyper = new Map<string, TestSetup>();
 
     constructor(runtime: Runtime) {
-        const channels = runtime.platform.channels ?? null;
-        const http = runtime.platform.http ?? null;
+        const channels = runtime.options.channels ?? null;
+        const http = runtime.options.http ?? null;
         const connector: ChannelConnector = {
             connect: async (connectionId, request) => {
                 const setup = this.setups.get(connectionId);
@@ -73,7 +73,7 @@ class TestSetups {
             hyperLinkToken: connectionId => channels?.hyperLinkToken?.(connectionId) ?? null,
         };
         // The platform of a test is the test's, the runtime asks it for every channel and request
-        runtime.platform.channels = connector;
+        runtime.options.channels = connector;
         const fetch: HttpClient['fetch'] = async (input, init) => {
             const url = input instanceof Request ? input.url : input.toString();
             for (const [endpoint, setup] of this.trino) {
@@ -85,7 +85,7 @@ class TestSetups {
             if (http == null) throw new Error('the test has no network');
             return await http.fetch(input, init);
         };
-        runtime.platform.http = { fetch };
+        runtime.options.http = { fetch };
     }
 
     /// Prepare the setup of a connection

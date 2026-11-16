@@ -729,7 +729,10 @@ describe('DashQL shell Wasm', () => {
         try {
             database = await setupWebHyperDB('shell_api_test', new TestLogger());
             connection = await database.connect();
-            const environment = createEmbeddedDatabaseShellEnvironment(connection);
+            // An executor that runs the statements on the connection of the test
+            const session = connection;
+            let queryId = 0;
+            const environment = createEmbeddedDatabaseShellEnvironment((_connectionId, args) => [++queryId, session.query(args.query)], 'shell');
             executeQuery = (query, signal, onResult) => environment.executeQuery(query, signal, undefined, onResult);
 
             await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');

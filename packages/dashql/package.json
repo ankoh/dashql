@@ -13,6 +13,8 @@
     "./wasm": "./dependencies/dashql-wasm/dashql_core.wasm",
     "./dataflow-wasm": "./dependencies/dashql-wasm/dashql_dataflow.wasm",
     "./wasm/glue": "./dependencies/dashql-wasm/dashql_core.js",
+    "./runtime": "./src/runtime/runtime.ts",
+    "./node": "./src/runtime/node/node_platform.ts",
     "./runtime/*": "./src/runtime/*.ts",
     "./platform/*": "./src/platform/*.ts"
   }

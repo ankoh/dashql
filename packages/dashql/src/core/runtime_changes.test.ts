@@ -36,7 +36,7 @@ const stable = (view: unknown) =>
     JSON.stringify(view, (_key, value) => (value instanceof Uint8Array ? Array.from(value) : typeof value === 'bigint' ? value.toString() : value));
 
 /// Every slice of the runtime as `kind:id` with its view as text: the lists, the connections with their queries, the
-/// history of the shell with its queries, the workbooks with their scripts, what they derive and their runs, the storage
+/// workbooks with their scripts, what they derive and their runs, the storage
 function snapshot(runtime: dashql.Runtime): Map<string, string> {
     const out = new Map<string, string>();
     const put = (kind: string, id: unknown, view: unknown) => {
@@ -50,9 +50,6 @@ function snapshot(runtime: dashql.Runtime): Map<string, string> {
         put('connection', connectionId, connection);
         queries([...(connection?.queriesActiveOrdered ?? []), ...(connection?.queriesFinishedOrdered ?? [])]);
     }
-    const shell = viewOf(runtime, 'history', 'shell');
-    put('history', 'shell', shell);
-    queries(shell?.queries ?? []);
     const workbooks = viewOf(runtime, 'workbookList', 'root');
     put('workbookList', 'root', workbooks);
     for (const { workbookId } of workbooks?.workbooks ?? []) {
@@ -106,7 +103,6 @@ describe('The changes of the runtime', () => {
         const file = (runtime: dashql.Runtime, index: number) => viewOf(runtime, 'workbook', 'w')!.scriptOrder[index];
         const workbook = (action: dashql.RuntimeAction) => (runtime: dashql.Runtime) => runtime.dispatch({ workbook: 'w' }, action);
         const connection = (id: string, action: dashql.RuntimeAction) => (runtime: dashql.Runtime) => runtime.dispatch({ connection: id }, action);
-        const shell = (action: (id: number) => dashql.RuntimeAction) => (runtime: dashql.Runtime) => runtime.dispatch({ history: 'shell' }, action(queryId));
         const hyper = (connectionId: string): dashql.RuntimeAction =>
             ({ kind: 'createConnection', value: { connectionId, connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
         const trino = (connectionId: string): dashql.RuntimeAction =>
@@ -144,32 +140,16 @@ describe('The changes of the runtime', () => {
             ['rename', connection('main', { kind: 'rename', value: { name: 'Main' } })],
             ['setQueryResultCaching', connection('main', { kind: 'setQueryResultCaching', value: { caching: false } })],
             ['saveConnection', rt => rt.saveConnection('main', { hyper: { protocol: 'WASM', endpoint: 'saved' } })],
-            ['createHistory', rt => rt.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 2 } })],
-            ['trackQuery', rt => {
-                const tracked = rt.dispatch({ connection: 'main' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY } });
-                queryId = tracked.id as number;
+            // A query whose plan failed is in the history of its connection, it fails without running
+            ['executeQuery', async rt => {
+                const ticket = rt.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, new Error('the plan failed'), null);
+                queryId = ticket.queryId;
+                await ticket.done;
             }],
-            ['querySending', rt => rt.dispatch({ connection: 'main' }, { kind: 'querySending', value: { queryId } })],
-            ['queryRunning', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryRunning', value: { queryId } })],
-            ['queryReceivedAllBatches', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryReceivedAllBatches', value: { queryId, table: platform.platform.handles.register('t'), rows: 2 } })],
-            ['queryProcessingResults', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryProcessingResults', value: { queryId } })],
-            ['queryProcessedResults', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryProcessedResults', value: { queryId } })],
-            ['querySucceeded', rt => rt.dispatch({ connection: 'main' }, { kind: 'querySucceeded', value: { queryId } })],
             ['queryCacheDeleted', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryCacheDeleted', value: { queryId } })],
-            ['trackQuery', rt => {
-                const tracked = rt.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 2, text: 'select 2', metadata: USER_QUERY } });
-                queryId = tracked.id as number;
-            }],
-            ['queryFailed', shell(id => ({ kind: 'queryFailed', value: { queryId: id, message: 'failed' } }))],
-            ['trackQuery', rt => {
-                const tracked = rt.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 3, text: 'select 3', metadata: USER_QUERY } });
-                queryId = tracked.id as number;
-            }],
-            ['queryCancelled', shell(id => ({ kind: 'queryCancelled', value: { queryId: id, message: 'cancelled' } }))],
             ['resetConnection', connection('main', { kind: 'resetConnection' })],
             ['deleteScript', rt => workbook({ kind: 'deleteScript', value: { fileName: file(rt, 0) } })(rt)],
             ['deleteConnection', connection('second', { kind: 'deleteConnection' })],
-            ['dropHistory', rt => rt.dispatch({ history: 'shell' }, { kind: 'dropHistory' })],
             ['deleteWorkbook', rt => rt.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId: 'w' } })],
         ];
         const unchanged: string[] = [];
@@ -187,7 +167,6 @@ describe('The changes of the runtime', () => {
         // Every step of the scenario changed a view but these: a script without a chart takes no spec, an analysis that is
         // current stays, an attachment that is no file of the storage keeps its name
         expect(unchanged).toEqual(['setScriptVisSpec', 'analyzeOutdatedScript', 'renameAttachment']);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -220,7 +199,6 @@ describe('The changes of the runtime', () => {
         expect(next).toEqual(expect.arrayContaining(['workbook:w', `script:${key}`]));
         expect(next.some(change => change.endsWith(' gone'))).toBe(false);
         expect(viewOf(runtime, 'workbook', 'w')!.name).toBe('Busy');
-        runtime.destroy();
         runtime.free();
     });
 
@@ -244,7 +222,6 @@ describe('The changes of the runtime', () => {
         const revision = (changes: dashql.SliceChange[], kind: string) => changes.find(change => change.kind === kind)?.revision;
         expect(revision(first, 'script')).toBeDefined();
         expect(runtime.takeChanges().changes).toEqual([]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -255,8 +232,8 @@ describe('The changes of the runtime', () => {
         runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
         runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
-        const tracked = runtime.dispatch({ connection: 'main' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY } });
-        const queryId = tracked.id as number;
+        const execute = () => runtime.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, new Error('the plan failed'), null).queryId;
+        let queryId = execute();
         // A change of inputs waits for the compute database in the run slice of the workbook
         void runtime.runWorkbook('w', { inputs: ['limit'] }, null);
         runtime.takeChanges();
@@ -288,7 +265,8 @@ describe('The changes of the runtime', () => {
         for (const [part, busy] of parts) {
             // Every kind is marked, the take reads what it can while the part is held
             runtime.dispatch({ connection: 'main' }, { kind: 'rename', value: { name: part } });
-            runtime.dispatch({ connection: 'main' }, { kind: 'querySending', value: { queryId } });
+            // A new query of the connection, its plan failed
+            queryId = execute();
             runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: key, text: `select '${part}'` } });
             runtime.resync('computation', [1]);
             runtime.resync('run', ['w']);
@@ -308,11 +286,10 @@ describe('The changes of the runtime', () => {
             expect(Object.values(all()).flat().includes('busy')).toBe(false);
         }
         expect(viewOf(runtime, 'run', 'w')).toMatchObject({ pendingInputs: ['limit'] });
-        runtime.destroy();
         runtime.free();
     });
 
-    it('drop the run slice of a workbook that is deleted, also when a workbook of the same id comes back', () => {
+    it('drop the run slice of a workbook that is deleted, also when a workbook of the same id comes back', async () => {
         const platform = testPlatform();
         const runtime = dql!.createRuntime(platform.platform);
         runtime.runCatalogLoader(false);
@@ -335,44 +312,67 @@ describe('The changes of the runtime', () => {
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
         void runtime.runWorkbook('w', { inputs: ['limit'] }, null);
         runtime.takeChanges();
-        runtime.destroy();
+        await runtime.shutdown();
         expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toContain('run:w');
         expect(viewOf(runtime, 'run', 'w')).toMatchObject({ pendingInputs: [] });
         runtime.free();
     });
 
-    it('move only the query that changed, and keep the releases while a slice is busy', () => {
+    it('move only the query that changed, and keep the releases while a slice is busy', async () => {
         const platform = testPlatform();
+        // A channel of the host whose messages the test sends, the result is a table of the handle table
+        const handles = platform.platform.handles;
+        const messages: ((message: dashql.RuntimeChannelMessage) => void)[] = [];
+        const metrics: dashql.QueryStreamMetrics = {
+            totalDataBytesReceived: 0, totalBatchesReceived: 1, totalRowsReceived: 3, totalQueryRequestsStarted: 1,
+            totalQueryRequestsSucceeded: 1, totalQueryRequestsFailed: 0, totalQueryRequestDurationMs: 5, durationUntilFirstBatchMs: 2,
+        };
+        platform.platform.tables = {
+            ...platform.platform.tables,
+            open: () => handles.register('table'),
+            push: () => { },
+            finish: () => ({ rows: 3, bytes: 0, columns: 1, batches: 1 }),
+        };
+        platform.platform.channels = {
+            ...platform.platform.channels,
+            describe: async () => ({ type: 'host' }),
+            open: async () => true,
+            next: () => new Promise(resolve => messages.push(resolve)),
+        };
         const runtime = dql!.createRuntime(platform.platform);
         runtime.runCatalogLoader(false);
         runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'main', connectorType: dashql.ConnectorType.HYPER, setupParams: { protocol: 'WASM', endpoint: '' } } });
         runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
-        runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 10 } });
-        const record = platform.platform.handles.register('record');
-        const tracked = runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: record } });
-        const queryId = tracked.id as number;
+        const ticket = runtime.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, undefined, null);
+        const queryId = ticket.queryId;
         expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toEqual(
-            expect.arrayContaining(['history:shell', `query:${queryId}`]));
+            expect.arrayContaining(['connection:main', `query:${queryId}`]));
 
-        // A change of a running query moves the query, not its history
-        runtime.dispatch({ history: 'shell' }, { kind: 'querySending', value: { queryId } });
+        // A batch of a running query moves the query, not its connection
+        await vi.waitFor(() => expect(messages.length).toBe(1));
+        runtime.takeChanges();
+        messages.shift()!({ type: 'batch', metrics });
+        await vi.waitFor(() => expect(messages.length).toBe(1));
         expect(runtime.takeChanges().changes.map(change => `${change.kind}:${change.id}`)).toEqual([`query:${queryId}`]);
+        messages.shift()!({ type: 'end', metrics });
+        await ticket.done;
+        const table = (viewOf(runtime, 'query', queryId) as dashql.QueryView).resultTable!.id;
+        runtime.takeChanges();
 
-        // The history goes with its query while a task holds the workbook: the release of the record waits for the
-        // workbook, since a view of the last flush may still name it
+        // The query goes with the reset of its connection while a task holds the workbook: the release of its table
+        // waits for the workbook, since a view of the last flush may still name it
         runtime.dispatch({ workbook: 'w' }, { kind: 'renameWorkbook', value: { name: 'Busy' } });
-        runtime.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
+        runtime.dispatch({ connection: 'main' }, { kind: 'resetConnection' });
         let held: dashql.ChangeSet | null = null;
         runtime.testHold('workbook:w', () => {
             held = runtime.takeChanges();
         });
         const releases = (changes: dashql.ChangeSet) => changes.effects.filter(effect => effect.type === 'release').map(effect => effect.handle);
-        expect(held!.changes.map(change => `${change.kind}:${change.id}`)).toEqual(expect.arrayContaining(['history:shell', `query:${queryId}`]));
+        expect(held!.changes.map(change => `${change.kind}:${change.id}`)).toEqual(expect.arrayContaining(['connection:main', `query:${queryId}`]));
         expect(releases(held!)).toEqual([]);
         const next = runtime.takeChanges();
         expect(next.changes.map(change => `${change.kind}:${change.id}`)).toContain('workbook:w');
-        expect(releases(next)).toEqual([record]);
-        runtime.destroy();
+        expect(releases(next)).toEqual([table]);
         runtime.free();
     });
 
@@ -395,7 +395,6 @@ describe('The changes of the runtime', () => {
         // A reference to another script changes what the workbook derives
         runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: key, text: 'select x\nfrom :alpha' } });
         expect(kinds()).toEqual(expect.arrayContaining(['script', 'workbookDerived']));
-        runtime.destroy();
         runtime.free();
     });
 });

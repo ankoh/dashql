@@ -130,37 +130,37 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
     };
 }
 
-/// The commands of the storage writer of the runtime over the module. A flush or a settle of a destroyed runtime has
-/// nothing to wait for.
-export class StorageWriter {
+/// The commands of the storage writer of the runtime over the module (`StorageWriter` of
+/// `packages/dashql-core-runtime/src/storage`). Once the runtime is destroyed the commands do nothing: a flush or a
+/// settle has nothing to wait for, a hold has nothing to hold and the reads are empty.
+export class StorageCommands {
     constructor(private readonly runtime: { readonly module: core.Runtime; readonly destroyed: boolean }) { }
 
-    private get module(): core.Runtime {
-        return this.runtime.module;
+    /// The module while the runtime lives, null once it is destroyed
+    private get module(): core.Runtime | null {
+        return this.runtime.destroyed ? null : this.runtime.module;
     }
 
     /// Run every pending write right away and wait until all writes ended. Writes past a pause of the writer, never past
     /// another hold, e.g. a file that changed outside the app or the handover to another tab. While the window closes
     /// (`closing`) the scripts that a change outside the app holds are kept as recovery copies next to them.
     async flush(options: { closing?: boolean } = {}): Promise<void> {
-        if (this.runtime.destroyed) return;
-        await this.module.storage({ kind: 'flush', closing: options.closing ?? false });
+        await this.module?.storage({ kind: 'flush', closing: options.closing ?? false });
     }
 
     /// Wait for the writes that started without running the pending ones
     async settle(): Promise<void> {
-        if (this.runtime.destroyed) return;
-        await this.module.storage({ kind: 'settle' });
+        await this.module?.storage({ kind: 'settle' });
     }
 
     /// Hold the writes of the writer, or of a workbook, for a reason. Holds are counted, each is released on its own.
     hold(reason: StorageHoldReason, workbookId: string | null = null): void {
-        this.module.storageHold(reason, workbookId);
+        this.module?.storageHold(reason, workbookId);
     }
 
     /// Release one hold of a reason, the pending writes wait for their debounce duration again once nothing holds them
     release(reason: StorageHoldReason, workbookId: string | null = null): void {
-        this.module.storageRelease(reason, workbookId);
+        this.module?.storageRelease(reason, workbookId);
     }
 
     /// Write nothing until `resume` or `flush`, the writes stay pending
@@ -187,28 +187,31 @@ export class StorageWriter {
 
     /// Discard the writes of keys and their failures, e.g. a write that failed because its workbook folder is gone
     discardWrites(keys: string[]): void {
-        this.module.storageDiscardWrites(keys);
+        this.module?.storageDiscardWrites(keys);
     }
 
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage. A
     /// held workbook keeps its writes pending.
     async flushWorkbook(workbookId: string): Promise<boolean> {
-        return (await this.module.storage({ kind: 'flushWorkbook', workbookId })) === true;
+        const module = this.module;
+        return module != null && (await module.storage({ kind: 'flushWorkbook', workbookId })) === true;
     }
 
     /// Delete a workbook from the storage, its pending writes are discarded. Rejects with what the storage failed with.
     async deleteWorkbook(workbookId: string): Promise<void> {
-        await this.module.storage({ kind: 'deleteWorkbook', workbookId });
+        const module = this.module;
+        if (module == null) throw new Error('the runtime was destroyed');
+        await module.storage({ kind: 'deleteWorkbook', workbookId });
     }
 
     /// Are the writes of a workbook held, e.g. after one of its files changed outside the app?
     isWorkbookHeld(workbookId: string): boolean {
-        return this.module.isWorkbookHeld(workbookId);
+        return this.module?.isWorkbookHeld(workbookId) ?? false;
     }
 
     /// The statistics of the writes of a workbook by key, read when shown
     getStatistics(workbookId: string): StorageKeyStatistics[] {
-        return this.module.storageStatistics(workbookId).map(({ key, label, statistics: value }) => ({
+        return (this.module?.storageStatistics(workbookId) ?? []).map(({ key, label, statistics: value }) => ({
             key,
             label,
             stats: {

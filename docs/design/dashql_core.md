@@ -346,6 +346,11 @@ back unchanged. A call that was cancelled fails with `HostError::cancelled()`, t
 never matches the text of a message. A `CancellationToken` keeps one waker per future that waits for it and drops it
 with the future, so a token that lives long gathers nothing. `host::signal` has a value sent once and a future that can be cancelled.
 
+**Shutdown.** `Runtime::shutdown` of the module stops the runs and the catalog loader, waits for the writes into the
+query result cache and the pending writes of the storage, drops the imports, cancels the setups and the queries, deletes
+the computations and fences `JsPlatform` (`fence`): from then on every call of the platform fails, a timer never fires
+and a task that wakes up later ends at its next call. The host takes the last changes and frees the module.
+
 **`JsPlatform`** (`packages/dashql-core-wasm/src/host.rs`) implements `Host`, `HttpHost` and `ComputeHost` once over
 the platform object. The bindings of each service implement its traits over `JsPlatform`: `QueryHost` of
 `runtime/queries.rs`, `LoaderHost` of `catalog.rs`, `RuntimeSetupHost` of `setups.rs`, `RuntimeRunHost` of `runs.rs`,

@@ -70,7 +70,7 @@ function useConnectionReader(): (connectionId: string) => ConnectionState | null
 /// Refresh the catalog of a connection, `force` refreshes the whole catalog. Without a runtime nothing is refreshed.
 function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
     const runtime = useOptionalRuntime();
-    return React.useCallback((connectionId: string, force: boolean) => runtime?.module.refreshCatalog(connectionId, force), [runtime]);
+    return React.useCallback((connectionId: string, force: boolean) => runtime?.refreshCatalog(connectionId, force), [runtime]);
 }
 
 /// The connections that a workbook uses, from the view of the workbook: the connections of its scripts, then its

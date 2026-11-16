@@ -9,22 +9,29 @@ import type { HyperDB } from '../../../platform/platform/hyperdb/hyperdb_wasm.js
 import { TASK_UPDATE_SCHEDULER } from '../../store/update_scheduler.js';
 import { createRuntime, type Runtime } from '../../runtime.js';
 import { connectEmbeddedSession, type EmbeddedSession } from './embedded_session.js';
+import { QueryType } from '../../../platform/query/query_execution_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-/// The connection of the shell: its statements run on the session of a connection of the runtime to the embedded Hyper,
-/// the catalog loader of the runtime follows them
+/// The connection of the shell: its statements run with the query executor on a connection of the runtime to the
+/// embedded Hyper, the catalog loader of the runtime follows them
 describe('a session on a connection to the embedded Hyper', () => {
     let dql: dashql.DashQL;
     let database: HyperDB;
     let runtime: Runtime;
     let session: EmbeddedSession;
     let queries: string[];
+    /// The statements of the test, the other queries are the ones of the catalog loader
+    const statements = new Set<string>();
+    const catalogQueries = () => queries.filter(query => !statements.has(query));
 
     /// Run a statement like the shell does
     const run = async (statement: string) => {
-        await session.session.query(statement);
-        await session.follow(statement);
+        statements.add(statement);
+        const metadata = { queryType: QueryType.USER_PROVIDED, title: 'Shell Query', description: null, issuer: 'DashQL Shell', userProvided: true };
+        const [, execution] = runtime.execute(session.connectionId, { query: statement, metadata, throwOnError: true });
+        await execution;
+        await runtime.settleCatalog(session.connectionId);
     };
     /// The tables of the catalog as `table(a, b)`, like completion sees them
     const tables = () => (session.catalog.describeEntries().unpack() as dashql.buffers.catalog.CatalogEntriesT).entries.flatMap(entry =>
@@ -50,7 +57,6 @@ describe('a session on a connection to the embedded Hyper', () => {
                             return channel.executeQuery(params as never, abort);
                         },
                         close: () => channel.close(),
-                        session: () => channel.session(),
                     };
                 },
             },
@@ -82,11 +88,10 @@ describe('a session on a connection to the embedded Hyper', () => {
         await run('create table shell_one (a int)');
         queries.length = 0;
         await run('select * from shell_one');
-        await session.follow('vacuum everything');
-        expect(queries).toEqual([]);
+        expect(catalogQueries()).toEqual([]);
         await run('create table shell_two (b int)');
-        expect(queries.length).toBeGreaterThan(0);
-        expect(queries.every(query => query.includes("c.relname = 'shell_two'"))).toBe(true);
+        expect(catalogQueries().length).toBeGreaterThan(0);
+        expect(catalogQueries().every(query => query.includes("c.relname = 'shell_two'"))).toBe(true);
         await run('drop table shell_one');
         await run('drop table shell_two');
     });

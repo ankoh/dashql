@@ -169,7 +169,6 @@ for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manySc
             event.push(t1 - t0); flush.push(t2 - t1); total.push(performance.now() - t0);
         }
         await runtime.storage({ kind: 'flush' });
-        runtime.destroy();
         runtime.free();
     }
     const rows = [

@@ -75,7 +75,6 @@ describe('The imports and exports of the runtime', () => {
         expect(rows['workbook_attachments']).toEqual([expect.objectContaining({ name: 'data.parquet' })]);
         // The attachment stays with the host, the export names it by handle
         expect(files).toEqual([new Uint8Array([1, 2, 3])]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -103,7 +102,6 @@ describe('The imports and exports of the runtime', () => {
         // The runtime restored the workbook
         expect(runtime.views('workbook', [workbook.workbookId])[0]).toMatchObject({ name: 'Sales' });
         platform.handles.release(exported.archive!);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -139,7 +137,6 @@ describe('The imports and exports of the runtime', () => {
         expect(created.workbookId).not.toBe(WB);
         expect(created.unasked).toBe(true);
         expect(storage.workbooks.get(created.workbookId)).toMatchObject({ name: 'Sales (copy)' });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -182,7 +179,6 @@ describe('The imports and exports of the runtime', () => {
         await runtime.storage({ kind: 'flush', closing: true });
         expect(writes).not.toContain('select 44');
         expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
-        runtime.destroy();
         runtime.free();
     });
 
@@ -213,7 +209,6 @@ describe('The imports and exports of the runtime', () => {
         expect(storage.dataFiles.get(WB)).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
         expect(storage.order).toEqual([WB]);
         expect([...storage.workbooks.keys()]).toEqual([WB]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -229,7 +224,6 @@ describe('The imports and exports of the runtime', () => {
         expect(outcome).toMatchObject({ workbookId: WB, restored: false });
         expect(storage.scripts.get(WB)).toEqual(new Map([['a.sql', 'select 1']]));
         expect(storage.order).toEqual([WB]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -261,7 +255,6 @@ describe('The imports and exports of the runtime', () => {
         expect(storage.dataFiles.get(WB)).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
         expect(storage.order).toEqual([WB]);
         expect([...storage.workbooks.keys()]).toEqual([WB]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -292,7 +285,6 @@ describe('The imports and exports of the runtime', () => {
             const scripts = async () => names.map(name => ({ name, sql: 'select 1' }));
             await expect(runtime.readImport({ folder: { ...folder, scripts } })).rejects.toThrow(message);
         }
-        runtime.destroy();
         runtime.free();
     });
 });

@@ -423,7 +423,7 @@ impl ExternalChanges {
         let sync = self.clone();
         let workbook_id = workbook_id.to_string();
         self.platform.spawn(Box::pin(async move {
-            if let Err(error) = reconcile_attachments(&sync.platform, &sync.workbooks, &sync.runs, &workbook_id).await {
+            if let Err(error) = reconcile_attachments(&sync.platform, &sync.workbooks, &sync.runs, &workbook_id, &[]).await {
                 sync.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
             }
         }));

@@ -7,7 +7,7 @@ import * as core from '@ankoh/dashql';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
@@ -28,7 +28,7 @@ describe('workbook creation', () => {
         let runtime!: Runtime;
         let createWorkbook!: WorkbookCreation;
         let workbooks!: ReadonlyMap<string, WorkbookScripts>;
-        let writer!: StorageWriter;
+        let writer!: StorageCommands;
         function Harness() {
             runtime = useRuntime();
             createWorkbook = useWorkbookCreation();
@@ -75,7 +75,7 @@ describe('workbook creation', () => {
         let createWorkbook!: WorkbookCreation;
         let ephemeralWorkbook!: ReturnType<typeof useEphemeralWorkbook>;
         let workbooks!: ReadonlyMap<string, WorkbookScripts>;
-        let writer!: StorageWriter;
+        let writer!: StorageCommands;
         function Harness() {
             runtime = useRuntime();
             createWorkbook = useWorkbookCreation();

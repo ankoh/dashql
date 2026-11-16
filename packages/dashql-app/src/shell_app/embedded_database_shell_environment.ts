@@ -1,82 +1,43 @@
-import * as arrow from 'apache-arrow';
-
-import { createQueryResponseStreamMetrics } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { EmbeddedConnection } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import { DashQLShellEnvironment } from '../shell/api.js';
-import { executeTrackedQuery, type QueryTracker } from '@ankoh/dashql/runtime/query/tracked_query_execution';
 import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
 
 interface EmbeddedDatabaseShellEnvironmentOptions {
-    prepareResult?: (queryId: number, table: arrow.Table) => void | Promise<void>;
-    /// Called after a statement ran or failed, before its result shows and the prompt returns
+    /// Called after a statement ran or failed, before its result shows and the prompt returns, e.g. to wait for the
+    /// catalog of the connection
     afterStatement?: (query: string) => Promise<void>;
 }
 
-/// The queries of a shell without a history run untracked
-const UNTRACKED: QueryTracker = {
-    runtime: {
-        handles: { register: () => 0, release: () => { } } as unknown as QueryTracker['runtime']['handles'],
-        dispatch: () => ({ ok: false, changed: false, error: 'the shell has no query history', id: null }),
-    },
-    target: { history: 'untracked' },
-};
-
+/// The environment of a shell whose statements run with the query executor of a runtime on a connection, e.g. the
+/// embedded Hyper of the shell. A statement is a query of the history of the connection, the executor analyzes its
+/// result as the computation of the query and tells the catalog loader about the relations it touched.
 export function createEmbeddedDatabaseShellEnvironment(
-    connection: EmbeddedConnection,
-    queryExecutions?: QueryTracker,
+    execute: QueryExecutor,
+    connectionId: string,
     options: EmbeddedDatabaseShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
         executeQuery: async (query, signal, onProgress, onResult, onTiming) => {
-            const reportTiming = (label: string, elapsedMs: number) => reportShellTiming(onTiming, label, elapsedMs);
-            const cancellation = new AbortController();
-            const abort = () => cancellation.abort();
-            if (signal?.aborted) abort();
-            else signal?.addEventListener('abort', abort, { once: true });
-            const tracker = queryExecutions ?? UNTRACKED;
+            signal?.throwIfAborted();
+            onProgress?.('Executing query');
+            const [queryId, execution] = execute(connectionId, {
+                query,
+                metadata: { ...SHELL_QUERY_METADATA },
+                abortSignal: signal,
+                analyzeResults: true,
+                throwOnError: true,
+                onTiming: (label, elapsedMs) => reportShellTiming(onTiming, label, elapsedMs),
+            });
+            let table;
             try {
-                return await executeTrackedQuery({
-                    query,
-                    tracker,
-                    cancellation,
-                    errorTarget: 'standalone_shell',
-                    metadata: { ...SHELL_QUERY_METADATA },
-                    execute: async tracked => {
-                        onProgress?.('Executing query');
-                        const queryStartedAt = performance.now();
-                        let table: arrow.Table;
-                        try {
-                            table = await connection.query(query, cancellation.signal);
-                        } catch (error) {
-                            await options.afterStatement?.(query);
-                            throw error;
-                        }
-                        reportTiming('Results', performance.now() - queryStartedAt);
-                        cancellation.signal.throwIfAborted();
-                        await options.afterStatement?.(query);
-                        const postprocessingStartedAt = performance.now();
-                        try {
-                            const metrics = createQueryResponseStreamMetrics();
-                            metrics.totalDataBytesReceived = table.batches.reduce((bytes, batch) => bytes + batch.data.byteLength, 0);
-                            metrics.totalBatchesReceived = table.batches.length;
-                            metrics.totalRowsReceived = table.numRows;
-                            tracked.receivedAllBatches(table, metrics);
-                            if (table.numCols === 0) return;
-                            if (options.prepareResult != null) {
-                                tracked.processingResults();
-                                await options.prepareResult(tracked.queryId, table);
-                                cancellation.signal.throwIfAborted();
-                                tracked.processedResults();
-                            }
-                            onResult?.(tracked.queryId, table.numRows);
-                        } finally {
-                            reportTiming('Postprocess', performance.now() - postprocessingStartedAt);
-                        }
-                    },
-                });
+                table = await execution;
             } finally {
-                signal?.removeEventListener('abort', abort);
+                // A statement of many may have run, also when it failed
+                await options.afterStatement?.(query);
             }
+            signal?.throwIfAborted();
+            if (table == null || table.numCols === 0) return;
+            onResult?.(queryId, table.numRows);
         },
     };
 }

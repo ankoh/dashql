@@ -18,7 +18,34 @@ const violations = [];
 const config = readJsonc(join(PACKAGE, 'tsconfig.json'));
 if (config.extends !== '../../tsconfig.json') violations.push(`tsconfig.json must extend the root tsconfig.json, it extends ${config.extends}`);
 
-const rootPaths = Object.keys(readJsonc(join(ROOT, 'tsconfig.json')).compilerOptions.paths ?? {});
+const rootPathMap = readJsonc(join(ROOT, 'tsconfig.json')).compilerOptions.paths ?? {};
+const rootPaths = Object.keys(rootPathMap);
+
+// The generated packages of the package resolve to its own outputs, not to the copies of another package
+for (const name of ['@ankoh/dashql-protobuf', '@ankoh/dashql-jsonschema', '@ankoh/dashql-wasm', '@ankoh/dashql-flatbuffers']) {
+    for (const path of [name, `${name}/*`]) {
+        for (const target of rootPathMap[path] ?? []) {
+            if (!target.startsWith('./bazel-bin/packages/dashql/dependencies/')) {
+                violations.push(`the root tsconfig.json maps ${path} to ${target}, not to the outputs of the package`);
+            }
+        }
+    }
+}
+
+// The source package exports what the package on npm exports, and the root tsconfig.json maps it
+const sourceExports = Object.keys(JSON.parse(readFileSync(join(PACKAGE, 'package.json'), 'utf8')).exports ?? {});
+const npmExports = Object.keys(JSON.parse(readFileSync(join(PACKAGE, 'npm', 'package.json'), 'utf8')).exports ?? {});
+for (const name of npmExports) {
+    if (!sourceExports.includes(name)) violations.push(`package.json doesn't export ${name} of npm/package.json`);
+}
+for (const name of sourceExports) {
+    if (!npmExports.includes(name)) violations.push(`npm/package.json doesn't export ${name} of package.json`);
+    const specifier = name === '.' ? '@ankoh/dashql' : `@ankoh/dashql/${name.slice(2)}`;
+    // The Wasm files resolve through the package, editors import no module of them
+    if (!specifier.includes('wasm') && !specifier.endsWith('batch-worker') && !(specifier in rootPathMap)) {
+        violations.push(`the root tsconfig.json doesn't map ${specifier}`);
+    }
+}
 const rootPackage = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const dependencies = new Set([...Object.keys(rootPackage.dependencies ?? {}), ...Object.keys(rootPackage.devDependencies ?? {})]);
 

@@ -25,7 +25,7 @@ import { createExamplesCommand } from '../../shell/shell_examples.js';
 import { splitShellScript } from '../../shell/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
-import { useConnection, useOptionalRuntime, useQuery } from '../../runtime/runtime_hooks.js';
+import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '../../runtime/runtime_hooks.js';
 
 const LOG_CTX = 'workbook_shell_page';
 
@@ -55,7 +55,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const connection = useConnection(connectionId);
     // The shell runs on the catalog of its connection, the runtime shares it
     const runtime = useOptionalRuntime();
-    const catalog = connection == null ? null : runtime?.catalog(connection.connectionId) ?? null;
+    const catalog = useCatalog(connection?.connectionId);
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const keywordCaseRef = React.useRef(keywordCase);
     keywordCaseRef.current = keywordCase;

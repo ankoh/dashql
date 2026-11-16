@@ -59,7 +59,7 @@ interface Api {
 function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; capture: (api: Api) => void }) {
     const connections = useConnections();
     const runtime = useRuntime();
-    const execute = runtime.execute;
+    const execute = runtime.execute.bind(runtime);
     const merge = useMergeConnections();
     const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeDatabase();

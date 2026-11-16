@@ -12,7 +12,7 @@ import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_stor
 import { WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
 import { NativeWorkbookSync } from './native_workbook_sync_react.js';
 import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/platform/electron_fs';
@@ -34,7 +34,7 @@ const SCRIPT_PATH = `${DIR}/${STORAGE_SCRIPTS_FOLDER}/query.sql`;
 
 interface Api {
     runtime: Runtime;
-    writer: StorageWriter;
+    writer: StorageCommands;
     logger: Logger;
     connections: ReturnType<typeof useConnections>;
     workbooks: ReturnType<typeof useWorkbooks>;

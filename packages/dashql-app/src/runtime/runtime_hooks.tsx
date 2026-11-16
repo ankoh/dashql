@@ -11,7 +11,6 @@ import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/p
 import { workbookExecutionIsBusy } from '@ankoh/dashql/platform/workbook/scripts/workbook_execution';
 
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
@@ -41,6 +40,36 @@ export function useRuntime(): Runtime {
 /// called use it, a test may render a component without a runtime as long as it doesn't call them.
 export function useOptionalRuntime(): Runtime | null {
     return React.useContext(RUNTIME_CTX);
+}
+
+/// A runtime that a component creates and owns. The first render creates it, the component keeps it in a ref, and the
+/// runtime is destroyed in a task after the cleanup of the effect unless the effect runs again before: StrictMode,
+/// which runs the cleanup and the effect once more, and Fast Refresh, which runs the effects again and keeps the refs,
+/// keep the same runtime instead of leaving the app on a destroyed one.
+export function useOwnedRuntime(create: () => Runtime): Runtime {
+    const logger = useLogger();
+    const latestLogger = React.useRef(logger);
+    latestLogger.current = logger;
+    // The runtime of the component and the timer that destroys it after a cleanup
+    const owned = React.useRef<{ runtime: Runtime; release: ReturnType<typeof setTimeout> | null } | null>(null);
+    if (owned.current == null) owned.current = { runtime: create(), release: null };
+    React.useEffect(() => {
+        const held = owned.current;
+        if (held == null) return;
+        if (held.release != null) {
+            clearTimeout(held.release);
+            held.release = null;
+        }
+        return () => {
+            held.release = setTimeout(() => {
+                if (owned.current === held) owned.current = null;
+                void held.runtime.destroy().catch(error => {
+                    latestLogger.current.error('Failed to stop the runtime', { error: stringifyError(error) }, LOG_CTX);
+                });
+            }, 0);
+        };
+    }, []);
+    return owned.current.runtime;
 }
 
 const NO_SUBSCRIPTION = () => () => { };
@@ -73,19 +102,15 @@ function useAll<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, S
 }
 const NO_SLICES: ReadonlyMap<never, never> = new Map<never, never>();
 
-/// Dispatch actions to a slice. The runtime is resolved when the function is called. An action that the runtime
-/// refuses shows as an error of the app.
+/// Dispatch actions to a slice. The runtime is resolved when the function is called, it logs an action that it refuses.
 export function useDispatch(target: core.Target | null): (action: core.RuntimeAction) => core.DispatchOutcome {
     const runtime = React.useContext(RUNTIME_CTX);
-    const logger = useLogger();
     const key = target == null ? null : JSON.stringify(target);
     return React.useCallback((action: core.RuntimeAction) => {
         if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
         if (key == null) return { ok: false, changed: false, error: 'no target', id: null };
-        const outcome = runtime.dispatch(JSON.parse(key) as core.Target, action);
-        if (!outcome.ok) logger.error('The action was refused', { action: action.kind, error: outcome.error ?? '' }, LOG_CTX);
-        return outcome;
-    }, [runtime, key, logger]);
+        return runtime.dispatch(JSON.parse(key) as core.Target, action);
+    }, [runtime, key]);
 }
 
 /// An Arrow table of the runtime by its handle, null without one. A handle names one table for as long as it lives.
@@ -148,6 +173,17 @@ export function useWorkbookScriptMap(workbookId: string | null | undefined): Scr
 /// The view of a connection, it renders again when the connection changes: when it is set up, saved or refreshed and
 /// when a query starts or finishes, not with the progress of a query
 export const useConnection = (connectionId: string | null | undefined): ConnectionState | null => useView('connection', connectionId) as ConnectionState | null;
+/// The catalog of a connection, null while the runtime holds no such connection. The component renders again when the
+/// connection changes and gets a new catalog when the connection got a new one (`catalogId`). A held catalog stays
+/// readable after its connection went.
+export function useCatalog(connectionId: string | null | undefined): core.DashQLCatalog | null {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const catalogId = useConnection(connectionId)?.catalogId ?? null;
+    return React.useMemo(
+        () => runtime == null || connectionId == null || catalogId == null ? null : runtime.catalog(connectionId),
+        [runtime, connectionId, catalogId],
+    );
+}
 /// The list of the connections: the ids in the order they were registered, whether they are listed next to the
 /// workbooks and their ordinals, and the ids by connector
 export const useConnectionList = (): core.ConnectionListView | null => useView('connectionList', 'root');
@@ -214,14 +250,24 @@ export interface WorkbookExecutionOptions {
     inputs?: readonly string[];
 }
 
+/// Is the compute database of the runtime ready? The runs, the computations and the query result cache wait for it.
+export function useComputeReady(): boolean {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const database = runtime?.computeDatabase ?? null;
+    const subscribe = React.useMemo(() => database == null ? NO_SUBSCRIPTION : (listener: () => void) => database.subscribe(listener), [database]);
+    const getSnapshot = React.useCallback(() => database?.ready ?? false, [database]);
+    return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
 /// The run of a workbook from its `run` slice. `busy` while the whole workbook runs, `runActive` while any run holds
 /// the workbook, a run of the workbook or of one of its scripts: the workbook starts no other run then. A run reads the
-/// cached results and the results of the queries with the compute database, a run is `ready` once it is set up.
+/// cached results and the results of the queries with the compute database, a run is `ready` once the compute database
+/// of the runtime is (`useComputeReady`).
 export function useWorkbookExecution(workbookId: string) {
     const runtime = React.useContext(RUNTIME_CTX);
     const logger = useLogger();
     const run = useView('run', workbookId);
-    const ready = useComputeDatabase() != null;
+    const ready = useComputeReady();
     const state = run?.state ?? null;
     const held = run?.held != null;
     return React.useMemo(() => {
@@ -240,7 +286,7 @@ export function useWorkbookExecution(workbookId: string) {
                     if (failure != null && failure.kind === 'error' && failure.queryId == null) failed(result.error);
                 }, failed);
             },
-            stop: () => runtime?.module.stopRun(workbookId),
+            stop: () => runtime?.stopRun(workbookId),
         };
     }, [state, held, runtime, workbookId, ready, logger]);
 }
@@ -276,7 +322,7 @@ function StandaloneRuntimeOf(props: { core: core.DashQL; channels?: ChannelConne
     const logger = useLogger();
     const http = useHttpClient();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
-    const [runtime] = React.useState(() => createRuntime({
+    const runtime = useOwnedRuntime(() => createRuntime({
         logger,
         scheduler: FRAME_UPDATE_SCHEDULER,
         core: props.core,
@@ -284,10 +330,5 @@ function StandaloneRuntimeOf(props: { core: core.DashQL; channels?: ChannelConne
         computeDatabase: setupEmbeddedDatabase == null ? null : () => setupEmbeddedDatabase('compute'),
         channels: props.channels,
     }));
-    React.useEffect(() => () => {
-        void runtime.destroy().catch(error => {
-            logger.error('Failed to stop the runtime', { error: stringifyError(error) }, LOG_CTX);
-        });
-    }, [runtime, logger]);
     return <RuntimeContextProvider value={runtime}>{props.children}</RuntimeContextProvider>;
 }

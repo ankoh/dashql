@@ -39,11 +39,13 @@ the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@ank
   table, the Arrow tables by handle, `update_scheduler.ts`), the projections of the workbook and script views
   (`workbook/scripts/workbook_projection.ts`) and of the query views (`query/query_projection.ts`), and the adapters
   that turn platform objects into the platform of the core: `query/query_channels.ts` (the channels of the host and the
-  query result cache), `query/query_result_stream.ts`, `query/tracked_query_execution.ts` (queries that the host runs
-  and the runtime tracks), `compute/compute_platform.ts`, `workbook/scripts/run_mounts.ts`, `storage/runtime_storage.ts`
-  (the storage of the platform and the `StorageWriter` commands), `storage/workbook_archives.ts`,
-  `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts) and `node/node_platform.ts`. A module
-  belongs here when it names `RuntimePlatform`, the handle table or a platform type of the core.
+  query result cache), `query/query_result_stream.ts`, `compute/compute_platform.ts`, `compute/compute_database.ts`
+  (the compute database of the platform and whether it is ready), `workbook/scripts/run_mounts.ts`,
+  `storage/runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
+  `storage/workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
+  `connections/catalog/embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
+  `node/node_platform.ts`. A module belongs here when it names `RuntimeOptions`, the handle table or a platform type of
+  the core.
 - **`src/platform`** is everything else that more than the app uses. It never imports the runtime.
 - **The app** keeps what only it uses, at its own paths under `packages/dashql-app/src`: the OPFS and composite
   storage backends, the hooks, the labels of connections, the Hyper links of a tab, the Salesforce mock setup, script
@@ -91,7 +93,8 @@ await runtime.destroy();
 ```
 
 The platform creates the runtime once its core is there and owns what it passes for the lifetime of the runtime;
-nothing is set later. `RuntimePlatform` of `runtime.ts`:
+nothing is set later. `RuntimeOptions` of `runtime.ts` (not to be confused with `RuntimePlatform`, the platform object
+of the module that the runtime builds from it):
 
 | Member | Required | What |
 |---|---|---|
@@ -102,10 +105,11 @@ nothing is set later. `RuntimePlatform` of `runtime.ts`:
 | `http` | no | The `HttpClient` of fetches, the executor and the setups send through it |
 | `oauthFlow` | no | The `OAuthFlow`: opens the authorization page and receives the redirect |
 | `channels` | no | A `ChannelConnector` that connects the channels of the host that setups ask for (the embedded Hyper, Hyper over gRPC), and the token of a Hyper link that the page holds. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself |
-| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up |
+| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up. `runtime.computeDatabase` (`compute/compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
 | `resultCache` | no | The `QueryResultCache` |
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `storage/workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
 | `catalogLoader` | no | Run the catalog loader, true by default. `dashql run` and most tests turn it off |
+| `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
 
 The parts that a platform sets up late are providers or read on call: the compute database is a provider, the
 `ChannelConnector` of the app reads its clients when a setup connects, and the archives ask for their database when an
@@ -125,7 +129,7 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
 | `resultCache` | Lookup, read, write, touch, retain, release, import, list, remove, capacity | `query/query_channels.ts` |
-| `mounts` | The files of runs in the compute database and the attachments | `workbook/scripts/run_mounts.ts` |
+| `mounts` | The files of runs in the compute database and the attachments, unmounted when their workbook is deleted | `workbook/scripts/run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
 | `extensions` | `loadSpec`, the JSON of a client function spec | `loadClientFunctionSpec` |
@@ -134,7 +138,8 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `changed` | The state changed, `urgent` or not | the store |
 
 Every call into it catches: a member that throws or is missing fails the call of the service with an error, it never
-unwinds through the module.
+unwinds through the module. Once the module shut down (`shutdown`, below), it calls the platform object no more: a call
+fails, a timer never fires, and the effects on handles wait for the last changes.
 
 ### The platforms
 
@@ -166,7 +171,7 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | `computation` | table id | The computation of a result: column groups, tasks, filters, orderings, searches, its tables as handles |
 | `connectionList` | `'root'` | The connections in order, whether listed and their ordinals, the ids by connector |
 | `connection` | connection id | Connector, params, draft, details with the channel as a handle, health, status, the setup, catalog updates and version, `catalogId`, the queries, the workbooks that use it, the save, token summaries |
-| `history` | name | A history without a connection, e.g. the shell's |
+| `history` | name | A history without a connection; no action creates one since the shell runs on its connection |
 | `query` | query id | Status, metadata, metrics, error, the latest progress with the structured progress as FlatBuffers by key, the result table as a handle |
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |
@@ -240,17 +245,14 @@ views as the app reads them are in `src/platform` (`connections/connection_state
 runtime.dispatch(target, action): DispatchOutcome
 ```
 
-- **Targets**: `{ workbook: id }`, `{ connection: id }`, `{ computation: tableId }`, `{ history: name }` or `'app'`
+- **Targets**: `{ workbook: id }`, `{ connection: id }`, `{ computation: tableId }` or `'app'`
   (create and delete workbooks and connections).
 - **Actions** are one generated union, `RuntimeAction` of `runtime.rs`, adjacently tagged: `{ kind: 'setScriptText',
   value: { ... } }`. They are synchronous changes of state, e.g. `createScript`, `setScriptText`, `showScript`,
-  `setDraft`, `resetConnection`, `orderBy`, `trackQuery`.
-- **The outcome** is `{ ok, changed, error, id }`: `id` names what the action created (a workbook, a connection, a
-  query). A failed action leaves the state as it was; the facade logs a refused action.
+  `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The queries run with `execute`, never by actions.
+- **The outcome** is `{ ok, changed, error, id }`: `id` names what the action created (a workbook, a
+  connection). A failed action leaves the state as it was; the facade logs a refused action, once.
 - **Never throws.** A malformed target or action is a failed outcome like a refused action.
-- **Handles belong to the runtime from the call on.** An action that carries handles (`trackQuery`,
-  `queryReceivedAllBatches`) hands them over; the runtime releases them when it refuses the action. The host never
-  releases a handle it handed over.
 
 ### Commands
 
@@ -260,22 +262,31 @@ than the module returns: the flush of the store after the command, handles for t
 | Facade (`Runtime` of `runtime.ts`) | What |
 |---|---|
 | `analyzeTable` | Analyze a result as a computation |
-| `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; a test may replace them |
+| `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; `queryCommands` of the options stand in for them |
 | `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave` | Connections and their saves |
-| `setupConnection`, `authenticateSalesforce` | Setups and the login of the shell |
+| `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |
+| `openSession`, `closeSession`, `settleCatalog` | The session of the shell on a connection, see [Catalogs and sessions](#catalogs-and-sessions) |
 | `createWorkbook`, `deleteWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors |
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
-| `runWorkbook`, `runScript` | Runs |
+| `runWorkbook`, `runScript`, `stopRun`, `setUpOpenedWorkbook` | Runs, and the setups of the connections of an opened workbook |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
-| `storage` | The `StorageWriter` facade: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
-| `flush`, `destroy` | Take the changes now; stop runs and the catalog loader, write what is pending, free the module, abort fetches and OAuth flows |
+| `storage` | `StorageCommands`, the commands of the storage writer: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
+| `computeDatabase` | The compute database of the platform and whether it is ready |
+| `flush`, `destroy` | Take the changes now; shut the runtime down, see below |
 
-Everything else the app and the CLI call on the module directly (`runtime.module`): `stopRun`, `cancelSetup`,
-`refreshCatalog`, `runCatalogLoader`, `setUpOpenedWorkbook`, `resultKeys`, `dropImport`, `exportConnection`,
-`exportedResults`, `migrateWorkbookFolder`, `checkWorkbookFolders`, `answerExternalChange`, `revealConnectionSecrets`,
-`queryProgressRecording`, `followQueryProgress`, and more. `Runtime.migrateStorage(root, log)` of the module is static:
-the app migrates its storage before a runtime exists.
+Everything else the app and the CLI call on the module directly (`runtime.module`): `runCatalogLoader`, `resultKeys`,
+`dropImport`, `exportConnection`, `exportedResults`, `migrateWorkbookFolder`, `checkWorkbookFolders`,
+`answerExternalChange`, `revealConnectionSecrets`, `queryProgressRecording`, `followQueryProgress`, and more.
+`Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
+
+**Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects
+with `the runtime was destroyed`, `dispatch` fails, a command without a result does nothing, and the storage commands
+do nothing. A wait for a compute database that never came up ends. `shutdown()` of the module owns the order: the
+runs stop, the catalog loader stops, the writes into the query result cache and the pending writes of the storage
+finish, then the imports are dropped, the setups and queries cancelled and the computations deleted, and the platform is
+fenced. The store then takes the last changes, the projection of the scripts destroys its session handles, the module is
+freed, the fetches and OAuth flows are aborted, and the files that the cache and the runs kept are released.
 
 ### Handles
 
@@ -305,37 +316,48 @@ handle.
 ### Catalogs and sessions
 
 `runtime.catalog(connectionId)` hands out a read-only `DashQLCatalog` that shares the catalog of the connection, one per
-identity (`catalogId` of the connection view); it is destroyed with its connection. The catalog changes only through the
-runtime. The session of a script of a workbook is a `DashQLWorkbookScriptSession` (`ScriptData.scriptSession`): it
+identity (`catalogId` of the connection view, which the module reads without the view). The facade never destroys it:
+a component may hold it after its connection went, the finalizer of the module frees it once it is unreachable. A
+component reads it with `useCatalog(connectionId)`, which follows the connection slice. The catalog changes only through
+the runtime. The session of a script of a workbook is a `DashQLWorkbookScriptSession` (`ScriptData.scriptSession`): it
 reads the text, completes, compiles, formats and computes the texts of rewrites, it has no mutators. Editors write
 through `applyEditorEvent`; a session outside a workbook (the composer, the shell, read-only views) is a
 `DashQLScriptSession` of its own, and `attachTableParameters` gives it the table parameters of a workbook. Both share
 `DashQLScriptSessionReader`, which the editor and the views take.
+
+The shell runs its statements with `runtime.execute` on its connection to the embedded Hyper
+(`connectEmbeddedSession` of `connections/catalog/embedded_session.ts`): the executor analyzes the results and tells the
+catalog loader about the relations that a statement touched, and `settleCatalog` waits for the catalog before the
+prompt returns. The session leases the connection (`openSession`, `closeSession` of the module): a later session takes
+it over, and only the latest lease resets the connection when it closes.
 
 ## The app
 
 - **`RuntimeProvider`** (`packages/dashql-app/src/runtime/runtime_provider.tsx`) creates the runtime over the
   providers of the app once the core is there and shows the loading page until then. It flushes the storage writer when
   the page hides and when Electron closes a window (a page that goes away flushes with `closing`), hands over to another
-  tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any more), and destroys the
-  runtime with the component.
+  tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any more), asks for the
+  compute database right away, and destroys the runtime with the component. `useOwnedRuntime` creates the runtime with
+  the first render, keeps it in a ref and destroys it in a task after the cleanup of its effect unless the effect runs
+  again: StrictMode and Fast Refresh keep the same runtime.
 - **`StandaloneRuntime`** (`runtime_hooks.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.
 - **Hooks** (`packages/dashql-app/src/runtime/runtime_hooks.tsx`): `useRuntime`, `useOptionalRuntime`,
-  `useView(kind, id)`, `useDispatch(target)` and `useTable(handle)`; one-line aliases `useWorkbook`, `useScript`,
+  `useView(kind, id)`, `useDispatch(target)`, `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
+  one-line aliases `useWorkbook`, `useScript`,
   `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`,
   `useComputationDispatch`; hooks that read all slices of a kind for the views that show all of them (`useWorkbooks`,
   `useWorkbookScriptMap`, `useConnections`, `useConnectionViews`, `useAllQueries`); and hooks over a slice and a
   command (`useQueryProgress`, `useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`,
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
-  changes. A refused dispatch of `useDispatch` shows as an app error.
+  changes. The facade logs a refused dispatch.
 - **What the app keeps** is about the user interface: the script selection (`workbook/scripts/script_selection.ts`),
   the drafts of connection forms (`connections/connection_draft.ts`), the state of a save
   (`connections/connection_persistence.tsx`), creating and deleting workbooks with the selection
   (`workbook/workbook_lifecycle.ts`), CodeMirror state, focus and view modes. Its own stores use `Store` of
   `utils/store.ts`.
 - **Tests of components** use `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`): a runtime with the
-  catalog loader stopped and replaceable `execute`, `cancel` and `watchProfile`.
+  catalog loader stopped and `execute`, `cancel` and `watchProfile` of the test (`queryCommands`).
 
 ## Per keystroke
 

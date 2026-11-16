@@ -6,7 +6,6 @@ import { appendRowNumbers, createRuntimeTables } from './runtime_tables.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import type { HyperDB } from '../../platform/platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
-import { executeTrackedQuery } from '../query/tracked_query_execution.js';
 import { vectorFromArray } from '../../platform/testing/arrow_fixtures.js';
 import { openTestHyperDB } from '../../platform/testing/test_hyperdb.js';
 import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
@@ -116,7 +115,18 @@ describe('The handles of a runtime', () => {
             getSchema: async () => null,
             produce: vi.fn<QueryExecutionResponseStream['produce']>(async () => { }),
         };
-        const channel = { executeQuery: vi.fn(async () => stream), close: vi.fn() };
+        // A statement `select 2` runs until it is cancelled
+        const active = new AbortController();
+        const channel = {
+            executeQuery: vi.fn(async (params: { query: string }, abort?: AbortSignal) => {
+                if (params.query !== 'select 2') return stream;
+                return await new Promise<QueryExecutionResponseStream>((_resolve, reject) => abort?.addEventListener('abort', () => {
+                    active.abort(abort.reason);
+                    reject(abort.reason);
+                }));
+            }),
+            close: vi.fn(),
+        };
         const connectionId = 'handles-database';
         await rt.addConnection({
             connectionId,
@@ -133,23 +143,15 @@ describe('The handles of a runtime', () => {
         expect(rt.store.get('run', workbook.workbookId)?.held).toBeNull();
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
 
-        // A query that the host runs with a result and one that stays active
-        const tracker = { runtime: rt, target: { connection: connectionId } };
+        // A query that finished and one that stays active, on the query executor of the runtime
         const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
-        const result = new arrow.Table({ n: vectorFromArray([1, 2], new arrow.Int32()) });
-        await executeTrackedQuery({ query: 'select 1', metadata, tracker, execute: async context => context.receivedAllBatches(result) });
-        const active = new AbortController();
-        const pending = executeTrackedQuery({ query: 'select 2', metadata, tracker, cancellation: active, execute: () => new Promise((_resolve, reject) => {
-            active.signal.addEventListener('abort', () => reject(active.signal.reason));
-        }) });
+        const [finishedId, finished] = rt.execute(connectionId, { query: 'select 1', metadata });
+        expect(await finished).not.toBeNull();
+        const [, pending] = rt.execute(connectionId, { query: 'select 2', metadata, throwOnError: true });
+        const cancelled = pending.then(() => null, error => error);
+        await vi.waitFor(() => expect(channel.executeQuery).toHaveBeenCalledWith(expect.objectContaining({ query: 'select 2' }), expect.anything(), expect.anything()));
         rt.flush();
-        const connection = rt.connection(connectionId);
-        const finished = rt.store.get('query', connection.queriesFinishedOrdered.at(-1)!);
-        expect(rt.table(finished?.resultTable?.id)).toBe(result);
-
-        // A query of the shell
-        rt.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 100 } });
-        await executeTrackedQuery({ query: 'select 3', metadata, tracker: { runtime: rt, target: { history: 'shell' } }, execute: async context => context.receivedAllBatches(result) });
+        expect(rt.table(rt.store.get('query', finishedId)?.resultTable?.id)).not.toBeUndefined();
 
         // A computation of a result, analyzed in the runtime
         const table = new arrow.Table({
@@ -160,16 +162,15 @@ describe('The handles of a runtime', () => {
         const computation = rt.store.get('computation', 1);
         expect(rt.table(computation?.tableAggregation?.table)?.numRows).toBe(1);
 
-        // Everything goes: the computation, the history of the shell, the workbook, the connection, the runtime
+        // Everything goes: the computation, the workbook, the connection, the runtime
         rt.dispatch({ computation: 1 }, { kind: 'deleteComputation' });
         rt.deleteWorkbook(workbook.workbookId);
-        rt.dispatch({ history: 'shell' }, { kind: 'dropHistory' });
         rt.dispatch({ connection: connectionId }, { kind: 'deleteConnection' });
         rt.flush();
         expect(rt.store.get('computation', 1)).toBeNull();
         expect(channel.close).toHaveBeenCalledTimes(1);
-        expect(active.signal.aborted).toBe(true);
-        await expect(pending).rejects.toBeInstanceOf(DOMException);
+        await vi.waitFor(() => expect(active.signal.aborted).toBe(true));
+        expect(await cancelled).not.toBeNull();
         await rt.destroy();
         runtime = null;
         expect(handles.size).toBe(0);

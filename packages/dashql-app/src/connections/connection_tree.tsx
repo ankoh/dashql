@@ -853,7 +853,7 @@ function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
     const runtime = useOptionalRuntime();
     return React.useCallback((connectionId: string, force: boolean) => {
         if (runtime == null) throw new Error('the catalog loader needs a RuntimeProvider');
-        runtime.module.refreshCatalog(connectionId, force);
+        runtime.refreshCatalog(connectionId, force);
     }, [runtime]);
 }
 

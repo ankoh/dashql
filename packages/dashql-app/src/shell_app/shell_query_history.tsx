@@ -1,60 +1,48 @@
 import * as React from 'react';
 
 import { QueryType, type QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { QueryTracker } from '@ankoh/dashql/runtime/query/tracked_query_execution';
 import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../query/query_history_viewer.js';
-import { useAllQueries, useRuntime, useView } from '../runtime/runtime_hooks.js';
+import { useAllQueries, useConnection, useRuntime } from '../runtime/runtime_hooks.js';
 
 /// The id under which the queries of the shell are listed
 export const SHELL_DATABASE_ID = 'shell';
-/// The shell keeps the last queries, the oldest finished ones leave first
-export const SHELL_QUERY_HISTORY_LIMIT = 100;
+/// The connection of the shell to the embedded Hyper of the page, a connection of the runtime of the shell
+export const SHELL_CONNECTION_ID = 'shell';
+/// The issuer of the queries of the catalog loader, the shell doesn't list them
+const CATALOG_QUERY_ISSUER = 'Catalog Update';
 
-let NEXT_SHELL_HISTORY = 1;
+/// The history of the shell: the queries of the connection of the shell since the history started. A reset of the shell
+/// starts a new history.
+export interface ShellQueryHistory {
+    connectionId: string;
+    /// The queries of the history have larger ids
+    since: number;
+}
 
-const SHELL_QUERY_HISTORY_CTX = React.createContext<QueryTracker | null>(null);
+const SHELL_QUERY_HISTORY_CTX = React.createContext<ShellQueryHistory | null>(null);
 
-/// Provide the history of the queries that the shell executes: a history without a connection of the runtime above,
-/// it goes with the component
+/// Provide the history of the queries that the shell executes on its connection, it starts with the component
 export const ShellQueryHistoryProvider: React.FC<{ children: React.ReactElement }> = props => {
     const runtime = useRuntime();
-    const [tracker] = React.useState<QueryTracker>(() => ({ runtime, target: { history: `shell-${NEXT_SHELL_HISTORY++}` } }));
-    // The history exists before the components below render, it goes with the component
-    const created = React.useRef(false);
-    if (!created.current) {
-        created.current = runtime.dispatch(tracker.target, { kind: 'createHistory', value: { limit: SHELL_QUERY_HISTORY_LIMIT } }).ok;
-    }
-    React.useEffect(() => {
-        if (!created.current) {
-            created.current = runtime.dispatch(tracker.target, { kind: 'createHistory', value: { limit: SHELL_QUERY_HISTORY_LIMIT } }).ok;
-        }
-        return () => {
-            created.current = false;
-            runtime.dispatch(tracker.target, { kind: 'dropHistory' });
-        };
-    }, [runtime, tracker]);
-    return <SHELL_QUERY_HISTORY_CTX.Provider value={tracker}>{props.children}</SHELL_QUERY_HISTORY_CTX.Provider>;
+    const [history] = React.useState<ShellQueryHistory>(() => ({ connectionId: SHELL_CONNECTION_ID, since: runtime.module.allocateId() }));
+    return <SHELL_QUERY_HISTORY_CTX.Provider value={history}>{props.children}</SHELL_QUERY_HISTORY_CTX.Provider>;
 };
 
-/// Where the shell tracks its queries
-export function useShellQueryHistory(): QueryTracker {
+/// The history of the shell
+export function useShellQueryHistory(): ShellQueryHistory {
     return React.useContext(SHELL_QUERY_HISTORY_CTX)!;
 }
 
-/// The name of the history of the shell
-export function historyName(tracker: QueryTracker): string {
-    const target = tracker.target;
-    return typeof target === 'object' && 'history' in target ? target.history : SHELL_DATABASE_ID;
-}
-
-/// The queries of the shell, the finished ones first, it renders again when they change
+/// The queries of the shell, the finished ones first, it renders again when they change: the statements of the shell
+/// and the queries of the computations of their results, not the queries of the catalog loader
 export function useShellQueries(): QueryExecutionState[] {
-    const tracker = useShellQueryHistory();
-    const history = useView('history', historyName(tracker));
+    const history = useShellQueryHistory();
+    const connection = useConnection(history.connectionId);
     const queries = useAllQueries();
-    return React.useMemo(() => (history?.queries ?? [])
+    return React.useMemo(() => [...connection?.queriesFinishedOrdered ?? [], ...connection?.queriesActiveOrdered ?? []]
+        .filter(queryId => queryId > history.since)
         .map(queryId => queries.get(queryId))
-        .filter((query): query is QueryExecutionState => query != null), [history, queries]);
+        .filter((query): query is QueryExecutionState => query != null && query.queryMetadata.issuer !== CATALOG_QUERY_ISSUER), [connection, history, queries]);
 }
 
 /// The queries of the shell, the shell runs them on its embedded database

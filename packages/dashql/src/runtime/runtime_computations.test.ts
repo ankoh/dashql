@@ -151,7 +151,7 @@ describe('The computations of the runtime', () => {
         await vi.waitFor(async () => expect(await dataFrameTables()).toEqual([]));
     }, 60_000);
 
-    it('lists the queries of the tasks in the history of the connection and in a history without one', async () => {
+    it('lists the queries of the tasks in the history of the connection', async () => {
         database = await openTestHyperDB('runtime_computations_history_test');
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
         const table = () => new arrow.Table({
@@ -173,13 +173,6 @@ describe('The computations of the runtime', () => {
         expect(ofConnection.every(query => query?.status === QueryExecutionStatus.SUCCEEDED)).toBe(true);
         expect(ofConnection.every(query => query?.queryMetadata.queryType === QueryType.INTERNAL_SQLFRAME && query.queryMetadata.title != null)).toBe(true);
 
-        // A result of the shell names its history
-        expect(runtime.dispatch({ history: 'shell-test' }, { kind: 'createHistory', value: {} }).ok).toBe(true);
-        await runtime.analyzeTable(2, table(), { history: 'shell-test' });
-        runtime.flush();
-        const ofHistory = sqlframe(runtime.store.get('history', 'shell-test')?.queries ?? []);
-        expect(ofHistory.length).toBe(ofConnection.length);
-        expect(ofHistory.every(query => query?.status === QueryExecutionStatus.SUCCEEDED)).toBe(true);
     }, 60_000);
 
     it('aborts the running query of a task when its connection is reset', async () => {

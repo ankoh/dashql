@@ -7,7 +7,7 @@ import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js'
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
-import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';
@@ -19,7 +19,7 @@ import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@ankoh/dashql';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '../../runtime/runtime_hooks.js';
-import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
+import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';
 
 type Registry = ReadonlyMap<string, ConnectionState>;
 let appRuntime: Runtime | null = null;
@@ -32,13 +32,21 @@ function metadata(queryId: number, queryType: QueryType) {
     return { queryType, title: `Query ${queryId}`, description: null, issuer: 'test', userProvided: queryType === QueryType.USER_PROVIDED };
 }
 
-/// A Hyper connection with a finished user query, a finished SQLFrame query and an active query
-function connectionWithQueries(runtime: Runtime): void {
-    void addTestConnection(runtime, { connectionId: 'internals-test', params: { hyper: {} } as never });
-    const target = { connection: 'internals-test' };
-    trackTestQuery(runtime, target, 'select 1', metadata(1, QueryType.USER_PROVIDED), true);
-    trackTestQuery(runtime, target, 'select 2', metadata(2, QueryType.INTERNAL_SQLFRAME), true);
-    trackTestQuery(runtime, target, 'select 3', metadata(3, QueryType.USER_PROVIDED), false);
+/// A Hyper connection with a finished user query, a finished SQLFrame query and an active query on its channel
+async function connectionWithQueries(runtime: Runtime): Promise<void> {
+    const connectionId = 'internals-test';
+    await addTestConnection(runtime, { connectionId, params: { hyper: {} } as never, health: ConnectionHealth.ONLINE, channel: pendingTestChannel() });
+    runTestQuery(runtime, connectionId, 'select 1', metadata(1, QueryType.USER_PROVIDED), true);
+    runTestQuery(runtime, connectionId, 'select 2', metadata(2, QueryType.INTERNAL_SQLFRAME), true);
+    runTestQuery(runtime, connectionId, 'select 3', metadata(3, QueryType.USER_PROVIDED), false);
+    // The queries of the test are in the history, next to the probe of the setup
+    await vi.waitFor(() => {
+        runtime.flush();
+        const connection = runtime.connection(connectionId);
+        const texts = [...connection?.queriesFinishedOrdered ?? [], ...connection?.queriesActiveOrdered ?? []]
+            .map(queryId => runtime.store.get('query', queryId)?.queryText);
+        expect(texts).toEqual(expect.arrayContaining(['select 1', 'select 2', 'select 3']));
+    });
 }
 
 describe('InternalsViewer', () => {
@@ -130,10 +138,11 @@ describe('InternalsViewer', () => {
 
         // The queries of every connection, the finished before the active ones
         await act(async () => tab('Query execution history').click());
-        await vi.waitFor(() => expect(root.container.querySelectorAll('[data-testid="query-history-row"]').length).toBe(3));
+        // The health check of the setup of the connection is a query of its history as well
+        await vi.waitFor(() => expect(root.container.querySelectorAll('[data-testid="query-history-row"]').length).toBe(4));
         const queries = [...root.container.querySelectorAll('[data-testid="query-history-row"]')]
             .map(row => `${row.firstElementChild!.children[1].textContent} ${row.querySelector('[title]')!.textContent}`);
-        expect(queries.sort()).toEqual(['Hyper Query 1', 'Hyper Query 3', 'SQLFrame Query 2']);
+        expect(queries).toEqual(expect.arrayContaining(['Hyper Query 1', 'Hyper Query 3', 'SQLFrame Query 2']));
 
         // Every tab closes the overlay
         act(() => root.container.querySelector<HTMLButtonElement>('button[aria-label="close-overlay"]')!.click());

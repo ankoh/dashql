@@ -393,6 +393,8 @@ export interface RuntimeMounts {
     attachments(workbookId: string): Promise<void>;
     /** The columns of a Parquet attachment of a workbook */
     attachmentColumns(workbookId: string, fileName: string): Promise<string[]>;
+    /** Unmount the attachments of a workbook that was deleted */
+    dropAttachments(workbookId: string): Promise<void>;
 }
 
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Result data never enters the module: a result is imported as the Arrow table of its handle, the tables that the tasks read stay Arrow tables, the runtime reads only the small ones that it parses as Arrow IPC streams. */
@@ -480,7 +482,12 @@ struct Inner {
     last_request: Cell<f64>,
     /// Hears that the query result cache evicted files
     cache_evicted: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Did the runtime shut down? The platform is called no more then.
+    fenced: Cell<bool>,
 }
+
+/// The error of a call of the platform after the runtime shut down
+const FENCED_MESSAGE: &str = "the runtime was shut down";
 
 /// The host of the services of the crate over the platform object. Clones share the object and the pending changes.
 #[derive(Clone)]
@@ -606,12 +613,41 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
 impl JsPlatform {
     pub fn new(object: JsRuntimePlatform) -> Self {
         Self {
-            inner: Rc::new(Inner { object, pending: RefCell::new(Pending::default()), last_request: Cell::new(0.0), cache_evicted: RefCell::new(None) }),
+            inner: Rc::new(Inner {
+                object,
+                pending: RefCell::new(Pending::default()),
+                last_request: Cell::new(0.0),
+                cache_evicted: RefCell::new(None),
+                fenced: Cell::new(false),
+            }),
         }
     }
 
-    fn object(&self) -> &JsValue {
-        &self.inner.object
+    /// The runtime shut down: from now on every call of the platform fails and a timer never fires. The effects on
+    /// handles stay for the host, which takes them with the last changes.
+    pub fn fence(&self) {
+        self.inner.fenced.set(true);
+    }
+
+    /// Did the runtime shut down?
+    pub fn is_fenced(&self) -> bool {
+        self.inner.fenced.get()
+    }
+
+    /// A member of the platform object, an error once the runtime shut down
+    fn member(&self, name: &str) -> Result<JsValue, HostError> {
+        if self.is_fenced() {
+            return Err(HostError::new(FENCED_MESSAGE));
+        }
+        member(&self.inner.object, name)
+    }
+
+    /// Call a method of the platform object, an error once the runtime shut down
+    fn call_own(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
+        if self.is_fenced() {
+            return Err(HostError::new(FENCED_MESSAGE));
+        }
+        call(&self.inner.object, name, args)
     }
 
     /// A slice of the state changed: it is marked for the next changes that the host takes, and the host is told
@@ -655,7 +691,7 @@ impl JsPlatform {
             tell
         };
         if tell {
-            let _ = call(self.object(), "changed", &[JsValue::from_bool(urgent)]);
+            let _ = self.call_own("changed", &[JsValue::from_bool(urgent)]);
         }
     }
 
@@ -694,7 +730,7 @@ impl JsPlatform {
             pending.effects = releases;
             immediate
         };
-        let handles = member(self.object(), "handles").ok();
+        let handles = self.member("handles").ok();
         let mut left = Vec::new();
         for effect in immediate {
             let applied = match (&handles, &effect) {
@@ -774,29 +810,29 @@ impl JsPlatform {
     /// Log a message on a target
     pub fn log_on(&self, level: LogLevel, message: &str, details: &[(&str, &str)], target: &str) {
         let args = [JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into(), JsValue::from_str(target)];
-        let _ = call(self.object(), "log", &args);
+        let _ = self.call_own("log", &args);
     }
 
     /// Keep an object in the handle table of the host
     pub fn register(&self, object: &JsValue) -> Result<Handle, HostError> {
-        let handles = member(self.object(), "handles")?;
+        let handles = self.member("handles")?;
         as_handle(&call(&handles, "register", std::slice::from_ref(object))?).ok_or_else(|| HostError::new("the handle table returned no handle"))
     }
 
     /// The object of a handle, undefined for none
     pub fn handle(&self, handle: Handle) -> JsValue {
-        member(self.object(), "handles").and_then(|handles| call(&handles, "get", &[JsValue::from_f64(handle as f64)])).unwrap_or(JsValue::UNDEFINED)
+        self.member("handles").and_then(|handles| call(&handles, "get", &[JsValue::from_f64(handle as f64)])).unwrap_or(JsValue::UNDEFINED)
     }
 
     /// Keep the object of a handle under a new handle as well
     pub fn duplicate(&self, handle: Handle) -> Result<Handle, HostError> {
-        let handles = member(self.object(), "handles")?;
+        let handles = self.member("handles")?;
         as_handle(&call(&handles, "duplicate", &[JsValue::from_f64(handle as f64)])?).ok_or_else(|| HostError::new("the handle table returned no handle"))
     }
 
     /// Read a table of the handle table as an Arrow IPC stream
     pub fn read_table(&self, table: Handle) -> Result<Vec<u8>, HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         let ipc = call(&tables, "read", &[JsValue::from_f64(table as f64)])?;
         if !ipc.is_object() {
             return Err(HostError::new("the table is no Arrow IPC stream"));
@@ -807,7 +843,7 @@ impl JsPlatform {
 
     /// The rows and the schema of a table of the handle table, the rows stay with the host
     pub fn describe_table(&self, table: Handle) -> Result<TableShape, HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         let described = call(&tables, "describe", &[JsValue::from_f64(table as f64)])?;
         let schema = field(&described, "schema").filter(JsValue::is_object).ok_or_else(|| HostError::new("the table has no schema"))?;
         // The bytes may come from another realm, they are copied by value. A schema is small.
@@ -818,20 +854,20 @@ impl JsPlatform {
 
     /// Open a table that streams in parts
     pub fn open_table(&self) -> Result<Handle, HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         as_handle(&call(&tables, "open", &[])?).ok_or_else(|| HostError::new("the tables returned no handle"))
     }
 
     /// Push the next part of a table that streams
     pub fn push_table(&self, table: Handle, part: &JsValue) -> Result<(), HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         call(&tables, "push", &[JsValue::from_f64(table as f64), part.clone()])?;
         Ok(())
     }
 
     /// Finish a table, it is a table of the handle table from then on
     pub fn finish_table(&self, table: Handle) -> Result<HostTable, HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         Ok(host_table(&call(&tables, "finish", &[JsValue::from_f64(table as f64)])?))
     }
 
@@ -845,7 +881,7 @@ impl JsPlatform {
     /// Connect a channel of a setup, the handle of the channel. A future that is dropped before the connect settled
     /// closes the channel once it is connected, so a channel that nobody waits for never stays open.
     pub fn connect_channel(&self, setup_id: &str, request: &JsValue) -> impl Future<Output = Result<Handle, HostError>> + 'static {
-        let call = member(self.object(), "channels").and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
+        let call = self.member("channels").and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
         let promise = call.map(|sent| Promise::resolve(&sent));
         let close = CloseOnDrop { promise: promise.as_ref().ok().cloned(), platform: self.clone() };
         async move {
@@ -858,7 +894,7 @@ impl JsPlatform {
 
     /// The token of the link to a Hyper that the page holds
     pub fn hyper_link_token(&self, connection_id: &str) -> Option<String> {
-        let channels = member(self.object(), "channels").ok()?;
+        let channels = self.member("channels").ok()?;
         call(&channels, "hyperLinkToken", &[JsValue::from_str(connection_id)]).ok()?.as_string()
     }
 
@@ -866,7 +902,7 @@ impl JsPlatform {
     /// channel of a query of the host until `forget_channel_query`.
     pub fn channel_describe(&self, query_id: f64, channel: Option<Handle>, query: &JsValue) -> impl Future<Output = Result<RuntimeChannelTarget, HostError>> + 'static {
         let channel = channel.map(|channel| JsValue::from_f64(channel as f64)).unwrap_or(JsValue::NULL);
-        let call = member(self.object(), "channels").and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
+        let call = self.member("channels").and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
         async move {
             let described = settled(call).await?;
             serde_wasm_bindgen::from_value(described).map_err(|error| HostError::new(format!("the platform described no channel: {error}")))
@@ -875,14 +911,14 @@ impl JsPlatform {
 
     /// A query ended, the platform lets go of its channel
     pub fn forget_channel_query(&self, query_id: f64) {
-        if let Ok(channels) = member(self.object(), "channels") {
+        if let Ok(channels) = self.member("channels") {
             let _ = call(&channels, "forget", &[JsValue::from_f64(query_id)]);
         }
     }
 
     /// The SHA-256 digest of bytes, computed by the platform
     pub fn sha256(&self, bytes: &[u8]) -> impl Future<Output = Result<Vec<u8>, HostError>> + 'static {
-        let call = member(self.object(), "crypto").and_then(|crypto| call(&crypto, "sha256", &[Uint8Array::from(bytes).into()]));
+        let call = self.member("crypto").and_then(|crypto| call(&crypto, "sha256", &[Uint8Array::from(bytes).into()]));
         async move {
             let digest = settled(call).await?;
             if !digest.is_object() {
@@ -895,7 +931,7 @@ impl JsPlatform {
 
     /// The OAuth flows of the platform
     fn oauth(&self) -> Result<JsValue, HostError> {
-        member(self.object(), "oauth")
+        self.member("oauth")
     }
 
     /// A PKCE challenge of the platform
@@ -949,25 +985,25 @@ impl JsPlatform {
 
     /// Load the spec of the client functions of an extension, the JSON text
     pub fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
-        let call = member(self.object(), "extensions").and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
+        let call = self.member("extensions").and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
         async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
     }
 
     /// Does the platform keep anything?
     pub fn has_storage(&self) -> bool {
-        member(self.object(), "storage").is_ok()
+        self.member("storage").is_ok()
     }
 
     /// Call a member of the storage of the platform
     pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
-        let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;
+        let storage = self.member("storage").map_err(|_| HostError::new("the platform has no storage"))?;
         call(&storage, name, args)
     }
 
     /// The folder of a workbook whose files the platform keeps in a folder of its own, e.g. a native workbook folder.
     /// None for the workbooks of the storage root and for a storage without such folders.
     pub fn workbook_folder(&self, workbook_id: &str) -> Option<JsValue> {
-        let storage = member(self.object(), "storage").ok()?;
+        let storage = self.member("storage").ok()?;
         if Reflect::get(&storage, &JsValue::from_str("workbookFolder")).ok().is_none_or(|f| !f.is_function()) {
             return None;
         }
@@ -981,7 +1017,7 @@ impl JsPlatform {
 
     /// Call a member of the archives of the platform and await it
     pub fn archives_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
-        let archives = member(self.object(), "archives").map_err(|_| HostError::new("the platform writes and reads no workbook archives"));
+        let archives = self.member("archives").map_err(|_| HostError::new("the platform writes and reads no workbook archives"));
         settled(archives.and_then(|archives| call(&archives, name, args)))
     }
 
@@ -992,20 +1028,20 @@ impl JsPlatform {
 
     /// Forget the object of a handle
     pub fn release_handle(&self, handle: Handle) {
-        if let Ok(handles) = member(self.object(), "handles") {
+        if let Ok(handles) = self.member("handles") {
             let _ = call(&handles, "release", &[JsValue::from_f64(handle as f64)]);
         }
     }
 
     /// A random id
     pub fn random_uuid(&self) -> Result<String, HostError> {
-        let crypto = member(self.object(), "crypto")?;
+        let crypto = self.member("crypto")?;
         call(&crypto, "randomUuid", &[])?.as_string().ok_or_else(|| HostError::new("the platform returned no id"))
     }
 
     /// The compute database, an error until the host set it up
     fn compute(&self) -> Result<JsValue, HostError> {
-        member(self.object(), "compute").map_err(|_| HostError::new("the platform has no compute database"))
+        self.member("compute").map_err(|_| HostError::new("the platform has no compute database"))
     }
 
     /// Is there a compute database?
@@ -1015,12 +1051,12 @@ impl JsPlatform {
 
     /// The query result cache, an error without one
     fn result_cache(&self) -> Result<JsValue, HostError> {
-        member(self.object(), "resultCache").map_err(|_| HostError::new("the platform has no query result cache"))
+        self.member("resultCache").map_err(|_| HostError::new("the platform has no query result cache"))
     }
 
     /// Call a member of the channels of the host
     fn channels(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
-        call(&member(self.object(), "channels")?, name, args)
+        call(&self.member("channels")?, name, args)
     }
 
     /// Run a query on its channel of the host, the batches go into the table
@@ -1134,7 +1170,7 @@ impl JsPlatform {
 
     /// The files of the runs, an error without a compute database that reads Parquet files
     fn mounts(&self) -> Result<JsValue, HostError> {
-        member(self.object(), "mounts").map_err(|_| HostError::new("Scripts that read the results of other scripts or attachments need the compute database"))
+        self.member("mounts").map_err(|_| HostError::new("Scripts that read the results of other scripts or attachments need the compute database"))
     }
 
     /// Can the platform mount files of runs?
@@ -1157,7 +1193,7 @@ impl JsPlatform {
     /// stopped waiting for it.
     pub fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let id = self.next_id();
-        let http = member(self.object(), "http");
+        let http = self.member("http");
         let token = cancellation.clone();
         let sent = if token.is_cancelled() {
             None
@@ -1278,7 +1314,7 @@ fn context_js(context: &ComputeContext) -> Result<JsValue, HostError> {
 
 impl Host for JsPlatform {
     fn now(&self) -> f64 {
-        member(self.object(), "clock")
+        self.member("clock")
             .and_then(|clock| call(&clock, "now", &[]))
             .ok()
             .and_then(|now| now.as_f64())
@@ -1286,8 +1322,13 @@ impl Host for JsPlatform {
     }
 
     fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
-        let slept = member(self.object(), "clock").and_then(|clock| call(&clock, "sleep", &[JsValue::from_f64(ms)]));
+        let fenced = self.is_fenced();
+        let slept = self.member("clock").and_then(|clock| call(&clock, "sleep", &[JsValue::from_f64(ms)]));
         async move {
+            // A task of a runtime that shut down waits forever instead of calling the platform again
+            if fenced {
+                std::future::pending::<()>().await;
+            }
             let _ = settled(slept).await;
         }
     }
@@ -1297,7 +1338,7 @@ impl Host for JsPlatform {
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        let _ = call(self.object(), "log", &[JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into()]);
+        let _ = self.call_own("log", &[JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into()]);
     }
 }
 
@@ -1358,7 +1399,7 @@ impl ComputeHost for JsPlatform {
     }
 
     fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError> {
-        let tables = member(self.object(), "tables")?;
+        let tables = self.member("tables")?;
         let table = call(&tables, "begin", &[Uint8Array::from(ipc).into()])?;
         let handle = as_handle(&table).ok_or_else(|| HostError::new("the tables returned no handle"))?;
         call(&tables, "finish", &[table])?;
@@ -1366,7 +1407,7 @@ impl ComputeHost for JsPlatform {
     }
 
     fn release(&self, handle: Handle) {
-        if let Ok(handles) = member(self.object(), "handles") {
+        if let Ok(handles) = self.member("handles") {
             let _ = call(&handles, "release", &[JsValue::from_f64(handle as f64)]);
         }
     }

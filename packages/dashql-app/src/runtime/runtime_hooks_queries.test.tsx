@@ -90,7 +90,7 @@ interface Api {
 /// Create the connection in the runtime of the test and capture the executor once the compute database is set up
 function Capture(props: { database: (runtime: Runtime) => Promise<void>; capture: (api: Api) => void }) {
     const runtime = useRuntime();
-    const execute = runtime.execute;
+    const execute = runtime.execute.bind(runtime);
     const compute = useComputeDatabase();
     const [created, setCreated] = React.useState(false);
     React.useEffect(() => {

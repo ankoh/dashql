@@ -1,6 +1,6 @@
 import type * as core from '../../core/index.js';
 import type { Logger } from '../../platform/platform/logger/logger.js';
-import type { RuntimePlatform } from '../runtime.js';
+import type { RuntimeOptions } from '../runtime.js';
 import type { StorageBackend } from '../../platform/storage/storage_backend.js';
 import type { OAuthFlow } from '../../platform/oauth/oauth_flow.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
@@ -28,7 +28,7 @@ export interface NodePlatformOptions {
 }
 
 /// The platform of Node for createRuntime: fetch, the core from its file, updates at the end of a task
-export async function createNodePlatform(options: NodePlatformOptions): Promise<RuntimePlatform> {
+export async function createNodePlatform(options: NodePlatformOptions): Promise<RuntimeOptions> {
     return {
         logger: options.logger,
         storage: options.storage,

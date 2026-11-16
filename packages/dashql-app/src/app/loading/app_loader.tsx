@@ -33,7 +33,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const hyperLinks = useHyperLinkTabState();
     React.useEffect(() => {
         if (runtime == null || !hyperEnabled || openedWorkbook == null) return;
-        runtime.module.setUpOpenedWorkbook(openedWorkbook.workbookId);
+        runtime.setUpOpenedWorkbook(openedWorkbook.workbookId);
     }, [runtime, hyperEnabled, openedWorkbook?.workbookId, openedConnections, hyperLinks]);
 
     // The import of a workbook that the app was started with, the setup then doesn't open another one

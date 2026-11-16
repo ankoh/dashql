@@ -11,7 +11,7 @@ import { ComputeConnectionProvider } from '../../compute/compute_connection_prov
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
+import { addTestConnection, runTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { loadClientFunctionSpec } from '@ankoh/dashql/platform/connections/clfn/clfn_specs';
 import { EmbeddedDatabaseProvider } from '../../platform/database/embedded_database_provider.js';
@@ -103,7 +103,7 @@ function createConnection(connectionId: string, options: {
 
 /// A finished query of a workbook on a connection
 function finishedQuery(runtime: Runtime, connectionId: string): number {
-    return trackTestQuery(runtime, { connection: connectionId }, 'select * from t;', {
+    return runTestQuery(runtime, connectionId, 'select * from t;', {
         queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId: WORKBOOK_ID,
     }, true);
 }

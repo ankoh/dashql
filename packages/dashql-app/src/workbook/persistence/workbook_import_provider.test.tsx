@@ -14,7 +14,7 @@ import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_stor
 import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend, type WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
 import { WorkbookImportProvider, importConflictOf, useWorkbookImport, type ConflictChoice, type WorkbookImportOptions } from './workbook_import_provider.js';
 import { memoryImportFolder } from './import_test_sources.js';
@@ -22,7 +22,8 @@ import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/platform/electron_f
 import type { Runtime, ImportSource } from '@ankoh/dashql/runtime/runtime';
 import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
 import { useConnections, useRuntime, useWorkbooks } from '../../runtime/runtime_hooks.js';
-import { addTestConnection, trackTestQuery } from '../../tests/test_connections.js';
+import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';
+import { setupTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class {
@@ -83,7 +84,7 @@ function sourceOf(bundle: TestBundle): ImportSource {
 
 interface Api {
     importer: ReturnType<typeof useWorkbookImport>;
-    writer: StorageWriter;
+    writer: StorageCommands;
     logger: Logger;
     connections: ReadonlyMap<string, ConnectionState>;
     runtime: Runtime;
@@ -506,12 +507,14 @@ describe('WorkbookImportProvider', () => {
         await act(async () => { await importBundle(bundleOf(), CENTERED); });
         await vi.waitFor(() => expect(api.connections.has(HYPER_ID)).toBe(true));
         const queries: number[] = [];
+        // The queries run on a channel of the test until they are cancelled
+        await act(async () => { await setupTestConnection(api.runtime, HYPER_ID, { channel: pendingTestChannel() }); });
         await act(async () => {
             const metadata = (workbookId: string) => ({
                 queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId,
             });
-            queries.push(trackTestQuery(api.runtime, { connection: HYPER_ID }, 'select 1', metadata(WORKBOOK_ID), false));
-            queries.push(trackTestQuery(api.runtime, { connection: HYPER_ID }, 'select 1', metadata(OTHER_WORKBOOK_ID), false));
+            queries.push(runTestQuery(api.runtime, HYPER_ID, 'select 1', metadata(WORKBOOK_ID), false));
+            queries.push(runTestQuery(api.runtime, HYPER_ID, 'select 1', metadata(OTHER_WORKBOOK_ID), false));
         });
         await vi.waitFor(() => expect(api.connections.get(HYPER_ID)?.queriesActiveOrdered).toEqual(queries));
         const { result } = await askConflict(() => importBundle(bundleOf({}, 'select 2'), CENTERED));

@@ -108,6 +108,18 @@ interface Execution {
     stop(): void;
 }
 
+/// A compute database whose queries run until the test ends: the computations import their results and wait
+const PENDING_COMPUTE = {
+    terminate: vi.fn(),
+    connect: async () => ({
+        insertArrowTable: async () => { },
+        createTableAs: () => new Promise(() => { }),
+        query: () => new Promise(() => { }),
+        execute: async () => { },
+        close: async () => { },
+    }),
+} as unknown as EmbeddedComputeDatabase;
+
 describe('the runs of workbooks of the runtime', () => {
     let fixtures: Fixture[];
     let runtime: TestRuntime | null = null;
@@ -147,11 +159,19 @@ describe('the runs of workbooks of the runtime', () => {
             health,
             error: 'down',
         });
-        const metadata = { title: null, description: null, issuer: null, userProvided: true };
-        for (const queryType of f.database.activeQueries) {
-            rt.dispatch({ connection: connectionId }, { kind: 'trackQuery', value: { traceId: 0, text: 'select 1', metadata: { ...metadata, queryType } } });
+        // A query of the user runs on the channel until the test ends, a computation of a result of the connection queries
+        // the compute database until the test ends
+        for (const [i, queryType] of f.database.activeQueries.entries()) {
+            if (queryType === QueryType.INTERNAL_SQLFRAME) {
+                void rt.analyzeTable(1000 + i, tableFromArrays({ value: [1, 2] }), { connectionId }).catch(() => { });
+            } else {
+                const metadata = { queryType, title: null, description: null, issuer: null, userProvided: true };
+                void rt.execute(connectionId, { query: 'select 1', metadata })[1].catch(() => { });
+            }
         }
-        rt.flush();
+        if (f.database.activeQueries.length > 0) {
+            await vi.waitFor(() => expect(rt.connection(connectionId).queriesActiveOrdered.length).toBeGreaterThanOrEqual(f.database.activeQueries.length));
+        }
         expect(rt.connection(connectionId).connectionHealth).toBe(health);
     }
 
@@ -159,7 +179,9 @@ describe('the runs of workbooks of the runtime', () => {
     async function openWorkbook(workbookId = 'first', options: { computeDatabase?: boolean } = {}) {
         if (runtime == null) {
             runtime = await createTestRuntime({
-                computeDatabase: options.computeDatabase === false ? null : { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase,
+                computeDatabase: options.computeDatabase === false ? null
+                    : fixtures.some(f => f.database.activeQueries.includes(QueryType.INTERNAL_SQLFRAME)) ? PENDING_COMPUTE
+                        : { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase,
             });
             for (const f of fixtures) {
                 await addConnection(runtime, f);
@@ -308,9 +330,11 @@ describe('the runs of workbooks of the runtime', () => {
         const f = fixtures[0];
         f.database.activeQueries.push(QueryType.USER_PROVIDED);
         await openWorkbook();
+        // The active query runs on the channel
+        await vi.waitFor(() => expect(f.executeQuery).toHaveBeenCalledTimes(1));
         const run = await current.start();
         expect(run.outcome.refused).toBe(`the connection ${f.database.connectionId} runs a query`);
-        expect(f.executeQuery).not.toHaveBeenCalled();
+        expect(f.executeQuery).toHaveBeenCalledTimes(1);
         expect(current.state).toBeNull();
         expect(current.busy).toBe(false);
     });
@@ -379,6 +403,7 @@ describe('the runs of workbooks of the runtime', () => {
         const f = fixtures[0];
         f.database.activeQueries.push(QueryType.INTERNAL_SQLFRAME);
         await openWorkbook();
+        expect(f.executeQuery).not.toHaveBeenCalled();
         void current.start();
         await vi.waitFor(() => expect(f.executeQuery).toHaveBeenCalledTimes(1));
     });
@@ -500,7 +525,7 @@ describe('the runs of scripts of the runtime', () => {
     it('analyzes an outdated script before it runs', async () => {
         const f = await scripts([]);
         // A restored workbook is not analyzed yet
-        const restored = await restoreTestWorkbook(f.core, f.rt.platform.storage!, [['foo.sql', 'select 2 as b;', f.connectionId]]);
+        const restored = await restoreTestWorkbook(f.core, f.rt.options.storage!, [['foo.sql', 'select 2 as b;', f.connectionId]]);
         const scriptKey = restored.scriptKeys[0];
         expect(f.core.store.get('script', scriptKey)?.analysisOutdated).toBe(true);
         expect((await f.core.runScript(restored.workbookId, scriptKey)).outcome.failure).toBeNull();

@@ -22,17 +22,6 @@ const USER_QUERY: dashql.QueryMetadataView = {
     resultOwner: 'alpha',
 };
 
-const METRICS: dashql.QueryStreamMetrics = {
-    totalDataBytesReceived: 0,
-    totalBatchesReceived: 1,
-    totalRowsReceived: 3,
-    totalQueryRequestsStarted: 1,
-    totalQueryRequestsSucceeded: 1,
-    totalQueryRequestsFailed: 0,
-    totalQueryRequestDurationMs: 5,
-    durationUntilFirstBatchMs: 2,
-};
-
 /// A platform that answers the requests of a Trino query, keeps the parts of the results and records what the runtime
 /// tells it
 class TestPlatform {
@@ -197,7 +186,6 @@ describe('The connections of the runtime', () => {
         expect(viewOf(runtime, 'connection', 'trino')!.workbooks).toEqual(['w']);
         expect(runtime.dispatch({ connection: 'trino' }, { kind: 'deleteConnection' })).toMatchObject({ ok: false });
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'deleteConnection' })).toMatchObject({ ok: false });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -216,7 +204,6 @@ describe('The connections of the runtime', () => {
         // A connection without OAuth has no tokens
         expect(runtime.revealConnectionSecrets('trino')).toEqual({ accessToken: null, coreAccessToken: null, dataCloudAccessToken: null });
         expect(runtime.revealConnectionSecrets('gone')).toBeNull();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -239,7 +226,6 @@ describe('The connections of the runtime', () => {
         // A connection of another connector doesn't take the params
         expect(await runtime.setupConnection('main', { params })).toMatchObject({ status: 'failed' });
         expect(await runtime.setupConnection('gone')).toMatchObject({ status: 'failed', message: 'no connection registered with id gone' });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -253,7 +239,6 @@ describe('The connections of the runtime', () => {
         expect(await setup).toMatchObject({ status: 'cancelled' });
         expect(platform.requests.at(-1)?.method).toBe('DELETE');
         expect(viewOf(runtime, 'connection', 'trino')!.connectionHealth).toBe(dashql.ConnectionHealth.CANCELLED);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -286,7 +271,6 @@ describe('The connections of the runtime', () => {
         const after = viewOf(runtime, 'connection', 'main')!;
         expect(after.connectionHealth).toBe(dashql.ConnectionHealth.ONLINE);
         expect(after.details.channel).toBe(online.details.channel);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -312,7 +296,6 @@ describe('The connections of the runtime', () => {
         expect(await setup).toMatchObject({ status: 'cancelled' });
         // The loopback server of the flow closes
         expect(aborted).toEqual(flows);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -328,7 +311,6 @@ describe('The connections of the runtime', () => {
         runtime.cancelSetup('trino');
         expect(await setup).toMatchObject({ status: 'cancelled' });
         expect(viewOf(runtime, 'connection', 'trino')!.connectionHealth).toBe(dashql.ConnectionHealth.CANCELLED);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -343,7 +325,6 @@ describe('The connections of the runtime', () => {
         expect(await runtime.setupConnection('main')).toMatchObject({ status: 'succeeded' });
         expect(runtime.takeChanges().effects).toContainEqual({ type: 'close', handle: first });
         expect(viewOf(runtime, 'connection', 'main')!.details.channel).not.toBe(first);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -360,7 +341,6 @@ describe('The connections of the runtime', () => {
         expect(trino.connectionHealth).toBe(dashql.ConnectionHealth.NOT_STARTED);
         expect(trino.details.channel).toBeNull();
         expect(trino.setupRunning).toBe(false);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -374,7 +354,6 @@ describe('The connections of the runtime', () => {
         // The metadata query is a query of the connection that the update registered, the catalogs of Trino come first
         expect(platform.requests.filter(r => r.url.endsWith('/v1/statement')).map(r => r.body)).toEqual([expect.stringContaining('system.metadata.catalogs')]);
         expect(trino.catalogUpdates.tasksFinished[0].queries).toEqual([trino.queriesFinishedOrdered.at(-1)]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -404,7 +383,6 @@ describe('The connections of the runtime', () => {
         expect(runtime.functionScriptText('main')).toContain('DashQL Connection Functions');
         script.destroy();
         catalog.destroy();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -417,7 +395,6 @@ describe('The connections of the runtime', () => {
         expect(runtime.dispatch({ connection: 'other' }, { kind: 'deleteConnection' })).toMatchObject({ ok: true });
         runtime.dispatch('app', { kind: 'createConnection', value: trino });
         expect(viewOf(runtime, 'connection', 'other')!.catalogId).not.toBe(before);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -427,12 +404,11 @@ describe('The connections of the runtime', () => {
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'setDraft', value: { params: 42 } } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'nope' } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false });
         expect(runtime.dispatch({ nope: 1 } as unknown as dashql.Target, { kind: 'rename', value: { name: 'x' } })).toMatchObject({ ok: false });
-        expect(runtime.dispatch({ history: 'shell' }, { kind: 'querySending', value: { queryId: -1 } })).toMatchObject({ ok: false });
+        expect(runtime.dispatch({ connection: 'main' }, { kind: 'queryCacheDeleted', value: { queryId: -1 } })).toMatchObject({ ok: false });
         expect(() => runtime.views('query', ['x' as unknown as number])).toThrow();
         expect(() => runtime.cancelQuery(-1)).toThrow();
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'rename', value: { name: 'Main' } })).toMatchObject({ ok: true, changed: true });
         expect(viewOf(runtime, 'connection', 'main')!.name).toBe('Main');
-        runtime.destroy();
         runtime.free();
     });
 
@@ -451,74 +427,11 @@ describe('The connections of the runtime', () => {
         runtime.setUpOpenedWorkbook('memory');
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(platform.connected).toHaveLength(1);
-        runtime.destroy();
         runtime.free();
     });
 });
 
 describe('The queries of the runtime', () => {
-    it('tracks the queries of the host in a history without a connection', () => {
-        const platform = new TestPlatform();
-        const runtime = createRuntime(platform);
-        expect(runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY } })).toMatchObject({ ok: false });
-        runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: { limit: 1 } });
-        const record = platform.platform.handles.register({ abort: () => { } });
-        const first = runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: record } });
-        expect(first).toMatchObject({ ok: true, id: expect.any(Number) });
-        const queryId = first.id as number;
-        const table = platform.platform.handles.register('table');
-        runtime.dispatch({ history: 'shell' }, { kind: 'queryRunning', value: { queryId } });
-        runtime.dispatch({ history: 'shell' }, { kind: 'queryReceivedAllBatches', value: { queryId, table, rows: 3, metrics: METRICS } });
-        runtime.dispatch({ history: 'shell' }, { kind: 'querySucceeded', value: { queryId } });
-        expect(viewOf(runtime, 'history', 'shell')).toEqual({ queries: [queryId] });
-        expect(viewOf(runtime, 'query', queryId)).toMatchObject({
-            queryId,
-            connectionId: null,
-            queryText: 'select 1',
-            queryMetadata: { resultOwner: 'alpha' },
-            status: dashql.QueryExecutionStatus.SUCCEEDED,
-            resultTable: { id: table, rows: 3 },
-        });
-        runtime.takeChanges();
-        // The limit drops the oldest query with its table
-        const second = runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 2, text: 'select 2', metadata: USER_QUERY } });
-        const changes = runtime.takeChanges();
-        expect(changes.effects).toEqual([{ type: 'release', handle: table }, { type: 'release', handle: record }]);
-        expect(changes.changes.filter(change => change.kind === 'query')).toEqual([
-            { kind: 'query', id: second.id, revision: expect.any(Number) },
-            { kind: 'query', id: queryId, revision: null },
-        ]);
-        expect(viewOf(runtime, 'query', queryId)).toBeNull();
-        runtime.destroy();
-        runtime.free();
-    });
-
-    it('owns the handles of the actions it refuses and releases them', () => {
-        const platform = new TestPlatform();
-        const runtime = createRuntime(platform);
-        const handles = platform.platform.handles;
-        // A history that is not there
-        const record = handles.register({ abort: () => { } });
-        expect(runtime.dispatch({ history: 'none' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: record } })).toMatchObject({ ok: false });
-        expect(handles.get(record)).toBeUndefined();
-        // A query id that is no integer
-        runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: {} });
-        const table = handles.register('table');
-        expect(runtime.dispatch({ history: 'shell' }, { kind: 'queryReceivedAllBatches', value: { queryId: 1.5, table, rows: 1 } })).toMatchObject({ ok: false });
-        expect(handles.get(table)).toBeUndefined();
-        // An action that can't be read
-        const unread = handles.register({ abort: () => { } });
-        const malformed = { kind: 'trackQuery', value: { traceId: 'x', handle: unread } } as unknown as dashql.RuntimeAction;
-        expect(runtime.dispatch({ history: 'shell' }, malformed)).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
-        expect(handles.get(unread)).toBeUndefined();
-        // An action that the runtime takes keeps its handle
-        const kept = handles.register({ abort: () => { } });
-        expect(runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: kept } })).toMatchObject({ ok: true });
-        expect(handles.get(kept)).toBeDefined();
-        runtime.destroy();
-        runtime.free();
-    });
-
     it('runs a Trino query into the history of its connection, the parts of the result stay with the host', async () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
@@ -545,7 +458,6 @@ describe('The queries of the runtime', () => {
             resultTable: { rows: 2 },
             latestProgressUpdate: { phase: 'FINISHED' },
         });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -563,7 +475,6 @@ describe('The queries of the runtime', () => {
         // The fetch of the page that the query waited for is aborted
         expect(platform.aborted).toHaveLength(1);
         expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -589,7 +500,6 @@ describe('The queries of the runtime', () => {
         describe({ type: 'host' });
         expect(await pending.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
         expect(platform.requests).toHaveLength(0);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -603,7 +513,6 @@ describe('The queries of the runtime', () => {
         // Neither the channel nor the compute database is asked
         expect(platform.described).toEqual([]);
         expect(viewOf(runtime, 'query', failed.queryId)).toMatchObject({ status: dashql.QueryExecutionStatus.FAILED, error: { message: failure.message } });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -625,7 +534,6 @@ describe('The queries of the runtime', () => {
         expect(cancelled).toEqual([ticket.queryId]);
         expect(await ticket.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
         expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -649,7 +557,6 @@ describe('The queries of the runtime', () => {
         await ticket.done;
         expect(copy).not.toBeNull();
         expect(runtime.takeChanges().effects).toContainEqual({ type: 'release', handle: copy });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -682,7 +589,6 @@ describe('The queries of the runtime', () => {
             // The eviction removed the new file right away, the query names no cached result
             expect(files).toHaveLength(evicted ? 0 : 1);
             expect(viewOf(runtime, 'query', ticket.queryId)!.cacheKey).toEqual(evicted ? null : expect.any(String));
-            runtime.destroy();
             runtime.free();
         }
     });
@@ -707,7 +613,6 @@ describe('The queries of the runtime', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(platform.requests).toHaveLength(0);
         expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -742,7 +647,6 @@ describe('The queries of the runtime', () => {
         const grown = dashql.DashQL.moduleMemoryBytes() - before;
         expect(platform.resultBytes).toBeGreaterThan(64 * 1024 * 1024);
         expect(grown).toBeLessThan(24 * 1024 * 1024);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -776,7 +680,6 @@ describe('The queries of the runtime', () => {
         expect(dql!.readQueryProfile(followed.structure!).read().layoutConfig()!.input()!.orientation()).toBe(rotated.orientation);
         expect(follower.follow(runtime, ticket.queryId + 100)).toBeNull();
         follower.destroy();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -791,7 +694,6 @@ describe('The queries of the runtime', () => {
         expect(viewOf(runtime, 'connection', 'trino')!.queriesActiveOrdered).toEqual([]);
         expect((await ticket.done).status).toBe('rejected');
         expect(viewOf(runtime, 'query', ticket.queryId)).toBeNull();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -816,7 +718,6 @@ describe('The queries of the runtime', () => {
         // The download of the next page stops and Trino stops the query
         expect(platform.aborted).toHaveLength(1);
         expect(platform.requests.at(-1)).toMatchObject({ method: 'DELETE', url: `${TRINO}/v1/statement/executing/q1/y/2` });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -843,7 +744,6 @@ describe('The queries of the runtime', () => {
         const column = resultTable(outcome).getChild('ts')!;
         const ms = Array.from({ length: column.length }, (_, i) => column.get(i)).map(value => value == null ? null : Number(value));
         expect(ms).toEqual([Date.UTC(2024, 0, 15, 11), Date.UTC(2024, 6, 15, 10), Date.UTC(2024, 6, 15, 10), Date.UTC(2024, 6, 15, 12), null]);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -885,7 +785,6 @@ describe('The queries of the runtime', () => {
         const statements = platform.requests.filter(r => r.url.endsWith('/v1/statement'));
         expect(statements.length).toBeGreaterThanOrEqual(2);
         for (const statement of statements) expect(statement.headers).toContainEqual(['Authorization', 'Bearer token-2']);
-        runtime.destroy();
         runtime.free();
     });
 });

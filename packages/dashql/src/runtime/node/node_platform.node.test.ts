@@ -13,7 +13,7 @@ describe('the platform of Node', () => {
             const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));
             const workbook = runtime.createWorkbook(connection.connectionId, 'Node', false);
             expect(runtime.store.get('workbook', workbook.workbookId)?.name).toBe('Node');
-            await expect(runtime.platform.oauthFlow!.authorizeWithLoopback(new URL('http://127.0.0.1'), '', new AbortController().signal, () => { }))
+            await expect(runtime.options.oauthFlow!.authorizeWithLoopback(new URL('http://127.0.0.1'), '', new AbortController().signal, () => { }))
                 .rejects.toThrow('dashql auth');
         } finally {
             await runtime.destroy();

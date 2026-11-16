@@ -71,7 +71,6 @@ describe('DashQL runtime', () => {
         const runtime = dql!.createRuntime(platform().platform);
         expect(runtime.takeChanges()).toEqual({ changes: [], effects: [] });
         expect(runtime.views('computation', [1, 2])).toEqual([null, null]);
-        runtime.destroy();
         runtime.free();
     });
 

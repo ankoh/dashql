@@ -219,6 +219,16 @@ impl Runs {
 
     /// Forget the run of a workbook that was deleted or replaced: a run that holds it stops, the slice goes
     pub fn forget(&self, workbook_id: &str) {
+        // The attachments of the workbook leave the compute database, a replaced workbook mounts them again
+        if self.platform.has_mounts() {
+            let unmount = self.platform.mounts_call("dropAttachments", &[JsValue::from_str(workbook_id)]);
+            let platform = self.platform.clone();
+            self.platform.spawn(Box::pin(async move {
+                if let Err(error) = unmount.await {
+                    platform.log_on(LogLevel::Warn, "Unmounting the attachments of a workbook failed", &[("error", error.message())], LOG_TARGET);
+                }
+            }));
+        }
         let removed = {
             let mut entries = self.entries.borrow_mut();
             let position = entries.iter().position(|entry| entry.workbook_id == workbook_id);

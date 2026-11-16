@@ -4,7 +4,8 @@ import type * as arrow from 'apache-arrow';
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { clientContextJson, createComputePlatform } from './compute/compute_platform.js';
-import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '../platform/platform/database/embedded_database.js';
+import { ComputeDatabase, type ComputeDatabaseProvider } from './compute/compute_database.js';
+import type { EmbeddedClientContext } from '../platform/platform/database/embedded_database.js';
 import type { HttpClient } from '../platform/platform/http/http_client.js';
 import { stringifyError, type Logger } from '../platform/platform/logger/logger.js';
 import { HandleTable } from './store/handles.js';
@@ -15,27 +16,37 @@ import { QueryChannels } from './query/query_channels.js';
 import { createQueryProjection } from './query/query_projection.js';
 import type { QueryResultCache } from '../platform/query/query_result_cache.js';
 import { createProgressLayoutConfig } from '../platform/query/profile/profile_layout_config.js';
-import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
+import type { CancelQuery, QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
 import { createConnectionAction, type ConnectionState, type NewConnection } from '../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../platform/connections/connection_params.js';
 import { loadClientFunctionSpec } from '../platform/connections/clfn/clfn_specs.js';
 import type { OAuthFlow } from '../platform/oauth/oauth_flow.js';
 import { PlatformRequests } from './platform_requests.js';
-import { createRuntimeStorage, StorageWriter } from './storage/runtime_storage.js';
+import { createRuntimeStorage, StorageCommands } from './storage/runtime_storage.js';
 import type { StorageBackend } from '../platform/storage/storage_backend.js';
 import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook/scripts/workbook_projection.js';
 import type { ScriptData, WorkbookScripts } from '../platform/workbook/scripts/workbook_scripts.js';
-import { createRunMounts } from './workbook/scripts/run_mounts.js';
+import { createRunMounts, type RunMounts } from './workbook/scripts/run_mounts.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/scripts/workbook_execution.js';
 import { emptyWorkbookTables, provideWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 import { provideStorageVersions } from '../platform/storage/storage_versions.js';
 
 const LOG_CTX = 'runtime';
 
-/// What a platform passes to the runtime: the browser, the desktop app, Node or a test. The platform creates the runtime
-/// once its core is there, and owns what it passes for the lifetime of the runtime. Every member but the logger, the
-/// scheduler and the core is optional, a runtime without storage keeps nothing and one without HTTP sends no requests.
-export interface RuntimePlatform {
+export type { ComputeDatabaseProvider };
+
+/// The query commands of the runtime that a test of components replaces
+export interface QueryCommands {
+    execute: QueryExecutor;
+    cancel: CancelQuery;
+    watchProfile: WatchQueryProfile;
+}
+
+/// What a platform passes to `createRuntime`: the browser, the desktop app, Node or a test. The platform creates the
+/// runtime once its core is there, and owns what it passes for the lifetime of the runtime. Every member but the logger,
+/// the scheduler and the core is optional, a runtime without storage keeps nothing and one without HTTP sends no
+/// requests. The runtime builds the platform object of the module (`core.RuntimePlatform`) from it.
+export interface RuntimeOptions {
     logger: Logger;
     /// When the store takes the changes of the runtime
     scheduler: UpdateScheduler;
@@ -60,10 +71,10 @@ export interface RuntimePlatform {
     /// Run the catalog loader, true by default. A run of the command line tool and most tests don't describe their
     /// connections.
     catalogLoader?: boolean;
+    /// Stand in for the query commands of the runtime (`execute`, `cancel`, `watchProfile`), e.g. in a test of
+    /// components. The services of the runtime keep the query executor of the module.
+    queryCommands?: Partial<QueryCommands> | null;
 }
-
-/// The compute database of a platform, it resolves once the platform set it up
-export type ComputeDatabaseProvider = () => Promise<EmbeddedComputeDatabase>;
 
 /// Creates the `.dashql` archives of a platform over the handle table of the runtime
 export type RuntimeArchivesFactory = (handles: HandleTable) => core.RuntimeArchives;
@@ -101,8 +112,6 @@ export interface AnalyzeTableOptions {
     connectionId?: string | null;
     /// The client context of the queries of a result without a connection, e.g. of the connection overview
     clientContext?: EmbeddedClientContext | null;
-    /// The history without a connection that lists the queries of the computation, e.g. the one of the shell
-    history?: string | null;
     /// Compute the summaries of the columns, false for a table that shows no column plots
     columnAggregates?: boolean;
     /// Order the rows before the analysis settles, e.g. like the result that the result replaces
@@ -134,8 +143,13 @@ function runError(outcome: core.RunOutcome, value: unknown): unknown {
 
 /// Create the runtime of a platform once its core is there. The app creates it in its RuntimeProvider, the shell of
 /// Hyper one without storage, the command line tool and the tests their own.
-export function createRuntime(platform: RuntimePlatform): Runtime {
-    return new Runtime(platform);
+export function createRuntime(options: RuntimeOptions): Runtime {
+    return new Runtime(options);
+}
+
+/// The error of a command of a runtime that was destroyed
+function destroyedError(): Error {
+    return new Error('the runtime was destroyed');
 }
 
 /// The runtime of DashQL (docs/design/dashql_runtime.md): the `Runtime` class of the core module with its platform
@@ -150,6 +164,9 @@ export function createRuntime(platform: RuntimePlatform): Runtime {
 /// runs, the archives), the store, and typed commands where a caller needs more than the module returns: the flush of
 /// the store after a command, handles for the objects that cross. The app reads views through the store and calls the
 /// module directly (`module`) for everything else.
+///
+/// Once `destroy` started, the commands refuse: a command that returns a promise rejects, `dispatch` fails, a command
+/// without a result does nothing. The reads return null once the module is freed.
 export class Runtime {
     /// The handle table of the platform: the Arrow tables, the channels, the records of the queries of the host, the
     /// lifetimes of the computations
@@ -157,43 +174,54 @@ export class Runtime {
     /// The views of the runtime
     readonly store: RuntimeStore;
     /// The commands of the storage writer of the runtime
-    readonly storage: StorageWriter;
+    readonly storage: StorageCommands;
+    /// The compute database of the platform: the computations, the runs and the query result cache wait for it, the app
+    /// reads whether it is ready
+    readonly computeDatabase: ComputeDatabase;
     /// What the platform passed to the runtime
-    readonly platform: RuntimePlatform;
+    readonly options: RuntimeOptions;
     readonly logger: Logger;
     /// The core of the runtime
     readonly core: core.DashQL;
     /// The runtime of the module. The app reads its views through the store and calls it for the commands that need
-    /// nothing of this class, e.g. `stopRun`, `cancelSetup` or `dropImport`.
+    /// nothing of this class, e.g. `dropImport` or `exportConnection`.
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
+    /// The files of the runs in the compute database, null without one
+    private readonly mounts: RunMounts | null;
     /// The catalogs of the connections by the identity of the catalog (`catalogId` of the view of a connection), one
-    /// handle each that reads only
+    /// handle each that reads only. A catalog leaves the map with its connection; the handle is never destroyed, a
+    /// component may still hold it, the finalizer of the module frees it once it is unreachable.
     private readonly catalogs = new Map<number, core.DashQLCatalog>();
     /// The fetches and the OAuth flows of the runtime
     private readonly requests: PlatformRequests;
     /// The projection of the scripts of the workbooks, with the session handles of the scripts
     private readonly scriptProjection: ScriptProjection;
+    /// Did `destroy` start? The commands refuse from then on.
+    private stopping = false;
+    /// Was the module freed? The reads return null from then on.
     private freed = false;
     private destroying: Promise<void> | null = null;
 
-    constructor(platform: RuntimePlatform) {
-        this.platform = platform;
-        this.logger = platform.logger;
-        this.core = platform.core;
-        this.store = new RuntimeStore(this.handles, platform.scheduler, message => this.logger.error(message, {}, LOG_CTX));
-        this.storage = new StorageWriter(this);
-        this.requests = new PlatformRequests(platform);
+    constructor(options: RuntimeOptions) {
+        this.options = options;
+        this.logger = options.logger;
+        this.core = options.core;
+        this.store = new RuntimeStore(this.handles, options.scheduler, message => this.logger.error(message, {}, LOG_CTX));
+        this.storage = new StorageCommands(this);
+        this.computeDatabase = new ComputeDatabase(options.computeDatabase ?? null);
+        this.requests = new PlatformRequests(options);
         this.tables = createRuntimeTables(this.handles);
-        const database = platform.computeDatabase ?? null;
-        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: platform.resultCache ?? null });
+        const database = this.computeDatabase.available ? () => this.computeDatabase.get() : null;
+        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: options.resultCache ?? null });
+        this.mounts = database == null ? null : createRunMounts(database, options.resultCache ?? null, this.handles);
         provideWorkbookTables(this.core);
         provideStorageVersions(this.core);
         this.module = this.core.createRuntime(this.modulePlatform(database));
         // The progress shows the plan in short panels, it grows left-to-right
         this.module.setProgressLayout(createProgressLayoutConfig());
-        this.module.runCatalogLoader(platform.catalogLoader !== false);
+        this.module.runCatalogLoader(options.catalogLoader !== false);
         this.scriptProjection = new ScriptProjection(this.core, this.module);
         this.store.attach(this.module, {
             query: createQueryProjection(this.core, this.module),
@@ -201,22 +229,25 @@ export class Runtime {
             workbook: WORKBOOK_PROJECTION,
             workbookDerived: new WorkbookDerivedProjection(),
         });
-        // A catalog handle goes with the catalog of its connection
+        // A catalog leaves the map with the catalog of its connection, a holder keeps its handle
         this.store.subscribeKind('connection', () => {
             const live = new Set([...this.store.all('connection').values()].map(connection => connection.catalogId));
-            for (const [catalogId, catalog] of this.catalogs) {
-                if (!live.has(catalogId)) {
-                    catalog.destroy();
-                    this.catalogs.delete(catalogId);
-                }
+            for (const catalogId of [...this.catalogs.keys()]) {
+                if (!live.has(catalogId)) this.catalogs.delete(catalogId);
             }
         });
+    }
+
+    /// The module while the runtime lives, a command of a destroyed runtime fails
+    private live(): core.Runtime {
+        if (this.stopping) throw destroyedError();
+        return this.module;
     }
 
     /// The platform object that the runtime of the module calls
     private modulePlatform(database: ComputeDatabaseProvider | null): core.RuntimePlatform {
         const logger = this.logger;
-        const platform = this.platform;
+        const platform = this.options;
         return {
             clock: {
                 now: () => Date.now(),
@@ -237,7 +268,7 @@ export class Runtime {
                 hyperLinkToken: connectionId => platform.channels?.hyperLinkToken?.(connectionId) ?? null,
             },
             resultCache: this.queries.resultCache,
-            mounts: database == null ? null : createRunMounts(database, platform.resultCache ?? null, this.handles),
+            mounts: this.mounts,
             crypto: {
                 randomUuid: () => crypto.randomUUID(),
                 sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
@@ -263,7 +294,7 @@ export class Runtime {
     /// logged. Never throws: the runtime refuses an action that it can't read. The handles that an action carries are
     /// the runtime's from the call on, it releases the ones of a refused action.
     dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome {
-        if (this.freed) return { ok: false, changed: false, error: 'the runtime was destroyed', id: null };
+        if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null };
         const outcome = this.module.dispatch(target, action);
         if (!outcome.ok) this.logger.warn('The runtime refused an action', { target: JSON.stringify(target), action: action.kind, error: outcome.error ?? '' }, LOG_CTX);
         return outcome;
@@ -276,21 +307,15 @@ export class Runtime {
     /// in the store, fails with the error of a failed task. A result without columns has nothing to analyze.
     async analyzeTable(tableId: number, table: arrow.Table, options: AnalyzeTableOptions = {}): Promise<void> {
         if (table.numCols === 0) return;
+        const module = this.live();
+        // The handle is the runtime's from the call on, a call that fails releases it
         const handle = this.handles.register(table);
-        let analysis: Promise<void>;
-        try {
-            analysis = this.module.analyzeTable(tableId, handle, {
-                connectionId: options.connectionId ?? undefined,
-                clientContext: clientContextJson(options.clientContext) ?? undefined,
-                history: options.history ?? undefined,
-                columnAggregates: options.columnAggregates !== false,
-                ordering: options.ordering,
-            });
-        } catch (e) {
-            // The analysis didn't start, the table stays with the caller
-            this.handles.release(handle);
-            throw e;
-        }
+        const analysis = module.analyzeTable(tableId, handle, {
+            connectionId: options.connectionId ?? undefined,
+            clientContext: clientContextJson(options.clientContext) ?? undefined,
+            columnAggregates: options.columnAggregates !== false,
+            ordering: options.ordering,
+        });
         await this.settled(analysis);
     }
 
@@ -323,12 +348,14 @@ export class Runtime {
     }
 
     /// The catalog of a connection, shared with the connection and the scripts that analyze with it. One handle per
-    /// connection, it goes with the connection.
+    /// identity of the catalog (`catalogId` of the view of the connection), a holder keeps it after the connection went.
+    /// Null for an unknown connection. A component reads it with `useCatalog`.
     catalog(connectionId: string): core.DashQLCatalog | null {
-        const catalogId = this.connection(connectionId)?.catalogId;
+        if (this.freed) return null;
+        const catalogId = this.module.catalogId(connectionId);
         if (catalogId == null) return null;
         let catalog = this.catalogs.get(catalogId) ?? null;
-        if (catalog == null && !this.freed) {
+        if (catalog == null) {
             catalog = this.core.runtimeCatalog(this.module, connectionId);
             if (catalog != null) this.catalogs.set(catalogId, catalog);
         }
@@ -342,14 +369,14 @@ export class Runtime {
 
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, the copies of
     /// the workbooks that use the connection after; the view of the connection shows the save while it runs.
-    saveConnection(connectionId: string, params?: ConnectionParams): Promise<core.ConnectionSaveOutcome> {
-        return this.settled(this.module.saveConnection(connectionId, params as core.JsonParams | undefined));
+    async saveConnection(connectionId: string, params?: ConnectionParams): Promise<core.ConnectionSaveOutcome> {
+        return await this.settled(this.live().saveConnection(connectionId, params as core.JsonParams | undefined));
     }
 
     /// Write the copies of the last save of a connection into workbooks again, null without a save that wrote the app
     /// manifest
-    retrySave(connectionId: string, workbookIds: string[]): Promise<core.ConnectionSaveOutcome | null> {
-        return this.settled(this.module.retrySave(connectionId, workbookIds));
+    async retrySave(connectionId: string, workbookIds: string[]): Promise<core.ConnectionSaveOutcome | null> {
+        return await this.settled(this.live().retrySave(connectionId, workbookIds));
     }
 
     // The setups
@@ -357,41 +384,82 @@ export class Runtime {
     /// Set up a connection with its connector: the channel of its params or of the params of the options, then the
     /// health check unless the connection is online with its channel. A setup of the connection that runs is cancelled.
     /// Resolves with the outcome once its view is in the store, a failure is in the view of the connection as well.
-    setupConnection(connectionId: string, options: core.SetupOptions = {}): Promise<core.SetupOutcome> {
-        return this.settled(this.module.setupConnection(connectionId, options));
+    async setupConnection(connectionId: string, options: core.SetupOptions = {}): Promise<core.SetupOutcome> {
+        return await this.settled(this.live().setupConnection(connectionId, options));
+    }
+
+    /// Cancel a setup or a login by its id
+    cancelSetup(setupId: string): void {
+        if (!this.stopping) this.module.cancelSetup(setupId);
+    }
+
+    /// Set up the connections of a workbook that the user opened, unless they are online
+    setUpOpenedWorkbook(workbookId: string): void {
+        if (!this.stopping) this.module.setUpOpenedWorkbook(workbookId);
+    }
+
+    /// Request a refresh of the catalog of a connection, a forced one supersedes a running update
+    refreshCatalog(connectionId: string, force: boolean): void {
+        if (!this.stopping) this.module.refreshCatalog(connectionId, force);
+    }
+
+    /// Lease a connection for a session of the host, e.g. the shell on the embedded Hyper: a later lease takes the
+    /// connection over. Returns the lease that `closeSession` takes.
+    openSession(connectionId: string): number {
+        return this.live().openSession(connectionId);
+    }
+
+    /// Close a session of the host: the latest lease of the connection resets it, an earlier one changes nothing
+    closeSession(connectionId: string, lease: number): void {
+        if (!this.stopping) this.module.closeSession(connectionId, lease);
+    }
+
+    /// Resolve once the catalog of a connection settled: no update runs and every relation that statements touched is
+    /// answered, or after the timeout (10 s by default). The views are in the store then.
+    async settleCatalog(connectionId: string, timeoutMs?: number): Promise<void> {
+        await this.settled(this.live().settleCatalog(connectionId, timeoutMs));
     }
 
     /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell.
     /// `cancelSetup` of the module with the id stops it. The outcome of a success has the tokens and the user.
     async authenticateSalesforce(setupId: string, params: connection.SalesforceConnectionParams, options: core.SetupOptions, login: SalesforceLogin = {}): Promise<core.SetupOutcome> {
-        return await this.requests.withLoginFlow(setupId, login.oauthFlow, () => this.module.authenticateSalesforce(setupId, params, options, login.onStep ?? null));
+        const module = this.live();
+        return await this.requests.withLoginFlow(setupId, login.oauthFlow, () => module.authenticateSalesforce(setupId, params, options, login.onStep ?? null));
     }
 
     // The queries
 
     /// Run a query on a connection: it is in the history of the connection right away. Returns its id and its result
-    /// table, null for a query without one. A test may replace it.
-    execute: QueryExecutor = (connectionId, args) => {
+    /// table, null for a query without one. `queryCommands` of the options stand in for it.
+    execute(connectionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] {
+        const replaced = this.options.queryCommands?.execute;
+        if (replaced != null) return replaced(connectionId, args);
+        if (this.stopping) return [0, Promise.reject(destroyedError())];
         return this.queries.execute(this.module, connectionId, args);
-    };
+    }
 
-    /// Cancel a query, resolves once it ended. A test may replace it.
-    cancel: CancelQuery = async queryId => {
-        if (this.freed) return;
+    /// Cancel a query, resolves once it ended
+    async cancel(queryId: number): Promise<void> {
+        const replaced = this.options.queryCommands?.cancel;
+        if (replaced != null) return await replaced(queryId);
+        if (this.stopping) return;
         await this.module.cancelQuery(queryId);
-    };
+    }
 
-    /// Show the profile of a running query: the connector then fetches the plan and its statistics (Trino). A test may
-    /// replace it.
-    watchProfile: WatchQueryProfile = queryId => {
+    /// Show the profile of a running query: the connector then fetches the plan and its statistics (Trino). Returns the
+    /// function that stops showing it.
+    watchProfile(queryId: number): () => void {
+        const replaced = this.options.queryCommands?.watchProfile;
+        if (replaced != null) return replaced(queryId);
+        if (this.stopping) return () => { };
         this.module.watchProfile(queryId, true);
         let watching = true;
         return () => {
-            if (!watching || this.freed) return;
+            if (!watching || this.stopping) return;
             watching = false;
             this.module.watchProfile(queryId, false);
         };
-    };
+    }
 
     // The workbooks
 
@@ -426,7 +494,7 @@ export class Runtime {
         event: core.buffers.editor.EditorEventT,
         known: core.buffers.editor.EditorUpdateT | null,
     ): core.buffers.editor.EditorUpdateT | null {
-        if (this.freed) return null;
+        if (this.stopping) return null;
         const knownKey = known == null ? null : this.scriptProjection.keyOf(known);
         // The runtime names the analysis that the editor holds
         event.knownAnalysis = null;
@@ -461,24 +529,24 @@ export class Runtime {
     /// Give the table parameters of a workbook to a session that is no script of it, e.g. the draft of the composer.
     /// Returns whether the analysis of the session is outdated by them.
     attachTableParameters(workbookId: string, session: core.DashQLScriptSession): boolean {
-        return !this.freed && this.module.attachTableParameters(workbookId, session.ptr.assertNotNull());
+        return !this.stopping && this.module.attachTableParameters(workbookId, session.ptr.assertNotNull());
     }
 
     /// Restore the connections and the workbooks of the storage, the runtime takes them. Resolves once their views are
     /// in the store.
-    restore(progress?: (progress: core.RestoreProgress) => void): Promise<core.RestoreOutcome> {
-        return this.settled(this.module.restore(progress ?? null));
+    async restore(progress?: (progress: core.RestoreProgress) => void): Promise<core.RestoreOutcome> {
+        return await this.settled(this.live().restore(progress ?? null));
     }
 
     /// Restore a single workbook of the storage against the connections of the runtime, e.g. an imported one. Rejects
     /// if it can't be restored.
-    restoreWorkbook(workbookId: string): Promise<core.RestoreOutcome> {
-        return this.settled(this.module.restoreWorkbook(workbookId));
+    async restoreWorkbook(workbookId: string): Promise<core.RestoreOutcome> {
+        return await this.settled(this.live().restoreWorkbook(workbookId));
     }
 
     /// Delete the files of a workbook that was refused a load and drop it from the list
-    deleteInvalidWorkbook(workbookId: string): Promise<void> {
-        return this.settled(this.module.deleteInvalidWorkbook(workbookId));
+    async deleteInvalidWorkbook(workbookId: string): Promise<void> {
+        await this.settled(this.live().deleteInvalidWorkbook(workbookId));
     }
 
     // The attachments of workbooks
@@ -487,8 +555,8 @@ export class Runtime {
     /// writes it through its storage writer and lists it in the view of the workbook, the one list of its attachments.
     /// Resolves with the names the files got and the refused files once the view is in the store, rejects with what the
     /// storage failed with.
-    attachFiles(workbookId: string, files: readonly core.AttachedFile[]): Promise<core.AttachFilesOutcome> {
-        return this.settled(this.module.attachFiles(workbookId, [...files]));
+    async attachFiles(workbookId: string, files: readonly core.AttachedFile[]): Promise<core.AttachFilesOutcome> {
+        return await this.settled(this.live().attachFiles(workbookId, [...files]));
     }
 
     /// Rename an attachment of a workbook like a script: the scripts that read it read the new name, the runtime renames
@@ -501,8 +569,8 @@ export class Runtime {
 
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once the
     /// view of the workbook is in the store.
-    refreshAttachments(workbookId: string): Promise<void> {
-        return this.settled(this.module.refreshAttachments(workbookId));
+    async refreshAttachments(workbookId: string): Promise<void> {
+        await this.settled(this.live().refreshAttachments(workbookId));
     }
 
     // The runs of workbooks
@@ -513,7 +581,7 @@ export class Runtime {
     /// Resolves once the run ended and its view is in the store, `outcome.refused` tells why a run didn't start.
     async runWorkbook(workbookId: string, options: core.RunWorkbookOptions = {}, listener: RunWorkbookListener = {}): Promise<RunResult> {
         const script = listener.onScript;
-        const result = await this.settled(this.module.runWorkbook(workbookId, options, {
+        const result = await this.settled(this.live().runWorkbook(workbookId, options, {
             script: script == null ? undefined : (file, event, value) => script(file, scriptRunEvent(event, value)),
             prepareConnection: listener.prepareConnection,
         }));
@@ -524,8 +592,13 @@ export class Runtime {
     /// and a run that fails before its statements show their error on the script. Resolves once the run ended and its
     /// view is in the store.
     async runScript(workbookId: string, scriptKey: number, options: core.RunScriptOptions = {}): Promise<RunResult> {
-        const result = await this.settled(this.module.runScript(workbookId, scriptKey, options));
+        const result = await this.settled(this.live().runScript(workbookId, scriptKey, options));
         return { outcome: result.outcome, error: runError(result.outcome, result.error) };
+    }
+
+    /// Stop the run of a workbook, the running statements are cancelled
+    stopRun(workbookId: string): void {
+        if (!this.stopping) this.module.stopRun(workbookId);
     }
 
     // The imports and exports of workbooks
@@ -534,7 +607,7 @@ export class Runtime {
     /// cached results of the scripts. The connection params are sanitized for sharing. Resolves with the archive and
     /// the results it carries.
     async exportArchive(workbookId: string, options: ExportOptions = {}): Promise<{ archive: Blob; results: core.ExportedResults }> {
-        const outcome = await this.module.exportWorkbook(workbookId, { ...options, format: 'archive' }, null);
+        const outcome = await this.live().exportWorkbook(workbookId, { ...options, format: 'archive' }, null);
         const archive = this.handles.get<Blob>(outcome.archive);
         if (outcome.archive != null) this.handles.release(outcome.archive);
         if (archive == null) throw new Error('the export wrote no archive');
@@ -544,7 +617,7 @@ export class Runtime {
     /// Export a workbook as a link that carries its archive inline, without cached results and, by default, without
     /// the catalogs. `linkBase` is the URL of the app that opens the link.
     async exportLink(workbookId: string, linkBase: string, options: Omit<ExportOptions, 'results'> = {}): Promise<string> {
-        const outcome = await this.module.exportWorkbook(workbookId, { ...options, format: 'link', linkBase }, null);
+        const outcome = await this.live().exportWorkbook(workbookId, { ...options, format: 'link', linkBase }, null);
         if (outcome.link == null) throw new Error('the export wrote no link');
         return outcome.link;
     }
@@ -552,7 +625,7 @@ export class Runtime {
     /// Export the workbook tables of a workbook, e.g. for a cloud. `consume` gets the rows and the Parquet files of the
     /// attachments and results, which stay readable until it settled. Resolves with the results that the tables carry.
     async exportTables(workbookId: string, options: ExportOptions, consume: (tables: WorkbookTables) => Promise<void>): Promise<core.ExportedResults> {
-        const outcome = await this.module.exportWorkbook(workbookId, { ...options, format: 'tables' }, async exported => {
+        const outcome = await this.live().exportWorkbook(workbookId, { ...options, format: 'tables' }, async exported => {
             const tables = emptyWorkbookTables();
             for (const name of WORKBOOK_TABLE_NAMES) (tables as unknown as Record<string, unknown>)[name] = exported.rows[name] ?? [];
             for (const entry of exported.data) {
@@ -569,10 +642,11 @@ export class Runtime {
     /// Read a workbook to import: nothing is written until `commitImport`, `dropImport` of the module lets go of it.
     /// Resolves with the workbook, the registered workbook with the same id and the questions about its connections.
     async readImport(source: ImportSource): Promise<core.ImportPreview> {
-        if (!('archive' in source)) return await this.module.readImport(source);
+        const module = this.live();
+        if (!('archive' in source)) return await module.readImport(source);
         const archive = this.handles.register(source.archive);
         try {
-            return await this.module.readImport({ archive });
+            return await module.readImport({ archive });
         } finally {
             this.handles.release(archive);
         }
@@ -580,13 +654,14 @@ export class Runtime {
 
     /// Import a workbook that was read, with the answers to its questions. Resolves once the workbook was written and,
     /// unless it replaced a workbook or registered a native folder, restored and in the store.
-    commitImport(importId: number, answers: core.ImportAnswers, onStep?: (step: core.ImportStep, results: core.ImportedResults | null) => void): Promise<core.ImportOutcome> {
-        return this.settled(this.module.commitImport(importId, answers, onStep ?? null));
+    async commitImport(importId: number, answers: core.ImportAnswers, onStep?: (step: core.ImportStep, results: core.ImportedResults | null) => void): Promise<core.ImportOutcome> {
+        return await this.settled(this.live().commitImport(importId, answers, onStep ?? null));
     }
 
-    /// Was the runtime destroyed? The module is freed then, commands fail and views stay empty.
+    /// Was the runtime destroyed, or is it being destroyed? The commands refuse then, and the views stay empty once the
+    /// module is freed.
     get destroyed(): boolean {
-        return this.freed;
+        return this.stopping;
     }
 
     /// Take the changes of the runtime now
@@ -594,37 +669,40 @@ export class Runtime {
         this.store.flush();
     }
 
-    /// Stop the runtime: the runs stop, the catalog loader stops, the results that are written into the query result
-    /// cache and the pending writes of the storage finish, then the queries are cancelled, the computations go, their
-    /// runs are cancelled and their tables released, the requests and the OAuth flows of the platform are aborted
+    /// Stop the runtime. The commands refuse from the call on. The module shuts down in its order (`shutdown` of the
+    /// module): the runs stop, the catalog loader stops, the writes into the query result cache and the pending writes
+    /// of the storage finish, then the queries are cancelled and the computations go. A wait for a compute database
+    /// that never came up ends. From then on the module calls the platform no more; the store takes the last changes,
+    /// the module is freed, the requests and the OAuth flows of the platform are aborted and the files that the runs and
+    /// the cache kept are released.
     destroy(): Promise<void> {
         this.destroying ??= (async () => {
-            if (this.freed) return;
-            this.store.flush();
-            for (const workbookId of this.store.all('run').keys()) this.module.stopRun(workbookId);
-            this.module.runCatalogLoader(false);
+            this.stopping = true;
+            this.computeDatabase.close();
             try {
-                await this.module.flushCacheWrites();
-                await this.storage.flush();
+                this.store.flush();
+                await this.module.shutdown();
+            } catch (error) {
+                this.logger.error('The runtime failed to shut down', { error: stringifyError(error) }, LOG_CTX);
             } finally {
-                this.free();
+                await this.free();
             }
         })();
         return this.destroying;
     }
 
-    /// Free the runtime of the module without waiting for its writes
-    private free(): void {
-        if (this.freed) return;
-        this.freed = true;
-        for (const catalog of this.catalogs.values()) catalog.destroy();
-        this.catalogs.clear();
-        this.scriptProjection.destroy();
-        this.module.destroy();
+    /// Take the last changes and free the module, then let go of what the platform keeps for it
+    private async free(): Promise<void> {
+        // The last changes may read the views of slices that the shutdown marked, e.g. the sessions of scripts that the
+        // projection holds until it is destroyed
         this.store.flush();
+        this.scriptProjection.destroy();
+        this.freed = true;
+        this.catalogs.clear();
         this.module.free();
         this.store.dispose();
         this.requests.abortAll();
         this.queries.dispose();
+        await this.mounts?.dispose().catch(() => { });
     }
 }

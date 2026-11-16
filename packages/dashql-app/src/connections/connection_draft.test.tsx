@@ -15,7 +15,7 @@ import { buildPageStateFromParams } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 /// The draft of the test connection in the app manifest
@@ -61,7 +61,7 @@ describe('durable connection drafts', () => {
         let appRuntime!: Runtime;
         let edit!: React.Dispatch<React.SetStateAction<string>>;
         let dispatch!: ReturnType<typeof useDispatch>;
-        let writer!: StorageWriter;
+        let writer!: StorageCommands;
         let current!: ConnectionState;
         let value = '';
         function Harness() {
@@ -110,7 +110,7 @@ describe('durable connection drafts', () => {
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
         let dispatch!: ReturnType<typeof useDispatch>;
         let form!: HyperConnectionPageState;
-        let writer!: StorageWriter;
+        let writer!: StorageCommands;
         function Harness() {
             appRuntime = useRuntime();
             dispatch = useDispatch({ connection: TEST_CONNECTION_ID });

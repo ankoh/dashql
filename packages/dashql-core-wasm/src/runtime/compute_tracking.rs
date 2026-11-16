@@ -13,7 +13,6 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId};
-use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationEffect;
 use dashql_core_runtime::connections::registry::QueryOwner;
 use dashql_core_runtime::handles::Handle;
@@ -30,8 +29,6 @@ struct Inner {
     platform: JsPlatform,
     /// The connections with their histories, set once they exist
     connections: RefCell<Weak<Connections>>,
-    /// The histories without a connection that computations list their queries in, by computation
-    histories: RefCell<HashMap<TableId, String>>,
     /// The tracked queries that run by id, with the run that a stop cancels
     running: RefCell<HashMap<QueryId, RunId>>,
 }
@@ -48,7 +45,6 @@ impl ComputeTracker {
             inner: Rc::new(Inner {
                 platform,
                 connections: RefCell::new(Weak::new()),
-                histories: RefCell::new(HashMap::new()),
                 running: RefCell::new(HashMap::new()),
             }),
         }
@@ -57,17 +53,6 @@ impl ComputeTracker {
     /// The connections with their histories, once they exist
     pub fn attach(&self, connections: &Rc<Connections>) {
         *self.inner.connections.borrow_mut() = Rc::downgrade(connections);
-    }
-
-    /// List the queries of the computation of a table in a history without a connection. The histories of the
-    /// computations that are gone are forgotten.
-    pub fn track_in_history(&self, table_id: TableId, history: String) {
-        let connections = self.inner.connections.borrow().upgrade();
-        let mut histories = self.inner.histories.borrow_mut();
-        if let Some(connections) = connections {
-            histories.retain(|table_id, _| connections.computations.read(|state| state.computation(*table_id).is_some()));
-        }
-        histories.insert(table_id, history);
     }
 
     /// Stop a tracked query: the run of its task is cancelled, which drops the call and aborts it at the platform, the
@@ -83,12 +68,9 @@ impl ComputeTracker {
         true
     }
 
-    /// The history of the queries of a call, none for an untracked one
+    /// The history of the queries of a call, the one of the connection of the computation, none without one
     fn owner(&self, context: &ComputeContext) -> Option<QueryOwner> {
-        if let Some(connection_id) = &context.connection_id {
-            return Some(QueryOwner::Connection(connection_id.clone()));
-        }
-        self.inner.histories.borrow().get(&context.table_id).cloned().map(QueryOwner::History)
+        context.connection_id.clone().map(QueryOwner::Connection)
     }
 
     /// Open a query in a history, none if the history doesn't take it

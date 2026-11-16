@@ -29,6 +29,7 @@ pub(crate) mod imports;
 pub(crate) mod migrations;
 pub(crate) mod queries;
 pub(crate) mod runs;
+pub(crate) mod sessions;
 pub(crate) mod setups;
 pub(crate) mod storage;
 pub(crate) mod workbooks;
@@ -44,7 +45,7 @@ use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, QueryOwner, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
-use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryResultTable};
+use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
 use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
@@ -55,7 +56,7 @@ use wasm_bindgen_futures::future_to_promise;
 
 use crate::connection::view::{ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
-use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
+use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryProfileKeys, QueryProfileProgressView, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
@@ -117,8 +118,6 @@ pub enum Target {
     Computation(u64),
     /// A connection by its id, with the queries of its history
     Connection(String),
-    /// A history of queries without a connection by its name, e.g. the one of the shell
-    History(String),
     /// A workbook by its id, with its scripts
     Workbook(String),
     /// The runtime: the lists of the connections and the workbooks
@@ -284,90 +283,9 @@ pub enum RuntimeAction {
     /// nulls for the parts that a statement left out.
     RelationsTouched { names: Vec<ConnectionTableName> },
 
-    // A history without a connection
-    /// Create the history, it keeps at most `limit` queries. An existing history stays.
-    CreateHistory {
-        #[serde(default)]
-        #[tsify(optional)]
-        limit: Option<u32>,
-    },
-    /// Drop the history, the handles of its queries are released
-    DropHistory,
-
-    // The queries that the host runs itself, of a connection or of a history
-    /// Start tracking a query, the outcome names its id. The host keeps the record of the query under the handle, an
-    /// abort of the handle stops the query. The runtime owns the handle from the dispatch on, also of a refused action.
-    TrackQuery {
-        trace_id: f64,
-        text: String,
-        metadata: QueryMetadataView,
-        #[serde(default)]
-        #[tsify(optional)]
-        handle: Option<u32>,
-    },
-    QuerySending { query_id: f64 },
-    QueryRunning { query_id: f64 },
-    QueryProcessingResults { query_id: f64 },
-    QueryProcessedResults { query_id: f64 },
-    QuerySucceeded { query_id: f64 },
-    /// The query failed, with the stream metrics so far if the connector has them
-    QueryFailed {
-        query_id: f64,
-        message: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        details: Option<String>,
-        #[serde(default)]
-        #[tsify(optional)]
-        metrics: Option<QueryStreamMetrics>,
-    },
-    /// The query was cancelled, with the stream metrics so far if the connector has them
-    QueryCancelled {
-        query_id: f64,
-        message: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        details: Option<String>,
-        #[serde(default)]
-        #[tsify(optional)]
-        metrics: Option<QueryStreamMetrics>,
-    },
-    /// All batches arrived, the history takes the table of the handle table. The runtime owns the handle of the table
-    /// from the dispatch on, also of a refused action.
-    QueryReceivedAllBatches {
-        query_id: f64,
-        table: u32,
-        rows: f64,
-        #[serde(default)]
-        #[tsify(optional)]
-        metrics: Option<QueryStreamMetrics>,
-    },
+    // The queries of a connection
     /// The cached result of the query was deleted
     QueryCacheDeleted { query_id: f64 },
-}
-
-impl RuntimeAction {
-    /// The handles of the host that the action hands to the runtime: the runtime owns them from the dispatch on and
-    /// releases them if it refuses the action
-    pub fn handles(&self) -> Vec<u32> {
-        match self {
-            RuntimeAction::TrackQuery { handle, .. } => handle.iter().copied().collect(),
-            RuntimeAction::QueryReceivedAllBatches { table, .. } => vec![*table],
-            _ => Vec::new(),
-        }
-    }
-
-    /// The handles of an action that can't be read, by the fields of the actions that carry handles
-    fn handles_of(action: &JsValue) -> Vec<u32> {
-        let kind = crate::host::field(action, "kind").and_then(|kind| kind.as_string());
-        let field = match kind.as_deref() {
-            Some("trackQuery") => "handle",
-            Some("queryReceivedAllBatches") => "table",
-            _ => return Vec::new(),
-        };
-        let handle = crate::host::field(action, "value").and_then(|value| crate::host::field(&value, field)).and_then(|handle| handle.as_f64());
-        handle.filter(|handle| *handle >= 1.0 && *handle <= f64::from(u32::MAX) && handle.fract() == 0.0).map(|handle| handle as u32).into_iter().collect()
-    }
 }
 
 /// The id of a slice or of what an action created: a number or a string
@@ -453,6 +371,7 @@ pub struct Runtime {
     imports: Rc<imports::Imports>,
     external: Rc<external::ExternalChanges>,
     storage: Rc<StorageState>,
+    sessions: sessions::HostSessions,
     taken: RefCell<Taken>,
 }
 
@@ -732,7 +651,6 @@ impl Runtime {
                 }
             }
             Target::Connection(connection_id) => self.dispatch_connection(connection_id, action)?,
-            Target::History(name) => self.dispatch_query(QueryOwner::History(name), action)?,
             Target::Workbook(workbook_id) => self.dispatch_workbook(workbook_id, action),
             Target::App => self.dispatch_app(action),
         })
@@ -760,73 +678,18 @@ impl Runtime {
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
             action => return self.dispatch_query(QueryOwner::Connection(connection_id), action),
         };
+        // The host logs a refused action
         let outcome = connections.apply(&connection_id, action, None);
-        if let Err(error) = &outcome {
-            connections.log(LogLevel::Warn, error.what(), &[("connectionId", &connection_id)]);
-        }
         Ok(self.connection_outcome(outcome))
     }
 
-    /// Apply an action to a query that the host runs itself, or to a history without a connection
+    /// Apply an action to a query of a connection
     fn dispatch_query(&self, owner: QueryOwner, action: RuntimeAction) -> Result<DispatchOutcome, String> {
-        let connections = &self.connections;
-        let now = connections.now() as i64;
-        let query = |query_id: f64| id_of(query_id, "query id");
-        let ended = |query_id: f64, message: String, details: Option<String>, metrics: Option<QueryStreamMetrics>, cancelled: bool| {
-            let query_id = query(query_id)?;
-            let error = QueryError { message, details };
-            let metrics = metrics.map(Into::into);
-            Ok::<_, String>(if cancelled {
-                QueryExecutionAction::QueryCancelled { query_id, error, metrics, now }
-            } else {
-                QueryExecutionAction::QueryFailed { query_id, error, metrics, now }
-            })
-        };
         let action = match action {
-            RuntimeAction::CreateHistory { limit } => {
-                let QueryOwner::History(name) = &owner else { return Ok(DispatchOutcome::failed("a connection has its own history")) };
-                connections.registry.borrow_mut().create_history(name, limit.map(|limit| limit as usize));
-                connections.platform.changed(Slice::History(name), true);
-                return Ok(DispatchOutcome::changed(true));
-            }
-            RuntimeAction::DropHistory => {
-                let QueryOwner::History(name) = &owner else { return Ok(DispatchOutcome::failed("a connection has its own history")) };
-                let outcome = connections.registry.borrow_mut().drop_history(name);
-                connections.platform.mark(Slice::History(name));
-                connections.settle(&owner, &outcome, true, None);
-                return Ok(DispatchOutcome::changed(true));
-            }
-            RuntimeAction::TrackQuery { trace_id, text, metadata, handle } => {
-                let trace_id = id_of(trace_id, "trace id")?;
-                if connections.registry.borrow().history(&owner).is_none() {
-                    return Ok(DispatchOutcome::failed(format!("no query history of {owner:?}")));
-                }
-                let query_id = connections.registry.borrow_mut().next_query_id();
-                let mut state = QueryExecutionState::new(query_id, trace_id, text, metadata.into(), now);
-                state.handle = handle;
-                return Ok(match connections.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
-                    Ok(_) => DispatchOutcome::created(SliceId::Number(query_id)),
-                    Err(error) => DispatchOutcome::failed(error_text(error)),
-                });
-            }
-            RuntimeAction::QuerySending { query_id } => QueryExecutionAction::QuerySending { query_id: query(query_id)?, now },
-            RuntimeAction::QueryRunning { query_id } => QueryExecutionAction::QueryRunning { query_id: query(query_id)?, now },
-            RuntimeAction::QueryProcessingResults { query_id } => QueryExecutionAction::QueryProcessingResults { query_id: query(query_id)?, now },
-            RuntimeAction::QueryProcessedResults { query_id } => QueryExecutionAction::QueryProcessedResults { query_id: query(query_id)?, now },
-            RuntimeAction::QuerySucceeded { query_id } => QueryExecutionAction::QuerySucceeded { query_id: query(query_id)?, now },
-            RuntimeAction::QueryFailed { query_id, message, details, metrics } => ended(query_id, message, details, metrics, false)?,
-            RuntimeAction::QueryCancelled { query_id, message, details, metrics } => ended(query_id, message, details, metrics, true)?,
-            RuntimeAction::QueryReceivedAllBatches { query_id, table, rows, metrics } => QueryExecutionAction::QueryReceivedAllBatches {
-                query_id: query(query_id)?,
-                table: QueryResultTable { id: table, rows: rows.max(0.0) as u64 },
-                metrics: metrics.map(Into::into).unwrap_or_default(),
-                now,
-            },
-            RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: query(query_id)? },
+            RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? },
             _ => return Ok(DispatchOutcome::failed("the action doesn't apply to the target")),
         };
-        // The history releases a table that it doesn't take
-        Ok(match connections.apply_query(&owner, action, true) {
+        Ok(match self.connections.apply_query(&owner, action, true) {
             Ok(outcome) => DispatchOutcome::changed(outcome.changed),
             Err(error) => DispatchOutcome::failed(error_text(error)),
         })
@@ -945,7 +808,7 @@ impl Runtime {
             },
             RuntimeAction::SetWorkbookAttachments { files } => {
                 let action = A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
-                let outcome = self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action));
+                let outcome = self.workbook_outcome(workbooks.apply(&workbook_id, action));
                 // The columns of new Parquet attachments are read with the compute database
                 self.runs.describe_attachments();
                 return outcome;
@@ -953,11 +816,11 @@ impl Runtime {
 
             RuntimeAction::SetCloudLink { link } => {
                 let link = link.map(|link| link.0).filter(|link| !link.is_null());
-                return self.workbook_outcome(&workbook_id, workbooks.set_cloud_link(&workbook_id, link));
+                return self.workbook_outcome(workbooks.set_cloud_link(&workbook_id, link));
             }
             _ => return DispatchOutcome::failed("the action doesn't apply to a workbook"),
         };
-        self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action))
+        self.workbook_outcome(workbooks.apply(&workbook_id, action))
     }
 
     /// What restores the stored state into the runtime
@@ -976,15 +839,11 @@ impl Runtime {
         exports::Exports { platform: self.platform.clone(), connections: self.connections.clone(), workbooks: self.workbooks.clone(), runs: self.runs.clone() }
     }
 
-    /// The outcome of an action of a workbook, a failure is logged
-    fn workbook_outcome(&self, workbook_id: &str, outcome: dashql_core::error::Result<bool>) -> DispatchOutcome {
+    /// The outcome of an action of a workbook, the host logs a refused one
+    fn workbook_outcome(&self, outcome: dashql_core::error::Result<bool>) -> DispatchOutcome {
         match outcome {
             Ok(changed) => DispatchOutcome::changed(changed),
-            Err(error) => {
-                let details = [("workbookId", workbook_id), ("error", error.what())];
-                self.platform.log_on(LogLevel::Warn, "Workbook script action failed", &details, "workbook_scripts");
-                DispatchOutcome::failed(error_text(error))
-            }
+            Err(error) => DispatchOutcome::failed(error_text(error)),
         }
     }
 }
@@ -1056,7 +915,7 @@ impl Runtime {
         let imports = imports::Imports::new(platform.clone(), connections.clone());
         let external = external::ExternalChanges::new(platform.clone(), storage.clone(), connections.clone(), workbooks.clone(), runs.clone());
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
-        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, taken: RefCell::new(Taken::default()) }
+        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, sessions: Default::default(), taken: RefCell::new(Taken::default()) }
     }
 
     /// The slices that changed and the effects on handles since the last call: the slices that the services marked,
@@ -1097,28 +956,17 @@ impl Runtime {
     }
 
     /// Apply an action to a slice. Never throws: a malformed target or action and a refused action are failed outcomes.
-    /// The handles that the action carries are the runtime's from the call on, a refused action releases them.
     #[wasm_bindgen(unchecked_return_type = "DispatchOutcome")]
     pub fn dispatch(
         &self,
         #[wasm_bindgen(unchecked_param_type = "Target")] target: JsValue,
         #[wasm_bindgen(unchecked_param_type = "RuntimeAction")] action: JsValue,
     ) -> JsValue {
-        let (outcome, handles) = match (serde_wasm_bindgen::from_value::<Target>(target), serde_wasm_bindgen::from_value::<RuntimeAction>(action.clone())) {
-            (Ok(target), Ok(action)) => {
-                let handles = action.handles();
-                let outcome = self.dispatch_action(target, action).unwrap_or_else(DispatchOutcome::failed);
-                (outcome, handles)
-            }
-            (Err(error), _) => (DispatchOutcome::failed(format!("the target is malformed: {error}")), RuntimeAction::handles_of(&action)),
-            (_, Err(error)) => (DispatchOutcome::failed(format!("the action is malformed: {error}")), RuntimeAction::handles_of(&action)),
+        let outcome = match (serde_wasm_bindgen::from_value::<Target>(target), serde_wasm_bindgen::from_value::<RuntimeAction>(action)) {
+            (Ok(target), Ok(action)) => self.dispatch_action(target, action).unwrap_or_else(DispatchOutcome::failed),
+            (Err(error), _) => DispatchOutcome::failed(format!("the target is malformed: {error}")),
+            (_, Err(error)) => DispatchOutcome::failed(format!("the action is malformed: {error}")),
         };
-        if !outcome.ok {
-            // No view named the handles of a refused action
-            for handle in handles {
-                self.platform.release_handle(handle);
-            }
-        }
         views_to_js(&outcome).unwrap_or_else(|_| {
             let failed = Object::new();
             let _ = Reflect::set(&failed, &JsValue::from_str("ok"), &JsValue::FALSE);
@@ -1132,22 +980,19 @@ impl Runtime {
     /// done, rejects with the error of a failed task.
     #[wasm_bindgen(js_name = analyzeTable, unchecked_return_type = "Promise<void>")]
     pub fn analyze_table(&self, table_id: f64, table: f64, options: Ts<AnalyzeTableOptions>) -> Result<Promise, JsError> {
-        let options = from_js(&options)?;
-        let table_id = integer(table_id, "table id")? as TableId;
         let table = integer(table, "table handle")?;
         let table = u32::try_from(table).map_err(|_| JsError::new("the table handle is no integer"))?;
         // The handle is the computation's from here on, a call that fails releases it
-        let fail = |error: dashql_core_runtime::host::HostError| {
+        let fail = |error: String| {
             self.platform.release_handle(table);
-            JsError::new(&error.to_string())
+            JsError::new(&error)
         };
-        let result = self.platform.describe_table(table).map_err(fail)?;
-        let lifetime = self.platform.register(&lifetime_token()).map_err(fail)?;
+        let options: AnalyzeTableOptions = options.to_rust().map_err(|error| fail(format!("the options of the analysis: {error}")))?;
+        let table_id = integer(table_id, "table id").map_err(|_| fail("the table id is no integer".to_string()))? as TableId;
+        let result = self.platform.describe_table(table).map_err(|error| fail(error.to_string()))?;
+        let lifetime = self.platform.register(&lifetime_token()).map_err(|error| fail(error.to_string()))?;
         let handles = AnalysisHandles { table, lifetime };
         let analyze_options = RuntimeAnalyzeOptions { column_aggregates: options.column_aggregates.unwrap_or(true) };
-        if let Some(history) = options.history {
-            self.computations.host().track_in_history(table_id, history);
-        }
         let analysis =
             self.computations.analyze_table(table_id, result, handles, options.connection_id, options.client_context, analyze_options);
         let ordering: Vec<OrderByConstraint> = options.ordering.unwrap_or_default().into_iter().map(OrderByConstraint::from).collect();
@@ -1341,6 +1186,16 @@ impl Runtime {
         let connection = registry.get(connection_id)?;
         let catalog = connection.state.try_borrow().ok()?.catalog().clone();
         Some(Catalog::read_only(SharedCatalog(catalog)))
+    }
+
+    /// The identity of the catalog of a connection, `catalogId` of its view, without reading the view. None for an
+    /// unknown connection and while a task holds it.
+    #[wasm_bindgen(js_name = catalogId)]
+    pub fn catalog_id(&self, connection_id: &str) -> Option<f64> {
+        let registry = self.connections.registry.try_borrow().ok()?;
+        let connection = registry.get(connection_id)?;
+        let state = connection.state.try_borrow().ok()?;
+        Some(self.connections.catalog_id(connection_id, state.catalog()) as f64)
     }
 
     /// Tests that stand in for the catalog loader: the catalog of a connection as a handle that writes. Its writes
@@ -1930,10 +1785,49 @@ impl Runtime {
         self.workbooks.writer.is_workbook_held(workbook_id)
     }
 
-    /// Stop the runtime: the queries are cancelled, the computations go, their runs are cancelled and their tables
-    /// released with the next changes
-    pub fn destroy(&self) {
+    /// Shut the runtime down, in this order: the runs stop, the catalog loader stops, the writes into the query result
+    /// cache and the pending writes of the storage finish, then the imports are dropped, the setups and the queries are
+    /// cancelled and the computations go, their runs cancelled and their tables released with the next changes.
+    /// Resolves once that is done; from then on the runtime calls the platform no more, a task that is still running
+    /// fails at its next call. The host takes the last changes and frees the runtime with `free()`.
+    #[wasm_bindgen(unchecked_return_type = "Promise<void>")]
+    pub fn shutdown(&self) -> Promise {
         self.runs.stop_all();
+        if let Some(loader) = self.connections.loader() {
+            loader.stop();
+        }
+        let cache = self.connections.executor().map(|executor| executor.flush_cache_writes());
+        let storage = self.workbooks.writer.flush();
+        let stop = Shutdown {
+            platform: self.platform.clone(),
+            computations: self.computations.clone(),
+            connections: self.connections.clone(),
+            imports: self.imports.clone(),
+            external: self.external.clone(),
+        };
+        future_to_promise(async move {
+            if let Some(cache) = cache {
+                cache.await;
+            }
+            storage.await;
+            stop.stop();
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+}
+
+/// What a shutdown stops once the writes finished
+struct Shutdown {
+    platform: JsPlatform,
+    computations: ComputeService<ComputeTracker>,
+    connections: Rc<Connections>,
+    imports: Rc<imports::Imports>,
+    external: Rc<external::ExternalChanges>,
+}
+
+impl Shutdown {
+    /// Drop the imports, cancel the setups and the queries, delete the computations, then fence the platform
+    fn stop(self) {
         self.imports.drop_all();
         self.external.destroy();
         if let Some(loader) = self.connections.loader.borrow_mut().take() {
@@ -1949,10 +1843,17 @@ impl Runtime {
         }
         self.connections.executor.borrow_mut().take();
         let ids: Vec<TableId> = self.computations.read(|state| state.computations().map(|(id, _)| id).collect());
+        let mut changed = false;
         for id in ids {
-            let deleted = self.computations.delete_computation(id);
-            self.settle(deleted);
+            if let Ok(outcome) = self.computations.delete_computation(id) {
+                self.platform.push_effects(&outcome.effects);
+                changed = true;
+            }
         }
+        if changed {
+            self.platform.mark(Slice::Computations);
+        }
+        self.platform.fence();
     }
 }
 

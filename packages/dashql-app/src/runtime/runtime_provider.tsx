@@ -1,13 +1,13 @@
 import * as React from 'react';
 import type * as core from '@ankoh/dashql';
 
-import { createRuntime, type Runtime } from '@ankoh/dashql/runtime/runtime';
+import { createRuntime, type QueryCommands, type Runtime } from '@ankoh/dashql/runtime/runtime';
 import { createRuntimeArchives } from '@ankoh/dashql/runtime/storage/workbook_archives';
 import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
-import { RuntimeContextProvider } from './runtime_hooks.js';
+import { RuntimeContextProvider, useOwnedRuntime } from './runtime_hooks.js';
 import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
@@ -36,6 +36,8 @@ interface Props {
     core?: core.DashQL;
     /// Run the catalog loader, true by default. The tests of components stop it.
     catalogLoader?: boolean;
+    /// Stand in for the query commands of the runtime, e.g. in a test of components
+    queryCommands?: Partial<QueryCommands>;
     /// What shows until the core is there
     loading?: React.ReactNode;
     children?: React.ReactNode;
@@ -49,11 +51,11 @@ export function RuntimeProvider(props: Props) {
     if (props.runtime != null) return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;
     const core = props.core ?? provided;
     if (core == null) return <>{props.loading ?? null}</>;
-    return <AppRuntime core={core} catalogLoader={props.catalogLoader}>{props.children}</AppRuntime>;
+    return <AppRuntime core={core} catalogLoader={props.catalogLoader} queryCommands={props.queryCommands}>{props.children}</AppRuntime>;
 }
 
 /// The runtime over the providers of the app, it lives as long as the component
-function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; children?: React.ReactNode }) {
+function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCommands?: Partial<QueryCommands>; children?: React.ReactNode }) {
     const logger = useLogger();
     const storage = useStorageReader();
     const http = useHttpClient();
@@ -69,11 +71,12 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
         grpcClient: useHyperGrpcClient(),
         setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
         archiveDatabase: useWorkbookArchiveDatabase(),
+        queryCommands: props.queryCommands,
     };
     const ref = React.useRef(latest);
     ref.current = latest;
 
-    const [runtime] = React.useState(() => {
+    const runtime = useOwnedRuntime(() => {
         const clients = (): ChannelClients => ({
             grpcClient: ref.current.grpcClient,
             setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
@@ -92,8 +95,24 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
             resultCache,
             archives: handles => createRuntimeArchives(handles, context => ref.current.archiveDatabase(context)),
             catalogLoader: props.catalogLoader,
+            // The commands that a test replaces are read when they are called
+            queryCommands: {
+                get execute() { return ref.current.queryCommands?.execute; },
+                get cancel() { return ref.current.queryCommands?.cancel; },
+                get watchProfile() { return ref.current.queryCommands?.watchProfile; },
+            },
         });
     });
+    return <AppRuntimeServices runtime={runtime} logMetrics={logMetrics}>{props.children}</AppRuntimeServices>;
+}
+
+/// What the app does with its runtime: the flushes of the storage writer and the handover to another tab
+function AppRuntimeServices(props: { runtime: Runtime; logMetrics: ReturnType<typeof useCreateHyperLogMetrics>; children?: React.ReactNode }) {
+    const { runtime, logMetrics } = props;
+    const logger = useLogger();
+
+    // The app shows whether runs can read results once the compute database is set up, it is set up right away
+    React.useEffect(() => runtime.computeDatabase.prepare(), [runtime]);
 
     // Write the pending changes when the page goes away, the writer debounces them. Browsers don't wait for the writes
     // when the page unloads, a hidden page usually still finishes them. Electron asks for the writes before it closes a
@@ -127,12 +146,6 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; childre
     useAppHandOver(async () => {
         await runtime.storage.handOver();
     });
-
-    React.useEffect(() => () => {
-        void runtime.destroy().catch(error => {
-            logger.error("Failed to stop the runtime", { error: stringifyError(error) }, "runtime");
-        });
-    }, [runtime, logger]);
 
     return (
         <RuntimeContextProvider value={runtime}>

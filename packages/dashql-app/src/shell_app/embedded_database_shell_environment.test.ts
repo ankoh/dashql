@@ -1,14 +1,9 @@
 // @vitest-environment node
-import * as core from '@ankoh/dashql';
-import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import type * as arrow from 'apache-arrow';
+
+import type { QueryExecutionArgs, QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { testShellHistory } from '../tests/test_shell_history.js';
 import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 function deferred<T>() {
     let resolve!: (value: T) => void;
@@ -16,164 +11,91 @@ function deferred<T>() {
     return { promise, resolve };
 }
 
+/// An executor of the runtime that answers every query with the results of a function, the ids count up
+function executor(result: (args: QueryExecutionArgs) => Promise<arrow.Table | null>) {
+    let next = 0;
+    const calls: Array<[string, QueryExecutionArgs]> = [];
+    const execute: QueryExecutor = (connectionId, args) => {
+        calls.push([connectionId, args]);
+        return [++next, result(args)];
+    };
+    return { execute, calls };
+}
+
 describe('embedded database shell environment', () => {
-    it('executes against the provided connection', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
+    it('runs a statement with the query executor on the connection of the shell', async () => {
+        const { execute, calls } = executor(async () => tableFromArrays({ value: [42] }));
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
 
         await environment.executeQuery('SELECT 42');
-        expect(query).toHaveBeenCalledWith('SELECT 42', expect.any(AbortSignal));
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0]).toBe('shell');
+        // The executor analyzes the result as the computation of the query and passes on its error
+        expect(calls[0][1]).toMatchObject({ query: 'SELECT 42', analyzeResults: true, throwOnError: true, metadata: { userProvided: true } });
     });
 
-    it('executes repeated queries against the database instead of caching results', async () => {
-        const query = vi.fn()
-            .mockResolvedValueOnce(tableFromArrays({ value: [1] }))
-            .mockResolvedValueOnce(tableFromArrays({ value: [2, 3] }));
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
-        const onResult = vi.fn();
-
-        await environment.executeQuery('SELECT value', undefined, undefined, onResult);
-        await environment.executeQuery('SELECT value', undefined, undefined, onResult);
-
-        expect(query).toHaveBeenCalledTimes(2);
-        expect(onResult).toHaveBeenNthCalledWith(1, expect.any(Number), 1);
-        expect(onResult).toHaveBeenNthCalledWith(2, expect.any(Number), 2);
-    });
-
-    it('reports progress while the database query is running', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [42] }));
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
+    it('reports progress, the timings of the executor and the result by the id of its query', async () => {
+        const { execute } = executor(async args => {
+            args.onTiming?.('Results', 1);
+            return tableFromArrays({ value: [2, 3] });
+        });
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
         const onProgress = vi.fn();
+        const onResult = vi.fn();
+        const onTiming = vi.fn();
 
-        await environment.executeQuery('SELECT 42', undefined, onProgress);
+        await environment.executeQuery('SELECT value', undefined, onProgress, onResult, onTiming);
 
         expect(onProgress).toHaveBeenCalledWith('Executing query');
+        expect(onTiming).toHaveBeenCalledWith('Results', 1);
+        expect(onResult).toHaveBeenCalledWith(1, 2);
     });
 
-    it('prepares and reports a result', async () => {
-        const table = tableFromArrays({ value: [42] });
-        const query = vi.fn().mockResolvedValue(table);
-        const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, undefined, { prepareResult });
+    it('returns the prompt once the catalog followed the statement, also after a failure', async () => {
+        const followed = deferred<void>();
+        const afterStatement = vi.fn(() => followed.promise);
+        const { execute } = executor(async args => {
+            if (args.query.startsWith('SELEC ')) throw new Error('syntax error');
+            return tableFromArrays({});
+        });
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', { afterStatement });
         const onResult = vi.fn();
 
-        await environment.executeQuery('SELECT 42', undefined, undefined, onResult);
-
-        expect(prepareResult).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({ numRows: 1 }));
-        expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
-    });
-
-    it('reports a result only after its preparation completes', async () => {
-        const table = tableFromArrays({ value: [42] });
-        const preparation = deferred<void>();
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query: vi.fn().mockResolvedValue(table) } as any,
-            undefined,
-            { prepareResult: () => preparation.promise },
-        );
-        const onResult = vi.fn();
-        const execution = environment.executeQuery('SELECT 42', undefined, undefined, onResult);
-
+        const execution = environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
+        await vi.waitFor(() => expect(afterStatement).toHaveBeenCalledWith('CREATE TABLE foo(a INT)'));
+        let done = false;
+        void execution.then(() => { done = true; });
         await Promise.resolve();
-        expect(onResult).not.toHaveBeenCalled();
-        preparation.resolve();
+        expect(done).toBe(false);
+        followed.resolve();
         await execution;
-        expect(onResult).toHaveBeenCalledWith(expect.any(Number), 1);
-    });
-
-    it('reports the preparation of a result as postprocessing', async () => {
-        const table = tableFromArrays({ value: [42] });
-        const events: string[] = [];
-        const query = vi.fn().mockResolvedValue(table);
-        const environment = createEmbeddedDatabaseShellEnvironment(
-            { query } as any,
-            undefined,
-            { prepareResult: () => { events.push('prepare'); } },
-        );
-
-        await environment.executeQuery(
-            'SELECT 42',
-            undefined,
-            undefined,
-            vi.fn(),
-            (label, elapsedMs) => {
-                expect(elapsedMs).toBeGreaterThanOrEqual(0);
-                events.push(label);
-            },
-        );
-
-        expect(events).toEqual(['Results', 'prepare', 'Postprocess']);
-    });
-
-    it('reports no result for statements without columns', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({}));
-        const prepareResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, undefined, { prepareResult });
-        const onResult = vi.fn();
-
-        await environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
-
-        expect(query).toHaveBeenCalledWith('CREATE TABLE foo(a INT)', expect.any(AbortSignal));
-        expect(prepareResult).not.toHaveBeenCalled();
+        // A statement without columns shows no result
         expect(onResult).not.toHaveBeenCalled();
-    });
-
-    it('rejects an already cancelled query before reaching the database', async () => {
-        const query = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any);
-        const abort = new AbortController();
-        abort.abort();
-
-        await expect(environment.executeQuery('SELECT 42', abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
-        expect(query).not.toHaveBeenCalled();
-    });
-
-    it('tracks successful queries with their row count', async () => {
-        const query = vi.fn().mockResolvedValue(tableFromArrays({ value: [1, 2, 3] }));
-        const tracker = testShellHistory(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
-
-        await environment.executeQuery('SELECT * FROM values');
-
-        expect(tracker.queries()).toMatchObject([{
-            queryText: 'SELECT * FROM values',
-            status: QueryExecutionStatus.SUCCEEDED,
-            error: null,
-        }]);
-        expect(tracker.queries()[0].resultTable?.rows).toBe(3);
-        expect(tracker.queries()[0].metrics.querySucceededAt).toEqual(expect.any(Number));
-        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
-    });
-
-    it('tracks failed queries', async () => {
-        const query = vi.fn().mockRejectedValue(new Error('syntax error'));
-        const tracker = testShellHistory(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
 
         await expect(environment.executeQuery('SELEC 1')).rejects.toThrow('syntax error');
-
-        expect(tracker.queries()).toMatchObject([{
-            status: QueryExecutionStatus.FAILED,
-            resultTable: null,
-        }]);
-        expect(tracker.queries()[0].error?.message).toBe('syntax error');
-        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
+        expect(afterStatement).toHaveBeenCalledWith('SELEC 1');
     });
 
-    it('tracks cancelled queries', async () => {
-        const query = vi.fn();
-        const tracker = testShellHistory(dql);
-        const environment = createEmbeddedDatabaseShellEnvironment({ query } as any, tracker.tracker);
+    it('rejects an already cancelled query before it reaches the executor', async () => {
+        const { execute, calls } = executor(async () => null);
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
         const abort = new AbortController();
         abort.abort();
 
         await expect(environment.executeQuery('SELECT 42', abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
+        expect(calls).toHaveLength(0);
+    });
 
-        expect(tracker.queries()).toMatchObject([{
-            status: QueryExecutionStatus.CANCELLED,
-            resultTable: null,
-        }]);
-        expect(tracker.queries()[0].metrics.queryDurationMs).toBeGreaterThanOrEqual(0);
-        expect(query).not.toHaveBeenCalled();
+    it('hands the cancellation of the shell to the executor', async () => {
+        const { execute, calls } = executor(args => new Promise((_resolve, reject) => {
+            args.abortSignal?.addEventListener('abort', () => reject(args.abortSignal!.reason));
+        }));
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
+        const abort = new AbortController();
+
+        const execution = environment.executeQuery('SELECT 42', abort.signal);
+        abort.abort();
+        await expect(execution).rejects.toMatchObject({ name: 'AbortError' });
+        expect(calls[0][1].abortSignal).toBe(abort.signal);
     });
 });

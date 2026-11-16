@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 
 // The successful paths reload the app, which would reload the test frame, so only the cancelled and failed paths are
@@ -24,7 +24,7 @@ describe('relocateWorkbookToNative', () => {
         pickFolder(null);
         const writer = fakeWriter();
         const backend = { relocateWorkbookToNative: vi.fn() } as unknown as CompositeStorageBackend;
-        expect(await relocateWorkbookToNative('s1', backend, writer as unknown as StorageWriter, new TestLogger())).toBe(false);
+        expect(await relocateWorkbookToNative('s1', backend, writer as unknown as StorageCommands, new TestLogger())).toBe(false);
         expect(writer.pause).not.toHaveBeenCalled();
         expect(backend.relocateWorkbookToNative).not.toHaveBeenCalled();
     });
@@ -33,7 +33,7 @@ describe('relocateWorkbookToNative', () => {
         pickFolder('/Users/me/workbook');
         const writer = fakeWriter();
         const backend = { relocateWorkbookToNative: vi.fn(async () => { throw new Error('copy failed'); }) } as unknown as CompositeStorageBackend;
-        await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageWriter, new TestLogger())).rejects.toThrow('copy failed');
+        await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageCommands, new TestLogger())).rejects.toThrow('copy failed');
         expect(writer.pause).toHaveBeenCalledOnce();
         expect(writer.flushWorkbook).toHaveBeenCalledWith('s1');
         expect(backend.relocateWorkbookToNative).toHaveBeenCalledWith('s1', '/Users/me/workbook');
@@ -45,7 +45,7 @@ describe('relocateWorkbookToNative', () => {
         // A write of the workbook failed or a hold keeps it, it would be lost with the copy in the origin private file system
         const writer = fakeWriter(false);
         const backend = { relocateWorkbookToNative: vi.fn() } as unknown as CompositeStorageBackend;
-        await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageWriter, new TestLogger())).rejects.toThrow('not saved');
+        await expect(relocateWorkbookToNative('s1', backend, writer as unknown as StorageCommands, new TestLogger())).rejects.toThrow('not saved');
         expect(backend.relocateWorkbookToNative).not.toHaveBeenCalled();
         expect(writer.pause).not.toHaveBeenCalled();
     });

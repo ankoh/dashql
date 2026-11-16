@@ -113,7 +113,6 @@ describe('The workbooks of the runtime', () => {
         expect(derived.scriptKeys).toEqual([alpha, beta]);
         const dataflow = dashql.readFlatBuffer(derived.dataflow, bb => dashql.buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb));
         expect(dataflow.scriptsLength()).toBe(2);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -136,7 +135,6 @@ describe('The workbooks of the runtime', () => {
         expect(view.editorUpdate).toBeNull();
         // An event of a session that the script no longer holds is dropped
         expect(runtime.applyEditorEvent('w', alpha, 0, typedEvent(update.textVersion, 0, 'x'), outcome.key)).toBeUndefined();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -162,7 +160,6 @@ describe('The workbooks of the runtime', () => {
         // The editor holds the analysis before, the next move carries the new one
         expect(readUpdate(move(2, moved.key)).analysisOmitted).toBe(false);
         session.destroy();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -188,7 +185,6 @@ describe('The workbooks of the runtime', () => {
         await runtime.storage({ kind: 'flush' });
         expect(storage.scripts.get('w')?.get('alpha.sql')).toBe('select 123456 as value');
         synced.destroy();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -206,7 +202,6 @@ describe('The workbooks of the runtime', () => {
         expect(changesOf(runtime, ['workbook', 'workbookDerived'])).toEqual(['workbook:w']);
         expect(viewOf(runtime, 'workbook', 'w')!.scriptList.connections[0].params).toContain('moved');
         expect(viewOf(runtime, 'workbookDerived', 'w')!.dataflow).toEqual(derived.dataflow);
-        runtime.destroy();
         runtime.free();
     });
 
@@ -250,7 +245,6 @@ describe('The workbooks of the runtime', () => {
         expect(dashql.scriptDiffBuffer(dql!, staged.pendingDiff!.diff!).read().opsLength()).toBeGreaterThan(0);
         runtime.dispatch({ workbook: 'w' }, { kind: 'rejectPendingDiff', value: { scriptKey: key } });
         expect(viewOf(runtime, 'script', key, [NONE])!.pendingDiff).toBeNull();
-        runtime.destroy();
         runtime.free();
     });
 
@@ -261,7 +255,6 @@ describe('The workbooks of the runtime', () => {
         expect(viewOf(runtime, 'workbookList', 'root')!.workbooks.map(w => [w.workbookId, w.ephemeral])).toEqual([['a', false], ['e', true]]);
         runtime.dispatch({ workbook: 'e' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
         expect(viewOf(runtime, 'workbook', 'e')).toMatchObject({ ephemeral: false, name: 'Untitled 2' });
-        runtime.destroy();
         runtime.free();
     });
 
@@ -270,7 +263,7 @@ describe('The workbooks of the runtime', () => {
         first.runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: WB, connectionId: CONNECTION, name: 'Sales' } });
         first.runtime.dispatch({ workbook: WB }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
         await first.runtime.storage({ kind: 'flush' });
-        first.runtime.destroy();
+        await first.runtime.shutdown();
         first.runtime.free();
 
         const second = createRuntime(first.storage, null);
@@ -284,7 +277,7 @@ describe('The workbooks of the runtime', () => {
         expect(workbook).toMatchObject({ name: 'Sales', scriptOrder: ['alpha.sql'] });
         expect(dql!.runtimeScriptSession(second.runtime, workbook.scriptKeys[0])!.getText()).toBe('select 1');
         await expect(second.runtime.restoreWorkbook('gone')).rejects.toThrow();
-        second.runtime.destroy();
+        await second.runtime.shutdown();
         second.runtime.free();
     });
 });

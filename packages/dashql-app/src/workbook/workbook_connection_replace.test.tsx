@@ -14,7 +14,7 @@ import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_
 
 import { WorkbookTestBackend, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import * as core from '@ankoh/dashql';
 import { newConnectionFromParams } from '@ankoh/dashql/platform/connections/connection_params';
@@ -46,7 +46,7 @@ function workbook(runtime: Runtime, on: ConnectionState): WorkbookScripts {
 
 interface Api {
     replace: ReturnType<typeof useReplaceConnection>;
-    writer: StorageWriter;
+    writer: StorageCommands;
     connections: ReadonlyMap<string, ConnectionState>;
     workbooks: ReadonlyMap<string, WorkbookScripts>;
 }

@@ -1,6 +1,6 @@
 import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 
 const LOG_CTX = 'workbook_relocation';
 
@@ -19,7 +19,7 @@ const LOG_CTX = 'workbook_relocation';
 export async function relocateWorkbookToNative(
     workbookId: string,
     backend: CompositeStorageBackend,
-    writer: StorageWriter,
+    writer: StorageCommands,
     logger: Logger,
 ): Promise<boolean> {
     // 1. Pick a target directory. recursive:true so the picker's auto-grant also covers nested
