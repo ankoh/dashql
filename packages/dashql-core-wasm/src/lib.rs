@@ -825,6 +825,227 @@ impl ScriptSession {
     }
 }
 
+/// The session of a script of a workbook of a runtime, shared with the workbook. It reads the script and computes texts
+/// from it, it never changes the text, the analysis or the cursor of the session: the editors change it through the
+/// runtime (`Runtime.applyEditorEvent`), which writes and publishes what changed. A session that the runtime holds
+/// borrowed fails the call instead of panicking.
+#[wasm_bindgen]
+pub struct WorkbookScriptSession {
+    catalog: SharedCatalog,
+    inner: Rc<RefCell<CoreScriptSession>>,
+}
+
+impl WorkbookScriptSession {
+    pub(crate) fn new(catalog: SharedCatalog, inner: Rc<RefCell<CoreScriptSession>>) -> Self {
+        Self { catalog, inner }
+    }
+
+    fn session(&self) -> Result<Ref<'_, CoreScriptSession>, JsError> {
+        self.inner.try_borrow().map_err(|_| JsError::new("the session of the script is busy"))
+    }
+
+    /// The session to parse it again if its parse is outdated, the text stays
+    fn parsed(&self) -> Result<RefMut<'_, CoreScriptSession>, JsError> {
+        self.inner.try_borrow_mut().map_err(|_| JsError::new("the session of the script is busy"))
+    }
+
+    fn catalog(&self) -> Result<Ref<'_, CoreCatalog>, JsError> {
+        self.catalog.0.try_borrow().map_err(|_| JsError::new("the catalog of the script is busy"))
+    }
+
+    fn format_with(&self, catalog: SharedCatalog, config: FormattingConfigT, parse_if_outdated: bool) -> Result<Script, JsError> {
+        let inner = {
+            let target = catalog.0.try_borrow().map_err(|_| JsError::new("the catalog is busy"))?;
+            self.parsed()?.format(&target, &config, parse_if_outdated).map_err(js_error)?
+        };
+        Ok(Script { catalog, inner })
+    }
+}
+
+#[wasm_bindgen]
+impl WorkbookScriptSession {
+    #[wasm_bindgen(js_name = catalogEntryId)]
+    pub fn catalog_entry_id(&self) -> Result<u32, JsError> {
+        Ok(self.session()?.catalog_entry_id())
+    }
+
+    pub fn text(&self) -> Result<String, JsError> {
+        Ok(self.session()?.text())
+    }
+
+    #[wasm_bindgen(js_name = textVersion)]
+    pub fn text_version(&self) -> Result<u64, JsError> {
+        Ok(self.session()?.text_version())
+    }
+
+    #[wasm_bindgen(js_name = stateRevision)]
+    pub fn state_revision(&self) -> Result<u64, JsError> {
+        Ok(self.session()?.state_revision())
+    }
+
+    #[wasm_bindgen(js_name = catalogRevision)]
+    pub fn catalog_revision(&self) -> Result<u64, JsError> {
+        Ok(self.catalog()?.version() as u64)
+    }
+
+    /// See `ScriptSession.findScriptReferences`
+    #[wasm_bindgen(js_name = findScriptReferences)]
+    pub fn find_script_references(&self, names: Vec<String>) -> Result<Vec<u32>, JsError> {
+        let mut out = Vec::new();
+        for (span, script) in self.session()?.script_references(&names) {
+            out.extend([span.offset as u32, span.length as u32, script.map(|s| s as u32).unwrap_or(u32::MAX)]);
+        }
+        Ok(out)
+    }
+
+    /// Complete at the primary cursor, returns the packed `Completion`
+    #[wasm_bindgen(js_name = completeAtCursor)]
+    pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
+        let completion = self.session()?.complete(&*self.catalog()?, limit, KeywordCase(keyword_case)).map_err(js_error)?;
+        Ok(finish!(completion))
+    }
+
+    /// Compile the script, returns the packed `ScriptCompilationResult`
+    #[wasm_bindgen(js_name = compileQuery)]
+    pub fn compile_query(
+        &self,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        allow_extensions: bool,
+        parse_if_outdated: bool,
+    ) -> Result<Vec<u8>, JsError> {
+        let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
+        let catalog = self.catalog()?;
+        Ok(finish!(self.parsed()?.compile_query(&catalog, &config, allow_extensions, parse_if_outdated)))
+    }
+
+    /// Format the script into a new script of the session catalog
+    #[allow(clippy::too_many_arguments)]
+    pub fn format(
+        &self,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        debug_mode: bool,
+        keyword_case: u8,
+        parse_if_outdated: bool,
+    ) -> Result<Script, JsError> {
+        self.format_with(self.catalog.clone(), formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
+    }
+
+    /// Format the script into a new script of another catalog
+    #[allow(clippy::too_many_arguments)]
+    #[wasm_bindgen(js_name = formatInto)]
+    pub fn format_into(
+        &self,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        debug_mode: bool,
+        keyword_case: u8,
+        parse_if_outdated: bool,
+        catalog: &Catalog,
+    ) -> Result<Script, JsError> {
+        let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case);
+        self.format_with(catalog.inner.clone(), config, parse_if_outdated)
+    }
+
+    /// The annotation of a statement as JSON, like `Script.readAnnotation`
+    #[wasm_bindgen(js_name = readAnnotation)]
+    pub fn read_annotation(&self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = self.parsed()?.read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Replace the annotation of a statement, given as JSON. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = rewriteAnnotation)]
+    pub fn rewrite_annotation(&self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        let annotation = parse_annotation(annotation)?;
+        self.parsed()?.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the `@board` tag of a query, negative rows and columns are absent. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = rewriteVisBoard)]
+    pub fn rewrite_vis_board(
+        &self,
+        statement_id: u32,
+        row: i32,
+        column: i32,
+        width: i32,
+        height: i32,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let board = VisBoard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
+        self.parsed()?.rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the `@flow` tag of the script. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = rewriteVisFlow)]
+    pub fn rewrite_vis_flow(
+        &self,
+        x: Option<i32>,
+        y: Option<i32>,
+        width: Option<i32>,
+        height: Option<i32>,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let flow = VisFlow { position: x.zip(y), width, height };
+        self.parsed()?.rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Remove the `@flow` tag of the script. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = removeVisFlow)]
+    pub fn remove_vis_flow(&self, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.parsed()?.rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the `@param` tag of an input of the script. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = rewriteParamTag)]
+    pub fn rewrite_param_tag(&self, name: &str, value: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.parsed()?.rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Remove the `@param` tags of an input of the script. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = removeParamTag)]
+    pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        self.parsed()?.rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
+    }
+
+    /// Set the renderer tag of a query, an empty kind removes it. Returns the new text, the session stays.
+    #[wasm_bindgen(js_name = rewriteVisRenderer)]
+    pub fn rewrite_vis_renderer(&self, statement_id: u32, kind: &str, body: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+        let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
+        self.parsed()?.rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated).map_err(js_error)
+    }
+
+    /// Can formatting represent every node?
+    #[allow(clippy::too_many_arguments)]
+    #[wasm_bindgen(js_name = isFullyFormattable)]
+    pub fn is_fully_formattable(
+        &self,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        debug_mode: bool,
+        parse_if_outdated: bool,
+    ) -> Result<bool, JsError> {
+        let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
+        self.parsed()?.is_fully_formattable(&config, parse_if_outdated).map_err(js_error)
+    }
+
+    /// The packed `ScriptDiff` from the session script to a target script
+    #[wasm_bindgen(js_name = computeDiff)]
+    pub fn compute_diff(&self, target: &Script) -> Result<Vec<u8>, JsError> {
+        let diff = self.session()?.diff(&target.inner).map_err(js_error)?;
+        Ok(finish!(diff))
+    }
+}
+
 /// A request to plan the scripts of a session across connections (`planner::SessionPlanRequest`)
 #[wasm_bindgen]
 pub struct SessionPlanRequest {
@@ -947,6 +1168,7 @@ fn with_session_plan_request<R>(
             name,
             connection: *connection,
             materialization_file: file.as_deref(),
+            current_by_own_publish: false,
         })
         .collect();
     let attachments: Vec<_> =

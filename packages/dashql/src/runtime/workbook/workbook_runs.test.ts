@@ -5,6 +5,7 @@
 import type * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as core from '../../core/index.js';
 import { ConnectionHealth } from '../../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import type { RunResult, Runtime } from '../runtime.js';
@@ -557,6 +558,76 @@ describe('the runs of scripts of the runtime', () => {
         await f.cache!.remove(entry.name);
         f.core.dispatch({ connection: f.connectionId }, { kind: 'queryCacheDeleted', value: { queryId: f.script('foo.sql').latestQueryId! } });
         await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).toBeNull());
+    });
+
+    /// Let the changes pause, the runtime checks the cached results then
+    const pause = () => new Promise(resolve => setTimeout(resolve, 400));
+
+    /// An editor event of a script as the editor sends it: typed text at an offset, or a move of the cursor
+    function edit(rt: Runtime, workbookId: string, scriptKey: number, offset: number, text: string | null) {
+        rt.flush();
+        const script = rt.store.get('script', scriptKey)!;
+        const editor = core.buffers.editor;
+        const change = text == null ? [] : [new editor.EditorTextChangeT(BigInt(offset), BigInt(offset), text)];
+        const cursor = BigInt(offset + (text?.length ?? 0));
+        const event = new editor.EditorEventT(
+            script.scriptSession.getTextVersion(), change, new editor.EditorSelectionT(cursor, cursor), editor.EditorEventOrigin.USER,
+            text == null ? editor.EditorEventIntent.SELECTION : editor.EditorEventIntent.EDIT, editor.EditorEventAction.TYPE, text != null,
+        );
+        expect(rt.applyEditorEvent({ workbookId, scriptKey, sessionGeneration: script.sessionGeneration }, event, script.editorUpdate)?.status).toBe(editor.EditorUpdateStatus.OK);
+    }
+
+    it('looks up the cached results of the workbook that changed once the changes paused, a move of the cursor looks up none', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        const other = f.rt.addWorkbook(f.connectionId, [['bar.sql', 'select 2 as b;']], { name: 'other' });
+        await f.run('foo.sql');
+        await f.core.module.flushCacheWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
+        await pause();
+        f.cache!.lookup.mockClear();
+        const foo = f.script('foo.sql').scriptKey;
+        for (let offset = 0; offset < 5; ++offset) edit(f.rt, f.workbookId, foo, offset, null);
+        await pause();
+        expect(f.cache!.lookup).not.toHaveBeenCalled();
+        // Typing looks up the scripts of the typed workbook once, the other workbook keeps its cached results
+        for (const [offset, text] of [[8, '2'], [9, '3']] as const) edit(f.rt, f.workbookId, foo, offset, text);
+        await pause();
+        const [otherKey] = await f.core.module.resultKeys(other.workbookId);
+        expect(f.cache!.lookup.mock.calls.map(([key]) => key)).not.toContain(otherKey);
+        expect(f.cache!.lookup).toHaveBeenCalledOnce();
+    });
+
+    it('shows the cached result that the run of another workbook wrote under the same key', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        const other = f.rt.addWorkbook(f.connectionId, [['same.sql', 'select 1 as a;']], { name: 'other' });
+        const [same] = other.scriptKeys;
+        await pause();
+        expect(f.core.store.get('script', same)?.cachedResult).toBeNull();
+        await f.run('foo.sql');
+        await f.core.module.flushCacheWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
+        await vi.waitFor(() => {
+            f.core.flush();
+            expect(f.core.store.get('script', same)?.cachedResult).toEqual(f.script('foo.sql').cachedResult);
+        });
+    });
+
+    it('clears the cached result of a script whose file the cache evicted for another workbook', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        const other = f.rt.addWorkbook(f.connectionId, [['bar.sql', 'select 2 as b;']], { name: 'other' });
+        f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };
+        await f.run('foo.sql');
+        await f.core.module.flushCacheWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
+        // The run of the other workbook writes the one file that the cache keeps
+        const [bar] = other.scriptKeys;
+        expect((await f.core.runScript(other.workbookId, bar)).outcome.failure).toBeNull();
+        await f.core.module.flushCacheWrites();
+        await vi.waitFor(() => {
+            f.core.flush();
+            expect(f.script('foo.sql').cachedResult).toBeNull();
+            expect(f.core.store.get('script', bar)?.cachedResult).not.toBeNull();
+        });
     });
 
     it('keeps the query result cache within its limits, the least recently read files go first', async () => {

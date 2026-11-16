@@ -195,6 +195,8 @@ impl<T: Serialize> Serialize for Read<T> {
 pub(crate) struct DerivedParts {
     /// The checked references, the dataflow and the inputs, packed
     pub buffers: [Vec<u8>; 3],
+    /// The hash of every buffer, the host compares them instead of the bytes
+    pub hashes: [u64; 3],
     /// The keys of the scripts in feed order, the order of the buffers
     pub script_keys: Vec<u32>,
     /// The file names of the scripts in feed order
@@ -319,14 +321,20 @@ pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
         [crate::pack_reference_check(request, sessions, true), crate::pack_dataflow(request, sessions, true), crate::pack_inputs(request)]
     });
     let scripts = workbook.scripts();
+    let hashes = buffers.each_ref().map(|buffer| {
+        let mut hasher = DefaultHasher::new();
+        buffer.hash(&mut hasher);
+        hasher.finish()
+    });
     let parts = DerivedParts {
         buffers,
+        hashes,
         script_keys: scripts.iter().map(|script| script.key()).collect(),
         script_files: scripts.iter().map(|script| script.file_name().to_string()).collect(),
         attachments: workbook.attachments().unwrap_or_default().iter().map(|attachment| attachment.file_name.clone()).collect(),
     };
     let mut hasher = DefaultHasher::new();
-    (&parts.buffers, &parts.script_keys, &parts.script_files, &parts.attachments).hash(&mut hasher);
+    (&parts.hashes, &parts.script_keys, &parts.script_files, &parts.attachments).hash(&mut hasher);
     (Rc::new(parts), hasher.finish())
 }
 

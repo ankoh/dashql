@@ -174,6 +174,7 @@ const CATALOG_TYPE = Symbol('CATALOG_TYPE');
 const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
 const CURSOR_TYPE = Symbol('CURSOR_TYPE');
 const SCRIPT_SESSION_TYPE = Symbol('SCRIPT_SESSION_TYPE');
+const WORKBOOK_SCRIPT_SESSION_TYPE = Symbol('WORKBOOK_SCRIPT_SESSION_TYPE');
 const EDITOR_UPDATE_TYPE = Symbol('EDITOR_UPDATE_TYPE');
 const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
@@ -443,11 +444,12 @@ export class DashQL {
         return native == null ? null : new DashQLCatalog(new Ptr(CATALOG_TYPE, this, native));
     }
 
-    /// The session of a script of a workbook of a runtime of this instance, shared with the workbook. Null for an unknown
-    /// script. Every call is a handle of its own that the caller destroys.
-    public runtimeScriptSession(runtime: glue.Runtime, scriptKey: number): DashQLScriptSession | null {
+    /// The session of a script of a workbook of a runtime of this instance, shared with the workbook, as a handle that
+    /// reads it. Null for an unknown script. Every call is a handle of its own; the module frees it once it is
+    /// collected, or when the caller destroys it.
+    public runtimeScriptSession(runtime: glue.Runtime, scriptKey: number): DashQLWorkbookScriptSession | null {
         const native = runtime.scriptSession(scriptKey);
-        return native == null ? null : new DashQLScriptSession(new Ptr(SCRIPT_SESSION_TYPE, this, native));
+        return native == null ? null : new DashQLWorkbookScriptSession(new Ptr(WORKBOOK_SCRIPT_SESSION_TYPE, this, native));
     }
 
     /// Create a follower of the progress of queries with a layout of its plans, e.g. the other orientation
@@ -696,6 +698,7 @@ export class ParserError extends Error {
 }
 
 type NativeScriptSession = glue.ScriptSession;
+type NativeWorkbookScriptSession = glue.WorkbookScriptSession;
 type NativeScript = glue.Script;
 type NativeCatalog = glue.Catalog;
 type NativeQueryProfile = glue.QueryProfile;
@@ -708,14 +711,14 @@ export interface CatalogNameDefaults {
     schemaName: string;
 }
 
-export class DashQLScriptSession {
-    public readonly ptr: Ptr<typeof SCRIPT_SESSION_TYPE, NativeScriptSession>;
+/// What a session reads of its script: the text, the completion, the compilation, the formatting and the texts of
+/// rewrites. A session of a script of a workbook reads only (`DashQLWorkbookScriptSession`), a session of its own
+/// changes too (`DashQLScriptSession`).
+export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | NativeWorkbookScriptSession = NativeScriptSession | NativeWorkbookScriptSession> {
+    public readonly ptr: Ptr<symbol, O>;
     public readonly catalog_entry_id: number;
-    /// The latest update that carries an analysis. Events name its version, so the core leaves an unchanged
-    /// analysis out and the update reuses the arrays of this one.
-    private lastAnalysis: buffers.editor.EditorUpdateT | null = null;
 
-    public constructor(ptr: Ptr<typeof SCRIPT_SESSION_TYPE, NativeScriptSession>) {
+    protected constructor(ptr: Ptr<symbol, O>) {
         this.ptr = ptr;
         this.catalog_entry_id = ptr.assertNotNull().catalogEntryId();
     }
@@ -755,29 +758,6 @@ export class DashQLScriptSession {
 
     public getCatalogRevision(): bigint {
         return this.ptr.assertNotNull().catalogRevision();
-    }
-
-    public replaceText(expectedTextVersion: bigint, text: string): buffers.editor.EditorUpdateT {
-        return this.readUpdate(this.ptr.assertNotNull().replaceText(expectedTextVersion, text));
-    }
-
-    /// Apply an editor event. The session sets the known analysis of the event.
-    public apply(event: buffers.editor.EditorEventT): buffers.editor.EditorUpdateT {
-        const session = this.ptr.assertNotNull();
-        event.knownAnalysis = this.lastAnalysis == null
-            ? null
-            : new buffers.editor.EditorAnalysisVersionT(this.lastAnalysis.textVersion, this.lastAnalysis.catalogRevision);
-        const builder = new flatbuffers.Builder();
-        builder.finish(event.pack(builder));
-        return this.readUpdate(session.apply(builder.asUint8Array()));
-    }
-
-    public setCursor(expectedTextVersion: bigint, offset: bigint): buffers.editor.EditorUpdateT {
-        return this.readUpdate(this.ptr.assertNotNull().setPrimaryCursor(expectedTextVersion, offset));
-    }
-
-    public analyze(): buffers.editor.EditorUpdateT {
-        return this.readUpdate(this.ptr.assertNotNull().analyze());
     }
 
     public completeAtCursor(limit: number, keywordCase = buffers.formatting.KeywordCase.LOWER): FlatBufferPtr<buffers.completion.Completion> {
@@ -900,6 +880,48 @@ export class DashQLScriptSession {
     public computeDiff(target: DashQLScript): FlatBufferPtr<buffers.diff.ScriptDiff> {
         const bytes = this.ptr.assertNotNull().computeDiff(target.ptr.assertNotNull());
         return new FlatBufferPtr(SCRIPT_DIFF_TYPE, this.ptr.api, bytes, () => new buffers.diff.ScriptDiff());
+    }
+}
+
+/// The session of a script of a workbook of a runtime, shared with the workbook. It reads the script, the runtime
+/// changes it: the editors apply their events with `Runtime.applyEditorEvent`.
+export class DashQLWorkbookScriptSession extends DashQLScriptSessionReader<NativeWorkbookScriptSession> {
+    public constructor(ptr: Ptr<typeof WORKBOOK_SCRIPT_SESSION_TYPE, NativeWorkbookScriptSession>) {
+        super(ptr);
+    }
+}
+
+/// An editor session of its own, e.g. of a draft or the shell
+export class DashQLScriptSession extends DashQLScriptSessionReader<NativeScriptSession> {
+    /// The latest update that carries an analysis. Events name its version, so the core leaves an unchanged
+    /// analysis out and the update reuses the arrays of this one.
+    private lastAnalysis: buffers.editor.EditorUpdateT | null = null;
+
+    public constructor(ptr: Ptr<typeof SCRIPT_SESSION_TYPE, NativeScriptSession>) {
+        super(ptr);
+    }
+
+    public replaceText(expectedTextVersion: bigint, text: string): buffers.editor.EditorUpdateT {
+        return this.readUpdate(this.ptr.assertNotNull().replaceText(expectedTextVersion, text));
+    }
+
+    /// Apply an editor event. The session sets the known analysis of the event.
+    public apply(event: buffers.editor.EditorEventT): buffers.editor.EditorUpdateT {
+        const session = this.ptr.assertNotNull();
+        event.knownAnalysis = this.lastAnalysis == null
+            ? null
+            : new buffers.editor.EditorAnalysisVersionT(this.lastAnalysis.textVersion, this.lastAnalysis.catalogRevision);
+        const builder = new flatbuffers.Builder();
+        builder.finish(event.pack(builder));
+        return this.readUpdate(session.apply(builder.asUint8Array()));
+    }
+
+    public setCursor(expectedTextVersion: bigint, offset: bigint): buffers.editor.EditorUpdateT {
+        return this.readUpdate(this.ptr.assertNotNull().setPrimaryCursor(expectedTextVersion, offset));
+    }
+
+    public analyze(): buffers.editor.EditorUpdateT {
+        return this.readUpdate(this.ptr.assertNotNull().analyze());
     }
 
     /// Publish the analysis into the session layer of the catalog

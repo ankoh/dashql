@@ -58,7 +58,7 @@ use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetadataView, QueryProfileKeys, QueryProfileProgressView, QueryStreamMetrics, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
-use crate::{js_error, Catalog, ScriptSession, SharedCatalog};
+use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
 use changes::{Read, Slice, Taken};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use compute_tracking::ComputeTracker;
@@ -72,7 +72,9 @@ use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
 use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteGenerations, StorageWriteStatistics, StorageWriteTask};
 use storage::{error_value, outcome_value, JsStorage, StorageCommand, StorageState, StorageView};
-use workbooks::view::{StoredScriptView, WorkbookDataFile, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView};
+use workbooks::view::{
+    EditorEventOutcome, StoredScriptView, WorkbookDataFile, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView,
+};
 use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -257,8 +259,7 @@ pub enum RuntimeAction {
     DetachConnection { from: String, into: String },
     /// The data files of the workbook as storage lists them
     SetWorkbookAttachments { files: Vec<WorkbookDataFile> },
-    /// An attachment whose file was renamed
-    RenameAttachment { file_name: String, new_file_name: String },
+
     /// Link the workbook to a published workbook, the whole link is written into the workbook file, null removes it
     SetCloudLink {
         #[serde(default)]
@@ -678,6 +679,7 @@ impl Runtime {
                                 references: FlatBufferBytes(references.clone()),
                                 dataflow: FlatBufferBytes(dataflow.clone()),
                                 inputs: FlatBufferBytes(inputs.clone()),
+                                hashes: parts.hashes.map(|hash| format!("{hash:016x}")),
                             })
                         }
                         Read::Gone => Read::Gone,
@@ -948,7 +950,7 @@ impl Runtime {
                 self.runs.describe_attachments();
                 return outcome;
             }
-            RuntimeAction::RenameAttachment { file_name, new_file_name } => A::RenameAttachment { file_name, new_file_name },
+
             RuntimeAction::SetCloudLink { link } => {
                 let link = link.map(|link| link.0).filter(|link| !link.is_null());
                 return self.workbook_outcome(&workbook_id, workbooks.set_cloud_link(&workbook_id, link));
@@ -1394,31 +1396,43 @@ impl Runtime {
     // The workbooks
 
     /// Apply an event of the editor of a script, a packed `EditorEvent`, and return the packed `EditorUpdate` for the
-    /// editor: the workbook takes the update, writes the text and publishes it. The event names the text version that
-    /// the editor shows, an editor that missed a change of the text gets the status `STALE_TEXT_VERSION` and shows the
-    /// text of the script again. The update leaves out the analysis that the event names as known if the script holds
-    /// the same one. An edit of the user accepts a staged rewrite. Null for an event of a session that the script no
-    /// longer holds (`sessionGeneration` of the view of the script).
+    /// editor with its key: the workbook takes the update, writes the text and publishes it. The event names the text
+    /// version that the editor shows, an editor that missed a change of the text gets the status `STALE_TEXT_VERSION`
+    /// and shows the text of the script again. `known` is the key of the update that the editor holds
+    /// (`editorUpdateKey`), the update leaves out the analysis if the editor holds the one of the script. An edit of the
+    /// user accepts a staged rewrite. Null for an event of a session that the script no longer holds (`sessionGeneration`
+    /// of the view of the script).
     #[wasm_bindgen(js_name = applyEditorEvent)]
-    pub fn apply_editor_event(&self, workbook_id: &str, script_key: u32, session_generation: f64, event: &[u8]) -> Result<Option<Vec<u8>>, JsError> {
+    pub fn apply_editor_event(
+        &self,
+        workbook_id: &str,
+        script_key: u32,
+        session_generation: f64,
+        event: &[u8],
+        known: Option<String>,
+    ) -> Result<Option<Ts<EditorEventOutcome>>, JsError> {
         let generation = integer(session_generation, "session generation")?;
         let event = flatbuffers::root::<dashql_buffers::editor::EditorEvent>(event).map_err(|_| JsError::new("invalid editor event"))?.unpack();
-        let update = self.workbooks.apply_editor_event(workbook_id, script_key, generation, event).map_err(js_error)?;
-        if update.is_none() {
-            let key = script_key.to_string();
-            let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
-            self.platform.log_on(LogLevel::Warn, "Dropping editor event of an unknown script or a stale session", &details, "workbook_scripts");
+        let outcome = self.workbooks.apply_editor_event(workbook_id, script_key, generation, event, known.as_deref()).map_err(js_error)?;
+        match outcome {
+            Some((update, key)) => Ok(Some(to_js(&EditorEventOutcome { update: FlatBufferBytes(update), key })?)),
+            None => {
+                let key = script_key.to_string();
+                let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
+                self.platform.log_on(LogLevel::Warn, "Dropping editor event of an unknown script or a stale session", &details, "workbook_scripts");
+                Ok(None)
+            }
         }
-        Ok(update)
     }
 
-    /// The session of a script, shared with its workbook. Every call returns a new handle. None for an unknown script.
+    /// The session of a script, shared with its workbook, as a handle that reads it. Every call returns a new handle.
+    /// None for an unknown script.
     #[wasm_bindgen(js_name = scriptSession)]
-    pub fn script_session(&self, script_key: u32) -> Option<ScriptSession> {
+    pub fn script_session(&self, script_key: u32) -> Option<WorkbookScriptSession> {
         let (_, workbook) = self.workbooks.of_script(script_key).value()?;
         let workbook = workbook.try_borrow().ok()?;
         let script = workbook.script(script_key)?;
-        Some(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone(), read_only: true })
+        Some(WorkbookScriptSession::new(SharedCatalog(script.connection().catalog.clone()), script.session().clone()))
     }
 
     /// Tests of the seam: call a function while a part of the state is borrowed, as a task of the runtime would hold it.

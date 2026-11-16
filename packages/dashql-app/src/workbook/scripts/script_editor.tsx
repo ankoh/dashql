@@ -18,20 +18,6 @@ import { applyScriptTextChanges } from '@ankoh/dashql/platform/workbook/scripts/
 import { DashQLScriptReferencesEffect, shownScriptReferences } from '../editor/dashql_script_references.js';
 
 const LOG_CTX = "workbook_editor";
-const WRITABLE_WORKBOOK_VIEWS = new WeakMap<object, EditorView>();
-
-function leaseWritableSession(scriptSession: object, view: EditorView): () => void {
-    const current = WRITABLE_WORKBOOK_VIEWS.get(scriptSession);
-    if (current != null && current !== view) {
-        throw new Error('A DashQLScriptSession can only be bound to one writable editor view');
-    }
-    WRITABLE_WORKBOOK_VIEWS.set(scriptSession, view);
-    return () => {
-        if (WRITABLE_WORKBOOK_VIEWS.get(scriptSession) === view) {
-            WRITABLE_WORKBOOK_VIEWS.delete(scriptSession);
-        }
-    };
-}
 
 export interface ScriptEditorProps {
     workbookId: string;
@@ -95,12 +81,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         return () => { modifyScripts({ kind: 'hideScript', value: { scriptKey, selected } }); };
     }, [runtime, modifyScripts, props.scriptKey, selected]);
 
-    // Track the current CodeMirror view
+    // Track the current CodeMirror view. The session of the script only reads, the events of the editor go to the
+    // runtime, so several editors may show the same script.
     const [view, setViewState] = React.useState<EditorView | null>(null);
-    React.useEffect(() => {
-        if (view == null || scriptData == null) return;
-        return leaseWritableSession(scriptData.scriptSession, view);
-    }, [view, scriptData?.scriptSession]);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null) return;

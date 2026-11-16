@@ -107,6 +107,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         loadConnectionFile: async (connectionId, fileName) => owner == null ? null : owner.loadConnectionFile(connectionId, fileName),
         loadDataFile: async (workbookId, name) => backend.loadDataFile(workbookId, name),
         saveDataFile: async (workbookId, name, file) => backend.saveDataFile(workbookId, name, file),
+        renameDataFile: async (workbookId, from, to) => backend.renameDataFile(workbookId, from, to),
         findWorkbook: async workbookId => {
             // The workbook tree is authoritative, also for entries whose files or metadata are invalid. Ids compare
             // without their case, the entry keeps the spelling of the tree.

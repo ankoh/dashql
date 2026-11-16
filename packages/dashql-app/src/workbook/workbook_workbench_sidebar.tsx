@@ -73,7 +73,7 @@ import { useStorageReader } from '../storage/storage_provider.js';
 import { browserWorkbookFolder } from './persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '../storage/workbook_transfer.js';
 import { useWorkbookImport } from './persistence/workbook_import_provider.js';
-import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, isEphemeralWorkbook, scriptsOnConnection, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, scriptsOnConnection, workbookCloudLink, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useScriptSelection } from './scripts/script_selection.js';
 import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { renameScript } from './scripts/script_rename.js';
@@ -811,7 +811,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const items = new Map<string, WorkbookItem>();
         for (const [workbookId, scripts] of scriptsRegistry) {
             // The ephemeral workbook has its own row at the end of the list, a cloud preview shows with the cloud
-            if (isEphemeralWorkbook(scripts) || isCloudPreview(scripts)) continue;
+            if (scripts.ephemeral || isCloudPreview(scripts)) continue;
             const workbookConnections = scripts.connectionIds
                 .map(id => connections.get(id))
                 .filter((connection): connection is ConnectionState => connection != null);
@@ -899,7 +899,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
         const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
             const scripts = scriptsRegistry.get(workbookId);
-            return scripts == null || (!isEphemeralWorkbook(scripts) && !isCloudPreview(scripts));
+            return scripts == null || (!scripts.ephemeral && !isCloudPreview(scripts));
         });
         const database = connections.get(connectionId);
         const scriptsOf = (workbookId: string) => {
@@ -1049,7 +1049,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     // others. The next ephemeral workbook takes over the row. The aside and the drawer may both do this: the second move
     // changes nothing and the second workbook is found.
     const ephemeralWorkbook = React.useMemo(
-        () => [...scriptsRegistry.values()].find(isEphemeralWorkbook) ?? null,
+        () => [...scriptsRegistry.values()].find(workbook => workbook.ephemeral) ?? null,
         [scriptsRegistry],
     );
     const ephemeralWorkbookId = ephemeralWorkbook?.workbookId ?? null;

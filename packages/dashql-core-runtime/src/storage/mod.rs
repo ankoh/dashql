@@ -50,6 +50,10 @@ pub trait StorageHost: Host {
     async fn save_data_file(&self, _workbook_id: &str, file_name: &str, _file: &HostBytes) -> Result<(), HostError> {
         Err(HostError::new(format!("the storage keeps no attachments, {file_name} was not saved")))
     }
+    /// Rename an attachment of a workbook, keeping its contents. A storage without attachments refuses.
+    async fn rename_data_file(&self, _workbook_id: &str, from: &str, _to: &str) -> Result<(), HostError> {
+        Err(HostError::new(format!("the storage keeps no attachments, {from} was not renamed")))
+    }
     /// Update the connection entries of the app manifest exclusively
     async fn update_connections(&self, update: ConnectionsUpdate) -> Result<(), HostError>;
     /// Save a file of a connection

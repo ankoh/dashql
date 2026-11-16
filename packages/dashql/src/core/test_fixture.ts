@@ -122,6 +122,13 @@ export class MemoryStorage implements RuntimeStorage {
         }
         files.set(name, bytes);
     };
+    renameDataFile = async (workbookId: string, from: string, to: string) => {
+        const files = this.dataFiles.get(workbookId);
+        const bytes = files?.get(from);
+        if (files == null || bytes == null) throw new Error(`no attachment ${from} of ${workbookId}`);
+        files.delete(from);
+        files.set(to, bytes);
+    };
     findWorkbook = async (workbookId: string) => {
         const path = this.order.find(id => id.toLowerCase() === workbookId.toLowerCase());
         return path == null ? null : { path, storageType: 'opfs' };

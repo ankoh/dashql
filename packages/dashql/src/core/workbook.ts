@@ -4,6 +4,7 @@ import type { FlatBuffer } from '@ankoh/dashql-wasm/dashql_core.js';
 
 /// The views of the workbooks of the runtime, declared by the module (`packages/dashql-core-wasm/src/runtime/workbooks/view.rs`)
 export type {
+    EditorEventOutcome,
     StoredScriptView,
     WorkbookAttachmentView,
     WorkbookCloudLink,
@@ -42,10 +43,6 @@ export type {
 
 const SCRIPT_DIFF_TYPE = Symbol('WORKBOOK_SCRIPT_DIFF_TYPE');
 
-/// The key of an editor update as `WorkbookScriptView.editorUpdateKey` names it
-export function editorUpdateKey(update: buffers.editor.EditorUpdateT): string {
-    return `${update.textVersion}:${update.stateRevision}:${update.catalogRevision}:${update.status}:${update.analysisAvailable}`;
-}
 
 /// The staged diff of a script view as the sessions return their diffs
 export function scriptDiffBuffer(api: DashQL, bytes: FlatBuffer<buffers.diff.ScriptDiff>): FlatBufferPtr<buffers.diff.ScriptDiff> {

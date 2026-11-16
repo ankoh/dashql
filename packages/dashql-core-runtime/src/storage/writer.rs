@@ -29,7 +29,7 @@ use std::task::{Context, Poll};
 use serde_json::Value;
 
 use super::keys::{
-    attachment_key, belongs_to_workbook, chain_key, connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key,
+    attachment_key, attachment_rename_key, belongs_to_workbook, chain_key, connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key,
     script_key, script_rename_key, workbook_attachment_list_key, workbook_connection_copy_key, workbook_file_key,
     workbook_script_list_key, workbook_scripts_key,
 };
@@ -92,6 +92,8 @@ pub enum WriteTask {
     RefreshWorkbookAttachments { workbook_id: String },
     /// Save an attachment of a workbook, a file that stays with the host
     SaveDataFile { workbook_id: String, file_name: String, file: HostBytes },
+    /// Rename an attachment of a workbook, its contents are unchanged
+    RenameDataFile { workbook_id: String, from: String, to: String },
 }
 
 impl WriteTask {
@@ -115,6 +117,7 @@ impl WriteTask {
             WriteTask::WriteWorkbookScripts { workbook_id, .. } => workbook_script_list_key(workbook_id),
             WriteTask::RefreshWorkbookAttachments { workbook_id } => workbook_attachment_list_key(workbook_id),
             WriteTask::SaveDataFile { workbook_id, file_name, .. } => attachment_key(workbook_id, file_name),
+            WriteTask::RenameDataFile { workbook_id, from, .. } => attachment_rename_key(workbook_id, from),
         }
     }
 }
@@ -917,6 +920,10 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         WriteTask::RenameScript { workbook_id, from, to } => {
             log(shared, LogLevel::Info, "Renaming workbook script", &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)]);
             host.rename_script(workbook_id, from, to).await?;
+        }
+        WriteTask::RenameDataFile { workbook_id, from, to } => {
+            log(shared, LogLevel::Info, "Renaming attachment", &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)]);
+            host.rename_data_file(workbook_id, from, to).await?;
         }
     }
     Ok(())

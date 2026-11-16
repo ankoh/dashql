@@ -33,7 +33,7 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     onStaleText?: () => void;
 
     /// Resolve the editor workbook of a workbook script by its catalog entry id for code actions.
-    lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSession | null;
+    lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSessionReader | null;
     /// Navigate to a workbook script definition.
     onNavigateToScript?: (scriptKey: DashQLScriptKey) => void;
 
@@ -284,7 +284,10 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             // session that changed meanwhile rejects the offsets of the document as stale
             const expectedTextVersion = state.textVersion ?? scriptSession.getTextVersion();
             const event = transactionToEditorEvent(transaction, expectedTextVersion);
-            const update = state.applyEvent != null ? state.applyEvent(event, state.editorUpdate ?? null) : scriptSession.apply(event);
+            // A session of its own takes the event itself, the session of a workbook script only reads
+            const update = state.applyEvent != null
+                ? state.applyEvent(event, state.editorUpdate ?? null)
+                : 'apply' in scriptSession ? (scriptSession as dashql.DashQLScriptSession).apply(event) : null;
             if ((update == null || update.status !== dashql.buffers.editor.EditorUpdateStatus.OK) && state.onStaleText != null) {
                 // The document shows the text of the session again, the transaction is dropped
                 console.warn(`${LOG_PREFIX} the session changed without the editor, showing its text again`, {

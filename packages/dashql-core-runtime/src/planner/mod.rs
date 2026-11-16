@@ -100,6 +100,10 @@ pub struct PlannerScript<'a> {
     /// The name of the Parquet file of the result of the script below the mount prefix, if a statement of another
     /// connection scans it. `s<index>.parquet` if absent.
     pub materialization_file: Option<&'a str>,
+    /// Is the analysis current with the catalog although its snapshot is older? The publish of the declarations of a
+    /// script moves the catalog past the snapshot of its analysis, but leaves the analysis current, the workbook knows
+    /// it. False checks the snapshot.
+    pub current_by_own_publish: bool,
 }
 
 /// An attachment of the session, a Parquet file that the table parameter `:name` reads
@@ -331,8 +335,8 @@ impl<'a> ConnectionState<'a> {
 }
 
 /// Validate the analysis of a script against the catalog of its connection
-fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &Catalog) -> Option<Prepared<'a>> {
-    let Some(prepared) = Prepared::lenient(script) else {
+fn prepare<'a>(state: &mut PlanState, index: u32, input: &PlannerScript<'a>, catalog: &Catalog) -> Option<Prepared<'a>> {
+    let Some(prepared) = Prepared::lenient(input.script) else {
         state.report(NONE, index, None, "missing or stale script analysis".into(), true);
         return None;
     };
@@ -342,7 +346,7 @@ fn prepare<'a>(state: &mut PlanState, index: u32, script: &'a Script, catalog: &
         return None;
     }
     // A tolerant plan takes the analysis of an earlier catalog revision, its declarations keep their ids
-    if !catalog.is_current(&analyzed.snapshot) && !state.tolerant {
+    if !catalog.is_current(&analyzed.snapshot) && !input.current_by_own_publish && !state.tolerant {
         state.report(NONE, index, None, "stale catalog analysis".into(), true);
         return None;
     }
@@ -477,7 +481,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
         planned[i as usize] = true;
         let input = &request.scripts[i as usize];
         let catalog = request.connections[input.connection as usize].catalog;
-        let Some(p) = prepare(&mut state, i, input.script, catalog) else { continue };
+        let Some(p) = prepare(&mut state, i, input, catalog) else { continue };
         if !targeted {
             diagnose_syntax(&mut state, i, &p);
         }
@@ -1273,7 +1277,7 @@ mod tests {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &b, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert!(graph.nodes.is_none());
@@ -1288,7 +1292,7 @@ mod tests {
             PlannerConnection { id: "first", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
             PlannerConnection { id: "second", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
         ];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["connections share a catalog: second"]);
@@ -1299,9 +1303,9 @@ mod tests {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 1, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 1, materialization_file: None, current_by_own_publish: false }];
         assert_eq!(messages(&plan_session(&request(&connections, &scripts))), vec!["unknown planner connection"]);
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let mut targets = request(&connections, &scripts);
         targets.scope = PlanScope::Targets(&[3]);
         assert_eq!(messages(&plan_session(&targets)), vec!["unknown planner script"]);
@@ -1316,8 +1320,8 @@ mod tests {
             PlannerConnection { id: "local", kind: ConnectionKind::Local, catalog: &local, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
         ];
         let scripts = [
-            PlannerScript { script: &foo, name: "foo", connection: 0, materialization_file: Some("abc.0123.parquet") },
-            PlannerScript { script: &bar, name: "bar", connection: 1, materialization_file: None },
+            PlannerScript { script: &foo, name: "foo", connection: 0, materialization_file: Some("abc.0123.parquet"), current_by_own_publish: false },
+            PlannerScript { script: &bar, name: "bar", connection: 1, materialization_file: None, current_by_own_publish: false },
         ];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(graph.valid, "{:?}", messages(&graph));
@@ -1332,12 +1336,12 @@ mod tests {
         let a = analyzed(&catalog, "select 1");
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
         // The same script under two names
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }, PlannerScript { script: &a, name: "bar", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &a, name: "bar", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["duplicate planner script"]);
         // Two attachments of one file
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let attachments = [PlannerAttachment { name: "x", file: "x.parquet", stamp: "1" }, PlannerAttachment { name: "y", file: "x.parquet", stamp: "1" }];
         let graph = plan_session(&SessionPlanRequest { attachments: &attachments, ..request(&connections, &scripts) });
         assert!(!graph.valid);
@@ -1352,7 +1356,7 @@ mod tests {
         let schema = analyzed(&catalog, "create table t (x int)");
         catalog.load_script(schema.analyzed.clone().unwrap(), dashql_core::catalog::CatalogLayer::SESSION).unwrap();
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["stale catalog analysis"]);
@@ -1366,7 +1370,7 @@ mod tests {
         let (catalog, other) = (Catalog::new(), Catalog::new());
         let a = analyzed(&other, "select 1");
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["script was analyzed with another catalog than the one of its connection"]);
@@ -1394,7 +1398,7 @@ mod tests {
             script.parse();
             script.analyze(&catalog, false).unwrap();
             let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-            let scripts = [PlannerScript { script: &script, name: "foo", connection: 0, materialization_file: None }];
+            let scripts = [PlannerScript { script: &script, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
             let mut targets = request(&connections, &scripts);
             targets.scope = PlanScope::Targets(&[0]);
             let graph = plan_session(&targets);
@@ -1408,7 +1412,7 @@ mod tests {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
         let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "", connection: 0, materialization_file: None }, PlannerScript { script: &b, name: "", connection: 0, materialization_file: None }];
+        let scripts = [PlannerScript { script: &a, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &b, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(graph.valid);
         assert_eq!(graph.nodes.as_ref().map(Vec::len), Some(2));

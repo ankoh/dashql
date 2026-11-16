@@ -105,6 +105,8 @@ export interface RuntimeStorage {
     loadDataFile(workbookId: string, name: string): Promise<Blob | Uint8Array>;
     /** Write an attachment of a workbook */
     saveDataFile(workbookId: string, name: string, file: Blob | Uint8Array): Promise<void>;
+    /** Rename an attachment of a workbook, keeping its contents */
+    renameDataFile(workbookId: string, from: string, to: string): Promise<void>;
     /** The entry of the workbook tree with an id, ignoring its case, null if none */
     findWorkbook(workbookId: string): Promise<{ path: string; storageType?: string; nativePath?: string | null } | null>;
     /** Add or replace an entry of the workbook tree, e.g. to route a workbook to the origin private file system */
@@ -466,6 +468,8 @@ struct Inner {
     pending: RefCell<Pending>,
     /// The id of the last request
     last_request: Cell<f64>,
+    /// Hears that the query result cache evicted files
+    cache_evicted: RefCell<Option<Rc<dyn Fn()>>>,
 }
 
 /// The host of the services of the crate over the platform object. Clones share the object and the pending changes.
@@ -591,7 +595,9 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
 
 impl JsPlatform {
     pub fn new(object: JsRuntimePlatform) -> Self {
-        Self { inner: Rc::new(Inner { object, pending: RefCell::new(Pending::default()), last_request: Cell::new(0.0) }) }
+        Self {
+            inner: Rc::new(Inner { object, pending: RefCell::new(Pending::default()), last_request: Cell::new(0.0), cache_evicted: RefCell::new(None) }),
+        }
     }
 
     fn object(&self) -> &JsValue {
@@ -1081,9 +1087,14 @@ impl JsPlatform {
         self.result_cache().is_ok()
     }
 
+    /// Hear that the query result cache evicted files, e.g. to look up the cached results of the scripts again
+    pub fn on_cache_evicted(&self, listener: Rc<dyn Fn()>) {
+        *self.inner.cache_evicted.borrow_mut() = Some(listener);
+    }
+
     /// Keep the query result cache within its limits after a file of a key was written: the least recently read files
-    /// go first, the files that are read stay. Returns the names of the files that were removed. A failed eviction is
-    /// logged and removed nothing, the write stands.
+    /// go first, the files that are read stay. Resolves with the names of the removed files, the listener of
+    /// `on_cache_evicted` hears of them first. A failed eviction is logged and removed nothing, the write stands.
     pub fn evict_cache(&self) -> impl Future<Output = Vec<String>> + 'static {
         let platform = self.clone();
         async move {
@@ -1093,13 +1104,16 @@ impl JsPlatform {
                 evict_to_fit(&JsCache(platform.clone()), limit("maxBytes"), limit("maxFiles")).await
             };
             match evicted.await {
-                Ok(removed) => {
-                    if !removed.is_empty() {
-                        let count = removed.len().to_string();
-                        platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                Ok(removed) if !removed.is_empty() => {
+                    let count = removed.len().to_string();
+                    platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                    let listener = platform.inner.cache_evicted.borrow().clone();
+                    if let Some(listener) = listener {
+                        listener();
                     }
                     removed
                 }
+                Ok(removed) => removed,
                 Err(error) => {
                     platform.log_on(LogLevel::Warn, "Evicting query results failed", &[("error", error.message())], "query_result_cache");
                     Vec::new()

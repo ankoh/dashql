@@ -6,7 +6,6 @@ import { isHyperLinkParams } from '../connections/hyper/hyper_link.js';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import {
     EPHEMERAL_WORKBOOK_NAME,
-    isEphemeralWorkbook,
     WorkbookScripts,
 } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useCreateWorkbook } from './workbook_lifecycle.js';
@@ -34,7 +33,7 @@ export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookS
     const allocate = useCreateWorkbook();
     const runtime = useOptionalRuntime();
     return React.useCallback((database: ConnectionState) => {
-        const existing = [...runtime?.store.all('workbook').values() ?? []].find(isEphemeralWorkbook);
+        const existing = [...runtime?.store.all('workbook').values() ?? []].find(workbook => workbook.ephemeral);
         if (existing == null) return allocate(database.connectionId, EPHEMERAL_WORKBOOK_NAME, true);
         const current = existing.nextScriptConnectionId ?? null;
         const currentParams = current == null ? null : runtime?.connection(current)?.params;

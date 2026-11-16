@@ -88,7 +88,7 @@ function type(runtime: dashql.Runtime, workbookId: string, key: number, text: st
     const session = dql!.runtimeScriptSession(runtime, key)!;
     const view = viewOf(runtime, 'script', key, [NONE])!;
     const offset = session.getText().length;
-    runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, typedEvent(session.getTextVersion(), offset, text));
+    runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, typedEvent(session.getTextVersion(), offset, text), null);
     session.destroy();
 }
 
@@ -136,7 +136,7 @@ describe('The changes of the runtime', () => {
             ['setPendingConnection', workbook({ kind: 'setPendingConnection', value: { connectionId: 'second' } })],
             ['detachConnection', workbook({ kind: 'detachConnection', value: { from: 'second', into: 'main' } })],
             ['setWorkbookAttachments', workbook({ kind: 'setWorkbookAttachments', value: { files: [{ name: 'orders.csv', sizeBytes: 12, mtimeMs: 1 }] } })],
-            ['renameAttachment', workbook({ kind: 'renameAttachment', value: { fileName: 'orders.csv', newFileName: 'sales.csv' } })],
+            ['renameAttachment', rt => rt.renameAttachment('w', 'orders.csv', 'sales')],
             ['setCloudLink', workbook({ kind: 'setCloudLink', value: { link: { workbookId: 'c', versionId: 'v', preview: false } } })],
             ['setCloudLink', workbook({ kind: 'setCloudLink', value: { link: null } })],
             ['setDraft', connection('main', { kind: 'setDraft', value: { params: { hyper: { protocol: 'WASM', endpoint: 'draft' } } } })],

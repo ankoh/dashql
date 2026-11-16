@@ -26,7 +26,7 @@ export interface ScriptSessionUpdate {
     /// The key of the script
     scriptKey: DashQLScriptKey;
     /// The script session that the editor edits
-    scriptSession?: dashql.DashQLScriptSession | null;
+    scriptSession?: dashql.DashQLScriptSessionReader | null;
     /// The latest plain editor-workbook snapshot.
     editorUpdate?: dashql.buffers.editor.EditorUpdateT | null;
     /// The pending staged rewrite shown as an in-place diff (if any)

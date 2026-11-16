@@ -314,7 +314,7 @@ impl<H: RunHost> Run<H> {
             workbook.apply(action).map_err(|error| RunFailure::error(error.message))?
         };
         if outcome.changed || !outcome.effects.is_empty() {
-            self.host.workbook_changed(outcome.effects);
+            self.host.workbook_changed(outcome.effects, false);
         }
         Ok(())
     }
@@ -404,7 +404,7 @@ impl<H: RunHost> Run<H> {
         let busy = || RunFailure::error("The workbook is busy");
         let analyzed = self.workbook.try_borrow_mut().map_err(|_| busy())?.analyze_outdated_scripts();
         if analyzed {
-            self.host.workbook_changed(Vec::new());
+            self.host.workbook_changed(Vec::new(), true);
         }
         let request = RunPlanRequest { targets, materialized: provided, mount_prefix, materialization_files: files };
         let graph = self.workbook.try_borrow().map_err(|_| busy())?.plan_run(&request);
@@ -536,7 +536,7 @@ impl<H: RunHost> Run<H> {
         // The scripts with outdated analyses analyze, a slider that changes an input reruns without analyzing the rest
         let prepared = self.workbook.try_borrow_mut().map_err(|_| RunFailure::error("The workbook is busy"))?.analyze_for_run();
         if prepared != Ok(false) {
-            host.workbook_changed(Vec::new());
+            host.workbook_changed(Vec::new(), true);
         }
         prepared.map_err(RunFailure::error)?;
         self.cooperate().await?;
@@ -623,7 +623,13 @@ impl<H: RunHost> Run<H> {
                 }
             }
             let provided: Vec<u32> = cached_files.keys().copied().collect();
-            graph = self.plan(targets.as_deref(), &provided, &names, &mount_prefix)?;
+            let replanned = self.plan(targets.as_deref(), &provided, &names, &mount_prefix)?;
+            // The keys, the served results and the names of the files come from the first plan. A script that changed
+            // during the lookups of the cache would run its new text under the key of its old one.
+            if !same_keyed_scripts(&graph, &replanned) {
+                return Err(RunFailure::error("Workbook changed during execution"));
+            }
+            graph = replanned;
         }
         // A materialized result is the file of its key already
         let materialized: BTreeSet<u32> = graph.materializations.iter().flatten().map(|m| m.script).collect();
@@ -1314,6 +1320,21 @@ impl<H: RunHost> Run<H> {
             ],
         );
     }
+}
+
+/// Do the scripts of a plan keep what their result keys derive from in a later plan? Every script that the first plan
+/// planned keeps its text, and one that both plan keeps its signature, whether it can be cached and the scripts it
+/// references.
+fn same_keyed_scripts(first: &ExecutionGraphT, next: &ExecutionGraphT) -> bool {
+    let (first, next) = (first.scripts.as_deref().unwrap_or_default(), next.scripts.as_deref().unwrap_or_default());
+    first.len() == next.len()
+        && first.iter().zip(next).filter(|(before, _)| before.planned).all(|(before, after)| {
+            before.text_version == after.text_version
+                && (!after.planned
+                    || (before.signature == after.signature
+                        && before.cacheable == after.cacheable
+                        && before.referenced_scripts == after.referenced_scripts))
+        })
 }
 
 /// The path of a materialization

@@ -5,7 +5,6 @@ import { useLocation } from 'react-router-dom';
 
 import { useConnections, useDispatch, useWorkbook } from '../runtime/runtime_hooks.js';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router/router.js';
 
@@ -57,7 +56,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     const nextConnectionId = workbookScripts?.nextScriptConnectionId ?? null;
     const conn = nextConnectionId == null ? null : connections.get(nextConnectionId) ?? null;
     const scriptConnections = new Map<string, ConnectionState>();
-    for (const connectionId of workbookScripts == null ? [] : workbookConnectionIds(workbookScripts)) {
+    for (const connectionId of workbookScripts == null ? [] : workbookScripts.connectionIds) {
         const connection = connections.get(connectionId);
         if (connection != null) scriptConnections.set(connectionId, connection);
     }
@@ -78,7 +77,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     // The greeter stays at the root until a script promotes its workbook
     const navigate = dependencies.useRouterNavigate();
     const pathname = dependencies.useLocation().pathname;
-    const promotedWorkbookId = workbookScripts != null && !isEphemeralWorkbook(workbookScripts) && pathname === '/' ? workbookScripts.workbookId : null;
+    const promotedWorkbookId = workbookScripts != null && !workbookScripts.ephemeral && pathname === '/' ? workbookScripts.workbookId : null;
     React.useEffect(() => {
         if (promotedWorkbookId != null) navigate({ type: PROMOTE_WORKBOOK, value: promotedWorkbookId });
     }, [navigate, promotedWorkbookId]);

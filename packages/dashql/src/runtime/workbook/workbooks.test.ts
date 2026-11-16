@@ -128,6 +128,73 @@ describe('the workbooks of the runtime', () => {
         ]);
     });
 
+    it('renames an attachment with its file and the scripts that read it, a refused rename changes nothing', async () => {
+        const storage = new WorkbookTestBackend();
+        const rt = runtime = await createTestRuntime({ storage });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { workbookId } = rt.addWorkbook(TEST_CONNECTION_ID, [['reader.sql', 'select * from :sales;']], { name: 'Attachments' });
+        await rt.attachFiles(workbookId, [{ name: 'sales.parquet', file: new Blob(['a']) }]);
+        const fileNames = async () => (await storage.listDataFiles(workbookId)).map(file => file.name);
+        const text = () => rt.scripts(workbookId)[rt.store.get('workbook', workbookId)!.scriptKeys[0]].scriptSession.getText();
+
+        // The name of a script is taken, the file and the script read the next free name
+        await expect(rt.renameAttachment(workbookId, 'sales.parquet', 'reader')).resolves.toBe('reader-2.parquet');
+        expect(await fileNames()).toEqual(['reader-2.parquet']);
+        expect(text()).toBe('select * from :"reader-2";');
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => attachment.fileName)).toEqual(['reader-2.parquet']);
+        await expect(rt.renameAttachment(workbookId, 'reader-2.parquet', 'a/b')).resolves.toBeNull();
+
+        // A preview of a published workbook refuses the rename before the file moved
+        rt.dispatch({ workbook: workbookId }, { kind: 'setCloudLink', value: { link: { workbookId: 'c', versionId: 'v', preview: true } } });
+        await expect(rt.renameAttachment(workbookId, 'reader-2.parquet', 'revenue')).rejects.toThrow();
+        expect(await fileNames()).toEqual(['reader-2.parquet']);
+        expect(text()).toBe('select * from :"reader-2";');
+    });
+
+    it('outdates the scripts of the other workbooks on a catalog that a script changed', async () => {
+        const rt = runtime = await createTestRuntime();
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const tables = rt.addWorkbook(TEST_CONNECTION_ID, [['tables.sql', 'create table t (x int);']], { name: 'Tables' });
+        const queries = rt.addWorkbook(TEST_CONNECTION_ID, [['query.sql', 'select x from t;']], { name: 'Queries' });
+        const [query] = queries.scriptKeys;
+        rt.dispatch({ workbook: queries.workbookId }, { kind: 'analyzeOutdatedScript', value: { scriptKey: query } });
+        rt.flush();
+        expect(rt.store.get('script', query)?.analysisOutdated).toBe(false);
+        // The table of the other workbook gets a column
+        rt.dispatch({ workbook: tables.workbookId }, { kind: 'setScriptText', value: { scriptKey: tables.scriptKeys[0], text: 'create table t (x int, y int);' } });
+        rt.flush();
+        expect(rt.store.get('script', query)?.analysisOutdated).toBe(true);
+    });
+
+    it('keeps the session handle of a script usable for an editor that still holds it', async () => {
+        const rt = runtime = await createTestRuntime();
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        await rt.addConnection({ connectionId: OTHER_CONNECTION_ID, params: HYPER });
+        const { workbookId, scriptKeys: [key] } = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']]);
+        const held = rt.store.get('script', key)!.scriptSession;
+        // The script moves into a session of another connection, the store takes the new handle with the flush
+        rt.dispatch({ workbook: workbookId }, { kind: 'setScriptConnection', value: { fileName: 'a.sql', connectionId: OTHER_CONNECTION_ID } });
+        rt.flush();
+        expect(rt.store.get('script', key)!.scriptSession).not.toBe(held);
+        // The editor reads the old handle until it takes the new one
+        expect(held.getText()).toBe('select 1;');
+        rt.dispatch({ workbook: workbookId }, { kind: 'deleteScript', value: { fileName: 'a.sql' } });
+        rt.flush();
+        expect(held.getText()).toBe('select 1;');
+    });
+
+    it('hands out the session of a script as a handle that only reads it', async () => {
+        const rt = runtime = await createTestRuntime();
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { scriptKeys: [key] } = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']]);
+        const native = rt.module.scriptSession(key)!;
+        for (const mutator of ['replaceText', 'apply', 'setPrimaryCursor', 'analyze', 'loadIntoCatalog', 'dropFromCatalog']) {
+            expect(mutator in native).toBe(false);
+        }
+        expect(native.text()).toBe('select 1;');
+        native.free();
+    });
+
     it('promotes the ephemeral workbook with its first script to a name that no other workbook has', async () => {
         const rt = runtime = await createTestRuntime();
         await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });

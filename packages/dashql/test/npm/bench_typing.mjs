@@ -121,33 +121,34 @@ for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manySc
         let shown = session.getTextVersion();
         session.destroy();
         let held = null;
+        let heldKey = null;
         for (let i = 0; i < text.length; ++i) {
             const t0 = performance.now();
-            // The editor packs the event with the text version it shows and the analysis it holds
+            // The editor packs the event with the text version it shows, it names the update it holds by its key
             const typed = new buffers.editor.EditorEventT(
                 shown,
                 [new buffers.editor.EditorTextChangeT(BigInt(i), BigInt(i), text[i])],
                 new buffers.editor.EditorSelectionT(BigInt(i + 1), BigInt(i + 1)),
                 buffers.editor.EditorEventOrigin.USER, buffers.editor.EditorEventIntent.EDIT, buffers.editor.EditorEventAction.TYPE, true,
             );
-            typed.knownAnalysis = held?.analysisAvailable ? new buffers.editor.EditorAnalysisVersionT(held.textVersion, held.catalogRevision) : null;
             const builder = new flatbuffers.Builder();
             builder.finish(typed.pack(builder));
-            const bytes = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, builder.asUint8Array());
-            const update = core.readFlatBuffer(bytes, bb => buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+            const outcome = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, builder.asUint8Array(), heldKey);
+            const update = core.readFlatBuffer(outcome.update, bb => buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
             if (update.status !== buffers.editor.EditorUpdateStatus.OK) throw new Error(`the keystroke failed: ${update.statusMessage}`);
             if (update.analysisOmitted && held != null) {
                 update.diagnostics = held.diagnostics; update.syntaxSpans = held.syntaxSpans; update.semanticSpans = held.semanticSpans;
                 update.scriptAnnotations = held.scriptAnnotations; update.processingStatistics = held.processingStatistics;
             }
             held = update;
+            heldKey = outcome.key;
             shown = update.textVersion;
             const t1 = performance.now();
             // The store takes the changes and reads the view of the script, the editor update is the one it holds
             const changes = runtime.takeChanges().changes;
             const statistics = view.statistics;
             const known = {
-                editorUpdate: core.editorUpdateKey(update),
+                editorUpdate: heldKey,
                 pendingDiff: null,
                 visualization: null,
                 statistics: statistics.length > 0 ? statistics[statistics.length - 1].key : null,

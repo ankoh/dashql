@@ -5,7 +5,7 @@ import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
-import { isEphemeralWorkbook, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 
 export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): boolean {
     return route.appLoadingStatus === AppLoadingStatus.SETUP_DONE
@@ -28,7 +28,7 @@ export function selectStartupWorkbook(
     restoredWorkbooks: ReadonlyMap<string, WorkbookScripts>,
 ): string | null {
     const requested = requestedWorkbookId == null ? undefined : restoredWorkbooks.get(requestedWorkbookId);
-    return requested != null && !isEphemeralWorkbook(requested) ? requested.workbookId : null;
+    return requested != null && !requested.ephemeral ? requested.workbookId : null;
 }
 
 /// Delete the ephemeral workbooks beyond the first one, the app keeps a single one.
@@ -38,7 +38,7 @@ export async function deleteSurplusEphemeralWorkbooks(
     deleteWorkbook: (workbookId: string) => Promise<void>,
     onFailure: (workbookId: string, error: unknown) => void,
 ): Promise<void> {
-    for (const { workbookId } of [...workbooks].filter(isEphemeralWorkbook).slice(1)) {
+    for (const { workbookId } of [...workbooks].filter(workbook => workbook.ephemeral).slice(1)) {
         try {
             await deleteWorkbook(workbookId);
         } catch (error) {

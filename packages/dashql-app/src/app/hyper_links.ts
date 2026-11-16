@@ -4,7 +4,7 @@ import { useConnectionSaver } from '../connections/connection_persistence.js';
 import { connectionLabel } from '../connections/connection_label.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router/router.js';
-import { isEphemeralWorkbook, workbookConnectionIds, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
@@ -20,9 +20,9 @@ const LOG_CTX = 'hyper_link';
 /// workbook on it, null if no full workbook runs on it
 export function workbookOnConnection(workbooks: ReadonlyMap<string, WorkbookScripts>, currentWorkbookId: string | null, connectionId: string): string | null {
     const current = currentWorkbookId == null ? undefined : workbooks.get(currentWorkbookId);
-    if (current != null && !isEphemeralWorkbook(current) && workbookConnectionIds(current).includes(connectionId)) return currentWorkbookId;
+    if (current != null && !current.ephemeral && current.connectionIds.includes(connectionId)) return currentWorkbookId;
     for (const [workbookId, scripts] of workbooks) {
-        if (!isEphemeralWorkbook(scripts) && workbookConnectionIds(scripts).includes(connectionId)) return workbookId;
+        if (!scripts.ephemeral && scripts.connectionIds.includes(connectionId)) return workbookId;
     }
     return null;
 }

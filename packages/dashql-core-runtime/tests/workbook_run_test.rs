@@ -13,7 +13,7 @@ use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::executor::QueryId;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookEffect};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookAction, WorkbookEffect};
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
     StatementCache, StatementFailure, StatementHandle, StatementRequest,
@@ -233,7 +233,7 @@ impl RunHost for FakeHost {
     fn workbook_live(&self) -> bool {
         self.live.get()
     }
-    fn workbook_changed(&self, effects: Vec<WorkbookEffect>) {
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>, _analyzed: bool) {
         let mut state = self.state.borrow_mut();
         state.changes += 1;
         state.effects.extend(effects);
@@ -635,6 +635,25 @@ fn cancels_a_run_that_serves_a_cached_result() {
     assert_eq!(result.failure.map(|f| f.kind), Some(RunFailureKind::Cancelled));
     assert_eq!(s.state.borrow().statements.len(), 1);
     assert_eq!(s.last_state().phase, RunPhase::Cancelled);
+}
+
+#[test]
+fn fails_a_run_whose_scripts_change_while_it_serves_cached_results() {
+    let s = setup(true, None, 1);
+    let workbook = cached_workbook(&s);
+    s.state.borrow_mut().gate_cached = true;
+    let (_handle, result) = s.start(&workbook, workbook_run());
+    assert_eq!(s.texts(), vec!["select 1 as a"]);
+    // The user types in bar while the run waits for the cached result of foo
+    let bar = workbook.borrow().script_by_file("bar.sql").unwrap().key();
+    let action = WorkbookAction::SetScriptText { key: bar, text: "select a + 2 from :foo".into(), with_diff: false };
+    workbook.borrow_mut().apply(action).unwrap();
+    s.end("select 1 as a", Ok(true));
+    let result = result.borrow_mut().take().expect("the run ended");
+    let failure = result.failure.expect("a failure");
+    assert_eq!((failure.kind, failure.message.as_str()), (RunFailureKind::Error, "Workbook changed during execution"));
+    // The new text of bar never ran under the key of the old one
+    assert_eq!(s.texts(), vec!["select 1 as a"]);
 }
 
 #[test]

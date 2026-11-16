@@ -8,7 +8,7 @@ import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql/platfor
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
 import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
-import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptData, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import type { Runtime } from '@ankoh/dashql/runtime/runtime';
@@ -91,12 +91,20 @@ describe('Workbook connections', () => {
             restored.runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
         }
         restored.runtime.flush();
+        // The session of the script reads only, a session of its own on the catalog analyzes its text
         const script = scriptOf(restored, fileName);
-        script.scriptSession.analyze();
-        return dql.planSession({
-            connections: [{ id: script.connectionId, local: false, catalog: restored.runtime.catalog(script.connectionId)! }],
-            scripts: [{ name: '', connection: 0, session: script.scriptSession }],
-        }).unpack().unresolvedReferences.length;
+        const catalog = restored.runtime.catalog(script.connectionId)!;
+        const session = dql.createScriptSession(catalog);
+        try {
+            session.replaceText(session.getTextVersion(), script.scriptSession.getText());
+            session.analyze();
+            return dql.planSession({
+                connections: [{ id: script.connectionId, local: false, catalog }],
+                scripts: [{ name: '', connection: 0, session }],
+            }).unpack().unresolvedReferences.length;
+        } finally {
+            session.destroy();
+        }
     };
 
     /// Run a script on another connection the way the connection picker of the feed does
@@ -154,7 +162,7 @@ describe('Workbook connections', () => {
             await seedWorkbook(backend, [['query.sql', HYPER_ID, 'select 1']]);
             const restored = await restore(backend);
 
-            expect(workbookConnectionIds(workbookOf(restored))).toEqual([HYPER_ID]);
+            expect(workbookOf(restored).connectionIds).toEqual([HYPER_ID]);
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
             // The connection itself stays a connection of the app
             expect(restored.runtime.connection(TRINO_ID)).not.toBeNull();
@@ -260,7 +268,7 @@ describe('Workbook connections', () => {
 
             pickConnection(restored, 'query.sql', HYPER_ID);
             // The references follow the scripts right away
-            expect(workbookConnectionIds(workbookOf(restored))).not.toContain(TRINO_ID);
+            expect(workbookOf(restored).connectionIds).not.toContain(TRINO_ID);
             await restored.runtime.storage.flush();
             expect(backend.workbooks.get(WORKBOOK_ID)!.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
 

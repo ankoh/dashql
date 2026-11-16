@@ -171,7 +171,7 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |
 | `script` | script key | The fields of a script, its editor update, staged diff, visualization and statistics as FlatBuffers by key, `cachedResult` |
-| `workbookDerived` | workbook id | The checked references, the dataflow and the inputs as FlatBuffers |
+| `workbookDerived` | workbook id | The checked references, the dataflow and the inputs as FlatBuffers, with the hash of each |
 | `storage` | `'root'` | Holds, held workbooks, failed writes, questions about external changes |
 | `run` | workbook id | `held`, the state of the last run of the whole workbook, the inputs that wait |
 
@@ -223,9 +223,10 @@ Four kinds are projected into what the app reads (`ProjectedViews`):
 
 - `workbook` into `WorkbookScripts` (`WORKBOOK_PROJECTION`),
 - `script` into `ScriptData` (`ScriptProjection`): the FlatBuffer payloads are read once per key and the update that
-  the editor received is held instead of read again,
-- `workbookDerived` into `WorkbookDerived` (`WorkbookDerivedProjection`): what it read of a buffer stays while the bytes
-  stay the same,
+  the editor received is held instead of read again; the session handle of a script stays one per session generation,
+  a replaced handle is not destroyed, an editor may still read it, the module frees it once it is collected,
+- `workbookDerived` into `WorkbookDerived` (`WorkbookDerivedProjection`): what it read of a buffer stays while the hash
+  of the buffer stays the same,
 - `query` into `QueryExecutionState` (`createQueryProjection`): the structured progress folded into the
   `ProfileExecutionState` of the progress panels, once per change of the latest update.
 
@@ -264,7 +265,7 @@ than the module returns: the flush of the store after the command, handles for t
 | `setupConnection`, `authenticateSalesforce` | Setups and the login of the shell |
 | `createWorkbook`, `deleteWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors |
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
-| `attachFiles`, `refreshAttachments` | Attachments |
+| `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript` | Runs |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
 | `storage` | The `StorageWriter` facade: flush, holds, handover, pending keys, statistics |
@@ -305,8 +306,11 @@ handle.
 
 `runtime.catalog(connectionId)` hands out a read-only `DashQLCatalog` that shares the catalog of the connection, one per
 identity (`catalogId` of the connection view); it is destroyed with its connection. The catalog changes only through the
-runtime. Editors write through `applyEditorEvent`; a session outside a workbook (the composer, the shell, read-only
-views) is a session of its own, and `attachTableParameters` gives it the table parameters of a workbook.
+runtime. The session of a script of a workbook is a `DashQLWorkbookScriptSession` (`ScriptData.scriptSession`): it
+reads the text, completes, compiles, formats and computes the texts of rewrites, it has no mutators. Editors write
+through `applyEditorEvent`; a session outside a workbook (the composer, the shell, read-only views) is a
+`DashQLScriptSession` of its own, and `attachTableParameters` gives it the table parameters of a workbook. Both share
+`DashQLScriptSessionReader`, which the editor and the views take.
 
 ## The app
 
@@ -335,19 +339,23 @@ views) is a session of its own, and `attachTableParameters` gives it the table p
 ## Per keystroke
 
 1. The editor packs the `EditorEvent` with the text version that its document shows and calls
-   `runtime.applyEditorEvent(script, event, known)` (`script_editor.tsx`).
+   `runtime.applyEditorEvent(script, event, known)` (`script_editor.tsx`); the facade names `known`, the update that the
+   editor holds, by its key (`editorUpdateKey`, the projection knows the keys of the updates it handed out).
 2. The module applies it to the session of the script in the workbook, publishes the declarations into the catalog of
    the connection when the text or the analysis changed, marks the other scripts on that catalog outdated if the catalog
-   changed, hands the write of the text to the storage writer, and returns the update once. An editor that missed a
-   change of the text gets `STALE_TEXT_VERSION` and shows the text of the session again; an event of a session that the
-   script no longer holds (an older `sessionGeneration`) returns null. The update leaves out the analysis that the
-   editor already holds, the facade fills it in.
+   changed, also those of the other workbooks on the connection, hands the write of the text to the storage writer, and
+   returns the update once with its key. An editor that missed a change of the text gets `STALE_TEXT_VERSION` and shows
+   the text of the session again; an event of a session that the script no longer holds (an older `sessionGeneration`)
+   returns null. The update leaves out the analysis if the editor holds the analysis of the script, the facade fills it
+   in from `known`.
 3. The `script` slice is marked, and the `workbookDerived` slice when the derived buffers changed. The derived buffers
    leave out what typing moves and no consumer reads (text versions, the spans of references without errors), so
    typing within a statement usually leaves the derived slice where it is.
 4. The flush is at most three crossings: `takeChanges`, the view of the script (the facade holds the update, its bytes
    don't cross again), and the derived view when it moved. Only the subscribers of that script, and of the derived
    view when it moved, render.
+5. The cached results of the workbook are looked up once the typing paused, a move of the cursor looks up none
+   (`runs/cached_results.rs`).
 
 The editors tell the runtime which scripts they show (`showScript`, `hideScript`): an outdated selected script is
 analyzed right away, the other shown ones once the changes pause for 150 ms (`visible_scripts.rs`).

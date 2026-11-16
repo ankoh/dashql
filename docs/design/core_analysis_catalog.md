@@ -391,7 +391,9 @@ it was analyzed at. An `EditorEvent` names the version of the analysis the host 
 `analysis_omitted` and leaves out diagnostics, spans, annotations and statistics; the cursor state
 and context are always included. `analyze` and the `replace_text` and `set_primary_cursor` shortcuts
 always send the analysis. Syntax and semantic spans are FlatBuffers structs, so the lists pack
-without a table per span.
+without a table per span. A new analysis of the same text against the same catalog version, e.g. with
+other table parameters, has the version of the previous one: the workbook names the analysis of a
+script by a serial instead and sets `known_analysis` only for an editor that holds it (see below).
 
 Measured with `bench_session` (40 join queries, 1880 syntax and 400 semantic spans, UTF-16 offsets):
 
@@ -451,20 +453,22 @@ the connection, the statements it follows, the files on disk and when a full ref
 
 **App flow per keystroke** (`Workbook` of `packages/dashql-core-runtime/src/workbook.rs`, see
 [dashql_runtime.md](dashql_runtime.md#per-keystroke))
-1. The CodeMirror processor packs an `EditorEvent` and calls `Runtime.applyEditorEvent`; the workbook applies it to the
-   session of the script, which analyzes.
+1. The CodeMirror processor packs an `EditorEvent` and calls `Runtime.applyEditorEvent` with the key of the update it
+   holds (`editorUpdateKey`: the session generation and a serial of the runtime); the workbook sets `known_analysis` if
+   the editor holds the analysis of the script and applies the event to the session of the script, which analyzes.
 2. If the text or the analysis changed, the workbook publishes the declarations into the session layer
-   (`load_into_catalog`) and compiles the visualization of the script.
+   (`load_into_catalog`) and compiles the visualization of the script. Its own publish leaves the analysis of the script
+   current although the catalog moved past its snapshot.
 3. Only if that publish changed the catalog version, `mark_others_outdated` flags the other scripts on the same
-   catalog.
+   catalog, and the runtime flags those of the other workbooks on the connection, which share the catalog.
 4. The editors tell the runtime which scripts they show (`showScript`, `hideScript`). `visible_scripts.rs` analyzes
    flagged scripts: the selected one at once, the other shown ones once the changes pause for
    `BACKGROUND_ANALYSIS_DELAY_MS` (analyze, compile, publish). If that publish changes the catalog version, e.g. a view
    over a table whose columns changed (`CREATE VIEW v AS SELECT * FROM a`), the other scripts are flagged again.
 
 A failed analysis stays on the script as an update without available analysis, and the script is no longer flagged:
-the same text against the same catalog fails again (`WorkbookScript::is_analysis_outdated`). A failed action leaves the
-workbook as it was.
+the same text against the same catalog fails again (`WorkbookScript::is_analysis_outdated`). A typed text whose analysis
+failed is the text of the script, it is written. A failed action leaves the workbook as it was.
 
 **Lazy analysis.** Restoring a workbook loads script text only; scripts stay outdated until first use. Connection
 catalogs are restored and published before workbooks open. Runs analyze the outdated scripts first

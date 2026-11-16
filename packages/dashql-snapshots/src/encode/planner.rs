@@ -255,7 +255,7 @@ impl PreparedFixture {
             .scripts
             .iter()
             .zip(&self.names)
-            .map(|((script, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None })
+            .map(|((script, connection), name)| PlannerScript { script, name, connection: *connection as u32, materialization_file: None, current_by_own_publish: false })
             .collect();
         let attachments: Vec<PlannerAttachment> =
             self.attachments.iter().map(|(name, file, stamp)| PlannerAttachment { name, file, stamp }).collect();

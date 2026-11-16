@@ -31,16 +31,24 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
     /// The last view of every script, the next view crosses only the payloads it changed
     private readonly views = new Map<number, ScriptViews>();
     /// The session handles of the scripts with the generations of their sessions
-    private readonly sessions = new Map<number, { generation: number; session: core.DashQLScriptSession }>();
+    private readonly sessions = new Map<number, { generation: number; session: core.DashQLWorkbookScriptSession }>();
+    /// The keys of the editor updates that the projection handed out, the editors name the update they hold by it
+    private readonly updateKeys = new WeakMap<core.buffers.editor.EditorUpdateT, string>();
 
     constructor(private readonly api: core.DashQL, private readonly runtime: core.Runtime) {
         this.pendingDiffs = new core.FlatBufferCache(bb => core.buffers.diff.ScriptDiff.getRootAsScriptDiff(bb), (_, bytes) => core.scriptDiffBuffer(api, bytes));
     }
 
-    /// Hold the update of an editor event of a script, the next projection of the script takes it instead of reading
-    /// it again
-    hold(scriptKey: number, update: core.buffers.editor.EditorUpdateT): void {
-        this.editorUpdates.hold(scriptKey, core.editorUpdateKey(update), update);
+    /// Hold the update of an editor event of a script with its key, the next projection of the script takes it instead
+    /// of reading it again
+    hold(scriptKey: number, key: string, update: core.buffers.editor.EditorUpdateT): void {
+        this.editorUpdates.hold(scriptKey, key, update);
+        this.updateKeys.set(update, key);
+    }
+
+    /// The key of an editor update that the projection handed out, null for another one
+    keyOf(update: core.buffers.editor.EditorUpdateT): string | null {
+        return this.updateKeys.get(update) ?? null;
     }
 
     /// The keys of the payloads of a script that the projection holds
@@ -58,11 +66,11 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
         return ids.map(id => this.keysOf(id, true));
     }
 
-    /// The session handle of a script, one per session
-    private session(key: number, generation: number): core.DashQLScriptSession {
+    /// The session handle of a script, one per session. The handle of a replaced session stays usable for the editors
+    /// that still hold it until they take the new one, the module frees it once it is collected.
+    private session(key: number, generation: number): core.DashQLWorkbookScriptSession {
         const held = this.sessions.get(key);
         if (held != null && held.generation === generation) return held.session;
-        held?.session.destroy();
         const session = this.api.runtimeScriptSession(this.runtime, key);
         if (session == null) throw new Error(`the runtime holds no script ${key}`);
         this.sessions.set(key, { generation, session });
@@ -85,6 +93,7 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
 
         // The payloads keep their objects while their keys don't move, the update of an editor event is held as it is
         const editorUpdate = this.editorUpdates.read(key, view.editorUpdateKey, view.editorUpdate);
+        if (editorUpdate != null && view.editorUpdateKey != null) this.updateKeys.set(editorUpdate, view.editorUpdateKey);
         const diffBuffer = this.pendingDiffs.read(key, view.pendingDiff?.key ?? null, view.pendingDiff?.diff ?? null);
         const pendingDiff = view.pendingDiff == null || diffBuffer == null ? null
             : before?.data.pendingDiff?.diffBuffer === diffBuffer && before.data.pendingDiff.priorText === view.pendingDiff.priorText
@@ -127,7 +136,7 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
 
     release(key: number): void {
         this.views.delete(key);
-        this.sessions.get(key)?.session.destroy();
+        // An editor may still hold the handle, the module frees it once it is collected
         this.sessions.delete(key);
         const keys = [...this.views.keys()];
         this.editorUpdates.retain(keys);
@@ -159,7 +168,7 @@ export const WORKBOOK_PROJECTION: ViewProjection<'workbook', WorkbookScripts> = 
     },
 };
 
-/// The projection of the derived views of the workbooks, the FlatBuffers read once per view. A buffer with the bytes of
+/// The projection of the derived views of the workbooks, the FlatBuffers read once per view. A buffer with the hash of
 /// the previous view keeps what was read from it. The view carries the names of the scripts and the attachments that
 /// its buffers refer to, the projection reads no other slice.
 export class WorkbookDerivedProjection implements ViewProjection<'workbookDerived', WorkbookDerived> {
@@ -174,16 +183,18 @@ export class WorkbookDerivedProjection implements ViewProjection<'workbookDerive
         this.held.set(workbookId, { view, names });
         const scriptKeys = share(prev?.scriptKeys, view.scriptKeys);
         const sameScripts = prev != null && scriptKeys === prev.scriptKeys;
-        const references = prev != null && before != null && sameScripts && before.names === names && sameBytes(before.view.references, view.references)
+        const [references0, dataflow0, inputs0] = before?.view.hashes ?? [null, null, null];
+        const [referencesHash, dataflowHash, inputsHash] = view.hashes;
+        const references = prev != null && before != null && sameScripts && before.names === names && references0 === referencesHash
             ? prev.references
             : readScriptReferenceReports(
                 core.readFlatBuffer(view.references, bb => core.buffers.execution.ScriptReferenceCheck.getRootAsScriptReferenceCheck(bb)).unpack(),
                 view.scriptKeys, files, attachments, prev?.references ?? null,
             );
-        const dataflow = prev != null && before != null && sameBytes(before.view.dataflow, view.dataflow)
+        const dataflow = prev != null && before != null && dataflow0 === dataflowHash
             ? prev.dataflow
             : core.readFlatBuffer(view.dataflow, bb => core.buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
-        const inputs = prev != null && before != null && sameScripts && sameBytes(before.view.inputs, view.inputs)
+        const inputs = prev != null && before != null && sameScripts && inputs0 === inputsHash
             ? prev.inputs
             : share(prev?.inputs, readSessionInputs(
                 core.readFlatBuffer(view.inputs, bb => core.buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack(), view.scriptKeys,
@@ -199,12 +210,3 @@ export class WorkbookDerivedProjection implements ViewProjection<'workbookDerive
     }
 }
 
-/// Are two buffers equal byte by byte?
-function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
-    if (left === right) return true;
-    if (left.length !== right.length) return false;
-    for (let i = 0; i < left.length; ++i) {
-        if (left[i] !== right[i]) return false;
-    }
-    return true;
-}

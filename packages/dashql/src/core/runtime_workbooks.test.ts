@@ -55,17 +55,31 @@ function typedEvent(textVersion: bigint, offset: number, text: string): Uint8Arr
     return builder.asUint8Array();
 }
 
-/// The editor update of packed bytes
-const readUpdate = (bytes: Uint8Array) =>
-    dashql.readFlatBuffer(bytes, bb => dashql.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+/// An editor event that moves the cursor to an offset of a text version, packed
+function cursorEvent(textVersion: bigint, offset: number): Uint8Array {
+    const event = new dashql.buffers.editor.EditorEventT(
+        textVersion,
+        [],
+        new dashql.buffers.editor.EditorSelectionT(BigInt(offset), BigInt(offset)),
+        dashql.buffers.editor.EditorEventOrigin.USER,
+        dashql.buffers.editor.EditorEventIntent.SELECTION,
+    );
+    const builder = new flatbuffers.Builder();
+    builder.finish(event.pack(builder));
+    return builder.asUint8Array();
+}
+
+/// The editor update of an outcome of an editor event
+const readUpdate = (outcome: dashql.EditorEventOutcome) =>
+    dashql.readFlatBuffer(outcome.update, bb => dashql.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
 
 /// Type text into a script as the editor does: the runtime applies the event to the session of the script
-function type(runtime: dashql.Runtime, workbookId: string, key: number, offset: number, text: string): dashql.buffers.editor.EditorUpdateT {
+function type(runtime: dashql.Runtime, workbookId: string, key: number, offset: number, text: string): dashql.EditorEventOutcome {
     const session = dql!.runtimeScriptSession(runtime, key)!;
     const view = viewOf(runtime, 'script', key, [NONE])!;
-    const bytes = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, typedEvent(session.getTextVersion(), offset, text));
+    const outcome = runtime.applyEditorEvent(workbookId, key, view.sessionGeneration, typedEvent(session.getTextVersion(), offset, text), null);
     session.destroy();
-    return readUpdate(bytes!);
+    return outcome!;
 }
 
 describe('The workbooks of the runtime', () => {
@@ -111,16 +125,43 @@ describe('The workbooks of the runtime', () => {
         const [alpha] = viewOf(runtime, 'workbook', 'w')!.scriptKeys;
         runtime.takeChanges();
 
-        const update = type(runtime, 'w', alpha, 8, '0');
+        const outcome = type(runtime, 'w', alpha, 8, '0');
+        const update = readUpdate(outcome);
         expect(update.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
         expect(changesOf(runtime)).toEqual([`script:${alpha}`, 'workbookDerived:w']);
         expect(dql!.runtimeScriptSession(runtime, alpha)!.getText()).toBe('select 10');
         // The script holds the update that went to the editor, the view leaves it out for a host that holds its key
-        const view = viewOf(runtime, 'script', alpha, [{ ...NONE, editorUpdate: dashql.editorUpdateKey(update) }])!;
-        expect(view.editorUpdateKey).toBe(dashql.editorUpdateKey(update));
+        const view = viewOf(runtime, 'script', alpha, [{ ...NONE, editorUpdate: outcome.key }])!;
+        expect(view.editorUpdateKey).toBe(outcome.key);
         expect(view.editorUpdate).toBeNull();
         // An event of a session that the script no longer holds is dropped
-        expect(runtime.applyEditorEvent('w', alpha, 0, typedEvent(update.textVersion, 0, 'x'))).toBeUndefined();
+        expect(runtime.applyEditorEvent('w', alpha, 0, typedEvent(update.textVersion, 0, 'x'), outcome.key)).toBeUndefined();
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('cross an analysis again that changed with the same text and catalog, e.g. with the results of another script', () => {
+        const { runtime } = createRuntime();
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1 as a', base: 'base' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select a from :base', base: 'reader' } });
+        const [base, reader] = viewOf(runtime, 'workbook', 'w')!.scriptKeys;
+        const generation = viewOf(runtime, 'script', reader, [NONE])!.sessionGeneration;
+        const session = dql!.runtimeScriptSession(runtime, reader)!;
+        const move = (offset: number, known: string | null) => runtime.applyEditorEvent('w', reader, generation, cursorEvent(session.getTextVersion(), offset), known)!;
+        // An editor that holds the analysis gets the moves of its cursor without it
+        const first = move(0, null);
+        expect(readUpdate(first).analysisOmitted).toBe(false);
+        const moved = move(1, first.key);
+        expect(readUpdate(moved).analysisOmitted).toBe(true);
+        // The result of base gets a column, reader analyzes again with the same text and against the same catalog
+        runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: base, text: 'select 1 as a, 2 as b' } });
+        expect(runtime.dispatch({ workbook: 'w' }, { kind: 'analyzeOutdatedScript', value: { scriptKey: reader } }).changed).toBe(true);
+        const reanalyzed = readUpdate({ update: viewOf(runtime, 'script', reader, [NONE])!.editorUpdate!, key: '' });
+        expect([reanalyzed.textVersion, reanalyzed.catalogRevision]).toEqual([readUpdate(moved).textVersion, readUpdate(moved).catalogRevision]);
+        // The editor holds the analysis before, the next move carries the new one
+        expect(readUpdate(move(2, moved.key)).analysisOmitted).toBe(false);
+        session.destroy();
         runtime.destroy();
         runtime.free();
     });
@@ -137,12 +178,12 @@ describe('The workbooks of the runtime', () => {
         expect(runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: alpha, text: 'select 12345 as value' } }).changed).toBe(true);
         runtime.takeChanges();
         // A keystroke at an offset of the text the editor shows is stale, the text stays the one of the workbook
-        const stale = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(shown, 8, '0'))!);
+        const stale = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(shown, 8, '0'), null)!);
         expect(stale.status).toBe(dashql.buffers.editor.EditorUpdateStatus.STALE_TEXT_VERSION);
         expect(synced.getText()).toBe('select 12345 as value');
         expect(changesOf(runtime, ['script'])).toEqual([]);
         // Once the editor shows the new text, its keystrokes apply
-        const typed = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(synced.getTextVersion(), 12, '6'))!);
+        const typed = readUpdate(runtime.applyEditorEvent('w', alpha, view.sessionGeneration, typedEvent(synced.getTextVersion(), 12, '6'), null)!);
         expect(typed.status).toBe(dashql.buffers.editor.EditorUpdateStatus.OK);
         await runtime.storage({ kind: 'flush' });
         expect(storage.scripts.get('w')?.get('alpha.sql')).toBe('select 123456 as value');
@@ -191,7 +232,7 @@ describe('The workbooks of the runtime', () => {
         // A cache that hydrates reads the object API once per key, a held payload is the one of its key
         const hydrated = new dashql.FlatBufferCache(bb => dashql.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb), table => table.unpack());
         const unpacked = hydrated.read(key, view.editorUpdateKey, viewOf(runtime, 'script', key, [NONE])!.editorUpdate)!;
-        expect(dashql.editorUpdateKey(unpacked)).toBe(view.editorUpdateKey);
+        expect(unpacked.analysisAvailable).toBe(true);
         const holding = new dashql.buffers.editor.EditorUpdateT();
         hydrated.hold(key, view.editorUpdateKey!, holding);
         expect(hydrated.read(key, view.editorUpdateKey, null)).toBe(holding);

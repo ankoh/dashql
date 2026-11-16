@@ -39,7 +39,7 @@ export function isFolded(state: EditorState, spec: VegaLiteSpecRange): boolean {
 const autoFoldVegaLiteSpecs = EditorState.transactionExtender.of(tr => {
     if (tr.annotation(Transaction.userEvent) != null) return null;
     let update: dashql.buffers.editor.EditorUpdateT | null = null;
-    let scriptSession: dashql.DashQLScriptSession | null | undefined = null;
+    let scriptSession: dashql.DashQLScriptSessionReader | null | undefined = null;
     for (const effect of tr.effects) {
         if (effect.is(DashQLUpdateEffect)) {
             update = effect.value.editorUpdate ?? null;

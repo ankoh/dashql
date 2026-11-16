@@ -159,9 +159,23 @@ impl Runs {
         }));
         // The cached results of the scripts follow the changes of the workbooks, e.g. their analyses
         let weak = Rc::downgrade(&runs);
-        *runs.workbooks.changed_listener.borrow_mut() = Some(Rc::new(move || {
+        *runs.workbooks.changed_listener.borrow_mut() = Some(Rc::new(move |workbook_id: &str| {
             if let Some(runs) = weak.upgrade() {
-                runs.check_cached_results();
+                runs.check_cached_results(Some(workbook_id));
+            }
+        }));
+        // And the changes of the connections of the workbooks: their params, the files of the cache keys of their queries
+        let weak = Rc::downgrade(&runs);
+        *connections.results_listener.borrow_mut() = Some(Rc::new(move |workbook_ids: &[String], files: bool| {
+            if let Some(runs) = weak.upgrade() {
+                runs.check_workbooks_cached_results(workbook_ids, files);
+            }
+        }));
+        // A file that the cache evicted is a cached result of no script
+        let weak = Rc::downgrade(&runs);
+        runs.platform.on_cache_evicted(Rc::new(move || {
+            if let Some(runs) = weak.upgrade() {
+                runs.forget_cached_results();
             }
         }));
         // A workbook that is deleted or replaced takes its run with it
@@ -491,8 +505,8 @@ impl Runs {
     fn release(self: &Rc<Self>, workbook_id: &str, number: u64) {
         self.update_held(workbook_id, number, |entry| entry.held = None);
         self.start_pending();
-        // The run wrote the files of its keys
-        self.forget_cached_results(workbook_id);
+        // The run wrote the files of its keys, the scripts of other workbooks may share them
+        self.forget_cached_results();
     }
 
     /// Drop a change of inputs that still waits after a while
@@ -575,7 +589,6 @@ impl Runs {
         }
         self.start_pending();
         self.describe_attachments();
-        self.check_cached_results();
     }
 
     /// Stop the run of a workbook
@@ -941,11 +954,10 @@ impl RunHost for RuntimeRunHost {
         }
     }
 
-    fn workbook_changed(&self, effects: Vec<WorkbookEffect>) {
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>, analyzed: bool) {
         if let Some(workbooks) = self.workbooks.upgrade() {
-            workbooks.write_effects(&self.workbook_id, effects);
+            workbooks.settle_run(&self.workbook_id, effects, analyzed);
         }
-        self.platform.changed(Slice::Workbook(&self.workbook_id), true);
     }
 
     fn state(&self, state: &RunState) {

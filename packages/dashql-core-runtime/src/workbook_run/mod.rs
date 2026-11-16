@@ -149,9 +149,9 @@ pub trait RunHost: Host {
 
     /// Is the workbook still the one of the app? A run of a workbook that is gone fails.
     fn workbook_live(&self) -> bool;
-    /// The run changed the workbook, e.g. it registered a query. The effects of its action, e.g. the files to write, go
-    /// where the effects of every action of the workbook go.
-    fn workbook_changed(&self, effects: Vec<WorkbookEffect>);
+    /// The run changed the workbook, e.g. it registered a query or analyzed scripts (`analyzed`). The effects of its
+    /// action, e.g. the files to write, go where the effects of every action of the workbook go.
+    fn workbook_changed(&self, effects: Vec<WorkbookEffect>, analyzed: bool);
     /// The state of the run changed
     fn state(&self, state: &RunState);
     /// Something happened to a script of the run

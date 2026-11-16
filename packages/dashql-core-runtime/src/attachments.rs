@@ -1,6 +1,5 @@
 //! The attachments of a workbook: Parquet files in the `attachments` folder of the workbook. An attachment is the table
-//! parameter of its name, `sales.parquet` is `:sales`. Ported from
-//! `packages/dashql/src/platform/workbook/attachments/workbook_attachments.ts`.
+//! parameter of its name, `sales.parquet` is `:sales`.
 
 use std::sync::Arc;
 
@@ -58,12 +57,36 @@ pub fn unique_attachment_file_name<'a>(
     script_names: impl IntoIterator<Item = &'a str>,
     attachments: &[WorkbookAttachment],
 ) -> Option<String> {
+    if attachment_parameter_name(file_name).is_some() && attachments.iter().any(|attachment| attachment.file_name == file_name) {
+        return free_attachment_file_name(file_name, std::iter::empty(), &[]);
+    }
+    free_attachment_file_name(file_name, script_names, attachments)
+}
+
+/// The file name of a renamed attachment: the requested name with `.parquet` unless it has it, past the names of the
+/// scripts and of the other attachments like a new attachment, but never the name of another one. None for a name that
+/// is no plain file name.
+pub fn renamed_attachment_file_name<'a>(
+    file_name: &str,
+    requested: &str,
+    script_names: impl IntoIterator<Item = &'a str>,
+    attachments: &[WorkbookAttachment],
+) -> Option<String> {
+    let requested = requested.trim();
+    let name = match attachment_parameter_name(requested) {
+        Some(_) => requested.to_string(),
+        None => format!("{requested}{ATTACHMENT_EXTENSION}"),
+    };
+    let others: Vec<WorkbookAttachment> = attachments.iter().filter(|attachment| attachment.file_name != file_name).cloned().collect();
+    free_attachment_file_name(&name, script_names, &others)
+}
+
+/// A file name whose table parameter takes no name of a script or of an attachment in any case, suffixing "-2", "-3",
+/// ... to the name. None for a file that is no attachment or no plain file name.
+fn free_attachment_file_name<'a>(file_name: &str, script_names: impl IntoIterator<Item = &'a str>, attachments: &[WorkbookAttachment]) -> Option<String> {
     let base = attachment_parameter_name(file_name)?;
     if file_name.contains(['/', '\\', '\0']) {
         return None;
-    }
-    if attachments.iter().any(|attachment| attachment.file_name == file_name) {
-        return Some(file_name.to_string());
     }
     let extension = &file_name[base.len()..];
     let taken: std::collections::HashSet<String> =

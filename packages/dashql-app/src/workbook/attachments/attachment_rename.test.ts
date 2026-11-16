@@ -3,36 +3,34 @@ import { describe, expect, it, vi } from 'vitest';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { renameAttachment } from './attachment_rename.js';
 
-function workbook(): WorkbookScripts {
+function workbook(fileName: string, name: string): Pick<WorkbookScripts, 'workbookId' | 'attachments'> {
+    return { workbookId: 'workbook', attachments: [{ fileName, name, sizeBytes: 1, mtimeMs: 1, columns: null }] };
+}
+
+/// A runtime that renames an attachment to a name, null for a name that it leaves alone
+function runtime(renamed: string | null) {
+    const after = renamed == null ? workbook('sales.parquet', 'sales') : workbook(renamed, renamed.replace(/\.parquet$/, ''));
     return {
-        workbookId: 'workbook', scriptOrder: ['revenue.sql'], scriptKeys: [1], scriptRefs: {},
-        attachments: [{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 1, mtimeMs: 1, columns: null }],
-    } as unknown as WorkbookScripts;
+        renameAttachment: vi.fn(async (_workbookId: string, _fileName: string, _name: string) => renamed),
+        store: { get: vi.fn(() => after) },
+    } as unknown as Parameters<typeof renameAttachment>[0] & { renameAttachment: ReturnType<typeof vi.fn> };
 }
 
 describe('attachment renames', () => {
-    it('moves the file before the scripts and the draft read the new name', async () => {
-        const calls: string[] = [];
-        const backend = { renameDataFile: vi.fn(async (_: string, from: string, to: string) => { calls.push(`move ${from} ${to}`); }) };
-        const modify = vi.fn((action: { kind: string }) => {
-            calls.push(action.kind);
-            return { ok: true, changed: true, error: null, id: null };
-        });
+    it('renames through the runtime, then the draft reads the new name', async () => {
+        const rt = runtime('revenue-2.parquet');
         const draft = vi.fn();
-        // The name of a script is taken, the attachment takes the next free name
-        await expect(renameAttachment(workbook(), modify, backend, 'sales.parquet', 'revenue', draft)).resolves.toBe('revenue-2.parquet');
-        expect(calls).toEqual(['move sales.parquet revenue-2.parquet', 'renameAttachment']);
-        expect(modify).toHaveBeenCalledWith({ kind: 'renameAttachment', value: { fileName: 'sales.parquet', newFileName: 'revenue-2.parquet' } });
+        await expect(renameAttachment(rt, workbook('sales.parquet', 'sales'), 'sales.parquet', 'revenue', draft)).resolves.toBe('revenue-2.parquet');
+        expect(rt.renameAttachment).toHaveBeenCalledExactlyOnceWith('workbook', 'sales.parquet', 'revenue');
         expect(draft).toHaveBeenCalledExactlyOnceWith('sales', 'revenue-2');
     });
 
-    it('leaves an attachment alone whose name stays or is no file name', async () => {
-        const backend = { renameDataFile: vi.fn(async () => {}) };
-        const modify = vi.fn(() => ({ ok: true, changed: false, error: null, id: null }));
-        await expect(renameAttachment(workbook(), modify, backend, 'sales.parquet', 'sales', null)).resolves.toBeNull();
-        await expect(renameAttachment(workbook(), modify, backend, 'sales.parquet', 'a/b', null)).resolves.toBeNull();
-        await expect(renameAttachment(workbook(), modify, backend, 'other.parquet', 'x', null)).resolves.toBeNull();
-        expect(backend.renameDataFile).not.toHaveBeenCalled();
-        expect(modify).not.toHaveBeenCalled();
+    it('leaves the draft alone when the runtime renames nothing or the attachment is unknown', async () => {
+        const rt = runtime(null);
+        const draft = vi.fn();
+        await expect(renameAttachment(rt, workbook('sales.parquet', 'sales'), 'sales.parquet', 'a/b', draft)).resolves.toBeNull();
+        await expect(renameAttachment(rt, workbook('sales.parquet', 'sales'), 'other.parquet', 'x', draft)).resolves.toBeNull();
+        expect(rt.renameAttachment).toHaveBeenCalledOnce();
+        expect(draft).not.toHaveBeenCalled();
     });
 });

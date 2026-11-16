@@ -279,6 +279,10 @@ impl StorageHost for JsStorage {
         self.call("saveDataFile", &[text(workbook_id), text(file_name), file]).await.map(|_| ())
     }
 
+    async fn rename_data_file(&self, workbook_id: &str, from: &str, to: &str) -> Result<(), HostError> {
+        self.call("renameDataFile", &[text(workbook_id), text(from), text(to)]).await.map(|_| ())
+    }
+
     async fn update_connections(&self, mut update: ConnectionsUpdate) -> Result<(), HostError> {
         let closure = Closure::<dyn FnMut(JsValue) -> JsValue>::new(move |connections: JsValue| {
             let current = match JsonValue::of(&connections).0 {

@@ -9,7 +9,7 @@ import { DashQLCompletionStatus, type DashQLProcessorUpdateIn } from '../../work
 export const ORDERS_COMPLETION_TEXT = 'select * from ord';
 
 /// The processor state of an editor of the text with the cursor at its end, analyzed against the catalog
-export function editorProcessorState(dql: dashql.DashQL, text: string, catalog: dashql.DashQLCatalog = dql.createCatalog()): DashQLProcessorUpdateIn {
+export function editorProcessorState(dql: dashql.DashQL, text: string, catalog: dashql.DashQLCatalog = dql.createCatalog()): DashQLProcessorUpdateIn & { scriptSession: dashql.DashQLScriptSession } {
     const scriptSession = dql.createScriptSession(catalog);
     scriptSession.replaceText(0n, text);
     expect(scriptSession.analyze().analysisAvailable).toBe(true);

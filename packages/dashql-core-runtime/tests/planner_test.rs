@@ -11,7 +11,7 @@ use dashql_core_script::script_session::ScriptSession;
 /// Plan scripts of one catalog as the session of one connection
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
     let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-    let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None }).collect();
+    let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }).collect();
     plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" })
 }
 

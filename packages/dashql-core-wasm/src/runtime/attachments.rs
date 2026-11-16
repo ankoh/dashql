@@ -133,6 +133,27 @@ impl Runtime {
         }))
     }
 
+    /// Rename an attachment of a workbook like a script: the name is a display name, `.parquet` is added unless it has
+    /// it, and the name takes no name of a script or another attachment, `sales` becomes `sales-2` then. The scripts
+    /// that read the attachment read the new name at once and its file is renamed through the storage writer. A refused
+    /// rename, e.g. of a cloud preview or one whose rewrite of the references fails, rejects before anything changed.
+    /// Resolves with the new file name once the file has it and the view lists it, null for a name that is unchanged or
+    /// no plain file name. Rejects with what the storage failed with, the writer tries the rename again.
+    #[wasm_bindgen(js_name = renameAttachment, unchecked_return_type = "Promise<string | null>")]
+    pub fn rename_attachment(&self, workbook_id: String, file_name: String, name: String) -> Result<Promise, JsError> {
+        let rename = self.workbooks.rename_attachment(&workbook_id, &file_name, &name).map_err(crate::js_error)?;
+        let (platform, workbooks, runs) = (self.platform.clone(), self.workbooks.clone(), self.runs.clone());
+        Ok(future_to_promise(async move {
+            let Some((new_file_name, write)) = rename else { return Ok(JsValue::NULL) };
+            if let WriteOutcome::Failed(WriteError::Host(error)) | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) = write.await {
+                return Err(error_value(&error));
+            }
+            // The mount of the attachments and the attachment list of the workbook file follow the file
+            reconcile_attachments(&platform, &workbooks, &runs, &workbook_id).await.map_err(|error| error_value(&error))?;
+            Ok(JsValue::from_str(&new_file_name))
+        }))
+    }
+
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once
     /// the view of the workbook lists them, rejects with what the storage failed with.
     #[wasm_bindgen(js_name = refreshAttachments, unchecked_return_type = "Promise<void>")]

@@ -258,6 +258,9 @@ pub struct WorkbookDerivedView {
     pub dataflow: FlatBufferBytes,
     #[tsify(type = "FlatBuffer<buffers_execution.SessionInputs>")]
     pub inputs: FlatBufferBytes,
+    /// The hashes of the references, the dataflow and the inputs: a buffer with the hash of the previous view has its
+    /// bytes
+    pub hashes: [String; 3],
 }
 
 /// A change of the text of a script in the offset unit of the editors
@@ -371,7 +374,9 @@ pub struct WorkbookScriptView {
     pub external_changes: Option<WorkbookExternalChanges>,
     /// What the views read of the analysis
     pub annotations: WorkbookScriptAnnotations,
-    /// Names the editor update, an update with the same key is the same analysis
+    /// Names the editor update: the generation of the session and a serial that is unique across the scripts of the
+    /// runtime. An update with the same key is the same update. `Runtime.applyEditorEvent` returns the key of its update,
+    /// an event names the key of the update that the editor holds.
     pub editor_update_key: Option<String>,
     #[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate> | null")]
     pub editor_update: Option<FlatBufferBytes>,
@@ -385,7 +390,7 @@ impl WorkbookScriptView {
     /// The view of a script with the payloads whose keys the host doesn't hold
     pub fn new(workbook_id: &str, script: &WorkbookScript, known: &WorkbookScriptKeys) -> Self {
         let update = script.editor_update();
-        let editor_update_key = update.map(editor_update_key);
+        let editor_update_key = editor_update_key(script);
         let editor_update = match (update, &editor_update_key) {
             (Some(update), Some(key)) if Some(key) != known.editor_update.as_ref() => Some(FlatBufferBytes(finish!(update))),
             _ => None,
@@ -417,7 +422,7 @@ impl WorkbookScriptView {
             file_name: script.file_name().to_string(),
             connection_id: script.connection().connection_id.clone(),
             unresolved_connection_id: script.unresolved_connection_id().map(str::to_string),
-            analysis_outdated: script.analysis_outdated(),
+            analysis_outdated: script.is_analysis_outdated(),
             latest_query_id: script.latest_query_id(),
             latest_result_query_id: script.latest_result_query_id(),
             cached_result: script.cached_result().map(|cached| WorkbookScriptCachedResult { key: cached.key.clone(), cached_at: cached.cached_at }),
@@ -444,4 +449,15 @@ pub struct StoredScriptView {
     #[serde(default)]
     #[tsify(optional)]
     pub unresolved_connection_id: Option<String>,
+}
+
+/// The update of an editor event for the editor, with its key (`WorkbookScriptView.editorUpdateKey`)
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct EditorEventOutcome {
+    #[tsify(type = "FlatBuffer<buffers_editor.EditorUpdate>")]
+    pub update: FlatBufferBytes,
+    /// Names the update, the next event of the editor names it as the update that the editor holds
+    pub key: String,
 }

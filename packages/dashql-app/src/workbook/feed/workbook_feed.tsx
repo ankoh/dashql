@@ -484,14 +484,15 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
     const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
     // An attachment renames like a script, the scripts and the draft that read it follow
+    const runtime = useOptionalRuntime();
     const handleRenameAttachment = React.useCallback((fileName: string, name: string) => {
-        void renameAttachment(latest.current.workbookScripts, props.modifyWorkbookScripts, storageReader.backend, fileName, name, composerRenameScriptRef.current)
-            .then(renamed => { if (renamed != null) refreshAttachments(); })
+        if (runtime == null) return;
+        void renameAttachment(runtime, latest.current.workbookScripts, fileName, name, composerRenameScriptRef.current)
             .catch(e => {
                 setAttachmentError('Renaming attachment failed');
                 logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
-    }, [props.modifyWorkbookScripts, storageReader.backend, composerRenameScriptRef, refreshAttachments, logger]);
+    }, [runtime, composerRenameScriptRef, logger]);
     const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global

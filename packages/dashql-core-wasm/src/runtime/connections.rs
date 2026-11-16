@@ -106,6 +106,12 @@ pub(crate) struct Connections {
     pub catalog_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
     /// Hears the changes of the registry at the end of their task, the runs follow the connections
     pub follow_listener: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Hears a change of what the scripts read of a connection (`ScriptConnectionProfile`), the workbooks on it follow
+    pub profile_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
+    /// Hears a change of what the cached results of the scripts on a connection depend on, with the workbooks that use
+    /// it: the connection changed, or a query of it recorded or deleted its cached result (`files`), a file that the
+    /// scripts of every workbook on the connection may share
+    pub results_listener: RefCell<Option<Rc<dyn Fn(&[String], bool)>>>,
 }
 
 impl Connections {
@@ -127,6 +133,8 @@ impl Connections {
             catalog_ids: RefCell::new(Vec::new()),
             catalog_listener: RefCell::new(None),
             follow_listener: RefCell::new(None),
+            profile_listener: RefCell::new(None),
+            results_listener: RefCell::new(None),
         });
         let host = QueryHost::new(Rc::downgrade(&connections), platform.clone());
         let executor = QueryExecutor::new(Rc::new(host));
@@ -306,6 +314,7 @@ impl Connections {
         let now = self.now();
         // The workbooks that use the connection show its params and derive with its catalog
         let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
+        let profile = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok().map(|state| state.script_connection().profile().clone()));
         let outcome = self.registry.borrow_mut().apply(connection_id, action, now)?;
         if outcome.changed {
             for workbook_id in &workbooks {
@@ -316,6 +325,19 @@ impl Connections {
             self.platform.mark(Slice::Connection(connection_id));
         }
         self.settle(&QueryOwner::Connection(connection_id.to_string()), &outcome, true, None);
+        if outcome.changed {
+            let changed_profile = connection.as_ref().zip(profile).is_some_and(|(connection, profile)| {
+                connection.state.try_borrow().is_ok_and(|state| *state.script_connection().profile() != profile)
+            });
+            let listener = self.profile_listener.borrow().clone();
+            if let (true, Some(listener)) = (changed_profile, listener) {
+                listener(connection_id);
+            }
+            let listener = self.results_listener.borrow().clone();
+            if let Some(listener) = listener {
+                listener(&workbooks, false);
+            }
+        }
         if outcome.deleted {
             self.saves.borrow_mut().retain(|(id, _)| id != connection_id);
             self.catalog_versions.borrow_mut().retain(|(id, _)| id != connection_id);
@@ -351,8 +373,17 @@ impl Connections {
     /// Apply an action to a query of a history
     pub fn apply_query(self: &Rc<Self>, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
         let query_id = action.query_id();
+        let cache = matches!(action, QueryExecutionAction::QueryCacheRecorded { .. } | QueryExecutionAction::QueryCacheDeleted { .. });
         let outcome = self.registry.borrow_mut().apply_query(owner, action)?;
         self.settle(owner, &outcome, urgent, Some(query_id));
+        // The scripts of the workbooks on the connection show the cached results of their queries
+        if let (true, true, QueryOwner::Connection(connection_id)) = (cache, outcome.changed, owner) {
+            let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
+            let listener = self.results_listener.borrow().clone();
+            if let Some(listener) = listener {
+                listener(&workbooks, true);
+            }
+        }
         Ok(outcome)
     }
 

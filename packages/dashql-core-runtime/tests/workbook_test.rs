@@ -1,5 +1,4 @@
-//! Tests of the scripts of a workbook, ported from `workbook_scripts.test.ts` of the TypeScript runtime as far as the
-//! actions are ported.
+//! Tests of the scripts of a workbook and their actions.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -7,9 +6,9 @@ use std::sync::Arc;
 
 use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorTextChangeT};
 use dashql_buffers::formatting::FormattingDialect;
-use dashql_core_runtime::attachments::DataFile;
+use dashql_core_runtime::attachments::{renamed_attachment_file_name, DataFile, WorkbookAttachment};
 use dashql_core_runtime::workbook::{
-    new_catalog, text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptCachedResult, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
+    new_catalog, text_change, CloudLink, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptCachedResult, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
     Workbook, WorkbookAction, WorkbookEffect,
 };
 
@@ -86,16 +85,16 @@ fn appends_a_script_with_text_analyzes_it_and_writes_it() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 1"), ("beta.sql", "select 2")]);
     let alpha = key(&workbook, "alpha.sql");
     workbook.apply(WorkbookAction::AnalyzeOutdatedScript { key: alpha }).unwrap();
-    assert!(!workbook.script(alpha).unwrap().analysis_outdated());
+    assert!(!workbook.script(alpha).unwrap().is_analysis_outdated());
 
     let effects = create(&mut workbook, None, Some("create table t (x int)"), "gamma");
     assert_eq!(files(&workbook), ["alpha.sql", "beta.sql", "gamma.sql"]);
     let created = workbook.script_by_file("gamma.sql").unwrap();
     assert_eq!(created.text(), "create table t (x int)");
-    assert!(!created.analysis_outdated());
+    assert!(!created.is_analysis_outdated());
     assert!(created.editor_update().is_some_and(|update| update.analysis_available));
     // The new script published its table, the other scripts of the catalog are outdated
-    assert!(workbook.script(alpha).unwrap().analysis_outdated());
+    assert!(workbook.script(alpha).unwrap().is_analysis_outdated());
     assert_eq!(effects[0], WorkbookEffect::WriteScript { file_name: "gamma.sql".into(), text: "create table t (x int)".into() });
     assert!(matches!(&effects[1], WorkbookEffect::WriteScriptList(list) if list.scripts.len() == 3));
 }
@@ -129,7 +128,7 @@ fn deletes_the_last_script_and_keeps_its_connection_for_the_next_one() {
     assert!(outcome.changed);
     assert_eq!(outcome.effects[0], WorkbookEffect::DeleteScript { file_name: "alpha.sql".into() });
     // The table of the deleted script is gone from the catalog, the remaining script resolves again
-    assert!(workbook.script_by_file("beta.sql").unwrap().analysis_outdated());
+    assert!(workbook.script_by_file("beta.sql").unwrap().is_analysis_outdated());
     workbook.apply(WorkbookAction::DeleteScript { file_name: "beta.sql".into() }).unwrap();
     assert!(workbook.scripts().is_empty());
     assert!(workbook.pending_connection().is_some_and(|pending| Rc::ptr_eq(pending, &main)));
@@ -173,7 +172,7 @@ fn writes_typed_text_but_not_a_moved_cursor() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
     let alpha = key(&workbook, "alpha.sql");
     let event = typed(&workbook, alpha, "select 42");
-    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
     assert!(outcome.changed);
     // The update is the one that the script holds now
     assert!(outcome.editor_update.is_none());
@@ -182,7 +181,7 @@ fn writes_typed_text_but_not_a_moved_cursor() {
 
     let revision = workbook.script(alpha).unwrap().revision();
     let event = cursor(&workbook, alpha, 3);
-    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
     assert!(outcome.effects.is_empty());
     // The cursor is part of the projection that the editor shows
     assert!(workbook.script(alpha).unwrap().revision() > revision);
@@ -216,7 +215,7 @@ fn analyzes_the_readers_of_changed_declarations_again() {
 
     // Typing a new table publishes it, the query must resolve again
     let event = typed(&workbook, tables, "create table t (x int, y int)");
-    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event }).unwrap();
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event, known: None }).unwrap();
     assert!(workbook.script(query).unwrap().is_analysis_outdated());
     assert!(workbook.apply(WorkbookAction::AnalyzeOutdatedScript { key: query }).unwrap().changed);
     settle(&mut workbook);
@@ -231,8 +230,8 @@ fn sets_the_text_of_a_script() {
     workbook.apply(WorkbookAction::AnalyzeOutdatedScript { key: beta }).unwrap();
     let outcome = workbook.apply(WorkbookAction::SetScriptText { key: alpha, text: "select 3".into(), with_diff: false }).unwrap();
     assert_eq!(workbook.script(alpha).unwrap().text(), "select 3");
-    assert!(!workbook.script(alpha).unwrap().analysis_outdated());
-    assert!(workbook.script(beta).unwrap().analysis_outdated());
+    assert!(!workbook.script(alpha).unwrap().is_analysis_outdated());
+    assert!(workbook.script(beta).unwrap().is_analysis_outdated());
     assert_eq!(outcome.effects, [WorkbookEffect::WriteScript { file_name: "alpha.sql".into(), text: "select 3".into() }]);
 }
 
@@ -384,11 +383,11 @@ fn accepts_a_staged_rewrite_when_the_user_types() {
     assert!(prior_text(&workbook, alpha).is_some());
     // A moved cursor keeps it, a typed character accepts it
     let event = cursor(&workbook, alpha, 2);
-    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
     assert!(prior_text(&workbook, alpha).is_some());
     let mut event = typed(&workbook, alpha, "select 2 as x, 4 as y");
     event.origin = EditorEventOrigin::USER;
-    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
     assert!(prior_text(&workbook, alpha).is_none());
 }
 
@@ -400,7 +399,7 @@ fn marks_the_scripts_of_an_updated_catalog_outdated() {
     let other = workbook.apply(WorkbookAction::CatalogDidUpdate { connection_id: "other".into() }).unwrap();
     assert!(!other.changed);
     assert!(workbook.apply(WorkbookAction::CatalogDidUpdate { connection_id: "main".into() }).unwrap().changed);
-    assert!(workbook.script(alpha).unwrap().analysis_outdated());
+    assert!(workbook.script(alpha).unwrap().is_analysis_outdated());
 }
 
 #[test]
@@ -458,7 +457,7 @@ fn moves_a_script_to_another_connection_under_its_key() {
     assert!(Rc::ptr_eq(moved.connection(), &trino));
     assert_eq!(moved.text(), "select 2");
     assert_eq!((moved.latest_query_id(), moved.latest_result_query_id()), (Some(7), Some(7)));
-    assert!(!moved.analysis_outdated());
+    assert!(!moved.is_analysis_outdated());
     let entry = |name: &str, connection_id: &str| ScriptListEntry { name: name.into(), connection_id: connection_id.into() };
     let copy = |connection_id: &str, params: &str| ConnectionCopy { connection_id: connection_id.into(), params: params.into() };
     // The workbook file takes a copy of the new connection
@@ -541,7 +540,7 @@ fn moves_the_scripts_and_the_pending_connection_of_a_merged_connection() {
     let moved = workbook.script(alpha).unwrap();
     assert!(Rc::ptr_eq(moved.connection(), &target));
     assert_eq!(moved.text(), "select 1");
-    assert!(moved.analysis_outdated());
+    assert!(moved.is_analysis_outdated());
     assert!(Rc::ptr_eq(workbook.script(beta).unwrap().connection(), &kept));
     // The workbook file replaces the merged connection
     assert_eq!(outcome.effects[0], WorkbookEffect::PatchConnection {
@@ -601,7 +600,7 @@ fn renames_the_references_to_a_renamed_attachment_in_the_scripts() {
     let foo_text = "select * from :sales s join :SALES t on true";
     set_text(&mut workbook, foo, foo_text, false);
     set_text(&mut workbook, bar, "select * from :foo", false);
-    let action = WorkbookAction::RenameAttachment { file_name: "sales.parquet".into(), new_file_name: "sales 2024.parquet".into() };
+    let action = WorkbookAction::RenameAttachment { file_name: "sales.parquet".into(), name: "sales 2024".into() };
     let outcome = workbook.apply(action).unwrap();
     let renamed = r#"select * from :"sales 2024" s join :"sales 2024" t on true"#;
     assert_eq!(text(&workbook, foo), renamed);
@@ -609,7 +608,52 @@ fn renames_the_references_to_a_renamed_attachment_in_the_scripts() {
     assert_eq!(text(&workbook, bar), "select * from :foo");
     let attachments: Vec<_> = workbook.attachments().unwrap().iter().map(|a| (a.file_name.as_str(), a.name.as_str())).collect();
     assert_eq!(attachments, [("sales 2024.parquet", "sales 2024")]);
-    assert_eq!(outcome.effects, [WorkbookEffect::WriteScript { file_name: "foo.sql".into(), text: renamed.into() }]);
+    // The scripts that read the attachment are written, then its file is renamed
+    assert_eq!(outcome.effects, [
+        WorkbookEffect::WriteScript { file_name: "foo.sql".into(), text: renamed.into() },
+        WorkbookEffect::RenameDataFile { from: "sales.parquet".into(), to: "sales 2024.parquet".into() },
+    ]);
+    // A name that is no plain file name or the same name renames nothing
+    for name in ["a/b", "  ", "sales 2024"] {
+        let outcome = workbook.apply(WorkbookAction::RenameAttachment { file_name: "sales 2024.parquet".into(), name: name.into() }).unwrap();
+        assert!(!outcome.changed && outcome.effects.is_empty());
+    }
+}
+
+#[test]
+fn names_a_renamed_attachment_past_the_scripts_and_the_other_attachments() {
+    let attachment = |file_name: &str| WorkbookAttachment {
+        file_name: file_name.into(),
+        name: file_name.trim_end_matches(".parquet").into(),
+        size_bytes: 1,
+        mtime_ms: 1,
+        columns: None,
+    };
+    let attachments = [attachment("sales.parquet"), attachment("orders.parquet")];
+    let renamed = |requested: &str, scripts: &[&str]| renamed_attachment_file_name("sales.parquet", requested, scripts.iter().copied(), &attachments);
+    assert_eq!(renamed(" revenue ", &["items"]).as_deref(), Some("revenue.parquet"));
+    assert_eq!(renamed("revenue.parquet", &[]).as_deref(), Some("revenue.parquet"));
+    assert_eq!(renamed("Items", &["items"]).as_deref(), Some("Items-2.parquet"));
+    // The name of another attachment is taken in any case, also as a whole file name
+    assert_eq!(renamed("ORDERS", &[]).as_deref(), Some("ORDERS-2.parquet"));
+    assert_eq!(renamed("orders.parquet", &[]).as_deref(), Some("orders-2.parquet"));
+    // The attachment may keep its name or change its case
+    assert_eq!(renamed("Sales", &[]).as_deref(), Some("Sales.parquet"));
+    assert_eq!(renamed("a/b", &[]), None);
+    assert_eq!(renamed("  ", &[]), None);
+}
+
+#[test]
+fn a_cloud_preview_refuses_the_rename_of_an_attachment_before_anything_changed() {
+    let (mut workbook, _) = workbook(&[("foo.sql", "")]);
+    let foo = key(&workbook, "foo.sql");
+    workbook.apply(WorkbookAction::SetWorkbookAttachments { files: vec![data_file("sales.parquet")] }).unwrap();
+    set_text(&mut workbook, foo, "select * from :sales", false);
+    let link = CloudLink { workbook_id: "published".into(), version_id: "v1".into(), preview: true };
+    workbook.apply(WorkbookAction::SetCloudLink { link: Some(link) }).unwrap();
+    assert!(workbook.apply(WorkbookAction::RenameAttachment { file_name: "sales.parquet".into(), name: "revenue".into() }).is_err());
+    assert_eq!(text(&workbook, foo), "select * from :sales");
+    assert_eq!(workbook.attachments().unwrap()[0].file_name, "sales.parquet");
 }
 
 #[test]
@@ -717,7 +761,7 @@ fn replaces_the_text_of_a_stored_script_that_stays_on_its_connection() {
     // The script keeps its key and drops what belonged to the old text
     assert_eq!(replaced.text(), "select changed");
     assert!(replaced.pending_diff().is_none());
-    assert!(replaced.analysis_outdated());
+    assert!(replaced.is_analysis_outdated());
     assert_eq!(replaced.unresolved_connection_id(), Some("unknown"));
 }
 
@@ -796,20 +840,18 @@ fn applies_the_keystrokes_of_an_editor_and_leaves_out_the_analysis_it_holds() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
     let alpha = key(&workbook, "alpha.sql");
     let event = typed(&workbook, alpha, "select 42");
-    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap().outcome_is_held());
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap().outcome_is_held());
     // The first cursor move analyzes against the catalog that the published text left
     let event = cursor(&workbook, alpha, 2);
-    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
     let held = workbook.script(alpha).unwrap().editor_update().unwrap().clone();
     assert!(held.analysis_available && held.syntax_spans.is_some());
 
-    // A cursor move of an editor that holds the analysis leaves it out, the script keeps it
-    let mut event = cursor(&workbook, alpha, 3);
-    let mut known = dashql_buffers::editor::EditorAnalysisVersionT::default();
-    known.text_version = held.text_version;
-    known.catalog_revision = held.catalog_revision;
-    event.known_analysis = Some(Box::new(known.clone()));
-    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
+    // A cursor move of an editor that holds the update of the analysis leaves it out, the script keeps it
+    let event = cursor(&workbook, alpha, 3);
+    let script = workbook.script(alpha).unwrap();
+    let known = EditorUpdateId { session_generation: script.session_generation(), serial: script.editor_update_serial() };
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: Some(known) }).unwrap();
     let update = outcome.editor_update.expect("the update without the analysis");
     assert!(update.analysis_omitted && update.syntax_spans.is_none());
     let script = workbook.script(alpha).unwrap().editor_update().unwrap();
@@ -817,13 +859,34 @@ fn applies_the_keystrokes_of_an_editor_and_leaves_out_the_analysis_it_holds() {
     assert_eq!(script.syntax_spans, held.syntax_spans);
     assert_eq!(script.semantic_spans, held.semantic_spans);
 
-    // An editor that names another analysis gets the whole update
-    let mut event = cursor(&workbook, alpha, 4);
-    known.text_version += 100;
-    event.known_analysis = Some(Box::new(known));
-    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).unwrap();
-    assert!(outcome.editor_update.is_none());
-    assert!(!workbook.script(alpha).unwrap().editor_update().unwrap().analysis_omitted);
+    // An editor that holds an update of another session or from before the analysis gets the whole update
+    for other in [EditorUpdateId { session_generation: known.session_generation + 1, ..known }, EditorUpdateId { serial: 0, ..known }] {
+        let event = cursor(&workbook, alpha, 4);
+        let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: Some(other) }).unwrap();
+        assert!(outcome.editor_update.is_none_or(|update| !update.analysis_omitted));
+        assert!(!workbook.script(alpha).unwrap().editor_update().unwrap().analysis_omitted);
+    }
+}
+
+#[test]
+fn a_new_analysis_with_the_same_versions_crosses_to_the_editor_again() {
+    let (mut workbook, _) = workbook(&[("base.sql", "select 1 as a"), ("reader.sql", "select a from :base")]);
+    let (base, reader) = (key(&workbook, "base.sql"), key(&workbook, "reader.sql"));
+    settle(&mut workbook);
+    let event = cursor(&workbook, reader, 1);
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: reader, event, known: None }).unwrap();
+    let script = workbook.script(reader).unwrap();
+    let known = EditorUpdateId { session_generation: script.session_generation(), serial: script.editor_update_serial() };
+    let before = script.editor_update().map(|update| (update.text_version, update.catalog_revision)).unwrap();
+    // The result of base gets a column, reader analyzes again with its text against the same catalog
+    set_text(&mut workbook, base, "select 1 as a, 2 as b", false);
+    workbook.apply(WorkbookAction::AnalyzeOutdatedScript { key: reader }).unwrap();
+    let after = workbook.script(reader).unwrap().editor_update().map(|update| (update.text_version, update.catalog_revision)).unwrap();
+    assert_eq!(before, after);
+    // The editor holds the analysis before, the move of its cursor carries the new one
+    let event = cursor(&workbook, reader, 2);
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: reader, event, known: Some(known) }).unwrap();
+    assert!(outcome.editor_update.is_none_or(|update| !update.analysis_omitted));
 }
 
 #[test]
@@ -833,7 +896,7 @@ fn refuses_a_keystroke_of_an_editor_that_missed_a_change_of_the_text() {
     // The editor shows the text, then the workbook changes it
     let stale = typed(&workbook, alpha, "select 2");
     workbook.apply(WorkbookAction::SetScriptText { key: alpha, text: "select 12345".into(), with_diff: false }).unwrap();
-    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event: stale }).unwrap();
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event: stale, known: None }).unwrap();
     assert_eq!(outcome.editor_update.map(|update| update.status), Some(dashql_buffers::editor::EditorUpdateStatus::STALE_TEXT_VERSION));
     assert!(outcome.effects.is_empty() && !outcome.changed);
     assert_eq!(workbook.script(alpha).unwrap().text(), "select 12345");
@@ -847,14 +910,14 @@ fn a_cloud_preview_refuses_every_change_of_its_scripts() {
     workbook.apply(WorkbookAction::SetCloudLink { link: Some(link) }).unwrap();
     // Typing and replacing the scripts from storage fail, the text stays
     let event = typed(&workbook, alpha, "select 2");
-    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).is_err());
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).is_err());
     let stored = vec![StoredScript { name: "alpha.sql".into(), sql: "select 3".into(), connection: main.clone(), unresolved_connection_id: None }];
     assert!(workbook.replace_from_storage(stored).is_err());
     assert!(workbook.apply(WorkbookAction::RejectPendingDiff { key: alpha }).is_err());
     assert_eq!(workbook.script(alpha).unwrap().text(), "select 1");
     // Moving the cursor of the read-only editor stays
     let event = cursor(&workbook, alpha, 3);
-    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event }).is_ok());
+    assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).is_ok());
 }
 
 #[test]
@@ -887,10 +950,164 @@ fn a_run_analyzes_the_outdated_scripts_once() {
     assert_eq!(workbook.script(query).unwrap().revision(), revision);
     // Typing a new table outdates the query, the next run analyzes it
     let event = typed(&workbook, tables, "create table t (x int, y int)");
-    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event }).unwrap();
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event, known: None }).unwrap();
     assert!(workbook.script(query).unwrap().is_analysis_outdated());
     assert_eq!(workbook.analyze_for_run(), Ok(true));
     assert!(workbook.scripts().iter().all(|script| !script.is_analysis_outdated()));
+}
+
+#[test]
+fn writes_a_typed_text_whose_analysis_failed() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
+    let alpha = key(&workbook, "alpha.sql");
+    settle(&mut workbook);
+    let revision = workbook.script(alpha).unwrap().revision();
+    // A function name of four parts fails the analysis (docs/design/core_quirks.md)
+    let event = typed(&workbook, alpha, "select a.b.c.d(1)");
+    let outcome = workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).unwrap();
+    let script = workbook.script(alpha).unwrap();
+    assert_eq!(script.editor_update().map(|update| update.status), Some(dashql_buffers::editor::EditorUpdateStatus::ANALYSIS_FAILED));
+    assert_eq!(outcome.effects, [WorkbookEffect::WriteScript { file_name: "alpha.sql".into(), text: "select a.b.c.d(1)".into() }]);
+    assert!(outcome.changed && script.revision() > revision);
+}
+
+#[test]
+fn a_script_stays_current_with_its_own_declarations() {
+    let (mut workbook, _) = workbook(&[("tables.sql", "")]);
+    let tables = key(&workbook, "tables.sql");
+    settle(&mut workbook);
+    let event = typed(&workbook, tables, "create table t (x int)");
+    workbook.apply(WorkbookAction::ApplyEditorEvent { key: tables, event, known: None }).unwrap();
+    // The publish of the table changed the catalog, the analysis of the script that published it stays current
+    assert!(!workbook.script(tables).unwrap().is_analysis_outdated());
+    assert_eq!(workbook.analyze_for_run(), Ok(false));
+}
+
+#[test]
+fn a_rewrite_of_the_text_reaches_a_mounted_editor_as_a_change() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1 as a")]);
+    let alpha = key(&workbook, "alpha.sql");
+    set_text(&mut workbook, alpha, "select 12 as a", false);
+    assert_eq!(workbook.script(alpha).unwrap().external_changes(), Some(&ExternalChanges {
+        from_text: "select 1 as a".into(),
+        changes: vec![TextChange { from: 8, to: 8, insert: "2".into() }],
+    }));
+    // Rejecting a staged rewrite restores the text the same way
+    set_text(&mut workbook, alpha, "select 3 as a", true);
+    workbook.apply(WorkbookAction::RejectPendingDiff { key: alpha }).unwrap();
+    assert_eq!(text(&workbook, alpha), "select 12 as a");
+    assert_eq!(workbook.script(alpha).unwrap().external_changes().map(|changes| changes.from_text.as_str()), Some("select 3 as a"));
+}
+
+#[test]
+fn a_script_of_a_merged_connection_keeps_what_its_session_does_not_hold() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1 as x")]);
+    let alpha = key(&workbook, "alpha.sql");
+    settle(&mut workbook);
+    set_text(&mut workbook, alpha, "select 2 as x", true);
+    let stored = vec![StoredScript {
+        name: "alpha.sql".into(),
+        sql: "select 2 as x".into(),
+        connection: workbook.script(alpha).unwrap().connection().clone(),
+        unresolved_connection_id: Some("missing".into()),
+    }];
+    workbook.replace_from_storage(stored).unwrap();
+    // The reload kept the staged rewrite of the unchanged text, the script names the unresolved connection
+    set_text(&mut workbook, alpha, "select 3 as x", true);
+    workbook.apply(WorkbookAction::SetExecutionVisualization { key: alpha, visualization: None }).unwrap();
+    let before = workbook.script(alpha).unwrap();
+    let (diff, statistics, update) = (before.pending_diff().map(|diff| diff.revision), before.statistics().count(), before.editor_update().cloned());
+    assert!(diff.is_some() && statistics > 0 && update.is_some());
+    assert_eq!(before.unresolved_connection_id(), Some("missing"));
+    let target = connection("target", Some("{}"));
+    workbook.apply(WorkbookAction::ReplaceConnection { from: "main".into(), into: target.clone() }).unwrap();
+    let moved = workbook.script(alpha).unwrap();
+    assert!(Rc::ptr_eq(moved.connection(), &target));
+    assert_eq!(moved.pending_diff().map(|diff| diff.revision), diff);
+    assert_eq!(moved.unresolved_connection_id(), Some("missing"));
+    assert_eq!(moved.statistics().count(), statistics);
+    assert_eq!(moved.editor_update(), update.as_ref());
+    assert!(moved.is_analysis_outdated());
+}
+
+#[test]
+fn a_script_that_analyzes_before_a_rewrite_of_references_moves_its_revision() {
+    let (mut workbook, main) = workbook(&[("foo.sql", "select 1 as a"), ("bar.sql", "select 2 as b")]);
+    let bar = key(&workbook, "bar.sql");
+    settle(&mut workbook);
+    // The text of bar changes on disk, its analysis lags behind it
+    let stored = |sql: &str| StoredScript { name: "".into(), sql: sql.into(), connection: main.clone(), unresolved_connection_id: None };
+    let scripts = vec![StoredScript { name: "foo.sql".into(), ..stored("select 1 as a") }, StoredScript { name: "bar.sql".into(), ..stored("select 3 as b") }];
+    workbook.replace_from_storage(scripts).unwrap();
+    let revision = workbook.script(bar).unwrap().revision();
+    // The rename analyzes bar before it looks for references, bar shows its new analysis
+    workbook.apply(WorkbookAction::RenameScript { file_name: "foo.sql".into(), new_name: "renamed".into() }).unwrap();
+    let script = workbook.script(bar).unwrap();
+    assert!(script.revision() > revision);
+    assert_eq!(script.editor_update().map(|update| update.text_version), Some(script.session().borrow().text_version()));
+}
+
+#[test]
+fn the_workbooks_on_a_connection_share_its_catalog() {
+    let main = connection("main", Some(MAIN_PARAMS));
+    let mut first = Workbook::new("first", None, Some(main.clone()), EditorOffsetUnit::UTF16_CODE_UNITS);
+    let mut second = Workbook::new("second", None, Some(main.clone()), EditorOffsetUnit::UTF16_CODE_UNITS);
+    let tables = first.add_stored_script("tables.sql", "", main.clone(), None).unwrap();
+    let query = second.add_stored_script("query.sql", "select y from t", main.clone(), None).unwrap();
+    settle(&mut first);
+    settle(&mut second);
+    first.take_published();
+    assert!(!second.script(query).unwrap().is_analysis_outdated());
+    // A table that the first workbook publishes reaches the scripts of the second through the catalog
+    let event = typed(&first, tables, "create table t (y int)");
+    first.apply(WorkbookAction::ApplyEditorEvent { key: tables, event, known: None }).unwrap();
+    assert_eq!(first.take_published(), ["main"]);
+    assert!(second.script(query).unwrap().is_analysis_outdated());
+    // The host outdates the scripts of the other workbooks on the connection, they analyze against the table
+    second.apply(WorkbookAction::CatalogDidUpdate { connection_id: "main".into() }).unwrap();
+    settle(&mut second);
+    let diagnostics = |workbook: &Workbook, key: ScriptKey| workbook.script(key).unwrap().editor_update().unwrap().diagnostics.clone().unwrap_or_default();
+    assert!(diagnostics(&second, query).is_empty());
+
+    // Both workbooks declare t: the other scripts resolve t against the older declaration, the table of the first
+    // workbook, and keep the newer one as an alternative. A script resolves its own declaration first.
+    let other = second.add_stored_script("other.sql", "create table t (z int); select z from t", main.clone(), None).unwrap();
+    let reads = second.add_stored_script("reads.sql", "select * from t", main.clone(), None).unwrap();
+    settle(&mut second);
+    let resolved = |workbook: &Workbook, key: ScriptKey| -> Vec<(u32, usize)> {
+        let session = workbook.script(key).unwrap().session().borrow();
+        let analyzed = session.script().current_analysis().map(|(_, _, analyzed)| analyzed.clone()).unwrap();
+        analyzed
+            .table_references
+            .iter()
+            .filter_map(|reference| reference.inner.as_ref())
+            .filter_map(|relation| Some((relation.resolved_table.as_ref()?.catalog_table_id.unpack_table_id().origin, relation.resolved_alternatives.len())))
+            .collect()
+    };
+    assert_eq!(resolved(&second, reads), [(tables, 1)]);
+    assert_eq!(resolved(&second, other).first().map(|(origin, _)| *origin), Some(other));
+    assert!(diagnostics(&second, query).is_empty());
+}
+
+#[test]
+fn compiles_the_visualizations_again_in_a_new_dialect() {
+    let (mut workbook, main) = workbook(&[("chart.sql", "/* @vis table */\nselect 2 as x")]);
+    let chart = key(&workbook, "chart.sql");
+    settle(&mut workbook);
+    let (revision, compiled) = {
+        let script = workbook.script(chart).unwrap();
+        (script.visualization_revision(), script.visualization().map(|vis| vis.sql.clone()))
+    };
+    assert!(compiled.is_some());
+    // Unchanged, the profile compiles to the same visualization
+    assert!(workbook.apply(WorkbookAction::ConnectionProfileChanged { connection_id: "main".into() }).unwrap().changed);
+    assert_eq!(workbook.script(chart).unwrap().visualization_revision(), revision);
+    assert!(main.update(ScriptConnectionProfile { dialect: FormattingDialect::TRINO, ..profile(Some(MAIN_PARAMS)) }));
+    workbook.apply(WorkbookAction::ConnectionProfileChanged { connection_id: "main".into() }).unwrap();
+    let script = workbook.script(chart).unwrap();
+    assert!(script.visualization().is_some());
+    // A connection that the workbook doesn't use changes nothing
+    assert!(!workbook.apply(WorkbookAction::ConnectionProfileChanged { connection_id: "other".into() }).unwrap().changed);
 }
 
 trait HeldUpdate {

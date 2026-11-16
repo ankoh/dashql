@@ -91,22 +91,52 @@ marks are `runtime/changes.rs`.
   (`workbook::new_catalog`); script keys are unique in the module.
 - **The rules of the registry are Rust.** An ephemeral workbook that got a script is promoted with a free name, the
   registry of connections learns which workbooks use a connection after every action that can change it, and an
-  announced catalog outdates the analyses of the scripts on it (`CatalogDidUpdate`).
-- **Analyses.** `WorkbookScript::is_analysis_outdated` is the one predicate: the flag, a text that changed, or an
-  analysis that is no longer current with the catalog. A publish into the catalog that changes its version marks the
-  other scripts on that catalog outdated. The scripts that editors show are analyzed by `visible_scripts.rs`: the
-  selected one at once, the others once the changes pause for 150 ms. Other scripts stay outdated until something needs
-  their analysis, e.g. a run. See [core_analysis_catalog.md](core_analysis_catalog.md).
+  announced catalog outdates the analyses of the scripts on it (`CatalogDidUpdate`). Every change of a workbook, also
+  one of a run, settles in `Workbooks::settle`: the writes, the marks of the slices (the scripts and, when analyses
+  changed, the derived view; the whole workbook only for a change of the workbook), the promotion, the references of
+  the connections, the check of the cached results and the analyses of the shown scripts.
+- **Analyses.** `WorkbookScript::is_analysis_outdated` is the one predicate of runs, views (`analysisOutdated`), the
+  shown scripts and the cached results: the flag, a text that changed, or an analysis that is no longer current with the
+  catalog. The publish of a script itself leaves its analysis current, the planner takes it (`current_by_own_publish`).
+  A busy session counts as outdated. A publish into the catalog that changes its version marks the other scripts on
+  that catalog outdated, those of the other workbooks on the connection too: all workbooks on a connection share its
+  catalog, `Workbook::take_published` names the changed catalogs and `Workbooks` applies `CatalogDidUpdate` to the
+  others. Two workbooks that declare the same table resolve it like two scripts: the older declaration wins, the other
+  is an alternative, a script resolves its own first. The scripts that editors show are analyzed by
+  `visible_scripts.rs`: the selected one at once, the others once the changes pause for 150 ms. Other scripts stay
+  outdated until something needs their analysis, e.g. a run. See [core_analysis_catalog.md](core_analysis_catalog.md).
 - **Editor events.** `applyEditorEvent` applies a packed `EditorEvent` to the session, checks the text version that
   the editor shows (`STALE_TEXT_VERSION`) and the session generation, accepts a staged rewrite on an edit of the user,
-  writes the text only when it changed, and derives the table parameters only when the text or the analysis changed.
+  writes the text only when it changed, also when its analysis failed, and derives the table parameters only when the
+  text or the analysis changed. An editor update is named by the generation of the session and a serial of
+  `next_revision` (`editorUpdateKey`); the event names the key of the update that the editor holds, and the update
+  leaves the analysis out only if the editor holds the analysis of the script (the update that brought it or a later
+  one). A new analysis with the same text version and catalog revision, e.g. after the table parameters changed, crosses
+  again.
+- **Sessions.** The host reads the session of a script through `WorkbookScriptSession` (`Runtime.scriptSession`), a
+  handle without mutators that fails on a busy session instead of panicking. A script that moves to another connection
+  moves into a new session and keeps its staged rewrite, its unresolved connection, its visualization, its statistics,
+  its queries, its cached result and its editor update until it analyzes again. A rewrite of the text by the workbook
+  (inputs, formatting, a chart spec, a rejected diff, renamed references) reaches a mounted editor as text changes
+  (`externalChanges`).
+- **Profiles.** A change of what the scripts read of a connection (`ScriptConnectionProfile`: dialect, default database
+  and schema, params) compiles the visualizations of its scripts again and derives their workbooks again
+  (`ConnectionProfileChanged`).
 - **The derived view** (`Workbook::with_planner`) runs the planner over the scripts: the checked references, the
   dataflow and the inputs, packed as FlatBuffers. See [planner.md](planner.md),
   [planner_dependencies.md](planner_dependencies.md), [script_references.md](script_references.md),
   [dataflow.md](dataflow.md) and [workbook_inputs.md](workbook_inputs.md).
 - **Attachments.** Parquet files in the `attachments` folder of a workbook, the table parameter of their name
   (`sales.parquet` is `:sales`). `attachFiles` names a new one and writes it through the storage writer; the view of the
-  workbook is the one list of its attachments. The runs read their columns once per file and stamp.
+  workbook is the one list of its attachments. `renameAttachment` names a renamed one like a script, rewrites the
+  references of the scripts and renames the file through the storage writer (`WriteTask::RenameDataFile`); a refused
+  rename, e.g. of a cloud preview, changes nothing. The runs read their columns once per file and stamp.
+- **Cached results.** The view of a script shows the newest file of its reusable key (`cachedResult`,
+  `runs/cached_results.rs`). A workbook is looked up again once its changes pause, only if the stamp of what its keys
+  depend on moved: the analyses (by their serials), the attachments, the connections and their params, the cache keys of
+  the latest queries. A cursor move looks up nothing. A recorded or deleted cache entry looks up the workbooks of the
+  connection, the end of a run and an eviction of the cache (`JsPlatform::evict_cache` returns the removed files) every
+  workbook.
 
 ### Connections, setups and channels
 
@@ -232,7 +262,8 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
 - A run analyzes the outdated scripts and publishes their declarations until none is outdated
   (`Workbook::analyze_for_run`), plans with `planner::plan_session` (all scripts, targets with what they need, or the
   scripts that a change of inputs affects, `plan::affected_scripts`), derives the result keys, serves the cached ones
-  and plans again with their files.
+  and plans again with their files. A script that changed its text or its signature between the two plans, e.g. typed
+  while the run looked up the cache, fails the run: its keys and files come from the first plan.
 - A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a connection at once
   (four for a Hyper server, one otherwise). A failed statement cancels the running ones; the nodes of a connection that
   can't run or be set up are skipped with what follows them.

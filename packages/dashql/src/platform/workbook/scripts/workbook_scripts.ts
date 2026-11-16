@@ -38,7 +38,7 @@ export interface ScriptData {
     /// it (`Runtime.applyEditorEvent`).
     sessionGeneration: number;
     /// The session of the script, shared with the workbook. The editor reads it, its events go to the runtime.
-    scriptSession: core.DashQLScriptSession;
+    scriptSession: core.DashQLWorkbookScriptSession;
     /// The latest editor update
     editorUpdate: core.buffers.editor.EditorUpdateT | null;
     /// Must the script be analyzed again against its text or its catalog?
@@ -89,7 +89,7 @@ type WorkbookActionKind =
     | 'createScript' | 'deleteScript' | 'renameScript' | 'reorderScripts' | 'setScriptText' | 'acceptPendingDiff'
     | 'rejectPendingDiff' | 'setScriptVisSpec' | 'setWorkbookInput' | 'analyzeOutdatedScript' | 'showScript' | 'hideScript'
     | 'renameWorkbook' | 'setScriptConnection' | 'setPendingConnection' | 'replaceConnection' | 'detachConnection'
-    | 'setWorkbookAttachments' | 'renameAttachment' | 'setCloudLink';
+    | 'setWorkbookAttachments' | 'setCloudLink';
 
 /// Apply an action to a workbook, it applies at once and the views follow with the next flush of the store
 export type ModifyWorkbookScripts = (action: WorkbookAction) => core.DispatchOutcome;
@@ -97,10 +97,6 @@ export type ModifyWorkbookScripts = (action: WorkbookAction) => core.DispatchOut
 /// The name of the ephemeral workbook, the sidebar shows it until a script promotes the workbook
 export const EPHEMERAL_WORKBOOK_NAME = 'New Workbook';
 
-/// Is this the ephemeral workbook of the greeter? It has no scripts and the first one promotes it to a full workbook.
-export function isEphemeralWorkbook(state: Pick<WorkbookScripts, 'ephemeral'>): boolean {
-    return state.ephemeral;
-}
 
 /// The published workbook of the cloud that a workbook came from or was published to, null without one
 export function workbookCloudLink(state: Pick<WorkbookScripts, 'workbookMetadata'>): WorkbookCloudLink | null {
@@ -119,10 +115,6 @@ export function scriptConnectionIds(state: Pick<WorkbookScripts, 'scriptConnecti
     return [...new Set(state.scriptConnections)];
 }
 
-/// The ids of the connections that a workbook uses: the connections of its scripts and the pending connection
-export function workbookConnectionIds(state: Pick<WorkbookScripts, 'connectionIds'>): string[] {
-    return state.connectionIds;
-}
 
 /// The number of scripts of a workbook that run on a connection. The pending connection alone does not count.
 export function scriptsOnConnection(state: Pick<WorkbookScripts, 'scriptConnections'>, connectionId: string): number {

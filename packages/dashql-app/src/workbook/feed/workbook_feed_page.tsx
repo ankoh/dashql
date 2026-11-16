@@ -6,9 +6,7 @@ import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon 
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import {
     isCloudPreview,
-    isEphemeralWorkbook,
     scriptConnectionIds,
-    workbookConnectionIds,
     type ModifyWorkbookScripts,
     type WorkbookScripts,
 } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
@@ -155,7 +153,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
     const runConnections = scriptConnectionIds(props.workbookScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     // The bar also shows the connection that the composer drafts the next script on, e.g. the one picked in an empty workbook
-    const barConnections = workbookConnectionIds(props.workbookScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
+    const barConnections = props.workbookScripts.connectionIds.flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     const connectionAttention = useWorkbookConnectionAttention(props.workbookScripts.workbookId, connectionHealthKey(barConnections));
     // A connection that is connecting holds the run, it would join a moment later
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
@@ -189,7 +187,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
     const { mode, setMode } = dependencies.useWorkbookViewMode();
     // The greeter shows the feed, its workbook has nothing to run, show or share until a script promotes it
-    const ephemeral = isEphemeralWorkbook(props.workbookScripts);
+    const ephemeral = props.workbookScripts.ephemeral;
     // A read-only look at a published workbook is imported before it is shared
     const preview = isCloudPreview(props.workbookScripts);
     React.useEffect(() => {

@@ -15,7 +15,6 @@ import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { useConnections, useWorkbooks } from '../runtime/runtime_hooks.js';
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { isEphemeralWorkbook, workbookConnectionIds } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { TestRuntime } from '../tests/test_runtime.js';
@@ -98,10 +97,10 @@ describe('following Hyper links', () => {
         expect(getHyperLinkTabState().current).toBe(connection.connectionId);
         expect(getHyperLinkTabState().tokens[connection.connectionId]).toBe('first');
         const workbookIds = [...workbooks.entries()]
-            .filter(([, scripts]) => workbookConnectionIds(scripts).includes(connection.connectionId))
+            .filter(([, scripts]) => scripts.connectionIds.includes(connection.connectionId))
             .map(([workbookId]) => workbookId);
         expect(workbookIds.length).toBe(1);
-        expect(isEphemeralWorkbook(workbooks.get(workbookIds[0])!)).toBe(true);
+        expect(workbooks.get(workbookIds[0])!.ephemeral).toBe(true);
         expect(pathname).toBe('/');
         // A loopback link needs no confirmation
         expect(confirm).not.toHaveBeenCalled();

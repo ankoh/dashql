@@ -417,41 +417,43 @@ export class Runtime {
 
     /// Apply an event of the editor of a script and return the update for the editor, the projection of the script
     /// holds it instead of reading it again. The event names the text version that the editor shows, an editor that
-    /// missed a change of the text gets the status `STALE_TEXT_VERSION`. `known` is the update that the editor holds:
-    /// the runtime leaves its analysis out if the script holds the same one, the update takes its arrays then. Null for
-    /// a script that holds another session than the one the editor shows.
+    /// missed a change of the text gets the status `STALE_TEXT_VERSION`. `known` is the update that the editor holds,
+    /// the runtime names it by its key (`editorUpdateKey`): the update leaves the analysis out if the editor holds the
+    /// one of the script, it takes the arrays of `known` then. Null for a script that holds another session than the
+    /// one the editor shows.
     applyEditorEvent(
         script: Pick<ScriptData, 'workbookId' | 'scriptKey' | 'sessionGeneration'>,
         event: core.buffers.editor.EditorEventT,
         known: core.buffers.editor.EditorUpdateT | null,
     ): core.buffers.editor.EditorUpdateT | null {
         if (this.freed) return null;
-        const analysis = known?.analysisAvailable === true ? known : null;
-        event.knownAnalysis = analysis == null ? null : new core.buffers.editor.EditorAnalysisVersionT(analysis.textVersion, analysis.catalogRevision);
+        const knownKey = known == null ? null : this.scriptProjection.keyOf(known);
+        // The runtime names the analysis that the editor holds
+        event.knownAnalysis = null;
         const builder = new flatbuffers.Builder();
         builder.finish(event.pack(builder));
         // A refused event, e.g. an edit of a cloud preview or of a busy workbook, changes nothing: the editor shows the
         // text of the script again
-        let bytes: Uint8Array | undefined;
+        let outcome: core.EditorEventOutcome | null | undefined;
         try {
-            bytes = this.module.applyEditorEvent(script.workbookId, script.scriptKey, script.sessionGeneration, builder.asUint8Array());
+            outcome = this.module.applyEditorEvent(script.workbookId, script.scriptKey, script.sessionGeneration, builder.asUint8Array(), knownKey);
         } catch (e: unknown) {
             this.logger.warn('Refused an editor event', { workbookId: script.workbookId, scriptKey: script.scriptKey.toString(), error: stringifyError(e) }, 'workbook_editor');
             return null;
         }
-        if (bytes == null) return null;
-        const update = core.readFlatBuffer(bytes, bb => core.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
-        if (update.analysisOmitted && analysis != null) {
-            update.diagnostics = analysis.diagnostics;
-            update.syntaxSpans = analysis.syntaxSpans;
-            update.vegaliteSpecs = analysis.vegaliteSpecs;
-            update.commentTags = analysis.commentTags;
-            update.semanticSpans = analysis.semanticSpans;
-            update.scriptAnnotations = analysis.scriptAnnotations;
-            update.processingStatistics = analysis.processingStatistics;
+        if (outcome == null) return null;
+        const update = core.readFlatBuffer(outcome.update, bb => core.buffers.editor.EditorUpdate.getRootAsEditorUpdate(bb)).unpack();
+        if (update.analysisOmitted && known != null) {
+            update.diagnostics = known.diagnostics;
+            update.syntaxSpans = known.syntaxSpans;
+            update.vegaliteSpecs = known.vegaliteSpecs;
+            update.commentTags = known.commentTags;
+            update.semanticSpans = known.semanticSpans;
+            update.scriptAnnotations = known.scriptAnnotations;
+            update.processingStatistics = known.processingStatistics;
         }
         if (update.status === core.buffers.editor.EditorUpdateStatus.OK) {
-            this.scriptProjection.hold(script.scriptKey, update);
+            this.scriptProjection.hold(script.scriptKey, outcome.key, update);
         }
         return update;
     }
@@ -487,6 +489,14 @@ export class Runtime {
     /// storage failed with.
     attachFiles(workbookId: string, files: readonly core.AttachedFile[]): Promise<core.AttachFilesOutcome> {
         return this.settled(this.module.attachFiles(workbookId, [...files]));
+    }
+
+    /// Rename an attachment of a workbook like a script: the scripts that read it read the new name, the runtime renames
+    /// its file through the storage writer. `sales` becomes `sales-2` if a script or another attachment has the name.
+    /// Resolves with the new file name once the view is in the store, null for a name that is unchanged or no plain file
+    /// name. Rejects before anything changed if the runtime refuses the rename, e.g. of a cloud preview.
+    async renameAttachment(workbookId: string, fileName: string, name: string): Promise<string | null> {
+        return await this.settled(this.module.renameAttachment(workbookId, fileName, name));
     }
 
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once the

@@ -72,6 +72,12 @@ pub fn attachment_key(workbook_id: &str, file_name: &str) -> String {
     format!("{workbook_id}/{}/{file_name}", super::ATTACHMENTS_FOLDER)
 }
 
+/// The key of the rename of an attachment, by the name it had, apart from its file so that a rename and a save of the
+/// same name keep both
+pub fn attachment_rename_key(workbook_id: &str, from: &str) -> String {
+    format!("{}:rename", attachment_key(workbook_id, from))
+}
+
 /// The key of a workbook that is written as a whole, `<workbookId>/scripts`
 pub fn workbook_scripts_key(workbook_id: &str) -> String {
     format!("{workbook_id}/{}", super::SCRIPTS_FOLDER)
