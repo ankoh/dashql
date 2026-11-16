@@ -103,7 +103,7 @@ export class MemoryStorage implements RuntimeStorage {
         this.dataFiles.delete(workbookId);
     };
     ownsConnections = () => true;
-    listWorkbooks = async () => [...this.order];
+    listWorkbooks = async () => this.order.map(path => ({ path, storageType: 'opfs' }));
     loadManifestConnections = async () => this.connections;
     loadScripts = async (workbookId: string) => [...this.scriptsOf(workbookId)].map(([name, sql]) => ({ name, sql }));
     listDataFiles = async (workbookId: string) => [...(this.dataFiles.get(workbookId) ?? [])].map(([name, bytes]) => ({ name, sizeBytes: bytes.byteLength }));
@@ -128,10 +128,6 @@ export class MemoryStorage implements RuntimeStorage {
         if (files == null || bytes == null) throw new Error(`no attachment ${from} of ${workbookId}`);
         files.delete(from);
         files.set(to, bytes);
-    };
-    findWorkbook = async (workbookId: string) => {
-        const path = this.order.find(id => id.toLowerCase() === workbookId.toLowerCase());
-        return path == null ? null : { path, storageType: 'opfs' };
     };
     upsertWorkbookEntry = async (entry: unknown) => {
         const path = (entry as { path: string }).path;

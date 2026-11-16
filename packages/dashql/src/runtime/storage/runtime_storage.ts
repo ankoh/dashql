@@ -72,7 +72,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         deleteConnectionFiles: async connectionId => registry().deleteConnectionFiles(connectionId),
         deleteWorkbook: async workbookId => backend.deleteWorkbook(workbookId),
         ownsConnections: () => owner != null,
-        listWorkbooks: async () => (await backend.listWorkbooks()).map(entry => entry.path),
+        listWorkbooks: async () => backend.listWorkbooks(),
         loadManifestConnections: async () => (await owner?.loadManifest())?.connections ?? null,
         loadScripts: async workbookId => (await backend.loadScripts(workbookId)).map(script => ({ name: script.name, sql: script.sql })),
         listDataFiles: async workbookId => backend.listDataFiles(workbookId),
@@ -80,12 +80,6 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         loadDataFile: async (workbookId, name) => backend.loadDataFile(workbookId, name),
         saveDataFile: async (workbookId, name, file) => backend.saveDataFile(workbookId, name, file),
         renameDataFile: async (workbookId, from, to) => backend.renameDataFile(workbookId, from, to),
-        findWorkbook: async workbookId => {
-            // The workbook tree is authoritative, also for entries whose files or metadata are invalid. Ids compare
-            // without their case, the entry keeps the spelling of the tree.
-            const id = workbookId.toLowerCase();
-            return (await backend.listWorkbooks()).find(entry => entry.path.toLowerCase() === id) ?? null;
-        },
         upsertWorkbookEntry: async entry => registry().upsertWorkbookEntry(entry as WorkbookEntry),
         deleteWorkbookFiles: async workbookId => registry().deleteWorkbookFiles(workbookId),
         registerNativeWorkbook: async (dir, workbookId) => {

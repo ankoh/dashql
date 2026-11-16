@@ -45,7 +45,7 @@ use wasm_bindgen::JsCast;
 use super::archives::{items, HostFile, HostFiles};
 use super::connections::Connections;
 use super::storage::restore_view::RestoreScriptFile;
-use super::storage::{load_workbook, RuntimeWriter};
+use super::storage::{entry_path, find_workbook, load_workbook, RuntimeWriter};
 use super::workbooks::view::WorkbookDataFile;
 use super::Restorer;
 use crate::host::{call_method, field, JsPlatform};
@@ -545,8 +545,8 @@ impl Imports {
 
     /// The registered workbook with an id, ignoring the case of the id
     async fn find_workbook(&self, workbook_id: &str) -> Result<Option<ImportConflict>, HostError> {
-        let entry = self.platform.storage_await("findWorkbook", &[text(workbook_id)]).await?;
-        Ok(string_field(&entry, "path").map(|path| ImportConflict { workbook_id: path, entry: JsonValue::of(&entry) }))
+        let entry = find_workbook(&self.platform, workbook_id).await?;
+        Ok(entry.and_then(|entry| Some(ImportConflict { workbook_id: entry_path(&entry)?.to_string(), entry: JsonValue(entry) })))
     }
 
     /// The connections of the app that an import maps to: the stored ones with their live params and the connections
@@ -1022,9 +1022,8 @@ impl Writer<'_> {
 
     /// Write a new workbook under an id that no workbook has, verify it and seed the catalogs. A failure deletes it.
     async fn write_fresh(&self, bundle: &WorkbookBundle<HostFile>, target: &str) -> Result<(), HostError> {
-        let found = self.storage("findWorkbook", &[text(target)]).await?;
-        if let Some(path) = string_field(&found, "path") {
-            return Err(HostError::new(format!("Workbook {path} is already registered")));
+        if let Some(found) = find_workbook(&self.platform, target).await? {
+            return Err(HostError::new(format!("Workbook {} is already registered", entry_path(&found).unwrap_or(target))));
         }
         let written = async {
             self.write_bundle(bundle, target, true, true).await?;
@@ -1054,7 +1053,7 @@ impl Writer<'_> {
         // only its mirror
         let old_native = conflict.entry.0.get("storageType").and_then(Value::as_str) == Some("native");
         for id in [&staging, &backup] {
-            if string_field(&self.storage("findWorkbook", &[text(id)]).await?, "path").is_some() {
+            if find_workbook(&self.platform, id).await?.is_some() {
                 return Err(HostError::new(format!("Staging workbook {id} is already registered")));
             }
         }

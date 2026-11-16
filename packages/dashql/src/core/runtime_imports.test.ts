@@ -140,6 +140,17 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
+    it('find the registered workbook of an import whatever the case of its id', async () => {
+        const { runtime, storage } = createRuntime();
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
+        // The workbook tree spells the id in upper case, the conflict keeps its spelling
+        storage.order.splice(0, storage.order.length, WB.toUpperCase());
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        expect(preview.conflict).toMatchObject({ workbookId: WB.toUpperCase() });
+        runtime.dropImport(preview.importId);
+        runtime.free();
+    });
+
     it('write the pending writes of a replaced workbook first and discard the later ones', async () => {
         const { runtime, storage } = createRuntime();
         const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);

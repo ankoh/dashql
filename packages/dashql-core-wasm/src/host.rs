@@ -97,8 +97,8 @@ export interface RuntimeStorage {
     deleteWorkbook(workbookId: string): Promise<void>;
     /** Does the storage own the connections? A storage of a single workbook folder doesn't. */
     ownsConnections(): boolean;
-    /** The workbooks of the workbook tree in the order of the sidebar, as their ids */
-    listWorkbooks(): Promise<string[]>;
+    /** The entries of the workbook tree in the order of the sidebar: the id of a workbook as `path`, where it is stored and its native folder */
+    listWorkbooks(): Promise<{ path: string; storageType?: string; nativePath?: string | null }[]>;
     /** The connection entries of the app manifest, null if the manifest has none */
     loadManifestConnections(): Promise<unknown[] | null>;
     /** The script files of a workbook */
@@ -113,8 +113,6 @@ export interface RuntimeStorage {
     saveDataFile(workbookId: string, name: string, file: Blob | Uint8Array): Promise<void>;
     /** Rename an attachment of a workbook, keeping its contents */
     renameDataFile(workbookId: string, from: string, to: string): Promise<void>;
-    /** The entry of the workbook tree with an id, ignoring its case, null if none */
-    findWorkbook(workbookId: string): Promise<{ path: string; storageType?: string; nativePath?: string | null } | null>;
     /** Add or replace an entry of the workbook tree, e.g. to route a workbook to the origin private file system */
     upsertWorkbookEntry(entry: unknown): Promise<void>;
     /** Delete the files of a workbook, its entry stays */

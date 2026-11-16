@@ -384,13 +384,33 @@ fn items<T: serde::de::DeserializeOwned>(value: JsValue, what: &str) -> Result<V
     serde_wasm_bindgen::from_value(value).map_err(|e| HostError::new(format!("{what} can't be read: {e}")))
 }
 
+/// The entries of the workbook tree of the storage in the order of the sidebar
+async fn workbook_entries(platform: &JsPlatform) -> Result<Vec<Value>, HostError> {
+    match JsonValue::of(&platform.storage_await("listWorkbooks", &[]).await?).0 {
+        Value::Array(entries) => Ok(entries),
+        _ => Err(HostError::new("the workbooks are not a list")),
+    }
+}
+
+/// The id of a workbook in an entry of the workbook tree
+pub(crate) fn entry_path(entry: &Value) -> Option<&str> {
+    entry.get("path").and_then(Value::as_str)
+}
+
+/// The entry of the workbook tree with an id, none if there is none. The tree is authoritative, also for entries whose
+/// files are invalid. Ids compare without their case, the entry keeps the spelling of the tree.
+pub(crate) async fn find_workbook(platform: &JsPlatform, workbook_id: &str) -> Result<Option<Value>, HostError> {
+    let id = workbook_id.to_lowercase();
+    Ok(workbook_entries(platform).await?.into_iter().find(|entry| entry_path(entry).is_some_and(|path| path.to_lowercase() == id)))
+}
+
 impl RestoreHost for JsStorage {
     fn owns_connections(&self) -> bool {
         self.platform.storage_call("ownsConnections", &[]).is_ok_and(|owns| owns.is_truthy())
     }
 
     async fn list_workbooks(&self) -> Result<Vec<String>, HostError> {
-        items(self.call("listWorkbooks", &[]).await?, "the workbooks")
+        Ok(workbook_entries(&self.platform).await?.iter().filter_map(entry_path).map(str::to_string).collect())
     }
 
     async fn load_manifest_connections(&self) -> Result<Option<Vec<Value>>, HostError> {
