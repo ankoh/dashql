@@ -43,18 +43,12 @@ const LISTED_COLUMNS: usize = 8;
 /// Split at the first whitespace, the rest starts at the next non-whitespace byte
 fn split_word(text: &str, from: usize) -> (usize, usize, usize) {
     let bytes = text.as_bytes();
-    let mut begin = from;
-    while begin < bytes.len() && bytes[begin].is_ascii_whitespace() {
-        begin += 1;
-    }
-    let mut end = begin;
-    while end < bytes.len() && !bytes[end].is_ascii_whitespace() {
-        end += 1;
-    }
-    let mut rest = end;
-    while rest < bytes.len() && bytes[rest].is_ascii_whitespace() {
-        rest += 1;
-    }
+    let span = |at: usize, whitespace: bool| {
+        at + bytes.get(at..).unwrap_or_default().iter().take_while(|b| b.is_ascii_whitespace() == whitespace).count()
+    };
+    let begin = span(from, true);
+    let end = span(begin, false);
+    let rest = span(end, true);
     (begin, end, rest)
 }
 
@@ -82,10 +76,10 @@ fn warn_layout(state: &mut AnalysisState, span: TextSpan, message: &str) {
 
 /// The names of the output columns of a statement, None if they are not fully known
 fn statement_columns(state: &AnalysisState, root: u32) -> Option<HashSet<String>> {
-    let mut scope = &state.out.name_scopes[*state.out.name_scopes_by_root_node.get(&root)? as usize];
+    let mut scope = state.out.scope(*state.out.name_scopes_by_root_node.get(&root)?)?;
     // Set operations expose the columns of their left input
-    if scope.output_columns.is_empty() && !scope.child_scopes.is_empty() {
-        scope = &state.out.name_scopes[scope.child_scopes[0] as usize];
+    if let (true, Some(&left)) = (scope.output_columns.is_empty(), scope.child_scopes.first()) {
+        scope = state.out.scope(left)?;
     }
     // A star over a relation with an unknown schema hides columns
     if scope.result_targets.iter().any(|rt| rt.is_star) {
@@ -245,7 +239,11 @@ fn read_args<const N: usize>(
             continue;
         };
         match value.parse::<i64>() {
-            Ok(value) => values[slot] = Some((value, span)),
+            Ok(value) => {
+                if let Some(v) = values.get_mut(slot) {
+                    *v = Some((value, span));
+                }
+            }
             Err(_) => warn(state, span, format!("@{kind} {key} must be an integer")),
         }
     }
@@ -375,7 +373,11 @@ pub(super) fn statement_tags<'p>(
 ) -> impl Iterator<Item = (&'p CommentBlock, &'p str)> {
     let script = parsed.scanned.text.as_str();
     let begin = description.description_blocks_begin as usize;
-    parsed.comment_blocks.blocks[begin..begin + description.description_blocks_count as usize]
+    parsed
+        .comment_blocks
+        .blocks
+        .get(begin..begin + description.description_blocks_count as usize)
+        .unwrap_or_default()
         .iter()
         .filter(|b| b.block_type == CommentBlockType::DASHQL_TAG)
         .map(move |b| (b, script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or("")))
@@ -385,8 +387,9 @@ pub(super) fn statement_tags<'p>(
 /// The kind of a `@vis` tag, the first word of its content
 fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &CommentBlock) -> &'p str {
     let script = parsed.scanned.text.as_str();
-    let lines = &parsed.comment_blocks.lines[block.lines_begin as usize..][..block.lines_count as usize];
-    let Some(line) = lines.first() else { return "" };
+    let Some(line) = parsed.comment_blocks.lines.get(block.lines_begin as usize).filter(|_| block.lines_count > 0) else {
+        return "";
+    };
     let text = script.get(line.offset as usize..line.end() as usize).unwrap_or("");
     let (begin, end, _) = split_word(text, 0);
     text.get(begin..end).unwrap_or("")
@@ -405,10 +408,10 @@ pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: 
 pub fn statement_output_columns(analyzed: &AnalyzedScript, statement_id: usize) -> Vec<std::sync::Arc<str>> {
     let Some(statement) = analyzed.parsed.statements.get(statement_id) else { return Vec::new() };
     let Some(&scope) = analyzed.name_scopes_by_root_node.get(&statement.root) else { return Vec::new() };
-    let mut scope = &analyzed.name_scopes[scope as usize];
+    let Some(mut scope) = analyzed.scope(scope) else { return Vec::new() };
     // Set operations expose the columns of their left input
-    if scope.output_columns.is_empty() && !scope.child_scopes.is_empty() {
-        scope = &analyzed.name_scopes[scope.child_scopes[0] as usize];
+    if let (true, Some(left)) = (scope.output_columns.is_empty(), scope.child_scopes.first().and_then(|&c| analyzed.scope(c))) {
+        scope = left;
     }
     let mut columns: Vec<std::sync::Arc<str>> = Vec::new();
     for column in &scope.output_columns {
@@ -436,7 +439,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         let columns = if query { statement_columns(state, statement.root) } else { None };
         let mut out = StatementTags::default();
         for (block, name) in tags {
-            let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+            let Some(lines) = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize) else { continue };
             let tag = TagText::new(script, lines, block.text_span);
             // `@board` and `@flow` take their args right away, `@vis` starts with its kind
             let (kind, kind_span, rest) = if name == VIS_TAG {

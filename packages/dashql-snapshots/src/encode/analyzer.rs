@@ -528,7 +528,7 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
                 match &source.table {
                     ReferencedTable::Cte(loc) => {
                         let cte = e.script.name_scopes[loc.scope as usize].cte_definitions.at(loc.index as usize);
-                        if let Some(child) = cte.child_scope {
+                        if let Some(child) = cte.and_then(|c| c.child_scope) {
                             s.int("scope", child as i64);
                         }
                     }

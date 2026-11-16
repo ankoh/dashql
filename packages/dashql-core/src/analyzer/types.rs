@@ -39,8 +39,8 @@ impl<V> OrderedMap<V> {
     pub fn get_index(&self, key: &str) -> Option<usize> {
         self.index.get(key).copied()
     }
-    pub fn at(&self, i: usize) -> &V {
-        &self.entries[i].1
+    pub fn at(&self, i: usize) -> Option<&V> {
+        self.entries.get(i).map(|(_, v)| v)
     }
     /// Insert a value unless the key exists. Returns the index of the key.
     pub fn insert(&mut self, key: Arc<str>, value: V) -> usize {

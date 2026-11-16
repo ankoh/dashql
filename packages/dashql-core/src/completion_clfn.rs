@@ -172,7 +172,7 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
             S_LRB if top.at_key => stack.push(Scope::new(Frame::Opaque)),
             S_LRB => {
                 // A name before the parenthesis is a function, the analyzer rejects it
-                if i > 0 && is_name(symbols[i - 1].kind) {
+                if i.checked_sub(1).and_then(|p| symbols.get(p)).is_some_and(|s| is_name(s.kind)) {
                     stack.push(Scope::new(Frame::Opaque));
                 } else if starts_embedded_sql(symbols, i) {
                     // Skip the query. If the cursor is inside it, core SQL completes it.
@@ -457,7 +457,7 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
     if containing.is_some_and(|s| !is_name(s.kind)) {
         return false;
     }
-    let (end, target) = match (containing, before.checked_sub(1).map(|i| &symbols[i])) {
+    let (end, target) = match (containing, before.checked_sub(1).and_then(|i| symbols.get(i))) {
         (Some(symbol), _) => (before, Some(symbol)),
         // Right behind a name
         (None, Some(previous)) if is_name(previous.kind) && previous.location.offset + previous.location.length == offset => {
@@ -465,8 +465,10 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         }
         _ => (before, None),
     };
-    let statement_begin = symbols[..end].iter().rposition(|s| s.kind == S_SEMICOLON).map_or(0, |i| i + 1);
-    let position = find_position(completion, specs, &symbols[statement_begin..end]);
+    // The tokens before the target, `end` never exceeds the symbols
+    let before_end = symbols.get(..end).unwrap_or_default();
+    let statement_begin = before_end.iter().rposition(|s| s.kind == S_SEMICOLON).map_or(0, |i| i + 1);
+    let position = find_position(completion, specs, before_end.get(statement_begin..).unwrap_or_default());
     let (prefix, span) = match target {
         Some(symbol) => {
             let length = offset.saturating_sub(symbol.location.offset);

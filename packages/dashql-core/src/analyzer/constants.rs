@@ -48,21 +48,23 @@ fn comparison_function(op: Op) -> ComparisonFunction {
 impl ConstantPropagationPass {
     /// The constant expression of a node
     fn constant_of(state: &AnalysisState, node_id: u32) -> Option<ExprId> {
-        state.expression_of(node_id).filter(|&e| state.out.expressions[e as usize].is_constant_expression)
+        state.expression_of(node_id).filter(|&e| state.out.expression(e).is_some_and(|e| e.is_constant_expression))
     }
 
     fn add_constant(&mut self, state: &mut AnalysisState, node_id: u32, inner: ExpressionInner, marker: SemanticNodeMarkerType) {
-        let span = *state.ast[node_id as usize].symbol_span();
-        let expr = state.add_expression(node_id, span, inner);
-        state.out.expressions[expr as usize].is_constant_expression = true;
-        state.expression_index[node_id as usize] = Some(expr);
+        let Some(node) = state.node(node_id) else { return };
+        let expr = state.add_expression(node_id, *node.symbol_span(), inner);
+        if let Some(e) = state.out.expression_mut(expr) {
+            e.is_constant_expression = true;
+        }
+        state.set_expression_of(node_id, expr);
         state.mark(node_id, marker);
         self.constants.push(expr);
     }
 
     pub fn visit(&mut self, state: &mut AnalysisState, morsel: Range<usize>) {
         for node_id in morsel {
-            let node = &state.ast[node_id];
+            let Some(node) = state.ast.get(node_id) else { break };
             let node_id = node_id as u32;
             match node.node_type() {
                 // Base case, literals
@@ -123,23 +125,24 @@ impl ConstantPropagationPass {
                             None => break,
                         }
                     }
-                    if const_args.len() != args.len() || const_args.len() != 2 {
+                    if const_args.len() != args.len() {
                         continue;
                     }
+                    let [left_expression_id, right_expression_id] = *const_args.as_slice() else { continue };
                     let op = Op(op_node.children_begin_or_value() as _);
                     let inner = match op {
                         Op::PLUS | Op::MINUS | Op::MULTIPLY | Op::DIVIDE | Op::MODULUS | Op::XOR | Op::AND | Op::OR => {
                             ExpressionInner::BinaryExpression(BinaryExpression {
                                 func: binary_function(op),
-                                left_expression_id: const_args[0],
-                                right_expression_id: const_args[1],
+                                left_expression_id,
+                                right_expression_id,
                             })
                         }
                         Op::EQUAL | Op::NOT_EQUAL | Op::LESS_THAN | Op::LESS_EQUAL | Op::GREATER_THAN | Op::GREATER_EQUAL => {
                             ExpressionInner::Comparison(Comparison {
                                 func: comparison_function(op),
-                                left_expression_id: const_args[0],
-                                right_expression_id: const_args[1],
+                                left_expression_id,
+                                right_expression_id,
                             })
                         }
                         _ => continue,
@@ -149,7 +152,7 @@ impl ConstantPropagationPass {
                 // Function calls
                 NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                     let Some(expr_id) = state.expression_of(node_id) else { continue };
-                    let ExpressionInner::FunctionCall(call) = &state.out.expressions[expr_id as usize].inner else {
+                    let Some(ExpressionInner::FunctionCall(call)) = state.out.expression(expr_id).map(|e| &e.inner) else {
                         continue;
                     };
                     // Skip functions with any modifiers
@@ -164,24 +167,25 @@ impl ConstantPropagationPass {
                     match call.arguments {
                         // Constant, but not stored as a root
                         FunctionArguments::None => {
-                            state.out.expressions[expr_id as usize].is_constant_expression = true;
+                            if let Some(e) = state.out.expression_mut(expr_id) {
+                                e.is_constant_expression = true;
+                            }
                         }
                         FunctionArguments::Generic { begin, count } => {
                             let mut is_constant = true;
                             for i in begin..begin + count {
-                                let value_node = state.out.function_arguments[i as usize].value_ast_node_id;
-                                match state.expression_of(value_node) {
-                                    None => {
-                                        is_constant = false;
-                                        break;
-                                    }
-                                    Some(arg_expr) => {
-                                        state.out.function_arguments[i as usize].expression_id = Some(arg_expr);
-                                        is_constant &= state.out.expressions[arg_expr as usize].is_constant_expression;
-                                    }
-                                }
+                                // A missing argument or argument expression makes the call not constant
+                                let arg_expr = state.out.function_arguments.get(i as usize).and_then(|a| state.expression_of(a.value_ast_node_id));
+                                let (Some(arg_expr), Some(arg)) = (arg_expr, state.out.function_arguments.get_mut(i as usize)) else {
+                                    is_constant = false;
+                                    break;
+                                };
+                                arg.expression_id = Some(arg_expr);
+                                is_constant &= state.out.expression(arg_expr).is_some_and(|e| e.is_constant_expression);
                             }
-                            state.out.expressions[expr_id as usize].is_constant_expression = is_constant;
+                            if let Some(e) = state.out.expression_mut(expr_id) {
+                                e.is_constant_expression = is_constant;
+                            }
                             if is_constant {
                                 self.constants.push(expr_id);
                                 state.mark(node_id, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
@@ -196,11 +200,11 @@ impl ConstantPropagationPass {
 
     pub fn finish(&mut self, state: &mut AnalysisState) {
         for &expr_id in &self.constants {
-            let node_id = state.out.expressions[expr_id as usize].ast_node_id;
-            let node = &state.ast[node_id as usize];
+            let Some(node_id) = state.out.expression(expr_id).map(|e| e.ast_node_id) else { continue };
+            let Some(node) = state.node(node_id) else { continue };
             // Only store the roots of constant expression trees
-            let parent = state.expression_of(node.parent());
-            if parent.is_some_and(|p| state.out.expressions[p as usize].is_constant_expression) {
+            let parent = state.expression_of(node.parent()).and_then(|p| state.out.expression(p));
+            if parent.is_some_and(|p| p.is_constant_expression) {
                 continue;
             }
             // If object, mark as constant expression root

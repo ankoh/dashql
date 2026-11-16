@@ -28,6 +28,7 @@ use crate::catalog::*;
 use crate::error::Result;
 use crate::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
+use dashql_buffers::parser::Node;
 use dashql_parser::names::{NameId, NameRegistry};
 use dashql_parser::parser::ParsedScript;
 use crate::hash::HashMap;
@@ -114,6 +115,49 @@ impl AnalyzedScript {
     /// The text of a name of this script
     pub fn name_text(&self, id: NameId) -> &str {
         &self.names.get(id).text
+    }
+
+    // The checked lookups of the arenas below take ids that the same analysis handed out. They miss only when an
+    // invariant of the analysis breaks, the callers then skip the object or return None or an error.
+
+    /// A node of the AST
+    pub fn node(&self, id: u32) -> Option<&Node> {
+        self.parsed.nodes.get(id as usize)
+    }
+
+    /// The children of a node, empty when they lie outside of the AST
+    pub fn children(&self, node: &Node) -> &[Node] {
+        self.parsed.children(node)
+    }
+
+    /// An expression
+    pub fn expression(&self, id: ExprId) -> Option<&Expression> {
+        self.expressions.get(id as usize)
+    }
+
+    /// An expression, mutable
+    pub fn expression_mut(&mut self, id: ExprId) -> Option<&mut Expression> {
+        self.expressions.get_mut(id as usize)
+    }
+
+    /// A name scope
+    pub fn scope(&self, id: ScopeId) -> Option<&NameScope> {
+        self.name_scopes.get(id as usize)
+    }
+
+    /// A name scope, mutable
+    pub fn scope_mut(&mut self, id: ScopeId) -> Option<&mut NameScope> {
+        self.name_scopes.get_mut(id as usize)
+    }
+
+    /// A table reference
+    pub fn table_ref(&self, id: TableRefId) -> Option<&TableReference> {
+        self.table_references.get(id as usize)
+    }
+
+    /// A table reference, mutable
+    pub fn table_ref_mut(&mut self, id: TableRefId) -> Option<&mut TableReference> {
+        self.table_references.get_mut(id as usize)
     }
 
     /// The name search index

@@ -82,7 +82,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let descriptions = parsed.associate_descriptions();
     for (statement_id, description) in descriptions.iter().enumerate() {
         for (block, _) in super::vis_tags::statement_tags(parsed, description, &[PARAM_TAG]) {
-            let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+            let Some(lines) = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize) else { continue };
             let tag = TagText::new(script, lines, block.text_span);
             // A Javadoc `@param x ...` is a comment, not a value
             if !tag.text.trim_start().starts_with(':') {

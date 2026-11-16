@@ -42,7 +42,9 @@ impl<'a> AnalysisState<'a> {
         let mut names = scanned.names.clone();
         let empty_name = names.register("", TextSpan::default());
         let mut name_tags = vec![NameTag::NONE; names.len()];
-        name_tags[empty_name as usize] = NameTag(NameTag::DATABASE_NAME.0 | NameTag::SCHEMA_NAME.0);
+        if let Some(tags) = name_tags.get_mut(empty_name as usize) {
+            *tags = NameTag(NameTag::DATABASE_NAME.0 | NameTag::SCHEMA_NAME.0);
+        }
         let name_texts = names.iter().map(|n| Arc::<str>::from(n.text.as_str())).collect();
         let node_count = parsed.nodes.len();
         let out = AnalyzedScript {
@@ -128,16 +130,19 @@ impl<'a> AnalysisState<'a> {
             .names
             .iter()
             .map(|n| IndexedName {
-                text: self.name_texts[n.name_id as usize].clone(),
+                text: self.name_texts.get(n.name_id as usize).cloned().unwrap_or_default(),
                 occurrences: n.occurrences,
                 location: n.location,
-                tags: out.name_tags[n.name_id as usize],
+                tags: out.name_tags.get(n.name_id as usize).copied().unwrap_or(NameTag::NONE),
                 objects: Vec::new(),
             })
             .collect();
         for &(entry, name, object) in &out.name_objects {
-            if entry == entry_id {
-                names[name as usize].objects.push(object);
+            if entry != entry_id {
+                continue;
+            }
+            if let Some(indexed) = names.get_mut(name as usize) {
+                indexed.objects.push(object);
             }
         }
         out.name_search_index = Arc::new(NameSearchIndex::new(names));
@@ -153,14 +158,19 @@ impl<'a> AnalysisState<'a> {
         &self.parsed.scanned
     }
 
-    /// The children of a node
+    /// The children of a node, empty when they lie outside of the AST
     pub fn children(&self, node: &Node) -> &'a [Node] {
         let count = node.children_count() as usize;
         if count == 0 {
             return &[];
         }
         let begin = node.children_begin_or_value() as usize;
-        &self.ast[begin..begin + count]
+        self.ast.get(begin..begin + count).unwrap_or_default()
+    }
+
+    /// A node of the AST
+    pub fn node(&self, id: u32) -> Option<&'a Node> {
+        self.ast.get(id as usize)
     }
 
     /// The id of a node of the AST
@@ -168,12 +178,12 @@ impl<'a> AnalysisState<'a> {
         ((node as *const Node as usize - self.ast.as_ptr() as usize) / std::mem::size_of::<Node>()) as u32
     }
 
-    /// A name of the script
+    /// A name of the script, with an empty text for an id that the script doesn't hold
     pub fn name(&self, id: NameId) -> Name {
         Name {
             entry: self.entry_id,
             id,
-            text: self.name_texts[id as usize].clone(),
+            text: self.name_texts.get(id as usize).cloned().unwrap_or_default(),
         }
     }
 
@@ -197,8 +207,10 @@ impl<'a> AnalysisState<'a> {
 
     /// Add analyzer tags to a name of the script
     pub fn tag(&mut self, name: &Name, tag: NameTag) {
-        if name.entry == self.entry_id {
-            let tags = &mut self.out.name_tags[name.id as usize];
+        if name.entry != self.entry_id {
+            return;
+        }
+        if let Some(tags) = self.out.name_tags.get_mut(name.id as usize) {
             *tags = NameTag(tags.0 | tag.0);
         }
     }
@@ -225,7 +237,9 @@ impl<'a> AnalysisState<'a> {
 
     /// Mark a node
     pub fn mark(&mut self, node_id: u32, marker: SemanticNodeMarkerType) {
-        self.out.node_markers[node_id as usize] = marker;
+        if let Some(m) = self.out.node_markers.get_mut(node_id as usize) {
+            *m = marker;
+        }
     }
 
     /// Add an expression
@@ -247,16 +261,23 @@ impl<'a> AnalysisState<'a> {
         self.expression_index.get(node_id as usize).copied().flatten()
     }
 
-    /// Add an error at an AST node
+    /// Set the expression of a node
+    pub fn set_expression_of(&mut self, node_id: u32, expr: ExprId) {
+        if let Some(index) = self.expression_index.get_mut(node_id as usize) {
+            *index = Some(expr);
+        }
+    }
+
+    /// Add an error at an AST node, without a location for a node that the AST doesn't hold
     pub fn add_error(&mut self, error_type: AnalyzerErrorType, severity: AnalyzerErrorSeverity, node_id: u32, message: String) {
-        let span = *self.ast[node_id as usize].symbol_span();
-        let text_span = self.text_span(span);
+        let span = self.node(node_id).map(|n| *n.symbol_span());
+        let text_span = span.map(|s| self.text_span(s));
         self.out.errors.push(AnalyzerError {
             error_type,
             severity,
             ast_node_id: Some(node_id),
-            symbol_span: Some(span),
-            text_span: Some(text_span),
+            symbol_span: span,
+            text_span,
             message,
         });
     }
@@ -287,10 +308,10 @@ impl<'a> AnalysisState<'a> {
         let node = node?;
         let path = self.read_name_path(node);
         let ast_node_id = Some(self.node_id(node));
-        let (db, schema, table) = match path.len() {
-            3 => (self.name(path[0]), self.name(path[1]), self.name(path[2])),
-            2 => (self.empty_name(), self.name(path[0]), self.name(path[1])),
-            1 => (self.empty_name(), self.empty_name(), self.name(path[0])),
+        let (db, schema, table) = match *path.as_slice() {
+            [db, schema, table] => (self.name(db), self.name(schema), self.name(table)),
+            [schema, table] => (self.empty_name(), self.name(schema), self.name(table)),
+            [table] => (self.empty_name(), self.empty_name(), self.name(table)),
             _ => return None,
         };
         if path.len() == 3 {
@@ -314,10 +335,10 @@ impl<'a> AnalysisState<'a> {
         let node = node?;
         let path = self.read_name_path(node);
         let ast_node_id = Some(self.node_id(node));
-        match path.len() {
-            0 => None,
-            1 => {
-                let column = self.name(path[0]);
+        match *path.as_slice() {
+            [] => None,
+            [column] => {
+                let column = self.name(column);
                 self.tag(&column, NameTag::COLUMN_NAME);
                 Some(QualifiedColumnName {
                     ast_node_id,
@@ -325,9 +346,9 @@ impl<'a> AnalysisState<'a> {
                     column_name: column,
                 })
             }
-            _ => {
-                let alias = self.name(path[0]);
-                let column = self.name(path[1]);
+            [alias, column, ..] => {
+                let alias = self.name(alias);
+                let column = self.name(column);
                 self.tag(&alias, NameTag::TABLE_ALIAS);
                 self.tag(&column, NameTag::COLUMN_NAME);
                 Some(QualifiedColumnName {
@@ -344,10 +365,10 @@ impl<'a> AnalysisState<'a> {
         let node = node?;
         let path = self.read_name_path(node);
         let ast_node_id = Some(self.node_id(node));
-        let (db, schema, function) = match path.len() {
-            3 => (self.name(path[0]), self.name(path[1]), self.name(path[2])),
-            2 => (self.empty_name(), self.name(path[0]), self.name(path[1])),
-            1 => (self.empty_name(), self.empty_name(), self.name(path[0])),
+        let (db, schema, function) = match *path.as_slice() {
+            [db, schema, function] => (self.name(db), self.name(schema), self.name(function)),
+            [schema, function] => (self.empty_name(), self.name(schema), self.name(function)),
+            [function] => (self.empty_name(), self.empty_name(), self.name(function)),
             _ => return None,
         };
         if path.len() == 3 {
@@ -381,7 +402,8 @@ impl<'a> AnalysisState<'a> {
         let mut root = ast_node_id;
         // Statement roots are their own parents
         for _ in 0..self.ast.len() {
-            let parent = self.ast[root as usize].parent();
+            let Some(node) = self.node(root) else { break };
+            let parent = node.parent();
             if parent as usize >= self.ast.len() || parent == root {
                 break;
             }

@@ -54,18 +54,18 @@ pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSna
             return false;
         }
         let location = namespace.location;
-        let name = &scanned.text.as_bytes()[location.offset as usize..(location.offset + location.length) as usize];
+        let name = scanned.text.as_bytes().get(location.offset as usize..(location.offset + location.length) as usize).unwrap_or_default();
         catalog.client_function_spec(&String::from_utf8_lossy(name).trim_matches('"').to_ascii_lowercase()).is_some()
     };
     scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| match statement.split_first() {
-        Some((first, rest)) if first.kind == S_EXPLAIN => (0..rest.len()).any(|i| starts_call(&rest[i..])),
+        Some((first, rest)) if first.kind == S_EXPLAIN => (0..rest.len()).any(|i| rest.get(i..).is_some_and(starts_call)),
         _ => starts_call(statement),
     })
 }
 
 /// The call of a statement: the root or the body of an EXPLAIN
 fn call_of_statement(parsed: &ParsedScript, root: u32) -> Option<(u32, bool)> {
-    let node = &parsed.nodes[root as usize];
+    let node = parsed.nodes.get(root as usize)?;
     match node.node_type() {
         NodeType::OBJECT_SQL_CALL => Some((root, false)),
         NodeType::OBJECT_EXT_EXPLAIN => {
@@ -191,7 +191,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     }
     for (statement_id, statement) in parsed.statements.iter().enumerate() {
         let Some((call_id, explain)) = call_of_statement(parsed, statement.root) else { continue };
-        let call = &parsed.nodes[call_id as usize];
+        let Some(call) = parsed.nodes.get(call_id as usize) else { continue };
         let Some(callee) = resolve_callee(parsed, &snapshot, call) else { continue };
         let [name, args] = attrs!(parsed.children(call), [K::SQL_CALL_NAME, K::SQL_CALL_ARGS]);
         let name_id = name.map(|n| node_id(parsed, n)).unwrap_or(call_id);
@@ -288,25 +288,28 @@ impl Checker<'_, '_, '_> {
         let paging = function.paging.as_ref();
         if used_standard.contains(&OPTION_NEXT) {
             if let Some(option) = paging.and_then(|p| p.option.as_ref()).filter(|o| seen.iter().any(|s| **s == ***o)) {
-                let call = &parsed.nodes[call_id as usize];
-                let message = format!("{OPTION_NEXT} sets the option {option}, use one of them");
-                self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, call, message);
+                if let Some(call) = parsed.nodes.get(call_id as usize) {
+                    let message = format!("{OPTION_NEXT} sets the option {option}, use one of them");
+                    self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, call, message);
+                }
             }
         }
         if used_standard.contains(&OPTION_NEXT) && used_standard.contains(&OPTION_POLL) {
-            let call = &parsed.nodes[call_id as usize];
-            let message = format!("{OPTION_NEXT} and {OPTION_POLL} continue different things, use one of them");
-            self.error(AnalyzerErrorType::CLIENT_FUNCTION_UNSUPPORTED_OPTION, call, message);
+            if let Some(call) = parsed.nodes.get(call_id as usize) {
+                let message = format!("{OPTION_NEXT} and {OPTION_POLL} continue different things, use one of them");
+                self.error(AnalyzerErrorType::CLIENT_FUNCTION_UNSUPPORTED_OPTION, call, message);
+            }
         }
         // A poll and a next URL carry the whole request
         let next_url = used_standard.contains(&OPTION_NEXT) && paging.is_some_and(|p| p.kind == "url");
         if !used_standard.contains(&OPTION_POLL) && !next_url {
             for option in function.options.iter().filter(|o| o.required) {
-                if !seen.iter().any(|s| **s == *option.name) {
-                    let call = &parsed.nodes[call_id as usize];
-                    let message = format!("{}.{} needs the option {}", self.spec.namespace, function.name, option.name);
-                    self.error(AnalyzerErrorType::CLIENT_FUNCTION_MISSING_OPTION, call, message);
+                if seen.iter().any(|s| **s == *option.name) {
+                    continue;
                 }
+                let Some(call) = parsed.nodes.get(call_id as usize) else { continue };
+                let message = format!("{}.{} needs the option {}", self.spec.namespace, function.name, option.name);
+                self.error(AnalyzerErrorType::CLIENT_FUNCTION_MISSING_OPTION, call, message);
             }
         }
     }
@@ -394,8 +397,7 @@ impl Checker<'_, '_, '_> {
         let read: Vec<ClientFunctionField> = fields.iter().map(|(key, value)| read_field(parsed, key, value)).collect();
         let fit = schema.map(|s| spec.fit(s, &read));
         let mut seen: Vec<Arc<str>> = Vec::new();
-        for (i, (key, value)) in fields.iter().copied().enumerate() {
-            let name = &read[i];
+        for (i, ((key, value), name)) in fields.iter().copied().zip(&read).enumerate() {
             let attribute = schema.and_then(|s| spec.attribute_of(s, &name.name, name.quoted));
             let canonical: Arc<str> = Arc::from(attribute.map_or(name.name.as_str(), |a| a.name.as_str()));
             if seen.contains(&canonical) {
@@ -408,7 +410,7 @@ impl Checker<'_, '_, '_> {
                     let message = with_suggestion(format!("no attribute {} here", name.name), closest_name(&name.name, candidates));
                     self.report_unknown(fit.unknown(), key, message);
                 } else if fit.conflicts.contains(&i) {
-                    let message = match fit.tag_field.map(|t| &read[t]) {
+                    let message = match fit.tag_field.and_then(|t| read.get(t)) {
                         Some(tag) => format!("no attribute {} when {} is '{}'", name.name, tag.name, tag.text.as_deref().unwrap_or_default()),
                         None => format!("{} does not fit the attributes before it", name.name),
                     };
@@ -433,7 +435,7 @@ impl Checker<'_, '_, '_> {
         let closest: Vec<&Vec<&str>> = missing.iter().filter(|m| m.len() == fewest).collect();
         // What all of them need is certain, the rest is a choice between them
         let needed_by_all = |name: &str| closest.iter().all(|m| m.contains(&name));
-        for name in closest[0].iter().copied().filter(|name| needed_by_all(name)) {
+        for name in closest.first().into_iter().flat_map(|m| m.iter().copied()).filter(|name| needed_by_all(name)) {
             self.error(AnalyzerErrorType::CLIENT_FUNCTION_MISSING_OPTION, object, format!("needs the attribute {name}"));
         }
         let mut choice: Vec<&str> = closest.iter().flat_map(|m| m.iter().copied()).filter(|name| !needed_by_all(name)).collect();
@@ -484,9 +486,10 @@ fn is_parenthesized(symbols: &[Symbol]) -> bool {
 fn select_text<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
     let scanned = &parsed.scanned;
     let span = node.symbol_span();
-    let mut symbols = &scanned.symbols[span.offset() as usize..(span.offset() + span.length()) as usize];
+    let mut symbols = scanned.symbols.get(span.offset() as usize..(span.offset() + span.length()) as usize).unwrap_or_default();
     while is_parenthesized(symbols) {
-        symbols = &symbols[1..symbols.len() - 1];
+        let [_, inner @ .., _] = symbols else { break };
+        symbols = inner;
     }
     match (symbols.first(), symbols.last()) {
         (Some(first), Some(last)) => {
@@ -606,7 +609,7 @@ impl AnalyzedScript {
         let spec = self.snapshot.client_function_spec(&record.namespace)?;
         let function = spec.function(function_name)?;
         let parsed = self.parsed.clone();
-        let call = &parsed.nodes[record.ast_node_id as usize];
+        let call = parsed.nodes.get(record.ast_node_id as usize)?;
         let [args] = attrs!(parsed.children(call), [K::SQL_CALL_ARGS]);
         let mut describer = Describer { analyzed: self, spec, bindings: Vec::new() };
         let mut options = Map::new();
@@ -633,7 +636,9 @@ impl AnalyzedScript {
             "options": options,
         });
         if !describer.bindings.is_empty() {
-            out["bindings"] = Value::Array(describer.bindings);
+            if let Some(out) = out.as_object_mut() {
+                out.insert("bindings".to_string(), Value::Array(describer.bindings));
+            }
         }
         Some(out)
     }

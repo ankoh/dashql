@@ -14,11 +14,12 @@ use std::sync::Arc;
 
 pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) {
     for node_id in morsel {
-        let node = &state.ast[node_id];
+        let Some(node) = state.ast.get(node_id) else { break };
         if node.node_type() != NodeType::OBJECT_SQL_PARAMETER_REF {
             continue;
         }
-        let parent = &state.ast[node.parent() as usize];
+        // Statement roots are their own parents, the parent is always in the AST
+        let Some(parent) = state.node(node.parent()) else { continue };
         let kind = if node.attribute_key() == K::SQL_TABLEREF_TABLE && parent.node_type() == NodeType::OBJECT_SQL_TABLEREF {
             ParameterKind::Table
         } else {

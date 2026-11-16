@@ -457,7 +457,7 @@ struct DotCandidate {
 fn trim_double_quotes(s: &[u8]) -> &[u8] {
     let begin = s.iter().position(|&c| c != b'"').unwrap_or(s.len());
     let end = s.iter().rposition(|&c| c != b'"').map(|e| e + 1).unwrap_or(begin).max(begin);
-    &s[begin..end]
+    s.get(begin..end).unwrap_or_default()
 }
 
 /// Lossless text of bytes that came from the script text at char boundaries
@@ -526,7 +526,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let text = self.text().as_bytes();
         let begin = (offset as usize).min(text.len());
         let end = (begin + length as usize).min(text.len());
-        &text[begin..end]
+        text.get(begin..end).unwrap_or_default()
     }
 
     /// The location of a symbol as a text-based SymbolSpan
@@ -677,8 +677,19 @@ impl<'c, 'a> Completion<'c, 'a> {
             prefer_qualified: false,
             info: CandidateInfo::default(),
         });
-        self.candidates[candidate].catalog_objects.push(co);
+        if let Some(candidate) = self.candidates.get_mut(candidate) {
+            candidate.catalog_objects.push(co);
+        }
         self.candidate_objects_by_id.insert(object_id, co);
+    }
+
+    /// Add tags to a candidate object and to its candidate
+    fn tag_object(&mut self, co: usize, tags: CandidateTags) {
+        let Some(object) = self.candidate_objects.get_mut(co) else { return };
+        object.candidate_tags |= tags;
+        if let Some(candidate) = self.candidates.get_mut(object.candidate) {
+            candidate.candidate_tags |= tags;
+        }
     }
 
     /// Compute the completion at a cursor
@@ -777,16 +788,18 @@ impl<'c, 'a> Completion<'c, 'a> {
         if let Some(parsed) = cursor.script.parsed {
             for &node_id in &cursor.ast_path_to_root {
                 if matches!(
-                    parsed.nodes[node_id as usize].attribute_key(),
-                    AttributeKey::SQL_CREATE_TABLE_NAME
-                        | AttributeKey::SQL_CREATE_AS_NAME
-                        | AttributeKey::SQL_VIEW_NAME
-                        | AttributeKey::SQL_COLUMN_DEF_NAME
-                        | AttributeKey::SQL_RESULT_TARGET_NAME
-                        | AttributeKey::SQL_CTE_NAME
-                        | AttributeKey::SQL_WINDOW_DEF_NAME
-                        | AttributeKey::SQL_CREATE_FUNCTION_NAME
-                        | AttributeKey::SQL_FUNCTION_PARAM_NAME
+                    parsed.nodes.get(node_id as usize).map(|n| n.attribute_key()),
+                    Some(
+                        AttributeKey::SQL_CREATE_TABLE_NAME
+                            | AttributeKey::SQL_CREATE_AS_NAME
+                            | AttributeKey::SQL_VIEW_NAME
+                            | AttributeKey::SQL_COLUMN_DEF_NAME
+                            | AttributeKey::SQL_RESULT_TARGET_NAME
+                            | AttributeKey::SQL_CTE_NAME
+                            | AttributeKey::SQL_WINDOW_DEF_NAME
+                            | AttributeKey::SQL_CREATE_FUNCTION_NAME
+                            | AttributeKey::SQL_FUNCTION_PARAM_NAME
+                    )
                 ) {
                     completion.at_definition = true;
                     break;
@@ -881,10 +894,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         {
             post_id = self.next_symbol(target.symbol_id);
         }
-        if self.is_at_eof(post_id) {
-            return false;
-        }
-        self.symbols()[post_id as usize].kind != S_YYEOF
+        // Past the end of the symbols is EOF
+        self.symbols().get(post_id as usize).is_some_and(|s| s.kind != S_YYEOF)
     }
 
     /// The feed point and whether feeding replaces the target token
@@ -942,7 +953,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             self.cursor
                 .ast_path_to_root
                 .iter()
-                .any(|&n| parsed.nodes[n as usize].node_type() == NodeType::OBJECT_SQL_SELECT)
+                .any(|&n| parsed.nodes.get(n as usize).is_some_and(|n| n.node_type() == NodeType::OBJECT_SQL_SELECT))
         });
 
         // CALL is only worth offering if client functions give it a meaning, it must not outrank CREATE otherwise
@@ -964,7 +975,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 probes = probe::probe_suffix_batch(self.symbols(), feed_id, prefix, &kinds, replace_target);
             }
         }
-        let mut next_probe = 0;
+        let mut probes = probe_input_idx.into_iter().zip(probes).peekable();
 
         for (i, &expected) in symbols.iter().enumerate() {
             let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()).filter(|_| offers(expected)) else { continue };
@@ -973,9 +984,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             if expected == S_FROM && !inside_select && !has(tags, CandidateTag::SUBSTRING_MATCH) {
                 continue;
             }
-            if next_probe < probes.len() && probe_input_idx[next_probe] == i {
-                let probe = probes[next_probe];
-                next_probe += 1;
+            if let Some((_, probe)) = probes.next_if(|&(idx, _)| idx == i) {
                 if !probe.k1_compatible {
                     tags |= CandidateTag::SUFFIX_INCOMPATIBLE.0;
                 } else if probe.reached_eof || probe.depth_consumed >= 2 {
@@ -1000,7 +1009,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let safe_cursor = cursor.max(symbol_ofs).min(symbol_ofs + symbol_len);
         let symbol_text = self.text_at(symbol_ofs, symbol_len);
         let prefix_len = ((safe_cursor.max(symbol_ofs) - symbol_ofs) as usize).min(symbol_text.len());
-        trim_double_quotes(&symbol_text[..prefix_len])
+        trim_double_quotes(symbol_text.get(..prefix_len).unwrap_or_default())
     }
 
     /// Find candidates in a name search index
@@ -1045,9 +1054,10 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             let candidate = match self.candidates_by_name.get(&name.text) {
                 Some(&c) => {
-                    let candidate = &mut self.candidates[c];
-                    candidate.coarse_name_tags |= name.tags.0;
-                    candidate.candidate_tags |= tags;
+                    if let Some(candidate) = self.candidates.get_mut(c) {
+                        candidate.coarse_name_tags |= name.tags.0;
+                        candidate.candidate_tags |= tags;
+                    }
                     c
                 }
                 None => {
@@ -1061,7 +1071,9 @@ impl<'c, 'a> Completion<'c, 'a> {
             for &object in &name.objects {
                 let Some((object_id, candidate_object)) = self.index_object(object) else { continue };
                 if let Some(&co) = self.candidate_objects_by_id.get(&object_id) {
-                    self.candidate_objects[co].candidate_tags |= tags;
+                    if let Some(object) = self.candidate_objects.get_mut(co) {
+                        object.candidate_tags |= tags;
+                    }
                     continue;
                 }
                 self.add_object(candidate, tags, object_id, candidate_object);
@@ -1100,7 +1112,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         match self.candidates_by_name.get(name) {
             Some(&c) => {
-                let candidate = &mut self.candidates[c];
+                let Some(candidate) = self.candidates.get_mut(c) else { return };
                 candidate.coarse_name_tags |= name_tags;
                 candidate.candidate_tags |= tags;
                 // A visible local relation shadows catalog objects with the same spelling
@@ -1119,7 +1131,8 @@ impl<'c, 'a> Completion<'c, 'a> {
     fn derived_columns(analyzed: &AnalyzedScript, source: &ScopeSource) -> Vec<Arc<str>> {
         let (child, aliases) = match &source.table {
             ReferencedTable::Cte(loc) => {
-                let cte = analyzed.name_scopes[loc.scope as usize].cte_definitions.at(loc.index as usize);
+                let Some(scope) = analyzed.scope(loc.scope) else { return Vec::new() };
+                let Some(cte) = scope.cte_definitions.at(loc.index as usize) else { return Vec::new() };
                 let Some(child) = cte.child_scope else { return Vec::new() };
                 let aliases = if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
                 (child, aliases)
@@ -1127,7 +1140,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             ReferencedTable::Subquery(child) => (*child, &source.column_aliases),
             ReferencedTable::Table(_) | ReferencedTable::Unresolved(_) => return Vec::new(),
         };
-        let outputs = &analyzed.name_scopes[child as usize].output_columns;
+        let Some(child) = analyzed.scope(child) else { return Vec::new() };
+        let outputs = &child.output_columns;
         let mut names = Vec::new();
         for (i, output) in outputs.iter().enumerate() {
             let name = aliases.get(i).unwrap_or(&output.column_name);
@@ -1145,7 +1159,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             if Some(c) == ancestor {
                 return true;
             }
-            current = analyzed.name_scopes[c as usize].parent_scope;
+            current = analyzed.scope(c).and_then(|s| s.parent_scope);
         }
         false
     }
@@ -1164,19 +1178,18 @@ impl<'c, 'a> Completion<'c, 'a> {
         if self.strategy == CompletionStrategy::TABLE_REF {
             // Non-recursive CTEs are visible after their definition and not within themselves
             let scanned = &parsed.scanned;
+            let innermost = cursor.name_scopes.first().copied();
             for &scope_id in &cursor.name_scopes {
-                let scope = &analyzed.name_scopes[scope_id as usize];
+                let Some(scope) = analyzed.scope(scope_id) else { continue };
                 for (_, cte) in scope.cte_definitions.iter() {
                     let Some(&cte_node) = scope.cte_definition_nodes.get(&cte.cte_name.text) else { continue };
-                    let cte_text = resolve_text_span(
-                        &scanned.text,
-                        &scanned.symbols,
-                        *parsed.nodes[cte_node as usize].symbol_span(),
-                    );
+                    let Some(cte_node) = parsed.nodes.get(cte_node as usize) else { continue };
+                    let cte_text = resolve_text_span(&scanned.text, &scanned.symbols, *cte_node.symbol_span());
                     if !scope.ctes_recursive && cte_text.offset as usize >= cursor.text_offset {
                         continue;
                     }
-                    if !scope.ctes_recursive && Self::is_scope_within(analyzed, cursor.name_scopes[0], cte.child_scope)
+                    if !scope.ctes_recursive
+                        && innermost.is_some_and(|innermost| Self::is_scope_within(analyzed, innermost, cte.child_scope))
                     {
                         continue;
                     }
@@ -1197,7 +1210,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         // The columns of CTE and derived table sources, catalog columns come from the name index
         for &scope_id in &cursor.name_scopes {
-            let scope = &analyzed.name_scopes[scope_id as usize];
+            let Some(scope) = analyzed.scope(scope_id) else { continue };
             for source in &scope.sources {
                 for name in Self::derived_columns(analyzed, source) {
                     self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, prefix, location, location);
@@ -1213,7 +1226,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let mut visibility = SourceVisibility::All;
         for &scope_id in name_scopes {
             visible.push((scope_id, visibility));
-            let scope = &analyzed.name_scopes[scope_id as usize];
+            let Some(scope) = analyzed.scope(scope_id) else { break };
             if scope.column_correlation_barrier {
                 break;
             }
@@ -1227,19 +1240,17 @@ impl<'c, 'a> Completion<'c, 'a> {
         let cursor = self.cursor;
         let Some(analyzed) = self.analyzed() else { return };
         let in_insert_source =
-            self.cursor.name_scopes.iter().any(|&s| analyzed.name_scopes[s as usize].column_correlation_barrier);
+            self.cursor.name_scopes.iter().any(|&s| analyzed.scope(s).is_some_and(|s| s.column_correlation_barrier));
         let promote = |completion: &mut Self, object_id: QualifiedCatalogObjectId| {
             if let Some(&co) = completion.candidate_objects_by_id.get(&object_id) {
-                let candidate = completion.candidate_objects[co].candidate;
-                completion.candidate_objects[co].candidate_tags |= CandidateTag::IN_NAME_SCOPE.0;
-                completion.candidates[candidate].candidate_tags |= CandidateTag::IN_NAME_SCOPE.0;
+                completion.tag_object(co, CandidateTag::IN_NAME_SCOPE.0);
             }
         };
         for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
-            let scope = &analyzed.name_scopes[scope_id as usize];
+            let Some(scope) = analyzed.scope(scope_id) else { continue };
             // Columns of resolved table refs in scope
             for &table_ref_id in &scope.table_references {
-                let table_ref = &analyzed.table_references[table_ref_id as usize];
+                let Some(table_ref) = analyzed.table_ref(table_ref_id) else { continue };
                 if !visibility.sees_node(table_ref.ast_node_id) {
                     continue;
                 }
@@ -1256,7 +1267,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             // Resolved column refs in scope
             for &expr in &scope.expressions {
-                let Some(column_ref) = analyzed.expressions[expr as usize].column_ref() else { continue };
+                let Some(column_ref) = analyzed.expression(expr).and_then(|e| e.column_ref()) else { continue };
                 let ColumnResolution::TableColumn(loc) = column_ref.resolved else { continue };
                 // The location refers to the entries the script was analyzed against, which the catalog
                 // may have replaced since
@@ -1277,9 +1288,9 @@ impl<'c, 'a> Completion<'c, 'a> {
         };
         let mut columns = Vec::new();
         for &scope_id in &cursor.name_scopes {
-            let scope = &analyzed.name_scopes[scope_id as usize];
+            let Some(scope) = analyzed.scope(scope_id) else { continue };
             for &expr in &scope.expressions {
-                let Some(column_ref) = analyzed.expressions[expr as usize].column_ref() else { continue };
+                let Some(column_ref) = analyzed.expression(expr).and_then(|e| e.column_ref()) else { continue };
                 if column_ref.resolved.is_resolved() {
                     continue;
                 }
@@ -1292,15 +1303,11 @@ impl<'c, 'a> Completion<'c, 'a> {
                 for &column in &columns {
                     let Some(table) = self.table(column.table) else { continue };
                     if let Some(&co) = self.candidate_objects_by_id.get(&table.object_id) {
-                        let candidate = self.candidate_objects[co].candidate;
-                        self.candidate_objects[co].candidate_tags |= CandidateTag::RESOLVING_TABLE.0;
-                        self.candidates[candidate].candidate_tags |= CandidateTag::RESOLVING_TABLE.0;
+                        self.tag_object(co, CandidateTag::RESOLVING_TABLE.0);
                     }
                     for peer in &table.table_columns {
                         if let Some(&co) = self.candidate_objects_by_id.get(&peer.object_id) {
-                            let candidate = self.candidate_objects[co].candidate;
-                            self.candidate_objects[co].candidate_tags |= CandidateTag::UNRESOLVED_PEER.0;
-                            self.candidates[candidate].candidate_tags |= CandidateTag::UNRESOLVED_PEER.0;
+                            self.tag_object(co, CandidateTag::UNRESOLVED_PEER.0);
                         }
                     }
                 }
@@ -1389,7 +1396,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             if &**db != database {
                 break;
             }
-            let schema = &analyzed.entry.schema_references[i];
+            let Some(schema) = analyzed.entry.schema_references.get(i) else { continue };
             out.push((schema.schema_name.clone(), schema.object_id, false));
         }
         for ((db, _), schema) in self.catalog().schemas().range(lower..) {
@@ -1419,7 +1426,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let qualified_at = SymbolSpan::new(alias_begin as u32, (cursor.text_offset - alias_begin) as u32);
             let tags = CandidateTag::DOT_RESOLUTION_COLUMN.0 | CandidateTag::IN_NAME_SCOPE.0;
             for &scope_id in &cursor.name_scopes {
-                let scope = &analyzed.name_scopes[scope_id as usize];
+                let Some(scope) = analyzed.scope(scope_id) else { continue };
                 let Some(source) = scope.source(alias_text) else { continue };
                 match &source.table {
                     ReferencedTable::Table(loc) => {
@@ -1472,8 +1479,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let mut last_text_prefix: &[u8] = &[];
         let name_path_ts = resolve(name_path_loc);
         let mut truncate_at = name_path_ts.offset + name_path_ts.length;
-        while name_count < name_path.len() {
-            let component = &name_path[name_count];
+        for component in &name_path {
             let comp_ts = resolve(component.loc);
             if component.component_type == NameComponentType::TrailingDot {
                 truncate_at = comp_ts.offset + 1;
@@ -1492,13 +1498,13 @@ impl<'c, 'a> Completion<'c, 'a> {
                 let last_content_ofs = comp_ts.offset as usize + last_content;
                 let prefix_length = (cursor_location as usize).max(last_content_ofs) - last_content_ofs;
                 let end = (last_content + prefix_length).min(last_text.len());
-                last_text_prefix = &last_text[last_content..end];
+                last_text_prefix = last_text.get(last_content..end).unwrap_or_default();
                 truncate_at = comp_ts.offset;
                 break;
             }
             name_count += 1;
         }
-        let name_path = &name_path[..name_count];
+        let name_path = name_path.get(..name_count).unwrap_or_default();
 
         // The text ranges to replace
         let script_length = scanned.text.len() as u32;
@@ -1510,7 +1516,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             return;
         }
 
-        let name_text = |i: usize| -> &str { name_path[i].name.map_or("", |name| analyzed.name_text(name)) };
+        let name_text =
+            |i: usize| -> &str { name_path.get(i).and_then(|c| c.name).map_or("", |name| analyzed.name_text(name)) };
         let mut dot_candidates: Vec<DotCandidate> = Vec::new();
         match cursor.context {
             CursorContext::TableRef { .. } => match sealed {
@@ -1574,7 +1581,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                     // a._: a might be a table alias
                     let a = name_text(0);
                     for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
-                        let scope = &analyzed.name_scopes[scope_id as usize];
+                        let Some(scope) = analyzed.scope(scope_id) else { continue };
                         if let Some(source) = scope.sources.iter().find(|s| visibility.sees(s) && s.name.as_deref() == Some(a)) {
                             match &source.table {
                                 ReferencedTable::Table(loc) => {
@@ -1626,10 +1633,13 @@ impl<'c, 'a> Completion<'c, 'a> {
         for mut dot_candidate in dot_candidates {
             if let Some(&co) = self.candidate_objects_by_id.get(&dot_candidate.object_id) {
                 // Update the tags and the replacement target
-                self.candidate_objects[co].candidate_tags |= dot_candidate.candidate_tags;
-                let candidate = self.candidate_objects[co].candidate;
-                self.candidates[candidate].target_location = replace_text_at;
-                self.candidates[candidate].target_location_qualified = name_path_text_loc;
+                if let Some(object) = self.candidate_objects.get_mut(co) {
+                    object.candidate_tags |= dot_candidate.candidate_tags;
+                    if let Some(candidate) = self.candidates.get_mut(object.candidate) {
+                        candidate.target_location = replace_text_at;
+                        candidate.target_location_qualified = name_path_text_loc;
+                    }
+                }
                 continue;
             }
             if !last_text_prefix.is_empty() {
@@ -1639,12 +1649,13 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             let candidate = match self.candidates_by_name.get(&dot_candidate.name) {
                 Some(&c) => {
-                    let existing = &mut self.candidates[c];
-                    existing.target_location = replace_text_at;
-                    existing.target_location_qualified = name_path_text_loc;
-                    // A name can be several things, e.g. a table and a schema
-                    existing.coarse_name_tags |= dot_candidate.name_tags;
-                    existing.candidate_tags |= dot_candidate.candidate_tags;
+                    if let Some(existing) = self.candidates.get_mut(c) {
+                        existing.target_location = replace_text_at;
+                        existing.target_location_qualified = name_path_text_loc;
+                        // A name can be several things, e.g. a table and a schema
+                        existing.coarse_name_tags |= dot_candidate.name_tags;
+                        existing.candidate_tags |= dot_candidate.candidate_tags;
+                    }
                     c
                 }
                 None => {
@@ -1670,22 +1681,22 @@ impl<'c, 'a> Completion<'c, 'a> {
         // Objects with higher scores first, then in the order they were found
         let mut object_heap =
             TopKHeap::new(24, |l: &(usize, Score), r: &(usize, Score)| l.1.cmp(&r.1).then(r.0.cmp(&l.0)));
-        for i in 0..self.candidates.len() {
+        for candidate in &mut self.candidates {
             // The base score is the maximum among the name tags
-            let tags = self.candidates[i].coarse_name_tags;
+            let tags = candidate.coarse_name_tags;
             let mut base_score = 0;
             for (tag, tag_score) in scores {
                 base_score = base_score.max(if tags & tag.0 != 0 { tag_score } else { 0 });
             }
             // The top catalog objects
             object_heap.clear();
-            for &co in &self.candidates[i].catalog_objects {
-                let score = compute_candidate_score(self.candidate_objects[co].candidate_tags);
-                self.candidate_objects[co].score = score;
+            for &co in &candidate.catalog_objects {
+                let Some(object) = self.candidate_objects.get_mut(co) else { continue };
+                let score = compute_candidate_score(object.candidate_tags);
+                object.score = score;
                 object_heap.insert((co, score));
             }
             let objects: Vec<(usize, Score)> = object_heap.finish().clone();
-            let candidate = &mut self.candidates[i];
             candidate.catalog_objects = objects.iter().map(|&(co, _)| co).collect();
             // The score of the last, i.e. the lowest, of the top objects (see docs/design/core_quirks.md)
             let object_score = match objects.last() {
@@ -1698,6 +1709,14 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         self.candidate_heap.finish();
         self.top_candidates = self.candidate_heap.take_entries();
+    }
+
+    /// Set the qualified name of a candidate object, the target is its last name
+    fn set_qualified_name(objects: &mut [CandidateObject], co: usize, qualified: Vec<Arc<str>>) {
+        if let Some(object) = objects.get_mut(co) {
+            object.qualified_name_target_idx = qualified.len().saturating_sub(1);
+            object.qualified_name = qualified;
+        }
     }
 
     /// The qualified name of a table
@@ -1720,7 +1739,8 @@ impl<'c, 'a> Completion<'c, 'a> {
     fn describe_top_candidates(&mut self) {
         for top in &self.top_candidates {
             for &co in &top.catalog_objects {
-                let info = match self.candidate_objects[co].object {
+                let Some(object) = self.candidate_objects.get(co) else { continue };
+                let info = match object.object {
                     CandidateObjectRef::Function(loc) => self
                         .entry_data(loc.entry)
                         .and_then(|d| d.function_declarations.get(loc.index as usize))
@@ -1731,7 +1751,9 @@ impl<'c, 'a> Completion<'c, 'a> {
                     }),
                     CandidateObjectRef::Database(_) | CandidateObjectRef::Schema(_) => None,
                 };
-                self.candidate_objects[co].info = info.unwrap_or_default();
+                if let Some(object) = self.candidate_objects.get_mut(co) {
+                    object.info = info.unwrap_or_default();
+                }
             }
         }
     }
@@ -1744,7 +1766,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let mut column_count_in_scope = 0;
             let mut table_count = 0;
             for &co in &top.catalog_objects {
-                let object = &self.candidate_objects[co];
+                let Some(object) = self.candidate_objects.get(co) else { continue };
                 let in_scope = has(object.candidate_tags, CandidateTag::IN_NAME_SCOPE);
                 match object.object {
                     CandidateObjectRef::Column(loc) => {
@@ -1753,26 +1775,22 @@ impl<'c, 'a> Completion<'c, 'a> {
                             QualifiedCatalogObjectId::table(object.catalog_object_id.unpack_table_column_id().0),
                             co,
                         ));
-                        let table = self.table(loc.table);
-                        let qualified = match table {
-                            Some(table) => {
+                        let qualified = self
+                            .table(loc.table)
+                            .and_then(|table| {
+                                let column = table.table_columns.get(loc.column as usize)?;
                                 let mut names = Self::qualified_table_name(&table.table_name);
-                                names.push(table.table_columns[loc.column as usize].column_name.text.clone());
-                                names
-                            }
-                            None => Vec::new(),
-                        };
-                        let object = &mut self.candidate_objects[co];
-                        object.qualified_name_target_idx = qualified.len().saturating_sub(1);
-                        object.qualified_name = qualified;
+                                names.push(column.column_name.text.clone());
+                                Some(names)
+                            })
+                            .unwrap_or_default();
+                        Self::set_qualified_name(&mut self.candidate_objects, co, qualified);
                     }
                     CandidateObjectRef::Table(loc) => {
                         table_count += 1;
                         let qualified =
                             self.table(loc).map(|t| Self::qualified_table_name(&t.table_name)).unwrap_or_default();
-                        let object = &mut self.candidate_objects[co];
-                        object.qualified_name_target_idx = qualified.len().saturating_sub(1);
-                        object.qualified_name = qualified;
+                        Self::set_qualified_name(&mut self.candidate_objects, co, qualified);
                     }
                     CandidateObjectRef::Function(loc) => {
                         let qualified = self
@@ -1794,9 +1812,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                                 names
                             })
                             .unwrap_or_default();
-                        let object = &mut self.candidate_objects[co];
-                        object.qualified_name_target_idx = qualified.len().saturating_sub(1);
-                        object.qualified_name = qualified;
+                        Self::set_qualified_name(&mut self.candidate_objects, co, qualified);
                     }
                     _ => {}
                 }
@@ -1804,7 +1820,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let prefer_qualified_columns = column_count_in_scope > 1;
             let prefer_qualified_tables = table_count > 1;
             for &co in &top.catalog_objects {
-                let object = &mut self.candidate_objects[co];
+                let Some(object) = self.candidate_objects.get_mut(co) else { continue };
                 match object.object {
                     CandidateObjectRef::Column(_) => object.prefer_qualified = prefer_qualified_columns,
                     CandidateObjectRef::Table(_) => object.prefer_qualified = prefer_qualified_tables,
@@ -1816,9 +1832,9 @@ impl<'c, 'a> Completion<'c, 'a> {
         // Qualify column candidates with the aliases of the table refs in scope
         let Some(analyzed) = self.analyzed() else { return };
         for &scope_id in &self.cursor.name_scopes {
-            let scope = &analyzed.name_scopes[scope_id as usize];
+            let Some(scope) = analyzed.scope(scope_id) else { continue };
             for &table_ref_id in &scope.table_references {
-                let table_ref = &analyzed.table_references[table_ref_id as usize];
+                let Some(table_ref) = analyzed.table_ref(table_ref_id) else { continue };
                 let Some(resolved) = table_ref.inner.as_ref().and_then(|r| r.resolved_table.as_ref()) else { continue };
                 let mut has_match = false;
                 for &(table_id, co) in &columns_by_table {
@@ -1826,12 +1842,15 @@ impl<'c, 'a> Completion<'c, 'a> {
                         continue;
                     }
                     has_match = true;
-                    let CandidateObjectRef::Column(loc) = self.candidate_objects[co].object else { continue };
-                    let column_name = match self.table(loc.table) {
-                        Some(t) => t.table_columns[loc.column as usize].column_name.text.clone(),
-                        None => continue,
+                    let Some(CandidateObjectRef::Column(loc)) = self.candidate_objects.get(co).map(|o| o.object) else {
+                        continue;
                     };
-                    let object = &mut self.candidate_objects[co];
+                    let Some(column) = self.table(loc.table).and_then(|t| t.table_columns.get(loc.column as usize))
+                    else {
+                        continue;
+                    };
+                    let column_name = column.column_name.text.clone();
+                    let Some(object) = self.candidate_objects.get_mut(co) else { continue };
                     match &table_ref.alias {
                         Some((alias, _)) => {
                             object.qualified_name = vec![alias.text.clone(), column_name];

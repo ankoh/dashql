@@ -177,36 +177,36 @@ fn comment_at(comments: &[TextSpan], offset: usize) -> Option<TextSpan> {
 fn complete_tag_name(text: &[u8], comments: &[TextSpan], offset: usize, k: usize) -> Option<Vec<Candidate>> {
     let comment = comment_at(comments, offset)?;
     let comment_begin = comment.offset as usize;
-    let line_begin = text[..offset].iter().rposition(|&c| c == b'\n').map_or(0, |n| n + 1).max(comment_begin);
+    let line_begin = text.get(..offset)?.iter().rposition(|&c| c == b'\n').map_or(0, |n| n + 1).max(comment_begin);
     let mut i = line_begin;
-    let is_line_comment = text[comment_begin..].starts_with(b"--");
+    let is_line_comment = text.get(comment_begin..)?.starts_with(b"--");
     // Skip the comment marker, or the gutter of a block comment line
     if line_begin == comment_begin {
         let marker = if is_line_comment { b'-' } else { b'*' };
         i += 2;
-        while i < offset && text[i] == marker {
+        while i < offset && text.get(i) == Some(&marker) {
             i += 1;
         }
     }
-    while i < offset && text[i].is_ascii_whitespace() {
+    while i < offset && text.get(i).is_some_and(u8::is_ascii_whitespace) {
         i += 1;
     }
-    if line_begin != comment_begin && i < offset && text[i] == b'*' {
+    if line_begin != comment_begin && i < offset && text.get(i) == Some(&b'*') {
         i += 1;
-        while i < offset && text[i].is_ascii_whitespace() {
+        while i < offset && text.get(i).is_some_and(u8::is_ascii_whitespace) {
             i += 1;
         }
     }
-    if i >= offset || text[i] != b'@' || !text[i + 1..offset].iter().all(|&c| is_word_byte(c)) {
+    if i >= offset || text.get(i) != Some(&b'@') || !text.get(i + 1..offset)?.iter().all(|&c| is_word_byte(c)) {
         return None;
     }
     let name_begin = i + 1;
     let mut name_end = offset;
-    while name_end < comment.end() as usize && is_word_byte(text[name_end]) {
+    while name_end < comment.end() as usize && text.get(name_end).is_some_and(|&c| is_word_byte(c)) {
         name_end += 1;
     }
     let target = TextSpan::new(name_begin as u32, (name_end - name_begin) as u32);
-    let mut candidates = Candidates::new(target, &text[name_begin..offset]);
+    let mut candidates = Candidates::new(target, text.get(name_begin..offset)?);
     for &tag in COMMENT_TAGS {
         // The end tag is never needed, it is only accepted for older scripts
         if tag != COMMENT_TAG_END {
@@ -315,7 +315,8 @@ fn statement_of_block(parsed: &ParsedScript, block: usize) -> Option<usize> {
 fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usize, k: usize) -> Option<Vec<Candidate>> {
     let script = parsed.scanned.text.as_bytes();
     let blocks = &parsed.comment_blocks;
-    let name_of = |b: &CommentBlock| &script[b.tag_span.offset as usize..b.tag_span.end() as usize];
+    // A tag outside of the text has no name
+    let name_of = |b: &CommentBlock| script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or_default();
     let (block_id, block): (usize, &CommentBlock) = blocks.blocks.iter().enumerate().find(|(_, b)| {
         b.block_type == CommentBlockType::DASHQL_TAG
             && matches!(name_of(b), VIS_TAG | BOARD_TAG | FLOW_TAG)
@@ -323,25 +324,28 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             && offset <= b.text_span.end() as usize
     })?;
     let name = name_of(block);
-    let lines = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+    let lines = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)?;
     let columns = || {
         let statement = statement_of_block(parsed, block_id)?;
         Some(statement_output_columns(completion.cursor.script.analyzed?, statement))
     };
     let tag = TagText::new(&parsed.scanned.text, lines, block.text_span);
     // Without content, the cursor is right after the tag
-    let at = if lines.is_empty() || offset < lines[0].offset as usize { 0 } else { tag.to_joined(offset) };
+    let at = match lines.first() {
+        Some(first) if offset >= first.offset as usize => tag.to_joined(offset),
+        _ => 0,
+    };
     let text = tag.text.as_bytes();
     let span = |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
     // `@board` and `@flow` start with their args, `@vis` with its kind
     let (kind, kind_end): (&[u8], usize) = if name == VIS_TAG {
         let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
         if at <= kind_end {
-            let mut candidates = Candidates::new(span(0, kind_end), &text[..at]);
+            let mut candidates = Candidates::new(span(0, kind_end), text.get(..at)?);
             candidates.add_all(VIS_KINDS, false);
             return Some(candidates.finish(k));
         }
-        (&text[..kind_end], kind_end)
+        (text.get(..kind_end)?, kind_end)
     } else {
         (name, 0)
     };
@@ -352,35 +356,38 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             if at > first_line_end {
                 return None;
             }
-            let arg_begin = text[..at].iter().rposition(|c| c.is_ascii_whitespace()).map_or(0, |n| n + 1);
-            if text[arg_begin..at].contains(&b'=') {
+            let arg_begin = text.get(..at)?.iter().rposition(|c| c.is_ascii_whitespace()).map_or(0, |n| n + 1);
+            let typed = text.get(arg_begin..at)?;
+            if typed.contains(&b'=') {
                 return None;
             }
             let mut arg_end = at;
-            while arg_end < first_line_end && !text[arg_end].is_ascii_whitespace() && text[arg_end] != b'=' {
+            while arg_end < first_line_end && text.get(arg_end).is_some_and(|&c| !c.is_ascii_whitespace() && c != b'=') {
                 arg_end += 1;
             }
             let has_equals = text.get(arg_end) == Some(&b'=');
-            let used: Vec<&[u8]> = text[kind_end..first_line_end]
+            let used: Vec<&[u8]> = text
+                .get(kind_end..first_line_end)?
                 .split(|c| c.is_ascii_whitespace())
-                .filter_map(|arg| arg.iter().position(|&c| c == b'=').map(|eq| &arg[..eq]))
+                .filter_map(|arg| arg.iter().position(|&c| c == b'=').and_then(|eq| arg.get(..eq)))
                 .collect();
-            let mut candidates = Candidates::new(span(arg_begin, arg_end), &text[arg_begin..at]);
+            let arg_text = text.get(arg_begin..arg_end)?;
+            let mut candidates = Candidates::new(span(arg_begin, arg_end), typed);
             for &arg in args {
-                if !used.contains(&arg.as_bytes()) || text[arg_begin..arg_end].starts_with(arg.as_bytes()) {
+                if !used.contains(&arg.as_bytes()) || arg_text.starts_with(arg.as_bytes()) {
                     candidates.add(arg, if has_equals { arg.to_string() } else { format!("{arg}=") });
                 }
             }
             Some(candidates.finish(k))
         }
         b"vegalite" => {
-            let context = scan_json(&text[kind_end..at])?;
+            let context = scan_json(text.get(kind_end..at)?)?;
             let (begin, end) = match context.token {
                 Some((begin, true)) => {
                     // The string token ends after its word, with the closing quote if one follows
                     let begin = kind_end + begin;
                     let mut end = at;
-                    while end < text.len() && (is_word_byte(text[end]) || text[end] == b'$') {
+                    while text.get(end).is_some_and(|&c| is_word_byte(c) || c == b'$') {
                         end += 1;
                     }
                     if text.get(end) == Some(&b'"') {
@@ -391,7 +398,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                 Some((begin, false)) => {
                     let begin = kind_end + begin;
                     let mut end = at;
-                    while end < text.len() && !b"{}[],:\" \t\r\n".contains(&text[end]) {
+                    while text.get(end).is_some_and(|c| !b"{}[],:\" \t\r\n".contains(c)) {
                         end += 1;
                     }
                     (begin, end)
@@ -399,22 +406,22 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                 None => (at, at),
             };
             let prefix_begin = if context.token.is_some_and(|(_, string)| string) { begin + 1 } else { begin };
-            let mut candidates = Candidates::new(span(begin, end), &text[prefix_begin..at]);
+            let mut candidates = Candidates::new(span(begin, end), text.get(prefix_begin..at)?);
             add_json_candidates(&mut candidates, &context, &columns().unwrap_or_default());
             Some(candidates.finish(k))
         }
         b"markdown" => {
-            let open = text[..at].windows(2).rposition(|w| w == b"{{")? + 2;
-            let name = &text[open..at];
+            let open = text.get(..at)?.windows(2).rposition(|w| w == b"{{")? + 2;
+            let name = text.get(open..at)?;
             if !name.iter().all(|&c| is_word_byte(c) || c == b' ') {
                 return None;
             }
             let begin = open + name.iter().take_while(|&&c| c == b' ').count();
             let mut end = at;
-            while end < text.len() && is_word_byte(text[end]) {
+            while text.get(end).is_some_and(|&c| is_word_byte(c)) {
                 end += 1;
             }
-            let mut candidates = Candidates::new(span(begin, end), &text[begin..at]);
+            let mut candidates = Candidates::new(span(begin, end), text.get(begin..at)?);
             for column in columns().unwrap_or_default() {
                 candidates.add(&column, column.to_string());
             }

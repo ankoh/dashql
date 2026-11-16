@@ -10,7 +10,7 @@ use std::ops::Range;
 
 pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<()> {
     for node_id in morsel {
-        let node = &state.ast[node_id];
+        let Some(node) = state.ast.get(node_id) else { break };
         if node.node_type() != NodeType::OBJECT_SQL_FUNCTION_EXPRESSION {
             continue;
         }
@@ -62,7 +62,9 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
                     ast_node_id: arg_node_id,
                     ..Default::default()
                 };
-                let arg_node = &state.ast[arg_node_id as usize];
+                let Some(arg_node) = state.node(arg_node_id) else {
+                    return Err(Error::invalid_argument("function argument outside of the AST"));
+                };
                 if arg_node.node_type() != NodeType::OBJECT_SQL_FUNCTION_ARG {
                     arg.value_ast_node_id = arg_node_id;
                     state.out.function_arguments.push(arg);
@@ -90,7 +92,7 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
         };
         let span = *node.symbol_span();
         let expr = state.add_expression(node_id as u32, span, ExpressionInner::FunctionCall(call));
-        state.expression_index[node_id] = Some(expr);
+        state.set_expression_of(node_id as u32, expr);
     }
     Ok(())
 }
