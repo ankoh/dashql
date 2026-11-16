@@ -1,16 +1,6 @@
 import * as React from 'react';
 
-import {
-    followAgentSession,
-    parseAgentSessionTarget,
-    readWorkbookFolderFiles,
-    writeAgentSessionWorkbook,
-    type AgentSessionTarget,
-} from '@ankoh/dashql/platform/session/agent_session_client';
-import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
-import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
-import type { Runtime } from '@ankoh/dashql/runtime/runtime';
-import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { followAgentSession, parseAgentSessionTarget, type AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
@@ -112,23 +102,6 @@ export interface AgentConnect {
     renewTarget: () => void;
 }
 
-/// Write a workbook of the page into the folder of the session, where the agent works on it: the pending writes of the
-/// workbook first, then the files of its folder in OPFS. A native workbook has its folder on disk already, the page
-/// copies nothing (docs/wip/agent_session.md, "Where the workbook of case A lives").
-async function copyWorkbookToSession(runtime: Runtime, target: AgentSessionTarget, workbookId: string, logger: Logger): Promise<void> {
-    await runtime.storage.flushWorkbook(workbookId);
-    let folder: FileSystemDirectoryHandle;
-    try {
-        folder = await (await (await getOPFSRoot()).getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER)).getDirectoryHandle(workbookId);
-    } catch {
-        return;
-    }
-    const files = await readWorkbookFolderFiles(folder);
-    if (files == null) return;
-    await writeAgentSessionWorkbook(target, workbookId, files);
-    logger.info('Copied the workbook into the session', { workbook: workbookId, files: String(files.length) }, LOG_CTX);
-}
-
 /// The workbooks that the page shows, a session gets a copy of each once its server answers
 interface ShownWorkbooks {
     show: (workbookId: string) => () => void;
@@ -168,6 +141,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const copied = React.useRef<{ target: AgentSessionTarget | null; workbooks: Set<string>; copies: AgentSessionCopies | null }>({ target: null, workbooks: new Set(), copies: null });
     const copiesOf = React.useCallback((next: AgentSessionTarget) => {
         if (copied.current.target !== next) {
+            copied.current.copies?.dispose();
             const copies = runtime == null ? null : new AgentSessionCopies(agentSessionCopyHost(runtime, next), logger);
             copied.current = { target: next, workbooks: readTabCopies(next), copies };
         }
@@ -177,18 +151,27 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         const followed = store.current;
         if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
         const { workbooks, copies } = copiesOf(target);
+        if (copies == null) return;
         for (const workbookId of shown.current.keys()) {
-            if (workbooks.has(workbookId)) continue;
+            if (copies.has(workbookId)) continue;
+            // Once per target: a copy again would replace what the agent did in the copy meanwhile, also after a
+            // reload. A failed copy waits for a new line.
+            if (workbooks.has(workbookId)) {
+                copies.adopt(workbookId);
+                continue;
+            }
             workbooks.add(workbookId);
             writeTabCopies(target, workbooks);
-            copies?.reset(workbookId);
-            // Once per target: a copy again would replace what the agent did in the copy meanwhile, a failed copy waits
-            // for a new line
-            copyWorkbookToSession(runtime, target, workbookId, logger).catch(error => {
+            copies.copy(workbookId).catch(error => {
                 logger.warn('Cannot copy the workbook into the session', { workbook: workbookId, error: stringifyError(error) }, LOG_CTX);
             });
         }
     }, [runtime, target, store, logger, copiesOf]);
+    React.useEffect(() => () => {
+        // A provider that mounts again (StrictMode) starts with new copies
+        copied.current.copies?.dispose();
+        copied.current = { target: null, workbooks: new Set(), copies: null };
+    }, []);
     const shownValue = React.useMemo<ShownWorkbooks>(() => ({
         show: workbookId => {
             shown.current.set(workbookId, (shown.current.get(workbookId) ?? 0) + 1);
@@ -218,6 +201,8 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             try {
                 copyShown();
                 void copies?.update(state);
+                // An ended session takes no edits of the page
+                if (state.ended) copies?.dispose();
             } catch (error) {
                 logger.warn('Cannot follow the copies of the session', { error: stringifyError(error) }, LOG_CTX);
             }

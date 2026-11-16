@@ -85,10 +85,24 @@ export async function writeAgentSessionWorkbook(
 ): Promise<void> {
     await expectOk(await fetch(workbookUrl(target, workbookId), { method: 'DELETE', signal }), 'the removal of the copy');
     const ordered = [...files.filter(file => file.path !== STORAGE_WORKBOOK_FILE), ...files.filter(file => file.path === STORAGE_WORKBOOK_FILE)];
-    for (const file of ordered) {
-        const response = await fetch(workbookUrl(target, workbookId, file.path), { method: 'PUT', body: file.content, signal });
-        await expectOk(response, `the write of ${file.path}`);
-    }
+    for (const file of ordered) await writeAgentSessionWorkbookFile(target, workbookId, file, signal);
+}
+
+/// Write a file of the copy of a workbook in the session, e.g. a script that the page changed
+export async function writeAgentSessionWorkbookFile(target: AgentSessionTarget, workbookId: string, file: AgentSessionWorkbookFile, signal?: AbortSignal): Promise<void> {
+    await expectOk(await fetch(workbookUrl(target, workbookId, file.path), { method: 'PUT', body: file.content, signal }), `the write of ${file.path}`);
+}
+
+/// Remove a file of the copy of a workbook in the session, e.g. a script that the page deleted
+export async function deleteAgentSessionWorkbookFile(target: AgentSessionTarget, workbookId: string, path: string, signal?: AbortSignal): Promise<void> {
+    await expectOk(await fetch(workbookUrl(target, workbookId, path), { method: 'DELETE', signal }), `the removal of ${path}`);
+}
+
+/// Read a file of the copy of a workbook in the session as text
+export async function readAgentSessionWorkbookText(target: AgentSessionTarget, workbookId: string, path: string, signal?: AbortSignal): Promise<string> {
+    const response = await fetch(workbookUrl(target, workbookId, path), { signal });
+    await expectOk(response, `the read of ${path}`);
+    return await response.text();
 }
 
 /// The files of a workbook folder in the layout of OPFS (`workbooks/<id>/` of the root of the app) as a page copies

@@ -176,6 +176,17 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
     const writes = [];
+    const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
+    // The copy, the state names it once it has its workbook file, like the server of dashql
+    const files = new Map();
+    let clock = 0;
+    const announce = workbookId => {
+        const named = files.has('dashql-workbook.json')
+            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })), results: [], running: null }]
+            : [];
+        state = { ...state, workbooks: named, version: state.version + 1 };
+        broadcast();
+    };
     const server = http.createServer((request, response) => {
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
         if (request.method === 'OPTIONS') {
@@ -192,10 +203,20 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
             const chunks = [];
             request.on('data', chunk => chunks.push(chunk));
             request.on('end', () => {
-                writes.push({ method: request.method, workbookId, path: parts.join('/'), body: Buffer.concat(chunks).toString('utf8') });
+                const path = parts.join('/');
+                const body = Buffer.concat(chunks).toString('utf8');
+                writes.push({ method: request.method, workbookId, path, body });
+                if (request.method === 'PUT') files.set(path, { body, mtimeMs: ++clock });
+                else if (path.length > 0) files.delete(path);
+                else files.clear();
+                announce(workbookId);
                 response.writeHead(204).end();
             });
             return;
+        }
+        if (request.method === 'GET' && request.url.startsWith(copy)) {
+            const file = files.get(request.url.slice(copy.length).split('/').slice(1).map(decodeURIComponent).join('/'));
+            return file == null ? response.writeHead(404).end() : response.writeHead(200).end(file.body);
         }
         if (request.url !== `/v1/stream?token=${encodeURIComponent(token)}`) return response.writeHead(401).end();
         response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
@@ -209,7 +230,12 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
         writes,
         push: next => {
             state = { ...state, ...next, version: state.version + 1 };
-            for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`);
+            broadcast();
+        },
+        /// The agent writes a file of the copy
+        agentWrites: (workbookId, path, body) => {
+            files.set(path, { body, mtimeMs: ++clock });
+            announce(workbookId);
         },
         close: () => {
             for (const stream of streams) stream.destroy();
@@ -279,6 +305,18 @@ async function testAppAgentSession(page, navigate) {
         connected.push({ turns: [] });
         await page.waitForTimeout(500);
         assert.equal(writes.length, written);
+
+        // The user edits the script, the copy gets the edit
+        const script = writes.find(write => write.path.startsWith('scripts/'));
+        await scriptEditor(page, 'copied_answer').click();
+        await page.keyboard.press('End');
+        await page.keyboard.insertText(', 43 as more');
+        await waitUntil(() => writes.some(write => write.method === 'PUT' && write.path === script.path && write.body.includes('43 as more')));
+
+        // The agent rewrites the script in the copy, the page stages the rewrite to accept
+        connected.agentWrites(script.workbookId, script.path, 'select 7 as from_agent');
+        await page.getByTestId('diff-accept').click();
+        await scriptEditor(page, 'from_agent').waitFor();
     } finally {
         await connected.close();
     }
