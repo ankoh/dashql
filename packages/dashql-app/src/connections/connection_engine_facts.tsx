@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 
 /// The version of the embedded Hyper, null until it is read or for a remote Hyper
 function useEmbeddedHyperVersion(embedded: boolean): string | null {

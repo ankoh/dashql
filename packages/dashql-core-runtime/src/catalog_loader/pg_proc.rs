@@ -1,6 +1,6 @@
 //! The functions of a PostgreSQL catalog, the embedded Hyper reads its functions with them.
 //!
-//! Ported from `catalog_query_pg_proc.ts` of `packages/dashql-runtime/src/connections/catalog/`.
+//! Ported from `catalog_query_pg_proc.ts` of `packages/dashql/src/runtime/connections/catalog/`.
 
 use arrow_array::RecordBatch;
 

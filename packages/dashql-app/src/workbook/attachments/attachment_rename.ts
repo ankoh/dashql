@@ -1,9 +1,9 @@
-import type { StorageBackend } from '@ankoh/dashql-platform/storage/storage_backend';
-import type { ModifyWorkbookScripts, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { StorageBackend } from '@ankoh/dashql/platform/storage/storage_backend';
+import type { ModifyWorkbookScripts, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
-import { scriptDisplayName } from '@ankoh/dashql-platform/workbook/scripts/script_types';
-import { markWorkbookAttachmentsChanged } from '@ankoh/dashql-platform/workbook/attachments/attachment_mounts';
-import { attachmentParameterName, renamedAttachmentFileName } from '@ankoh/dashql-platform/workbook/attachments/workbook_attachments';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import { markWorkbookAttachmentsChanged } from '@ankoh/dashql/platform/workbook/attachments/attachment_mounts';
+import { attachmentParameterName, renamedAttachmentFileName } from '@ankoh/dashql/platform/workbook/attachments/workbook_attachments';
 
 /// Rename an attachment like a script: the file moves, the scripts that read its table parameter read the new name
 /// (`renameAttachment`) and so does the draft. The name takes no name of a script or another attachment, `sales`

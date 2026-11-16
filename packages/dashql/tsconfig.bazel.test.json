@@ -1,0 +1,21 @@
+// The tests of the runtime and of the platform with their helpers, with the globals of vitest. The tests of the bindings
+// and their fixtures (src/core/*.test.ts, test_fixture.ts, matchers.ts, rand.ts) run in Node and in the browsers but
+// don't type check yet.
+{
+  "extends": "./tsconfig.bazel.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/*/node/**",
+    "src/core/**/*.test.ts",
+    "src/core/test_fixture.ts",
+    "src/core/matchers.ts",
+    "src/core/rand.ts"
+  ]
+}

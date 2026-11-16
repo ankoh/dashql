@@ -1,7 +1,7 @@
 //! The wasm-bindgen API of the Rust core.
 //!
 //! Objects own their state; results are FlatBuffers returned as byte arrays, which the TypeScript
-//! wrappers in `packages/dashql-core-js/src/api.ts` read with the generated FlatBuffers classes.
+//! wrappers in `packages/dashql/src/core/api.ts` read with the generated FlatBuffers classes.
 //! Errors become exceptions with the status code name or the error message.
 //!
 //! Scripts share their catalog through a reference-counted handle, so a script can outlive the JS

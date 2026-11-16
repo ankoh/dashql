@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import symbols from '@ankoh/dashql-svg-symbols';
-import coreWasmUrl from '@ankoh/dashql-core/wasm?url';
+import coreWasmUrl from '@ankoh/dashql/wasm?url';
 
 import { createPrecompiledTestCore } from './core_pool.js';
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';

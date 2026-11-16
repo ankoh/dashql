@@ -3,10 +3,10 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
-import { WorkbookTestRegistry } from '@ankoh/dashql-platform/testing/workbook_test_backend';
-import { StorageBackendType } from '@ankoh/dashql-platform/storage/storage_backend';
+import { WorkbookTestRegistry } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backend';
 import { scriptSelectionOf } from './scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 

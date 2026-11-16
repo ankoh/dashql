@@ -10,7 +10,7 @@ import { ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
 import { useConnectionOrdinals } from '../connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 export interface WorkbookShellsPageDependencies {
     useConnections: typeof useConnections;

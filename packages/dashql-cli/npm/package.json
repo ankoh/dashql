@@ -16,7 +16,7 @@
   "bin": { "dashql": "./dist/dashql.js" },
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {
-    "@ankoh/dashql-core": "0.0.2-dev.17",
+    "@ankoh/dashql": "0.0.2-dev.17",
     "hyperdb-wasm": "0.0.27368-dev.wasm.ge6142229"
   }
 }

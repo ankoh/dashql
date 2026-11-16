@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
-import { workbookInputControl, WorkbookInputControl, type SessionInput } from '@ankoh/dashql-platform/workbook/inputs/workbook_inputs';
+import { workbookInputControl, WorkbookInputControl, type SessionInput } from '@ankoh/dashql/platform/workbook/inputs/workbook_inputs';
 
 import * as styles from './workbook_inputs.module.css';
 

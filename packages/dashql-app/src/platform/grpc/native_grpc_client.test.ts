@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ChannelError } from '@ankoh/dashql-platform/platform/channel_common';
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { ChannelError } from '@ankoh/dashql/platform/platform/channel_common';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
 import { NativeGrpcClient, NativeGrpcServerStreamBatchEvent, NativeGrpcServerStreamMessageIterator } from './native_grpc_client.js';
 

@@ -7,7 +7,7 @@
 //! one workbook uses it, the embedded Hyper is never deleted. The workbooks that use a connection come from the host
 //! (`set_references`) until the workbooks are part of the runtime.
 //!
-//! Ported from `applyConnectionAction` of `packages/dashql-runtime/src/connections/connection_registry_state.ts`.
+//! Ported from `applyConnectionAction` of `packages/dashql/src/runtime/connections/connection_registry_state.ts`.
 
 use std::cell::RefCell;
 use std::rc::Rc;

@@ -5,21 +5,21 @@ import path from 'node:path';
 
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import { connectEmbeddedHyper } from '@ankoh/dashql-platform/connections/embedded/embedded_database_channel';
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
-import { openNodeComputeDatabase, type NodeComputeDatabase } from '@ankoh/dashql-platform/node/node_hyperdb';
-import { createNodePlatform } from '@ankoh/dashql-runtime/node/node_platform';
-import { NODE_FILE_SYSTEM } from '@ankoh/dashql-platform/node/node_file_system';
-import { LogLevel, type LogRecord } from '@ankoh/dashql-platform/platform/logger/log_buffer';
-import { LoggableException, Logger } from '@ankoh/dashql-platform/platform/logger/logger';
-import { createRuntime, type RunResult, type Runtime } from '@ankoh/dashql-runtime/runtime';
-import { JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker } from '@ankoh/dashql-platform/session/workbook_journal';
-import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
-import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql-platform/storage/opfs_query_result_cache';
-import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql-platform/storage/storage_backend';
-import { mirrorWorkbookAttachments } from '@ankoh/dashql-platform/workbook/attachments/attachment_mirror';
-import type { ScriptRunEvent } from '@ankoh/dashql-platform/workbook/scripts/workbook_execution';
-import { scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { connectEmbeddedHyper } from '@ankoh/dashql/platform/connections/embedded/embedded_database_channel';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { openNodeComputeDatabase, type NodeComputeDatabase } from '@ankoh/dashql/platform/node/node_hyperdb';
+import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
+import { NODE_FILE_SYSTEM } from '@ankoh/dashql/platform/node/node_file_system';
+import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/platform/logger/log_buffer';
+import { LoggableException, Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { createRuntime, type RunResult, type Runtime } from '@ankoh/dashql/runtime/runtime';
+import { JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker } from '@ankoh/dashql/platform/session/workbook_journal';
+import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
+import { QUERY_RESULT_CACHE_DIRECTORY } from '@ankoh/dashql/platform/storage/opfs_query_result_cache';
+import { STORAGE_WORKBOOK_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
+import { mirrorWorkbookAttachments } from '@ankoh/dashql/platform/workbook/attachments/attachment_mirror';
+import type { ScriptRunEvent } from '@ankoh/dashql/platform/workbook/scripts/workbook_execution';
+import { scriptResultOwner, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import type { RunEvent, RunReporter } from './run_events.js';

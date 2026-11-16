@@ -106,7 +106,7 @@ goes through a `dashql` command, so the commands tell what they changed.
   harnesses, a session that a hook starts; the journal: the server creates it, follows partial lines, folds the
   markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
   the progress and the results of a workbook in the workspace it is given.
-- `//packages/dashql-platform:test_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
+- `//packages/dashql:test_platform_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
   a session with the log of the commands.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
   then a new port, Codex, and a server on the port and secret of the line.
@@ -118,6 +118,6 @@ goes through a `dashql` command, so the commands tell what they changed.
   that workbook and its changes.
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.
-- `@ankoh/dashql-core` and `@ankoh/dashql-cli` are not on npm yet, the line of the prompt needs both published.
+- `@ankoh/dashql` and `@ankoh/dashql-cli` are not on npm yet, the line of the prompt needs both published.
 - `dashql connect` without `--launch`: the server alone, for a harness that runs already or in an IDE, with hooks
   installed once in its settings.

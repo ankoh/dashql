@@ -1,18 +1,18 @@
 import * as React from 'react';
 
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import type { ConnectionLabelParts } from '../../connections/connection_label.js';
-import { QueryExecutionStatus, queryIsDone } from '@ankoh/dashql-platform/query/query_execution_state';
-import type { WorkbookExecutionState } from '@ankoh/dashql-platform/workbook/scripts/workbook_execution';
-import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
-import { scriptDisplayName } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import { QueryExecutionStatus, queryIsDone } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { WorkbookExecutionState } from '@ankoh/dashql/platform/workbook/scripts/workbook_execution';
+import type { ScriptDataMap, WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { formatMilliseconds } from '../../utils/format.js';
 import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
-import type { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
+import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 
 /// The latest query of a script
 export interface ScriptQuery {

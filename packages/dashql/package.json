@@ -1,0 +1,19 @@
+{
+  "name": "@ankoh/dashql",
+  "version": "0.0.0",
+  "description": "DashQL in TypeScript: the bindings of the core module, the runtime and its platforms, shared by the app and the command line tool. A source package, npm/package.json describes the package on npm",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "exports": {
+    ".": "./src/core/index.ts",
+    "./buffers": "./src/core/buffers.ts",
+    "./browser-worker": "./src/core/browser_worker.ts",
+    "./batch-worker": "./src/core/batch_worker.ts",
+    "./wasm": "./dependencies/dashql-wasm/dashql_core.wasm",
+    "./dataflow-wasm": "./dependencies/dashql-wasm/dashql_dataflow.wasm",
+    "./wasm/glue": "./dependencies/dashql-wasm/dashql_core.js",
+    "./runtime/*": "./src/runtime/*.ts",
+    "./platform/*": "./src/platform/*.ts"
+  }
+}

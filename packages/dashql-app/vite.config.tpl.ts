@@ -35,15 +35,16 @@ export default vite.defineConfig(({ mode, command }) => {
     const includesBrowserTests = mode === 'pages' || mode === 'development' || isCoverageBuild;
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
-    const CORE_PATH = path.resolve(rootDir, "__CORE_PATH__");
     // The package root of @ankoh/dashql-ui, the code, tokens and fonts shared with the website.
     // A source package: the dev server reads packages/dashql-ui, Vite watches it and updates the page in place.
     const UI_PATH = path.resolve(rootDir, "__UI_PATH__");
-    // The package root of @ankoh/dashql-runtime, the runtime of DashQL without React. A source package like @ankoh/dashql-ui.
-    const RUNTIME_PATH = path.resolve(rootDir, "__RUNTIME_PATH__");
-    // The package root of @ankoh/dashql-platform, the platforms and connector clients that the runtime builds on. A source
-    // package like @ankoh/dashql-runtime.
-    const PLATFORM_PATH = path.resolve(rootDir, "__PLATFORM_PATH__");
+    // The package root of @ankoh/dashql, the bindings of the core module, the runtime and its platforms. A source package
+    // like @ankoh/dashql-ui: the dev server reads packages/dashql.
+    const DASHQL_PATH = path.resolve(rootDir, "__DASHQL_PATH__");
+    // The generated packages of the core module that the bindings import, folders of Bazel: @ankoh/dashql-wasm, the
+    // glue and the Wasm of the core and of the dataflow layout, and @ankoh/dashql-flatbuffers
+    const DASHQL_GENERATED_PATH = path.resolve(rootDir, "__DASHQL_GENERATED_PATH__");
+    const DASHQL_WASM_PATH = path.join(DASHQL_GENERATED_PATH, 'dashql-wasm');
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
@@ -57,13 +58,12 @@ export default vite.defineConfig(({ mode, command }) => {
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
     const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
-    // The tests of the runtime and of the platform, relative to src/tests/test_modules.ts like the globs they replace
-    const packageTestPatterns = (manifest: string, packagePath: string) => includesBrowserTests && command === 'build'
-        ? nodeFs.readFileSync(path.join(rootDir, manifest), 'utf8').trim().split('\n').filter(Boolean)
-            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(packagePath, 'src', file)).split(path.sep).join('/'))
+    // The tests of the runtime and of the platform of @ankoh/dashql, relative to src/tests/test_modules.ts like the globs
+    // they replace
+    const dashqlTestPatterns = includesBrowserTests && command === 'build'
+        ? nodeFs.readFileSync(path.join(rootDir, 'dashql_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
+            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(DASHQL_PATH, 'src', file)).split(path.sep).join('/'))
         : null;
-    const runtimeTestPatterns = packageTestPatterns('runtime_browser_test_files.txt', RUNTIME_PATH);
-    const platformTestPatterns = packageTestPatterns('platform_browser_test_files.txt', PLATFORM_PATH);
     const browserTestStylesheets = declaredTestInputs('browser_test_stylesheets.txt');
 
     // The pages deployment ships WebAssembly pre-compressed with Brotli, like hyperdb-wasm does: the bytes we deploy are
@@ -119,51 +119,26 @@ export default vite.defineConfig(({ mode, command }) => {
         },
     };
 
-    // Vite serves excluded dependencies in node_modules with `?v=<browserHash>` as immutable, and its watcher ignores
-    // node_modules. The core is such a dependency but changes with every core build, so the browser would keep running a
-    // cached core next to the new app sources and the new core wasm. Resolve the core without the version query, which
-    // serves it with no-cache like a source file, and reload the page after a core build.
-    let coreRealPath: string | null = null;
-    const getCoreRealPath = () => coreRealPath ??= nodeFs.realpathSync(CORE_PATH);
-    const serveCoreFromBazel = {
-        name: 'dashql-serve-core-from-bazel',
+    // The generated packages of the core module are folders of Bazel outside the root. Vite serves and watches their
+    // modules like sources, but no module imports the Wasm: reload the page when a build of the core module replaces it.
+    const reloadOnCoreWasm = {
+        name: 'dashql-reload-on-core-wasm',
         apply: 'serve' as const,
-        enforce: 'pre' as const,
-        resolveId(id: string, importer: string | undefined): string | undefined {
-            const coreDir = getCoreRealPath();
-            const [file, query] = id.split('?', 2);
-            let resolved: string;
-            if (file.startsWith(CORE_PATH + path.sep) || file.startsWith(coreDir + path.sep)) {
-                resolved = file;
-            } else if (file.startsWith('.') && importer?.startsWith(coreDir + path.sep)) {
-                resolved = path.resolve(path.dirname(importer.split('?', 1)[0]), file);
-            } else {
-                return;
-            }
-            if (!nodeFs.existsSync(resolved)) return;
-            resolved = nodeFs.realpathSync(resolved);
-            return query ? `${resolved}?${query}` : resolved;
-        },
         configureServer(server: vite.ViteDevServer): void {
-            const coreDir = getCoreRealPath();
             let reload: ReturnType<typeof setTimeout> | null = null;
-            const onCoreChanged = (curr: nodeFs.Stats, prev: nodeFs.Stats) => {
+            const onWasmChanged = (curr: nodeFs.Stats, prev: nodeFs.Stats) => {
                 if (curr.mtimeMs === prev.mtimeMs) return;
-                // A build replaces the whole package, wait until it settles
+                // A build replaces both modules and their glue, wait until it settles
                 if (reload != null) clearTimeout(reload);
                 reload = setTimeout(() => {
                     reload = null;
-                    const moduleGraph = server.environments.client.moduleGraph;
-                    for (const mod of moduleGraph.idToModuleMap.values()) {
-                        if (mod.file?.startsWith(coreDir + path.sep)) moduleGraph.invalidateModule(mod);
-                    }
                     server.ws.send({ type: 'full-reload' });
                 }, 500);
             };
-            const watched = [path.join(coreDir, 'index.js'), path.join(coreDir, 'wasm', 'dashql_core.wasm'), path.join(coreDir, 'wasm', 'dashql_dataflow.wasm')];
-            for (const file of watched) nodeFs.watchFile(file, { interval: 1000 }, onCoreChanged);
+            const watched = [path.join(DASHQL_WASM_PATH, 'dashql_core.wasm'), path.join(DASHQL_WASM_PATH, 'dashql_dataflow.wasm')];
+            for (const file of watched) nodeFs.watchFile(file, { interval: 1000 }, onWasmChanged);
             server.httpServer?.on('close', () => {
-                for (const file of watched) nodeFs.unwatchFile(file, onCoreChanged);
+                for (const file of watched) nodeFs.unwatchFile(file, onWasmChanged);
             });
         },
     };
@@ -226,7 +201,7 @@ export default vite.defineConfig(({ mode, command }) => {
             inlineScripts,
             wasmCompilation,
             ...(mode === 'pages' ? [precompressWasm] : []),
-            serveCoreFromBazel,
+            reloadOnCoreWasm,
             // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
             // follows them during input resolution, causing vite:build-html to compute the
             // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
@@ -250,8 +225,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     if (!cleanId || !/\/src\/tests\/(test_modules|test_bundle)\.ts$/.test(cleanId)) return;
                     return code
                         .replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'))
-                        .replace("'../../../dashql-runtime/src/**/*.test.ts'", (runtimeTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'))
-                        .replace("'../../../dashql-platform/src/**/*.test.ts'", (platformTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
+                        .replace("'../../../dashql/src/runtime/**/*.test.ts',\n    '../../../dashql/src/platform/**/*.test.ts'", (dashqlTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
                 },
             }, {
                 name: 'bazel-browser-test-stylesheets',
@@ -267,15 +241,11 @@ export default vite.defineConfig(({ mode, command }) => {
                 transform(code: string, id: string): string | undefined {
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
-                    // The tests of the runtime are named runtime/src/<path>, those of the platform platform/src/<path>, see
-                    // src/tests/test_modules.ts
-                    const runtimeIndex = cleanId.lastIndexOf('/dashql-runtime/src/');
-                    const platformIndex = cleanId.lastIndexOf('/dashql-platform/src/');
+                    // The tests of @ankoh/dashql are named dashql/src/<path>, see src/tests/test_modules.ts
+                    const dashqlIndex = cleanId.lastIndexOf('/dashql/src/');
                     const sourceIndex = cleanId.lastIndexOf('/src/');
                     if (sourceIndex < 0) return;
-                    const file = runtimeIndex >= 0 ? `runtime/src/${cleanId.slice(runtimeIndex + '/dashql-runtime/src/'.length)}`
-                        : platformIndex >= 0 ? `platform/src/${cleanId.slice(platformIndex + '/dashql-platform/src/'.length)}`
-                        : cleanId.slice(sourceIndex + 1);
+                    const file = dashqlIndex >= 0 ? cleanId.slice(dashqlIndex + 1) : cleanId.slice(sourceIndex + 1);
                     return `globalThis.__DASHQL_SET_CURRENT_TEST_FILE__(${JSON.stringify(file)});\n${code}`;
                 },
             }] : []),
@@ -344,24 +314,25 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         resolve: {
             alias: [
-                { find: /^@ankoh\/dashql-core$/, replacement: path.join(CORE_PATH, 'index.js') },
-                { find: /^@ankoh\/dashql-core\/buffers$/, replacement: path.join(CORE_PATH, 'buffers.js') },
-                { find: /^@ankoh\/dashql-core\/browser-worker$/, replacement: path.join(CORE_PATH, 'browser_worker.js') },
+                { find: /^@ankoh\/dashql$/, replacement: path.join(DASHQL_PATH, 'src/core/index.ts') },
+                { find: /^@ankoh\/dashql\/buffers$/, replacement: path.join(DASHQL_PATH, 'src/core/buffers.ts') },
+                { find: /^@ankoh\/dashql\/browser-worker$/, replacement: path.join(DASHQL_PATH, 'src/core/browser_worker.ts') },
                 // The script of the core batch worker, for pages that start it from a blob: URL (the embed)
-                { find: /^@ankoh\/dashql-core\/batch-worker(\?.*)?$/, replacement: path.join(CORE_PATH, 'batch_worker.js') + '$1' },
+                { find: /^@ankoh\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },
                 { find: /^@ankoh\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /^@ankoh\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
-                { find: /^@ankoh\/dashql-runtime\/(.+)$/, replacement: path.join(RUNTIME_PATH, 'src/$1.ts') },
-                { find: /^@ankoh\/dashql-platform\/(.+)$/, replacement: path.join(PLATFORM_PATH, 'src/$1.ts') },
+                { find: /^@ankoh\/dashql\/(runtime|platform)\/(.+)$/, replacement: path.join(DASHQL_PATH, 'src/$1/$2.ts') },
+                { find: /^@ankoh\/dashql-wasm\/(.+)$/, replacement: path.join(DASHQL_WASM_PATH, '$1') },
+                { find: /^@ankoh\/dashql-flatbuffers\/(.+)$/, replacement: path.join(DASHQL_GENERATED_PATH, 'dashql-flatbuffers/$1') },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
                 { find: /@ankoh\/dashql-jsonschema/, replacement: JSONSCHEMA_PATH },
                 {
-                    find: /^@ankoh\/dashql-core\/wasm(\?.*)?$/,
-                    replacement: path.join(CORE_PATH, 'wasm/dashql_core.wasm') + "$1",
+                    find: /^@ankoh\/dashql\/wasm(\?.*)?$/,
+                    replacement: path.join(DASHQL_WASM_PATH, 'dashql_core.wasm') + "$1",
                 },
                 {
-                    find: /^@ankoh\/dashql-core\/dataflow-wasm(\?.*)?$/,
-                    replacement: path.join(CORE_PATH, 'wasm/dashql_dataflow.wasm') + "$1",
+                    find: /^@ankoh\/dashql\/dataflow-wasm(\?.*)?$/,
+                    replacement: path.join(DASHQL_WASM_PATH, 'dashql_dataflow.wasm') + "$1",
                 },
                 {
                     find: /^@dashql\/hyperdb-wasm-worker\?url$/,
@@ -410,10 +381,9 @@ export default vite.defineConfig(({ mode, command }) => {
                     '.', // Current directory
                 ].concat((() => {
                     const paths = [
-                        CORE_PATH,
+                        DASHQL_PATH,
+                        DASHQL_GENERATED_PATH,
                         UI_PATH,
-                        RUNTIME_PATH,
-                        PLATFORM_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,
@@ -427,11 +397,6 @@ export default vite.defineConfig(({ mode, command }) => {
         optimizeDeps: {
             include: ['react', 'react-dom', 'react-router-dom'],
             exclude: [
-                // Served straight from bazel-bin (see dashql-serve-core-from-bazel). A pre-bundled copy is not rebuilt
-                // when the core changes, it only depends on the lockfile and the config, and would miss new exports.
-                '@ankoh/dashql-core',
-                '@ankoh/dashql-core/buffers',
-                '@ankoh/dashql-core/browser-worker',
                 '@dashql/hyperdb-wasm?url',
                 '@dashql/hyperdb-wasm-js?url',
                 '@dashql/hyperdb-wasm-worker?url',

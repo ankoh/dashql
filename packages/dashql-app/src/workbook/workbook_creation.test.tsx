@@ -2,20 +2,20 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { StorageWriter } from '@ankoh/dashql-runtime/storage/runtime_storage';
-import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql-platform/testing/workbook_test_backend';
-import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
-import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import { freeWorkbookName, isEphemeralWorkbook } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 import { useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

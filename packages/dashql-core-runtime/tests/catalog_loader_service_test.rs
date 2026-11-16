@@ -1,6 +1,6 @@
 // The catalog loader as a service on a fake host: an executor of a single thread, a clock that only the test advances,
 // metadata queries that the test answers and connections that the host changes like the registry of the app. The
-// semantics follow packages/dashql-runtime/src/connections/catalog/catalog_loader_service.test.ts.
+// semantics follow packages/dashql/src/runtime/connections/catalog/catalog_loader_service.test.ts.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap, VecDeque};

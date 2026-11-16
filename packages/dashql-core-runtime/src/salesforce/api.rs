@@ -2,7 +2,7 @@
 //! for the Data Cloud token and the metadata of a data space. Each call is a function that builds the request and one
 //! that reads the response, the host sends the request.
 //!
-//! Ported from `connections/salesforce/salesforce_api_client.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/salesforce/salesforce_api_client.ts` of `packages/dashql/src/runtime`.
 
 use std::collections::BTreeMap;
 use std::fmt;

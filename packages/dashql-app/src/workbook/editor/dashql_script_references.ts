@@ -1,9 +1,9 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { EditorState, StateEffect, StateField, Transaction } from '@codemirror/state';
 
 import { DashQLProcessorPlugin } from './dashql_processor.js';
-import type { ScriptReferenceReport } from '@ankoh/dashql-platform/workbook/scripts/script_reference_check';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
 
 /// Set the checked script references of the script of the editor
 export const DashQLScriptReferencesEffect = StateEffect.define<ScriptReferenceReport | null>();

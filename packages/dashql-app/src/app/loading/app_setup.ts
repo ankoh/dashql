@@ -7,21 +7,21 @@ import { embeddedConnection, newWorkbookConnection } from '../../connections/emb
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { createTrace } from '@ankoh/dashql-platform/platform/logger/trace_context';
+import { createTrace } from '@ankoh/dashql/platform/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
-import { ProgressCounter } from '@ankoh/dashql-platform/utils/progress';
+import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
 import { getAppHost } from '../../platform/native_globals.js';
-import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 
 const LOG_CTX = "app_loader";
 

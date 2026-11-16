@@ -3,8 +3,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useInitialMemorySetup, type InitialSetups } from './initial_memory_setup.js';
 
 describe('initial Memory setup', () => {

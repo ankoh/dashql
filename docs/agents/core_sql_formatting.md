@@ -75,7 +75,7 @@ output must parse without errors again. Without comments, formatting the output 
 ## 5) Add a JS API formatting test (recommended)
 
 File:
-- `packages/dashql-core-js/src/api_formatting.test.ts`
+- `packages/dashql/src/core/api_formatting.test.ts`
 
 Add at least one focused runtime formatting test that:
 1. Creates a script via API
@@ -93,7 +93,7 @@ Run the full targets used for acceptance:
 bazel test //packages/dashql-core:formatter_snapshot_test //packages/dashql-core:formatter_validation_hyper_test \
     //packages/dashql-core:formatter_roundtrip_test
 bazel test //packages/dashql-core:all
-bazel test //packages/dashql-core-js:all
+bazel test //packages/dashql:all
 bazel test //packages/dashql-app:all
 ```
 
@@ -111,5 +111,5 @@ If failures occur:
 - [ ] JS API formatting test added/updated
 - [ ] `bazel test //packages/dashql-core:all` passes
 - [ ] `//packages/dashql-core:formatter_validation_hyper_test` passes
-- [ ] `bazel test //packages/dashql-core-js:all` passes
+- [ ] `bazel test //packages/dashql:all` passes
 - [ ] `bazel test //packages/dashql-app:all` passes

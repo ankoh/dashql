@@ -124,7 +124,7 @@ app stays and the next check asks again.
 ### Domain Reconciliation
 
 Workbook scripts reconciliation stays in
-`packages/dashql-platform/src/workbook/scripts/workbook_scripts.ts`:
+`packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`:
 
 - `WorkbookScriptsStorageSnapshot` is the storage-shaped boundary type.
 - `workbookScriptsMatchStorageSnapshot` detects differences in script order, connection and text.
@@ -286,10 +286,10 @@ bazel build //packages/dashql-native:compile
 ## Implementation References
 
 - Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
-- Stamps and refused script writes: `packages/dashql-platform/src/storage/native_storage_backend.ts`
-- Held writes: `packages/dashql-runtime/src/storage/storage_writer.ts`
-- Workbook scripts reconciliation: `packages/dashql-platform/src/workbook/scripts/workbook_scripts.ts`
+- Stamps and refused script writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
+- Held writes: `packages/dashql/src/runtime/storage/storage_writer.ts`
+- Workbook scripts reconciliation: `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Stamp tests: `packages/dashql-platform/src/storage/native_storage_backend.test.ts`
-- Writer tests: `packages/dashql-runtime/src/storage/storage_writer.test.ts`
-- Workbook scripts reconciliation tests: `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.test.ts`
+- Stamp tests: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
+- Writer tests: `packages/dashql/src/runtime/storage/storage_writer.test.ts`
+- Workbook scripts reconciliation tests: `packages/dashql/src/runtime/workbook/scripts/workbook_scripts.test.ts`

@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

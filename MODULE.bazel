@@ -82,10 +82,8 @@ npm.npm_translate_lock(
     name = "npm",
     data = [
         "//:package.json",
-        "//packages/dashql-core-js:package.json",
+        "//packages/dashql:package.json",
         "//packages/dashql-org:package.json",
-        "//packages/dashql-platform:package.json",
-        "//packages/dashql-runtime:package.json",
         "//packages/dashql-ui:package.json",
         "//packages/hyperdb-edge:package.json",
     ],

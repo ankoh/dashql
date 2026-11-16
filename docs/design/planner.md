@@ -334,5 +334,5 @@ fixture with `hyper: skip` is left out (Hyper rejects `SELECT INTO`).
 bazel run //tests/snapshots/planner:update
 bazel test //packages/dashql-core-runtime:planner_snapshot_test //packages/dashql-core-runtime:planner_validation_hyper_test \
     //packages/dashql-core-runtime:dashql_core_runtime_unit_tests
-bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
+bazel test //packages/dashql:all //packages/dashql/test/browser:all
 ```

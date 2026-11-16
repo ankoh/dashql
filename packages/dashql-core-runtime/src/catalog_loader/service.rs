@@ -13,7 +13,7 @@
 //! The service reads the connections that it follows as they are, a dispatch of the host changes them right away. It
 //! keeps them as weak references: a connection that the host destroyed is gone for the service too.
 //!
-//! Ported from `CatalogLoaderService` of `packages/dashql-runtime/src/connections/catalog/catalog_loader_service.ts`.
+//! Ported from `CatalogLoaderService` of `packages/dashql/src/runtime/connections/catalog/catalog_loader_service.ts`.
 
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;

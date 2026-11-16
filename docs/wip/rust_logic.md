@@ -12,7 +12,7 @@ and `rewriteRenamedReferences` orchestrate core calls and contain little decisio
 Evidence: code reading, plus a few type-parser checks through the `dashql lint` CLI. No performance numbers were
 measured, and the bugs listed at the end were not reproduced in a running app.
 
-Paths without a package are under `packages/dashql-app/src/` or `packages/dashql-runtime/src/`.
+Paths without a package are under `packages/dashql-app/src/` or `packages/dashql/src/runtime/`.
 
 | Area | State |
 |---|---|
@@ -64,7 +64,7 @@ the ranking above stands.
 1. **Cross per operation, never per value.** No per-cell or per-frame calls; send whole batches.
 2. **Rust computes values, TS keeps identity.** React memoization, `mergeDataflowGraph` and handle ownership stay in TS.
 3. **Never panic on engine input.** A panic makes the module unusable until reload
-   (`packages/dashql-core-js/src/api.ts:100`), where a TS throw is merely caught. Use `.get()`, `total_cmp` and
+   (`packages/dashql/src/core/api.ts:100`), where a TS throw is merely caught. Use `.get()`, `total_cmp` and
    `try_reserve`, and guard non-finite values.
 4. **Name the offset unit.** The editor APIs use UTF-16, the core uses UTF-8 bytes internally.
 5. **Stay on the main-thread budget.** Core calls block the UI, and a new worker needs its own module instance.

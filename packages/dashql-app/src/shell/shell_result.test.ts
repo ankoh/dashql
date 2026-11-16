@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { createShellLastCommand, getPlanResultText } from './shell_result.js';
-import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
+import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 
 const PLAN = '{"operator":"executiontarget","operatorId":1}';
 

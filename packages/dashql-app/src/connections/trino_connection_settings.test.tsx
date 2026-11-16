@@ -4,19 +4,19 @@ import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql-core';
-import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
+import * as core from '@ankoh/dashql';
+import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
 
-import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
-import { type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
-import type { QueryExecutor } from '@ankoh/dashql-platform/connections/query_execution_args';
+import { ConnectionHealth, ConnectionStatus, setupStepAction, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { QueryExecutor } from '@ankoh/dashql/platform/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
 
 const CONNECTION_ID = 'trino-settings-test';

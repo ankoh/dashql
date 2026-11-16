@@ -1,4 +1,4 @@
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import { type DataflowEdge, DataflowEdgeKind, type DataflowGraph, type DataflowInput, type DataflowPort, type DataflowScript, type DataflowStatement } from './dataflow_graph.js';
 

@@ -357,13 +357,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
-  packages/dashql-cli: {}
+  packages/dashql: {}
 
-  packages/dashql-core-js:
-    dependencies:
-      flatbuffers:
-        specifier: 25.9.23
-        version: 25.9.23
+  packages/dashql-cli: {}
 
   packages/dashql-native:
     dependencies:
@@ -407,10 +403,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-
-  packages/dashql-platform: {}
-
-  packages/dashql-runtime: {}
 
   packages/dashql-ui: {}
 

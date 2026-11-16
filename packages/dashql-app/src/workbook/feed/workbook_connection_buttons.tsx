@@ -5,7 +5,7 @@ import * as styles from './workbook_connection_buttons.module.css';
 
 import { AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../connections/connection_status.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
 import { connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
@@ -13,7 +13,7 @@ import { LockIcon } from '../../ui/foundations/symbol_icon.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 interface Props {
     /// The connections that the scripts of the workbook and the next script run on

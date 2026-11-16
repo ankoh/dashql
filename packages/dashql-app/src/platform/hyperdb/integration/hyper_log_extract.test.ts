@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
 import { HyperDB, HyperDBEngine, type HyperDBConnection, type HyperDBClient } from '../hyperdb_wasm.js';
-import { quoteIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
+import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 import {
     HyperDBIncrementalExtract,
     type HyperDBIncrementalExtractOptions,

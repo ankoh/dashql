@@ -5,7 +5,7 @@
 //! column, the lower bounds of the bins as numbers or epoch milliseconds. The host formats them as it formats the
 //! cells of the grid.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/column_analysis.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/column_analysis.ts`.
 
 use arrow_array::ArrayRef;
 use dashql_core::error::{Error, Result};

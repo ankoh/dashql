@@ -1,0 +1,20 @@
+// The modules of Node in src/runtime/node and src/platform/node and their tests, with the types of Node. The WebWorker
+// lib stays while modules that they import still name the types of the origin private file system (the known seams of
+// test/boundary_test.mjs).
+{
+  "extends": "./tsconfig.bazel.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022",
+      "WebWorker"
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "src/*/node/**/*.ts"
+  ],
+  "exclude": []
+}

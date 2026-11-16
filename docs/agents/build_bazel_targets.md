@@ -48,14 +48,14 @@ bazel build //...
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
 | `//packages/dashql-ui:npm_package` | `@ankoh/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
-| `//packages/dashql-runtime:npm_package` | `@ankoh/dashql-runtime`: the `Runtime` facade over the runtime of the core module, its store and the adapters of its platform, shared by the app and the command line tool, a source package with nothing compiled, see `docs/wip/dashql_runtime.md` |
-| `//packages/dashql-platform:npm_package` | `@ankoh/dashql-platform`: the platforms, storage, the connector clients and channels, OAuth and the support of the command line tool that the runtime builds on, a source package with nothing compiled, see `docs/wip/dashql_runtime.md` |
+| `//packages/dashql:source_package` | `@ankoh/dashql`, linked as `//:node_modules/@ankoh/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/wip/dashql_runtime.md` |
+| `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@ankoh/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@ankoh/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
-| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `dashql-core-js`. It needs no database, hyperdb-wasm stays optional |
-| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `dashql-core-js`, loaded when the canvas opens |
+| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@ankoh/dashql`. It needs no database, hyperdb-wasm stays optional |
+| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@ankoh/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, computations, see `docs/wip/core_runtime.md` |
@@ -63,11 +63,11 @@ bazel build //...
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
-| `//packages/dashql-core-js:compile` | Core ESM bindings and TypeScript declarations |
-| `//packages/dashql-core-js:npm_package` | Standalone core npm package directory |
-| `//packages/dashql-core-js:npm_tarball` | Core npm archive at `bazel-bin/packages/dashql-core-js/dashql-core.tgz` |
+| `//packages/dashql:bundle` | `dist/` of `@ankoh/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
+| `//packages/dashql:npm_package` | The npm package directory of `@ankoh/dashql` (`npm/package.json`) |
+| `//packages/dashql:npm_tarball` | The npm archive of `@ankoh/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
 | `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @ankoh/dashql-cli` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql-runtime` and `@ankoh/dashql-platform`, bundled for Node with Vite: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@ankoh/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -120,34 +120,32 @@ bazel test //...
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
 | `//packages/dashql-core-runtime:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
 | `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
-| `//packages/dashql-core-js:all` | Core Node unit, assembled-runtime, and tarball consumer tests |
-| `//packages/dashql-core-js/test:all` | Core browser tests in Chromium and Firefox, including browser workers |
+| `//packages/dashql:all` | The tests of `@ankoh/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
+| `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` against a fake Trino and the embedded Hyper, the session server and its journal |
 | `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
 | `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
-| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on the core and hyperdb-wasm of the build, the bundle runs as its command |
+| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@ankoh/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
-| `//packages/dashql-runtime:tsc_typecheck_test` | Type check of the runtime against the WebWorker lib, without the DOM and without the types of Node |
-| `//packages/dashql-runtime:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime (`src/testing/`), with the globals of vitest |
-| `//packages/dashql-runtime:tsc_typecheck_node_test` | Type check of the modules of Node in `src/node` and their tests, with the types of Node |
-| `//packages/dashql-runtime:test_node` | The tests of the runtime in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
-| `//packages/dashql-platform:tsc_typecheck_test` | Type check of the platform against the WebWorker lib, without the DOM and without the types of Node |
-| `//packages/dashql-platform:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the platform (`src/testing/`), with the globals of vitest |
-| `//packages/dashql-platform:tsc_typecheck_node_test` | Type check of the modules of Node of the platform in `src/node` and their tests, with the types of Node |
-| `//packages/dashql-platform:test_node` | The tests of the platform in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
+| `//packages/dashql:tsc_typecheck_test` | Type check of `@ankoh/dashql` against the WebWorker lib, without the DOM and without the types of Node |
+| `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
+| `//packages/dashql:tsc_typecheck_node_test` | Type check of the modules of Node in `src/runtime/node` and `src/platform/node` and their tests, with the types of Node |
+| `//packages/dashql:test_core_node` | The tests of the bindings in Node (vitest) |
+| `//packages/dashql:test_runtime_node` | The tests of the runtime in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
+| `//packages/dashql:test_platform_node` | The tests of the platform in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
+| `//packages/dashql:node_smoke_test` | The package on npm in Node: the bindings with their Wasm, and a runtime over the platform of Node |
+| `//packages/dashql:tarball_consumer_test` | The archive of the package on npm as a consumer installs it: reproducible, its files and metadata, the exports of the bindings in Node and their declarations for `NodeNext` |
 | `//packages/hyperdb-edge:test` | The tests of hyperdb-edge in Node (vitest): the library against the embedded Hyper, every SQL example of the `describe` topics, and the compiled command run as separate processes, see `docs/wip/hyperdb_edge.md` |
 | `//packages/hyperdb-edge:tsc_typecheck_test` | Type check of the library of hyperdb-edge without its Node part, against the WebWorker lib |
 | `//packages/hyperdb-edge:tsc_typecheck_node_test` | Type check of every module and test of hyperdb-edge with the types of Node |
 | `//packages/hyperdb-edge:stores_typecheck_test` | Type check of the stores of agent libraries in `packages/hyperdb-edge/stores/` and their tests, against the libraries, see `docs/wip/hyperdb_edge_stores.md` |
 | `//packages/hyperdb-edge:stores_test` | The stores of the Claude Agent SDK, the OpenAI Agents SDK and LangGraph on hyperdb-wasm: each against the reference of its library, the conformance suite of LangGraph for checkpointers, and the agent loops of the OpenAI Agents SDK and LangGraph with a fake model |
 | `//packages/hyperdb-edge:stores_claude_code_test` | The session store under `query()` of the Claude Agent SDK with the pinned Claude Code and a fake model, outside the sandbox: mirroring, resuming from the store alone, sessions at once |
-| `//packages/dashql-runtime:boundary_test` | The runtime reaches no code of the app, no React, editor or `.tsx` module, the platform only by its name, and only the known seams of a browser or a bundler |
-| `//packages/dashql-runtime:editor_config_test` | Editors resolve every import of the runtime: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
-| `//packages/dashql-platform:boundary_test` | The platform reaches neither the runtime (`@ankoh/dashql-runtime` depends on it, not the other way round) nor code of the app, no React, editor or `.tsx` module, and only the known seams of a browser or a bundler |
-| `//packages/dashql-platform:editor_config_test` | Editors resolve every import of the platform, like `//packages/dashql-runtime:editor_config_test` |
+| `//packages/dashql:boundary_test` | The folders of `@ankoh/dashql` keep their rules: `src/core` imports neither `src/runtime` nor `src/platform`, `src/platform` doesn't import `src/runtime`, the package imports itself relatively, nothing reaches code of the app, React, an editor or a `.tsx` module, and only the known seams of a browser or a bundler |
+| `//packages/dashql:editor_config_test` | Editors resolve every import of `@ankoh/dashql`: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), published at [coverage.dashql.app](https://coverage.dashql.app) |
@@ -258,7 +256,7 @@ bazel run -c opt //packages/dashql-core:bench_pipeline
 bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
 bazel run -c opt //packages/dashql-core-script:bench_session
 bazel run //packages/dashql-app:bench_hyperdb_wasm_backend [-- --rows=100000 --repeat=2 --filter=<case>]
-bazel run --config=release //packages/dashql-core-js:bench_typing [-- --passes=3]
+bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 ```
 
 `bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
@@ -340,8 +338,9 @@ bazel run //packages/dashql-native:dev
 Run the last two commands in separate terminals for Electron development.
 
 The dev servers of the app and the website read `packages/dashql-ui` from its sources, the dev server of the app reads
-`packages/dashql-runtime` and `packages/dashql-platform` from their sources too; an edit reaches the page without a build
-or a restart.
+`packages/dashql` from its sources too; an edit reaches the page without a build or a restart. The generated packages
+of the core module come from `bazel-bin/packages/dashql/dependencies`, which `bazel run //packages/dashql-app:dev`
+builds; the page reloads when a build replaces the Wasm.
 
 The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
 Bazel builds the SVG symbols it reads from `bazel-bin`:
@@ -410,6 +409,8 @@ bazel run //tests/snapshots/parser:update
 # Type check and run tests
 bazel test //packages/dashql-app:tsc_typecheck_test
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
+# The package @ankoh/dashql in Node and its bindings in the browsers
+bazel test //packages/dashql:all //packages/dashql/test/browser:all
 ```
 
 ### After Changing Rust Code
@@ -424,30 +425,30 @@ bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/da
     //packages/dashql-dataflow:all //packages/dashql-snapshots:all
 ```
 
-### Core npm Package
+### The npm Package of DashQL
 
 ```bash
-# Compile ESM bindings and declarations
-bazel build //packages/dashql-core-js:compile
+# Bundle the modules with their declarations into dist/
+bazel build //packages/dashql:bundle
 
-# Assemble the standalone npm directory
-bazel build //packages/dashql-core-js:npm_package
+# Assemble the npm directory
+bazel build //packages/dashql:npm_package
 
-# Run Node, tarball consumer, and browser tests
-bazel test //packages/dashql-core-js:all //packages/dashql-core-js/test:all
+# Run the tests in Node, the tarball consumer, and the browser tests
+bazel test //packages/dashql:all //packages/dashql/test/browser:all
 
 # Build the release archive without building the app or native packages
-bazel build --config=release //packages/dashql-core-js:npm_tarball
+bazel build --config=release //packages/dashql:npm_tarball
 ```
 
-The package targets depend directly on `//packages/dashql-core-wasm:core_wasm`,
-`//packages/dashql-dataflow-wasm:dataflow_wasm` and their wasm-bindgen glue (`:dashql_core_bindgen`,
-`:dashql_dataflow_bindgen`) and build the TypeScript API around them. The release archive is
-`bazel-bin/packages/dashql-core-js/dashql-core.tgz`. Trusted CI waits for the release
+`@ankoh/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
+`//packages/dashql-core-wasm:core_wasm`, `//packages/dashql-dataflow-wasm:dataflow_wasm` and their wasm-bindgen glue
+(`:dashql_core_bindgen`, `:dashql_dataflow_bindgen`), `:bundle` builds the JavaScript and the declarations around them.
+The release archive is `bazel-bin/packages/dashql/dashql.tgz`. Trusted CI waits for the release
 Wasm build and requires that artifact to be available in the remote cache before
 packaging, so it does not rebuild the same Wasm action. It uploads the archive as
-`dashql_core_npm`; it does not publish to npm. Trusted fastbuild/release and
-untrusted fastbuild CI run both core JS test target sets.
+`dashql_npm`; it does not publish to npm. Trusted fastbuild/release and
+untrusted fastbuild CI run both test target sets of the package.
 
 ### After Changing Parser Grammar
 

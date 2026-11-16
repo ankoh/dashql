@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import { PlatformFile } from '../platform/file/file.js';
 import { importedWorkbook, useWorkbookImport, type ConflictChoice, type PreparedImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
@@ -8,7 +8,7 @@ import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCar
 import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
 import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router/router.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError, type LoggerLike } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError, type LoggerLike } from '@ankoh/dashql/platform/platform/logger/logger';
 
 /// The stages of a file before the user decides
 type PreparationPhase = 'reading' | 'validating' | 'resolving';

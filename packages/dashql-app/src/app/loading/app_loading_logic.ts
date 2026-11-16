@@ -1,11 +1,11 @@
-import type * as core from '@ankoh/dashql-core';
-import { TracedLogger } from '@ankoh/dashql-platform/platform/logger/logger';
+import type * as core from '@ankoh/dashql';
+import { TracedLogger } from '@ankoh/dashql/platform/platform/logger/logger';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
-import { ProgressCounter } from '@ankoh/dashql-platform/utils/progress';
+import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { AppLoadingStatus } from './app_loading_status.js';
 import type { RouteContext } from '../router/router.js';
-import { isEphemeralWorkbook, type WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { isEphemeralWorkbook, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 
 export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): boolean {
     return route.appLoadingStatus === AppLoadingStatus.SETUP_DONE

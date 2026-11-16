@@ -8,7 +8,7 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
 # hyperdb-edge: runs SQL on the embedded Hyper of hyperdb-wasm, a command line tool and its library, see
 # docs/wip/hyperdb_edge.md. Builds on hyperdb-wasm, not part of it. The library is a source package like
-# @ankoh/dashql-runtime, the command runs the JavaScript that :compile writes to dist/.
+# @ankoh/dashql, the command runs the JavaScript that :compile writes to dist/.
 
 package(default_visibility = ["//visibility:public"])
 

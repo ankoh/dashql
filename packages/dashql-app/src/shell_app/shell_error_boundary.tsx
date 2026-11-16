@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { Button } from '../ui/foundations/button.js';

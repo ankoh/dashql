@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './completion_candidate_type.js';
 

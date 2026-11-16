@@ -8,7 +8,7 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
-import { StorageBackendType } from '@ankoh/dashql-platform/storage/storage_backend';
+import { StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backend';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useRuntime } from '../../runtime/runtime_hooks.js';

@@ -14,7 +14,7 @@
 //! https://osf.io/preprints/osf/szpqm_v1) would make a brush a lookup, but grow with 2^N for N columns and don't cover
 //! the selection of one of many distinct values.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/analyze_table.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/analyze_table.ts`.
 
 use std::collections::HashSet;
 

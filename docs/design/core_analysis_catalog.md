@@ -439,7 +439,7 @@ the connection, the statements it follows, the files on disk and when a full ref
   each with its own id space.
 - `SessionPlanRequest` + `planSession()` borrow every session and every catalog for one planning call.
 
-**JS caches** (`packages/dashql-core-js/src/api.ts`)
+**JS caches** (`packages/dashql/src/core/api.ts`)
 - `DashQLCatalog.flatten()` returns a `DashQLFlatCatalog`, cached for the version of the catalog
   (`Catalog.version`). Publishes and drops made through sessions, scripts or the shell bump the
   version, so the next call flattens again. It isn't a `CatalogSnapshot`: it merges the entries into
@@ -449,7 +449,7 @@ the connection, the statements it follows, the files on disk and when a full ref
   An unchanged analysis therefore keeps its array identity: the decoration fields and the gutter of
   the editor compare the arrays they read, so a cursor move rebuilds only the focus decorations.
 
-**App flow per keystroke** (`packages/dashql-platform/src/workbook/scripts/workbook_scripts.ts`)
+**App flow per keystroke** (`packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`)
 1. The CodeMirror processor sends an `EditorEvent` with `analyze = true`; the session applies and
    analyzes.
 2. `UPDATE_FROM_PROCESSOR`: if the text or analysis changed, derive annotations (compile), then
@@ -519,6 +519,6 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Completion | `packages/dashql-core/src/completion.rs` |
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` |
 | Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
-| JS wrapper | `packages/dashql-core-js/src/api.ts` |
-| App script state | `packages/dashql-platform/src/workbook/scripts/workbook_scripts.ts` |
+| JS wrapper | `packages/dashql/src/core/api.ts` |
+| App script state | `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts` |
 | Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-script/tests/script_session_test.rs` |

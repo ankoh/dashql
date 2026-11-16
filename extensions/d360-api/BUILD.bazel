@@ -18,9 +18,8 @@ filegroup(
     name = "files",
     srcs = ["clfn/spec/spec.json"] + glob(["snippets/**/*.sql"]),
     visibility = [
+        "//packages/dashql:__pkg__",
         "//packages/dashql-app:__pkg__",
-        "//packages/dashql-platform:__pkg__",
-        "//packages/dashql-runtime:__pkg__",
         "//packages/dashql-core-runtime:__pkg__",
     ],
 )

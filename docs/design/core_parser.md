@@ -340,7 +340,7 @@ The parser does not interpret the content. Every tag is a `DASHQL_TAG` block wit
 (`tag_span`) and its content lines (`comment_lines`). Text after the tag on the same line is the first
 content line. The blocks of one block comment share the comment and cover it without gaps
 (`text_span`). Readers pick blocks by name and parse the content themselves, e.g. `readCommentTags` in
-`dashql-core-js/src/comment_tags.ts` and the analyzer, which reads `@vis`, `@board`, `@flow`, `@param` and `@manual`. A
+`packages/dashql/src/core/comment_tags.ts` and the analyzer, which reads `@vis`, `@board`, `@flow`, `@param` and `@manual`. A
 statement points to the blocks of its description comments
 (`description_blocks_begin` / `description_blocks_count`). Only structural problems are warnings
 (`MALFORMED_COMMENT_TAG`): an `@end` without an opening tag. The formatter prints tagged comments as one

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import { connectionParamsEqual, type ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 
 /// The params and the draft of a connection with the actions that edit the draft. Editing dispatches immediately, the

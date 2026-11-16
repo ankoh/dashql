@@ -4,17 +4,17 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
+import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
 
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
-import type { ResolvedVisualizeQuery } from '@ankoh/dashql-platform/workbook/scripts/script_types';
-import * as dashql from '@ankoh/dashql-core';
+import type { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
+import * as dashql from '@ankoh/dashql';
 import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
-import type { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
-import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
+import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider, StandaloneRuntime } from '../../runtime/runtime_hooks.js';
-import { testRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

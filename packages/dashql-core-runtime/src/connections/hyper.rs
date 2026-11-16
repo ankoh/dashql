@@ -1,6 +1,6 @@
 //! The setup of a Hyper connection: the channel to the embedded Hyper or to a Hyper server.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/hyper/hyper_connection_state.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/hyper/hyper_connection_state.ts`.
 
 use super::details::{replace_channel, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp};
 use super::params::{string_field, JsonObject};

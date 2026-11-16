@@ -2,7 +2,7 @@
 //! OPFS of the app, like a connection to a Hyper server that attaches the database of DashQL. See
 //! `docs/design/cloud.md`.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/hyper/local_cloud.ts`.
+//! Ported from `packages/dashql/src/platform/connections/hyper/local_cloud.ts`.
 
 use serde_json::Value;
 

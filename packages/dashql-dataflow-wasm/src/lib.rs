@@ -1,7 +1,7 @@
 //! The wasm-bindgen API of the layout of the dataflow canvas (`dashql-dataflow`): ELK places the boxes and
 //! routes the edges, and orthogonal routes go around boxes at any position. A module of its own, so that the core
 //! module does not carry ELK; the app loads it when it opens the dataflow canvas. The TypeScript wrapper is
-//! `DashQLDataflow` in `packages/dashql-core-js/src/layout.ts`.
+//! `DashQLDataflow` in `packages/dashql/src/core/dataflow.ts`.
 
 use wasm_bindgen::prelude::*;
 

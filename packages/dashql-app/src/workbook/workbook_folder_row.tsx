@@ -19,7 +19,7 @@ import {
 import { NameInput } from '../ui/foundations/name_input.js';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
 import { classNames } from '../utils/classnames.js';
-import type { WorkbookTreeFolder } from '@ankoh/dashql-platform/storage/workbook_tree';
+import type { WorkbookTreeFolder } from '@ankoh/dashql/platform/storage/workbook_tree';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import * as styles from './workbook_workbench_sidebar.module.css';
 

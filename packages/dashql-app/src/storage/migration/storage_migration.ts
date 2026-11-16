@@ -1,12 +1,12 @@
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
-import { createRuntime } from '@ankoh/dashql-runtime/runtime';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
-import { createStorageRoot } from '@ankoh/dashql-platform/storage/storage_root';
-import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-platform/platform/electron_fs';
-import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
+import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
+import { createStorageRoot } from '@ankoh/dashql/platform/storage/storage_root';
+import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/platform/electron_fs';
+import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
 import { OPFS_MANIFEST_LOCK } from '../opfs_storage_backend.js';
 
 // The migrations of the storage are steps of the runtime of the core (`workbook_format::storage_migration`), see

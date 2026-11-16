@@ -4,7 +4,7 @@
 //! The sources conflict on `connect`. It takes the core host and token, as the metadata calls of the connection do,
 //! until a check on an org settles it.
 //!
-//! Ported from `connections/salesforce/salesforce_client_functions.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/salesforce/salesforce_client_functions.ts` of `packages/dashql/src/runtime`.
 
 use crate::clfn::request::{ClientFunctionHostTarget, ClientFunctionVariables};
 use crate::clfn::time::parse_iso_ms;

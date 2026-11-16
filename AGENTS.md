@@ -29,20 +29,21 @@ Please consult relevant docs in that directory before making changes.
 - Extensions (an extension is a folder in `extensions/` with client functions and snippets, bundled with the app)
     - `docs/design/extensions.md` (the layout of a folder, bundling, snippets, adding an extension)
 
-- The runtime (`packages/dashql-runtime`: the TypeScript side of the runtime, shared by the app and the Node `dashql`;
-  `createRuntime(platform)` returns the one `Runtime` facade over the runtime of the core module with the store of its
-  views and the platform object it calls, the view projections and the adapters that build the platform of the core
-  from the objects of `dashql-platform`; the hooks of the app over it are `useView`, `useDispatch`, `useTable` and
-  their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where tests go: `*.node.test.ts`,
-  `*.browser.test.ts`, the rest runs in Node and the browsers, a test that creates a runtime goes in the runtime)
-    - `docs/wip/dashql_runtime.md`
-
-- The platform (`packages/dashql-platform`, `@ankoh/dashql-platform`: the platforms of the runtime, the browser, the
-  desktop app and Node with a root folder in the layout of OPFS and the embedded Hyper of Node; storage backends, the
+- DashQL in TypeScript (`packages/dashql`, `@ankoh/dashql`: one source package, shared by the app and the Node
+  `dashql`, with three folders of `src/`: `core/`, the bindings of the core module (`@ankoh/dashql`, `/buffers`,
+  `/browser-worker`); `platform/` (`@ankoh/dashql/platform/<path>`), the platforms of the runtime, the browser, the
+  desktop app and Node with a root folder in the layout of OPFS and the embedded Hyper of Node, storage backends, the
   query result cache, archives, OAuth, the connector clients and channels, the UI helpers that more than the app uses,
-  the SQL and session support of the CLI; the runtime depends on it, it never imports the runtime, the boundary tests
-  of both packages check it)
-    - `docs/wip/dashql_runtime.md` (The two packages, what goes where)
+  the SQL and session support of the CLI; `runtime/` (`@ankoh/dashql/runtime/<path>`), `createRuntime(platform)` with
+  the one `Runtime` facade over the runtime of the core module, the store of its views, the view projections and the
+  adapters that build the platform of the core from the objects of the platform. `core/` imports neither `runtime/` nor
+  `platform/`, `platform/` never imports `runtime/`, `//packages/dashql:boundary_test` checks it. Consumers read the
+  TypeScript sources, the generated parts (the Wasm with its glue, the FlatBuffers, protobuf, jsonschema) are folders of
+  Bazel wired by path; `:npm_tarball` bundles it for npm. The hooks of the app over the runtime are `useView`,
+  `useDispatch`, `useTable` and their aliases in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; where tests go:
+  `*.node.test.ts`, `*.browser.test.ts`, the rest runs in Node and the browsers, a test that creates a runtime goes in
+  `runtime/`)
+    - `docs/wip/dashql_runtime.md` (The package, what goes where)
 
 - The core runtime (`packages/dashql-core-runtime`, crate `dashql_core_runtime`: the state and the services of DashQL in
   Rust, linked into the core module; the app runs its workbook scripts, connections, queries with their descriptions and

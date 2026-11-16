@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { canInstallReleaseVersion, compareReleaseVersions, detectReleaseChannel, loadReleaseManifest } from './web_version_check.js';
 
 afterEach(() => {

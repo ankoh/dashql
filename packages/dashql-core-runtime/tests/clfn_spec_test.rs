@@ -1,6 +1,6 @@
 //! The client functions with the generated spec of the Data 360 extension, ported from `clfn_specs.test.ts`,
 //! `clfn_examples.test.ts`, `connection_client_functions.test.ts` and the spec part of
-//! `salesforce_client_functions.test.ts` of `packages/dashql-runtime/src/connections/`.
+//! `salesforce_client_functions.test.ts` of `packages/dashql/src/runtime/connections/`.
 
 use std::collections::BTreeMap;
 use std::rc::Rc;

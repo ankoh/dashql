@@ -1,0 +1,56 @@
+// The package compiles against the WebWorker lib of TypeScript: the APIs that browsers share with workers, most of which
+// Node has as well (fetch, AbortController, URL, TextEncoder, crypto, Blob, structuredClone). There is no window, no
+// document, no element and no feature of a bundler. The generated packages are folders of Bazel (BUILD.bazel).
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2022",
+      "WebWorker"
+    ],
+    "types": [],
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": false,
+    "downlevelIteration": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@ankoh/dashql-wasm/*": [
+        "./dependencies/dashql-wasm/*"
+      ],
+      "@ankoh/dashql-flatbuffers/*": [
+        "./dependencies/dashql-flatbuffers/*"
+      ],
+      "@ankoh/dashql-protobuf": [
+        "./dependencies/dashql-protobuf"
+      ],
+      "@ankoh/dashql-protobuf/*": [
+        "./dependencies/dashql-protobuf/*"
+      ],
+      "@ankoh/dashql-jsonschema": [
+        "./dependencies/dashql-jsonschema"
+      ],
+      "@ankoh/dashql-jsonschema/*": [
+        "./dependencies/dashql-jsonschema/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/*/testing/**",
+    "src/*/node/**",
+    "src/core/test_fixture.ts",
+    "src/core/matchers.ts",
+    "src/core/rand.ts"
+  ]
+}

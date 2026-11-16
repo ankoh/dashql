@@ -4,7 +4,7 @@ import {
     type HyperDBIncrementalExtractSource,
     type HyperDBSourceConnection,
 } from './hyperdb_incremental_extract.js';
-import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql-platform/utils/sql_quote';
+import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
 
 /// The columns of hyper_log(), with ctx and v as JSON text.
 export const HYPER_LOG_COLUMNS: readonly HyperDBExtractColumn[] = [

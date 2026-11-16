@@ -1,9 +1,9 @@
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import type { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
-import type { QueryTracker } from '@ankoh/dashql-runtime/query/tracked_query_execution';
-import { testRuntime } from '@ankoh/dashql-runtime/testing/mocks/connector_state';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { QueryTracker } from '@ankoh/dashql/runtime/query/tracked_query_execution';
+import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
 import { SHELL_QUERY_HISTORY_LIMIT } from '../shell_app/shell_query_history.js';
 
 /// A history without a connection in a runtime of a test, as the shell keeps its queries

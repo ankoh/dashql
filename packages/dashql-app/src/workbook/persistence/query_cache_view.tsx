@@ -6,7 +6,7 @@ import type { RowComponentProps } from 'react-window';
 import { XIcon, TrashIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
 
 import { ButtonVariant, ButtonSize, IconButton } from '../../ui/foundations/button.js';
-import type { QueryResultCacheEntry } from '@ankoh/dashql-platform/query/query_result_cache';
+import type { QueryResultCacheEntry } from '@ankoh/dashql/platform/query/query_result_cache';
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { formatBytes } from '../../utils/format.js';

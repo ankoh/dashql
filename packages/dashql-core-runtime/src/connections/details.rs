@@ -4,7 +4,7 @@
 //! and the channel. Trino and Salesforce add their OAuth state.
 //!
 //! Ported from `connection_state_details.ts` and the details of the connector states in
-//! `packages/dashql-runtime/src/connections/`.
+//! `packages/dashql/src/runtime/connections/`.
 
 use std::collections::BTreeMap;
 

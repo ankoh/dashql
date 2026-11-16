@@ -1,13 +1,13 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import * as styles from './script_diagnostics.module.css';
 
 import { AlertIcon, XCircleFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
 
-import type { ScriptData } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
-import type { ScriptReferenceReport } from '@ankoh/dashql-platform/workbook/scripts/script_reference_check';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ScriptReferenceReport } from '@ankoh/dashql/platform/workbook/scripts/script_reference_check';
 import { formattingDialectForConnector } from './script_format.js';
-import type { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';

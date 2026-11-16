@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import * as React from 'react';
 import * as Immutable from 'immutable';

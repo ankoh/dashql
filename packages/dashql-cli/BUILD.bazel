@@ -8,7 +8,7 @@ load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
-# dashql, the command line tool of DashQL on @ankoh/dashql-runtime, see README.md:
+# dashql, the command line tool of DashQL on @ankoh/dashql, see README.md:
 #
 # bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
 # bazel run //packages/dashql-cli:dashql -- format [--write|--check] <file.sql|dir|->...
@@ -23,8 +23,8 @@ _MODULES = glob(
     exclude = ["src/**/*.test.ts"],
 )
 
-# The generated packages that the runtime imports, resolved through the aliases of vite.config.mjs and
-# vitest.config.mjs and the paths of tsconfig.bazel.json like in the runtime
+# The generated packages that @ankoh/dashql imports, resolved through the aliases of vite.config.mjs and vitest.config.mjs
+# and the paths of tsconfig.bazel.json like in //packages/dashql. Those of the core module come with its source package.
 copy_to_directory(
     name = "dep_protobuf",
     srcs = ["//proto/pb:ts_gen"],
@@ -43,14 +43,12 @@ copy_to_directory(
     },
 )
 
-# The runtime and the platform are source packages, their imports come from here. `run` reaches all of them, `lint` and
-# `format` only the core and the SQL support of the platform.
+# @ankoh/dashql is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
+# bindings and the SQL support of the platform.
 _DEPENDENCIES = [
     ":dep_jsonschema",
     ":dep_protobuf",
-    "//:node_modules/@ankoh/dashql-core",
-    "//:node_modules/@ankoh/dashql-platform",
-    "//:node_modules/@ankoh/dashql-runtime",
+    "//:node_modules/@ankoh/dashql",
     "//:node_modules/@ankoh/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/apache-arrow",
@@ -60,7 +58,7 @@ _DEPENDENCIES = [
     "//:node_modules/vega-lite",
 ]
 
-# The command as one module for Node, the core stays a package next to it
+# The command as one module for Node, the Wasm of the core stays a file of the package @ankoh/dashql
 vite_bin.vite(
     name = "bundle",
     srcs = _MODULES + [
@@ -80,9 +78,8 @@ js_binary(
     data = [
         "package.json",
         ":bundle",
-        "//:node_modules/@ankoh/dashql-core",
-        # The core imports it without declaring it
-        "//:node_modules/flatbuffers",
+        # The Wasm of the core, @ankoh/dashql/wasm
+        "//:node_modules/@ankoh/dashql",
         # The embedded Hyper of `run`, loaded only there with its Wasm file
         "//:node_modules/hyperdb-wasm",
     ],
@@ -138,7 +135,7 @@ js_test(
 )
 
 # The package on npm: the bundle with the metadata of npm/package.json, `npx -y @ankoh/dashql-cli connect ...` runs it.
-# The core and hyperdb-wasm stay dependencies, the bundle reads their Wasm files from their packages.
+# @ankoh/dashql and hyperdb-wasm stay dependencies, the bundle reads their Wasm files from their packages.
 genrule(
     name = "npm_files",
     srcs = [
@@ -195,20 +192,20 @@ tar(
 )
 
 # The package on npm depends on the versions that the bundle was built with. A js_test takes the files of its own
-# package, the manifests of the root and the core are copied here.
+# package, the manifests of the root and of @ankoh/dashql on npm are copied here.
 genrule(
     name = "npm_package_test_manifests",
     srcs = [
         "//:package.json",
-        "//packages/dashql-core-js:package.json",
+        "//packages/dashql:npm/package.json",
     ],
     outs = [
         "npm_manifests/root_package.json",
-        "npm_manifests/core_package.json",
+        "npm_manifests/dashql_package.json",
     ],
     cmd = " && ".join([
         "cp $(location //:package.json) $(RULEDIR)/npm_manifests/root_package.json",
-        "cp $(location //packages/dashql-core-js:package.json) $(RULEDIR)/npm_manifests/core_package.json",
+        "cp $(location //packages/dashql:npm/package.json) $(RULEDIR)/npm_manifests/dashql_package.json",
     ]),
 )
 
@@ -218,13 +215,13 @@ js_test(
     data = [
         ":bundle",
         "npm/package.json",
-        "npm_manifests/core_package.json",
+        "npm_manifests/dashql_package.json",
         "npm_manifests/root_package.json",
     ],
     entry_point = "test/npm_package_test.mjs",
     env = {
         "NPM_PACKAGE_JSON": "$(rootpath npm/package.json)",
-        "CORE_PACKAGE_JSON": "$(rootpath npm_manifests/core_package.json)",
+        "DASHQL_PACKAGE_JSON": "$(rootpath npm_manifests/dashql_package.json)",
         "ROOT_PACKAGE_JSON": "$(rootpath npm_manifests/root_package.json)",
         "DASHQL_BUNDLE": "$(rootpath :bundle)",
     },

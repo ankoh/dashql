@@ -1,6 +1,6 @@
 //! The columns of the `information_schema` of the catalogs of a connection, Trino reads its catalog with them.
 //!
-//! Ported from `catalog_query_information_schema.ts` of `packages/dashql-runtime/src/connections/catalog/`.
+//! Ported from `catalog_query_information_schema.ts` of `packages/dashql/src/runtime/connections/catalog/`.
 
 use arrow_array::RecordBatch;
 

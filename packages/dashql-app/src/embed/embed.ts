@@ -8,14 +8,14 @@
 // default, the page has an opaque origin: a worker from a URL throws, OPFS is denied, and every request to the app is
 // cross-origin, so the scripts are fetched or imported with CORS.
 
-import { DashQLBatchWorker } from '@ankoh/dashql-core/browser-worker';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { DashQLBatchWorker } from '@ankoh/dashql/browser-worker';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 
 import { HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
 import { HYPERDB_WASM_VERSION } from '../globals.js';
 
 // eslint-disable-next-line import/no-unresolved -- resolved by Vite
-import batchWorkerUrl from '@ankoh/dashql-core/batch-worker?worker&url';
+import batchWorkerUrl from '@ankoh/dashql/batch-worker?worker&url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import hyperEngineUrl from '@dashql/hyperdb-wasm-js?url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite

@@ -1,5 +1,5 @@
 //! The restore of the catalog of a connection from the files of the connection. Ported from `restoreConnectionCatalog`
-//! of `packages/dashql-runtime/src/connections/connection_restore.ts`.
+//! of `packages/dashql/src/runtime/connections/connection_restore.ts`.
 //!
 //! The host reads the files (`load_catalog_files`), `apply_catalog_files` publishes them into the catalog of the
 //! connection and names the files to write after the restore.

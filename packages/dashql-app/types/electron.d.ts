@@ -6,15 +6,15 @@ interface DashQLStartupResult {
 }
 
 /// The size and modification time of a file, they change whenever the file is written
-type DashQLFileStamp = import('@ankoh/dashql-platform/platform/electron_fs').FileStamp;
+type DashQLFileStamp = import('@ankoh/dashql/platform/platform/electron_fs').FileStamp;
 
 interface DashQLElectronBridge {
     /// Claim the access to a workbook folder that the storage registered before the app granted folders.
     /// Accepted once, on the first start with folder grants, for a folder that holds a workbook file.
     claimWorkbookFolder(path: string): Promise<boolean>;
     confirm(options: {message: string; title: string}): Promise<boolean>;
-    /// The file system, see packages/dashql-platform/src/platform/electron_fs.ts
-    fs: import('@ankoh/dashql-platform/platform/electron_fs').ElectronFsBridge;
+    /// The file system, see packages/dashql/src/platform/platform/electron_fs.ts
+    fs: import('@ankoh/dashql/platform/platform/electron_fs').ElectronFsBridge;
     getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook" | "zip"; value: string}>>;
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;

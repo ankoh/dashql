@@ -5,9 +5,9 @@ import {
     QueryHistoryViewer,
     type QueryEntry,
 } from '../query/query_history_viewer.js';
-import { QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
+import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
 import { useAllQueries, useConnections } from '../runtime/runtime_hooks.js';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 export function QueryViewer(props: {
     onClose: () => void;

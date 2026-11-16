@@ -1,7 +1,7 @@
 //! What the Trino connector says about its params and queries: the params to share, the login hint, the signature of
 //! cached results and the limits of the executor.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/trino/trino_connector_descriptor.ts`. The default params, the
+//! Ported from `packages/dashql/src/platform/connections/trino/trino_connector_descriptor.ts`. The default params, the
 //! draft rows and the catalog name defaults are in `connections`.
 
 use serde_json::{json, Value};

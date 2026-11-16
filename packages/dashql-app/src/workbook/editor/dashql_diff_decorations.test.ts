@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import { Text } from '@codemirror/state';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 

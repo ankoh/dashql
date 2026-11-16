@@ -1,6 +1,6 @@
 // The query executor on a fake host: an executor of a single thread, a clock that only the test advances, an HTTP
 // server of answers and a channel of the host. The semantics follow
-// packages/dashql-runtime/src/connections/query_executor_service.test.ts.
+// packages/dashql/src/runtime/connections/query_executor_service.test.ts.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap, VecDeque};

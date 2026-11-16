@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import type { TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
 import type { ComputationDispatch } from './use_cross_filters.js';
 
 /// The column and the data search of a table. The runtime runs the searches: a search that the user types starts once

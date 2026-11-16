@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { cloudConnectionIdsOf, createLocalCloudParams, findCloudConnections, isCloudCapable, isLocalCloud } from './cloud_connection.js';
-import { LOCAL_CLOUD_DATABASE } from '@ankoh/dashql-platform/connections/hyper/local_cloud';
+import { LOCAL_CLOUD_DATABASE } from '@ankoh/dashql/platform/connections/hyper/local_cloud';
 import { isHyperWasmConnection } from './connection_label.js';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 
 describe('cloud connection', () => {
     it('is a Hyper server that the user logs in to, Database.com or the local cloud', () => {

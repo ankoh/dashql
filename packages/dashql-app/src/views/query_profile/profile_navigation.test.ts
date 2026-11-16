@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileSceneOperator } from './profile_scene.js';
 

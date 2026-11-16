@@ -8,7 +8,7 @@
 //! A timestamp with a named time zone needs the offsets of the zone, the crate has no time zone database: the host
 //! knows them (`Intl` in the browser) and implements `TimeZoneOffsets`.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/trino/arrow_conversion.ts` and the schema translation of
+//! Ported from `packages/dashql/src/runtime/connections/trino/arrow_conversion.ts` and the schema translation of
 //! `trino_channel.ts`.
 
 use std::collections::HashMap;

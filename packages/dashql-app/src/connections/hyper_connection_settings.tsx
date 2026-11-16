@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
-import * as pb from '@ankoh/dashql-platform/proto';
+import * as pb from '@ankoh/dashql/platform/proto';
 import * as style from './connection_settings.module.css';
 
 import { ChecklistIcon, DatabaseIcon, FileBadgeIcon, KeyIcon } from '../ui/foundations/symbol_icon.js';
@@ -17,17 +17,17 @@ import {
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useHyperGrpcClient, useHyperHttpClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
-import { Dispatch } from '@ankoh/dashql-platform/utils/variant';
+import { Dispatch } from '@ankoh/dashql/platform/utils/variant';
 import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '../runtime/runtime_hooks.js';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { isDesktopHost } from '../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_settings';
-import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql-platform/connections/connection_params';
+import { HYPERDB_WASM_ENGINE_SETTINGS } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_settings';
+import { DEFAULT_HYPER_ENDPOINT } from '@ankoh/dashql/platform/connections/connection_params';
 import { isHyperWasmConnection } from './connection_label.js';
 import { isLocalCloud } from './cloud_connection.js';
 

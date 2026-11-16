@@ -5,7 +5,7 @@
 //! The Salesforce client fetches the metadata, the update reads it. The relations stay as they were whichever step
 //! fails, the functions are published first.
 //!
-//! Ported from `salesforce/salesforce_catalog_update.ts` of `packages/dashql-runtime/src/connections/`.
+//! Ported from `salesforce/salesforce_catalog_update.ts` of `packages/dashql/src/runtime/connections/`.
 
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use serde_json::Value;

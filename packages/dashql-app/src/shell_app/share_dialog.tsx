@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import * as themes from '../workbook/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';

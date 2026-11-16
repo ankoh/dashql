@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
-import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { AppLoadingStatus } from './app_loading_status.js';
 import { WorkbookSetupStatus } from './workbook_setup_status.js';
 

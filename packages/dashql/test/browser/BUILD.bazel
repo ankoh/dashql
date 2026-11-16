@@ -1,0 +1,69 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@npm//:vite/package_json.bzl", vite_bin = "bin")
+load(":bazel/browser_test.bzl", "browser_test")
+
+copy_to_bin(
+    name = "srcs",
+    srcs = glob(["*.ts", "*.mjs", "*.html"]),
+)
+
+copy_to_directory(
+    name = "packaged",
+    srcs = ["//packages/dashql:npm_package"],
+    out = "packaged",
+    root_paths = ["packages/dashql/npm_package"],
+)
+
+# The bindings with their tests under inputs/src/core, the generated packages of the core module under
+# inputs/dependencies, see vite.config.mjs
+copy_to_directory(
+    name = "inputs",
+    srcs = [
+        "//packages/dashql:core_srcs",
+        "//packages/dashql:dep_flatbuffers",
+        "//packages/dashql:dep_wasm",
+    ],
+    out = "inputs",
+    root_paths = ["packages/dashql"],
+)
+
+vite_bin.vite(
+    name = "bundle",
+    srcs = [
+        ":srcs",
+        ":inputs",
+        ":packaged",
+        "//:node_modules/@vitest/expect",
+        "//:node_modules/@vitest/spy",
+        "//:node_modules/flatbuffers",
+        "//:node_modules/mocha",
+        "//:node_modules/vite",
+    ],
+    args = ["build", "--config", "vite.config.mjs", "--outDir", "bundle"],
+    chdir = package_name(),
+    out_dirs = ["bundle"],
+    visibility = ["//visibility:public"],
+)
+
+copy_to_directory(
+    name = "playwright_firefox",
+    srcs = ["@playwright_firefox//:firefox_files"],
+    include_external_repositories = ["*playwright_firefox"],
+    out = "playwright_firefox",
+)
+
+browser_test(
+    name = "test_chromium",
+    browser = "chromium",
+    executable = "@playwright_chromium//:chromium",
+    runtime = "@playwright_chromium//:runtime",
+)
+
+browser_test(
+    name = "test_firefox",
+    browser = "firefox",
+    env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
+    executable = ":playwright_firefox",
+    executable_root = True,
+)

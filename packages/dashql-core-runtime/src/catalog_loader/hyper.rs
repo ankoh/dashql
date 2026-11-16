@@ -7,7 +7,7 @@
 //! functions.
 //!
 //! Ported from `hyper/hyper_catalog_update.ts` and `salesforce/salesforce_catalog_update.ts`
-//! (`getHyperCloudAttachedDatabase`) of `packages/dashql-runtime/src/connections/`.
+//! (`getHyperCloudAttachedDatabase`) of `packages/dashql/src/runtime/connections/`.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 

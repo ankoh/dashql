@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { connectionParamsLabel } from './connection_label.js';
-import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 
 describe('connectionParamsLabel', () => {
     const label = (params: object) => connectionParamsLabel(params as ConnectionParams);

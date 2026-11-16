@@ -17,7 +17,7 @@
 //! failed one leaves the stages without plan or rows. Once the last page arrived, the query fetches the QueryInfo
 //! until it is final, for at most three seconds, then it finishes. Progress after the end is dropped.
 //!
-//! Ported from `TrinoQueryResultStream` of `packages/dashql-runtime/src/connections/trino/trino_channel.ts`.
+//! Ported from `TrinoQueryResultStream` of `packages/dashql/src/platform/connections/trino/trino_channel.ts`.
 
 use std::collections::HashMap;
 use std::rc::Rc;

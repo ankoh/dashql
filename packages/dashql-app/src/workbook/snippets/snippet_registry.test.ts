@@ -1,8 +1,8 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { SNIPPET_DATASETS_FOLDER, SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
 import { buildSnippetRegistry, bundledSnippetFiles, getBundledSnippets, snippetText, snippetsForConnector } from './snippet_registry.js';
 import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../scripts/script_format.js';

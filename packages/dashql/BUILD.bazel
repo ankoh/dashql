@@ -1,0 +1,454 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+
+# DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
+# docs/wip/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
+#
+# - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-wasm), the generated packages of the
+#   core module (@ankoh/dashql-wasm, @ankoh/dashql-flatbuffers) are folders of Bazel next to them,
+# - src/platform: the platforms of the runtime, the storage, the connector clients and the support of the command line
+#   tool, on the bindings,
+# - src/runtime: the facade over the runtime of the core module (createRuntime), the store of its views and the adapters
+#   that build the platform of the core from the objects of the platform.
+#
+# A source package, nothing is compiled: the app, the command line tool and the tests bundle and run the TypeScript
+# itself. Linked as //:node_modules/@ankoh/dashql with the generated Wasm, the dev server of the app reads src/ directly.
+# :npm_tarball is the package on npm (npm/package.json): the modules as JavaScript with their declarations, the generated
+# packages inlined.
+
+package(default_visibility = ["//visibility:public"])
+
+# The package on npm of the command line tool depends on this version, //packages/dashql-cli:npm_package_test
+exports_files([
+    "npm/package.json",
+    "package.json",
+])
+
+_SOURCES = glob(["src/**/*.ts"])
+
+# The entry points of the package on npm: the modules without tests, test helpers and mocks. A mock that a module
+# imports comes along (connections/connector_configs.ts), so do the modules of the generated packages.
+_MODULES = glob(
+    ["src/**/*.ts"],
+    exclude = [
+        "src/**/*.test.ts",
+        "src/**/*_mock.ts",
+        "src/*/testing/**",
+        "src/core/test_fixture.ts",
+        "src/core/matchers.ts",
+        "src/core/rand.ts",
+    ],
+)
+
+# The bindings with their tests and fixtures, //packages/dashql/test/browser runs the tests in the browsers
+filegroup(
+    name = "core_srcs",
+    srcs = glob(["src/core/**/*.ts"]),
+)
+
+# The tests of the runtime and of the platform that the browser tests of the app run: all but those of Node
+# (*.node.test.ts). They also run *.browser.test.ts, which only run there.
+filegroup(
+    name = "browser_test_files",
+    srcs = glob(
+        [
+            "src/runtime/**/*.test.ts",
+            "src/platform/**/*.test.ts",
+        ],
+        exclude = ["src/**/*.node.test.ts"],
+    ),
+)
+
+# @ankoh/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas. The glue loads
+# `<name>_bg.wasm` by default, the package ships the modules as `dashql_core.wasm` and `dashql_dataflow.wasm`, and every
+# glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset.
+genrule(
+    name = "dep_wasm",
+    srcs = [
+        "//packages/dashql-core-wasm:dashql_core_bindgen",
+        "//packages/dashql-core-wasm:core_wasm",
+        "//packages/dashql-dataflow-wasm:dashql_dataflow_bindgen",
+        "//packages/dashql-dataflow-wasm:dataflow_wasm",
+    ],
+    outs = [
+        "dependencies/dashql-wasm/dashql_core.js",
+        "dependencies/dashql-wasm/dashql_core.d.ts",
+        "dependencies/dashql-wasm/dashql_core.wasm",
+        "dependencies/dashql-wasm/dashql_dataflow.js",
+        "dependencies/dashql-wasm/dashql_dataflow.d.ts",
+        "dependencies/dashql-wasm/dashql_dataflow.wasm",
+    ],
+    cmd = """
+        OUT="$(RULEDIR)/dependencies/dashql-wasm"
+        for src in $(locations //packages/dashql-core-wasm:dashql_core_bindgen) $(locations //packages/dashql-dataflow-wasm:dashql_dataflow_bindgen); do
+            case "$$src" in
+                */dashql_core.js|*/dashql_dataflow.js)
+                    name=$$(basename "$$src" .js)
+                    sed "s/$${name}_bg[.]wasm/$${name}.wasm/g" "$$src" > "$$OUT/$$name.js"
+                    printf '\\n/** The URL of the module next to this glue */\\nexport const wasmUrl = new URL(%s, import.meta.url);\\n' "'./$$name.wasm'" >> "$$OUT/$$name.js"
+                    ;;
+                # Symbol.dispose needs lib esnext.disposable, which ES2022 consumers lack
+                */dashql_core.d.ts|*/dashql_dataflow.d.ts)
+                    name=$$(basename "$$src" .d.ts)
+                    sed '/[[]Symbol[.]dispose[]]/d' "$$src" > "$$OUT/$$name.d.ts"
+                    printf '\\n/** The URL of the module next to this glue */\\nexport declare const wasmUrl: URL;\\n' >> "$$OUT/$$name.d.ts"
+                    ;;
+            esac
+        done
+        cp "$(location //packages/dashql-core-wasm:core_wasm)" "$$OUT/dashql_core.wasm"
+        cp "$(location //packages/dashql-dataflow-wasm:dataflow_wasm)" "$$OUT/dashql_dataflow.wasm"
+    """,
+)
+
+# @ankoh/dashql-flatbuffers: the FlatBuffers of the core module in TypeScript, the bindings export them as `buffers`
+copy_to_directory(
+    name = "dep_flatbuffers",
+    srcs = ["//proto/fb:dashql_buffers_ts_gen"],
+    out = "dependencies/dashql-flatbuffers",
+    replace_prefixes = {
+        "proto/fb/dashql_buffers_ts": "",
+    },
+)
+
+# The generated packages of the platform, resolved through the paths of tsconfig.bazel.json like in the app
+copy_to_directory(
+    name = "dep_protobuf",
+    srcs = ["//proto/pb:ts_gen"],
+    out = "dependencies/dashql-protobuf",
+    replace_prefixes = {
+        "proto/pb/ts_gen": "",
+    },
+)
+
+copy_to_directory(
+    name = "dep_jsonschema",
+    srcs = ["//proto/json:ts_gen"],
+    out = "dependencies/dashql-jsonschema",
+    replace_prefixes = {
+        "proto/json": "",
+    },
+)
+
+# The specs of the extensions for the @dashql/extensions alias of the tests
+copy_to_directory(
+    name = "dep_extensions",
+    srcs = ["//extensions/d360-api:files"],
+    out = "dependencies/extensions",
+    replace_prefixes = {
+        "extensions": "",
+    },
+    visibility = ["//visibility:private"],
+)
+
+_GENERATED = [
+    ":dep_flatbuffers",
+    ":dep_jsonschema",
+    ":dep_protobuf",
+    ":dep_wasm",
+]
+
+# The source package, linked as //:node_modules/@ankoh/dashql. The exports of package.json name the sources and the
+# Wasm (@ankoh/dashql/wasm, which the platform of Node reads from its file). The generated packages that the sources
+# import are aliases of the consumers, into dependencies/ of this package.
+npm_package(
+    name = "source_package",
+    package = "@ankoh/dashql",
+    srcs = [
+        "package.json",
+        ":dep_flatbuffers",
+        ":dep_wasm",
+    ] + _SOURCES,
+    include_transitive_sources = False,
+    include_transitive_types = False,
+)
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + [
+        "package.json",
+        "tsconfig.bazel.json",
+        "tsconfig.bazel.node.json",
+        "tsconfig.bazel.test.json",
+    ],
+)
+
+_DEPENDENCIES = _GENERATED + [
+    "//:node_modules/@ankoh/hyperdb-edge",
+    "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/@zip.js/zip.js",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/flatbuffers",
+    "//:node_modules/hyperdb-wasm",
+    "//:node_modules/immutable",
+    "//:node_modules/vega-lite",
+]
+
+_TEST_DEPENDENCIES = _DEPENDENCIES + [
+    # The tests read archives with it
+    "//:node_modules/jszip",
+]
+
+# Against the WebWorker lib, without the DOM and without the types of Node: an API of only one platform fails here
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.json"],
+    chdir = package_name(),
+    data = [":typecheck_inputs"] + _DEPENDENCIES,
+)
+
+# The tests and their helpers, with the globals of vitest
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_tests_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.test.json"],
+    chdir = package_name(),
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+# The modules of Node (src/runtime/node, src/platform/node) and their tests, against the types of Node instead of the
+# WebWorker lib
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_node_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.node.json"],
+    chdir = package_name(),
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/@types/node",
+        "//:node_modules/vitest",
+    ] + _TEST_DEPENDENCIES,
+)
+
+_VITEST_DATA = _SOURCES + [
+    "package.json",
+    "test/setup_node.mjs",
+    "vitest.config.mjs",
+    ":dep_extensions",
+    "//:node_modules/vitest",
+] + _TEST_DEPENDENCIES
+
+# The tests of the bindings in Node, one file at a time
+vitest_bin.vitest_test(
+    name = "test_core_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--project",
+        "core",
+        "--maxWorkers=1",
+    ],
+    chdir = package_name(),
+    data = _VITEST_DATA,
+)
+
+# The tests of the runtime in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker
+vitest_bin.vitest_test(
+    name = "test_runtime_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--project",
+        "runtime",
+    ],
+    chdir = package_name(),
+    data = _VITEST_DATA,
+)
+
+# The tests of the platform in Node, without those that need a browser (*.browser.test.ts)
+vitest_bin.vitest_test(
+    name = "test_platform_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--project",
+        "platform",
+    ],
+    chdir = package_name(),
+    data = _VITEST_DATA,
+)
+
+# The folders keep to their rules: the bindings reach neither the runtime nor the platform, the platform doesn't reach
+# the runtime, nothing reaches the app or a user interface, and only the known seams of a browser or a bundler are used
+js_test(
+    name = "boundary_test",
+    data = _SOURCES,
+    entry_point = "test/boundary_test.mjs",
+)
+
+# Editors resolve every import of the package through the root tsconfig.json and package.json
+js_test(
+    name = "editor_config_test",
+    data = _SOURCES + [
+        "tsconfig.json",
+        "//:package.json",
+        "//:tsconfig_json",
+    ],
+    entry_point = "test/editor_config_test.mjs",
+    # The root package.json is only read
+    no_copy_to_bin = ["//:package.json"],
+)
+
+# The package on npm
+
+js_binary(
+    name = "npm_build",
+    data = [
+        "//:node_modules/typescript",
+        "//:node_modules/vite",
+    ],
+    entry_point = "npm/build.mjs",
+    visibility = ["//visibility:private"],
+)
+
+# The modules of src/ as JavaScript (Vite, the modules keep their paths) with their declarations (tsc) in dist/, the
+# generated packages and the library of hyperdb-edge inlined in dist/wasm, dist/gen and dist/hyperdb-edge, see
+# npm/build.mjs
+js_run_binary(
+    name = "bundle",
+    srcs = glob(
+        ["src/**/*.ts"],
+        exclude = ["src/**/*.test.ts"],
+    ) + _DEPENDENCIES + ["//:node_modules/@types/node"],
+    args = _MODULES,
+    chdir = package_name(),
+    out_dirs = ["dist"],
+    tool = ":npm_build",
+)
+
+genrule(
+    name = "notice",
+    srcs = ["//:NOTICE"],
+    outs = ["NOTICE"],
+    cmd = "cp $(location //:NOTICE) $@",
+)
+
+genrule(
+    name = "license",
+    srcs = ["//:LICENSE"],
+    outs = ["LICENSE"],
+    cmd = "cp $(location //:LICENSE) $@",
+)
+
+genrule(
+    name = "npm_manifest",
+    srcs = ["npm/package.json"],
+    outs = ["npm_files/package.json"],
+    cmd = "cp $(location npm/package.json) $@",
+)
+
+npm_package(
+    name = "npm_package",
+    package = "@ankoh/dashql",
+    # No Bazel linking consumers: publish metadata comes only from npm/package.json.
+    srcs = [
+        "README.md",
+        ":bundle",
+        ":license",
+        ":notice",
+        ":npm_manifest",
+    ],
+    include_transitive_sources = False,
+    include_transitive_types = False,
+    replace_prefixes = {"npm_files/": ""},
+)
+
+mtree_spec(
+    name = "npm_tarball_mtree",
+    srcs = [":npm_package"],
+)
+
+mtree_mutate(
+    name = "npm_mtree",
+    mtree = ":npm_tarball_mtree",
+    package_dir = "package",
+    strip_prefix = "packages/dashql/npm_package",
+)
+
+tar(
+    name = "npm_tarball",
+    srcs = [":npm_package"],
+    out = "dashql.tgz",
+    args = [
+        "--format=ustar",
+        "--uid=0",
+        "--gid=0",
+        "--uname=root",
+        "--gname=root",
+    ],
+    compress = "gzip",
+    mtree = ":npm_mtree",
+)
+
+tar(
+    name = "npm_tarball_reproducibility",
+    testonly = True,
+    srcs = [":npm_package"],
+    out = "dashql-rebuilt.tgz",
+    args = [
+        "--format=ustar",
+        "--uid=0",
+        "--gid=0",
+        "--uname=root",
+        "--gname=root",
+    ],
+    compress = "gzip",
+    mtree = ":npm_mtree",
+)
+
+# The typing benchmark of the runtime, run on the release module: bazel run --config=release :bench_typing
+js_binary(
+    name = "bench_typing",
+    data = [
+        ":npm_package",
+        "//:node_modules/flatbuffers",
+    ],
+    entry_point = "test/npm/bench_typing.mjs",
+    tags = ["manual"],
+)
+
+# The package on npm in Node: the bindings, the runtime and the platform of Node
+js_test(
+    name = "node_smoke_test",
+    data = [
+        ":npm_package",
+        "//:node_modules/@bufbuild/protobuf",
+        "//:node_modules/@zip.js/zip.js",
+        "//:node_modules/apache-arrow",
+        "//:node_modules/flatbuffers",
+        "//:node_modules/immutable",
+    ],
+    entry_point = "test/npm/node_smoke.mjs",
+)
+
+# The archive as a consumer installs it: its files, its metadata, the exports of the bindings in Node and their
+# declarations for NodeNext
+js_test(
+    name = "tarball_consumer_test",
+    data = [
+        "npm/package.json",
+        "test/npm/consumer.mjs",
+        "test/npm/consumer.mts",
+        ":license",
+        ":notice",
+        ":npm_tarball",
+        ":npm_tarball_reproducibility",
+        "//:node_modules/flatbuffers",
+        "//:node_modules/typescript",
+    ],
+    entry_point = "test/npm/tarball_consumer.mjs",
+)

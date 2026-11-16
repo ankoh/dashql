@@ -1,4 +1,5 @@
-// The modules and tests with the types of Node, the runtime and the core come from the node_modules of Bazel
+// The modules and tests with the types of Node, @ankoh/dashql comes from the node_modules of Bazel with the generated
+// packages of its core module
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -12,6 +13,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "paths": {
+      "@ankoh/dashql-wasm/*": ["../../node_modules/@ankoh/dashql/dependencies/dashql-wasm/*"],
+      "@ankoh/dashql-flatbuffers/*": ["../../node_modules/@ankoh/dashql/dependencies/dashql-flatbuffers/*"],
       "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
       "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
     }

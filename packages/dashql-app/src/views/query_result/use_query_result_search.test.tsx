@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import { ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
 import { mockTableComputation, recordingDispatch, valueColumn } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import { useQueryResultSearch } from './use_query_result_search.js';

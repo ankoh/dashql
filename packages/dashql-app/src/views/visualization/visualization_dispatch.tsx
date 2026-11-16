@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
-import { ResolvedVisualizeQuery } from '@ankoh/dashql-platform/workbook/scripts/script_types';
+import { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
+import { ResolvedVisualizeQuery } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { VegaLiteView } from './vegalite_view.js';
 import { VegaLitePreview } from './vegalite_preview.js';
 import { MarkdownView } from './markdown_view.js';

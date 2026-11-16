@@ -35,7 +35,7 @@ sequenceDiagram
 
 ## Batch Contract
 
-The TypeScript entry point is `DashQL.processBatch(request)` (`packages/dashql-core-js/src/api.ts`,
+The TypeScript entry point is `DashQL.processBatch(request)` (`packages/dashql/src/core/api.ts`,
 `batch.ts`). It calls the wasm-bindgen export `processBatch` (`packages/dashql-core-wasm/src/lib.rs`), which
 wraps `dashql_core_script::batch::process_batch` (`packages/dashql-core-script/src/batch.rs`). Request and result are
 FlatBuffers of `proto/fb/dashql/batch.fbs`.
@@ -65,7 +65,7 @@ Each input has a caller-defined string id, SQL text, and a mask of outputs:
 ## Worker
 
 The core package has a batch worker per main-thread `DashQL` instance (`batch_worker.ts`, `batch_worker_client.ts`,
-exported as `@ankoh/dashql-core/browser-worker`) for integrations that parse large files off the event loop. The app
+exported as `@ankoh/dashql/browser-worker`) for integrations that parse large files off the event loop. The app
 doesn't start it: the catalog loader and the restore of the runtime parse their batches in the core module.
 
 - `initialize()` warms the module with an empty batch and memoizes readiness.
@@ -92,7 +92,7 @@ The catalog loader of the runtime publishes the batches of an update (`catalog_l
 - A forced refresh aborts the running update of the connection. An automatic refresh only describes a connection that
   nothing describes yet (`CatalogUpdates::described`); only a forced refresh replaces a catalog.
 
-`publishCatalogBatchSync` of `packages/dashql-runtime/src/connections/catalog/catalog_batch.ts` prepares and
+`publishCatalogBatchSync` of `packages/dashql/src/runtime/connections/catalog/catalog_batch.ts` prepares and
 publishes catalog SQL on the main thread for tests and tools, with the same checks and the same order.
 
 ## Uses
@@ -113,7 +113,7 @@ batching does not reconstruct argument metadata the engine does not expose.
 ## Tests
 
 - Core: `packages/dashql-core-script/tests/batch_test.rs`, `packages/dashql-core/tests/catalog_descriptor_test.rs`.
-- Core JS: `packages/dashql-core-js/src/batch.test.ts`, `batch_worker_client.test.ts`.
+- Core JS: `packages/dashql/src/core/batch.test.ts`, `batch_worker_client.test.ts`.
 - Runtime: `packages/dashql-core-runtime/tests/catalog_loader_test.rs` (the updates and their batches) and
   `catalog_loader_service_test.rs` (the loader on a host). `catalog_updates.integration.test.ts` of the TypeScript
   runtime runs lookups through the loader on the embedded Hyper.
@@ -123,8 +123,8 @@ batching does not reconstruct argument metadata the engine does not expose.
 - `proto/fb/dashql/batch.fbs`, `catalog.fbs`: wire contracts.
 - `packages/dashql-core-script/src/batch.rs`: isolated native processing.
 - `packages/dashql-core/src/catalog/descriptor.rs`, `catalog/mod.rs`: descriptor validation and publication.
-- `packages/dashql-core-js/src/batch.ts`, `api.ts`: API and buffer ownership.
-- `packages/dashql-core-js/src/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
+- `packages/dashql/src/core/batch.ts`, `api.ts`: API and buffer ownership.
+- `packages/dashql/src/core/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
   transport.
 - `packages/dashql-core-runtime/src/catalog_loader/batch.rs`: batches, generations and publication.
 - `packages/dashql-core-runtime/src/catalog_loader/service.rs`: refresh queue, supersession and the updates.

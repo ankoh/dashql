@@ -2,15 +2,15 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 
-import type * as dashql from '@ankoh/dashql-core';
-import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import type * as dashql from '@ankoh/dashql';
+import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 
-import type { WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';
@@ -57,7 +57,7 @@ function Consumer(props: { workbookId: string; scriptKey: number; capture: (scri
     return null;
 }
 
-// The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `dashql-core-js`), these are the
+// The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `packages/dashql/src/core`), these are the
 // hooks of the app on it
 describe('the dispatch of a workbook', () => {
     it('keeps retained and current modifiers bound to their workbooks when a reused route dispatches', async () => {

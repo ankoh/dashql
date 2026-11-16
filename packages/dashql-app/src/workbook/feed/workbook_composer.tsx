@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
@@ -18,11 +18,11 @@ import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
-import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql-platform/workbook/inputs/workbook_inputs';
-import { textChange } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
-import type { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@ankoh/dashql/platform/workbook/inputs/workbook_inputs';
+import { textChange } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
+import type { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
-import { quoteIdentifier } from '@ankoh/dashql-platform/utils/sql_quote';
+import { quoteIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 
 /// The table parameters of a workbook for a session that is no script of it
 export interface WorkbookTableParameters {

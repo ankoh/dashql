@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import type { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
+import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { TableColumnHeader } from './data_table_cell.js';
 import { ResultTableOverlay, type ResultTableOverlayDependencies } from './result_table_overlay.js';
 

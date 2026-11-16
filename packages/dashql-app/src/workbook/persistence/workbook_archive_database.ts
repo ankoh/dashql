@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useEmbeddedDatabaseSetup } from '../../platform/database/embedded_database_provider.js';
-import { supportsParquetRead, type ParquetReadDatabase } from '@ankoh/dashql-runtime/storage/workbook_archives';
+import { supportsParquetRead, type ParquetReadDatabase } from '@ankoh/dashql/runtime/storage/workbook_archives';
 
 /// Resolve the embedded database that writes and reads the workbook tables of a `.dashql` file and of a cloud, set up
 /// when needed

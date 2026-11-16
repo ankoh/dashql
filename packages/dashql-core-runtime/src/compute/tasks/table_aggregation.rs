@@ -2,7 +2,7 @@
 //! and the counts and distinct counts of the string columns. A column of integers with a small domain gets one bin
 //! per value.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/table_aggregation.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/tasks/table_aggregation.ts`.
 
 use arrow_schema::Schema;
 use dashql_core::error::Result;

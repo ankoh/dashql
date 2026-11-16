@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import type { PlatformFile } from '../platform/file/file.js';
 import type { PreparedImport, WorkbookCommitOptions } from '../workbook/persistence/workbook_import_provider.js';

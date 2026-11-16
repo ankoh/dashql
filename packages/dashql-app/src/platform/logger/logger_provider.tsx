@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 import { WebLogger } from './web_logger.js';
 
 const LOGGER_CTX = React.createContext<Logger | null>(null);

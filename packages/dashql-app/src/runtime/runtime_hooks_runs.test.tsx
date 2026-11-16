@@ -1,20 +1,20 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
-import type { EmbeddedComputeDatabase } from '@ankoh/dashql-platform/platform/database/embedded_database';
+import type { EmbeddedComputeDatabase } from '@ankoh/dashql/platform/platform/database/embedded_database';
 import { LoggerProvider } from '../platform/logger/logger_provider.js';
-import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql-platform/query/query_execution_state';
-import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import { createTestConnection } from '@ankoh/dashql-runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@ankoh/dashql-platform/testing/workbook_test_backend';
+import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '@ankoh/dashql/platform/query/query_execution_state';
+import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import { createTestConnection } from '@ankoh/dashql/runtime/testing/connection_fixtures';
+import { WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { analyzeWorkbook } from '@ankoh/dashql-runtime/testing/test_runtime';
+import { analyzeWorkbook } from '@ankoh/dashql/runtime/testing/test_runtime';
 import { useRuntime, useWorkbookExecution } from './runtime_hooks.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 

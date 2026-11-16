@@ -4,8 +4,8 @@ import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
 
-import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@ankoh/dashql-platform/compute/arrow_formatter';
-import { resolveSummaries, type TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@ankoh/dashql/platform/compute/arrow_formatter';
+import { resolveSummaries, type TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
 import { useComputationDispatch, useOptionalRuntime } from '../../runtime/runtime_hooks.js';
 import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
@@ -23,7 +23,7 @@ import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_colu
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
-import { collectSearchableResultColumns } from '@ankoh/dashql-platform/compute/sql/query_result_search_sql';
+import { collectSearchableResultColumns } from '@ankoh/dashql/platform/compute/sql/query_result_search_sql';
 
 const LOG_CTX = 'data_table';
 

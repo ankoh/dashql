@@ -1,6 +1,6 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
-import { VariantKind } from '@ankoh/dashql-platform/utils/variant';
+import { VariantKind } from '@ankoh/dashql/platform/utils/variant';
 
 export interface QualifiedDatabaseId {
     /// The database id

@@ -1,7 +1,7 @@
 //! The summary of a column: the histogram of an ordinal column with a bin of the nulls, the most frequent values of a
 //! string column. A filtered summary counts the rows that the cross filters and the data search select.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/column_aggregation.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/tasks/column_aggregation.ts`.
 
 use arrow_schema::Schema;
 use dashql_core::error::{Error, Result};

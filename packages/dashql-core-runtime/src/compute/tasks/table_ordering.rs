@@ -1,7 +1,7 @@
 //! The order of the rows of a table, as row numbers in display order. An ordering of a filtered or searched table
 //! orders the selected rows only. Equal rows keep the order of the table.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/table_ordering.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/tasks/table_ordering.ts`.
 
 use dashql_core::error::Result;
 

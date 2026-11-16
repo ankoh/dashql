@@ -5,7 +5,7 @@
 //! the core token for the Data Cloud token over fetch and asks the host to connect the Hyper channel with the tokens.
 //! `authenticate_salesforce` stops before the channel, e.g. for the login of the shell.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/salesforce/salesforce_connection_setup.ts` and
+//! Ported from `packages/dashql/src/runtime/connections/salesforce/salesforce_connection_setup.ts` and
 //! `salesforce_authentication.ts`.
 
 use std::cell::{Cell, RefCell};

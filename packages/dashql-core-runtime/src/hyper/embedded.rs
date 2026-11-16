@@ -5,7 +5,7 @@
 //! until the result of the previous one is read to the end, cancelled or failed. A waiting query that is cancelled
 //! leaves the queue without waiting for the running one.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/embedded/embedded_database_channel.ts`.
+//! Ported from `packages/dashql/src/platform/connections/embedded/embedded_database_channel.ts`.
 
 use std::collections::VecDeque;
 

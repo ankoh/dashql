@@ -5,16 +5,16 @@ import { WebFile } from '../file/web_file.js';
 import { ShellFileRegistry } from '../../shell/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_opfs_instance';
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_opfs_instance';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from './hyperdb_wasm.js';
-import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_parquet_export';
-import { createRunMounts } from '@ankoh/dashql-runtime/workbook/scripts/run_mounts';
-import { HandleTable } from '@ankoh/dashql-runtime/store/handles';
-import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql-platform/storage/opfs_query_result_cache';
-import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
-import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql-platform/workbook/attachments/attachment_mounts';
-import { tableFromArrays, vectorFromArray } from '@ankoh/dashql-platform/testing/arrow_fixtures';
+import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
+import { createRunMounts } from '@ankoh/dashql/runtime/workbook/scripts/run_mounts';
+import { HandleTable } from '@ankoh/dashql/runtime/store/handles';
+import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@ankoh/dashql/platform/storage/opfs_query_result_cache';
+import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
+import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@ankoh/dashql/platform/workbook/attachments/attachment_mounts';
+import { tableFromArrays, vectorFromArray } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

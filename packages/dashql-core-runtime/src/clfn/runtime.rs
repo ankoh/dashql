@@ -6,7 +6,7 @@
 //! page it read. The host owns the clock and the timers: every step takes the time, and a wait
 //! is a step that the host answers with `on_wake` once the time is over. Canceling a call is dropping the run.
 //!
-//! Ported from `connections/clfn/clfn_runtime.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/clfn/clfn_runtime.ts` of `packages/dashql/src/runtime`.
 
 use std::rc::Rc;
 

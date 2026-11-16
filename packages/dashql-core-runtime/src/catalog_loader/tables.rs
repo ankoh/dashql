@@ -2,7 +2,7 @@
 //! descriptors and table updates for the core, read back from descriptors and rendered as the catalog files.
 //!
 //! Ported from `catalog_sql_generator.ts` and `catalog_structure.ts` of
-//! `packages/dashql-runtime/src/connections/catalog/`.
+//! `packages/dashql/src/runtime/connections/catalog/`.
 
 use std::collections::HashMap;
 use std::hash::Hash;

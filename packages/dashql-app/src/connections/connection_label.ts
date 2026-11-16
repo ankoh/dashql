@@ -1,9 +1,9 @@
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import type { ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, getConnectorInfoForParams } from '@ankoh/dashql-platform/connections/connector_info';
-import { embeddedCloudDatabases } from '@ankoh/dashql-platform/connections/hyper/local_cloud';
-import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
+import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, ConnectorType, getConnectorInfoForParams } from '@ankoh/dashql/platform/connections/connector_info';
+import { embeddedCloudDatabases } from '@ankoh/dashql/platform/connections/hyper/local_cloud';
+import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
 
 /// Is the connection the embedded Hyper of the app? A connection of the embedded Hyper that attaches a database of the
 /// clouds folder, the local cloud, is a connection of its own like one to a server.

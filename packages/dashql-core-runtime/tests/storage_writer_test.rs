@@ -1,5 +1,5 @@
 // The storage writer on a fake host: an executor of a single thread, a clock that only the test advances and a storage
-// in memory. The semantics follow packages/dashql-runtime/src/storage/storage_writer.test.ts.
+// in memory. The semantics follow packages/dashql/src/runtime/storage/storage_writer.test.ts.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap, VecDeque};

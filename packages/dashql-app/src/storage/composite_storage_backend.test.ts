@@ -1,17 +1,17 @@
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRuntime } from '@ankoh/dashql-runtime/runtime';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
+import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
 
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { NativeStorageBackend } from '@ankoh/dashql-platform/storage/native_storage_backend';
+import { NativeStorageBackend } from '@ankoh/dashql/platform/storage/native_storage_backend';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { StorageBackendType } from '@ankoh/dashql-platform/storage/storage_backend';
-import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql-platform/testing/workbook_test_backend';
-import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql-platform/testing/test_fs_mock';
-import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
-import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql-platform/platform/electron_fs';
+import { StorageBackendType } from '@ankoh/dashql/platform/storage/storage_backend';
+import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
+import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
+import { ELECTRON_FILE_SYSTEM } from '@ankoh/dashql/platform/platform/electron_fs';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

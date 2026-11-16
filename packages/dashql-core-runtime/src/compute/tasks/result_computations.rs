@@ -4,7 +4,7 @@
 //! previous result stays until then. A result that is analyzed after a later result of the same owner, e.g. of an
 //! overlapping rerun, is stale.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/result_computations.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/result_computations.ts`.
 
 use std::collections::HashMap;
 

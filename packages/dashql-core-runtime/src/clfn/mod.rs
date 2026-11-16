@@ -6,7 +6,7 @@
 //! Sans-IO: a call is a state machine that returns the next request or wait and takes the response, the host sends it
 //! with its HTTP client. See `docs/design/client_functions.md`.
 //!
-//! Ported from `connections/clfn/` and `connections/connection_client_functions.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/clfn/` and `connections/connection_client_functions.ts` of `packages/dashql/src/runtime`.
 
 pub mod connection;
 pub mod json;

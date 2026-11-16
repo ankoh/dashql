@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-import type { ComputeQueryExecution, ComputeTaskContext } from '@ankoh/dashql-runtime/compute/compute_platform';
-import { QueryType } from '@ankoh/dashql-platform/query/query_execution_state';
-import { executeTrackedQuery } from '@ankoh/dashql-runtime/query/tracked_query_execution';
+import type { ComputeQueryExecution, ComputeTaskContext } from '@ankoh/dashql/runtime/compute/compute_platform';
+import { QueryType } from '@ankoh/dashql/platform/query/query_execution_state';
+import { executeTrackedQuery } from '@ankoh/dashql/runtime/query/tracked_query_execution';
 import { useShellQueryHistory } from './shell_query_history.js';
 
 const LOG_CTX = 'scheduler';

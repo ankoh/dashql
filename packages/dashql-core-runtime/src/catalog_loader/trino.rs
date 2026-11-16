@@ -1,7 +1,7 @@
 //! The catalog of a Trino connection: the columns of the `information_schema` of its catalogs. The params name the
 //! catalogs to read, without them the update reads every catalog of the server. Trino has no functions in the catalog.
 //!
-//! Ported from `trino/trino_catalogs.ts` of `packages/dashql-runtime/src/connections/` and the Trino part of
+//! Ported from `trino/trino_catalogs.ts` of `packages/dashql/src/runtime/connections/` and the Trino part of
 //! `catalog_loader_service.ts`.
 
 use dashql_core::catalog::{Catalog, CatalogLayer};

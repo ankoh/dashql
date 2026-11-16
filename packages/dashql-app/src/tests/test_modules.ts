@@ -9,32 +9,23 @@ function normalizePath(path: string): string {
     return path.startsWith('./') ? `src/tests/${path.slice(2)}` : path.replace(/^\.\.\//, 'src/');
 }
 
-/// The tests of the runtime run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-runtime:test_node)
-export const RUNTIME_TEST_MODULES = import.meta.glob([
-    '../../../dashql-runtime/src/**/*.test.ts',
-    // The tests of Node, see //packages/dashql-runtime:test_node
-    '!../../../dashql-runtime/src/**/*.node.test.ts',
+/// The tests of the runtime and of the platform of @ankoh/dashql run in the browsers too, all but *.browser.test.ts also
+/// run in Node (//packages/dashql:test_runtime_node, //packages/dashql:test_platform_node)
+export const DASHQL_TEST_MODULES = import.meta.glob([
+    '../../../dashql/src/runtime/**/*.test.ts',
+    '../../../dashql/src/platform/**/*.test.ts',
+    // The tests of Node
+    '!../../../dashql/src/**/*.node.test.ts',
 ]);
 
-/// The tests of the platform run in the browsers too, all but *.browser.test.ts also run in Node (//packages/dashql-platform:test_node)
-export const PLATFORM_TEST_MODULES = import.meta.glob([
-    '../../../dashql-platform/src/**/*.test.ts',
-    // The tests of Node, see //packages/dashql-platform:test_node
-    '!../../../dashql-platform/src/**/*.node.test.ts',
-]);
-
-/// The tests of a package are named <name>/src/<path>, runtime/src/<path> and platform/src/<path>
-function packageTestKeys(name: string, modules: Record<string, unknown>): Map<string, string> {
-    const sourceRoot = `/dashql-${name}/src/`;
-    return new Map(Object.keys(modules).map(key => [`${name}/src/${key.slice(key.lastIndexOf(sourceRoot) + sourceRoot.length)}`, key]));
-}
-const RUNTIME_TEST_KEYS = packageTestKeys('runtime', RUNTIME_TEST_MODULES);
-const PLATFORM_TEST_KEYS = packageTestKeys('platform', PLATFORM_TEST_MODULES);
+/// The tests of @ankoh/dashql are named dashql/src/<path>
+const DASHQL_SOURCE_ROOT = '/dashql/src/';
+const DASHQL_TEST_KEYS = new Map(Object.keys(DASHQL_TEST_MODULES)
+    .map(key => [`dashql/src/${key.slice(key.lastIndexOf(DASHQL_SOURCE_ROOT) + DASHQL_SOURCE_ROOT.length)}`, key]));
 
 export const BROWSER_TEST_FILES = [
     ...Object.keys(BROWSER_TEST_MODULES).map(normalizePath),
-    ...RUNTIME_TEST_KEYS.keys(),
-    ...PLATFORM_TEST_KEYS.keys(),
+    ...DASHQL_TEST_KEYS.keys(),
 ].sort();
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
@@ -76,13 +67,9 @@ export function getBrowserTestShard(index: number, count: number): string[] {
 }
 
 export function getBrowserTestModule(file: string): (() => Promise<unknown>) | null {
-    if (file.startsWith('runtime/')) {
-        const key = RUNTIME_TEST_KEYS.get(file);
-        return key == null ? null : RUNTIME_TEST_MODULES[key] ?? null;
-    }
-    if (file.startsWith('platform/')) {
-        const key = PLATFORM_TEST_KEYS.get(file);
-        return key == null ? null : PLATFORM_TEST_MODULES[key] ?? null;
+    if (file.startsWith('dashql/')) {
+        const key = DASHQL_TEST_KEYS.get(file);
+        return key == null ? null : DASHQL_TEST_MODULES[key] ?? null;
     }
     const key = file.startsWith('src/tests/') ? `./${file.slice('src/tests/'.length)}` : `../${file.replace(/^src\//, '')}`;
     return BROWSER_TEST_MODULES[key] ?? null;

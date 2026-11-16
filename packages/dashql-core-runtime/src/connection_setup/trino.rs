@@ -4,7 +4,7 @@
 //! with the loopback redirect of the platform, requests the access token over fetch and opens the channel with it. The
 //! health check is a step of its own (`check_health`), the caller runs it once the channel is ready.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/trino/trino_connection_setup.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_setup.ts`.
 
 use std::cell::RefCell;
 use std::collections::VecDeque;

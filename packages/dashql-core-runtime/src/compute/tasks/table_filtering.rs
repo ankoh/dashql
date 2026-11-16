@@ -1,6 +1,6 @@
 //! The rows of a table that pass the scalar filters of the cross filters, as row numbers in the order of the table.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/table_filtering.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/tasks/table_filtering.ts`.
 
 use dashql_core::error::Result;
 

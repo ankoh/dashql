@@ -1,9 +1,9 @@
-import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from '@ankoh/dashql-platform/storage/storage_backend';
-import { STORAGE_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
-import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql-platform/storage/storage_backend';
-import { sleep } from '@ankoh/dashql-platform/utils/sleep';
-import { getOPFSRoot } from '@ankoh/dashql-platform/platform/opfs_root';
-import { HYPER_CLOUDS_DIRECTORY } from '@ankoh/dashql-platform/platform/hyperdb/hyperdb_opfs_instance';
+import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
+import { STORAGE_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
+import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql/platform/storage/storage_backend';
+import { sleep } from '@ankoh/dashql/platform/utils/sleep';
+import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
+import { HYPER_CLOUDS_DIRECTORY } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_opfs_instance';
 import {
     INITIAL_WORKBOOK_FOLDER,
     STORAGE_FOLDER_FILE,
@@ -22,7 +22,7 @@ import {
     removeWorkbookFromTree,
     sameFolderPath,
     upsertWorkbookInTree,
-} from '@ankoh/dashql-platform/storage/workbook_tree';
+} from '@ankoh/dashql/platform/storage/workbook_tree';
 
 /// The name of the web lock that guards the manifest
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';

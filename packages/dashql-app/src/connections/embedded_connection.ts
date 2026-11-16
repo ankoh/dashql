@@ -1,5 +1,5 @@
-import type { ConnectionAllocator, ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
-import { newDefaultHyperWasmConnection } from '@ankoh/dashql-platform/connections/connection_params';
+import type { ConnectionAllocator, ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { newDefaultHyperWasmConnection } from '@ankoh/dashql/platform/connections/connection_params';
 import { isHyperWasmConnection } from './connection_label.js';
 
 /// The connection to the embedded Hyper of the app, if one is known

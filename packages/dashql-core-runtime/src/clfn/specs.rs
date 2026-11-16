@@ -2,7 +2,7 @@
 //! an extension; the platform knows where it put them (the chunks of the app, the files of Node) and reads one when a
 //! connection needs it.
 //!
-//! Ported from `connections/clfn/clfn_specs.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/clfn/clfn_specs.ts` of `packages/dashql/src/runtime`.
 
 use super::ClientFunctionError;
 

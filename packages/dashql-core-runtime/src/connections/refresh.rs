@@ -1,6 +1,6 @@
 //! Whether the catalog of a connection can be refreshed.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/connection_refresh.ts`.
+//! Ported from `packages/dashql/src/platform/connections/connection_refresh.ts`.
 
 use super::{ConnectionHealth, ConnectionState};
 

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import * as baseStyles from '../../ui/foundations/banner_page.module.css';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';

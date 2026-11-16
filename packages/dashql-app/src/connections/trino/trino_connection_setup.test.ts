@@ -1,17 +1,17 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { HttpClient, HttpFetchResult } from '@ankoh/dashql-platform/platform/http/http_client';
+import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
-import { TrinoChannel } from '@ankoh/dashql-platform/connections/trino/trino_channel';
-import { createRuntime } from '@ankoh/dashql-runtime/runtime';
-import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { TrinoChannel } from '@ankoh/dashql/platform/connections/trino/trino_channel';
+import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;

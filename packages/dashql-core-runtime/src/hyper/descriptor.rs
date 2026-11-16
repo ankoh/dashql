@@ -1,7 +1,7 @@
 //! What the descriptor of the Hyper connector says about params that `connections` doesn't port yet: the params to
 //! share, the signature of the query result cache and whether a connection reads the attachments of a workbook.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/hyper/hyper_connector_descriptor.ts`.
+//! Ported from `packages/dashql/src/platform/connections/hyper/hyper_connector_descriptor.ts`.
 
 use serde_json::{json, Map, Value};
 

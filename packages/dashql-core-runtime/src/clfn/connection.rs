@@ -7,7 +7,7 @@
 //! change, and the spec is dropped if the connection switches to a connector without it. Clearing the catalog keeps
 //! the specs, they come with the connector.
 //!
-//! Ported from `connections/connection_client_functions.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/connection_client_functions.ts` of `packages/dashql/src/runtime`.
 
 use std::cell::RefCell;
 use std::collections::HashMap;

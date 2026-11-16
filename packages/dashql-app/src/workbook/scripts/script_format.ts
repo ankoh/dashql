@@ -1,8 +1,8 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
-import type { ScriptData } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import type { AppSettings } from '../../config/app_settings.js';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 
 export const DEFAULT_FORMAT_WIDTH = 80;
 const DEFAULT_FORMAT_INDENTATION = 4;

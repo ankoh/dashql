@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseAgentSessionTarget } from '@ankoh/dashql-platform/session/agent_session_client';
+import { parseAgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
 
 import { agentConnectCommand, newAgentConnectTarget } from './agent_connect.js';
 

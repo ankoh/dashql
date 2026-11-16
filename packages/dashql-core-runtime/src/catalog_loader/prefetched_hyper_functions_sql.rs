@@ -1,6 +1,6 @@
 //! The functions of Hyper that a Hyper connection knows before it asked the engine, as SQL text.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/catalog/prefetched_hyper_functions_sql.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/catalog/prefetched_hyper_functions_sql.ts`.
 
 /// The bundled function catalog of Hyper, qualified with the database `hyper`
 pub const PREFETCHED_HYPER_FUNCTIONS_SQL: &str = r#"CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;

@@ -34,7 +34,7 @@ Client functions ship in an [extension](extensions.md), the folder of a service 
 | Layer | Knows about | Doesn't know about |
 |---|---|---|
 | **Core** (Rust) | `CALL`, namespaces, functions, typed named arguments, nested schemas, result columns | HTTP, any service |
-| **Runtime** (TypeScript, `connections/clfn/` of `@ankoh/dashql-runtime`) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
+| **Runtime** (TypeScript, `platform/connections/clfn/` of `@ankoh/dashql`) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
 | **Connector binding** (TypeScript) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
 | **Spec** (JSON) | Namespace, functions, API names, paging, schemas, effects | Credentials, absolute URLs |
 
@@ -267,7 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql-platform/src/connections/connector_descriptor.ts`):
+A connector enables a spec by adding a binding to its `ConnectorDescriptor` (`packages/dashql/src/platform/connections/connector_descriptor.ts`):
 
 ```ts
 interface ClientFunctionBinding {
@@ -669,7 +669,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Result columns | `ClientFunctionSpec::result_columns`, `packages/dashql-core/src/table_parameters.rs` | The columns of a function and the standard columns, the table of a script that is a single call that reads |
 | Script references | `packages/dashql-core-runtime/src/planner/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
-| Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql-core-js/src/api.ts`. A binding registers the spec on the catalog of its connection |
+| Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql/src/core/api.ts`. A binding registers the spec on the catalog of its connection |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
@@ -688,7 +688,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | `connection.rs` | Connects it to a connection: the binding of the connector, the spec on the catalog of the connection, a call of the connection |
 
 The query executor of the crate runs a call as a task over the HTTP client of the host, the result reaches the host as
-Arrow IPC like every other query result. In TypeScript, `packages/dashql-platform/src/connections/clfn/` keeps the types of
+Arrow IPC like every other query result. In TypeScript, `packages/dashql/src/platform/connections/clfn/` keeps the types of
 the document and of the core's description (`clfn_spec.ts`) and `loadClientFunctionSpec` (`clfn_specs.ts`), which loads
 a bundled spec as a chunk of its own, for `loadSpec` of a binding.
 

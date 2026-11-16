@@ -15,7 +15,10 @@ document was written. Measured on `a9029aa2f` (the progress model of queries in 
 given what is landing next to it: the progress model (landed), the streaming of results through the host (result data
 never lives in the core module, every Arrow table is a host object by handle, the computations' tables included) and
 the handle table of the host with the effects `release`, `close` and `abort`. Numbers marked as measured come from
-that commit; the rest are estimates.
+that commit; the rest are estimates. The packages that the measurements and the sections as built name are folders of
+`packages/dashql` (`@ankoh/dashql`) now: `packages/dashql-core-js` (`@ankoh/dashql-core`) is `src/core`,
+`packages/dashql-runtime` is `src/runtime` and `packages/dashql-platform` is `src/platform`, see
+[dashql_runtime.md](dashql_runtime.md).
 
 The logic of DashQL is Rust (see [core_runtime.md](core_runtime.md)), but every step of the port kept the TypeScript
 API of the runtime so that the app didn't change. That left three layers between the app and the Rust state: the
@@ -1225,7 +1228,7 @@ the 1,075 lines of `testing/`; 6,802 lines of tests in 59 files), cut anew by fi
 
 Decision 6, built on `c42f4e67e` (step 8): `packages/dashql-runtime` split into the runtime and a new
 `packages/dashql-platform` (`@ankoh/dashql-platform`). A move and a rename: no file changed but its imports, the tests
-are the ones of before. What goes where is in [dashql_runtime.md](dashql_runtime.md#the-two-packages).
+are the ones of before. What goes where is in [dashql_runtime.md](dashql_runtime.md#what-goes-where).
 
 | Where | Sources | Tests | Test helpers |
 |---|---|---|---|
@@ -1310,7 +1313,8 @@ Taken on 2026-11-15.
 5. **Hooks.** Generic `useView(kind, id)` with one-line aliases.
 6. **The package.** `packages/dashql-runtime` splits into a runtime of about 800 lines (the facade, the store, the
    platform builder) and a `dashql-platform` package with the platforms, the clients and the CLI support. Done, see
-   [The split as built](#the-split-as-built): the runtime has 2,940 lines with the adapters of the platform.
+   [The split as built](#the-split-as-built): the runtime has 2,940 lines with the adapters of the platform. Both are
+   folders of `packages/dashql` with the bindings of the core module.
 7. **The order.** Computations, connections, setups, workbooks: the glue of the connections and queries goes first and
    the workbooks build on them.
 8. **Derived slices.** The references, the dataflow and the inputs move into Rust with step 4, which ends the renders

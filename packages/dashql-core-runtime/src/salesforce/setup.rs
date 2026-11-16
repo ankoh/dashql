@@ -10,7 +10,7 @@
 //! `salesforce_connection_setup.ts`: never embed the secret of an External Client App.
 //!
 //! Ported from `connections/salesforce/salesforce_connection_setup.ts` and `salesforce_authentication.ts` of
-//! `packages/dashql-runtime`.
+//! `packages/dashql/src/runtime`.
 
 use super::api::{
     collect_salesforce_auth_info, core_access_token_request, core_user_info_request, data_cloud_access_token_request,

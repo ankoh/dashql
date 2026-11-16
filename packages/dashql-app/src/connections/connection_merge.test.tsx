@@ -2,12 +2,12 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import { connectionMergeCandidates } from './connection_merge.js';
-import { createDefaultConnectionParamsForConnector } from '@ankoh/dashql-platform/connections/connection_params';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql-platform/connections/connector_info';
+import { createDefaultConnectionParamsForConnector } from '@ankoh/dashql/platform/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@ankoh/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });

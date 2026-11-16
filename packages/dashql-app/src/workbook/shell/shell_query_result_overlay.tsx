@@ -1,8 +1,8 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import icons from '@ankoh/dashql-svg-symbols';
 
-import type { QueryExecutionState } from '@ankoh/dashql-platform/query/query_execution_state';
+import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_execution_state';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ErrorBoundary } from '../../ui/foundations/error_boundary.js';
 import { useFocusTrap } from '../../ui/foundations/focus.js';

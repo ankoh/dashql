@@ -1,13 +1,13 @@
 import * as React from 'react';
 
 import { useConnection } from '../runtime/runtime_hooks.js';
-import { connectionParamsWithoutDraftRows } from '@ankoh/dashql-platform/connections/connection_params';
-import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectionParamsWithoutDraftRows } from '@ankoh/dashql/platform/connections/connection_params';
+import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { useAppConfig } from '../config/app_config.js';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 // The login to the cloud connection with its saved settings, the same setup that Connect of its settings runs.
 // Database.com logs in with OAuth in a popup, so the login runs on a click. A Hyper server connects with the endpoint and

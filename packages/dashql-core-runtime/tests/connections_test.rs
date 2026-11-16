@@ -1,6 +1,6 @@
 //! The state of a connection, ported from `connection_state.test.ts`, `catalog/catalog_update_state.test.ts`,
 //! `trino/trino_connection_state.test.ts` and `salesforce/salesforce_connection_state.test.ts` of
-//! `packages/dashql-runtime/src/connections/`.
+//! `packages/dashql/src/runtime/connections/`.
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{CatalogEntryId, CatalogLayer};

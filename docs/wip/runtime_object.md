@@ -6,7 +6,7 @@ counts are measured on `21ea12945` and count the `.ts` files without their tests
 estimates.
 
 The state and the services of DashQL are Rust (see [core_runtime.md](core_runtime.md)), but they are eleven classes of
-the module, each with its own host, and the TypeScript of `packages/dashql-runtime` carries every value from one to the
+the module, each with its own host, and the TypeScript of `packages/dashql/src/runtime` carries every value from one to the
 next. This document designs the next step of the port: one `Runtime` of the module that owns the workbooks, the
 connections with their query histories, the computations and the services, with the services calling each other in
 Rust. The registries, the services and the adapters of TypeScript that only pass values between the Rust states go.
@@ -336,7 +336,7 @@ What stays a host object by id:
 ## Slices
 
 Each slice keeps the app and the tests green and is one agent's work; the slices touch overlapping files and run one
-after another in this order. Line numbers are estimates of the TypeScript of `packages/dashql-runtime` and the app,
+after another in this order. Line numbers are estimates of the TypeScript of `packages/dashql/src/runtime` and the app,
 counted without tests.
 
 ### 1. One host and the handle table
@@ -417,7 +417,7 @@ counted without tests.
 - **Tests.** `query_executor_service.test.ts`, `compute/computations.test.ts`, `workbook_execution_integration.test.ts`
   (cached results), `executor_test.rs`, `compute_service_test.rs`; new: a result table is the same object for every
   reader of its handle, the keys of a fixed workbook match the keys of today (a snapshot). The memory of the module
-  while a large result streams is measured already (`query_executor.test.ts` of `dashql-core-js`).
+  while a large result streams is measured already (`query_executor.test.ts` of `packages/dashql/src/core`).
 
 ### 5. The services on the executor
 
@@ -482,7 +482,7 @@ These touch few files of the slices and can run next to them, by another agent, 
 - **The command line tool's support**: lint, format and the reports of SQL files, the session journal and its state,
   the test helpers.
 
-`packages/dashql-runtime` has 23,939 lines of TypeScript without tests (measured). After the five slices and the
+The runtime had 23,939 lines of TypeScript without tests (measured). After the five slices and the
 parallel pieces about 19,700 remain (estimate): about 7,000 of platform, storage and Node (`platform/`, `storage/`,
 `node/`, `workbook/persistence/`), 3,500 of connectors and their clients, 3,500 of the computations and the query
 types that the consumers read, 1,800 of the store, the hydrators and the workbook types, 1,000 of the host, and the

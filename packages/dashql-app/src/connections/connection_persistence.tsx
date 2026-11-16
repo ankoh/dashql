@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import type * as core from '@ankoh/dashql-core';
-import type { ConnectionParams } from '@ankoh/dashql-platform/connections/connection_params';
-import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql-runtime/storage/runtime_storage';
+import type * as core from '@ankoh/dashql';
+import type { ConnectionParams } from '@ankoh/dashql/platform/connections/connection_params';
+import { writeResultOf, type StorageWriteResult } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
 
 // Saving a connection is a command of the runtime (docs/wip/runtime_api.md), the view of the connection shows the save

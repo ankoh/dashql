@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { DashQLCompletionStatus, type DashQLCompletionState } from './dashql_completion_state.js';

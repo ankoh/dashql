@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import * as themes from './themes/index.js';
 
 import { Compartment, EditorState, Extension, Prec } from '@codemirror/state';
@@ -9,7 +9,7 @@ import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@
 import { CodeMirrorSearchExtensions } from './codemirror.js';
 import { DashQLExtensions, DashQLFocusCompletionEffect } from './dashql_extension.js';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from './dashql_processor.js';
-import { replaceScriptSessionText } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { replaceScriptSessionText } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 
 /// Callbacks of the prompt editor, read through a ref so the editor extensions are built only once.
 interface PromptEditorCallbacks {

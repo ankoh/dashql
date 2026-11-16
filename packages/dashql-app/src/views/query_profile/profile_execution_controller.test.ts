@@ -1,7 +1,7 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import * as flatbuffers from 'flatbuffers';
 import { ProfileExecutionController } from './profile_execution_controller.js';
-import { ProfileExecutionState } from '@ankoh/dashql-platform/query/profile_execution_state';
+import { ProfileExecutionState } from '@ankoh/dashql/platform/query/profile_execution_state';
 
 const view = dashql.buffers.profile;
 const { RUNNING, SUCCEEDED, UNKNOWN } = view.ProfileExecutionStatus;

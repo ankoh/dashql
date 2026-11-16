@@ -1,7 +1,7 @@
 //! The system columns of a table: the fractional bin of every ordinal value and the id of every string value, next to
 //! the row numbers. The filters and the summaries over the selected rows use them.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/system_columns.ts`.
+//! Ported from `packages/dashql/src/runtime/compute/tasks/system_columns.ts`.
 
 use std::collections::HashSet;
 

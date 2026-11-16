@@ -11,7 +11,7 @@
 //! state doesn't keep is released right away. An action changes the state in place and returns the effects that
 //! the host applies afterwards. `service` runs the tasks on a compute host.
 //!
-//! Ported from `reduceComputationState` of `packages/dashql-runtime/src/compute/computation_state.ts`.
+//! Ported from `reduceComputationState` of `packages/dashql/src/runtime/compute/computation_state.ts`.
 
 pub mod cross_filters;
 pub mod host;

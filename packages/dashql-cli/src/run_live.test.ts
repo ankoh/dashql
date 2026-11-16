@@ -1,7 +1,7 @@
 import { tableFromArrays } from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { ReportStyle } from '@ankoh/dashql-platform/sql/sql_report';
+import { ReportStyle } from '@ankoh/dashql/platform/sql/sql_report';
 
 import type { RunEvent } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';

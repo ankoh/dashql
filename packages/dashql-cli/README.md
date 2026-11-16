@@ -1,6 +1,6 @@
 # dashql-cli
 
-`dashql`, the command line tool of DashQL on `@ankoh/dashql-runtime`. It runs the logic of the app in Node, so an agent in a
+`dashql`, the command line tool of DashQL on `@ankoh/dashql`. It runs the logic of the app in Node, so an agent in a
 harness gets the answers of the app (`docs/wip/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
@@ -20,9 +20,9 @@ Vite bundles the command with the sources of the runtime into one module for Nod
 `lint`, `format` and `run` need Node 22 or later.
 
 On npm the command is `@ankoh/dashql-cli` (`npx -y @ankoh/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
-packs the bundle with the metadata of `npm/package.json`, which depends on `@ankoh/dashql-core` and `hyperdb-wasm`.
-`:npm_package_test` keeps their versions those of the build, so the core is published first. CI uploads the tarball
-next to the one of the core (`dashql_cli_npm`), publishing is by hand.
+packs the bundle with the metadata of `npm/package.json`, which depends on `@ankoh/dashql` and `hyperdb-wasm`.
+`:npm_package_test` keeps their versions those of the build, so `@ankoh/dashql` is published first. CI uploads the tarball
+next to the one of `@ankoh/dashql` (`dashql_cli_npm`), publishing is by hand.
 
 ## dashql lint
 

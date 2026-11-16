@@ -1,19 +1,19 @@
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
-import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql-platform/testing/workbook_test_backend';
-import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql-platform/storage/storage_backend';
-import { makeFsMock, resetFsStore } from '@ankoh/dashql-platform/testing/test_fs_mock';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql-platform/storage/migration/versions';
-import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql/platform/testing/workbook_test_backend';
+import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
+import { makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
+import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
+import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
-import type { StorageBackend } from '@ankoh/dashql-platform/storage/storage_backend';
-import { createTestRuntime } from '@ankoh/dashql-runtime/testing/test_runtime';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
+import type { StorageBackend } from '@ankoh/dashql/platform/storage/storage_backend';
+import { createTestRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

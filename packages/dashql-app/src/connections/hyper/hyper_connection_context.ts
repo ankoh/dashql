@@ -1,8 +1,8 @@
-import * as pb from "@ankoh/dashql-platform/proto";
+import * as pb from "@ankoh/dashql/platform/proto";
 import type * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { EmbeddedClientContext } from '@ankoh/dashql-platform/platform/database/embedded_database';
-import type { HyperDatabaseConnectionContext } from '@ankoh/dashql-platform/connections/hyper/hyperdb_grpc_client';
+import type { EmbeddedClientContext } from '@ankoh/dashql/platform/platform/database/embedded_database';
+import type { HyperDatabaseConnectionContext } from '@ankoh/dashql/platform/connections/hyper/hyperdb_grpc_client';
 
 /// The context of the channels of a remote Hyper connection, whose queries have a client context.
 /// The direct gRPC Hyper connector never changes the headers it injects.

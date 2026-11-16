@@ -1,5 +1,5 @@
-import { tableFromArrays } from '@ankoh/dashql-platform/testing/arrow_fixtures';
-import * as dashql from '@ankoh/dashql-core';
+import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
+import * as dashql from '@ankoh/dashql';
 import { detectPlanEngine } from './plan_engine.js';
 import { peekFormat } from '../query_result/format_peek.js';
 import { getPlanResultText } from '../../shell/shell_result.js';

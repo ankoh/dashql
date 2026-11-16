@@ -1,18 +1,18 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { OAuthState } from '@ankoh/dashql-platform/oauth/oauth_types';
-import { TestLogger } from '@ankoh/dashql-platform/testing/test_logger';
+import type { OAuthState } from '@ankoh/dashql/platform/oauth/oauth_types';
+import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
-import { BASE64URL_CODEC } from '@ankoh/dashql-platform/utils/base64';
-import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
-import { createRuntime } from '@ankoh/dashql-runtime/runtime';
-import type { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql-runtime/store/store';
-import type { OAuthFlow } from '@ankoh/dashql-platform/oauth/oauth_flow';
+import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
+import { SalesforceApiClient, type SalesforceApiClientInterface } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import { createRuntime } from '@ankoh/dashql/runtime/runtime';
+import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
+import type { OAuthFlow } from '@ankoh/dashql/platform/oauth/oauth_flow';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp, type FakeSalesforceOptions } from './salesforce_test_http.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

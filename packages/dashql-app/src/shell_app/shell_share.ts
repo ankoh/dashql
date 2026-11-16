@@ -1,4 +1,4 @@
-import { BASE64URL_CODEC } from '@ankoh/dashql-platform/utils/base64';
+import { BASE64URL_CODEC } from '@ankoh/dashql/platform/utils/base64';
 
 /// The hash parameter carrying a shared script.
 /// The hash never reaches the server and does not collide with the ?data= setup links of the app.

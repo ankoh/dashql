@@ -18,7 +18,7 @@
 //! that the state changed.
 //!
 //! Ported from `processTask` of `packages/dashql-app/src/compute/computation_scheduler.tsx` and `analyzeTable` of
-//! `packages/dashql-runtime/src/compute/analyze_table.ts`.
+//! `packages/dashql/src/runtime/compute/analyze_table.ts`.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;

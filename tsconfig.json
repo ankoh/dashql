@@ -21,20 +21,26 @@
             "@ankoh/dashql-jsonschema/*": [
                 "./bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema/*"
             ],
-            "@ankoh/dashql-core": [
-                "./bazel-bin/packages/dashql-core-js/dist/index.d.ts"
+            "@ankoh/dashql": [
+                "./packages/dashql/src/core/index.ts"
             ],
-            "@ankoh/dashql-core/buffers": [
-                "./bazel-bin/packages/dashql-core-js/dist/buffers.d.ts"
+            "@ankoh/dashql/buffers": [
+                "./packages/dashql/src/core/buffers.ts"
             ],
-            "@ankoh/dashql-core/browser-worker": [
-                "./bazel-bin/packages/dashql-core-js/dist/browser_worker.d.ts"
+            "@ankoh/dashql/browser-worker": [
+                "./packages/dashql/src/core/browser_worker.ts"
             ],
-            "@ankoh/dashql-runtime/*": [
-                "./packages/dashql-runtime/src/*.ts"
+            "@ankoh/dashql/runtime/*": [
+                "./packages/dashql/src/runtime/*.ts"
             ],
-            "@ankoh/dashql-platform/*": [
-                "./packages/dashql-platform/src/*.ts"
+            "@ankoh/dashql/platform/*": [
+                "./packages/dashql/src/platform/*.ts"
+            ],
+            "@ankoh/dashql-wasm/*": [
+                "./bazel-bin/packages/dashql/dependencies/dashql-wasm/*"
+            ],
+            "@ankoh/dashql-flatbuffers/*": [
+                "./bazel-bin/packages/dashql/dependencies/dashql-flatbuffers/*"
             ],
             "@ankoh/hyperdb-edge/*": [
                 "./packages/hyperdb-edge/src/*.ts"

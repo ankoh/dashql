@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client';
-import { SalesforceAPIClientMock } from '@ankoh/dashql-platform/connections/salesforce/salesforce_api_client_mock';
-import type { SalesforceConnectorConfig } from '@ankoh/dashql-platform/connections/connector_configs';
+import { SalesforceApiClient, SalesforceApiClientInterface } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client';
+import { SalesforceAPIClientMock } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import type { SalesforceConnectorConfig } from '@ankoh/dashql/platform/connections/connector_configs';
 import { useAppConfig } from '../../config/app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';

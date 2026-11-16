@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 
 import { createTableSQL, qualifiedName, type CloudColumn } from './cloud_sql.js';
-import { quoteLiteral } from '@ankoh/dashql-platform/utils/sql_quote';
+import { quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
 
 // The tables of DashQL in the cloud connection and how they evolve. See docs/design/cloud.md.
 //

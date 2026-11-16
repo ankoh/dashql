@@ -17,7 +17,7 @@ code from Salesforce, encodes it into an app event, and hands it back to the ori
 
 The setup of the Rust runtime (`connection_setup/salesforce.rs` over `SalesforceSetup` of `salesforce/setup.rs`) runs
 these steps. The connection setup (`setupSalesforceConnection` of `salesforce_connection_setup.ts`) and the login of the
-shell (`authenticateSalesforce` of `salesforce_authentication.ts`) of `@ankoh/dashql-runtime` are adapters over it. The
+shell (`authenticateSalesforce` of `salesforce_authentication.ts`) of `@ankoh/dashql` are adapters over it. The
 `OAuthFlow` that they pass in (`oauth/oauth_flow.ts` of the runtime, `oauth/app_oauth_flow.ts` in the app) opens the
 authorization page and waits for the redirect page, the platform generates the PKCE challenge and the flow id.
 

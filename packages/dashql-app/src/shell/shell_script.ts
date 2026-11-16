@@ -1,4 +1,4 @@
-import type * as dashql from '@ankoh/dashql-core';
+import type * as dashql from '@ankoh/dashql';
 
 function terminateStatement(text: string): string {
     return text.endsWith(';') ? text : `${text};`;

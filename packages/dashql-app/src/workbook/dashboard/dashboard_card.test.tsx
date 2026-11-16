@@ -4,8 +4,8 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { QueryExecutionStatus } from '@ankoh/dashql-platform/query/query_execution_state';
-import type { ScriptData } from '@ankoh/dashql-platform/workbook/scripts/workbook_scripts';
+import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
+import type { ScriptData } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 

@@ -1,5 +1,5 @@
 //! The names of the scripts of a workbook: a script is a file `<name>.sql`, its name is the table parameter that other
-//! scripts read. Ported from `packages/dashql-runtime/src/workbook/scripts/script_types.ts`.
+//! scripts read. Ported from `packages/dashql/src/platform/workbook/scripts/script_types.ts`.
 
 use std::collections::HashSet;
 

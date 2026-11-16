@@ -1,10 +1,10 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
 import { useRuntime, useView, useWorkbooks } from '../../runtime/runtime_hooks.js';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 
 const LOG_CTX = 'native_workbook_sync';

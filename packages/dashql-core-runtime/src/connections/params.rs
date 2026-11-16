@@ -5,7 +5,7 @@
 //! passes through untouched.
 //!
 //! Ported from `connector_info.ts`, `connection_params.ts` and the connector descriptors of
-//! `packages/dashql-runtime/src/connections/`.
+//! `packages/dashql/src/runtime/connections/`.
 
 use serde_json::{json, Map, Value};
 

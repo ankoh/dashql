@@ -6,17 +6,17 @@ import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position
 import { OverlaySize } from '../ui/foundations/overlay.js';
 import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { useConnectionDraft } from './connection_draft.js';
 import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
-import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql-platform/connections/connection_state';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { ConnectionHealth, connectionCachesQueryResults, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 const CheckIcon = SymbolIcon('check_16');
 

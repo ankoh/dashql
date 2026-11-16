@@ -1,6 +1,6 @@
 //! The attachments of a workbook: Parquet files in the `attachments` folder of the workbook. An attachment is the table
 //! parameter of its name, `sales.parquet` is `:sales`. Ported from
-//! `packages/dashql-runtime/src/workbook/attachments/workbook_attachments.ts`.
+//! `packages/dashql/src/platform/workbook/attachments/workbook_attachments.ts`.
 
 use std::sync::Arc;
 

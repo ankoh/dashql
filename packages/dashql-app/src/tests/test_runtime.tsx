@@ -1,7 +1,7 @@
 import * as React from 'react';
-import * as core from '@ankoh/dashql-core';
+import * as core from '@ankoh/dashql';
 
-import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql-platform/connections/query_execution_args';
+import type { CancelQuery, QueryExecutor, WatchQueryProfile } from '@ankoh/dashql/platform/connections/query_execution_args';
 
 import { RuntimeProvider } from '../runtime/runtime_provider.js';
 import { useRuntime } from '../runtime/runtime_hooks.js';
@@ -15,7 +15,7 @@ export interface TestQueryExecutorFunctions {
 
 interface TestRuntimeProps extends TestQueryExecutorFunctions {
     /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of
-    /// components stop it like the tests of the runtime (packages/dashql-runtime/src/testing/test_runtime.ts).
+    /// components stop it like the tests of the runtime (packages/dashql/src/runtime/testing/test_runtime.ts).
     catalogLoader?: boolean;
     /// The core of the runtime, by default the one that the package instantiated, e.g. in a `beforeAll` of the test
     core?: core.DashQL;

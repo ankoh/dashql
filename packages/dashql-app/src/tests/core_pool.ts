@@ -1,4 +1,4 @@
-import { DashQL, type DashQLModuleOptions } from '@ankoh/dashql-core';
+import { DashQL, type DashQLModuleOptions } from '@ankoh/dashql';
 
 declare global {
     var DASHQL_PRECOMPILED: Promise<Uint8Array> | undefined;

@@ -2,7 +2,7 @@
 //! catalog files and the headers of the function script.
 //!
 //! Ported from `catalog_sql_generator.ts`, `catalog_function_sql_generator.ts` and `utils/sql_quote.ts` of
-//! `packages/dashql-runtime/src/`.
+//! `packages/dashql/src/runtime/`.
 
 use crate::connections::{RelationName, Timestamp, DEFAULT_DATABASE_NAME};
 

@@ -1,5 +1,5 @@
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
-import { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql-platform/platform/http/http_client';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
+import { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platform/http/http_client';
 
 /// The number of requests that the log keeps, older requests are dropped
 export const HTTP_REQUEST_LOG_LIMIT = 500;

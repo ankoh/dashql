@@ -1,8 +1,8 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { createScriptFormatConfig, formattingDialectForConnector, isScriptFormattable } from './script_format.js';
 import { formatScriptEditor, measureScriptFormatWidth } from '../editor/script_format_editor.js';
 

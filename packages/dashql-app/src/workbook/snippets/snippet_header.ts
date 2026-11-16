@@ -1,6 +1,6 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
-import { ConnectorType } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
 
 /// One snippet file, `<root>/<folders>/<name>.sql` with at least one folder, a leading comment describes the snippet.

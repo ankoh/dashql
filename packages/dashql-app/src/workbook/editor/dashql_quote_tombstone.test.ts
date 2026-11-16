@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState, EditorSelection } from '@codemirror/state';

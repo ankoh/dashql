@@ -33,7 +33,7 @@ import { WorkbookPage } from '../workbook/workbook_page.js';
 import { AgentSessionProvider } from '../agent/agent_session_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookComputeQueryExecutionProvider } from './workbook_compute_query_execution.js';

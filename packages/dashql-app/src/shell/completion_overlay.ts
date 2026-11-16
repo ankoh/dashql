@@ -1,4 +1,4 @@
-import type * as dashql from '@ankoh/dashql-core';
+import type * as dashql from '@ankoh/dashql';
 import type { Terminal } from '@xterm/xterm';
 
 import type { DashQLShell } from './api.js';

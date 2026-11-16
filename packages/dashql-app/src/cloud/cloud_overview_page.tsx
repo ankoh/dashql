@@ -40,11 +40,11 @@ import { classNames } from '../utils/classnames.js';
 import { formatTimeDifference } from '../utils/format.js';
 import { startsRowDrag } from '../workbook/workbook_folder_row.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
-import { ConnectionHealth } from '@ankoh/dashql-platform/connections/connection_state';
+import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import { CloudConnectionRow } from './cloud_connection_row.js';
@@ -55,7 +55,7 @@ import { useCloudWorkbooks, type CloudWorkbooks } from './cloud_workbooks.js';
 import { CLOUD_PAGE_SIZE, type CloudCursor, type CloudEntry, type CloudFolder } from './cloud_folders.js';
 import type { CloudWorkbook, CloudWorkbookVersion } from './cloud_store.js';
 import * as styles from './cloud_overview_page.module.css';
-import { connectorInfoOf } from '@ankoh/dashql-platform/connections/connection_state';
+import { connectorInfoOf } from '@ankoh/dashql/platform/connections/connection_state';
 
 // The overview of a cloud in place of the feed: the cloud connection with its login and the installation of DashQL,
 // the counts of the cloud, and its folders and workbooks. See docs/design/cloud.md.

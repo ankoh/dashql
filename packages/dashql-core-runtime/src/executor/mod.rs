@@ -26,7 +26,7 @@
 //! Cancelling a query cancels its token: the requests of the query stop, the query is cancelled at the backend (a
 //! Trino or Hyper query by its request, a channel of the host by the host) and the task ends as cancelled.
 //!
-//! Ported from `QueryExecutorService` of `packages/dashql-runtime/src/connections/query_executor_service.ts`.
+//! Ported from `QueryExecutorService` of `packages/dashql/src/runtime/connections/query_executor_service.ts`.
 
 pub mod cache_key;
 pub mod connectors;

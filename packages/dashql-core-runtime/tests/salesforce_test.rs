@@ -1,5 +1,5 @@
 //! The Salesforce connector, ported from `salesforce_api_client.test.ts` and `salesforce_client_functions.test.ts` of
-//! `packages/dashql-runtime/src/connections/salesforce/`, with the setup as a state machine.
+//! `packages/dashql/src/platform/connections/salesforce/`, with the setup as a state machine.
 
 use std::collections::BTreeMap;
 

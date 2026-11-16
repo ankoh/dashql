@@ -1,4 +1,4 @@
-import type { AgentSessionTarget } from '@ankoh/dashql-platform/session/agent_session_client';
+import type { AgentSessionTarget } from '@ankoh/dashql/platform/session/agent_session_client';
 
 /// What the prompt of a workbook takes: SQL that runs, or nothing while an agent in the terminal writes the scripts
 export enum ComposerMode {

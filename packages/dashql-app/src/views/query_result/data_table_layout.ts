@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
-import { ArrowTableFormatter } from "@ankoh/dashql-platform/compute/arrow_formatter";
-import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@ankoh/dashql-platform/compute/computation_types";
+import { ArrowTableFormatter } from "@ankoh/dashql/platform/compute/arrow_formatter";
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@ankoh/dashql/platform/compute/computation_types";
 
 export interface DataTableLayout {
     columnCount: number;

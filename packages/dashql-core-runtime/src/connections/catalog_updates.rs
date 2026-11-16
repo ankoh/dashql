@@ -4,7 +4,7 @@
 //! The host runs the updates and keeps their cancellations under the handles of the updates, the connection keeps
 //! their state.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/catalog/catalog_update_state.ts`.
+//! Ported from `packages/dashql/src/platform/connections/catalog/catalog_update_state.ts`.
 
 use std::collections::BTreeMap;
 

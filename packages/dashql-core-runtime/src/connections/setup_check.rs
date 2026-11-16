@@ -1,6 +1,6 @@
 //! Whether a Salesforce connection is set up for params, e.g. before a link reuses it.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/connector_setup_check.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/connector_setup_check.ts`.
 
 use serde_json::Value;
 

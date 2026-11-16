@@ -3,8 +3,8 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
-import type { ComputeQueryExecution } from '@ankoh/dashql-runtime/compute/compute_platform';
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import type { ComputeQueryExecution } from '@ankoh/dashql/runtime/compute/compute_platform';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { ComputationScheduler } from './computation_scheduler.js';
 import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
 import { ComputeQueryExecutionProvider } from './compute_query_execution.js';

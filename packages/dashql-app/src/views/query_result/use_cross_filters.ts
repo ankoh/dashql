@@ -1,7 +1,7 @@
 import * as React from 'react';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import { ORDINAL_COLUMN, STRING_COLUMN, type OrdinalColumnAggregation, type StringColumnAggregation, type TableAggregation, type TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import { ORDINAL_COLUMN, STRING_COLUMN, type OrdinalColumnAggregation, type StringColumnAggregation, type TableAggregation, type TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';

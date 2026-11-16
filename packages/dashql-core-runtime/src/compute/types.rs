@@ -4,7 +4,7 @@
 //! keeps what it read of them: the rows, the schema and the values of statistics. The data frames are ids of tables in
 //! the compute database of the host.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/computation_types.ts`.
+//! Ported from `packages/dashql/src/platform/compute/computation_types.ts`.
 
 use std::fmt;
 use std::sync::Arc;

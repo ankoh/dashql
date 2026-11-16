@@ -48,6 +48,6 @@ embedded Hyper, the abort signals of the queries, the holds of workbooks and the
 - `packages/dashql-core-runtime/src/planner/mod.rs`
 - `packages/dashql-core-runtime/src/workbook_run/mod.rs`, `engine.rs`, `plan.rs`
 - `packages/dashql-core-wasm/src/runtime/runs.rs` (the service of the runs, the holds of workbooks, the host of a run)
-- `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts` (the files of the runs on the platform)
+- `packages/dashql/src/runtime/workbook/scripts/run_mounts.ts` (the files of the runs on the platform)
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

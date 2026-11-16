@@ -1,5 +1,5 @@
-import * as dashql from '@ankoh/dashql-core';
-import { DEFAULT_DATABASE_NAME } from '@ankoh/dashql-platform/connections/catalog/catalog_sql_generator';
+import * as dashql from '@ankoh/dashql';
+import { DEFAULT_DATABASE_NAME } from '@ankoh/dashql/platform/connections/catalog/catalog_sql_generator';
 
 import { ChangeSpec, Text } from '@codemirror/state';
 import { type CompletionPatch, CompletionPatchTarget, type DashQLCompletionState, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from './dashql_completion_state.js';

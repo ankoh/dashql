@@ -1,6 +1,6 @@
 //! The setup of a Trino connection: an optional OAuth flow and the channel.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/trino/trino_connection_state.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_state.ts`.
 
 use super::details::{
     replace_channel, ChannelId, ConnectionDetails, ConnectorDetails, DetailedError, OAuthPkceChallenge, SetupTimings,

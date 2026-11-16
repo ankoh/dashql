@@ -1,4 +1,4 @@
-import { Logger } from '@ankoh/dashql-platform/platform/logger/logger';
+import { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 
 export class WebLogger extends Logger {
     constructor() {

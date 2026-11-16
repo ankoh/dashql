@@ -1,4 +1,4 @@
-import type { Runtime } from '@ankoh/dashql-runtime/runtime';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 
 /// Mark the finished queries whose cached results were deleted, their results no longer advertise a cache entry. The
 /// cache belongs to the app, the queries of every connection may advertise a key. Returns the number of marked queries.

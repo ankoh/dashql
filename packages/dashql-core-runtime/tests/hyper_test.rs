@@ -2,7 +2,7 @@
 //! `hyperdb_http_client_mock.test.ts` (with the mock as the fake server), `hyper_error_info.test.ts`,
 //! `hyper_link.test.ts`, `embedded/embedded_database_channel.test.ts`, `connector_setup_check.test.ts`,
 //! `connection_import.test.ts`, `connection_label.test.ts` and `connection_refresh.test.ts` of
-//! `packages/dashql-runtime/src/connections/`, and `web_hyperdb_http_client.test.ts` of the app.
+//! `packages/dashql/src/runtime/connections/`, and `web_hyperdb_http_client.test.ts` of the app.
 
 use std::collections::HashMap;
 use std::rc::Rc;

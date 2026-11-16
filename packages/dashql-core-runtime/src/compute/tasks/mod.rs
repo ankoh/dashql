@@ -9,7 +9,7 @@
 //! A data frame is a table of the compute database, named by its id (`data_frame_table_name`). The caller allocates the
 //! id of the data frame of a plan. A query or a finish that fails leaves the data frame to the caller, which drops it.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/tasks/`, `sql/`, `analyze_table.ts`, `column_analysis.ts`,
+//! Ported from `packages/dashql/src/runtime/compute/tasks/`, `sql/`, `analyze_table.ts`, `column_analysis.ts`,
 //! `arrow_columns.ts` and `computation_tasks.ts`, and `connections/result_computations.ts`.
 
 pub mod analysis;

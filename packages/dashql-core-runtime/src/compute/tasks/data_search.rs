@@ -1,8 +1,8 @@
 //! The searches of a result: of the names of its columns, and of its data, the rows with a value that contains the
 //! text. A search is case-insensitive and matches the text of a value.
 //!
-//! Ported from `packages/dashql-runtime/src/compute/sql/query_result_search_sql.ts` and
-//! `packages/dashql-runtime/src/compute/tasks/data_search.ts`.
+//! Ported from `packages/dashql/src/platform/compute/sql/query_result_search_sql.ts` and
+//! `packages/dashql/src/runtime/compute/tasks/data_search.ts`.
 
 use std::collections::BTreeMap;
 

@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '@ankoh/dashql';
 
 import { foldedRanges } from '@codemirror/language';
 import { gutter, GutterMarker } from '@codemirror/view';

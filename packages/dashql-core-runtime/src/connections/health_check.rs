@@ -2,7 +2,7 @@
 //! like any other query. The host runs the query on the channel that the setup holds and reports how it ended, the
 //! check returns the action of the connection.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/health_check.ts`.
+//! Ported from `packages/dashql/src/runtime/connections/health_check.ts`.
 
 use super::{ConnectionAction, ConnectorType, DetailedError};
 use crate::query::{QueryMetadata, QueryType};

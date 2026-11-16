@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type * as core from '@ankoh/dashql-core';
+import type * as core from '@ankoh/dashql';
 
-import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableAggregation, type TableComputationState } from '@ankoh/dashql-platform/compute/computation_types';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableAggregation, type TableComputationState } from '@ankoh/dashql/platform/compute/computation_types';
 import { mockTableComputation, recordingDispatch, valueColumn } from '../../tests/mocks/computation.js';
 import { createTestRoot } from '../../tests/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';

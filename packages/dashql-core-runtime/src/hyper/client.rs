@@ -1,7 +1,7 @@
 //! The V3 HTTP API of Hyper as requests and responses: submit a query, read its status, fetch the chunks or rows of its
 //! result, cancel it.
 //!
-//! Ported from `HyperDatabaseHttpClient` of `packages/dashql-runtime/src/connections/hyper/hyperdb_http_client.ts`.
+//! Ported from `HyperDatabaseHttpClient` of `packages/dashql/src/platform/connections/hyper/hyperdb_http_client.ts`.
 //! The client builds the requests with the auth headers that the caller passes, the host sends them and hands the
 //! responses to the readers of the client. The TypeScript client awaited the auth headers of its provider for every
 //! request, the caller asks the context of the connection for them instead.

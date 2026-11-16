@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { createDashQLCoreSetup } from '@ankoh/dashql-platform/node/node_core';
-import { ReportStyle } from '@ankoh/dashql-platform/sql/sql_report';
+import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
+import { ReportStyle } from '@ankoh/dashql/platform/sql/sql_report';
 
 import type { CliProcess } from './cli_process.js';
 

@@ -8,7 +8,7 @@
 //! the session options and the query queue of the embedded Hyper (`embedded`), the local cloud (`local_cloud`), the links
 //! to a Hyper (`link`) and what the descriptor of the connector says about params (`descriptor`).
 //!
-//! Ported from `packages/dashql-runtime/src/connections/hyper/` and the web channel of the app,
+//! Ported from `packages/dashql/src/platform/connections/hyper/` and the web channel of the app,
 //! `packages/dashql-app/src/connections/hyper/platform/web_hyperdb_http_client.ts`.
 
 pub mod channel;

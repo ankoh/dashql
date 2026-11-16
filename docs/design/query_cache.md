@@ -46,8 +46,8 @@ If the executor cannot recover connection parameters or derive a signature, it t
 
 The query result cache belongs to the app, not to a workbook: every workbook and connection writes into the folder
 `cache/` at the root of the origin private file system, also native workbooks. `createOPFSQueryResultCache`
-(`packages/dashql-platform/src/storage/opfs_query_result_cache.ts`) implements the `QueryResultCache` interface
-(`packages/dashql-platform/src/query/query_result_cache.ts`), and `QueryResultCacheProvider` hands it to the executor and
+(`packages/dashql/src/platform/storage/opfs_query_result_cache.ts`) implements the `QueryResultCache` interface
+(`packages/dashql/src/platform/query/query_result_cache.ts`), and `QueryResultCacheProvider` hands it to the executor and
 the workbook runs.
 
 ```
@@ -231,12 +231,12 @@ The internals overlay includes a **Query Cache** tab. It lists the cached result
 ## Implementation References
 
 - Key derivation: `packages/dashql-core-runtime/src/executor/cache_key.rs`, the signatures of the connectors in `hyper/descriptor.rs`, `trino/descriptor.rs` and `salesforce/mod.rs`
-- Cache contract: `packages/dashql-platform/src/query/query_result_cache.ts`
-- OPFS implementation: `packages/dashql-platform/src/storage/opfs_query_result_cache.ts`
-- Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime, the description of a query and its key) and `packages/dashql-runtime/src/query/query_channels.ts` (the files of the platform)
+- Cache contract: `packages/dashql/src/platform/query/query_result_cache.ts`
+- OPFS implementation: `packages/dashql/src/platform/storage/opfs_query_result_cache.ts`
+- Executor integration: `packages/dashql-core-wasm/src/runtime/queries.rs` (the executor of the runtime, the description of a query and its key) and `packages/dashql/src/runtime/query/query_channels.ts` (the files of the platform)
 - Eviction policy: `packages/dashql-core-runtime/src/workbook_format/eviction.rs`, run by the runtime after the writes of files of keys (`evict_cache` of `packages/dashql-core-wasm/src/host.rs`) over `files`, `remove` and `capacity` of the cache of the platform
-- Files of runs: `createRunMounts` in `packages/dashql-runtime/src/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
+- Files of runs: `createRunMounts` in `packages/dashql/src/runtime/workbook/scripts/run_mounts.ts`, the `mounts` of the platform of the runtime
 - Cache inspection UI: `packages/dashql-app/src/workbook/persistence/query_cache_view.tsx`
 - Exported and imported results: `packages/dashql-core-wasm/src/runtime/exports.rs` and `imports.rs`, the plan of an
   import in `packages/dashql-core-runtime/src/workbook_format/query_results.rs`
-- Archives: `packages/dashql-runtime/src/storage/workbook_archives.ts` over `workbook/persistence/workbook_zip.ts`
+- Archives: `packages/dashql/src/runtime/storage/workbook_archives.ts` over `workbook/persistence/workbook_zip.ts`

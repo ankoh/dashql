@@ -41,7 +41,7 @@ talks to, read them in the files.
 
 | Worker | Script | Needs |
 |--------|--------|-------|
-| core batch worker | `batch_worker.js` of `dashql-core-js`, a module worker | `'wasm-unsafe-eval'` |
+| core batch worker | `batch_worker.ts` of `packages/dashql/src/core`, a module worker | `'wasm-unsafe-eval'` |
 | HyperDB worker | `hyperdb_worker_bridge.js`, imports the `hyperdb-wasm` worker script into its own scope | `'wasm-unsafe-eval'`, `blob:` scripts (the engine), `blob:` fetches (mounted files) |
 
 The `_headers` policy of `/static/js/*` and the Electron header grant both:
@@ -67,11 +67,11 @@ nothing, `script-src` overrides it there.
 - **No evaluated code.** No `eval`, `new Function`, or string timers, in the app and in what it depends on
   at runtime. The Arrow builders (`vectorFromArray`, `tableFromArrays` of plain arrays, `makeBuilder`)
   compile their null check with `new Function`. App code assembles vectors from their buffers with
-  `packages/dashql-platform/src/utils/arrow_vectors.ts` instead.
+  `packages/dashql/src/platform/utils/arrow_vectors.ts` instead.
 - **Test fixtures** build Arrow data with `vectorFromArray` and `tableFromArrays` of
-  `packages/dashql-platform/src/testing/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
+  `packages/dashql/src/platform/testing/arrow_fixtures.ts`, which take the arguments of the Arrow functions and evaluate nothing. They
   rely on internals of the builders, which is fine for tests but not for app code.
-- **A test for eval-free code** runs it with `forbidEval` (`packages/dashql-platform/src/testing/forbid_eval.ts`), which makes
+- **A test for eval-free code** runs it with `forbidEval` (`packages/dashql/src/platform/testing/forbid_eval.ts`), which makes
   `Function` throw like the policy does.
 
 ## Build checks

@@ -1,6 +1,6 @@
 // The live view of `dashql run` on a terminal: what is settled is printed once and stays in the scrollback, a region
 // below it shows what runs and what waits and is drawn again in place. No alternate screen, no input.
-import { ReportColor, type ReportStyle } from '@ankoh/dashql-platform/sql/sql_report';
+import { ReportColor, type ReportStyle } from '@ankoh/dashql/platform/sql/sql_report';
 
 import { describeTable, errorText, rowsText } from './run_output.js';
 import { summaryText, type RunEvent, type RunReporter } from './run_events.js';

@@ -123,7 +123,7 @@ buffers in between. The boundary moves to what the UI reads.
 
 ## The whole runtime in Wasm
 
-The goal: `createRuntime(platform)` builds a runtime of the module, and the TypeScript of `packages/dashql-runtime`
+The goal: `createRuntime(platform)` builds a runtime of the module, and the TypeScript of `packages/dashql/src/runtime`
 shrinks to the platforms and the adapters of the app.
 
 **What stays in the host.** `RuntimePlatform` (`runtime.ts`) already draws the line: the storage backend (OPFS, the
@@ -185,7 +185,7 @@ cloud), and the workbooks that the restore refused.
 - **Runs.** A run shares the workbook of the runtime (`runWorkbook`, `runScript`), it is live while the runtime holds
   the workbook, and its writes tell the platform. The `run` slice of a workbook shows the run that holds it and the
   state of its last run, see [The runs of workbooks](#the-runs-of-workbooks).
-- **The tests.** `runtime_workbooks.test.ts` of `dashql-core-js` (the actions and their writes, a keystroke as the change
+- **The tests.** `runtime_workbooks.test.ts` of `packages/dashql/src/core` (the actions and their writes, a keystroke as the change
   of a script only, the payloads by key, the promotion, a restore of what the runtime wrote) and the tests of the
   runtime package on the embedded Hyper.
 
@@ -264,7 +264,7 @@ the shell) by name, and hands out the ids of all queries from one sequence.
   connections that a single workbook registered.
 - **The tests.** `connections/registry.rs` (the order, the ordinals, the rules, a reset that stops the queries, the
   histories without a connection), `connection_setup/mod.rs` (a step read back from its JSON) and
-  `runtime_connections.test.ts` of `dashql-core-js` (the views, the steps of a setup with a channel, a setup with its
+  `runtime_connections.test.ts` of `packages/dashql/src/core` (the views, the steps of a setup with a channel, a setup with its
   probe, a cancelled setup, the description of a connection that comes online, the catalog, a Trino query into the
   history of its connection, cancelling, the memory of the module while a large result streams, the structured
   progress, a reset that stops a query).
@@ -461,7 +461,7 @@ tool stops the loader (`runCatalogLoader(false)`).
   it follows (`ClientFunctionRegistrations`), the platform loads the specs (`extensions.loadSpec`).
 - **The tests.** `tests/catalog_loader_test.rs` drives the updates without I/O, `tests/catalog_loader_service_test.rs`
   runs the loader on a fake host: the queue, forced refreshes, the relations of statements with their retries, the
-  embedded database, Salesforce and client functions. `runtime_connections.test.ts` of `dashql-core-js` describes a
+  embedded database, Salesforce and client functions. `runtime_connections.test.ts` of `packages/dashql/src/core` describes a
   Trino connection that comes online, `catalog_updates.integration.test.ts` runs lookups on the embedded Hyper.
 - **Changed on purpose.** The requested refreshes are considered before the lookups, so a request that a refresh
   answered and the lookup behind it settle in one pass. The retry wakes at the earliest attempt. Skipped functions and
@@ -510,7 +510,7 @@ command line tool call them through the TypeScript `Runtime`.
 - **Cancellation.** A cancelled setup ends at its next step. A connect runs to its end, a channel that is ready after
   the cancellation is closed. A probe that is cancelled stops at the backend.
 - **The tests.** `tests/connection_setup_test.rs` runs the setups and the health check on a fake host: the flows, the
-  token requests, the channels, failures and cancellations. `runtime_connections.test.ts` of `dashql-core-js` runs a
+  token requests, the channels, failures and cancellations. `runtime_connections.test.ts` of `packages/dashql/src/core` runs a
   setup with its probe and a cancelled one on the runtime; the tests of the app run the setups of Trino and Salesforce
   and the login of Salesforce on the TypeScript `Runtime` with the OAuth flow of the app, the latter against a fake Salesforce over
   the HTTP client.
@@ -717,7 +717,7 @@ query, the abort signal of the caller, the log of a trace).
   - Trino and client functions: every page becomes an Arrow batch and the next part of one Arrow IPC stream
     (`executor::ipc::IpcStreamWriter`), which goes to the host as soon as the page arrived. The peak of the module is
     a page (Trino asks for 32 MB), not the result: a result of 64 pages of 1 MB grows the memory of the module by 5 MB,
-    it grew by 200 MB when the executor collected the batches (`query_executor.test.ts` of `dashql-core-js`).
+    it grew by 200 MB when the executor collected the batches (`query_executor.test.ts` of `packages/dashql/src/core`).
   - A channel of the host (the embedded Hyper, gRPC, a channel of a test) keeps its record batches, the executor sees
     their metrics.
   - The parts go into a table of the platform that was opened for the query (`tables.open`, `tables.push`); once the
@@ -862,7 +862,7 @@ waits). The TypeScript `Runtime` has the same commands, the app reads the slice 
 
 ## Typing
 
-The typing benchmark (`packages/dashql-core-js/tests/bench_typing.mjs`) types a script of 40 lines (3,773 characters)
+The typing benchmark (`packages/dashql/test/npm/bench_typing.mjs`) types a script of 40 lines (3,773 characters)
 character by character next to two other scripts against an empty catalog, the way the editor does it: the editor
 applies the event to the shared session of the script, packs its update and reports it to the runtime
 (`reportEditorUpdate`); the store takes the changes and reads the view of the typed script with the newest processing
@@ -871,7 +871,7 @@ derived view of the workbook when it moved, its FlatBuffers read. It runs on the
 Node and prints the 10th percentile and the median of every step:
 
 ```bash
-bazel run --config=release //packages/dashql-core-js:bench_typing [-- --passes=3]
+bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 ```
 
 Measured on step 4 of [runtime_api.md](runtime_api.md) against its base `eeca6cc9a` (the reducer of TypeScript

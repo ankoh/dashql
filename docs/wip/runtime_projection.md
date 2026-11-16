@@ -3,7 +3,9 @@
 Status: decided and started. The computations, the workbook, the connections, the query histories, the storage writer,
 the restore and the persistence of connections cross as views with generated types, the payloads of the scripts as
 FlatBuffers by key inside the views. The JavaScript objects that Rust names are handles of one table, all Arrow tables
-among them (step 2). Measured on `995154de1`, the workbook on `1e96729fa`.
+among them (step 2). Measured on `995154de1`, the workbook on `1e96729fa`. The packages that the measurements name are
+folders of `packages/dashql` now: `dashql-core-js` is `src/core`, `dashql-runtime` is `src/runtime` and
+`src/platform`, see [dashql_runtime.md](dashql_runtime.md).
 
 The state of the app lives in the crate `dashql_core_runtime` inside the core module (see
 [core_runtime.md](core_runtime.md)): the workbooks with their scripts, the connections with their query histories,

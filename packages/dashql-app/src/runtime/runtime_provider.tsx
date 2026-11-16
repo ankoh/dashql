@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { createRuntime, type Runtime } from '@ankoh/dashql-runtime/runtime';
-import { createRuntimeArchives } from '@ankoh/dashql-runtime/storage/workbook_archives';
-import type { HttpClient } from '@ankoh/dashql-platform/platform/http/http_client';
-import { stringifyError } from '@ankoh/dashql-platform/platform/logger/logger';
+import { createRuntime, type Runtime } from '@ankoh/dashql/runtime/runtime';
+import { createRuntimeArchives } from '@ankoh/dashql/runtime/storage/workbook_archives';
+import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
+import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
@@ -31,7 +31,7 @@ interface Props {
     children?: React.ReactNode;
 }
 
-/// The runtime of DashQL (packages/dashql-runtime/src/runtime.ts). By default over the platform of the app: the
+/// The runtime of DashQL (packages/dashql/src/runtime/runtime.ts). By default over the platform of the app: the
 /// storage, the http client, the core and the embedded database of the providers above it. The hooks of
 /// `runtime_hooks.tsx` read from it.
 export function RuntimeProvider(props: Props) {

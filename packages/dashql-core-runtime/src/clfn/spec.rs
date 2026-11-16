@@ -2,7 +2,7 @@
 //! signatures of the same document (`dashql_core::catalog::clfn`) and checks it when a binding registers it, the runtime
 //! reads what a request needs: hosts, API names, locations, body formats, paging, pending results and errors.
 //!
-//! Ported from `connections/clfn/clfn_spec.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/clfn/clfn_spec.ts` of `packages/dashql/src/runtime`.
 
 use std::collections::{BTreeMap, HashMap};
 

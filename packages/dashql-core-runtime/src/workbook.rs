@@ -5,7 +5,7 @@
 //! changes the workbook in place and returns the effects that the host applies afterwards, e.g. the files to write.
 //! Dropping a script drops its session, nothing has to be freed by hand.
 //!
-//! Ported from `reduceWorkbookScripts` of `packages/dashql-runtime/src/workbook/scripts/workbook_scripts.ts`.
+//! Ported from `reduceWorkbookScripts` of `packages/dashql/src/platform/workbook/scripts/workbook_scripts.ts`.
 
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;

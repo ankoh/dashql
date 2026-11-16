@@ -1,6 +1,6 @@
 //! The request of a call: API names, path encoding, query styles, body formats, followed URLs and the origin check.
 //!
-//! Ported from `connections/clfn/clfn_request.ts` of `packages/dashql-runtime`.
+//! Ported from `connections/clfn/clfn_request.ts` of `packages/dashql/src/runtime`.
 
 use std::collections::BTreeMap;
 

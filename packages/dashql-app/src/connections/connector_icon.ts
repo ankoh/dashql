@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectorInfo } from '@ankoh/dashql-platform/connections/connector_info';
+import { ConnectorInfo } from '@ankoh/dashql/platform/connections/connector_info';
 import { useColorScheme } from '../config/color_scheme.js';
 
 /// The style of the icon of a connector. The monochrome logos take the color of the text and would turn as grey as

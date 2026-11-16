@@ -8,7 +8,7 @@
 //! statements and hands out the updates to start. The connection keeps the state of the updates
 //! (`connections::CatalogUpdates`), the host reports every step as a `ConnectionAction`.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/catalog/` (the SQL generators, the metadata queries, the
+//! Ported from `packages/dashql/src/runtime/connections/catalog/` (the SQL generators, the metadata queries, the
 //! catalog batch, the bundled Hyper functions and the decisions of `catalog_loader_service.ts`) and the catalog parts of
 //! the connectors (`hyper/hyper_catalog_update.ts`, `salesforce/salesforce_catalog_update.ts`,
 //! `trino/trino_catalogs.ts`).

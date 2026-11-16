@@ -4,26 +4,29 @@ Status: steps 1 to 3 are built. Step 4 has the OAuth flow, the restore, the runt
 of the app, the Node platform with the embedded Hyper, and the CLI with `lint`, `format`, `run` and `session serve`.
 Open: `dashql auth`, `workbook check`/`pack`/`link`, and step 5.
 
-The TypeScript side of the runtime of DashQL is two packages, shared by the app and a Node command line tool. The logic
-is Rust: the `Runtime` class of the core module holds the workbooks, the connections with their queries, the
-computations and the services (see [core_runtime.md](core_runtime.md) and [runtime_api.md](runtime_api.md)).
+The TypeScript side of the runtime of DashQL is one source package, `packages/dashql` (`@ankoh/dashql`), shared by the
+app and a Node command line tool. The logic is Rust: the `Runtime` class of the core module holds the workbooks, the
+connections with their queries, the computations and the services (see [core_runtime.md](core_runtime.md) and
+[runtime_api.md](runtime_api.md)). The package has three folders of `src/`:
 
-- `packages/dashql-runtime` (`@ankoh/dashql-runtime`) holds the facade over it (`runtime.ts`: `createRuntime(platform)`
-  and the platform object it calls), the store of its views, the view projections and the adapters that build the
-  platform object of the core from the platform objects of TypeScript (the channels of queries, the compute platform,
-  the files of runs, the tables by handle, the storage, the archives, the platform of Node).
-- `packages/dashql-platform` (`@ankoh/dashql-platform`) holds the platforms (the browser, the desktop app, Node), the
-  storage backends, the connector clients and the channels of the host, OAuth, the helpers for the user interface that
-  more than the app uses, and the support of the command line tool.
+- `src/core` (`@ankoh/dashql`, `@ankoh/dashql/buffers`, `@ankoh/dashql/browser-worker`) holds the bindings of the core
+  module: the API over the Wasm, the runtime object of the module, the batch worker, and the generated FlatBuffers.
+- `src/runtime` (`@ankoh/dashql/runtime/<path>`) holds the facade over the runtime of the module (`runtime.ts`:
+  `createRuntime(platform)` and the platform object it calls), the store of its views, the view projections and the
+  adapters that build the platform object of the core from the platform objects of TypeScript (the channels of queries,
+  the compute platform, the files of runs, the tables by handle, the storage, the archives, the platform of Node).
+- `src/platform` (`@ankoh/dashql/platform/<path>`) holds the platforms (the browser, the desktop app, Node), the storage
+  backends, the connector clients and the channels of the host, OAuth, the helpers for the user interface that more
+  than the app uses, and the support of the command line tool.
 
-The runtime depends on the platform, never the other way round (see [The two packages](#the-two-packages)). An agent
-then works on workbooks with the same code the app runs, through a `dashql` command, while the user looks at the result
-in the app.
+The runtime depends on the platform, never the other way round, and the bindings depend on neither (see
+[The package](#the-package)). An agent then works on workbooks with the same code the app runs, through a `dashql`
+command, while the user looks at the result in the app.
 
 | Part | State |
 |---|---|
 | Untangling in place (leaks, `Store` without React) | Done, step 1 |
-| `packages/dashql-runtime` with the clean modules, `//packages/dashql-runtime:boundary_test` | Done, step 2; their tests run in Node and in the browser tests of the app |
+| A package of the clean modules, `//packages/dashql:boundary_test` | Done, step 2; their tests run in Node and in the browser tests of the app |
 | Services in place of providers | Step 3: the query executor, the catalog loader, the runs of workbooks and saving connections, done |
 | The connector setups | Step 4: the setups of Salesforce and Trino take an `OAuthFlow` of the platform, done |
 | The restore | Step 4: the restore is a command of the runtime (`Runtime.restore`), the Hyper links of a tab, done |
@@ -31,7 +34,7 @@ in the app.
 | Node platform | Step 4: `createNodePlatform` with a workbook folder over `node:fs`, fetch and the core from its file, done; the embedded Hyper over a root folder with the layout of OPFS, done |
 | The CLI on top | Step 4: the Node `dashql` with `lint` and `format`, done; `run` on Trino with basic auth and the embedded Hyper, results in the query result cache, done; `session serve` with the journal of a workspace, done; `workbook check`, `pack`, `link`, `auth` follow |
 | Editor state out of `ScriptData` | Later, step 5 |
-| `packages/dashql-platform` split off the runtime | Done, decision 6 of [runtime_api.md](runtime_api.md), see [The two packages](#the-two-packages) |
+| The platform apart from the runtime | Done, decision 6 of [runtime_api.md](runtime_api.md), see [What goes where](#what-goes-where) |
 
 ## Why
 
@@ -69,7 +72,7 @@ don't promise. Components read the stores through `useSyncExternalStore`. React 
 ### Imports that pulled UI code into the domain
 
 The transitive closure of the imports of these modules reached React, CodeMirror or a `.tsx` file here. Step 1 cut
-them, `//packages/dashql-runtime:boundary_test` keeps them cut:
+them, `//packages/dashql:boundary_test` keeps them cut:
 
 | Leak | Fix |
 |---|---|
@@ -113,78 +116,114 @@ on core buffers only, not on an editor library, so they can move with the reduce
 - `hyperdb-wasm` exports a `node` build (`dist/node.js`, `engines: node >=24`).
 - The connector clients go through `platform/http/http_client.ts`.
 - `NativeStorageBackend` implements `StorageBackend`; it calls `platform/electron_fs.js` directly.
-- `@ankoh/dashql-core` loads its Wasm with `fetch(new URL('./wasm/…', import.meta.url))`. Node's `fetch` doesn't read
-  `file:` URLs, and the batch worker uses `new Worker`.
+- `@ankoh/dashql-core`, the bindings of then, loaded its Wasm with `fetch(new URL('./wasm/…', import.meta.url))`.
+  Node's `fetch` doesn't read `file:` URLs, and the batch worker uses `new Worker`.
 
 ### The package
 
-Step 2 moved the 94 modules into `packages/dashql-runtime/src` with the folders they had in the app (`connections/`,
-`workbook/`, `storage/`, `query/`, `platform/`, …), so their relative imports stayed, and the app imports them as
-`@ankoh/dashql-runtime/<path>`. A source package like `@ankoh/dashql-ui`: linked as `//:node_modules/@ankoh/dashql-runtime`,
-mapped in the root `tsconfig.json` and the Vite config. Bazel type-checks the runtime against the `WebWorker` lib of
-TypeScript (no `window`, no `document`, no elements) with its own copies of the generated `@ankoh/dashql-protobuf` and
-`@ankoh/dashql-jsonschema` (`tsconfig.bazel.json`, `tsconfig.bazel.test.json` for the tests). `platform/electron_fs.ts`
-owns the type of the file system of the Electron bridge, the global declaration of the app (`types/electron.d.ts`)
-refers to it.
+`packages/dashql` is a source package like `@ankoh/dashql-ui`: nothing is compiled, the app, the command line tool and
+the tests bundle and run its TypeScript. Step 2 moved the 94 modules of the runtime out of the app with the folders they
+had there (`connections/`, `workbook/`, `storage/`, `query/`, `platform/`, …), so their relative imports stayed; they
+are the folders of `src/runtime` and `src/platform` now. The app imports them as `@ankoh/dashql/runtime/<path>` and
+`@ankoh/dashql/platform/<path>`, the bindings as `@ankoh/dashql`. The package is linked as `//:node_modules/@ankoh/dashql`
+for the builds of Bazel, mapped in the root `tsconfig.json` and the Vite config of the app for editors and the dev
+server. `platform/platform/electron_fs.ts` owns the type of the file system of the Electron bridge, the global
+declaration of the app (`types/electron.d.ts`) refers to it.
+
+Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
+sources import them by name like the app imports protobuf: `@ankoh/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and
+the Wasm of the core and of the dataflow layout, every glue exports the URL of its Wasm as `wasmUrl`),
+`@ankoh/dashql-flatbuffers` (`:dep_flatbuffers`, the FlatBuffers of the core module in TypeScript), and the
+`@ankoh/dashql-protobuf` and `@ankoh/dashql-jsonschema` of the platform. Only the bindings import the first two. A
+consumer maps them with paths of `tsconfig.json` and aliases of Vite or vitest; the linked package carries the folders of
+the core module, and its `exports` name the Wasm (`@ankoh/dashql/wasm`), which the platform of Node reads from its file.
+
+Bazel type-checks the package against the `WebWorker` lib of TypeScript (no `window`, no `document`, no elements) with
+`tsconfig.bazel.json`, the tests of the runtime and of the platform with `tsconfig.bazel.test.json` and the modules of
+Node with `tsconfig.bazel.node.json`. The tests of the bindings run but don't type check yet.
 
 Two properties of the source package hold:
 
-- **Editors resolve everything.** An editor checks a module of the runtime with the `tsconfig.json` of the package, which
-  extends the root `tsconfig.json` and its paths into `bazel-bin` (the core, the generated packages), with the lib of
-  the runtime and the globals of vitest. `//packages/dashql-runtime:editor_config_test` fails when the config stops extending
-  the root, or when a module imports a package that is neither a path of the root `tsconfig.json` nor a dependency of
-  the root `package.json`.
+- **Editors resolve everything.** An editor checks a module with the `tsconfig.json` of the package, which extends the
+  root `tsconfig.json` and its paths into `bazel-bin` (the generated packages), with the lib of the package and the
+  globals of vitest. `//packages/dashql:editor_config_test` fails when the config stops extending the root, or when a
+  module imports a package that is neither a path of the root `tsconfig.json` nor a dependency of the root
+  `package.json`.
 - **The dev server picks up edits.** The Vite alias points at the sources and `server.fs.allow` includes them, so the
-  dev server serves and watches them like the sources of the app. An edit of a module of the runtime arrives as hot
-  updates; since the modules of the runtime export no components, the update climbs to the app and often ends in a
-  full reload, as it did before the move. An edit of a component of `dashql-ui` updates in place.
+  dev server serves and watches them like the sources of the app. An edit of a module arrives as hot updates; since the
+  modules export no components, the update climbs to the app and often ends in a full reload. A build of the core module
+  replaces the glue, which Vite watches like a source, and the Wasm, after which the dev server reloads the page. An
+  edit of a component of `dashql-ui` updates in place.
 
-`//packages/dashql-runtime:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
-`.tsx` module, and the seams that only a browser or a bundler provides are known by name. The runtime uses no feature
-of a bundler: the functions of Hyper are SQL text in the core module (`catalog_loader/prefetched_hyper_functions_sql.rs`)
-and the platform provides the specs of the extensions (`provideClientFunctionSpecs` of `connections/clfn/clfn_specs.ts`;
-the app passes its `import.meta.glob` in `connections/clfn/bundled_clfn_specs.ts`, which its pages and the test frame
-import, the tests in Node in `test/setup_node.mjs`). The seams that remain are listed in `KNOWN_SEAMS` of the test:
+`//packages/dashql:boundary_test` reads every module: none leaves the package, reaches React, an editor or a
+`.tsx` module, and the seams that only a browser or a bundler provides are known by name. The runtime and the platform
+use no feature of a bundler: the functions of Hyper are SQL text in the core module
+(`catalog_loader/prefetched_hyper_functions_sql.rs`) and the platform provides the specs of the extensions
+(`provideClientFunctionSpecs` of `platform/connections/clfn/clfn_specs.ts`; the app passes its `import.meta.glob` in
+`connections/clfn/bundled_clfn_specs.ts`, which its pages and the test frame import, the tests in Node in
+`test/setup_node.mjs`). The seams that remain are listed in `KNOWN_SEAMS` of the test, both in the platform:
 
-- The origin private file system: only `platform/opfs_root.ts` reads `navigator.storage`. The other modules that keep
-  files ask it for the root (`getOPFSRoot()`), and Node hands them a folder of the host (`setOPFSRootProvider`).
-- The Electron bridge: `platform/electron_fs.ts`, the file system of the desktop app. Which host the app runs in
-  (`native_globals.ts`) and which connectors it offers there are questions of the app and live in it.
+- The origin private file system: only `platform/platform/opfs_root.ts` reads `navigator.storage`. The other modules
+  that keep files ask it for the root (`getOPFSRoot()`), and Node hands them a folder of the host
+  (`setOPFSRootProvider`).
+- The Electron bridge: `platform/platform/electron_fs.ts`, the file system of the desktop app. Which host the app runs
+  in (`native_globals.ts`) and which connectors it offers there are questions of the app and live in it.
 
-Both modules are in the platform since the split, the boundary test of the platform lists them.
+### What goes where
 
-### The two packages
+The runtime and the platform are two folders (decision 6 of [runtime_api.md](runtime_api.md)):
 
-The package of step 2 split in two (decision 6 of [runtime_api.md](runtime_api.md)). Both are source packages with the
-same layout under `src/` and the same deep imports (`@ankoh/dashql-runtime/<path>`, `@ankoh/dashql-platform/<path>`).
-
-- **The runtime** keeps what builds and holds a runtime: `runtime.ts`, `store/`, the view projections of the workbook
-  and script views (`workbook/scripts/workbook_projection.ts`), `storage/runtime_storage.ts`, and the adapters that turn
-  platform objects into the platform of the core: `query/query_channels.ts`, `compute/compute_platform.ts`,
-  `workbook/scripts/run_mounts.ts`, `store/runtime_tables.ts` with `query/query_result_stream.ts`,
-  `storage/workbook_archives.ts` (`archives`), `query/tracked_query_execution.ts` (queries that the host runs and the
-  runtime tracks) and `node/node_platform.ts` (`createNodePlatform`). Its tests are the ones that create a runtime, its
-  test helpers `testing/test_runtime.ts`, `testing/connection_fixtures.ts` and `testing/mocks/connector_state.ts`.
-- **The platform** gets the rest that more than the app uses: `platform/`, `storage/` (the backends, `storage_root.ts`,
-  the query result cache in OPFS, the versions), `oauth/`, `utils/`, `connections/` (the clients, the channels, the
-  connector infos, descriptors and params), `node/`, `sql/`, `session/`, `testing/` and the shared types and helpers of
-  `compute/`, `query/` and `workbook/` that the runtime, the command line tool or the platform itself import (the Arrow
-  formatter, the types of the computation views, the query states and their progress, `query/query_progress.ts`
-  included since `query_execution_state.ts` names its types, the profile symbols, the workbook and script types, the
-  inputs).
+- **The runtime** (`src/runtime`) keeps what builds and holds a runtime: `runtime.ts`, `store/`, the view projections of
+  the workbook and script views (`workbook/scripts/workbook_projection.ts`), `storage/runtime_storage.ts`, and the
+  adapters that turn platform objects into the platform of the core: `query/query_channels.ts`,
+  `compute/compute_platform.ts`, `workbook/scripts/run_mounts.ts`, `store/runtime_tables.ts` with
+  `query/query_result_stream.ts`, `storage/workbook_archives.ts` (`archives`), `query/tracked_query_execution.ts`
+  (queries that the host runs and the runtime tracks) and `node/node_platform.ts` (`createNodePlatform`). Its tests are
+  the ones that create a runtime, its test helpers `testing/test_runtime.ts`, `testing/connection_fixtures.ts` and
+  `testing/mocks/connector_state.ts`.
+- **The platform** (`src/platform`) gets the rest that more than the app uses: `platform/`, `storage/` (the backends,
+  `storage_root.ts`, the query result cache in OPFS, the versions), `oauth/`, `utils/`, `connections/` (the clients, the
+  channels, the connector infos, descriptors and params), `node/`, `sql/`, `session/`, `testing/` and the shared types
+  and helpers of `compute/`, `query/` and `workbook/` that the runtime, the command line tool or the platform itself
+  import (the Arrow formatter, the types of the computation views, the query states and their progress,
+  `query/query_progress.ts` included since `query_execution_state.ts` names its types, the profile symbols, the workbook
+  and script types, the inputs).
+- **The bindings** (`src/core`) are the API over the core module and nothing else.
 - **The app** got the helpers that only it uses: the labels of connections with the embedded connection, the Hyper
   links of a tab, the mock setup of Salesforce (it takes a `Runtime`), marking deleted query results, script names,
   script formatting with the app settings, the ids of catalog objects, renaming scripts and attachments, workbook
   links. They keep their paths under `packages/dashql-app/src`.
 
-**The direction.** `@ankoh/dashql-runtime` imports `@ankoh/dashql-platform`, the platform imports neither the runtime
-nor the app. The app and the command line tool hand the objects of the platform to `createRuntime` in the
-`RuntimePlatform` of `runtime.ts`, so the platform never names that interface, and it stays in the runtime with
-`createNodePlatform`.
-`//packages/dashql-platform:boundary_test` fails on an import of `@ankoh/dashql-runtime` and on a relative import that
-leaves the package; `//packages/dashql-runtime:boundary_test` allows the platform only by its name, and only `src/node`
-imports `@ankoh/dashql-platform/node/`. Each package imports itself relatively, never by its name. Both have the
-`editor_config_test`, the three type checks and `test_node`.
+**The direction.** The runtime imports the platform and the bindings, the platform imports the bindings, the bindings
+import neither, and nothing imports the app. The app and the command line tool hand the objects of the platform to
+`createRuntime` in the `RuntimePlatform` of `runtime.ts`, so the platform never names that interface, and it stays in
+the runtime with `createNodePlatform`. `//packages/dashql:boundary_test` keeps these folder rules: it fails on a
+relative import into a folder that a folder may not reach and on an import of the package by its name (the package
+imports itself relatively), and only the modules of Node (`runtime/node`, `platform/node`) import `node:` and the
+modules of Node.
+
+### The package on npm
+
+`//packages/dashql:npm_tarball` (`bazel-bin/packages/dashql/dashql.tgz`) is `@ankoh/dashql` on npm, its metadata is
+`npm/package.json`. `:bundle` builds its `dist/` with `npm/build.mjs`: it stages the modules of `src/` without tests,
+test helpers and mocks, with what they reach, and inlines the generated packages and the library of hyperdb-edge, which
+are not on npm (`dist/wasm`, `dist/gen/<name>`, `dist/hyperdb-edge`). Vite builds the JavaScript with Vite's server
+build, every module keeps its path (preserved modules), and tsc writes the declarations next to them. The exports:
+
+| Export | Module |
+|---|---|
+| `.` | `dist/core/index.js`, the bindings |
+| `./buffers`, `./browser-worker`, `./batch-worker` | the FlatBuffers, the browser worker and its script |
+| `./wasm`, `./dataflow-wasm`, `./wasm/glue` | the Wasm of the core and of the dataflow layout, the glue of the core |
+| `./runtime` | `dist/runtime/runtime.js`, `createRuntime` |
+| `./node` | `dist/runtime/node/node_platform.js`, `createNodePlatform` |
+| `./runtime/*`, `./platform/*` | every module of `src/runtime` and `src/platform`, the subpaths of the source package |
+
+Its dependencies are the packages of npm that the modules import (`flatbuffers`, `apache-arrow`, `@bufbuild/protobuf`,
+`immutable`, `@zip.js/zip.js`), `hyperdb-wasm` and the types of `vega-lite` are optional peers. `:tarball_consumer_test`
+installs the archive like a consumer and checks its files, the exports of the bindings in Node and their declarations
+for `NodeNext`, `:node_smoke_test` runs the bindings and a runtime over the platform of Node from `dist/`, and
+`//packages/dashql/test/browser` runs the bindings of the archive in Chromium and Firefox.
 
 ### Runtimes for the embedded Hyper
 
@@ -219,34 +258,39 @@ For agents this means:
 ## Layout
 
 ```
-packages/dashql-runtime             @ankoh/dashql-runtime, a source package: `@ankoh/dashql-runtime/<path>` is src/<path>.ts
-  src/runtime.ts                    createRuntime(platform) → Runtime, the facade over the runtime of the module
-  src/store/                        Store, UpdateScheduler, the store of the views with its projections, the handle
+packages/dashql                     @ankoh/dashql, a source package, npm/package.json is the package on npm
+  src/core/                         the bindings: `@ankoh/dashql` is index.ts, /buffers, /browser-worker, /batch-worker
+  src/runtime/                      `@ankoh/dashql/runtime/<path>` is src/runtime/<path>.ts
+    runtime.ts                      createRuntime(platform) → Runtime, the facade over the runtime of the module
+    store/                          Store, UpdateScheduler, the store of the views with its projections, the handle
                                     table, the Arrow tables by handle
-  src/workbook/scripts/             the projections of the workbook and script views, the files of the runs
-  src/query/                        the channels of the queries of the host and the query result cache
+    workbook/scripts/               the projections of the workbook and script views, the files of the runs
+    query/                          the channels of the queries of the host and the query result cache
                                     (`query_channels.ts`), the result streams, the queries the host runs and tracks
-  src/compute/                      the compute platform over the embedded Hyper
-  src/storage/                      the storage of the platform and the commands of the writer of the runtime, the
+    compute/                        the compute platform over the embedded Hyper
+    storage/                        the storage of the platform and the commands of the writer of the runtime, the
                                     archives
-  src/node/                         the platform of Node (`node_platform.ts`)
-  src/testing/                      the test runtime and the fixtures that need one
-packages/dashql-platform            @ankoh/dashql-platform, a source package: `@ankoh/dashql-platform/<path>` is src/<path>.ts
-  src/platform/                     the seams: HttpClient, StorageBackend, FileSystem, EmbeddedDatabase, the OPFS root,
+    node/                           the platform of Node (`node_platform.ts`)
+    testing/                        the test runtime and the fixtures that need one
+  src/platform/                     `@ankoh/dashql/platform/<path>` is src/platform/<path>.ts
+    platform/                       the seams: HttpClient, StorageBackend, FileSystem, EmbeddedDatabase, the OPFS root,
                                     the logger, HyperDB over hyperdb-wasm, the instance folders
-  src/workbook/                     the workbook and script types, attachments, inputs, the execution events
-  src/connections/                  the types of the connection views, connector infos and descriptors, params,
+    workbook/                       the workbook and script types, attachments, inputs, the execution events
+    connections/                    the types of the connection views, connector infos and descriptors, params,
                                     the connector clients and channels (Trino, Hyper over gRPC and HTTP, Salesforce, the
                                     embedded Hyper), the specs of client functions, the catalog SQL
-  src/query/                        query states and their progress, the query result cache, the profile symbols
-  src/compute/                      the types of the computation views, the Arrow formatter
-  src/storage/                      the storage backends, the storage root that the runtime migrates, the query result
+    query/                          query states and their progress, the query result cache, the profile symbols
+    compute/                        the types of the computation views, the Arrow formatter
+    storage/                        the storage backends, the storage root that the runtime migrates, the query result
                                     cache in OPFS, the workbook tables, the versions of the storage
-  src/session/                      the journal of an agent session and its state
-  src/oauth/, src/sql/              the OAuth flow; lint, format and reports of SQL files
-  src/node/                         the modules of Node that import node:, node:fs handles of the OPFS root, the
+    session/                        the journal of an agent session and its state
+    oauth/, sql/                    the OAuth flow; lint, format and reports of SQL files
+    node/                           the modules of Node that import node:, node:fs handles of the OPFS root, the
                                     embedded Hyper of Node, the core from its file, the locks of the process
-  src/testing/                      helpers of the tests on both platforms
+    testing/                        helpers of the tests on both platforms
+  test/                             the boundary test, the editor config test, the setup of the tests in Node, the
+                                    browser tests of the bindings (browser/), the tests of the package on npm (npm/)
+  npm/                              the package on npm: package.json and build.mjs, which builds its dist/
 packages/dashql-app                 the RuntimeProvider creates the runtime (see React after the move), UI-only state:
                                     CodeMirror, focus, view modes, overlays, ownership
 packages/dashql-cli                 the dashql command: lint, format, run, session
@@ -333,8 +377,8 @@ Each step ships on its own and keeps the behavior.
    `workbook_scripts_registry.tsx` into `.ts` modules, move the editor data types out of `dashql_processor.ts`, make
    `Store` free of React with a `Scheduler`. Add a test that fails when a module of the runtime set imports `react`,
    `react-dom`, `@codemirror/*`, a `.tsx` file or a `?url` asset. Done.
-2. **Draw the package line.** Move the clean set into `packages/dashql-runtime`, a source package with tests in
-   Node. The app imports from `@ankoh/dashql-runtime`. Done.
+2. **Draw the package line.** Move the clean set into a source package with tests in Node, `src/runtime` and
+   `src/platform` of `packages/dashql`. The app imports from `@ankoh/dashql`. Done.
 3. **Services out of providers.** Done for four services of the runtime, each a class with its dependencies passed in
    and its state as a `Store`:
    - `QueryExecutorService`, with the computations, the result cache, the tracked execution and the profile layout of
@@ -359,7 +403,7 @@ Each step ships on its own and keeps the behavior.
    Hyper links (`connections/hyper/hyper_link.ts`). A `HyperLinkTabStore` keeps the links of a tab in a
    `KeyValueStorage` (`platform/key_value_storage.ts`) that the platform passes in; the app holds the one of its tab
    over `sessionStorage` in `connections/hyper/hyper_link_tab.ts`, with the hooks. The test helpers `TestLogger` and
-   `WorkbookTestBackend` moved to `src/testing/`, so the restore is tested in Node. The runtime object, done: the
+   `WorkbookTestBackend` moved to `src/platform/testing/`, so the restore is tested in Node. The runtime object, done: the
    workbooks and the connections are domains of the runtime of the module (steps 2 and 4 of
    [runtime_api.md](runtime_api.md));
    `createRuntime(platform)` in `runtime.ts` wires it,
@@ -367,9 +411,9 @@ Each step ships on its own and keeps the behavior.
    writes a workbook with one runtime and restores it with a second one in Node. The app creates it in its
    `RuntimeProvider` (see React after the move). The Node platform, done: `NativeStorageBackend` (one workbook in a folder) moved into the runtime and
    takes a `FileSystem` (`platform/file_system.ts`); the app passes `ELECTRON_FILE_SYSTEM`, Node passes
-   `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/node`, the only place that
-   imports `node:` (the boundary test checks it), with a type check of their own against the types of Node
-   (`tsconfig.bazel.node.json`, `src/node/tsconfig.json` for editors). `createNodePlatform` (`node/node_platform.ts`)
+   `NODE_FILE_SYSTEM` (`node/node_file_system.ts`). The modules of Node live in `src/runtime/node` and `src/platform/node`,
+   the only places that import `node:` (the boundary test checks it), with a type check of their own against the types
+   of Node (`tsconfig.bazel.node.json`, a `tsconfig.json` in each for editors). `createNodePlatform` (`node/node_platform.ts`)
    passes a storage backend, `fetch` (`WebHttpClient`, moved from the app) and the core from the Wasm file of its
    package (`node/node_core.ts`) to `createRuntime`; its OAuth flow refuses until `dashql auth` brings one. The
    embedded Hyper of Node runs over a root folder with the layout of OPFS (see The CLI on the runtime). The CLI on
@@ -379,10 +423,10 @@ Each step ships on its own and keeps the behavior.
 
 ## The CLI on the runtime
 
-Everything the CLI does goes through the runtime. `packages/dashql-cli` is a Node package on `@ankoh/dashql-runtime` and
-`@ankoh/dashql-platform` with the `dashql` command, bundled with Vite's server build into one module (`dist/dashql.js`);
-the core stays a package next to it, its Wasm file is read from there. `lint` and `format` run on `sql/sql_lint.ts`,
-`sql/sql_format.ts` and `sql/sql_report.ts` of the platform; the Rust `dashql` is gone. The agent bridge and its server are gone too, an agent in
+Everything the CLI does goes through the runtime. `packages/dashql-cli` is a Node package on `@ankoh/dashql` with the
+`dashql` command, bundled from the sources with Vite's server build into one module (`dist/dashql.js`); the Wasm of the
+core stays a file of the package `@ankoh/dashql` (`@ankoh/dashql/wasm`), the package on npm of the CLI depends on it.
+`lint` and `format` run on `sql/sql_lint.ts`, `sql/sql_format.ts` and `sql/sql_report.ts` of the platform; the Rust `dashql` is gone. The agent bridge and its server are gone too, an agent in
 the terminal reaches the page through `dashql session serve` (`docs/wip/agent_session.md`). Planned: DashQL.app ships
 the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
@@ -452,27 +496,29 @@ the CLI and runs it with Electron's Node (`ELECTRON_RUN_AS_NODE`).
 
 The browser and Node must offer the same: every feature of the runtime runs, and is tested, on both.
 
-- **Where they run.** `//packages/dashql-runtime:test_node` and `//packages/dashql-platform:test_node` run the tests
-  of the two packages in Node with vitest (`vitest.config.mjs`, `test/setup_node.mjs` of each sets the precompiled core
-  like the browser test frame of the app). The tests live next to the modules, their helpers in `src/testing/`, and a
-  type check of their own (`tsconfig.bazel.test.json`) gives them the globals of vitest while the modules stay checked
-  without them. The browser tests of the app run the tests of both packages as well (`runtime/src/<path>` and
-  `platform/src/<path>` in their list, from `:runtime_browser_test_files` and `:platform_browser_test_files` of the
-  app), so each one runs in Node and in the browsers. A test of Node is named `*.node.test.ts` and runs only in Node,
+- **Where they run.** `//packages/dashql:test_runtime_node` and `//packages/dashql:test_platform_node` run the tests
+  of the runtime and of the platform in Node with vitest (a project per folder of `vitest.config.mjs`,
+  `test/setup_node.mjs` sets the precompiled core like the browser test frame of the app);
+  `//packages/dashql:test_core_node` runs those of the bindings. The tests live next to the modules, their helpers in
+  `src/runtime/testing/` and `src/platform/testing/`, and a type check of their own (`tsconfig.bazel.test.json`) gives
+  them the globals of vitest while the modules stay checked without them. The browser tests of the app run the tests of
+  the runtime and of the platform as well (`dashql/src/runtime/<path>` and `dashql/src/platform/<path>` in their list,
+  from `:dashql_browser_test_files` of the app), so each one runs in Node and in the browsers; those of the bindings
+  run in `//packages/dashql/test/browser`. A test of Node is named `*.node.test.ts` and runs only in Node,
   like `node/node_file_system.node.test.ts`. A test that needs a browser is named `*.browser.test.ts` and runs only in
   the browsers: `hyperdb_wasm.browser.test.ts` of the platform (the HyperDB adapter over the browser build of
   hyperdb-wasm with a fake worker client).
 - **Which package a test goes in.** A test that creates a runtime (`createRuntime`, `createTestRuntime`, `testRuntime`)
   or imports the facade goes in the runtime, even when it tests a module of the platform: the catalog updates of an
   embedded channel (`connections/catalog/catalog_updates.integration.test.ts`), the tracked queries, the migrations
-  over a root of Node (`node/storage_root.node.test.ts`). A test of the platform imports only the platform and its
-  helpers of `src/testing/`. The tests of the helpers that moved into the app run in its browser tests only.
+  over a root of Node (`node/storage_root.node.test.ts`). A test of the platform imports only the platform, the bindings and
+  the helpers of `src/platform/testing/`. The tests of the helpers that moved into the app run in its browser tests only.
 - **What they cover.** 92 test files, about 900 tests in Node: the workbook scripts, script runs and workbook
   execution, the storage writer, native storage, bundles and the query result cache, the connection state, the
   Salesforce and Hyper HTTP clients, the catalog queries and updates, the computations and data
   frames, the services, the embedded Hyper of Node and the journal of a session. Tests of the app that need parts of
   the app stay in the app until those parts move.
-- **The embedded Hyper in tests.** `openTestHyperDB(context)` (`src/testing/test_hyperdb.ts` of the platform) returns a HyperDB with
+- **The embedded Hyper in tests.** `openTestHyperDB(context)` (`src/platform/testing/test_hyperdb.ts`) returns a HyperDB with
   databases of its own on the engine that the tests of a platform share. The browser tests of the app install it over
   their engine worker (`tests/hyperdb_pool.ts`), `test/setup_node.mjs` over the embedded Hyper of Node: one engine per
   test file, started by the first test that needs it, about 1.5 s. Every test file in Node also gets a root of its own
@@ -481,8 +527,8 @@ The browser and Node must offer the same: every feature of the runtime runs, and
 - **The services in Node.** The tests of the providers of the app became tests of the services of the runtime: the runs
   of workbooks (`workbook/workbook_runs.test.ts`: starting and stopping runs, the connections a run needs, previews,
   changes of inputs, the runs of single scripts and their cached results, on the executor of the runtime); the workbooks, the connections, their setups, the catalog loader, the queries and their saves are tested on the
-  runtime of the module (`runtime_workbooks.test.ts` and `runtime_connections.test.ts` of `dashql-core-js`) and
-  through the `Runtime` of the package (the handles, the workbooks, the computations, the tracked queries). `createTestRuntime()` (`src/testing/test_runtime.ts` of the runtime)
+  runtime of the module (`runtime_workbooks.test.ts` and `runtime_connections.test.ts` of `packages/dashql/src/core`) and
+  through the `Runtime` of the package (the handles, the workbooks, the computations, the tracked queries). `createTestRuntime()` (`src/runtime/testing/test_runtime.ts`)
   is a `createRuntime` on an in-memory platform with an optional compute database and result cache, its catalog loader
   stopped unless a test asks for it, so it schedules no updates. The app keeps the
   tests of what React adds: hooks, rendering order, remounting and unmounting.
@@ -493,7 +539,7 @@ The browser and Node must offer the same: every feature of the runtime runs, and
   `Runtime.exportArchive`, `exportLink`, `exportTables`, `readImport` and `commitImport`; the link of a connection is
   `exportConnection` of the module.
   A link takes the URL of the app that opens it, the app passes its own, the format of the core has the one of the
-  desktop app (`DESKTOP_APP_LINK_BASE`). The round trip is tested on the runtime of the module (`runtime_imports.test.ts` of `dashql-core-js`) with
+  desktop app (`DESKTOP_APP_LINK_BASE`). The round trip is tested on the runtime of the module (`runtime_imports.test.ts` of `packages/dashql/src/core`) with
   archives of the test that keep their entries in memory.
 - **The compute tasks.** The tasks of the computations (aggregation, filtering, ordering, search, system columns) run in
   the runtime of the core (`packages/dashql-core-runtime/src/compute`); the app keeps `compute/computation_scheduler.tsx`,
@@ -503,7 +549,7 @@ The browser and Node must offer the same: every feature of the runtime runs, and
 - **Compile time.** The runtime compiles against the `WebWorker` lib, without the DOM and without the types of Node; the
   APIs it uses there, like `fetch`, `URL`, `TextEncoder`, `crypto` and `Blob`, Node has as well. The browser-only ones
   that remain are the named seams of the boundary test. Once they are gone, the lib can shrink to ES plus a few
-  declared globals. `src/node` compiles with the types of Node.
+  declared globals. `src/runtime/node` and `src/platform/node` compile with the types of Node.
 
 Planned:
 

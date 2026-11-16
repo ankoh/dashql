@@ -7,7 +7,7 @@
 //! health check, which runs through the query executor so that it shows up like any other query. The host passes the
 //! answers back with the time they arrived.
 //!
-//! Ported from `packages/dashql-runtime/src/connections/trino/trino_connection_setup.ts` and `performHealthCheck` of
+//! Ported from `packages/dashql/src/runtime/connections/trino/trino_connection_setup.ts` and `performHealthCheck` of
 //! `health_check.ts`.
 
 use super::error::{TrinoError, TrinoErrorKind};

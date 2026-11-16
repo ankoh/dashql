@@ -95,10 +95,9 @@ genrule(
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
-            -e "s|__CORE_PATH__|../../node_modules/@ankoh/dashql-core/dist|g" \\
+            -e "s|__DASHQL_PATH__|../../node_modules/@ankoh/dashql|g" \\
+            -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@ankoh/dashql/dependencies|g" \\
             -e "s|__UI_PATH__|../../node_modules/@ankoh/dashql-ui|g" \\
-            -e "s|__RUNTIME_PATH__|../../node_modules/@ankoh/dashql-runtime|g" \\
-            -e "s|__PLATFORM_PATH__|../../node_modules/@ankoh/dashql-platform|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
             -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
@@ -127,10 +126,9 @@ genrule(
         sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
-            -e "s|__CORE_PATH__|../../bazel-bin/node_modules/@ankoh/dashql-core/dist|g" \
+            -e "s|__DASHQL_PATH__|../dashql|g" \
+            -e "s|__DASHQL_GENERATED_PATH__|../../bazel-bin/packages/dashql/dependencies|g" \
             -e "s|__UI_PATH__|../dashql-ui|g" \
-            -e "s|__RUNTIME_PATH__|../dashql-runtime|g" \
-            -e "s|__PLATFORM_PATH__|../dashql-platform|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
@@ -151,26 +149,14 @@ genrule(
     """,
 )
 
-# The tests of the runtime that the browser tests run as well, relative to the sources of the runtime
+# The tests of the runtime and of the platform of @ankoh/dashql that the browser tests run as well, relative to its src/
 genrule(
-    name = "runtime_browser_test_files",
-    srcs = ["//packages/dashql-runtime:test_files"],
-    outs = ["runtime_browser_test_files.txt"],
+    name = "dashql_browser_test_files",
+    srcs = ["//packages/dashql:browser_test_files"],
+    outs = ["dashql_browser_test_files.txt"],
     cmd = """
         for src in $(SRCS); do
-            printf '%s\\n' "$${src#packages/dashql-runtime/src/}"
-        done > $@
-    """,
-)
-
-# The tests of the platform that the browser tests run as well, relative to the sources of the platform
-genrule(
-    name = "platform_browser_test_files",
-    srcs = ["//packages/dashql-platform:test_files"],
-    outs = ["platform_browser_test_files.txt"],
-    cmd = """
-        for src in $(SRCS); do
-            printf '%s\\n' "$${src#packages/dashql-platform/src/}"
+            printf '%s\\n' "$${src#packages/dashql/src/}"
         done > $@
     """,
 )
@@ -251,9 +237,7 @@ ts_project(
         ":dep_protobuf_lib",
         ":dep_jsonschema_lib",
         "//:node_modules",
-        "//:node_modules/@ankoh/dashql-core",
-        "//:node_modules/@ankoh/dashql-platform",
-        "//:node_modules/@ankoh/dashql-runtime",
+        "//:node_modules/@ankoh/dashql",
         "//:node_modules/@ankoh/dashql-ui",
     ],
     visibility = ["//visibility:public"],
@@ -262,15 +246,12 @@ ts_project(
 _vite_web_deps = [
     ":srcs",
     ":browser_test_files",
-    ":runtime_browser_test_files",
-    ":platform_browser_test_files",
+    ":dashql_browser_test_files",
     ":browser_test_stylesheets",
     ":example_snippets",
     ":extensions",
     ":vite_config",
-    "//:node_modules/@ankoh/dashql-core",
-    "//:node_modules/@ankoh/dashql-platform",
-    "//:node_modules/@ankoh/dashql-runtime",
+    "//:node_modules/@ankoh/dashql",
     "//:node_modules/@ankoh/dashql-ui",
     ":dep_protobuf",
     ":dep_jsonschema",
@@ -446,8 +427,9 @@ sh_binary(
     srcs = ["utils/dev.sh"],
     args = ["$(location :dev_config)"],
     data = [
-            ":dev_config",
-        "//:node_modules/@ankoh/dashql-core",
+        ":dev_config",
+        "//packages/dashql:dep_flatbuffers",
+        "//packages/dashql:dep_wasm",
         ":extensions",
         ":dep_protobuf",
         ":dep_jsonschema",
