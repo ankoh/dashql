@@ -11,7 +11,7 @@ import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
 import { useRuntime, useView } from '../../runtime/runtime_hooks.js';
-import type { StorageKeyStatistics, StorageWriteKey, StorageWriterStatistics } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { StorageKeyStatistics } from '@ankoh/dashql';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
@@ -24,16 +24,12 @@ export const STATISTICS_POLL_MS = 500;
 
 /// What changes when the statistics change
 function statisticsSignature(statistics: readonly StorageKeyStatistics[]): string {
-    return statistics.map(({ key, stats: s }) => `${key}:${s.totalScheduledWrites}:${s.totalWrites}:${s.lastWrite?.getTime() ?? ''}`).join('\n');
+    return statistics.map(({ key, statistics: s }) => `${key}:${s.scheduledWrites}:${s.writes}:${s.lastWriteMs ?? ''}`).join('\n');
 }
 
-export interface StorageWriterEntry {
-    key: StorageWriteKey;
-    /// The key with the active workbook's id prefix stripped, shown in the Key column (the full key
-    /// stays in the row tooltip and the detail modal).
-    label: string;
-    stats: StorageWriterStatistics;
-}
+/// A row: the statistics of a key, its label is the key without the id of the active workbook, shown in the Key column
+/// (the full key stays in the row tooltip and the detail modal)
+export type StorageWriterEntry = StorageKeyStatistics;
 
 export interface StorageWriterRowProps {
     entries: StorageWriterEntry[];
@@ -62,16 +58,16 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
                     {entry.label}
                 </div>
                 <div className={styles.stat_cell_tasks}>
-                    {entry.stats.totalScheduledWrites}
+                    {entry.statistics.scheduledWrites}
                 </div>
                 <div className={styles.stat_cell_writes}>
-                    {entry.stats.totalWrites}
+                    {entry.statistics.writes}
                 </div>
                 <div className={styles.stat_cell_time}>
-                    {formatMilliseconds(entry.stats.totalWriteTime)}
+                    {formatMilliseconds(entry.statistics.writeTimeMs)}
                 </div>
                 <div className={styles.stat_cell_bytes}>
-                    {formatBytes(entry.stats.totalWrittenBytes)}
+                    {formatBytes(entry.statistics.writtenBytes)}
                 </div>
             </div>
         </div>
@@ -79,26 +75,14 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
 };
 
 function buildEntries(statistics: readonly StorageKeyStatistics[]): StorageWriterEntry[] {
-    const entries: StorageWriterEntry[] = statistics.map(({ key, label, stats }) => ({ key, label, stats }));
     // Sort by last write ascending, the list scrolls to its end where the most recent write is.
     // Entries with no write come first.
-    entries.sort((a, b) => {
-        const at = a.stats.lastWrite?.getTime() ?? -1;
-        const bt = b.stats.lastWrite?.getTime() ?? -1;
-        return at - bt;
-    });
-    return entries;
+    return [...statistics].sort((a, b) => (a.statistics.lastWriteMs ?? -1) - (b.statistics.lastWriteMs ?? -1));
 }
 
 function entryToObject(entry: StorageWriterEntry): object {
-    return {
-        key: entry.key,
-        totalScheduledWrites: entry.stats.totalScheduledWrites,
-        totalWrites: entry.stats.totalWrites,
-        totalWrittenBytes: entry.stats.totalWrittenBytes,
-        totalWriteTime: entry.stats.totalWriteTime,
-        lastWrite: entry.stats.lastWrite?.toISOString() ?? null,
-    };
+    const { lastWriteMs, ...statistics } = entry.statistics;
+    return { key: entry.key, ...statistics, lastWrite: lastWriteMs == null ? null : new Date(lastWriteMs).toISOString() };
 }
 
 export function StorageWriterView(props: { workbookId: string | null; onClose: () => void; }) {

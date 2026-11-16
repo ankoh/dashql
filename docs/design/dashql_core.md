@@ -304,7 +304,8 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
   its place, the later tasks of its files wait behind it. A new task kind adds its files there.
 - **Holds with reasons.** A hold of the writer or of a workbook has a `HoldReason` (external change, reload, import,
   handover, pause) and is counted. A flush writes past a pause of the writer and past no other hold: a handover keeps
-  the writes of a tab that another tab took over. A task may pass the hold of its caller (`write_past`), e.g. the
+  the writes of a tab that another tab took over (`StorageWriter::hand_over`, `storage({ kind: 'handOver' })`: it
+  pauses the writer, flushes, holds it for the handover and releases the pause). A task may pass the hold of its caller (`write_past`), e.g. the
   writes of an import into the workbook it replaces. A replaced workbook stays held until the app reloads.
 - **Failed writes are state.** A task that failed for a moment stays pending and runs again after a backoff (one
   second, doubled, at most a minute). A task whose target is gone (`WriteError::is_permanent`: a workbook file or a

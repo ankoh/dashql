@@ -9,32 +9,32 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { StorageCommands, type StorageKeyStatistics, type StorageWriterStatistics } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import { StorageCommands } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { StorageWriterView } from './storage_writer_view.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-type StorageWriteStatisticsMap = Map<string, StorageWriterStatistics>;
+type StorageWriteStatisticsMap = Map<string, core.StorageWriteStatistics>;
 
 /// The statistics of a workbook as the module hands them out: its keys with the label within the workbook
-function ofWorkbook(workbookId: string, statistics: StorageWriteStatisticsMap): StorageKeyStatistics[] {
+function ofWorkbook(workbookId: string, statistics: StorageWriteStatisticsMap): core.StorageKeyStatistics[] {
     return [...statistics]
         .filter(([key]) => key.startsWith(`${workbookId}/`))
-        .map(([key, stats]) => ({ key, label: key.slice(workbookId.length + 1), stats }));
+        .map(([key, statistics]) => ({ key, label: key.slice(workbookId.length + 1), statistics }));
 }
 import * as styles from './storage_writer_view.module.css';
 
 const OTHER_WORKBOOK_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
 
-function stats(lastWrite: number | null, writes = 1): StorageWriterStatistics {
+function stats(lastWrite: number | null, writes = 1): core.StorageWriteStatistics {
     return {
-        totalScheduledWrites: writes + 1,
-        totalWrites: writes,
-        totalWrittenBytes: writes * 1500,
-        totalWriteTime: writes * 1250,
-        lastWrite: lastWrite == null ? null : new Date(lastWrite),
+        scheduledWrites: writes + 1,
+        writes,
+        writtenBytes: writes * 1500,
+        writeTimeMs: writes * 1250,
+        lastWriteMs: lastWrite,
     };
 }
 
@@ -88,7 +88,7 @@ describe('StorageWriterView', () => {
     });
 
     it('shows the writes of the workbook, the oldest write first', async () => {
-        await render(TEST_WORKBOOK_ID, new Map<string, StorageWriterStatistics>([
+        await render(TEST_WORKBOOK_ID, new Map<string, core.StorageWriteStatistics>([
             [`${TEST_WORKBOOK_ID}/scripts/02.sql`, stats(3000, 2)],
             [`${OTHER_WORKBOOK_ID}/scripts/01.sql`, stats(1000)],
             [`${TEST_WORKBOOK_ID}/dashql-workbook.json`, stats(2000)],
@@ -113,7 +113,7 @@ describe('StorageWriterView', () => {
     });
 
     it('inspects an entry and steps through the entries', async () => {
-        await render(TEST_WORKBOOK_ID, new Map<string, StorageWriterStatistics>([
+        await render(TEST_WORKBOOK_ID, new Map<string, core.StorageWriteStatistics>([
             [`${TEST_WORKBOOK_ID}/scripts/01.sql`, stats(1000)],
             [`${TEST_WORKBOOK_ID}/scripts/02.sql`, stats(2000)],
             [`${TEST_WORKBOOK_ID}/scripts/03.sql`, stats(3000)],

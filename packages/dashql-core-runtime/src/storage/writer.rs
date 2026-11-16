@@ -1309,6 +1309,19 @@ impl<H: StorageHost> StorageWriter<H> {
         }
     }
 
+    /// Another tab takes over the app: the pending writes are written, then nothing is written any more, not even by a
+    /// flush (`HoldReason::Handover`). The writer is paused while it flushes, a write scheduled meanwhile stays pending.
+    pub fn hand_over(&self) -> impl Future<Output = ()> + 'static {
+        self.pause();
+        let flush = self.flush();
+        let writer = self.clone();
+        async move {
+            flush.await;
+            writer.hold(None, HoldReason::Handover);
+            writer.resume();
+        }
+    }
+
     /// Write a recovery copy of every script whose pending write a change outside the app or a reload holds, next to
     /// it in the folder of its workbook (`<name> (recovered).sql`), e.g. before the window closes while the question
     /// about the change is open. A copy never replaces a file, the writes stay pending.

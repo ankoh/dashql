@@ -11,13 +11,6 @@ import { markWorkbookAttachmentsChanged } from '../../platform/workbook/attachme
 /// writer decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
 /// statistics. The workbooks and the connections of the runtime write through it.
 
-/// The key of a write. Writes with the same key coalesce, the latest task wins. The keys are built by the module
-/// (`storage/keys.rs` of the core runtime), a task names its own key.
-export type StorageWriteKey = string;
-
-/// Why the writes of the writer or of a workbook are held
-export type StorageHoldReason = core.StorageHoldReason;
-
 /// The outcome of a write
 export type StorageWriteResult =
     /// The task was executed (a task may still skip writing content that is already persisted)
@@ -30,28 +23,6 @@ export type StorageWriteResult =
     | { status: 'deferred' }
     /// Executing the task failed
     | { status: 'failed'; error: unknown };
-
-/// The statistics of the writes of a key, with the key within its workbook for display
-export interface StorageKeyStatistics {
-    key: StorageWriteKey;
-    /// The key without the prefix of its workbook, e.g. `scripts/a.sql:delete`
-    label: string;
-    stats: StorageWriterStatistics;
-}
-
-/// The statistics of the writes of a key
-export interface StorageWriterStatistics {
-    /// The number of writes we scheduled
-    totalScheduledWrites: number;
-    /// The number of writes we performed
-    totalWrites: number;
-    /// The number of bytes written in total to storage
-    totalWrittenBytes: number;
-    /// The accumulated time spent writing
-    totalWriteTime: number;
-    /// The last write
-    lastWrite: Date | null;
-}
 
 /// A workbook whose files are not available, e.g. a native folder that was moved or deleted
 export class WorkbookUnavailableError extends Error {
@@ -154,12 +125,12 @@ export class StorageCommands {
     }
 
     /// Hold the writes of the writer, or of a workbook, for a reason. Holds are counted, each is released on its own.
-    hold(reason: StorageHoldReason, workbookId: string | null = null): void {
+    hold(reason: core.StorageHoldReason, workbookId: string | null = null): void {
         this.module?.storageHold(reason, workbookId);
     }
 
     /// Release one hold of a reason, the pending writes wait for their debounce duration again once nothing holds them
-    release(reason: StorageHoldReason, workbookId: string | null = null): void {
+    release(reason: core.StorageHoldReason, workbookId: string | null = null): void {
         this.module?.storageRelease(reason, workbookId);
     }
 
@@ -176,13 +147,7 @@ export class StorageCommands {
     /// Another tab takes over the app: the pending writes are written, then nothing is written any more, not even by a
     /// flush when the page hides
     async handOver(): Promise<void> {
-        this.pause();
-        try {
-            await this.flush();
-            this.hold('handover');
-        } finally {
-            this.resume();
-        }
+        await this.module?.storage({ kind: 'handOver' });
     }
 
     /// Discard the writes of keys and their failures, e.g. a write that failed because its workbook folder is gone
@@ -210,17 +175,7 @@ export class StorageCommands {
     }
 
     /// The statistics of the writes of a workbook by key, read when shown
-    getStatistics(workbookId: string): StorageKeyStatistics[] {
-        return (this.module?.storageStatistics(workbookId) ?? []).map(({ key, label, statistics: value }) => ({
-            key,
-            label,
-            stats: {
-                totalScheduledWrites: value.scheduledWrites,
-                totalWrites: value.writes,
-                totalWrittenBytes: value.writtenBytes,
-                totalWriteTime: value.writeTimeMs,
-                lastWrite: value.lastWriteMs == null ? null : new Date(value.lastWriteMs),
-            },
-        }));
+    getStatistics(workbookId: string): core.StorageKeyStatistics[] {
+        return this.module?.storageStatistics(workbookId) ?? [];
     }
 }

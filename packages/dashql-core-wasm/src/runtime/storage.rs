@@ -256,6 +256,9 @@ pub enum StorageCommand {
     FlushWorkbook { workbook_id: String },
     /// Delete a workbook from the storage, its pending writes are discarded. Rejects with what the storage failed with.
     DeleteWorkbook { workbook_id: String },
+    /// Another tab takes over the app: the pending writes are written, then nothing is written any more, not even by a
+    /// flush when the page hides
+    HandOver,
 }
 
 /// The host of the writer and the restore over `storage` of the platform

@@ -632,6 +632,25 @@ fn pausing_clears_the_timers_and_resuming_waits_for_the_debounce_again() {
     assert!(written(&held.take()));
 }
 
+#[test]
+fn a_handover_writes_the_pending_writes_and_then_nothing() {
+    let h = Harness::new();
+    let pending = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 100.0));
+    h.block_on(h.writer.hand_over());
+    assert!(written(&pending.take()));
+    assert_eq!(h.calls(), [format!("write:{WORKBOOK}/a.sql=1")]);
+    // The tab that handed over writes nothing, not even when it flushes
+    let later = h.start(h.writer.write(&script_key(WORKBOOK, "b.sql"), write_script(WORKBOOK, "b.sql", "1"), 10.0));
+    h.advance(1000);
+    h.flush();
+    assert!(!later.done());
+    assert!(h.writer.is_workbook_held(WORKBOOK));
+    // The pause of the handover is released, only the handover holds the writer
+    h.writer.release(None, HoldReason::Handover);
+    h.advance(10);
+    assert!(written(&later.take()));
+}
+
 // Coalescing and ordering
 
 #[test]
