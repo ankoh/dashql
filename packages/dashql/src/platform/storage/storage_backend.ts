@@ -179,16 +179,16 @@ export function isWorkbookRegistryBackend(backend: StorageBackend): backend is W
     return typeof (backend as Partial<WorkbookRegistryBackend>).updateConnections === 'function';
 }
 
-/// A script file changed outside the app since the storage last wrote or acknowledged it.
+/// A script file or the workbook file changed outside the app since the storage last wrote or acknowledged it.
 /// Thrown instead of overwriting the external version.
 export class ExternalScriptChangeError extends Error {
     /// The workbook id
     readonly workbookId: string;
-    /// The script file name
+    /// The file name, a script or `dashql-workbook.json`
     readonly fileName: string;
 
     constructor(workbookId: string, fileName: string) {
-        super(`script ${fileName} of workbook ${workbookId} changed outside the app`);
+        super(`file ${fileName} of workbook ${workbookId} changed outside the app`);
         this.name = 'ExternalScriptChangeError';
         this.workbookId = workbookId;
         this.fileName = fileName;

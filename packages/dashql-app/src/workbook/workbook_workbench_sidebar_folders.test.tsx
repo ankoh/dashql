@@ -35,7 +35,7 @@ const storageReader = {
     getWorkbookOrder: () => state.backend!.getWorkbookOrder(),
     getWorkbookTree: () => state.backend!.getWorkbookTree(),
 };
-const storageWriter = { write: vi.fn(), deleteWorkbook: vi.fn(), backend: {}, cancelPendingWritesForWorkbook: vi.fn(), isWorkbookPaused: () => false };
+const storageWriter = { write: vi.fn(), deleteWorkbook: vi.fn(), backend: {}, cancelPendingWritesForWorkbook: vi.fn(), isWorkbookHeld: () => false };
 /// The runtime as the sidebar uses it, without connections
 const runtime = { storage: storageWriter, dispatch: vi.fn(), createConnection: vi.fn(), store: { get: () => null } };
 const NO_CONNECTIONS = new Map();

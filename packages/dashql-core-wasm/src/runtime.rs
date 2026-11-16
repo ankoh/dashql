@@ -69,7 +69,7 @@ use dashql_core::catalog::{Catalog as CoreCatalog, EntryIdSource};
 use dashql_core_runtime::restore::{AppRestore, RestoreOptions, RestoredState};
 use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
-use storage::view::{StorageWriteGenerations, StorageWriteTask};
+use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteGenerations, StorageWriteStatistics, StorageWriteTask};
 use storage::{error_value, outcome_value, JsStorage, StorageCommand, StorageState, StorageView};
 use workbooks::view::{StoredScriptView, WorkbookDataFile, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView};
 use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
@@ -1032,7 +1032,7 @@ impl Restorer {
         let options = RestoreOptions {
             offset_unit: Workbooks::offset_unit(),
             new_catalog: Box::new(|| CoreCatalog::with_entry_ids(ENTRY_IDS.with(EntryIdSource::clone))),
-            new_uuid: Box::new(move || platform.random_uuid().unwrap_or_default()),
+            new_uuid: Box::new(move || platform.random_uuid().ok()),
         };
         AppRestore::new(host, self.workbooks.writer.clone(), options)
     }
@@ -1069,7 +1069,7 @@ impl Runtime {
         let connections = Connections::new(platform.clone(), computations.clone());
         let storage = Rc::new(StorageState::default());
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
-        let writer = dashql_core_runtime::storage::StorageWriter::new(host, WORKBOOK_FORMAT_VERSION.unsigned_abs());
+        let writer = dashql_core_runtime::storage::StorageWriter::new(host, WORKBOOK_FORMAT_VERSION);
         *connections.writer.borrow_mut() = Some(writer.clone());
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
@@ -1717,19 +1717,31 @@ impl Runtime {
         }))
     }
 
-    /// Bring the storage root of the platform (`storageRoot`) to the current storage version and every workbook folder
-    /// that its workbook tree registers to the current workbook format. A fresh storage stays untouched, a storage of a
-    /// newer version of the app is refused. The platform holds the lock of the storage meanwhile. The restore migrates
-    /// a workbook folder that the platform keeps elsewhere (`storage.workbookFolder`) before it reads it.
+    /// Bring a storage root of the platform to the current storage version and every workbook folder that its workbook
+    /// tree registers to the current workbook format, without a runtime: the app runs it at startup before it sets up
+    /// its storage. A fresh storage gets a manifest with the current storage version, a storage of a newer version of
+    /// the app is refused. The platform holds the lock of the storage meanwhile. The storage of a runtime migrates a
+    /// workbook folder that it keeps elsewhere (`storage.workbookFolder`) when it reads an older workbook file.
     #[wasm_bindgen(js_name = migrateStorage, unchecked_return_type = "Promise<StorageMigrationOutcome>")]
-    pub fn migrate_storage(&self) -> Promise {
-        let platform = self.platform.clone();
+    pub fn migrate_storage(
+        #[wasm_bindgen(unchecked_param_type = "RuntimeStorageRoot")] root: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "((level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][], target: string) => void) | null")]
+        log: JsValue,
+    ) -> Promise {
+        let log = log.dyn_into::<Function>().ok();
         future_to_promise(async move {
-            match migrations::migrate(platform).await {
+            match migrations::migrate(root, log).await {
                 Ok(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
                 Err(error) => Err(storage::error_value(&error)),
             }
         })
+    }
+
+    /// The versions of the storage format of the module: the storage version of the manifest and the format version of
+    /// workbook files
+    #[wasm_bindgen(js_name = storageVersions, unchecked_return_type = "StorageVersions")]
+    pub fn storage_versions() -> Result<JsValue, JsError> {
+        Ok(to_js(&migrations::StorageVersions::current())?.into())
     }
 
     /// Bring the folder of a workbook that the platform keeps in a folder of its own (`storage.workbookFolder`) to the
@@ -1909,14 +1921,13 @@ impl Runtime {
 
     // The storage writer
 
-    /// Run a command of the storage writer: flush, settle, pause and resume it or the writes of a workbook, delete a
-    /// workbook. `flushWorkbook` resolves whether every write of the workbook reached the storage, `deleteWorkbook`
-    /// rejects with what the storage failed with.
+    /// Run a command of the storage writer that waits for writes: flush and settle it, flush or delete a workbook.
+    /// `flushWorkbook` resolves whether every write of the workbook reached the storage, `deleteWorkbook` rejects with
+    /// what the storage failed with.
     #[wasm_bindgen(js_name = storage, unchecked_return_type = "Promise<unknown>")]
     pub fn storage_command(&self, command: Ts<StorageCommand>) -> Result<Promise, JsError> {
         let command = from_js(&command)?;
         let writer = self.workbooks.writer.clone();
-        let done = |value: JsValue| Promise::resolve(&value);
         Ok(match command {
             StorageCommand::Flush => {
                 let flush = writer.flush();
@@ -1932,28 +1943,6 @@ impl Runtime {
                     Ok(JsValue::UNDEFINED)
                 })
             }
-            StorageCommand::Pause => {
-                writer.pause();
-                done(JsValue::UNDEFINED)
-            }
-            StorageCommand::Resume => {
-                writer.resume();
-                done(JsValue::UNDEFINED)
-            }
-            StorageCommand::PauseWorkbook { workbook_id } => {
-                writer.pause_workbook(&workbook_id);
-                done(JsValue::UNDEFINED)
-            }
-            StorageCommand::ResumeWorkbook { workbook_id } => {
-                writer.resume_workbook(&workbook_id);
-                self.storage.release_held(&workbook_id);
-                self.platform.signal(true);
-                done(JsValue::UNDEFINED)
-            }
-            StorageCommand::ReviveWorkbook { workbook_id } => {
-                writer.revive_workbook(&workbook_id);
-                done(JsValue::UNDEFINED)
-            }
             StorageCommand::FlushWorkbook { workbook_id } => {
                 let flush = writer.flush_workbook(&workbook_id);
                 future_to_promise(async move { Ok(JsValue::from_bool(flush.await)) })
@@ -1962,27 +1951,52 @@ impl Runtime {
                 let deletion = writer.delete_workbook(&workbook_id);
                 future_to_promise(async move { deletion.await.map(|_| JsValue::UNDEFINED).map_err(|error| error_value(&error)) })
             }
-            StorageCommand::CancelPendingWrites { workbook_id, keys } => {
-                match keys {
-                    Some(keys) => writer.cancel_pending_writes(&keys),
-                    None => writer.cancel_pending_writes_for_workbook(&workbook_id),
-                }
-                done(JsValue::UNDEFINED)
-            }
-            StorageCommand::CancelPendingConnectionFileWrites { connection_id } => {
-                writer.cancel_pending_connection_file_writes(&connection_id);
-                done(JsValue::UNDEFINED)
-            }
         })
     }
 
-    /// Schedule a write that no state of the runtime describes, e.g. a script that the user kept over a change outside
-    /// the app or the attachments of a workbook on disk. A durable write runs right away. Resolves with its outcome.
-    #[wasm_bindgen(js_name = storageWrite, unchecked_return_type = "Promise<StorageWriteOutcome>")]
-    pub fn storage_write(&self, key: &str, task: Ts<StorageWriteTask>, debounce_ms: f64, durable: bool) -> Result<Promise, JsError> {
-        let task = StorageWriteTask::read(task)?.try_into()?;
+    /// Hold the writes of the writer (no workbook) or of a workbook for a reason, e.g. `pause` while the app moves a
+    /// workbook or `handover` when another tab takes over. Holds are counted, each is released on its own. A flush
+    /// writes past a hold of the writer, never past one of a workbook.
+    #[wasm_bindgen(js_name = storageHold)]
+    pub fn storage_hold(&self, reason: Ts<StorageHoldReason>, workbook_id: Option<String>) -> Result<(), JsError> {
+        let reason: StorageHoldReason = from_js(&reason)?;
+        self.workbooks.writer.hold(workbook_id.as_deref(), reason.into());
+        Ok(())
+    }
+
+    /// Release one hold of a reason. Once nothing holds them, the pending writes wait for their debounce again.
+    #[wasm_bindgen(js_name = storageRelease)]
+    pub fn storage_release(&self, reason: Ts<StorageHoldReason>, workbook_id: Option<String>) -> Result<(), JsError> {
+        let reason: StorageHoldReason = from_js(&reason)?;
+        self.workbooks.writer.release(workbook_id.as_deref(), reason.into());
+        Ok(())
+    }
+
+    /// Accept writes of a workbook id again after the workbook was deleted, e.g. an import of the same workbook
+    #[wasm_bindgen(js_name = storageReviveWorkbook)]
+    pub fn storage_revive_workbook(&self, workbook_id: &str) {
+        self.workbooks.writer.revive_workbook(workbook_id);
+    }
+
+    /// Discard pending writes of a workbook, all of them without keys
+    #[wasm_bindgen(js_name = storageCancelPendingWrites)]
+    pub fn storage_cancel_pending_writes(&self, workbook_id: &str, keys: Option<Vec<String>>) {
         let writer = &self.workbooks.writer;
-        let result = if durable { writer.write_durable(key, task) } else { writer.write(key, task, debounce_ms) };
+        match keys {
+            Some(keys) => writer.cancel_pending_writes(&keys),
+            None => writer.cancel_pending_writes_for_workbook(workbook_id),
+        }
+    }
+
+    /// Schedule a write that no state of the runtime describes, e.g. a script that the user kept over a change outside
+    /// the app or the attachments of a workbook on disk. Without a key the task names its own. A durable write runs
+    /// right away. Resolves with its outcome.
+    #[wasm_bindgen(js_name = storageWrite, unchecked_return_type = "Promise<StorageWriteOutcome>")]
+    pub fn storage_write(&self, key: Option<String>, task: Ts<StorageWriteTask>, debounce_ms: f64, durable: bool) -> Result<Promise, JsError> {
+        let task: dashql_core_runtime::storage::WriteTask = StorageWriteTask::read(task)?.try_into()?;
+        let key = key.unwrap_or_else(|| task.key());
+        let writer = &self.workbooks.writer;
+        let result = if durable { writer.write_durable(&key, task) } else { writer.write(&key, task, debounce_ms) };
         Ok(future_to_promise(async move { outcome_value(result.await) }))
     }
 
@@ -1996,11 +2010,24 @@ impl Runtime {
         }
     }
 
-    /// The statistics of the writes by key, `[key, statistics]` in the order the keys were first written. They change
-    /// with every write and are no slice: a view of them reads them when it shows them.
-    #[wasm_bindgen(js_name = storageStatistics, unchecked_return_type = "[string, StorageWriteStatistics][]")]
-    pub fn storage_statistics(&self) -> Result<JsValue, JsError> {
-        views_to_js(&self.storage.statistics())
+    /// The statistics of the writes by key, of a workbook or of all keys, ordered by key. They change with every write
+    /// and are no slice: a view of them reads them when it shows them.
+    #[wasm_bindgen(js_name = storageStatistics, unchecked_return_type = "StorageKeyStatistics[]")]
+    pub fn storage_statistics(&self, workbook_id: Option<String>) -> Result<JsValue, JsError> {
+        use dashql_core_runtime::storage::keys::{belongs_to_workbook, key_within_workbook};
+        let statistics: Vec<StorageKeyStatistics> = self
+            .workbooks
+            .writer
+            .statistics()
+            .into_iter()
+            .filter(|(key, _)| workbook_id.as_deref().is_none_or(|id| belongs_to_workbook(key, id)))
+            .map(|(key, statistics)| StorageKeyStatistics {
+                label: workbook_id.as_deref().map_or(key.as_str(), |id| key_within_workbook(&key, id)).to_string(),
+                statistics: StorageWriteStatistics::from(&statistics),
+                key,
+            })
+            .collect();
+        views_to_js(&statistics)
     }
 
     /// The latest generation of the keys of a workbook
@@ -2009,10 +2036,11 @@ impl Runtime {
         to_js(&StorageWriteGenerations(self.workbooks.writer.write_generations_for_workbook(workbook_id)))
     }
 
-    /// Are the writes of a workbook held, e.g. after one of its scripts changed outside the app?
-    #[wasm_bindgen(js_name = isWorkbookPaused)]
-    pub fn is_workbook_paused(&self, workbook_id: &str) -> bool {
-        self.workbooks.writer.is_workbook_paused(workbook_id)
+    /// Are the writes of a workbook held, by a hold of the writer or of the workbook, e.g. after one of its files
+    /// changed outside the app?
+    #[wasm_bindgen(js_name = isWorkbookHeld)]
+    pub fn is_workbook_held(&self, workbook_id: &str) -> bool {
+        self.workbooks.writer.is_workbook_held(workbook_id)
     }
 
     /// Stop the runtime: the queries are cancelled, the computations go, their runs are cancelled and their tables

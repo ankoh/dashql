@@ -56,8 +56,8 @@ pub trait StorageRootHost: Host {
     /// The folder of a native workbook, claimed for the app; None if the platform has no native folders or the folder
     /// doesn't exist
     async fn native_folder(&self, native_path: &str) -> Result<Option<Self::Folder>, HostError>;
-    /// A random UUID
-    fn random_uuid(&self) -> String;
+    /// A random UUID, a migration that needs one fails without it
+    fn random_uuid(&self) -> Result<String, HostError>;
 }
 
 /// A step that brings the storage from the previous version to `version`
@@ -227,12 +227,15 @@ async fn read_tree_directory<H: StorageRootHost>(host: &H, path: &str, name: &st
 ///
 /// The storage steps bring the root to the current version, then every workbook folder that the workbook tree registers
 /// is brought to the current workbook format. Folders that become reachable later are migrated when they are read. A
-/// fresh storage without a manifest stays untouched, a storage of a newer version of the app is refused. Returns what
-/// the migration changed.
+/// fresh storage without a manifest gets one with the current version, the only place that stamps the version: the
+/// storage of the app keeps the version of the manifest it writes. A storage of a newer version of the app is refused.
+/// Returns what the migration changed.
 pub async fn migrate_storage<H: StorageRootHost>(host: &H) -> Result<StorageMigrationSummary, HostError> {
     let mut summary = StorageMigrationSummary::default();
     let Some(manifest) = read_manifest(host).await? else {
-        // A fresh storage, the first write of the manifest stamps the current version
+        let mut manifest = JsonObject::new();
+        manifest.insert("storageVersion".into(), json!(STORAGE_VERSION));
+        write_manifest(host, &manifest).await?;
         return Ok(summary);
     };
     let version = match manifest.get("storageVersion") {
@@ -547,8 +550,9 @@ pub fn plan_connection_migration(sessions: &[MigratingSession], created_at: &str
 /// Sessions own their connections up to storage version 2. The step moves the connections into the app manifest and
 /// consolidates connections with equal params, see `plan_connection_migration`.
 ///
-/// The catalogs are copied first, writing the connections into the manifest is the commit point. The sessions are
-/// rewritten last and best effort. Sessions that cannot be read register their connections when they become readable
+/// The catalogs are copied first, writing the connections into the manifest is the commit point. A repeated step
+/// removes the catalogs that an interrupted one copied under ids it doesn't plan again. The sessions are rewritten last
+/// and best effort. Sessions that cannot be read register their connections when they become readable
 /// again.
 async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostError> {
     let Some(mut manifest) = read_manifest(host).await? else {
@@ -587,8 +591,27 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
         }
     }
     let created_at = iso_timestamp(host.now());
-    let plan = plan_connection_migration(&sessions, &created_at, &mut || host.random_uuid());
+    let mut failed = None;
+    let plan = plan_connection_migration(&sessions, &created_at, &mut || {
+        host.random_uuid().unwrap_or_else(|error| {
+            failed.get_or_insert(error);
+            String::new()
+        })
+    });
+    // A connection without an id is never written, the step fails and runs again
+    if let Some(error) = failed {
+        return Err(error);
+    }
     let folder_of = |session_id: &str| folders.iter().find(|(id, _)| id == session_id).map(|(_, folder)| folder);
+
+    // The step introduces the connections, so nothing references a folder of a connection yet. An interrupted step
+    // copied catalogs already, also under fresh ids that this run doesn't plan again: they are removed.
+    for entry in host.list("connections").await?.unwrap_or_default() {
+        if entry.directory && !plan.entries.iter().any(|planned| planned.get("id").and_then(Value::as_str) == Some(entry.name.as_str())) {
+            host.log(LogLevel::Info, "Removing the files of a connection of an interrupted migration", &[("connectionId", &entry.name)]);
+            host.remove(&format!("connections/{}", entry.name)).await?;
+        }
+    }
 
     for (connection_id, session_id) in &plan.catalog_sources {
         let copy = async {

@@ -9,7 +9,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { LoggerProvider } from '../../platform/logger/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@ankoh/dashql/platform/testing/workbook_test_backend';
-import { StorageWriter, type StorageWriterStatistics } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import { StorageWriter, type StorageKeyStatistics, type StorageWriterStatistics } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { StorageWriterView } from './storage_writer_view.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
@@ -17,6 +17,13 @@ declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 type StorageWriteStatisticsMap = Map<string, StorageWriterStatistics>;
+
+/// The statistics of a workbook as the module hands them out: its keys with the label within the workbook
+function ofWorkbook(workbookId: string, statistics: StorageWriteStatisticsMap): StorageKeyStatistics[] {
+    return [...statistics]
+        .filter(([key]) => key.startsWith(`${workbookId}/`))
+        .map(([key, stats]) => ({ key, label: key.slice(workbookId.length + 1), stats }));
+}
 import * as styles from './storage_writer_view.module.css';
 
 const OTHER_WORKBOOK_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
@@ -53,7 +60,7 @@ describe('StorageWriterView', () => {
     });
 
     async function render(workbookId: string | null, initial: StorageWriteStatisticsMap) {
-        vi.spyOn(StorageWriter.prototype, 'getStatistics').mockReturnValue(initial);
+        vi.spyOn(StorageWriter.prototype, 'getStatistics').mockImplementation(workbookId => ofWorkbook(workbookId, initial));
         await act(async () => root.render(
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
@@ -101,7 +108,7 @@ describe('StorageWriterView', () => {
     it('follows the statistics of the writer', async () => {
         await render(TEST_WORKBOOK_ID, new Map());
         expect(container.textContent).toContain('Nothing to see here');
-        vi.spyOn(StorageWriter.prototype, 'getStatistics').mockReturnValue(new Map([[`${TEST_WORKBOOK_ID}/scripts/01.sql`, stats(1)]]));
+        vi.spyOn(StorageWriter.prototype, 'getStatistics').mockImplementation(workbookId => ofWorkbook(workbookId, new Map([[`${TEST_WORKBOOK_ID}/scripts/01.sql`, stats(1)]])));
         await vi.waitFor(() => expect(keys()).toEqual([[`${TEST_WORKBOOK_ID}/scripts/01.sql`, 'scripts/01.sql']]));
     });
 

@@ -7,6 +7,7 @@
 //! platform writes the tables as Parquet and the archive as a ZIP (`archives`), the attachments and results go into it
 //! by handle.
 
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -144,9 +145,15 @@ fn format_error(error: dashql_core::error::Error) -> HostError {
 }
 
 impl Exports {
-    /// A fresh id of the platform
-    fn new_uuid(&self) -> impl FnMut() -> String + '_ {
-        move || self.platform.random_uuid().unwrap_or_default()
+    /// Fresh ids of the platform. An id that the platform fails to make marks `failed`, the export fails then
+    /// instead of writing an empty id.
+    fn new_uuid<'a>(&'a self, failed: &'a Cell<bool>) -> impl FnMut() -> String + 'a {
+        move || {
+            self.platform.random_uuid().unwrap_or_else(|_| {
+                failed.set(true);
+                String::new()
+            })
+        }
     }
 
     /// The live params and the names of the connections of the runtime
@@ -227,8 +234,20 @@ impl Exports {
     /// Export a workbook. A table export hands the tables to `consume` and resolves once it settled, the files of the
     /// tables stay readable until then.
     pub async fn export_workbook(self, workbook_id: String, options: ExportOptions, consume: Option<Function>) -> Result<ExportOutcome, HostError> {
-        // The export reads the workbook from the storage, with the changes that are pending
-        self.workbooks.writer.flush_workbook(&workbook_id).await;
+        // The export reads the workbook from the storage, with the changes that are pending. A workbook whose changes
+        // didn't reach the storage, or that a change outside the app holds, isn't exported: the export would miss
+        // what the app shows.
+        if !self.workbooks.writer.flush_workbook(&workbook_id).await {
+            let writer = &self.workbooks.writer;
+            let reason = match writer.failed_writes_for_workbook(&workbook_id).first() {
+                Some(failed) => format!("saving {} failed: {}", failed.key, failed.error),
+                None if writer.is_workbook_held(&workbook_id) => "its writes are held, e.g. a file changed outside the app".to_string(),
+                None => "its changes are not saved yet".to_string(),
+            };
+            let message = format!("The workbook can't be exported, {reason}");
+            self.platform.log_on(LogLevel::Warn, &message, &[("workbookId", workbook_id.as_str())], "workbook_export");
+            return Err(HostError::new(message));
+        }
         let files = HostFiles::new(self.platform.clone());
         let mut retained = RetainedResults { platform: self.platform.clone(), ids: Vec::new() };
         let outcome = self.export_retained(&workbook_id, &options, consume, &files, &mut retained).await;
@@ -265,10 +284,14 @@ impl Exports {
         let mut bundle = exported_bundle(bundle, results);
         let (params, names) = self.live_connections(bundle.workbook.connections.iter().map(|connection| connection.connection_id.clone()));
         shared.connection_names = names;
-        let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &params, &shared, &mut self.new_uuid());
+        let failed = Cell::new(false);
+        let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &params, &shared, &mut self.new_uuid(&failed));
         bundle.workbook = workbook;
         bundle.catalogs = catalogs;
-        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid()).map_err(format_error)?;
+        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid(&failed)).map_err(format_error)?;
+        if failed.get() {
+            return Err(HostError::new("the platform made no fresh id for the export"));
+        }
         let mut outcome = ExportOutcome { results: counts, ..ExportOutcome::default() };
         match options.format {
             ExportFormat::Archive => {
@@ -296,9 +319,13 @@ impl Exports {
         let params = params.get(&connection_id).cloned().ok_or_else(|| HostError::new(format!("no connection registered with id {connection_id}")))?;
         let created_at = js_sys::Date::new_0().to_iso_string().as_string().unwrap_or_default();
         let name = names.get(&connection_id).map(String::as_str);
-        let workbook = connection_link_workbook(&params, name, options.with_login_hint.unwrap_or(true), &created_at, &mut self.new_uuid());
+        let failed = Cell::new(false);
+        let workbook = connection_link_workbook(&params, name, options.with_login_hint.unwrap_or(true), &created_at, &mut self.new_uuid(&failed));
         let bundle: WorkbookBundle<HostFile> = WorkbookBundle { workbook, catalogs: Vec::new(), scripts: Vec::new(), data: Vec::new(), results: Vec::new() };
-        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid()).map_err(format_error)?;
+        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid(&failed)).map_err(format_error)?;
+        if failed.get() {
+            return Err(HostError::new("the platform made no fresh id for the link"));
+        }
         let files = HostFiles::new(self.platform.clone());
         archive_link(&self.platform, &files, &tables, &options.link_base).await
     }

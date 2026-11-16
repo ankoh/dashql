@@ -1,5 +1,4 @@
 import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
-import { STORAGE_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@ankoh/dashql/platform/storage/storage_backend';
 import { sleep } from '@ankoh/dashql/platform/utils/sleep';
 import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
@@ -405,7 +404,11 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             }
         }
         try {
-            await this.withManifestLock(() => this.writeManifest(root, {}));
+            // The cleared storage stays at its storage version
+            await this.withManifestLock(async () => {
+                const storageVersion = await this.readManifest(root).then(manifest => manifest.storageVersion, () => undefined);
+                await this.writeManifest(root, storageVersion == null ? {} : { storageVersion });
+            });
         } catch (error) {
             console.warn('Failed to clear manifest:', error);
         }
@@ -524,11 +527,12 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         }
     }
 
-    /// Write the manifest. The storage is migrated at app start, the manifest is at the current version.
+    /// Write the manifest. The storage is migrated at app start, the migration stamps the storage version and a write
+    /// keeps the version of the manifest it read.
     private async writeManifest(root: FileSystemDirectoryHandle, manifest: StorageManifest): Promise<void> {
         const indexFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
         const writable = await indexFile.createWritable();
-        await writable.write(JSON.stringify({ ...manifest, storageVersion: STORAGE_VERSION }, null, 2));
+        await writable.write(JSON.stringify(manifest, null, 2));
         await writable.close();
     }
 

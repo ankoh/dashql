@@ -5,7 +5,7 @@ import type { HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/platfor
 import { readWorkbookFromHttp } from './http_workbook_bundle.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { testStorageRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
+import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
 import type { WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 
 const URL = new globalThis.URL('https://example.com/workbook/dashql-workbook.json');
@@ -128,7 +128,7 @@ describe('HTTP workbook folder', () => {
             '/workbook/scripts/2_a.sql': 'SELECT 2',
             '/workbook/scripts/10_b.sql': 'SELECT 10',
         }));
-        expect(workbook.formatVersion).toBe(WORKBOOK_FORMAT_VERSION);
+        expect(workbook.formatVersion).toBe(storageVersions().formatVersion);
         // The order of the index is kept, every script runs on the main database
         expect(workbook.scripts).toEqual([
             { name: '10_b.sql', connectionId: TEST_CONNECTION_ID },
@@ -148,7 +148,7 @@ describe('HTTP workbook folder', () => {
             '/workbook/dashql-functions.sql': 'CREATE FUNCTION f() RETURNS INT',
             '/workbook/scripts/01_a.sql': 'SELECT 1',
         }), progress);
-        expect(read).toMatchObject({ formatVersion: WORKBOOK_FORMAT_VERSION, workbookId });
+        expect(read).toMatchObject({ formatVersion: storageVersions().formatVersion, workbookId });
         expect(read).not.toHaveProperty('notebookId');
         expect(read.metadata.originalHttpUrl).toBe(notebookUrl.toString());
         expect(Object.fromEntries(scripts)).toEqual({ '01_a.sql': 'SELECT 1' });
@@ -159,7 +159,7 @@ describe('HTTP workbook folder', () => {
 
     it('refuses a remote workbook of a newer version', async () => {
         await expect(load(URL, client({
-            '/workbook/dashql-workbook.json': JSON.stringify({ ...testWorkbook(), formatVersion: WORKBOOK_FORMAT_VERSION + 1 }),
+            '/workbook/dashql-workbook.json': JSON.stringify({ ...testWorkbook(), formatVersion: storageVersions().formatVersion + 1 }),
         }))).rejects.toThrow('Unsupported workbook format version');
     });
 

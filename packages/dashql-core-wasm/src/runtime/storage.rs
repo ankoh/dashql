@@ -3,9 +3,9 @@
 //!
 //! `JsStorage` is the host of the writer and of the restore over the platform object: every storage operation is a call
 //! of `storage` of the platform, the clock, the timers and the log are the ones of the platform. What the writer tells
-//! its host is state of the runtime: the host reads the workbooks that a change outside the app holds as the `storage`
-//! view, and the statistics of the keys when it shows them (`storageStatistics`), they change with every write. A rejected call fails the write with the value the platform rejected with, the
-//! outcome of a write hands it back.
+//! its host is state of the runtime: the holds and the failed writes are the `storage` view, the statistics of the keys
+//! are read from the writer when the app shows them (`storageStatistics`), they change with every write. A rejected
+//! call fails the write with the value the platform rejected with, the outcome of a write hands it back.
 
 pub(crate) mod restore_view;
 pub(crate) mod view;
@@ -17,8 +17,9 @@ use std::rc::Rc;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::restore::{RestoreHost, RestoreProgress};
-use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, StorageWriter, WriteOutcome, WriteStatistics};
+use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, StorageWriter, WriteOutcome, WriterStatus};
 use dashql_core_runtime::workbook::next_revision;
+use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use js_sys::{Array, Function, Reflect};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -31,7 +32,7 @@ use crate::runtime::migrations::migrate_workbook_folder;
 use crate::runtime::workbooks::view::WorkbookDataFile;
 use crate::views::{to_js, JsonValue};
 use restore_view::{RestoreProgress as ProgressView, RestoreScriptFile};
-use view::{StorageWriteOutcome, StorageWriteStatistics};
+use view::{FailedStorageWriteView, StorageHoldView, StorageWriteOutcome};
 
 /// The storage writer of the runtime
 pub(crate) type RuntimeWriter = StorageWriter<JsStorage>;
@@ -73,16 +74,12 @@ pub(crate) fn outcome_value(outcome: WriteOutcome) -> Result<JsValue, JsValue> {
 /// What the writer told its host, the `storage` view
 #[derive(Default)]
 pub(crate) struct StorageState {
-    /// The statistics of the keys in the order they were first written
-    statistics: RefCell<Vec<(String, StorageWriteStatistics)>>,
-    /// The workbooks whose writes are held because a script changed outside the app, in the order of the changes
-    held: RefCell<Vec<String>>,
+    /// The holds and the failed writes, as the writer told them last
+    status: RefCell<WriterStatus>,
     /// Changes with every change of the view
     revision: Cell<u64>,
     /// Hears the progress of the restore that runs
     progress: RefCell<Option<Function>>,
-    /// The workbooks in folders of their own whose folders were brought to the current workbook format
-    migrated: RefCell<std::collections::BTreeSet<String>>,
     /// The workbooks that changed outside the app and wait for the answer of the user, in the order they were asked
     questions: RefCell<Vec<ExternalChangeView>>,
 }
@@ -95,7 +92,13 @@ impl StorageState {
 
     /// The view of the storage
     pub fn view(&self) -> StorageView {
-        StorageView { held_workbooks: self.held.borrow().clone(), external_changes: self.questions.borrow().clone() }
+        let status = self.status.borrow();
+        StorageView {
+            held_workbooks: status.externally_changed().map(str::to_string).collect(),
+            holds: status.holds.iter().map(StorageHoldView::from).collect(),
+            failed_writes: status.failed.iter().map(FailedStorageWriteView::from).collect(),
+            external_changes: self.questions.borrow().clone(),
+        }
     }
 
     /// Ask about a workbook that changed outside the app, a question about it replaces the one before
@@ -116,20 +119,6 @@ impl StorageState {
         }
     }
 
-    /// The statistics of the keys in the order they were first written
-    pub fn statistics(&self) -> Vec<(String, StorageWriteStatistics)> {
-        self.statistics.borrow().clone()
-    }
-
-    /// The writes of a workbook were resumed, it is no longer held
-    pub fn release_held(&self, workbook_id: &str) {
-        let mut held = self.held.borrow_mut();
-        let before = held.len();
-        held.retain(|id| id != workbook_id);
-        if held.len() != before {
-            self.revision.set(next_revision());
-        }
-    }
 
     /// Hear the progress of the restore that runs, none stops
     pub fn set_progress(&self, listener: Option<Function>) {
@@ -137,14 +126,18 @@ impl StorageState {
     }
 }
 
-/// The storage of the runtime: the workbooks that a change outside the app holds, and the questions about workbook
-/// folders that changed outside the app
+/// The storage of the runtime: what holds the writes, the writes that failed, and the questions about workbook folders
+/// that changed outside the app
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct StorageView {
-    /// The workbooks whose writes are held because one of their scripts changed outside the app
+    /// The workbooks whose writes are held because one of their files changed outside the app
     pub held_workbooks: Vec<String>,
+    /// The holds of the writer (no workbook) and of the workbooks, with their reasons
+    pub holds: Vec<StorageHoldView>,
+    /// The writes that failed and run again after a backoff, with their last errors
+    pub failed_writes: Vec<FailedStorageWriteView>,
     /// The workbooks whose scripts changed on disk, the app asks the user whether to reload them
     /// (`answerExternalChange`)
     pub external_changes: Vec<ExternalChangeView>,
@@ -162,38 +155,21 @@ pub struct ExternalChangeView {
     pub pending_writes: bool,
 }
 
-/// A command of the storage writer
+/// A command of the storage writer that waits for writes. The commands that change the writer right away are methods
+/// of the runtime (`storageHold`, `storageRelease`, `storageReviveWorkbook`, `storageCancelPendingWrites`).
 #[derive(Clone, Debug, Deserialize, Tsify)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
 pub enum StorageCommand {
-    /// Run every pending write right away and wait until all writes ended, also while paused
+    /// Run every pending write right away and wait until all writes ended. Writes past a hold of the writer, never
+    /// past a hold of a workbook.
     Flush,
     /// Wait for the writes that started, without running the pending ones
     Settle,
-    /// Write nothing until `resume` or `flush`, the writes stay pending
-    Pause,
-    /// Resume the writer, the pending writes wait for their debounce again
-    Resume,
-    /// Hold the writes of a workbook
-    PauseWorkbook { workbook_id: String },
-    /// Resume the writes of a workbook, e.g. after a change outside the app was answered
-    ResumeWorkbook { workbook_id: String },
-    /// Accept writes of a workbook id again after the workbook was deleted, e.g. an import of the same workbook
-    ReviveWorkbook { workbook_id: String },
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage
     FlushWorkbook { workbook_id: String },
     /// Delete a workbook from the storage, its pending writes are discarded. Rejects with what the storage failed with.
     DeleteWorkbook { workbook_id: String },
-    /// Discard pending writes of a workbook, all of them without keys
-    CancelPendingWrites {
-        workbook_id: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        keys: Option<Vec<String>>,
-    },
-    /// Discard the pending writes of the files of a connection
-    CancelPendingConnectionFileWrites { connection_id: String },
 }
 
 /// The host of the writer and the restore over `storage` of the platform
@@ -238,27 +214,29 @@ fn text(value: &str) -> JsValue {
 }
 
 impl JsStorage {
-    /// Bring the folder of a workbook to the current workbook format before its workbook file is first read, e.g. a
-    /// native workbook folder that an older version of the app wrote. The folders of the storage root were migrated
-    /// with the storage.
-    async fn migrate_workbook_folder(&self, workbook_id: &str) -> Result<(), HostError> {
-        if self.state.migrated.borrow().contains(workbook_id) {
-            return Ok(());
-        }
-        migrate_workbook_folder(&self.platform, workbook_id).await?;
-        self.state.migrated.borrow_mut().insert(workbook_id.to_string());
-        Ok(())
-    }
-}
-
-impl StorageHost for JsStorage {
-    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
-        self.migrate_workbook_folder(workbook_id).await?;
+    /// The workbook file of a workbook as the storage holds it
+    async fn load_workbook_file(&self, workbook_id: &str) -> Result<Value, HostError> {
         let workbook = self.call("loadWorkbook", &[text(workbook_id)]).await?;
         if workbook.is_null() || workbook.is_undefined() {
             return Err(HostError::new(format!("the workbook file of {workbook_id} is missing")));
         }
         Ok(JsonValue::of(&workbook).0)
+    }
+}
+
+impl StorageHost for JsStorage {
+    /// A workbook in a folder of its own that an older version of the app wrote, e.g. a native folder after a checkout
+    /// of an older commit, is brought to the current workbook format before its workbook file is read. The format
+    /// version of the file decides on every load, a current file is read once. The folders of the storage root were
+    /// migrated with the storage.
+    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        let loaded = self.load_workbook_file(workbook_id).await;
+        let current = loaded.as_ref().is_ok_and(|workbook| workbook.get("formatVersion").and_then(Value::as_i64).is_some_and(|version| version >= WORKBOOK_FORMAT_VERSION));
+        if current || self.platform.workbook_folder(workbook_id).is_none() {
+            return loaded;
+        }
+        migrate_workbook_folder(&self.platform, workbook_id).await?;
+        self.load_workbook_file(workbook_id).await
     }
 
     async fn save_workbook(&self, workbook_id: &str, workbook: &Value) -> Result<(), HostError> {
@@ -317,24 +295,8 @@ impl StorageHost for JsStorage {
         self.call("deleteWorkbook", &[text(workbook_id)]).await.map(|_| ())
     }
 
-    fn statistics_changed(&self, key: &str, statistics: &WriteStatistics) {
-        {
-            let mut held = self.state.statistics.borrow_mut();
-            let statistics = StorageWriteStatistics::from(statistics);
-            match held.iter_mut().find(|(held, _)| held == key) {
-                Some((_, entry)) => *entry = statistics,
-                None => held.push((key.to_string(), statistics)),
-            }
-        }
-    }
-
-    fn external_script_change(&self, workbook_id: &str) {
-        {
-            let mut held = self.state.held.borrow_mut();
-            if !held.iter().any(|id| id == workbook_id) {
-                held.push(workbook_id.to_string());
-            }
-        }
+    fn status_changed(&self, status: &WriterStatus) {
+        *self.state.status.borrow_mut() = status.clone();
         self.state.revision.set(next_revision());
         self.platform.signal(true);
     }

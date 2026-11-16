@@ -5,6 +5,7 @@
 //! Parquet stays with the embedded Hyper of the host: a table crosses as Arrow IPC (`encode_table_ipc`), which the
 //! host writes as Parquet, and the host scans a Parquet file into Arrow IPC that `decode_table_ipc` reads.
 
+use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::Arc;
 
@@ -15,7 +16,7 @@ use serde_json::{json, Value};
 use dashql_core::error::{Error, Result};
 
 use crate::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
+    assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
 use crate::workbook_format::catalog::{CatalogColumn, CatalogFunction, CatalogFunctionParam, CatalogSql, CatalogStructure, CatalogTable};
 use crate::workbook_format::json::{to_text, JsonObject};
@@ -703,7 +704,12 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     }
     let head = read_workbook_bundle_head(&mut folder, error_prefix)?;
     let script_data: Vec<ScriptData> = scripts.iter().map(|script| ScriptData::new(script.name.clone(), script.text.clone())).collect();
-    let data_file = |table_name: &str| tables.data.iter().find(|(name, _)| name == table_name).map(|(_, file)| file);
+    // The data tables by name, the first of a name wins
+    let mut data_files: HashMap<&str, &DataTableFile<B>> = HashMap::with_capacity(tables.data.len());
+    for (name, file) in &tables.data {
+        data_files.entry(name.as_str()).or_insert(file);
+    }
+    let data_file = |table_name: &str| data_files.get(table_name).copied();
     let data: Vec<DataFileData<B>> = attachments
         .iter()
         .filter_map(|attachment| data_file(&attachment.table_name).map(|file| DataFileData { name: attachment.name.clone(), bytes: file.bytes.clone() }))
@@ -717,6 +723,7 @@ pub fn workbook_tables_to_bundle<B: Clone>(
         .collect();
     let mut bundle = assemble_workbook_bundle(head.workbook, head.catalogs, script_data, data);
     bundle.results = results;
+    check_workbook_bundle(&bundle, error_prefix)?;
     Ok(bundle)
 }
 
@@ -733,10 +740,19 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
         };
         &mut catalogs[index].1
     }
+    // The columns of the tables and the params of the functions by id, read once
+    let mut columns_of: HashMap<i32, Vec<&CatalogColumnRow>> = HashMap::new();
+    for column in &tables.catalog_columns {
+        columns_of.entry(column.table_id).or_default().push(column);
+    }
+    let mut params_of: HashMap<i32, Vec<&CatalogFunctionParamRow>> = HashMap::new();
+    for param in &tables.catalog_function_params {
+        params_of.entry(param.function_id).or_default().push(param);
+    }
     let mut table_rows: Vec<&CatalogTableRow> = tables.catalog_tables.iter().collect();
     table_rows.sort_by_key(|row| row.table_id);
     for row in table_rows {
-        let mut columns: Vec<&CatalogColumnRow> = tables.catalog_columns.iter().filter(|column| column.table_id == row.table_id).collect();
+        let mut columns: Vec<&CatalogColumnRow> = columns_of.get(&row.table_id).cloned().unwrap_or_default();
         columns.sort_by_key(|column| column.position);
         let table = CatalogTable {
             database_name: row.database_name.clone(),
@@ -757,8 +773,7 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
     let mut function_rows: Vec<&CatalogFunctionRow> = tables.catalog_functions.iter().collect();
     function_rows.sort_by_key(|row| row.function_id);
     for row in function_rows {
-        let mut params: Vec<&CatalogFunctionParamRow> =
-            tables.catalog_function_params.iter().filter(|param| param.function_id == row.function_id).collect();
+        let mut params: Vec<&CatalogFunctionParamRow> = params_of.get(&row.function_id).cloned().unwrap_or_default();
         params.sort_by_key(|param| param.position);
         let function = CatalogFunction {
             database_name: row.database_name.clone(),

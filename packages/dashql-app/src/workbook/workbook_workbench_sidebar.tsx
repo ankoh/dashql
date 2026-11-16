@@ -1112,7 +1112,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
 
     /// What keeps a connection from being replaced, the picker offers every other listed connection
     const replaceBlocker = React.useCallback(
-        (connectionId: string) => connectionReplaceBlocker(connections, connectionList, connectionId, workbookId => storageWriter.isWorkbookPaused(workbookId)),
+        (connectionId: string) => connectionReplaceBlocker(connections, connectionList, connectionId, workbookId => storageWriter.isWorkbookHeld(workbookId)),
         [connections, connectionList, storageWriter],
     );
     const replaceCandidates = React.useCallback(

@@ -4,9 +4,10 @@
 //! The host drives the restore and does the I/O: it restores the connections of the app manifest
 //! (`RestorePlanner::restore_manifest_connection`), then for every workbook of the tree it loads the workbook file
 //! (`begin_workbook`), restores the catalogs of the connections the workbook registered, lists the script files
-//! (`finish_workbook`) and creates the workbook. At the end it applies `RestorePlanner::pending` with the patches of
-//! this module: connections that workbooks registered go into the manifest, stale copies of workbooks are rewritten,
-//! script lists that changed are written, and ephemeral workbooks with scripts are promoted.
+//! (`finish_workbook`) and creates the workbook. At the end it writes `RestorePlanner::pending` through the storage
+//! writer, which patches the files (`storage::workbook_file`): connections that workbooks registered go into the
+//! manifest, stale copies of workbooks are rewritten, script lists that changed are written, and ephemeral workbooks
+//! with scripts are promoted.
 
 use std::collections::HashSet;
 
@@ -15,8 +16,8 @@ use serde_json::{Map, Value};
 use dashql_core::error::{Error, Result};
 
 use crate::connections::{ConnectionParams, ConnectorType};
-use crate::workbook_format::data::{upsert_connection_entry, ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookMetadata, WorkbookScript};
-use crate::workbook_format::files::{patch_workbook_connection, sanitize_workbook_files, with_workbook_scripts, workbook_connection_ids_of};
+use crate::workbook_format::data::{ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookMetadata, WorkbookScript};
+use crate::workbook_format::files::{sanitize_workbook_files, workbook_connection_ids_of};
 use crate::workbook_format::script_connections::{
     resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection, ResolvedWorkbookScript,
 };
@@ -107,6 +108,9 @@ pub struct RestoredWorkbookPlan {
     pub pending_connection: Option<ResolvedConnection>,
     /// Was the workbook promoted from the ephemeral workbook?
     pub promoted: bool,
+    /// The scripts that the workbook file lists while the folder holds no script file at all, e.g. while a checkout
+    /// or a sync of the folder is under way. The list stays as it is on disk, the files may come back.
+    pub missing_scripts: Vec<String>,
 }
 
 /// The decisions of a restore
@@ -122,7 +126,7 @@ pub struct RestorePlanner {
     /// The time of the restore, the creation time of registered connections
     now: String,
     /// Fresh UUIDs, for a new connection to the embedded database
-    new_uuid: Box<dyn FnMut() -> String>,
+    new_uuid: Box<dyn FnMut() -> Option<String>>,
 }
 
 /// Can the app create a connection of the params? They must be an object with the params of a known connector.
@@ -132,7 +136,7 @@ fn check_params(params: &Value) -> Result<()> {
 
 impl RestorePlanner {
     /// A restore at a time (ISO 8601) with a source of UUIDs
-    pub fn new(now: impl Into<String>, new_uuid: Box<dyn FnMut() -> String>) -> Self {
+    pub fn new(now: impl Into<String>, new_uuid: Box<dyn FnMut() -> Option<String>>) -> Self {
         Self {
             connections: Vec::new(),
             new_connections: Vec::new(),
@@ -240,7 +244,9 @@ impl RestorePlanner {
             None => {
                 let mut params = Map::new();
                 params.insert(ConnectorType::Hyper.params_key().into(), Value::Object(ConnectorType::Hyper.default_params()));
-                WorkbookConnection::new((self.new_uuid)(), Value::Object(params))
+                // A connection without an id would be no connection, the restore of the workbook fails instead
+                let id = (self.new_uuid)().ok_or_else(|| Error::invalid_argument("no fresh id for the embedded database"))?;
+                WorkbookConnection::new(id, Value::Object(params))
             }
         };
         self.resolve_workbook_connection(workbook_id, &copy)
@@ -306,7 +312,14 @@ impl RestorePlanner {
             metadata.ephemeral = None;
             self.pending.promoted_workbooks.push(workbook_id.clone());
         }
-        if workbook_scripts_resolution_changed(&restore.data, &resolved.workbook) {
+        // A folder without any script file whose workbook file lists scripts lost its files only for a while, more
+        // likely than the user deleted every script outside the app. The list is kept for the files to come back.
+        let missing_scripts: Vec<String> = if script_files.is_empty() {
+            sanitize_workbook_files(&restore.data).scripts.into_iter().map(|script| script.name).collect()
+        } else {
+            Vec::new()
+        };
+        if missing_scripts.is_empty() && workbook_scripts_resolution_changed(&restore.data, &resolved.workbook) {
             self.pending.workbook_script_lists.push(WorkbookScriptListWrite {
                 workbook_id: workbook_id.clone(),
                 scripts: resolved.workbook.scripts.clone(),
@@ -320,6 +333,7 @@ impl RestorePlanner {
             scripts: resolved.scripts,
             pending_connection: resolved.pending_connection,
             promoted,
+            missing_scripts,
         })
     }
 }
@@ -342,34 +356,6 @@ impl ConnectionResolver for PlannerResolver<'_> {
     fn fallback(&mut self) -> Result<ResolvedConnection> {
         self.planner.resolve_embedded_connection(self.workbook_id, self.copies).map(|connection| connection.resolved())
     }
-}
-
-/// The workbook file with the script list of a restore, None if the stored file agrees already
-pub fn script_list_patch(stored: &WorkbookData, write: &WorkbookScriptListWrite) -> Option<WorkbookData> {
-    let next = with_workbook_scripts(stored, write.scripts.clone(), &write.connections);
-    workbook_scripts_resolution_changed(stored, &next).then_some(next)
-}
-
-/// The workbook file of a promoted workbook, without the ephemeral marker
-pub fn promotion_patch(stored: &WorkbookData) -> WorkbookData {
-    WorkbookData { metadata: WorkbookMetadata { ephemeral: None, ..stored.metadata.clone() }, ..stored.clone() }
-}
-
-/// The workbook file with the copy of a connection as the app holds it (its id and params, no name or draft), None
-/// if the copy is current
-pub fn connection_copy_patch(stored: &WorkbookData, connection: &RestoreConnection) -> Option<WorkbookData> {
-    patch_workbook_connection(stored, &WorkbookConnection::new(connection.connection_id.clone(), connection.params.clone()), &[])
-}
-
-/// The connections of the manifest with the connections that workbooks registered
-pub fn manifest_connections_patch(connections: Option<&[ConnectionEntry]>, registered: &[ConnectionEntry]) -> Vec<ConnectionEntry> {
-    let mut next = connections.map(<[ConnectionEntry]>::to_vec).unwrap_or_default();
-    for entry in registered {
-        if let Some(updated) = upsert_connection_entry(&next, entry) {
-            next = updated;
-        }
-    }
-    next
 }
 
 /// The error of a workbook that a restore at runtime (an import) didn't restore

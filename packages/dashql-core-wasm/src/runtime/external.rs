@@ -2,9 +2,12 @@
 //! checked when the app asks (`checkWorkbookFolders`, e.g. when the window gets the focus) and when the storage writer
 //! holds a write because a script changed on disk.
 //!
-//! A check holds the writes of the workbook, compares the stamps of the files (size and modification time) with what
-//! the storage of the platform wrote or acknowledged, reads the files only when a stamp differs and resolves the scripts
-//! of the folder against the connections of the runtime. A connection that only the workbook file names joins the
+//! A check holds the writes of the workbook (`HoldReason::Reload`), compares the stamps of the scripts and of the
+//! workbook file (size and modification time) with what the storage of the platform wrote or acknowledged, reads the
+//! files only when a stamp differs and resolves the scripts of the folder against the connections of the runtime. A
+//! check that settled the disk releases the hold of a write that found a changed file (`HoldReason::ExternalChange`).
+//! A workbook file that changed outside the app is asked about like a script when its scripts or its name differ from
+//! what the app shows; the app never overwrites it unasked. A connection that only the workbook file names joins the
 //! runtime from its copy and leaves it again unless the reload is applied. When the scripts differ from what the app
 //! shows, the `storage` view asks the question (`externalChanges`), the app shows it and answers with
 //! `answerExternalChange`: a reload replaces the scripts of the workbook, a refusal writes the scripts of the app over
@@ -21,7 +24,8 @@ use dashql_core_runtime::connections::ConnectionAction;
 use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::restore::connection_state;
-use dashql_core_runtime::storage::WriteTask;
+use dashql_core_runtime::storage::keys::{is_reloaded_key, script_key, workbook_attachment_list_key, workbook_script_list_key};
+use dashql_core_runtime::storage::{HoldReason, WriteTask};
 use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_runtime::workbook_format::data::{WorkbookConnection, WorkbookData};
 use dashql_core_runtime::workbook_format::restore::RestoreConnection;
@@ -47,21 +51,8 @@ use crate::ENTRY_IDS;
 const LOG_TARGET: &str = "native_workbook_sync";
 /// How long a write of a reloaded workbook waits for the next change
 const DEBOUNCE_MS: f64 = 100.0;
-/// The workbook file of a workbook folder
-const WORKBOOK_FILE: &str = "dashql-workbook.json";
-/// The folder of the scripts of a workbook folder
-const SCRIPTS_FOLDER: &str = "scripts";
-
-/// The key of the write of the script list of a workbook
-fn script_list_key(workbook_id: &str) -> String {
-    format!("{workbook_id}/{WORKBOOK_FILE}:scripts")
-}
-
-/// Does a write replace what a reload replaces: the script list or a script of the workbook?
-fn is_reloaded_key(workbook_id: &str, key: &str) -> bool {
-    let scripts = format!("{workbook_id}/{SCRIPTS_FOLDER}");
-    key == script_list_key(workbook_id) || key == scripts || key.starts_with(&format!("{scripts}/"))
-}
+/// How long a check waits before it checks a workbook again that another task holds
+const BUSY_RETRY_MS: f64 = 100.0;
 
 /// The attachments of a stamp of a folder as a comparable text: name, size and modification time, sorted
 fn attachment_listing(stamps: &JsValue) -> String {
@@ -131,6 +122,17 @@ impl ConnectionResolver for RuntimeResolver<'_> {
     fn fallback(&mut self) -> Result<ResolvedConnection> {
         Ok(self.embedded.clone())
     }
+}
+
+/// How a check of a folder ended
+enum Checked {
+    /// The disk and the app agree, or the user decided between them
+    Settled,
+    /// Nothing is decided yet, e.g. the scripts changed while the question was open or the scripts folder is gone for
+    /// the moment; a later check decides
+    Pending,
+    /// Another task holds the workbook, the check runs again in a moment
+    Busy,
 }
 
 /// An answer that a question waits for
@@ -252,7 +254,7 @@ impl ExternalChanges {
 
     /// The keys of the pending writes that a reload replaces
     fn reloaded_pending(&self, workbook_id: &str) -> Vec<String> {
-        self.workbooks.writer.pending_keys_for_workbook(workbook_id).into_iter().filter(|key| is_reloaded_key(workbook_id, key)).collect()
+        self.workbooks.writer.pending_keys_for_workbook(workbook_id).into_iter().filter(|key| is_reloaded_key(key, workbook_id)).collect()
     }
 
     /// The latest generation of the writes that a reload replaces
@@ -261,7 +263,7 @@ impl ExternalChanges {
             .writer
             .write_generations_for_workbook(workbook_id)
             .into_iter()
-            .filter(|(key, _)| is_reloaded_key(workbook_id, key))
+            .filter(|(key, _)| is_reloaded_key(key, workbook_id))
             .map(|(_, generation)| generation)
             .max()
             .unwrap_or(0)
@@ -273,11 +275,28 @@ impl ExternalChanges {
             return;
         };
         let writer = self.workbooks.writer.clone();
-        writer.pause_workbook(&workbook_id);
+        writer.hold(Some(&workbook_id), HoldReason::Reload);
         let mut created = Vec::new();
         let mut registered = false;
-        if let Err(error) = self.check_folder(&workbook_id, &folder, &mut created, &mut registered).await {
-            self.log(LogLevel::Warn, "failed to check the workbook folder", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
+        let checked = self.check_folder(&workbook_id, &folder, &mut created, &mut registered).await;
+        match &checked {
+            // The disk and the app agree again, a write that found a changed file may run
+            Ok(Checked::Settled) => writer.release_all(Some(&workbook_id), HoldReason::ExternalChange),
+            Ok(Checked::Busy) => {
+                // Another task holds the workbook, the check runs again in a moment instead of asking
+                let sync = self.clone();
+                let sleep = self.platform.sleep(BUSY_RETRY_MS);
+                let retried = workbook_id.clone();
+                self.platform.spawn(Box::pin(async move {
+                    sleep.await;
+                    sync.check(vec![retried]);
+                }));
+            }
+            // A later check decides, it releases the hold then
+            Ok(Checked::Pending) => {}
+            Err(error) => {
+                self.log(LogLevel::Warn, "failed to check the workbook folder", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
+            }
         }
         if !registered {
             // The connections of a reload that didn't happen leave the runtime again
@@ -285,17 +304,15 @@ impl ExternalChanges {
                 let _ = self.connections.apply(&connection_id, ConnectionAction::Delete, None);
             }
         }
-        writer.resume_workbook(&workbook_id);
-        self.storage.release_held(&workbook_id);
+        writer.release(Some(&workbook_id), HoldReason::Reload);
         self.platform.signal(true);
     }
 
-    async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<(), HostError> {
+    async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<Checked, HostError> {
         let writer = self.workbooks.writer.clone();
         // A write that started before the check must finish before the stable disk read
         writer.settle().await;
         let stamps = call_method(folder, "stampFolder", &[]).await?;
-        let script_stamps = field(&stamps, "scripts").unwrap_or_else(|| Array::new().into());
 
         // Loading the workbook file mirrors the attachments of the folder for the embedded Hyper. The restore loaded it
         // already, later checks load it when the attachments changed.
@@ -308,20 +325,20 @@ impl ExternalChanges {
             let _ = self.platform.storage_call("attachmentsChanged", &[JsValue::from_str(workbook_id)]);
             self.list_attachments(workbook_id);
             // The workbook file lists the attachments, the write runs once the workbook resumes
-            let key = format!("{workbook_id}/{WORKBOOK_FILE}:attachments");
+            let key = workbook_attachment_list_key(workbook_id);
             drop(writer.write(&key, WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0));
         }
         // A change is remembered once it was handled, a failed read is retried by the next check
         self.attachments.borrow_mut().insert(workbook_id.to_string(), attachments);
 
         if self.checked.borrow_mut().insert(workbook_id.to_string()) {
-            // The restore read the scripts moments ago, they are what the app shows
-            call_method(folder, "acknowledgeScripts", &[script_stamps]).await?;
-            return Ok(());
+            // The restore read the scripts and the workbook file moments ago, they are what the app shows
+            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
+            return Ok(Checked::Settled);
         }
-        let changes = call_method(folder, "findExternalScriptChanges", &[script_stamps.clone()]).await?;
+        let changes = call_method(folder, "findExternalChanges", &[stamps.clone()]).await?;
         if !Array::is_array(&changes) || Array::from(&changes).length() == 0 {
-            return Ok(());
+            return Ok(Checked::Settled);
         }
 
         // A stamp differs, the scripts are read. A file that changes after its stamp was taken has a newer stamp than
@@ -332,20 +349,32 @@ impl ExternalChanges {
             None => self.load_workbook(workbook_id).await?,
         };
         let stored_file = WorkbookData::from_json(&workbook_file);
+        if scripts.is_empty() && !stored_file.scripts.is_empty() {
+            // The scripts folder is gone or empty while the workbook file lists scripts, e.g. in the middle of a git
+            // checkout or with files that a sync client keeps online. The check decides nothing now, a later one
+            // reads the folder again: a reload would empty the workbook and write an empty script list.
+            self.log(LogLevel::Warn, "the scripts of a workbook folder are missing, checking again later", &[("workbookId", workbook_id)]);
+            return Ok(Checked::Pending);
+        }
         let Some(stored) = self.resolve(&stored_file, &scripts, created)? else {
-            return Ok(());
+            return Ok(Checked::Settled);
         };
         let Some(workbook) = self.workbooks.get(workbook_id) else {
-            return Ok(());
+            return Ok(Checked::Settled);
         };
+        let stored_name = stored_file.display_name().map(str::to_string);
         let matches = {
             let stored = self.workbooks.stored_scripts(stored.scripts.clone()).map_err(|error| HostError::new(error.what()))?;
-            workbook.try_borrow().map(|workbook| workbook.matches_stored_scripts(&stored)).unwrap_or(false)
+            match workbook.try_borrow() {
+                Ok(workbook) => workbook.matches_stored_scripts(&stored) && workbook.name() == stored_name.as_deref(),
+                // A workbook that another task holds is checked again, it is not taken as changed
+                Err(_) => return Ok(Checked::Busy),
+            }
         };
         if matches {
             // Only the stamps changed, or the disk changed to what the app shows
-            call_method(folder, "acknowledgeScripts", &[script_stamps]).await?;
-            return Ok(());
+            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
+            return Ok(Checked::Settled);
         }
 
         let generation = self.reloaded_generation(workbook_id);
@@ -365,19 +394,19 @@ impl ExternalChanges {
         }
         if !reload {
             // The version of the app wins, it replaces the version on disk
-            call_method(folder, "acknowledgeScripts", &[script_stamps]).await?;
+            call_method(folder, "acknowledgeFolder", &[stamps]).await?;
             self.write_kept_scripts(workbook_id, &scripts);
-            return Ok(());
+            return Ok(Checked::Settled);
         }
         if self.reloaded_generation(workbook_id) != generation {
             // The scripts changed while the question was open, the check starts over with a fresh read of the disk
             self.queue.borrow_mut().push_back(workbook_id.to_string());
-            return Ok(());
+            return Ok(Checked::Pending);
         }
         if discard {
             writer.cancel_pending_writes(&self.reloaded_pending(workbook_id));
         }
-        call_method(folder, "acknowledgeScripts", &[script_stamps]).await?;
+        call_method(folder, "acknowledgeFolder", &[stamps]).await?;
 
         // The connections that the workbook file brought along joined the runtime, the scripts use them now. Their
         // entries join the app manifest.
@@ -394,18 +423,22 @@ impl ExternalChanges {
         }
         // Files that were added or removed outside the app change the script list
         if workbook_scripts_resolution_changed(&stored_file, &stored.workbook) {
-            let resolved = stored.workbook.to_json();
-            let list = |key: &str| resolved.get(key).and_then(Value::as_array).cloned().unwrap_or_default();
-            let task = WriteTask::WriteWorkbookScripts { workbook_id: workbook_id.to_string(), scripts: list("scripts"), connections: list("connections") };
-            drop(writer.write(&script_list_key(workbook_id), task, DEBOUNCE_MS));
+            let task = WriteTask::WriteWorkbookScripts {
+                workbook_id: workbook_id.to_string(),
+                scripts: stored.workbook.scripts.clone(),
+                connections: stored.workbook.connections.clone(),
+            };
+            drop(writer.write(&workbook_script_list_key(workbook_id), task, DEBOUNCE_MS));
         }
         // A workbook that was removed while the question was open stays removed
         if self.workbooks.get(workbook_id).is_some() {
             self.workbooks.replace_from_storage(workbook_id, stored.scripts).map_err(|error| HostError::new(error.what()))?;
+            // The name on disk wins as well
+            self.workbooks.apply(workbook_id, WorkbookAction::RenameWorkbook { name: stored_name }).map_err(|error| HostError::new(error.what()))?;
             self.runs.describe_attachments();
         }
         self.log(LogLevel::Info, "reloaded externally changed workbook", &[("workbookId", workbook_id)]);
-        Ok(())
+        Ok(Checked::Settled)
     }
 
     /// The workbook file of a workbook
@@ -506,7 +539,7 @@ impl ExternalChanges {
             if disk.iter().any(|script| script.name == file_name && script.sql == text) {
                 continue;
             }
-            let key = format!("{workbook_id}/{SCRIPTS_FOLDER}/{file_name}");
+            let key = script_key(workbook_id, &file_name);
             let task = WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text };
             drop(self.workbooks.writer.write(&key, task, DEBOUNCE_MS));
         }

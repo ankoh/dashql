@@ -10,7 +10,6 @@ import type {
     StorageManifest,
 } from '../storage/storage_backend.js';
 import { StorageBackendType, validateDataFileName } from '../storage/storage_backend.js';
-import { WORKBOOK_FORMAT_VERSION } from '../storage/migration/versions.js';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
@@ -152,7 +151,8 @@ export const TEST_CONNECTION_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
 export function testWorkbook(overrides: Partial<WorkbookData> = {}): WorkbookData {
     return {
-        formatVersion: WORKBOOK_FORMAT_VERSION,
+        // The current version of the schema of the workbook file, the core writes the same (`storageVersions`)
+        formatVersion: 11,
         workbookId: TEST_WORKBOOK_ID,
         name: 'V2 Workbook',
         connections: [{ connectionId: TEST_CONNECTION_ID, params: { hyper: {} } as any }],

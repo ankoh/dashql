@@ -68,8 +68,6 @@ export interface RuntimePlatform {
     readonly salesforce: RuntimeSalesforce | null;
     /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
     readonly storage: RuntimeStorage | null;
-    /** The storage root that `migrateStorage` brings to the current version, null without one */
-    readonly storageRoot?: RuntimeStorageRoot | null;
     /** The `.dashql` archives of imports and exports: the ZIP container and the Parquet files of the workbook tables. Null without. */
     readonly archives: RuntimeArchives | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
@@ -116,7 +114,7 @@ export interface RuntimeStorage {
     deleteWorkbookFiles(workbookId: string): Promise<void>;
     /** Register a native workbook folder in place under an id: the platform adds it to the workbook tree, the runtime migrates it */
     registerNativeWorkbook(dir: string, workbookId: string): Promise<void>;
-    /** The folder of a workbook that the platform keeps in a folder of its own, e.g. a native workbook folder; null for the workbooks of the storage root, which `migrateStorage` migrates. The runtime migrates the folder before it first reads its workbook file and checks it for changes outside the app. */
+    /** The folder of a workbook that the platform keeps in a folder of its own, e.g. a native workbook folder; null for the workbooks of the storage root, which `migrateStorage` migrates. The runtime migrates the folder when it reads a workbook file of an older format and checks it for changes outside the app. */
     workbookFolder?(workbookId: string): RuntimeWorkbookFolder | null;
     /** The attachments of a workbook folder changed outside the app, e.g. its mount looks them up again */
     attachmentsChanged?(workbookId: string): void;
@@ -135,16 +133,18 @@ export interface RuntimeFolder {
 export interface RuntimeFolderStamps {
     scripts: { name: string; size: number; mtimeMs: number }[];
     attachments: { name: string; size: number; mtimeMs: number }[];
+    /** The workbook file, null if there is none */
+    workbook: { size: number; mtimeMs: number } | null;
 }
 
 /** A workbook folder that may change outside the app, e.g. a native workbook folder */
 export interface RuntimeWorkbookFolder extends RuntimeFolder {
-    /** The stamps of the scripts and the attachments of the folder */
+    /** The stamps of the scripts, the attachments and the workbook file of the folder */
     stampFolder(): Promise<RuntimeFolderStamps>;
-    /** The scripts are as the app shows them, later writes check the disk against these stamps */
-    acknowledgeScripts(stamps: RuntimeFolderStamps['scripts']): void;
-    /** The scripts whose stamps differ from the acknowledged ones */
-    findExternalScriptChanges(stamps: RuntimeFolderStamps['scripts']): string[];
+    /** The scripts and the workbook file are as the app shows them, later writes check the disk against these stamps */
+    acknowledgeFolder(stamps: RuntimeFolderStamps): void;
+    /** The scripts whose stamps differ from the acknowledged ones, then `dashql-workbook.json` when its stamp differs */
+    findExternalChanges(stamps: RuntimeFolderStamps): string[];
 }
 
 /** The storage root of the app for its migrations: files and directories by their paths below the root, `/` separated */
@@ -565,7 +565,7 @@ pub(crate) fn host_table(value: &JsValue) -> HostTable {
 }
 
 /// The details of a log message as `[key, value]` pairs
-fn details_value(details: &[(&str, &str)]) -> Array {
+pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
     details.iter().map(|(key, value)| Array::of2(&JsValue::from_str(key), &JsValue::from_str(value))).collect()
 }
 
@@ -830,11 +830,6 @@ impl JsPlatform {
     pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
         let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;
         call(&storage, name, args)
-    }
-
-    /// The storage root of the platform for the migrations, an error without one
-    pub fn storage_root(&self) -> Result<JsValue, HostError> {
-        member(self.object(), "storageRoot").map_err(|_| HostError::new("the platform has no storage root to migrate"))
     }
 
     /// The folder of a workbook whose files the platform keeps in a folder of its own, e.g. a native workbook folder.

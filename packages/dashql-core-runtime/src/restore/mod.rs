@@ -20,7 +20,7 @@ use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::attachments::DataFile;
 use crate::connections::import::decode_connection;
@@ -30,10 +30,10 @@ use crate::host::{HostError, LogLevel};
 use crate::storage::keys::{
     connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
 };
-use crate::storage::workbook_file::iso_timestamp;
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
 use crate::workbook::{CloudLink, ScriptConnection, Workbook};
-use crate::workbook_format::data::ConnectionEntry;
+use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
+use crate::workbook_format::storage_migration::iso_timestamp;
 use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
 use crate::workbook_format::validation::{describe_invalid_workbook, is_valid_uuid, InvalidWorkbook, WorkbookValidationError};
 use catalog::{apply_catalog_files, load_catalog_files, CatalogRestore};
@@ -106,7 +106,7 @@ pub struct RestoreOptions {
     /// A new empty catalog of a connection, e.g. one that shares the entry ids of the other catalogs of the module
     pub new_catalog: Box<dyn Fn() -> Catalog>,
     /// Fresh UUIDs, for a new connection to the embedded database
-    pub new_uuid: Box<dyn FnMut() -> String>,
+    pub new_uuid: Box<dyn FnMut() -> Option<String>>,
 }
 
 /// A restored workbook
@@ -228,7 +228,7 @@ enum WorkbookOutcome {
 struct Promotion {
     workbook_id: String,
     name: Option<String>,
-    cloud: Option<Value>,
+    cloud: Option<WorkbookCloudLink>,
 }
 
 /// The state of one restore
@@ -424,6 +424,10 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 return WorkbookOutcome::ScriptsFailed(invalid);
             }
         };
+        if !plan.missing_scripts.is_empty() {
+            let missing = plan.missing_scripts.join(", ");
+            self.log(LogLevel::Warn, "The script files of the workbook are missing, keeping its script list", &[("workbookId", workbook_id), ("scripts", &missing)]);
+        }
         for script in &plan.scripts {
             if let Some(unresolved) = &script.unresolved_connection_id {
                 let details = [("workbookId", workbook_id), ("connectionId", unresolved.as_str())];
@@ -447,7 +451,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         match created {
             Ok(restored) => {
                 if promoted {
-                    let cloud = restored.metadata.get("cloud").cloned().filter(|cloud| !cloud.is_null());
+                    let cloud = restored.metadata.get("cloud").and_then(WorkbookCloudLink::from_json);
                     self.promotions.push(Promotion { workbook_id: workbook_id.to_string(), name: stored_name, cloud });
                 }
                 let count = restored.workbook.scripts().len().to_string();
@@ -546,7 +550,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         if copies {
             for (workbook_id, connection_id) in &pending.workbook_copies {
                 let Some(state) = self.state(connection_id) else { continue };
-                let copy = json!({ "connectionId": connection_id, "params": params_value(state) });
+                let copy = WorkbookConnection::new(connection_id.clone(), params_value(state));
                 let task = WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
                 let key = workbook_connection_copy_key(workbook_id, connection_id);
                 writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what: format!("{workbook_id}:{connection_id}") });
@@ -555,8 +559,8 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         for list in &pending.workbook_script_lists {
             let task = WriteTask::WriteWorkbookScripts {
                 workbook_id: list.workbook_id.clone(),
-                scripts: list.scripts.iter().map(|script| json!({ "name": script.name, "connectionId": script.connection_id })).collect(),
-                connections: list.connections.iter().map(|connection| connection.to_json()).collect(),
+                scripts: list.scripts.clone(),
+                connections: list.connections.clone(),
             };
             let key = workbook_script_list_key(&list.workbook_id);
             writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what: list.workbook_id.clone() });

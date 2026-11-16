@@ -143,6 +143,38 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
+    it('roll back a replacement whose write fails in the middle', async () => {
+        const { runtime, storage } = createRuntime();
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
+        // The registered workbook changed since the export
+        storage.scripts.set(WB, new Map([['a.sql', 'select 2']]));
+        const registered = structuredClone(storage.workbooks.get(WB));
+
+        // The first write of a script of the target fails, after the staged copy was verified and the files of the
+        // target were removed
+        const saveScript = storage.saveScript;
+        let failed = false;
+        storage.saveScript = async (workbookId, fileName, text) => {
+            if (workbookId === WB && !failed) {
+                failed = true;
+                throw new Error('disk full');
+            }
+            await saveScript(workbookId, fileName, text);
+        };
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        await expect(runtime.commitImport(preview.importId, { conflict: 'replace' }, null)).rejects.toThrow(/disk full/);
+        expect(failed).toBe(true);
+
+        // The old workbook is back and the staged copy is gone
+        expect(storage.workbooks.get(WB)).toEqual(registered);
+        expect(storage.scripts.get(WB)).toEqual(new Map([['a.sql', 'select 2']]));
+        expect(storage.dataFiles.get(WB)).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
+        expect(storage.order).toEqual([WB]);
+        expect([...storage.workbooks.keys()]).toEqual([WB]);
+        runtime.destroy();
+        runtime.free();
+    });
+
     it('read a workbook folder and drop the import', async () => {
         const { runtime, storage } = createRuntime();
         const folder: dashql.RuntimeImportFolder = {
@@ -158,6 +190,18 @@ describe('The imports and exports of the runtime', () => {
         runtime.dropImport(preview.importId);
         await expect(runtime.commitImport(preview.importId, {}, null)).rejects.toThrow(/no pending import/);
         await expect(runtime.readImport({ folder: { ...folder, readText: async () => null } })).rejects.toThrow(/Invalid workbook folder/);
+        // A script file name that could leave the folder, a draft, another file or a name that differs only in case
+        // never reaches the storage
+        for (const [names, message] of [
+            [['../x.sql'], /invalid script name \.\.\/x\.sql/],
+            [['a/b.sql'], /invalid script name a\/b\.sql/],
+            [['x.txt'], /invalid script name x\.txt/],
+            [['dashql-draft.sql'], /invalid script name dashql-draft\.sql/],
+            [['A.sql', 'a.sql'], /duplicate script a\.sql/],
+        ] as const) {
+            const scripts = async () => names.map(name => ({ name, sql: 'select 1' }));
+            await expect(runtime.readImport({ folder: { ...folder, scripts } })).rejects.toThrow(message);
+        }
         runtime.destroy();
         runtime.free();
     });

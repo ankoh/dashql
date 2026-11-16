@@ -51,7 +51,6 @@ import { renameScript, type RenameDraftReferences } from '../scripts/script_rena
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { groupWorkbookAttachmentListWrites } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -280,7 +279,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const refreshDataFiles = React.useCallback(() => {
         markWorkbookAttachmentsChanged(workbookId);
         setDataFilesVersion(version => version + 1);
-        void storageWriter.write(groupWorkbookAttachmentListWrites(workbookId), { type: 'refreshWorkbookAttachments', workbookId });
+        void storageWriter.write({ type: 'refreshWorkbookAttachments', workbookId });
     }, [workbookId, storageWriter]);
     React.useEffect(() => {
         const cancel = new AbortController();

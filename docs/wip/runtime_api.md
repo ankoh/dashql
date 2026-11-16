@@ -235,7 +235,7 @@ export class Runtime {
 | `query` | id | status, metadata, metrics, error, the progress (FlatBuffer by key, landed in `a9029aa2f`), the handle of the result table, cache fields | feed footer, result view, progress panel, query viewer (27 files) | per progress update |
 | `computation` | table id | column groups, tasks with progress, filters, orderings, searches, the handles of its tables and data frames | result view, toolbar, details, charts (12 files) | per task step |
 | `run` | workbook id | state, kind, held | 9 files of `useWorkbookExecution` | per statement |
-| `storage` | root | statistics, paused workbooks, pending keys, external changes | storage view, native sync (11 files) | no |
+| `storage` | root | holds, failed writes, pending keys, external changes | storage view, native sync (11 files) | no |
 
 - **Revisions nest without bubbling.** A workbook lists its script keys, not their revisions: a keystroke changes the
   script slice and leaves the workbook slice alone. The change set names every changed slice.
@@ -755,11 +755,10 @@ The workbooks, the storage writer and the restore, built on `eeca6cc9a` (step 3)
 - **The commands.** `reportEditorUpdate(workbookId, scriptKey, sessionId, update, holdsPendingDiff)` (an update of a
   stale session is dropped, an editor that holds no staged rewrite accepted it), `scriptSession`, `isAnalysisOutdated`,
   `attachTableParameters`, `matchesStoredScripts`, `restore(progress)`, `restoreWorkbook(workbookId)`,
-  `deleteInvalidWorkbook`, `storage(command)` (`flush`, `settle`, `pause`, `resume`, `pauseWorkbook`, `resumeWorkbook`,
-  `reviveWorkbook`, `flushWorkbook`, `deleteWorkbook`, `cancelPendingWrites`, `cancelPendingConnectionFileWrites`),
-  `storageWrite` (the writes that no state describes, e.g. a script that the user kept over a change on disk),
-  `storagePendingKeys`, `storageWriteGenerations`, `storageStatistics` (no slice: they change with every write),
-  `isWorkbookPaused`, and the runs on a workbook of the runtime: `startWorkbookRun`, `planRun`, `resultKeys`,
+  `deleteInvalidWorkbook`, `storage(command)` (`flush`, `settle`, `flushWorkbook`, `deleteWorkbook`), `storageHold` and
+  `storageRelease` (holds with reasons), `storageReviveWorkbook`, `storageCancelPendingWrites`, `storageWrite` (the
+  writes that no state describes under the key the task names), `storagePendingKeys`, `storageWriteGenerations`,
+  `storageStatistics` (no slice: they change with every write), `isWorkbookHeld`, and the runs on a workbook of the runtime: `startWorkbookRun`, `planRun`, `resultKeys`,
   `analyzeForRun` (step 5 makes them `runWorkbook` and `runScript`). `setStorageWriter` and `adoptRestoredConnection`
   went with the classes `Workbook`, `StorageWriter`, `AppRestore` and `RestoredState` of the module.
 - **The platform grew `storage`** (`RuntimeStorage`): the reads and writes of the storage writer and the reads of the
@@ -1141,13 +1140,13 @@ The migrations of the storage, the native workbook folders and the eviction of t
   (`storage.workbookFolder`, e.g. a native workbook folder or the folder of a run of the command line tool) before it
   first reads its workbook file, an import migrates a native folder after it registered it, and
   `migrateWorkbookFolder(workbookId)` migrates one on request: the command line tool calls it before it reads the
-  workbook id of its folder. The app migrates its storage before the storage is set up, on a runtime of its own over the
-  storage root (`createStorageRoot` of `storage/storage_root.ts` over the OPFS root, the native folders of the desktop
+  workbook id of its folder. The app migrates its storage before the storage is set up, with the static
+  `Runtime.migrateStorage(root, log)` of the module and no runtime, over the storage root (`createStorageRoot` of `storage/storage_root.ts` over the OPFS root, the native folders of the desktop
   app claimed by the platform), with the lock of the manifest; the core provider moved above the storage provider for
   it.
 - **The platform grew** `storageRoot` (`RuntimeStorageRoot`: `readText`, `writeText`, `createDirectory`, `remove`,
   `list`, `copyDirectory` by path, `nativeFolder`), `storage.workbookFolder` (`RuntimeWorkbookFolder`: `readText`,
-  `writeText`, `remove`, `stampFolder`, `acknowledgeScripts`, `findExternalScriptChanges`, the `NativeStorageBackend` of
+  `writeText`, `remove`, `stampFolder`, `acknowledgeFolder`, `findExternalChanges`, the `NativeStorageBackend` of
   a native workbook), `storage.attachmentsChanged`, and `resultCache.files` and `resultCache.remove`.
   `registerNativeWorkbook` no longer migrates.
 - **The eviction is Rust.** After every write of a file of a key (a result of the executor, a materialized result of a

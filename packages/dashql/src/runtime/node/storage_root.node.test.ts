@@ -10,7 +10,6 @@ import { openNodeRoot } from '../../platform/node/node_directory_handle.js';
 import { NODE_FILE_SYSTEM } from '../../platform/node/node_file_system.js';
 import { NativeStorageBackend } from '../../platform/storage/native_storage_backend.js';
 import { createStorageRoot } from '../../platform/storage/storage_root.js';
-import { STORAGE_VERSION, WORKBOOK_FORMAT_VERSION } from '../../platform/storage/migration/versions.js';
 
 const SESSION_A = '11111111-0000-4000-8000-00000000000a';
 const SESSION_B = '11111111-0000-4000-8000-00000000000b';
@@ -25,6 +24,12 @@ function notebook(notebookId: string, databaseId: string): string {
 // The steps of the migrations are tested in the core (`storage_migration_test.rs`), these tests run them on the runtime
 // over a storage root of the platform and over the folder of a workbook
 describe('the migrations of the runtime', () => {
+    // The versions of the core
+    let STORAGE_VERSION = 0;
+    let WORKBOOK_FORMAT_VERSION = 0;
+    beforeAll(async () => {
+        ({ storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION } = (await testCore()).storageVersions());
+    });
     let dir: string;
     beforeEach(async () => { dir = await fs.mkdtemp(path.join(process.env.TEST_TMPDIR ?? os.tmpdir(), 'storage-root-')); });
     afterEach(async () => { await fs.rm(dir, { recursive: true, force: true }); });
@@ -40,17 +45,14 @@ describe('the migrations of the runtime', () => {
     async function migrate(native: string | null = null) {
         const root = createStorageRoot(await openNodeRoot(path.join(dir, 'root')), async nativePath =>
             nativePath === native ? new NativeStorageBackend(nativePath, NODE_FILE_SYSTEM) : null);
-        const runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: await testCore(), storageRoot: root });
-        try {
-            return await runtime.migrateStorage();
-        } finally {
-            await runtime.destroy();
-        }
+        // The core migrates without a runtime
+        return await (await testCore()).migrateStorage(root);
     }
 
-    it('leaves a fresh storage untouched and migrates to the versions of the app', async () => {
+    it('stamps a fresh storage with the versions of the app', async () => {
         expect(await migrate()).toEqual({ steps: 0, workbooks: 0, storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION });
-        expect(await fs.readdir(path.join(dir, 'root'))).toEqual([]);
+        expect(await fs.readdir(path.join(dir, 'root'))).toEqual(['dashql-manifest.json']);
+        expect(JSON.parse(await read('root/dashql-manifest.json'))).toEqual({ storageVersion: STORAGE_VERSION });
     });
 
     it('brings a storage of notebooks and a native folder to the current versions', async () => {

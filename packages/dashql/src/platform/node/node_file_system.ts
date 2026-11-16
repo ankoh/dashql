@@ -12,6 +12,20 @@ function isNotFound(error: unknown): boolean {
     return (error as { code?: string } | null)?.code === 'ENOENT';
 }
 
+/// Write a file atomically: a temporary file next to it, renamed over it. A reader sees the old file or the new one,
+/// never a part, and a failed write leaves the old file as it was.
+async function writeAtomically(path: string, data: string | Uint8Array): Promise<void> {
+    const slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+    const temporary = `${path.slice(0, slash + 1)}.${path.slice(slash + 1)}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+    try {
+        await fs.writeFile(temporary, data);
+        await fs.rename(temporary, path);
+    } catch (error) {
+        await fs.rm(temporary, { force: true });
+        throw error;
+    }
+}
+
 /// The files of Node
 export const NODE_FILE_SYSTEM: FileSystem = {
     async exists(path) {
@@ -81,10 +95,10 @@ export const NODE_FILE_SYSTEM: FileSystem = {
         };
     },
     async writeFile(path, data) {
-        await fs.writeFile(path, data);
+        await writeAtomically(path, data);
     },
     async writeTextFile(path, data) {
-        await fs.writeFile(path, data, 'utf8');
+        await writeAtomically(path, data);
         return stampOf(await fs.stat(path));
     },
 };

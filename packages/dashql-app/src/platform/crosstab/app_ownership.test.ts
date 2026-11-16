@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
 import { OPFSStorageBackend } from '../../storage/opfs_storage_backend.js';
 import { STORAGE_WORKBOOKS_FOLDER } from '@ankoh/dashql/platform/storage/storage_backend';
-import { groupScriptWrites } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { createTestRuntime } from '@ankoh/dashql/runtime/testing/test_runtime';
 import { getOPFSRoot } from '@ankoh/dashql/platform/platform/opfs_root';
 
@@ -123,7 +122,7 @@ describe('AppOwnership', () => {
             expect(owner).not.toBeNull();
 
             // The write is debounced far beyond the takeover
-            const write = writer.write(groupScriptWrites(workbookId, 'a.sql'), {
+            const write = writer.write({
                 type: 'writeScript',
                 workbookId,
                 fileName: 'a.sql',

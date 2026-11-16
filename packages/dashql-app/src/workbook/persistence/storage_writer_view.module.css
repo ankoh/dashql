@@ -47,6 +47,23 @@
     font-size: var(--font_size_subtitle);
 }
 
+/* What holds the writes and the writes that failed, the writer retries them */
+.status_held,
+.status_failed {
+    font-size: var(--font_size_small);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status_held {
+    color: var(--color_attention_fg);
+}
+
+.status_failed {
+    color: var(--color_danger_fg);
+}
+
 /* Column layout: key takes remaining space, fixed widths for numeric columns */
 .stat_header_main,
 .stat_row_main {

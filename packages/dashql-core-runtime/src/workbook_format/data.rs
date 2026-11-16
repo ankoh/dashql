@@ -112,7 +112,8 @@ pub struct WorkbookCloudLink {
 }
 
 impl WorkbookCloudLink {
-    fn from_json(value: &Value) -> Option<Self> {
+    /// Read a link, None without its ids
+    pub fn from_json(value: &Value) -> Option<Self> {
         let object = value.as_object()?;
         Some(Self {
             workbook_id: object.get("workbookId")?.as_str()?.to_string(),
@@ -122,7 +123,8 @@ impl WorkbookCloudLink {
         })
     }
 
-    fn to_json(&self) -> Value {
+    /// The link as JSON
+    pub fn to_json(&self) -> Value {
         let mut object = JsonObject::new();
         object.insert("workbookId".into(), json!(self.workbook_id));
         object.insert("versionId".into(), json!(self.version_id));
@@ -423,26 +425,6 @@ impl ConnectionEntry {
 pub fn manifest_connections(manifest: &Value) -> Option<Vec<ConnectionEntry>> {
     let list = manifest.as_object()?.get("connections")?.as_array()?;
     Some(list.iter().filter_map(ConnectionEntry::from_json).collect())
-}
-
-/// Insert or replace a connection of the manifest, keeping its creation time. None if nothing changed.
-pub fn upsert_connection_entry(entries: &[ConnectionEntry], entry: &ConnectionEntry) -> Option<Vec<ConnectionEntry>> {
-    let index = entries.iter().position(|e| e.id == entry.id);
-    let mut next = entry.clone();
-    if let Some(prev) = index.and_then(|index| entries.get(index)) {
-        if next.created_at.is_none() {
-            next.created_at = prev.created_at.clone();
-        }
-        if prev.to_json() == next.to_json() {
-            return None;
-        }
-    }
-    let mut out = entries.to_vec();
-    match index {
-        Some(index) => out[index] = next,
-        None => out.push(next),
-    }
-    Some(out)
 }
 
 /// The integer of a JSON number, None for any other value

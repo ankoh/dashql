@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -40,5 +40,17 @@ describe('a workbook folder on the file system of Node', () => {
         expect(await NODE_FILE_SYSTEM.fileStamp(path)).toEqual(stamp);
         expect(await NODE_FILE_SYSTEM.listFiles(dir)).toEqual([{ name: 'a.sql', ...stamp }]);
         expect(await NODE_FILE_SYSTEM.listFiles(join(dir, 'missing'))).toEqual([]);
+    });
+
+    it('replaces a file atomically and leaves no temporary file', async () => {
+        const path = join(dir, 'dashql-workbook.json');
+        await NODE_FILE_SYSTEM.writeTextFile(path, 'old');
+        await NODE_FILE_SYSTEM.writeTextFile(path, 'new');
+        await NODE_FILE_SYSTEM.writeFile(join(dir, 'a.parquet'), new Uint8Array([1, 2]));
+        expect(await readFile(path, 'utf8')).toBe('new');
+        expect((await readdir(dir)).sort()).toEqual(['a.parquet', 'dashql-workbook.json']);
+        // A write that fails leaves nothing behind
+        await expect(NODE_FILE_SYSTEM.writeTextFile(join(dir, 'missing', 'a.sql'), 'x')).rejects.toThrow();
+        expect((await readdir(dir)).sort()).toEqual(['a.parquet', 'dashql-workbook.json']);
     });
 });

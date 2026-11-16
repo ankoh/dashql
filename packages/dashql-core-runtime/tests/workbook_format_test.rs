@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 
 use dashql_core::error::Result;
 use dashql_core_runtime::connections::ConnectorType;
+use dashql_core_runtime::storage::workbook_file::{properties_patch, upsert_connection_entry};
 use dashql_core_runtime::workbook_format::bundle::*;
 use dashql_core_runtime::workbook_format::catalog::*;
 use dashql_core_runtime::workbook_format::connection_import::*;
@@ -1007,6 +1008,55 @@ fn leaves_out_attachments_whose_table_is_missing() {
 }
 
 #[test]
+fn rejects_file_names_of_the_rows_that_could_escape_their_folder_or_collide() {
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    for (first, second, message) in [
+        ("../x.sql", "a.sql", "invalid script name ../x.sql"),
+        ("a/b.sql", "a.sql", "invalid script name a/b.sql"),
+        ("x.txt", "a.sql", "invalid script name x.txt"),
+        ("dashql-draft.sql", "a.sql", "invalid script name dashql-draft.sql"),
+        ("A.sql", "a.sql", "duplicate script a.sql"),
+    ] {
+        let mut bad = tables.clone();
+        bad.scripts[0].name = first.into();
+        bad.scripts[1].name = second.into();
+        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables", &JsonCatalogSql).unwrap_err();
+        assert!(error.message.starts_with("Invalid workbook tables: "), "{first}: {}", error.message);
+        assert!(error.message.contains(message), "{first}: {}", error.message);
+    }
+    for (name, message) in [("../d.parquet", "basename"), ("d.txt", "Only Parquet files")] {
+        let mut bad = tables.clone();
+        bad.attachments[0].name = name.into();
+        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables", &JsonCatalogSql).unwrap_err();
+        assert!(error.message.contains(message), "{name}: {}", error.message);
+    }
+    let mut twice = tables.clone();
+    let mut copy = twice.attachments[0].clone();
+    copy.position = 1;
+    copy.name = "D.parquet".into();
+    twice.attachments.push(copy);
+    assert!(workbook_tables_to_bundle(&twice, "Invalid", &JsonCatalogSql).unwrap_err().message.contains("duplicate attachment"));
+}
+
+#[test]
+fn checks_the_file_names_of_a_bundle_before_it_is_written() {
+    let options = WorkbookBundleWriteOptions::default();
+    for name in ["../x.sql", "a/b.sql", "x.txt", "dashql-draft.sql", "/x.sql", "..\\x.sql"] {
+        let mut bundle = tables_bundle();
+        bundle.scripts[0].name = name.into();
+        let error = prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap_err();
+        assert!(error.message.contains("invalid script name"), "{name}: {}", error.message);
+    }
+    let mut bundle = tables_bundle();
+    bundle.scripts[0].name = "A.sql".into();
+    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap_err().message.contains("duplicate script a.sql"));
+    let mut bundle = tables_bundle();
+    bundle.catalogs[0].connection_id = "../escape".into();
+    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap_err().message.contains("invalid connection id"));
+    assert!(prepare_workbook_bundle_write(&tables_bundle(), StorageType::Opfs, &options).is_ok());
+}
+
+#[test]
 fn round_trips_the_rows_through_arrow_ipc() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
     let mut read: WorkbookTables<Vec<u8>> = WorkbookTables::default();
@@ -1257,7 +1307,7 @@ fn keeps_the_names_of_new_connections_and_drops_them_for_existing_ones() {
 
 fn planner() -> RestorePlanner {
     let mut next = uuids();
-    RestorePlanner::new("2026-11-15T00:00:00.000Z", Box::new(move || next()))
+    RestorePlanner::new("2026-11-15T00:00:00.000Z", Box::new(move || Some(next())))
 }
 
 fn restore(planner: &mut RestorePlanner, workbook: &Value, files: &[&str]) -> RestoredWorkbookPlan {
@@ -1325,7 +1375,9 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
     let plan = restore(&mut crashed, &workbook, &["1.sql"]);
     assert!(plan.promoted && !plan.metadata.is_ephemeral());
     assert_eq!(crashed.pending().promoted_workbooks, [TEST_WORKBOOK_ID]);
-    let promoted = promotion_patch(&WorkbookData::from_json(&workbook));
+    // The writer promotes the workbook with its properties as the file holds them
+    let stored = WorkbookData::from_json(&workbook);
+    let promoted = properties_patch(&stored, stored.name.as_deref(), false, stored.metadata.cloud.as_ref());
     assert!(!promoted.to_json()["metadata"].as_object().unwrap().contains_key("ephemeral"));
 }
 
@@ -1344,6 +1396,11 @@ fn surfaces_invalid_workbooks() {
     assert_eq!(planner.finish_workbook(begun, None).unwrap_err().error, WorkbookValidationError::WorkbookNotRestored);
 }
 
+/// The copy of a connection as the restore writes it (its id and params, no name or draft), see `PatchWorkbookConnection`
+fn copy_patch(stored: &WorkbookData, connection: &RestoreConnection) -> Option<WorkbookData> {
+    patch_workbook_connection(stored, &WorkbookConnection::new(connection.connection_id.clone(), connection.params.clone()), &[])
+}
+
 #[test]
 fn lets_the_app_manifest_win_over_stale_workbook_copies() {
     let saved = json!({ "trino": { "endpoint": "https://saved", "auth": { "authType": "AUTH_BASIC" } } });
@@ -1356,7 +1413,7 @@ fn lets_the_app_manifest_win_over_stale_workbook_copies() {
     planner.finish_workbook(begun, Some(&[][..])).unwrap();
     assert_eq!(planner.pending().workbook_copies, [(TEST_WORKBOOK_ID.to_string(), TEST_CONNECTION_ID.to_string())]);
     assert!(planner.pending().connection_entries.is_empty());
-    let patched = connection_copy_patch(&WorkbookData::from_json(&stale), planner.connection(TEST_CONNECTION_ID).unwrap()).unwrap();
+    let patched = copy_patch(&WorkbookData::from_json(&stale), planner.connection(TEST_CONNECTION_ID).unwrap()).unwrap();
     assert_eq!(patched.connections, vec![WorkbookConnection::new(TEST_CONNECTION_ID, saved)]);
     // Params the app can't use fail, the workbooks register the connection again
     assert!(planner.restore_manifest_connection(&ConnectionEntry::new(OTHER_CONNECTION_ID, json!({ "nope": {} }))).is_err());
@@ -1380,13 +1437,20 @@ fn moves_the_name_of_an_imported_connection_into_the_app_manifest() {
     // A new connection is registered with its name, a known connection keeps its own
     assert_eq!(planner.connection(TEST_CONNECTION_ID).unwrap().name.as_deref(), Some("Production"));
     assert_eq!(planner.connection(OTHER_CONNECTION_ID).unwrap().name.as_deref(), Some("Mine"));
-    let manifest = manifest_connections_patch(Some(std::slice::from_ref(&mine)), &planner.pending().connection_entries);
+    // The writer upserts the registered connections into the entries of the app manifest
+    let mut manifest = vec![mine.to_json()];
+    for entry in &planner.pending().connection_entries {
+        if let Some(next) = upsert_connection_entry(Some(&manifest), &entry.to_json()) {
+            manifest = next;
+        }
+    }
+    let manifest: Vec<ConnectionEntry> = manifest.iter().filter_map(ConnectionEntry::from_json).collect();
     assert_eq!(manifest.iter().map(|e| (e.id.as_str(), e.name.as_deref())).collect::<Vec<_>>(), [(OTHER_CONNECTION_ID, Some("Mine")), (TEST_CONNECTION_ID, Some("Production"))]);
     // The workbook copies drop the names
     let mut stored = WorkbookData::from_json(&workbook);
     for (workbook_id, connection_id) in &planner.pending().workbook_copies {
         assert_eq!(workbook_id, TEST_WORKBOOK_ID);
-        if let Some(next) = connection_copy_patch(&stored, planner.connection(connection_id).unwrap()) {
+        if let Some(next) = copy_patch(&stored, planner.connection(connection_id).unwrap()) {
             stored = next;
         }
     }

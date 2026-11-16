@@ -300,16 +300,26 @@ on, e.g. a script that changed outside the app.
 ## The storage writer
 
 The writer of the crate (`storage/writer.rs`) is a service of `Runtime`: the workbooks and the connections write
-through it, the host runs its commands with `Runtime.storage(command)` (flush, settle, pause and resume the writer or a
-workbook, revive, flush and delete a workbook, discard pending writes) and schedules the writes that no state describes
-with `storageWrite`, e.g. the scripts that the user kept over a change outside the app. `StorageWriter` of
+through it, the host runs the commands that wait for writes with `Runtime.storage(command)` (flush, settle, flush and
+delete a workbook), changes the writer right away with `storageHold`, `storageRelease`, `storageReviveWorkbook` and
+`storageCancelPendingWrites` (they throw what fails) and schedules the writes that no state describes with
+`storageWrite`, e.g. the attachment list of a workbook, under the key the task names. `StorageWriter` of
 `storage/runtime_storage.ts` of the TypeScript runtime is the facade of these commands (`Runtime.storage`).
 
-- **Decisions in Rust.** The keys and their chains, debouncing and coalescing (a newer task keeps the timer of the first
-  one), pausing the writer and workbooks, flushing, the statistics and the generations of keys, deleted workbooks,
-  holding a write that would overwrite a script that changed outside the app, retrying the failed writes of a flushed
-  workbook. The tasks that patch the workbook file read it, patch it as a JSON value and skip a write that changes
-  nothing (`storage/workbook_file.rs`); a patched file keeps the order of its keys.
+- **Decisions in Rust.** The keys (every format in `storage/keys.rs`, a task names its key with `WriteTask::key`) and
+  their chains, debouncing and coalescing (a newer task keeps the timer of the first one), holds, flushing, the
+  statistics and the generations of keys, deleted workbooks (a deleted workbook drops its statistics, generations and
+  failures), holding a write that would overwrite a file that changed outside the app, retrying failed writes. The
+  tasks that patch the workbook file read it as `WorkbookData`, patch the fields of the task and skip a write that
+  changes nothing (`storage/workbook_file.rs`); fields the schema doesn't know are kept.
+- **Holds with reasons.** A hold of the writer or of a workbook has a reason (`HoldReason`: a change outside the app, a
+  reload, an import, a handover to another tab, a pause) and is counted, each is released on its own. A flush, e.g.
+  when the page hides, writes past a hold of the writer and never past a hold of a workbook. The import of a
+  replacement holds the replaced workbook itself: its pending writes are written first, the later ones are discarded
+  once the replacement succeeded.
+- **Failed writes are state.** A failed task stays pending and runs again after a backoff (one second, doubled, at
+  most a minute) until a write of its key succeeds or it is cancelled. `flushWorkbook` is false while a write of the
+  workbook fails or the workbook is held, an export refuses such a workbook instead of exporting what the disk holds.
 - **I/O in the host.** Loading and saving workbook files, scripts and connection files, the exclusive update of the
   connection entries of the app manifest (the host calls back into the writer with the entries), deleting: `storage`
   of the platform (`createRuntimeStorage` over the `StorageBackend` of the platform). The natural
@@ -321,11 +331,12 @@ with `storageWrite`, e.g. the scripts that the user kept over a change outside t
   (`JsonValue` of `views.rs`), read the way `JSON.stringify` reads them: a member that is undefined is left out, it
   doesn't become null in a file. The variants of a task are read one by one, serde reads the fields of an internally
   tagged enum from a buffer that a function can't pass through.
-- **State of the runtime.** The workbooks whose writes a change outside the app holds are the `storage` slice
-  (`heldWorkbooks`), resuming a workbook releases it. The statistics of the keys change with every write and are no
-  slice, the view of the app reads them when it shows them (`storageStatistics`).
+- **State of the runtime.** The holds (`holds`, and the workbooks that a change outside the app holds as
+  `heldWorkbooks`) and the failed writes with their last errors (`failedWrites`) are the `storage` slice, the storage
+  writer view of the app shows them. The statistics of the keys change with every write and are no slice, the view of
+  the app reads them from the writer when it shows them (`storageStatistics`).
 - **Before the core.** A command before the core waits for it (`Runtime.ready`), a flush and a settle have nothing
-  to wait for. The app flushes the writer of its runtime when the page hides and pauses it when another tab takes over.
+  to wait for. The app flushes the writer of its runtime when the page hides and holds it when another tab takes over.
 - **Changed on purpose.** A task starts in a task of the host, the TypeScript writer called the backend within
   `writeDurable`. Written bytes count UTF-8 bytes. A durable write of a deleted workbook resolves as cancelled, the
   TypeScript writer threw. Resuming re-arms a timer once, the TypeScript writer could keep the timer of a task that was
@@ -592,8 +603,7 @@ root (`StorageRootHost`) and the files of the cache (`CacheHost`).
   loader.
 - **The restore decides, the host acts.** `RestorePlanner` validates workbooks, resolves their copies to connections
   (the manifest wins, unknown ones are registered, the embedded database is a single connection), names the catalogs to
-  restore and collects the writes after the restore. `script_list_patch`, `promotion_patch`, `connection_copy_patch`
-  and `manifest_connections_patch` build them.
+  restore and collects the writes after the restore, the storage writer patches the files with them.
 - **Changed on purpose.** Names aren't normalized to NFC, the host passes the names of its listings normalized. The
   natural order follows ICU for ASCII and folds the accents of Latin-1. Bundles and params compare as values, the order
   of keys doesn't count. A field of the wrong type is dropped when a file is written again.
@@ -622,12 +632,13 @@ the workbook tables, the schema of a cloud, are `Runtime.workbookTables()` (`Das
   connections that the format names, then the scripts and attachments) or the workbook tables of a cloud, and holds
   the bundle as a pending import. `commitImport` maps the connections, adds the results to the cache and writes the
   workbook through `storage`, with the verification and the rollback of a replacement in Rust.
-- **Migrations of the runtime.** `migrateStorage` brings the storage root of the platform (`storageRoot`: files and
-  directories by path, the native folders that the platform claims) to the current storage version with the steps of
+- **Migrations of the runtime.** `migrateStorage`, a static function of the module that needs no runtime, brings a
+  storage root of the platform (files and directories by path, the native folders that the platform claims) to the
+  current storage version with the steps of
   `workbook_format/storage_migration.rs`, then every workbook folder of the workbook tree to the current workbook
   format (`migrate_folder` of `migration.rs`: the top-level files are read, migrated in memory, the writes go first and
-  the removals after). The restore migrates a folder that the platform keeps elsewhere (`storage.workbookFolder`, e.g.
-  a native folder) before it first reads its workbook file, an import migrates a native folder after it registered it,
+  the removals after). The storage of the runtime migrates a folder that the platform keeps elsewhere
+  (`storage.workbookFolder`, e.g. a native folder) whenever it reads a workbook file of an older format, an import migrates a native folder after it registered it,
   `migrateWorkbookFolder` migrates one on request (the command line tool, before it reads the workbook id).
 - **Eviction by the runtime.** After every write of a file of a key (a result of the executor, a materialized result of
   a run under a reusable key, an imported result) the runtime lists the files of the cache (`resultCache.files`),
@@ -923,8 +934,6 @@ p50). The change set crosses the `run` slices as well, a keystroke changes none 
   external scan of Hyper. The parts of the stream could go to the compute database as they arrive instead.
 
 - Editors outside of a workbook (the composer, the shell) keep sessions of their own.
-- The migration of the storage of the app runs on a runtime of its own before the storage of the app is set up, the
-  storage root and the native folders are the only platform it has.
 - The channels of the host stay objects of the platform: the platform describes the target of a channel by its handle
   (`channels.describe`), a Trino channel keeps its refreshed token in TypeScript.
 - A profile in the browser: the numbers of "Typing" are Node.

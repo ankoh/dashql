@@ -121,7 +121,7 @@ describe('useReplaceConnection', () => {
     });
 
     it('keeps the replaced connection until the workbook files are written, a repeated replacement removes it', async () => {
-        api!.writer.pauseWorkbook(WORKBOOK_ID);
+        api!.writer.hold('pause', WORKBOOK_ID);
         let result!: Awaited<ReturnType<Api['replace']>>;
         await act(async () => { result = await api!.replace('source', 'target'); });
         // The workbook moved, its file still names the replaced connection
@@ -131,7 +131,7 @@ describe('useReplaceConnection', () => {
         expect((await backend.loadWorkbook(WORKBOOK_ID)).connections.map(copy => copy.connectionId)).toEqual(['source']);
 
         // Once the workbook writes again, the replacement continues
-        api!.writer.resumeWorkbook(WORKBOOK_ID);
+        api!.writer.release('pause', WORKBOOK_ID);
         await act(async () => { result = await api!.replace('source', 'target'); });
         expect(result).toEqual({ removed: true });
         await vi.waitFor(() => expect(api!.connections.has('source')).toBe(false));

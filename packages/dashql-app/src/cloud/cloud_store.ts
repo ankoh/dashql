@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { DASHQL_VERSION } from '../globals.js';
 import { exportArrowTableAsParquet } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '@ankoh/dashql/platform/platform/hyperdb/hyperdb_arrow_insert';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
+import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
 import type { ParquetReadDatabase } from '@ankoh/dashql/runtime/storage/workbook_archives';
 import {
     ATTACHMENT_TABLE_PREFIX,
@@ -501,7 +501,7 @@ export async function readCloudWorkbook(
             ? `The cloud holds no workbook ${workbookId}`
             : `The cloud holds no version ${options.versionId} of workbook ${workbookId}`);
     }
-    if (row.formatVersion > WORKBOOK_FORMAT_VERSION) {
+    if (row.formatVersion > storageVersions().formatVersion) {
         throw new Error(`The workbook ${workbookId} was published by a newer DashQL, update DashQL to read it`);
     }
     const tables: CloudWorkbookTables = { rows: {}, data: [] };

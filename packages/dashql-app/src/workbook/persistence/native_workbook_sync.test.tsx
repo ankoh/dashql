@@ -105,7 +105,7 @@ describe('NativeWorkbookSync', () => {
     /// Restore and render the app, resolves once the first check of the workbook acknowledged the disk
     async function renderApp(options: { waitForFirstCheck?: boolean; afterRestore?: () => void } = {}): Promise<void> {
         const folder = backend.nativeWorkbookFolder(WORKBOOK_ID);
-        const acknowledged = folder == null ? null : vi.spyOn(folder, 'acknowledgeScripts');
+        const acknowledged = folder == null ? null : vi.spyOn(folder, 'acknowledgeFolder');
         const restore = async (runtime: Runtime) => {
             const restored = await runtime.restore();
             options.afterRestore?.();
@@ -131,7 +131,7 @@ describe('NativeWorkbookSync', () => {
     }
 
     /// Wait until no check is running
-    const settled = () => vi.waitFor(() => expect(api.writer.isWorkbookPaused(WORKBOOK_ID)).toBe(false));
+    const settled = () => vi.waitFor(() => expect(api.writer.isWorkbookHeld(WORKBOOK_ID)).toBe(false));
     const scriptText = (name = 'query.sql') => {
         const workbook = api.workbooks.get(WORKBOOK_ID)!;
         return api.runtime.store.get('script', workbook.scriptRefs[name].scriptId)!.scriptSession.getText();
@@ -167,7 +167,7 @@ describe('NativeWorkbookSync', () => {
             await seedFolder();
             const folder = backend.nativeWorkbookFolder(WORKBOOK_ID)!;
             const stamp = vi.spyOn(folder, 'stampFolder');
-            const acknowledge = vi.spyOn(folder, 'acknowledgeScripts');
+            const acknowledge = vi.spyOn(folder, 'acknowledgeFolder');
             // The restoration reads the stamps as well, only the check fails
             await renderApp({
                 waitForFirstCheck: false,
@@ -499,9 +499,10 @@ describe('NativeWorkbookSync', () => {
             await backend.saveScript(WORKBOOK_ID, 'query.sql', 'select app');
             await renderApp();
             await vi.waitFor(() => expect(api.workbooks.has(WORKBOOK_ID)).toBe(true));
-            const pause = vi.spyOn(api.writer, 'pauseWorkbook');
+            const hold = vi.spyOn(api.writer, 'hold');
             await focusWindow();
-            expect(pause).not.toHaveBeenCalled();
+            expect(hold).not.toHaveBeenCalled();
+            expect(api.writer.isWorkbookHeld(WORKBOOK_ID)).toBe(false);
             expect(confirm).not.toHaveBeenCalled();
         });
 

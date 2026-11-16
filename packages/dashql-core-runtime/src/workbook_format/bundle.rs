@@ -5,7 +5,7 @@
 //! The bytes of attachments and results are a type of the host, `B`: e.g. the bytes themselves in tests, or a handle
 //! of a file or of a slice of an archive that stays with the host.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -16,7 +16,7 @@ use dashql_parser::scanner::scan;
 
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_CATALOG_COPY_FORMAT_VERSION};
 use crate::workbook_format::files::{
-    reconcile_workbook_scripts, remap_workbook_scripts, sanitize_workbook_files, with_sanitized_files, workbook_attachments,
+    file_name_key, is_script_file_name, reconcile_workbook_scripts, remap_workbook_scripts, sanitize_workbook_files, with_sanitized_files, workbook_attachments,
     workbook_connection_ids_of,
 };
 use crate::workbook_format::json::parse_object;
@@ -142,6 +142,39 @@ pub fn read_workbook_bundle<B>(
 ) -> WorkbookBundle<B> {
     let (workbook, _) = with_sanitized_files(stored);
     assemble_workbook_bundle(workbook, catalogs, scripts, data)
+}
+
+/// Check the names of the files of a bundle before any of them reaches a storage. Every reader of a source (workbook
+/// tables, archives, workbook folders) and the write of a bundle check them: a script is a `.sql` file directly in
+/// `scripts/` and not the draft script, an attachment is a Parquet file directly in `attachments/`, a catalog belongs to
+/// a connection with a UUID, and no two scripts or attachments denote the same file on a case-insensitive file system.
+/// A name that could escape its folder never reaches the host. Errors start with `error_prefix`.
+pub fn check_workbook_bundle<B>(bundle: &WorkbookBundle<B>, error_prefix: &str) -> Result<()> {
+    let invalid = |message: String| Err(Error::invalid_argument(format!("{error_prefix}: {message}")));
+    let mut keys = HashSet::new();
+    for script in &bundle.scripts {
+        if !is_script_file_name(&script.name) {
+            return invalid(format!("invalid script name {}", script.name));
+        }
+        if !keys.insert(file_name_key(&script.name)) {
+            return invalid(format!("duplicate script {}", script.name));
+        }
+    }
+    let mut keys = HashSet::new();
+    for file in &bundle.data {
+        if let Err(error) = validate_data_file_name(&file.name) {
+            return invalid(error.message);
+        }
+        if !keys.insert(file_name_key(&file.name)) {
+            return invalid(format!("duplicate attachment {}", file.name));
+        }
+    }
+    for catalog in &bundle.catalogs {
+        if !is_valid_uuid(&catalog.connection_id) {
+            return invalid(format!("invalid connection id of a catalog {}", catalog.connection_id));
+        }
+    }
+    Ok(())
 }
 
 /// The catalog of a connection from its files, None if it has neither
@@ -349,9 +382,7 @@ pub fn prepare_workbook_bundle_write<B>(
     if options.target_is_fresh && options.target_workbook_id.is_none() {
         return Err(Error::invalid_argument("targetIsFresh requires an explicit targetWorkbookId"));
     }
-    for file in &bundle.data {
-        validate_data_file_name(&file.name)?;
-    }
+    check_workbook_bundle(bundle, "Invalid source workbook")?;
     let names: Vec<String> = bundle.scripts.iter().map(|script| script.name.clone()).collect();
     let data_names: Vec<String> = bundle.data.iter().map(|file| file.name.clone()).collect();
     let mut workbook = WorkbookData {

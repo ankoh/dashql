@@ -62,6 +62,12 @@ struct Fs {
     /// The native folders that were claimed, in order
     claims: Vec<String>,
     logs: Vec<(LogLevel, String)>,
+    /// The operations that changed something or tried to, in order
+    ops: u32,
+    /// The operation that fails, by its number, e.g. to interrupt a migration
+    fail_at: Option<u32>,
+    /// Does the platform fail to give a UUID?
+    no_uuids: bool,
 }
 
 impl Fs {
@@ -79,6 +85,16 @@ impl Fs {
 
     fn exists(&self, path: &str) -> bool {
         path.is_empty() || self.dirs.contains(path)
+    }
+
+    /// Count an operation that changes the storage, the one to fail fails before it changes anything
+    fn change(&mut self) -> Result<(), HostError> {
+        let op = self.ops;
+        self.ops += 1;
+        if self.fail_at == Some(op) {
+            return Err(HostError::new(format!("injected failure of operation {op}")));
+        }
+        Ok(())
     }
 }
 
@@ -117,6 +133,7 @@ impl FolderHost for FakeFolder {
 
     async fn write_text(&self, name: &str, text: &str) -> Result<(), HostError> {
         let mut fs = self.fs.borrow_mut();
+        fs.change()?;
         let path = format!("{}/{name}", self.dir);
         if self.native {
             fs.native_files.insert(path, text.to_string());
@@ -128,6 +145,7 @@ impl FolderHost for FakeFolder {
 
     async fn remove(&self, name: &str) -> Result<(), HostError> {
         let mut fs = self.fs.borrow_mut();
+        fs.change()?;
         let path = format!("{}/{name}", self.dir);
         if self.native {
             fs.native_files.remove(&path);
@@ -163,18 +181,22 @@ impl StorageRootHost for FakeRoot {
 
     async fn write_text(&self, path: &str, text: &str) -> Result<(), HostError> {
         let mut fs = self.fs.borrow_mut();
+        fs.change()?;
         fs.create_dirs(parent(path));
         fs.files.insert(path.to_string(), text.to_string());
         Ok(())
     }
 
     async fn create_directory(&self, path: &str) -> Result<(), HostError> {
-        self.fs.borrow_mut().create_dirs(path);
+        let mut fs = self.fs.borrow_mut();
+        fs.change()?;
+        fs.create_dirs(path);
         Ok(())
     }
 
     async fn remove(&self, path: &str) -> Result<(), HostError> {
         let mut fs = self.fs.borrow_mut();
+        fs.change()?;
         fs.files.retain(|file, _| file != path && below(path, file).is_none());
         fs.dirs.retain(|dir| dir != path && below(path, dir).is_none());
         Ok(())
@@ -202,6 +224,7 @@ impl StorageRootHost for FakeRoot {
 
     async fn copy_directory(&self, from: &str, to: &str, keep_existing: bool) -> Result<(), HostError> {
         let mut fs = self.fs.borrow_mut();
+        fs.change()?;
         fs.create_dirs(to);
         let dirs: Vec<String> = fs.dirs.iter().filter_map(|dir| below(from, dir)).collect();
         for dir in dirs {
@@ -231,9 +254,12 @@ impl StorageRootHost for FakeRoot {
         Ok(fs.native_dirs.contains(native_path).then(|| FakeFolder { fs: self.fs.clone(), native: true, dir: native_path.to_string() }))
     }
 
-    fn random_uuid(&self) -> String {
+    fn random_uuid(&self) -> Result<String, HostError> {
+        if self.fs.borrow().no_uuids {
+            return Err(HostError::new("no UUID"));
+        }
         self.next_uuid.set(self.next_uuid.get() + 1);
-        format!("00000000-0000-4000-8000-{:012}", self.next_uuid.get())
+        Ok(format!("00000000-0000-4000-8000-{:012}", self.next_uuid.get()))
     }
 }
 
@@ -305,11 +331,14 @@ fn ends_with_the_current_storage_version() {
 }
 
 #[test]
-fn leaves_a_fresh_storage_untouched() {
+fn stamps_a_fresh_storage_with_the_current_version() {
     let root = storage();
     assert_eq!(root.migrate().unwrap(), summary(0, 0));
-    assert!(root.fs.borrow().files.is_empty());
+    assert_eq!(root.json("dashql-manifest.json"), json!({ "storageVersion": STORAGE_VERSION }));
     assert!(root.fs.borrow().dirs.is_empty());
+    // The next start finds a current storage
+    assert_eq!(root.migrate().unwrap(), summary(0, 0));
+    assert_eq!(root.fs.borrow().files.len(), 1);
 }
 
 #[test]
@@ -638,6 +667,173 @@ fn skips_native_folders_without_a_platform_that_has_them() {
     root.native(&format!("{NATIVE_DIR}/dashql-notebook.json"), notebook(SESSION_A, DB_A));
     assert_eq!(root.migrate().unwrap(), summary(0, 0));
     assert!(root.fs.borrow().claims.is_empty());
+}
+
+// Interrupted migrations
+
+/// The metadata of a notebook of format version 2 on a database with params
+fn notebook_on(notebook_id: &str, database_id: &str, params: Value) -> String {
+    json!({
+        "formatVersion": 2,
+        "notebookId": notebook_id,
+        "mainDatabase": { "databaseId": database_id, "params": params },
+        "attachedDatabases": [],
+        "metadata": {},
+    })
+    .to_string()
+}
+
+/// A storage of the first version with something for every step: notebooks in the root and in a native folder, a
+/// database whose id an earlier database took (it gets a fresh id), catalog copies, the files of the shell and the
+/// sessions that agents may access
+fn old_storage() -> FakeRoot {
+    let root = storage();
+    root.set(
+        "dashql-manifest.json",
+        json!({
+            "notebooks": [{ "path": SESSION_A }, { "path": SESSION_B, "storageType": "native", "nativePath": NATIVE_DIR }, { "path": SESSION_C }],
+            "appSettings": { "agentSessions": [SESSION_A] },
+        })
+        .to_string(),
+    );
+    root.dir("notebooks");
+    for (session_id, database_id, params, relations) in
+        [(SESSION_A, DB_A, wasm(), "CREATE TABLE a(id int);"), (SESSION_C, DB_A, trino("https://trino", ""), "CREATE TABLE c(id int);")]
+    {
+        root.dir(&format!("notebooks/{session_id}"));
+        root.dir(&format!("notebooks/{session_id}/scripts"));
+        root.set(&format!("notebooks/{session_id}/dashql-notebook.json"), notebook_on(session_id, database_id, params));
+        root.set(&format!("notebooks/{session_id}/dashql-relations.sql"), relations);
+        root.set(&format!("notebooks/{session_id}/scripts/1_a.sql"), "SELECT 1");
+    }
+    root.native(&format!("{NATIVE_DIR}/dashql-notebook.json"), notebook(SESSION_B, DB_B));
+    root.dir("dashql-shell");
+    root.set("dashql-shell/salesforce-login-history.json", "[]");
+    root
+}
+
+type Snapshot = (BTreeMap<String, String>, BTreeSet<String>, BTreeMap<String, String>);
+
+/// The files and directories of the root and the files of the native folders
+fn snapshot(root: &FakeRoot) -> Snapshot {
+    let fs = root.fs.borrow();
+    (fs.files.clone(), fs.dirs.clone(), fs.native_files.clone())
+}
+
+/// What differs between two snapshots, for the message of a failed test
+fn diff(actual: &Snapshot, expected: &Snapshot) -> Vec<String> {
+    let mut out = Vec::new();
+    for (path, text) in actual.0.iter().chain(actual.2.iter()) {
+        if expected.0.get(path).or(expected.2.get(path)) != Some(text) {
+            out.push(format!("+ {path}: {text}"));
+        }
+    }
+    for (path, text) in expected.0.iter().chain(expected.2.iter()) {
+        if actual.0.get(path).or(actual.2.get(path)) != Some(text) {
+            out.push(format!("- {path}: {text}"));
+        }
+    }
+    out.extend(actual.1.symmetric_difference(&expected.1).map(|dir| format!("~ dir {dir}")));
+    out
+}
+
+/// The ids of the connections of the manifest
+fn manifest_connection_ids(root: &FakeRoot) -> Vec<String> {
+    let manifest = root.json("dashql-manifest.json");
+    manifest["connections"].as_array().map(|entries| entries.iter().filter_map(|e| e["id"].as_str().map(str::to_string)).collect()).unwrap_or_default()
+}
+
+/// The folders of connections that the manifest doesn't list
+fn orphans(root: &FakeRoot) -> Vec<String> {
+    let ids = manifest_connection_ids(root);
+    root.dirs_starting_with("connections/")
+        .into_iter()
+        .filter_map(|dir| dir.strip_prefix("connections/").map(str::to_string))
+        .filter(|id| !id.contains('/') && !ids.contains(id))
+        .collect()
+}
+
+/// The storage version of the manifest, 1 without one
+fn storage_version(root: &FakeRoot) -> i64 {
+    root.json("dashql-manifest.json")["storageVersion"].as_i64().unwrap_or(1)
+}
+
+const FRESH_ID: &str = "00000000-0000-4000-8000-000000000001";
+
+#[test]
+fn repeats_a_migration_that_failed_at_any_operation_to_the_same_storage() {
+    let reference = old_storage();
+    assert_eq!(reference.migrate().unwrap().steps as usize, STORAGE_MIGRATION_STEPS.len());
+    let expected = snapshot(&reference);
+    assert_eq!(manifest_connection_ids(&reference), [DB_A, FRESH_ID]);
+    assert!(orphans(&reference).is_empty());
+    assert_eq!(reference.text(&format!("connections/{FRESH_ID}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE c(id int);"));
+    let total = reference.fs.borrow().ops;
+
+    let mut interrupted_at_versions = BTreeSet::new();
+    for op in 0..total {
+        let root = old_storage();
+        root.fs.borrow_mut().fail_at = Some(op);
+        let first = root.migrate();
+        let failed_at_version = storage_version(&root);
+        // The next start of the app runs the migration again, its fresh ids count from the start
+        root.fs.borrow_mut().fail_at = None;
+        root.next_uuid.set(0);
+        root.migrate().unwrap_or_else(|error| panic!("operation {op}: {}", error.message()));
+        assert_eq!(storage_version(&root), STORAGE_VERSION, "operation {op}");
+        assert!(orphans(&root).is_empty(), "operation {op}: {:?}", orphans(&root));
+        // A failure that stopped the migration leaves nothing behind. A failure that a step passed over loses a cache
+        // or a best effort, e.g. a catalog copy.
+        if first.is_err() {
+            interrupted_at_versions.insert(failed_at_version);
+            let actual = snapshot(&root);
+            assert!(actual == expected, "operation {op}: {:#?}", diff(&actual, &expected));
+        }
+    }
+    // Every step was interrupted
+    assert_eq!(interrupted_at_versions, (1..STORAGE_VERSION).collect::<BTreeSet<_>>());
+}
+
+#[test]
+fn removes_the_catalogs_that_an_interrupted_step_copied_under_fresh_ids() {
+    // Fail the operations one by one until the step of the global connections stops after it copied the catalog of
+    // the fresh id and before the manifest lists the connections
+    let fresh = format!("connections/{FRESH_ID}/dashql-catalog-relations.sql");
+    let root = (0..200)
+        .map(|op| {
+            let root = old_storage();
+            root.fs.borrow_mut().fail_at = Some(op);
+            let failed = root.migrate().is_err();
+            (root, failed)
+        })
+        .find(|(root, failed)| *failed && root.text(&fresh).is_some() && root.json("dashql-manifest.json").get("connections").is_none())
+        .map(|(root, _)| root)
+        .expect("an interruption after the catalog copy");
+    assert_eq!(storage_version(&root), 2);
+
+    // The next run plans another fresh id, the catalog of the first one goes
+    root.fs.borrow_mut().fail_at = None;
+    root.migrate().unwrap();
+    let second = "00000000-0000-4000-8000-000000000002";
+    assert_eq!(manifest_connection_ids(&root), [DB_A, second]);
+    assert_eq!(root.text(&fresh), None);
+    assert!(root.dirs_starting_with(&format!("connections/{FRESH_ID}")).is_empty());
+    assert_eq!(root.text(&format!("connections/{second}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE c(id int);"));
+    assert!(orphans(&root).is_empty());
+}
+
+#[test]
+fn fails_the_step_without_a_uuid_and_repeats_it_later() {
+    let root = old_storage();
+    root.fs.borrow_mut().no_uuids = true;
+    assert!(root.migrate().unwrap_err().message().contains("no UUID"));
+    // The step before is done, the step of the global connections wrote nothing
+    assert_eq!(storage_version(&root), 2);
+    assert!(root.json("dashql-manifest.json").get("connections").is_none());
+    assert!(root.dirs_starting_with("connections").is_empty());
+    root.fs.borrow_mut().no_uuids = false;
+    root.migrate().unwrap();
+    assert_eq!(manifest_connection_ids(&root), [DB_A, FRESH_ID]);
 }
 
 // The plan of the global connections

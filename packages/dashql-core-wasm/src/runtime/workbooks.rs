@@ -18,8 +18,9 @@ use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::restore::script_connection_of;
-use dashql_core_runtime::storage::keys::{workbook_connection_copy_key, workbook_file_key, workbook_script_list_key};
-use dashql_core_runtime::storage::{TextSource, WriteTask, SCRIPTS_FOLDER};
+use dashql_core_runtime::storage::keys::{workbook_connection_copy_key, workbook_file_key, workbook_scripts_key};
+use dashql_core_runtime::storage::{TextSource, WriteTask};
+use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
     next_revision, CloudLink, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
 };
@@ -226,41 +227,21 @@ impl Workbooks {
 
     /// Schedule the writes of the effects of an action, in order
     pub fn write_effects(&self, workbook_id: &str, effects: Vec<WorkbookEffect>) {
-        let scripts = format!("{workbook_id}/{SCRIPTS_FOLDER}");
         for effect in effects {
-            let (key, task) = match effect {
-                WorkbookEffect::WriteScript { file_name, text } => (
-                    format!("{scripts}/{file_name}"),
-                    WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text },
-                ),
-                WorkbookEffect::DeleteScript { file_name } => (
-                    format!("{scripts}/{file_name}:delete"),
-                    WriteTask::DeleteScript { workbook_id: workbook_id.to_string(), file_name },
-                ),
-                WorkbookEffect::RenameScript { from, to } => (
-                    format!("{scripts}/{from}:rename"),
-                    WriteTask::RenameScript { workbook_id: workbook_id.to_string(), from, to },
-                ),
-                WorkbookEffect::WriteScriptList(list) => (
-                    workbook_script_list_key(workbook_id),
-                    WriteTask::WriteWorkbookScripts {
-                        workbook_id: workbook_id.to_string(),
-                        scripts: list.scripts.iter().map(|s| json!({ "name": s.name, "connectionId": s.connection_id })).collect(),
-                        connections: list.connections.iter().map(|c| connection_copy(&c.connection_id, Some(&c.params))).collect(),
-                    },
-                ),
+            // A task names its key (`storage::keys`)
+            let task = match effect {
+                WorkbookEffect::WriteScript { file_name, text } => WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text },
+                WorkbookEffect::DeleteScript { file_name } => WriteTask::DeleteScript { workbook_id: workbook_id.to_string(), file_name },
+                WorkbookEffect::RenameScript { from, to } => WriteTask::RenameScript { workbook_id: workbook_id.to_string(), from, to },
+                WorkbookEffect::WriteScriptList(list) => WriteTask::WriteWorkbookScripts {
+                    workbook_id: workbook_id.to_string(),
+                    scripts: list.scripts.iter().map(|s| WorkbookScript::new(s.name.clone(), s.connection_id.clone())).collect(),
+                    connections: list.connections.iter().map(|c| connection_copy(&c.connection_id, Some(&c.params))).collect(),
+                },
                 WorkbookEffect::WriteProperties { name, ephemeral, cloud } => {
                     // The workbook file holds the whole link to the cloud, the workbook only its ids
-                    let link = self.metadata(workbook_id).get("cloud").cloned().filter(|link| !link.is_null());
-                    (
-                        workbook_file_key(workbook_id),
-                        WriteTask::WriteWorkbookProperties {
-                            workbook_id: workbook_id.to_string(),
-                            name,
-                            ephemeral,
-                            cloud: cloud.and(link),
-                        },
-                    )
+                    let link = self.metadata(workbook_id).get("cloud").and_then(StoredCloudLink::from_json);
+                    WriteTask::WriteWorkbookProperties { workbook_id: workbook_id.to_string(), name, ephemeral, cloud: cloud.and(link) }
                 }
                 WorkbookEffect::PatchConnection { connection_id, params, replaces } => {
                     for from in replaces {
@@ -274,7 +255,7 @@ impl Workbooks {
                     continue;
                 }
             };
-            drop(self.writer.write(&key, task, DEBOUNCE_MS));
+            drop(self.writer.write(&task.key(), task, DEBOUNCE_MS));
         }
     }
 
@@ -311,7 +292,7 @@ impl Workbooks {
             connection: list.connections.first().map(|c| connection_copy(&c.connection_id, Some(&c.params))),
             original_file_name: new.original_file_name,
         };
-        drop(self.writer.write(&format!("{workbook_id}/{SCRIPTS_FOLDER}"), replace, DEBOUNCE_MS));
+        drop(self.writer.write(&workbook_scripts_key(&workbook_id), replace, DEBOUNCE_MS));
         self.write_effects(&workbook_id, vec![WorkbookEffect::WriteScriptList(list)]);
         let manifest = WriteTask::WriteWorkbookManifest { workbook_id: workbook_id.clone(), connections: vec![copy], ephemeral: new.ephemeral };
         drop(self.writer.write(&workbook_file_key(&workbook_id), manifest, 0.0));
@@ -474,9 +455,9 @@ impl Workbooks {
 }
 
 /// The copy of a connection in a workbook file
-fn connection_copy(connection_id: &str, params: Option<&str>) -> Value {
+fn connection_copy(connection_id: &str, params: Option<&str>) -> WorkbookConnection {
     let params = params.and_then(|params| serde_json::from_str::<Value>(params).ok()).unwrap_or(Value::Null);
-    json!({ "connectionId": connection_id, "params": params })
+    WorkbookConnection::new(connection_id, params)
 }
 
 /// The ids of a link to a cloud that the workbook keeps

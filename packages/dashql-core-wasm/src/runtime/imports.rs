@@ -16,8 +16,9 @@ use std::rc::Rc;
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
+use dashql_core_runtime::storage::HoldReason;
 use dashql_core_runtime::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, describe_workbook_bundle_difference, filter_invalid_workbook_catalogs,
+    assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle, describe_workbook_bundle_difference, filter_invalid_workbook_catalogs,
     prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData,
     WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
 };
@@ -319,8 +320,9 @@ impl Imports {
         self.platform.log_on(level, message, details, "workbook_import");
     }
 
-    fn new_uuid(&self) -> String {
-        self.platform.random_uuid().unwrap_or_default()
+    /// A fresh UUID of the platform, the import fails without one
+    fn new_uuid(&self) -> Result<String, HostError> {
+        self.platform.random_uuid()
     }
 
     /// Drop a pending import, its files are released
@@ -514,6 +516,7 @@ impl Imports {
             }
             bundle.workbook.metadata = WorkbookMetadata::from_json(&merged);
         }
+        check_workbook_bundle(&bundle, &prefix).map_err(format_error)?;
         Ok((bundle, head.files_valid, string_field(folder, "nativePath")))
     }
 
@@ -636,7 +639,17 @@ impl Imports {
                 }
                 outcome.unasked |= preview;
             }
-            let applied = apply_connection_import_plan(&bundle.workbook, plan, &choices, entries, &mut || self.new_uuid());
+            // A failed UUID fails the import, the plan of an empty id is never applied
+            let mut failed = None;
+            let applied = apply_connection_import_plan(&bundle.workbook, plan, &choices, entries, &mut || {
+                self.new_uuid().unwrap_or_else(|error| {
+                    failed.get_or_insert(error);
+                    String::new()
+                })
+            });
+            if let Some(error) = failed {
+                return Err(error);
+            }
             bundle.catalogs = rename_bundle_catalogs(&bundle.catalogs, &applied.connection_ids.iter().cloned().collect());
             bundle.workbook = applied.workbook;
             outcome.registered =
@@ -682,13 +695,14 @@ impl Imports {
                         workbook_id
                     }
                     (Some(_), Some(ImportConflictChoice::CreateNew)) => {
-                        let workbook_id = self.new_uuid();
+                        let workbook_id = self.new_uuid()?;
                         writer.write_fresh(&with_fresh_identity(&bundle, &workbook_id), &workbook_id).await?;
                         self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &mut outcome).await?;
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
-                        writer.replace_with_native(&bundle, dir, &conflict).await?;
+                        let storage = &restorer.workbooks.writer;
+                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_native(&bundle, dir, &conflict)).await?;
                         if connection_refs_changed(&original, &bundle.workbook) {
                             writer.write_connection_refs(&conflict.workbook_id, &bundle.workbook).await?;
                         }
@@ -706,13 +720,15 @@ impl Imports {
                         workbook_id
                     }
                     (Some(_), Some(ImportConflictChoice::CreateNew)) => {
-                        let workbook_id = self.new_uuid();
+                        let workbook_id = self.new_uuid()?;
                         writer.write_fresh(&with_fresh_identity(&bundle, &workbook_id), &workbook_id).await?;
                         self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &mut outcome).await?;
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
-                        writer.replace_with_bundle(&bundle, &conflict, &mut || self.new_uuid()).await?;
+                        let storage = &restorer.workbooks.writer;
+                        let staging = self.new_uuid()?;
+                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_bundle(&bundle, &conflict, staging)).await?;
                         conflict.workbook_id
                     }
                     (Some(_), None) => {
@@ -831,6 +847,27 @@ fn with_fresh_identity(bundle: &WorkbookBundle<HostFile>, workbook_id: &str) -> 
 }
 
 /// The writes of an import through the storage of the platform
+/// Replace a registered workbook while an import holds its writes (`HoldReason::Import`): the pending writes of the
+/// workbook reach the storage first, a rollback keeps them; the hold keeps later writes off the files that the
+/// replacement writes, a replacement that succeeded discards them, they belong to the replaced version.
+async fn held_replacement(
+    storage: &super::storage::RuntimeWriter,
+    workbook_id: &str,
+    replace: impl std::future::Future<Output = Result<(), HostError>>,
+) -> Result<(), HostError> {
+    if !storage.flush_workbook(workbook_id).await && !storage.failed_writes_for_workbook(workbook_id).is_empty() {
+        return Err(HostError::new(format!("the changes of workbook {workbook_id} can't be saved, it is not replaced")));
+    }
+    storage.hold(Some(workbook_id), HoldReason::Import);
+    storage.settle().await;
+    let replaced = replace.await;
+    if replaced.is_ok() {
+        storage.cancel_pending_writes_for_workbook(workbook_id);
+    }
+    storage.release(Some(workbook_id), HoldReason::Import);
+    replaced
+}
+
 struct Writer<'a> {
     platform: JsPlatform,
     steps: &'a Steps,
@@ -942,7 +979,7 @@ impl Writer<'_> {
 
     /// Replace a registered workbook with a bundle through a verified staged copy. The target is changed only after the
     /// copy is verified, a failure after that writes the old workbook back.
-    async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, new_uuid: &mut dyn FnMut() -> String) -> Result<(), HostError> {
+    async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, staging: String) -> Result<(), HostError> {
         let target = conflict.workbook_id.as_str();
         if bundle.workbook.workbook_id.to_lowercase() != target.to_lowercase() {
             return Err(HostError::new(format!("Source workbook {} does not match replacement {target}", bundle.workbook.workbook_id)));
@@ -953,7 +990,6 @@ impl Writer<'_> {
         // for a rollback when it can be read
         let old_files = HostFiles::new(self.platform.clone());
         let old_bundle = super::archives::read_stored_bundle(&self.platform, &old_files, target, false).await.ok();
-        let staging = new_uuid();
         if string_field(&self.storage("findWorkbook", &[text(&staging)]).await?, "path").is_some() {
             return Err(HostError::new(format!("Staging workbook {staging} is already registered")));
         }

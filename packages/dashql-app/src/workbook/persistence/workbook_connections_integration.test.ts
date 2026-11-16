@@ -7,7 +7,7 @@ import { CompositeStorageBackend } from '../../storage/composite_storage_backend
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@ankoh/dashql/platform/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
-import { WORKBOOK_FORMAT_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
+import { storageVersions } from '@ankoh/dashql/platform/storage/storage_versions';
 import { workbookConnectionIds, type ScriptData, type WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
@@ -45,7 +45,7 @@ async function seedWorkbook(backend: WorkbookTestBackend, scripts: SeedScript[],
     const params = new Map([[HYPER_ID, HYPER_PARAMS], [TRINO_ID, TRINO_PARAMS]]);
     backend.connections = [HYPER_ID, TRINO_ID].map(id => ({ id, params: params.get(id)! } as ConnectionEntry));
     await backend.saveWorkbookManifest(WORKBOOK_ID, {
-        formatVersion: WORKBOOK_FORMAT_VERSION,
+        formatVersion: storageVersions().formatVersion as WorkbookData['formatVersion'],
         workbookId: WORKBOOK_ID,
         name: 'Connections',
         connections: connectionIds.map(connectionId => ({ connectionId, params: params.get(connectionId)! })),

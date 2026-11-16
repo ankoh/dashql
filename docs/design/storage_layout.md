@@ -222,31 +222,35 @@ cleanup of the app lists `tests/` as files of the browser tests.
 Two versions describe the stored data. Both migrations are steps of the runtime of the core
 (`packages/dashql-core-runtime/src/workbook_format/`), the platform reads and writes the files.
 
-- The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` of the runtime
-  brings an older root to the current version at startup with the steps of `storage_migration.rs`, e.g. version 5 moves
+- The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` of the core
+  (a static function of the module, `DashQL.migrateStorage`) brings an older root to the current version at startup with the steps of `storage_migration.rs`, e.g. version 5 moves
   `dashql-shell/` to `shell/`, version 6 drops the `aliases` of the connections, version 7 moves the `sessions` of the
   manifest into the folder `My Sessions` of `sessiontree/`, version 8 moves the connection params under `sidb` to
   `dbcom`, and version 9 renames sessions as workbooks: `sessions/` becomes `workbooks/`, `sessiontree/` becomes
   `workbooktree/`, its folder files list `workbooks`, and the setting `agentSessions` becomes `agentWorkbooks`. Then
   every workbook folder that the workbook tree registers is brought to the current workbook format, the native ones
-  through the platform, which claims them for the app first. A fresh storage stays untouched, a storage of a newer
-  version is refused.
+  through the platform, which claims them for the app first. A fresh storage gets a manifest with the current version,
+  the only place that stamps it: the storage of the app keeps the version of the manifest it writes. A storage of a
+  newer version is refused.
 - The workbook format version, `formatVersion` in `dashql-workbook.json`, describes one workbook folder. The steps are
   in `migration.rs`. `migrate_folder` reads the top-level files of the folder, migrates them in memory, and writes the
   changed files first and removes the others after. A folder whose workbook file is at the current version is only
   read. Besides the startup, the runtime migrates a folder that the platform keeps elsewhere (`storage.workbookFolder`,
-  a native workbook folder or the folder of a run of the command line tool) before it first reads its workbook file, a
-  native folder that an import registers, and the folder of `migrateWorkbookFolder`, which the command line tool calls
+  a native workbook folder or the folder of a run of the command line tool) whenever it reads a workbook file of an
+  older format, e.g. after a checkout of an older commit, a native folder that an import registers, and the folder of `migrateWorkbookFolder`, which the command line tool calls
   before it reads the workbook id.
   Version 11 renames `dashql-session.json` as `dashql-workbook.json`, with `workbookId` and `workbookPath` in place of
   `sessionId` and `sessionPath`. The steps up to version 10 keep the names of sessions, the layout of their version.
 
-The current versions are in `src/storage/migration/versions.ts` of the runtime package, a test checks that the
-runtime migrates to the same versions (`node/storage_root.node.test.ts`). A migration step spells out every file and
+The current versions come from the core (`DashQL.storageVersions()`, `storageVersions()` of
+`platform/storage/storage_versions.ts`), the only source of them. A migration step spells out every file and
 folder name it touches instead of using the storage constants of the app: the constants describe the current layout, a
-step the layout of its version. Steps are idempotent, because an interrupted migration repeats its last step.
+step the layout of its version. Steps are idempotent, because an interrupted migration repeats its last step: the tests
+of the core interrupt the migration at every write and run it again (`storage_migration_test.rs`). The step of version
+3 removes the catalogs that an interrupted run copied under fresh ids it doesn't plan again, a step that needs a fresh
+id fails without one.
 
-The migration runs before the storage backend is set up, on a runtime of its own over the storage root of the platform
+The migration runs before the storage backend is set up, without a runtime, over the storage root of the platform
 (`createStorageRoot` of `storage/storage_root.ts`: the files and directories of the OPFS root by path, and the native
 folders of the desktop app). The storage provider instantiates the core first and holds the lock of the manifest
 meanwhile. It shows the setup page with the step "Apply Migrations", which is skipped when there was nothing to

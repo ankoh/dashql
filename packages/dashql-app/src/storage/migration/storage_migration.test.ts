@@ -5,7 +5,6 @@ import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { fsStore, makeFsMock, resetFsStore } from '@ankoh/dashql/platform/testing/test_fs_mock';
 import { migrateStorage as migrateStorageWithCore } from './storage_migration.js';
-import { WORKBOOK_FORMAT_VERSION, STORAGE_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -27,11 +26,17 @@ function notebook(notebookId: string, databaseId: string): string {
     });
 }
 
-// The steps are tested in the core (`storage_migration_test.rs`), these tests run them on the runtime over the storage
+// The steps are tested in the core (`storage_migration_test.rs`), these tests run them in the core over the storage
 // root and the native folders of the app
 describe('storage migration', () => {
     let dql: core.DashQL;
-    beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+    // The versions of the core
+    let STORAGE_VERSION = 0;
+    let WORKBOOK_FORMAT_VERSION = 0;
+    beforeAll(async () => {
+        dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        ({ storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION } = dql.storageVersions());
+    });
     const migrateStorage = (logger: TestLogger, root: FileSystemDirectoryHandle) => migrateStorageWithCore(logger, async () => dql, root)
         .then(({ steps, workbooks }) => ({ steps, workbooks }));
 
@@ -66,9 +71,10 @@ describe('storage migration', () => {
         expect(outcome).toEqual({ steps: 0, workbooks: 0, storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION });
     });
 
-    it('leaves a fresh storage untouched', async () => {
+    it('stamps a fresh storage with the current version', async () => {
         expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 0, workbooks: 0 });
-        expect(files.size).toBe(0);
+        expect([...files.keys()]).toEqual(['dashql-manifest.json']);
+        expect(json('dashql-manifest.json')).toEqual({ storageVersion: STORAGE_VERSION });
         expect(dirs.size).toBe(0);
     });
 

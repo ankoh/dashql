@@ -51,6 +51,18 @@ describe('NativeStorageBackend V2 flat storage', () => {
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([]);
     });
 
+    it.each(['../x.sql', '', '.', '..', 'a\\b.sql', 'C:x.sql'])('refuses the script name %j that leaves the folder', async name => {
+        await expect(backend.saveScript(TEST_WORKBOOK_ID, name, 'SELECT 1')).rejects.toThrow(/Invalid path/);
+        await expect(backend.deleteScript(TEST_WORKBOOK_ID, name)).rejects.toThrow(/Invalid path/);
+        expect([...fsStore.files.keys()].filter(path => !path.startsWith(`${DIR}/`))).toEqual([]);
+    });
+
+    it('refuses absolute and escaping paths of the folder', async () => {
+        await expect(backend.readText('/etc/passwd')).rejects.toThrow(/Invalid path/);
+        await expect(backend.readText('connections/../../x')).rejects.toThrow(/Invalid path/);
+        await expect(backend.writeText('../dashql-workbook.json', '{}')).rejects.toThrow(/Invalid path/);
+    });
+
     it.each([
         ['nested directory', () => fsStore.dirs.add(`${DIR}/scripts/page`), 'nested scripts directory'],
         ['draft file', () => fsStore.files.set(`${DIR}/scripts/dashql-draft.sql`, 'SELECT 1'), 'dashql-draft.sql is not supported'],
@@ -115,22 +127,22 @@ describe('NativeStorageBackend external script changes', () => {
     });
 
     it('finds scripts changed outside the app by their stamps but not its own writes', async () => {
-        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        backend.acknowledgeFolder(await backend.stampFolder());
         await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 10');
         await backend.renameScript(TEST_WORKBOOK_ID, 'b.sql', 'c.sql');
-        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual([]);
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual([]);
 
         // Edited, deleted and added outside the app, a touch without a content change counts too
         editOutside('a.sql', 'select 11');
         fsStore.files.delete(scriptPath('c.sql'));
         editOutside('d.sql', 'select 4');
-        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual(['a.sql', 'c.sql', 'd.sql']);
-        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
-        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual([]);
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual(['a.sql', 'c.sql', 'd.sql']);
+        backend.acknowledgeFolder(await backend.stampFolder());
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual([]);
     });
 
     it('refuses writes, deletes and renames that would lose an external change', async () => {
-        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        backend.acknowledgeFolder(await backend.stampFolder());
         editOutside('a.sql', 'select 10');
         editOutside('c.sql', 'select 3');
         await expect(backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11')).rejects.toBeInstanceOf(ExternalScriptChangeError);
@@ -142,14 +154,40 @@ describe('NativeStorageBackend external script changes', () => {
         expect(fsStore.files.get(scriptPath('c.sql'))).toBe('select 3');
 
         // Acknowledging the disk lets the app version win
-        backend.acknowledgeScripts((await backend.stampFolder()).scripts);
+        backend.acknowledgeFolder(await backend.stampFolder());
         await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11');
         expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
     });
 
+    it('refuses to overwrite a workbook file that changed outside the app', async () => {
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        backend.acknowledgeFolder(await backend.stampFolder());
+        // Its own writes are no change
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'mine' }));
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual([]);
+        // A git pull changes only the workbook file
+        fsStore.files.set(`${DIR}/dashql-workbook.json`, JSON.stringify(testWorkbook({ name: 'pulled' })));
+        fsStore.mtimes.set(`${DIR}/dashql-workbook.json`, ++fsStore.clock);
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual(['dashql-workbook.json']);
+        const refused = backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'mine again' }));
+        await expect(refused).rejects.toMatchObject({ name: 'ExternalScriptChangeError', fileName: 'dashql-workbook.json' });
+        expect(JSON.parse(fsStore.files.get(`${DIR}/dashql-workbook.json`)!).name).toBe('pulled');
+        // Once the app decided, its version may replace the disk
+        backend.acknowledgeFolder(await backend.stampFolder());
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'mine again' }));
+        expect(JSON.parse(fsStore.files.get(`${DIR}/dashql-workbook.json`)!).name).toBe('mine again');
+    });
+
+    it('does not create a workbook folder that is gone when it writes a script', async () => {
+        for (const path of [...fsStore.files.keys()].filter(path => path.startsWith(DIR))) fsStore.files.delete(path);
+        for (const path of [...fsStore.dirs].filter(path => path.startsWith(DIR))) fsStore.dirs.delete(path);
+        await expect(backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 1')).rejects.toThrow('is missing');
+        expect([...fsStore.dirs].some(path => path.startsWith(DIR))).toBe(false);
+    });
+
     it('does not check scripts before they are acknowledged', async () => {
         editOutside('a.sql', 'select 10');
-        expect(backend.findExternalScriptChanges((await backend.stampFolder()).scripts)).toEqual(['a.sql', 'b.sql']);
+        expect(backend.findExternalChanges(await backend.stampFolder())).toEqual(['a.sql', 'b.sql']);
         await backend.saveScript(TEST_WORKBOOK_ID, 'a.sql', 'select 11');
         expect(fsStore.files.get(scriptPath('a.sql'))).toBe('select 11');
     });

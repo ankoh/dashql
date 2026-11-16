@@ -2,7 +2,7 @@ import type * as core from '../../core/index.js';
 
 import { stringifyError } from '../../platform/platform/logger/logger.js';
 import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from '../../platform/storage/storage_backend.js';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, isWorkbookRegistryBackend } from '../../platform/storage/storage_backend.js';
+import { isWorkbookRegistryBackend } from '../../platform/storage/storage_backend.js';
 import { NativeStorageBackend } from '../../platform/storage/native_storage_backend.js';
 import { markWorkbookAttachmentsChanged } from '../../platform/workbook/attachments/attachment_mounts.js';
 
@@ -11,26 +11,12 @@ import { markWorkbookAttachmentsChanged } from '../../platform/workbook/attachme
 /// decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
 /// statistics. The workbooks and the connections of the runtime write through it.
 
-/// The key of a write. Writes with the same key coalesce, the latest task wins. Workbook keys start with the workbook
-/// id, the keys of the app storage with `@`.
+/// The key of a write. Writes with the same key coalesce, the latest task wins. The keys are built by the module
+/// (`storage/keys.rs` of the core runtime), a task names its own key.
 export type StorageWriteKey = string;
-/// A script of a workbook
-export const groupScriptWrites = (workbookId: string, fileName: string) => `${workbookId}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`;
-/// The attachment list of a workbook
-export const groupWorkbookAttachmentListWrites = (workbookId: string) => `${workbookId}/${STORAGE_WORKBOOK_FILE}:attachments`;
 
-/// Whether a key belongs to a workbook: the workbook id itself or a path below it
-export function storageWriteKeyBelongsToWorkbook(key: StorageWriteKey, workbookId: string): boolean {
-    return key === workbookId || key.startsWith(`${workbookId}/`);
-}
-
-/// A key without the prefix of its workbook for display, keeping a `:delete` or `:rename` suffix
-export function storageWriteKeyWithinWorkbook(key: StorageWriteKey, workbookId: string): string {
-    if (!storageWriteKeyBelongsToWorkbook(key, workbookId)) {
-        return key;
-    }
-    return key === workbookId ? '' : key.slice(workbookId.length + 1);
-}
+/// Why the writes of the writer or of a workbook are held
+export type StorageHoldReason = core.StorageHoldReason;
 
 /// The outcome of a write
 export type StorageWriteResult =
@@ -44,6 +30,14 @@ export type StorageWriteResult =
     | { status: 'deferred' }
     /// Executing the task failed
     | { status: 'failed'; error: unknown };
+
+/// The statistics of the writes of a key, with the key within its workbook for display
+export interface StorageKeyStatistics {
+    key: StorageWriteKey;
+    /// The key without the prefix of its workbook, e.g. `scripts/a.sql:delete`
+    label: string;
+    stats: StorageWriterStatistics;
+}
 
 /// The statistics of the writes of a key
 export interface StorageWriterStatistics {
@@ -143,7 +137,8 @@ export interface StorageWriterRuntime {
 }
 
 /// The commands of the storage writer of the runtime. A write before the core waits for it, a flush or a settle
-/// before the core has nothing to wait for.
+/// before the core has nothing to wait for. The changes of the writer (holds, revivals, cancellations) run right away
+/// and throw what the module throws; before the core they run once it is there and the returned promise rejects.
 export class StorageWriter {
     constructor(private readonly runtime: StorageWriterRuntime) { }
 
@@ -152,7 +147,18 @@ export class StorageWriter {
         return await module.storage(command);
     }
 
-    /// Run every pending write right away and wait until all writes ended, also while paused
+    /// Change the writer of the module, right away or once the core is there
+    private change(apply: (module: core.Runtime) => void): void | Promise<void> {
+        const module = this.runtime.module;
+        if (module != null) {
+            apply(module);
+            return;
+        }
+        return this.runtime.ready().then(apply);
+    }
+
+    /// Run every pending write right away and wait until all writes ended. Writes past a hold of the writer, never past
+    /// the hold of a workbook, e.g. a file that changed outside the app.
     async flush(): Promise<void> {
         if (this.runtime.module == null) return;
         await this.command({ kind: 'flush' });
@@ -164,29 +170,34 @@ export class StorageWriter {
         await this.command({ kind: 'settle' });
     }
 
+    /// Hold the writes of the writer, or of a workbook, for a reason. Holds are counted, each is released on its own.
+    hold(reason: StorageHoldReason, workbookId: string | null = null): void | Promise<void> {
+        return this.change(module => module.storageHold(reason, workbookId));
+    }
+
+    /// Release one hold of a reason, the pending writes wait for their debounce duration again once nothing holds them
+    release(reason: StorageHoldReason, workbookId: string | null = null): void | Promise<void> {
+        return this.change(module => module.storageRelease(reason, workbookId));
+    }
+
     /// Write nothing until `resume` or `flush`, the writes stay pending
-    pause(): void {
-        void this.command({ kind: 'pause' });
+    pause(): void | Promise<void> {
+        return this.hold('pause');
     }
 
-    /// Resume the writer, the pending writes wait for their debounce duration again
-    resume(): void {
-        void this.command({ kind: 'resume' });
+    /// Release a pause of the writer
+    resume(): void | Promise<void> {
+        return this.release('pause');
     }
 
-    /// Hold the writes of a workbook
-    pauseWorkbook(workbookId: string): void {
-        void this.command({ kind: 'pauseWorkbook', workbookId });
-    }
-
-    /// Resume the writes of a workbook
-    resumeWorkbook(workbookId: string): void {
-        void this.command({ kind: 'resumeWorkbook', workbookId });
+    /// Another tab took over the app: nothing is written any more, a flush still writes what is pending
+    handOver(): void | Promise<void> {
+        return this.hold('handover');
     }
 
     /// Accept writes of a workbook id again after the workbook was deleted, e.g. an import of the same workbook
-    reviveWorkbook(workbookId: string): void {
-        void this.command({ kind: 'reviveWorkbook', workbookId });
+    reviveWorkbook(workbookId: string): void | Promise<void> {
+        return this.change(module => module.storageReviveWorkbook(workbookId));
     }
 
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage. A
@@ -200,9 +211,9 @@ export class StorageWriter {
         await this.command({ kind: 'deleteWorkbook', workbookId });
     }
 
-    /// Are the writes of a workbook held, e.g. after one of its scripts changed outside the app?
-    isWorkbookPaused(workbookId: string): boolean {
-        return this.runtime.module?.isWorkbookPaused(workbookId) ?? false;
+    /// Are the writes of a workbook held, e.g. after one of its files changed outside the app?
+    isWorkbookHeld(workbookId: string): boolean {
+        return this.runtime.module?.isWorkbookHeld(workbookId) ?? false;
     }
 
     /// The pending keys below a workbook in the order they were scheduled
@@ -216,9 +227,8 @@ export class StorageWriter {
     }
 
     /// Discard pending writes of a workbook, e.g. after the user chose a version on disk over the edits of the app
-    cancelPendingWritesForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): void {
-        const keys = this.getPendingKeysForWorkbook(workbookId, include);
-        void this.command({ kind: 'cancelPendingWrites', workbookId, keys });
+    cancelPendingWritesForWorkbook(workbookId: string, include: (key: string) => boolean = () => true): void | Promise<void> {
+        return this.change(module => module.storageCancelPendingWrites(workbookId, this.getPendingKeysForWorkbook(workbookId, include)));
     }
 
     /// The latest generation of the keys of a workbook
@@ -230,25 +240,26 @@ export class StorageWriter {
         return generation;
     }
 
-    /// The statistics of the writes by key, read when shown
-    getStatistics(): Map<StorageWriteKey, StorageWriterStatistics> {
-        const statistics = new Map<StorageWriteKey, StorageWriterStatistics>();
-        for (const [key, value] of this.runtime.module?.storageStatistics() ?? []) {
-            statistics.set(key, {
+    /// The statistics of the writes of a workbook by key, read when shown
+    getStatistics(workbookId: string): StorageKeyStatistics[] {
+        return (this.runtime.module?.storageStatistics(workbookId) ?? []).map(({ key, label, statistics: value }) => ({
+            key,
+            label,
+            stats: {
                 totalScheduledWrites: value.scheduledWrites,
                 totalWrites: value.writes,
                 totalWrittenBytes: value.writtenBytes,
                 totalWriteTime: value.writeTimeMs,
                 lastWrite: value.lastWriteMs == null ? null : new Date(value.lastWriteMs),
-            });
-        }
-        return statistics;
+            },
+        }));
     }
 
-    /// Schedule a debounced write that no state of the runtime describes, resolves true when the task was executed
-    async write(key: string, task: core.StorageWriteTask, debounceFor: number = 0): Promise<boolean> {
+    /// Schedule a debounced write that no state of the runtime describes under the key that the task names, resolves
+    /// true when the task was executed
+    async write(task: core.StorageWriteTask, debounceFor: number = 0): Promise<boolean> {
         const module = this.runtime.module ?? await this.runtime.ready();
-        const outcome = await module.storageWrite(key, task, debounceFor, false);
+        const outcome = await module.storageWrite(null, task, debounceFor, false);
         return outcome.status === 'written';
     }
 

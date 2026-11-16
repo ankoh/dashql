@@ -176,8 +176,6 @@ impl StorageHost for FakeHost {
     }
 
     fn statistics_changed(&self, _key: &str, _statistics: &WriteStatistics) {}
-
-    fn external_script_change(&self, _workbook_id: &str) {}
 }
 
 impl RestoreHost for FakeHost {
@@ -278,7 +276,7 @@ impl Fixture {
             new_catalog: Box::new(Catalog::new),
             new_uuid: Box::new(move || {
                 next += 1;
-                format!("00000000-0000-4000-8000-{next:012}")
+                Some(format!("00000000-0000-4000-8000-{next:012}"))
             }),
         };
         let mut restore = AppRestore::new(self.host.clone(), writer, options);
@@ -354,6 +352,33 @@ fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {
     assert_eq!(connections[0]["createdAt"], json!("2026-01-01T00:00:00.000Z"));
     let progress = &restored.progress;
     assert_eq!((progress.workbook_scripts.total, progress.workbook_scripts.succeeded), (Some(1), 1));
+}
+
+#[test]
+fn keeps_the_script_list_while_the_script_files_are_gone() {
+    // A checkout or a sync removed the script files for a while, the workbook file still lists them
+    let fixture = Fixture::new();
+    let copies = json!([{ "connectionId": CONNECTION, "params": hyper_wasm() }, { "connectionId": REMOTE, "params": hyper_http() }]);
+    let scripts = json!([{ "name": "b.sql", "connectionId": REMOTE }, { "name": "a.sql", "connectionId": CONNECTION }]);
+    let file = workbook(WORKBOOK, copies, scripts);
+    fixture.add_workbook(WORKBOOK, file.clone(), &[]);
+    let restored = fixture.restore();
+    assert!(script_names(&restored, WORKBOOK).is_empty());
+    // Nothing writes the emptied list, the files keep their connections when they come back
+    assert_eq!(fixture.stored(WORKBOOK), file);
+    assert!(!fixture.host.store.borrow().calls.iter().any(|call| call == &format!("manifest:{WORKBOOK}")));
+    let missing = fixture.logged("The script files of the workbook are missing, keeping its script list");
+    assert_eq!(missing.len(), 1);
+    assert!(missing[0].contains(&("scripts".to_string(), "b.sql, a.sql".to_string())));
+
+    // The files are back: the scripts run on the connections of the list again
+    fixture.host.store.borrow_mut().scripts.insert(WORKBOOK.to_string(), vec![("a.sql".into(), "SELECT 1".into()), ("b.sql".into(), "SELECT 2".into())]);
+    let restored = fixture.restore();
+    assert_eq!(script_names(&restored, WORKBOOK), vec!["b.sql", "a.sql"]);
+    let script_connections: Vec<String> =
+        restored.workbooks[0].workbook.scripts().iter().map(|script| script.connection().connection_id.clone()).collect();
+    assert_eq!(script_connections, vec![REMOTE.to_string(), CONNECTION.to_string()]);
+    assert_eq!(fixture.stored(WORKBOOK)["scripts"], file["scripts"]);
 }
 
 #[test]

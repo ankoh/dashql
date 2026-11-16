@@ -1,4 +1,4 @@
-import {access, mkdir, readFile, readdir, rename, rm, stat, writeFile} from "node:fs/promises";
+import {access, mkdir, readFile, readdir, rename, rm, stat} from "node:fs/promises";
 import {createServer} from "node:http";
 import path from "node:path";
 import {promisify} from "node:util";
@@ -9,6 +9,7 @@ import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, shell,
 
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
+import {writeFileAtomically} from "./atomic_write.js";
 import {FolderGrants} from "./folder_grants.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
@@ -632,8 +633,9 @@ if (!hasSingleInstanceLock) {
                 return await rename(target, await requireGranted(args[1]));
             }
             case "stat": { const value = await stat(target); return {size: value.size, mtime: value.mtime.toISOString(), isFile: value.isFile(), isDirectory: value.isDirectory(), isSymlink: value.isSymbolicLink()}; }
-            case "writeFile": return await writeFile(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
-            case "writeTextFile": if (typeof args[1] === "string") { await writeFile(target, args[1], "utf8"); return await stampOf(target); } break;
+            // Writes are atomic, a reader of the folder (git, an editor, a sync client) never sees a part of a file
+            case "writeFile": return await writeFileAtomically(target, typeof args[1] === "string" ? args[1] : Buffer.from(args[1] as Uint8Array));
+            case "writeTextFile": if (typeof args[1] === "string") { await writeFileAtomically(target, args[1]); return await stampOf(target); } break;
         }
         throw new Error("Rejected filesystem operation");
     });

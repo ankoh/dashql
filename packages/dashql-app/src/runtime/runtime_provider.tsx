@@ -109,7 +109,7 @@ function AppRuntime(props: { children?: React.ReactNode }) {
 
     // Another tab takes over the app, the pending writes finish first and nothing is written after
     useAppHandOver(async () => {
-        runtime.storage.pause();
+        await runtime.storage.handOver();
         await runtime.storage.flush();
     });
 

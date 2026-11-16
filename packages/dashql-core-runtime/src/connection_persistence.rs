@@ -15,6 +15,7 @@ use crate::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionSt
 use crate::restore::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE, CATALOG_STATE_FILE};
 use crate::storage::keys::{connection_entry_key, connection_file_key, workbook_connection_copy_key};
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteOutcome, WriteTask};
+use crate::workbook_format::data::WorkbookConnection;
 use crate::workbook_format::sharing::connection_params_share_equal;
 
 /// The debounce of the writes of the params and the catalog of a connection
@@ -108,8 +109,8 @@ pub fn connection_entry(connection_id: &str, state: &ConnectionState) -> Value {
 }
 
 /// The copy of a connection that a workbook file keeps: its id and its saved params
-pub fn workbook_copy(connection_id: &str, params: &Value) -> Value {
-    json!({ "connectionId": connection_id, "params": params })
+pub fn workbook_copy(connection_id: &str, params: &Value) -> WorkbookConnection {
+    WorkbookConnection::new(connection_id, params.clone())
 }
 
 /// The writes of the saved params of a connection: the app manifest and every workbook that references it

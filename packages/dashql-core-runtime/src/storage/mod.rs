@@ -10,7 +10,10 @@ pub mod writer;
 use serde_json::Value;
 
 use crate::host::{Host, HostError};
-pub use writer::{StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteStatistics, WriteTask};
+pub use writer::{
+    FailedWrite, HoldReason, StorageWriter, TextSource, WriteError, WriteHold, WriteOutcome, WriteResult, WriteStatistics, WriteTask,
+    WriterStatus,
+};
 
 /// The workbook file of a workbook
 pub const WORKBOOK_FILE: &str = "dashql-workbook.json";
@@ -28,9 +31,12 @@ pub type ConnectionsUpdate = Box<dyn FnMut(Option<Vec<Value>>) -> Option<Vec<Val
 pub trait StorageHost: Host {
     /// Load the workbook file of a workbook, fails if there is none
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError>;
-    /// Save the workbook file of a workbook
+    /// Save the workbook file of a workbook. The write is atomic: a reader sees the old file or the new one, never a
+    /// part (a folder on disk writes a temporary file and renames it). Fails with an external change if the file
+    /// changed outside the app since the host last wrote or acknowledged it.
     async fn save_workbook(&self, workbook_id: &str, workbook: &Value) -> Result<(), HostError>;
-    /// Save a script file. Fails with an external script change if the file changed outside the app.
+    /// Save a script file atomically. Fails with an external change if the file changed outside the app. A missing
+    /// folder of the workbook is not created again, e.g. a native folder that was moved.
     async fn save_script(&self, workbook_id: &str, file_name: &str, text: &str) -> Result<(), HostError>;
     async fn delete_script(&self, workbook_id: &str, file_name: &str) -> Result<(), HostError>;
     /// Rename a script file, keeping its contents
@@ -47,7 +53,8 @@ pub trait StorageHost: Host {
     async fn delete_workbook(&self, workbook_id: &str) -> Result<(), HostError>;
 
     /// The statistics of a key changed
-    fn statistics_changed(&self, key: &str, statistics: &WriteStatistics);
-    /// The writes of a workbook are held because one of its scripts changed outside the app
-    fn external_script_change(&self, workbook_id: &str);
+    fn statistics_changed(&self, _key: &str, _statistics: &WriteStatistics) {}
+    /// The holds or the failed writes changed, e.g. a write that would overwrite a change outside the app holds its
+    /// workbook
+    fn status_changed(&self, _status: &WriterStatus) {}
 }

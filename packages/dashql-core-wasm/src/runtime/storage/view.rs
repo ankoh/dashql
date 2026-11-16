@@ -6,7 +6,8 @@
 //! function that reads it when the write runs, it crosses as the JS value. A failed write hands back the value that the
 //! host failed with.
 
-use dashql_core_runtime::storage::{TextSource, WriteError, WriteOutcome, WriteStatistics, WriteTask};
+use dashql_core_runtime::storage::{FailedWrite, HoldReason, TextSource, WriteError, WriteHold, WriteOutcome, WriteStatistics, WriteTask};
+use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookScript};
 use js_sys::{Function, Reflect};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -211,8 +212,27 @@ impl StorageWriteTask {
     }
 }
 
-fn values(values: Vec<JsonValue>) -> Vec<serde_json::Value> {
-    values.into_iter().map(|value| value.0).collect()
+/// The copies of connections of a task, each needs its `connectionId`
+fn copies(values: Vec<JsonValue>) -> Result<Vec<WorkbookConnection>, JsError> {
+    values.into_iter().map(|value| copy(value.0)).collect()
+}
+
+fn copy(value: serde_json::Value) -> Result<WorkbookConnection, JsError> {
+    WorkbookConnection::from_json(&value).ok_or_else(|| invalid("a copy of a connection has no connectionId".into()))
+}
+
+/// The scripts of a script list, each needs its `name` and `connectionId`
+fn scripts(values: Vec<JsonValue>) -> Result<Vec<WorkbookScript>, JsError> {
+    values
+        .into_iter()
+        .map(|value| {
+            let field = |key: &str| value.0.get(key).and_then(serde_json::Value::as_str).map(str::to_string);
+            match (field("name"), field("connectionId")) {
+                (Some(name), Some(connection_id)) => Ok(WorkbookScript::new(name, connection_id)),
+                _ => Err(invalid("a script needs its name and connectionId".into())),
+            }
+        })
+        .collect()
 }
 
 impl TryFrom<StorageWriteTask> for WriteTask {
@@ -223,14 +243,14 @@ impl TryFrom<StorageWriteTask> for WriteTask {
         Ok(match task {
             T::WriteWorkbookManifest(t) => WriteTask::WriteWorkbookManifest {
                 workbook_id: t.workbook_id,
-                connections: values(t.connections),
+                connections: copies(t.connections)?,
                 ephemeral: t.ephemeral,
             },
             T::WriteWorkbookProperties(t) => WriteTask::WriteWorkbookProperties {
                 workbook_id: t.workbook_id,
                 name: t.name,
                 ephemeral: t.ephemeral,
-                cloud: t.cloud.map(|cloud| cloud.0).filter(|cloud| !cloud.is_null()),
+                cloud: t.cloud.and_then(|cloud| WorkbookCloudLink::from_json(&cloud.0)),
             },
             T::ReplaceWorkbookScripts(t) => WriteTask::ReplaceWorkbookScripts {
                 workbook_id: t.workbook_id,
@@ -238,7 +258,7 @@ impl TryFrom<StorageWriteTask> for WriteTask {
                 scripts: (t.scripts.into_iter())
                     .map(|s| Ok((s.file_name, s.text.try_into()?)))
                     .collect::<Result<_, JsError>>()?,
-                connection: t.connection.map(|connection| connection.0).filter(|connection| !connection.is_null()),
+                connection: t.connection.map(|connection| connection.0).filter(|connection| !connection.is_null()).map(copy).transpose()?,
                 original_file_name: t.original_file_name,
             },
             T::WriteConnectionEntry(t) => WriteTask::WriteConnectionEntry { entry: t.entry.0 },
@@ -249,7 +269,7 @@ impl TryFrom<StorageWriteTask> for WriteTask {
                 text: t.text.try_into()?,
             },
             T::PatchWorkbookConnection(t) => {
-                WriteTask::PatchWorkbookConnection { workbook_id: t.workbook_id, copy: t.copy.0, replaced: t.replaced }
+                WriteTask::PatchWorkbookConnection { workbook_id: t.workbook_id, copy: copy(t.copy.0)?, replaced: t.replaced }
             }
             T::WriteScript(t) => {
                 WriteTask::WriteScript { workbook_id: t.workbook_id, file_name: t.file_name, text: t.text }
@@ -258,8 +278,8 @@ impl TryFrom<StorageWriteTask> for WriteTask {
             T::RenameScript(t) => WriteTask::RenameScript { workbook_id: t.workbook_id, from: t.from, to: t.to },
             T::WriteWorkbookScripts(t) => WriteTask::WriteWorkbookScripts {
                 workbook_id: t.workbook_id,
-                scripts: values(t.scripts),
-                connections: values(t.connections),
+                scripts: scripts(t.scripts)?,
+                connections: copies(t.connections)?,
             },
             T::RefreshWorkbookAttachments(t) => WriteTask::RefreshWorkbookAttachments { workbook_id: t.workbook_id },
         })
@@ -325,6 +345,94 @@ impl From<&WriteStatistics> for StorageWriteStatistics {
             write_time_ms: statistics.write_time_ms,
             last_write_ms: statistics.last_write_ms,
         }
+    }
+}
+
+/// The statistics of the writes of a key, with the key within its workbook for display
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct StorageKeyStatistics {
+    pub key: String,
+    /// The key without the prefix of its workbook, e.g. `scripts/a.sql:delete`
+    pub label: String,
+    pub statistics: StorageWriteStatistics,
+}
+
+/// Why the writes of the writer or of a workbook are held
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+
+pub enum StorageHoldReason {
+    /// A file changed outside the app, the app asks the user
+    ExternalChange,
+    /// A check of a folder or a reload from disk
+    Reload,
+    /// An import replaces the workbook
+    Import,
+    /// Another tab took over the app
+    Handover,
+    /// The app paused the writes, e.g. while it moves a workbook
+    Pause,
+}
+
+impl From<StorageHoldReason> for HoldReason {
+    fn from(reason: StorageHoldReason) -> Self {
+        match reason {
+            StorageHoldReason::ExternalChange => HoldReason::ExternalChange,
+            StorageHoldReason::Reload => HoldReason::Reload,
+            StorageHoldReason::Import => HoldReason::Import,
+            StorageHoldReason::Handover => HoldReason::Handover,
+            StorageHoldReason::Pause => HoldReason::Pause,
+        }
+    }
+}
+
+impl From<HoldReason> for StorageHoldReason {
+    fn from(reason: HoldReason) -> Self {
+        match reason {
+            HoldReason::ExternalChange => StorageHoldReason::ExternalChange,
+            HoldReason::Reload => StorageHoldReason::Reload,
+            HoldReason::Import => StorageHoldReason::Import,
+            HoldReason::Handover => StorageHoldReason::Handover,
+            HoldReason::Pause => StorageHoldReason::Pause,
+        }
+    }
+}
+
+/// A hold of the writer (no workbook) or of a workbook
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct StorageHoldView {
+    pub workbook_id: Option<String>,
+    pub reason: StorageHoldReason,
+    pub count: u32,
+}
+
+impl From<&WriteHold> for StorageHoldView {
+    fn from(hold: &WriteHold) -> Self {
+        StorageHoldView { workbook_id: hold.workbook_id.clone(), reason: hold.reason.into(), count: hold.count }
+    }
+}
+
+/// A write that failed and runs again after a backoff
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct FailedStorageWriteView {
+    pub key: String,
+    /// The workbook of the key, null for the files of the app
+    pub workbook_id: Option<String>,
+    /// The last error
+    pub error: String,
+    /// The failed attempts in a row
+    pub attempts: u32,
+}
+
+impl From<&FailedWrite> for FailedStorageWriteView {
+    fn from(write: &FailedWrite) -> Self {
+        FailedStorageWriteView { key: write.key.clone(), workbook_id: write.workbook_id.clone(), error: write.error.clone(), attempts: write.attempts }
     }
 }
 

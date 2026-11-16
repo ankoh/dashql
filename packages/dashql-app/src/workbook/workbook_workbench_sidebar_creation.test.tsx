@@ -98,7 +98,7 @@ const storageWriter = {
     deleteWorkbook: state.deleteWorkbook,
     backend: {},
     cancelPendingWritesForWorkbook: vi.fn(),
-    isWorkbookPaused: () => false,
+    isWorkbookHeld: () => false,
 };
 
 /// The runtime as the sidebar uses it: the storage writer, the actions of the connections and the creation of one

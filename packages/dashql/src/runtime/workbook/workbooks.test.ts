@@ -5,8 +5,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
-import { WORKBOOK_FORMAT_VERSION } from '../../platform/storage/migration/versions.js';
-import { createTestRuntime, type TestRuntime } from '../testing/test_runtime.js';
+import { storageVersions } from '../../platform/storage/storage_versions.js';
+import type { WorkbookData } from '../../platform/storage/storage_backend.js';
+import { createTestRuntime, testCore, type TestRuntime } from '../testing/test_runtime.js';
 import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../../platform/testing/workbook_test_backend.js';
 
 /// A Hyper server, its catalog outlives the app
@@ -33,7 +34,8 @@ describe('the workbooks of the runtime', () => {
         await storage.saveScript(TEST_WORKBOOK_ID, '2_query.sql', 'select x from t;');
         // A workbook of a format that the app doesn't read is refused a load, it can only be deleted
         const invalid = '11111111-2222-4333-8444-666666666666';
-        await storage.saveWorkbookManifest(invalid, testWorkbook({ workbookId: invalid, formatVersion: (WORKBOOK_FORMAT_VERSION + 100) as typeof WORKBOOK_FORMAT_VERSION }));
+        await testCore();
+        await storage.saveWorkbookManifest(invalid, testWorkbook({ workbookId: invalid, formatVersion: (storageVersions().formatVersion + 100) as WorkbookData['formatVersion'] }));
 
         const rt = runtime = await createTestRuntime({ storage });
         const progress: unknown[] = [];

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { STORAGE_MANIFEST_FILE } from '@ankoh/dashql/platform/storage/storage_backend';
-import { STORAGE_VERSION } from '@ankoh/dashql/platform/storage/migration/versions';
 import { TEST_WORKBOOK_ID, testWorkbook } from '@ankoh/dashql/platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
 
@@ -236,9 +235,9 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         expect(await backend.loadAppSettings()).toEqual({ narrowScreenLayout: false });
     });
 
-    it('stamps the current storage version on every manifest write', async () => {
-        files.set(STORAGE_MANIFEST_FILE, JSON.stringify({}));
+    it('keeps the storage version of the manifest, the migration stamps it', async () => {
+        files.set(STORAGE_MANIFEST_FILE, JSON.stringify({ storageVersion: 7 }));
         await backend.saveAppSettings({ keywordCase: 'upper' });
-        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).storageVersion).toBe(STORAGE_VERSION);
+        expect(JSON.parse(files.get(STORAGE_MANIFEST_FILE)! as string).storageVersion).toBe(7);
     });
 });

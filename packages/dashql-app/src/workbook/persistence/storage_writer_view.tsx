@@ -10,8 +10,8 @@ import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { OverlaySize } from '../../ui/foundations/overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { JsonView } from '../../ui/json/json_view.js';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
-import { type StorageWriteKey, type StorageWriterStatistics, storageWriteKeyBelongsToWorkbook, storageWriteKeyWithinWorkbook } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import { useRuntime, useView } from '../../runtime/runtime_hooks.js';
+import type { StorageKeyStatistics, StorageWriteKey, StorageWriterStatistics } from '@ankoh/dashql/runtime/storage/runtime_storage';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';
 import { useKeyEvents } from '../../utils/key_events.js';
@@ -22,12 +22,9 @@ export const ROW_HEIGHT = 32;
 /// How often the view reads the statistics of the writer while it shows them
 export const STATISTICS_POLL_MS = 500;
 
-/// The statistics of the writer by key
-type StorageWriteStatisticsMap = ReadonlyMap<StorageWriteKey, StorageWriterStatistics>;
-
 /// What changes when the statistics change
-function statisticsSignature(statistics: StorageWriteStatisticsMap): string {
-    return [...statistics].map(([key, s]) => `${key}:${s.totalScheduledWrites}:${s.totalWrites}:${s.lastWrite?.getTime() ?? ''}`).join('\n');
+function statisticsSignature(statistics: readonly StorageKeyStatistics[]): string {
+    return statistics.map(({ key, stats: s }) => `${key}:${s.totalScheduledWrites}:${s.totalWrites}:${s.lastWrite?.getTime() ?? ''}`).join('\n');
 }
 
 export interface StorageWriterEntry {
@@ -81,10 +78,8 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
     );
 };
 
-function buildEntries(statsMap: StorageWriteStatisticsMap, workbookId: string): StorageWriterEntry[] {
-    const entries: StorageWriterEntry[] = [...statsMap.entries()]
-        .filter(([key]) => storageWriteKeyBelongsToWorkbook(key, workbookId))
-        .map(([key, stats]) => ({ key, label: storageWriteKeyWithinWorkbook(key, workbookId), stats }));
+function buildEntries(statistics: readonly StorageKeyStatistics[]): StorageWriterEntry[] {
+    const entries: StorageWriterEntry[] = statistics.map(({ key, label, stats }) => ({ key, label, stats }));
     // Sort by last write ascending, the list scrolls to its end where the most recent write is.
     // Entries with no write come first.
     entries.sort((a, b) => {
@@ -111,24 +106,29 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
 
     // The statistics change with every write, the view reads them while it shows them
     const storageWriter = useRuntime().storage;
-    const [statsMap, setStatsMap] = React.useState<StorageWriteStatisticsMap | null>(() => storageWriter.getStatistics());
+    const read = React.useCallback(() => workbookId == null ? [] : storageWriter.getStatistics(workbookId), [storageWriter, workbookId]);
+    const [statistics, setStatistics] = React.useState<StorageKeyStatistics[]>(read);
     React.useEffect(() => {
-        let signature = statsMap == null ? '' : statisticsSignature(statsMap);
-        const poll = setInterval(() => {
-            const next = storageWriter.getStatistics();
+        let signature = '';
+        const update = () => {
+            const next = read();
             const nextSignature = statisticsSignature(next);
             if (nextSignature === signature) return;
             signature = nextSignature;
-            setStatsMap(next);
-        }, STATISTICS_POLL_MS);
+            setStatistics(next);
+        };
+        update();
+        const poll = setInterval(update, STATISTICS_POLL_MS);
         return () => clearInterval(poll);
-    }, [storageWriter]);
+    }, [read]);
 
-    // Build sorted entries from the stats map, scoped to the active workbook.
-    const entries = React.useMemo<StorageWriterEntry[]>(() => {
-        if (!statsMap || workbookId == null) return [];
-        return buildEntries(statsMap, workbookId);
-    }, [statsMap, workbookId]);
+    // The writes of the workbook that failed and what holds them, the writer retries the failed ones
+    const storage = useView('storage', 'root');
+    const failed = (storage?.failedWrites ?? []).filter(write => write.workbookId === workbookId);
+    const holds = [...new Set((storage?.holds ?? []).filter(hold => hold.workbookId == null || hold.workbookId === workbookId).map(hold => hold.reason))];
+
+    // Build sorted entries from the statistics of the active workbook
+    const entries = React.useMemo<StorageWriterEntry[]>(() => buildEntries(statistics), [statistics]);
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -214,6 +214,12 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                 <div className={styles.header_container}>
                     <div className={styles.header_left_container}>
                         <div className={styles.title}>Storage Writer</div>
+                        {holds.length > 0 && <div className={styles.status_held}>Held: {holds.join(', ')}</div>}
+                        {failed.length > 0 && (
+                            <div className={styles.status_failed}>
+                                {failed.length === 1 ? '1 write failed' : `${failed.length} writes failed`}: {failed[0].error}
+                            </div>
+                        )}
                     </div>
                     <div className={styles.header_right_container}>
                         <IconButton

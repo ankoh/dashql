@@ -11,10 +11,12 @@ const GITIGNORE_ENTRIES = ['cache/', '*.hyper'];
 /// A file of a workbook folder with its stamp
 export type NamedFileStamp = FileStamp & { name: string };
 
-/// The scripts and attachments of a workbook folder with their stamps
+/// The scripts, the attachments and the workbook file of a workbook folder with their stamps
 export interface WorkbookFolderStamps {
     scripts: NamedFileStamp[];
     attachments: NamedFileStamp[];
+    /// The workbook file, null if there is none
+    workbook: FileStamp | null;
 }
 
 function sameStamp(a: FileStamp | null, b: FileStamp | null): boolean {
@@ -39,8 +41,10 @@ export class NativeStorageBackend implements StorageBackend {
     private gitignoreChecked = false;
     /// The stamps of the scripts as this backend last wrote or acknowledged them, null for a deleted script
     private readonly scriptStamps = new Map<string, FileStamp | null>();
-    /// Were the scripts acknowledged? From then on a script without a stamp is known to be absent, and
-    /// script writes fail with an `ExternalScriptChangeError` when the stamp on disk differs.
+    /// The stamp of the workbook file as this backend last wrote or acknowledged it
+    private workbookStamp: FileStamp | null = null;
+    /// Was the folder acknowledged? From then on a script without a stamp is known to be absent, and writes of
+    /// scripts and of the workbook file fail with an `ExternalScriptChangeError` when the stamp on disk differs.
     private scriptsAcknowledged = false;
 
     constructor(dir: string, protected readonly fs: FileSystem) {
@@ -62,9 +66,14 @@ export class NativeStorageBackend implements StorageBackend {
         }
     }
 
-    /// Resolve a relative storage path against the absolute directory using OS-correct separators
+    /// Resolve a relative storage path against the absolute directory using OS-correct separators. A path that could
+    /// leave the folder is refused: an absolute path, an empty part, `.` or `..`, a backslash, NUL or a drive letter.
+    /// The runtime checks the names of imported files before, this is the second line.
     private async abs(relative: string): Promise<string> {
-        const parts = relative.split('/').filter(p => p.length > 0);
+        const parts = relative.split('/');
+        if (parts.some(part => part.length === 0 || part === '.' || part === '..' || /[\\\0]/.test(part) || /^[A-Za-z]:/.test(part))) {
+            throw new Error(`Invalid path in the workbook folder ${this.dir}: ${relative}`);
+        }
         return await joinPath(this.dir, ...parts);
     }
 
@@ -149,12 +158,17 @@ export class NativeStorageBackend implements StorageBackend {
         this.gitignoreChecked = true;
     }
 
-    async saveWorkbookManifest(_workbookId: string, data: WorkbookData): Promise<void> {
+    /// Write the workbook file atomically and keep its stamp. A file that changed outside the app since this backend
+    /// wrote or acknowledged it is not overwritten, the write fails with an `ExternalScriptChangeError` for the file.
+    async saveWorkbookManifest(workbookId: string, data: WorkbookData): Promise<void> {
         await this.ensureDir('');
         // Keep generated files out of version control as soon as the workbook folder is written
         await this.ensureGitignore();
         const metaFile = await this.abs(STORAGE_WORKBOOK_FILE);
-        await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));
+        if (this.scriptsAcknowledged && !sameStamp(await this.fs.fileStamp(metaFile), this.workbookStamp)) {
+            throw new ExternalScriptChangeError(workbookId, STORAGE_WORKBOOK_FILE);
+        }
+        this.workbookStamp = await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));
     }
 
 
@@ -204,7 +218,7 @@ export class NativeStorageBackend implements StorageBackend {
         scriptName: string,
         sql: string
     ): Promise<void> {
-        await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
+        await this.ensureScriptsDir();
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
         await this.checkScriptUnchanged(workbookId, scriptName, scriptFile);
         this.scriptStamps.set(scriptName, await this.fs.writeTextFile(scriptFile, sql));
@@ -240,36 +254,53 @@ export class NativeStorageBackend implements StorageBackend {
         this.scriptStamps.set(oldScriptName, null);
     }
 
-    /// The stamps of the scripts and attachments, read from two directory listings without reading a file
-    async stampFolder(): Promise<WorkbookFolderStamps> {
-        const [scripts, attachments] = await Promise.all([
-            this.fs.listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
-            this.fs.listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
-        ]);
-        return { scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')), attachments: attachments.filter(file => isAttachmentFileName(file.name)) };
+    /// The scripts folder of the workbook, created when missing. A missing workbook folder is not created again, e.g.
+    /// a native folder that was moved or deleted: the write fails instead.
+    private async ensureScriptsDir(): Promise<void> {
+        if (!(await this.fs.exists(this.dir))) {
+            throw new Error(`The workbook folder ${this.dir} is missing`);
+        }
+        await this.ensureDir(STORAGE_SCRIPTS_FOLDER);
     }
 
-    /// Acknowledge the scripts as they are on disk, script writes check the disk from now on
-    acknowledgeScripts(scripts: NamedFileStamp[]): void {
+    /// The stamps of the scripts, the attachments and the workbook file, read from two directory listings and one
+    /// stamp without reading a file
+    async stampFolder(): Promise<WorkbookFolderStamps> {
+        const [scripts, attachments, workbook] = await Promise.all([
+            this.fs.listFiles(await this.abs(STORAGE_SCRIPTS_FOLDER)),
+            this.fs.listFiles(await this.abs(STORAGE_ATTACHMENTS_FOLDER)),
+            this.fs.fileStamp(await this.abs(STORAGE_WORKBOOK_FILE)),
+        ]);
+        return {
+            scripts: scripts.filter(file => file.name.toLowerCase().endsWith('.sql')),
+            attachments: attachments.filter(file => isAttachmentFileName(file.name)),
+            workbook,
+        };
+    }
+
+    /// Acknowledge the scripts and the workbook file as they are on disk, writes check the disk from now on
+    acknowledgeFolder(stamps: WorkbookFolderStamps): void {
         this.scriptStamps.clear();
-        for (const script of scripts) {
+        for (const script of stamps.scripts) {
             this.scriptStamps.set(script.name, { size: script.size, mtimeMs: script.mtimeMs });
         }
+        this.workbookStamp = stamps.workbook == null ? null : { size: stamps.workbook.size, mtimeMs: stamps.workbook.mtimeMs };
         this.scriptsAcknowledged = true;
     }
 
-    /// The scripts whose stamps differ from what this backend wrote or acknowledged, sorted by name.
-    /// Every script differs before the scripts were acknowledged.
-    findExternalScriptChanges(scripts: NamedFileStamp[]): string[] {
-        const disk = new Map(scripts.map(script => [script.name, script]));
+    /// The scripts whose stamps differ from what this backend wrote or acknowledged, sorted by name, and the workbook
+    /// file last when its stamp differs. Every file differs before the folder was acknowledged.
+    findExternalChanges(stamps: WorkbookFolderStamps): string[] {
+        const disk = new Map(stamps.scripts.map(script => [script.name, script]));
         const names = new Set(disk.keys());
         for (const [name, stamp] of this.scriptStamps) {
             if (stamp != null) names.add(name);
         }
         if (!this.scriptsAcknowledged) {
-            return [...names].sort();
+            return [...[...names].sort(), ...(stamps.workbook != null ? [STORAGE_WORKBOOK_FILE] : [])];
         }
-        return [...names].filter(name => !sameStamp(disk.get(name) ?? null, this.scriptStamps.get(name) ?? null)).sort();
+        const scripts = [...names].filter(name => !sameStamp(disk.get(name) ?? null, this.scriptStamps.get(name) ?? null)).sort();
+        return sameStamp(stamps.workbook, this.workbookStamp) ? scripts : [...scripts, STORAGE_WORKBOOK_FILE];
     }
 
     /// Fail with an `ExternalScriptChangeError` when an acknowledged script changed on disk

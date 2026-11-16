@@ -2,21 +2,24 @@
 //! brought to the current storage version with the steps of the crate (`workbook_format::storage_migration`), and every
 //! workbook folder to the current workbook format (`workbook_format::migration`).
 //!
-//! `JsStorageRoot` is the host of the steps over `storageRoot` of the platform: the files and directories below the
-//! root by path, and the native workbook folders that the platform claims. `JsFolder` is a workbook folder of the
-//! platform, a folder of the root or an object with `readText`, `writeText` and `remove`. The restore migrates a
-//! workbook folder of the storage before it first reads its workbook file (`storage.workbookFolder` of the platform).
+//! `JsStorageRoot` is the host of the steps over a storage root of the platform: the files and directories below the
+//! root by path, and the native workbook folders that the platform claims. The migration of the storage root is a
+//! static function of the module (`Runtime.migrateStorage`), the app runs it at startup before it creates its runtime.
+//! `JsFolder` is a workbook folder of the platform, a folder of the root or an object with `readText`, `writeText` and
+//! `remove`. The storage of a runtime migrates a workbook folder that it keeps elsewhere (`storage.workbookFolder` of
+//! the platform) when it reads a workbook file of an older format.
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use wasm_bindgen::JsCast;
 use dashql_core_runtime::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_runtime::workbook_format::migration::{migrate_folder, FolderHost, WorkbookMigrationResult};
 use dashql_core_runtime::workbook_format::storage_migration::{migrate_storage, DirEntry, StorageRootHost, StorageMigrationSummary};
-use js_sys::Array;
+use js_sys::{Array, Function, Promise, Reflect};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::host::{call_method, field, JsPlatform};
+use crate::host::{call_method, details_value, field, message_of, JsPlatform};
 
 /// What a migration of the storage changed, with the versions it migrated to
 #[derive(Clone, Debug, Serialize, Tsify)]
@@ -40,6 +43,23 @@ impl From<StorageMigrationSummary> for StorageMigrationOutcome {
             storage_version: STORAGE_VERSION,
             format_version: WORKBOOK_FORMAT_VERSION,
         }
+    }
+}
+
+/// The versions of the storage format of the module: of the storage root and of workbook files
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageVersions {
+    /// The storage version of the app, `storageVersion` of the manifest
+    pub storage_version: i64,
+    /// The workbook format version of the app, `formatVersion` of a workbook file
+    pub format_version: i64,
+}
+
+impl StorageVersions {
+    /// The versions of this module
+    pub fn current() -> Self {
+        StorageVersions { storage_version: STORAGE_VERSION, format_version: WORKBOOK_FORMAT_VERSION }
     }
 }
 
@@ -84,38 +104,58 @@ impl FolderHost for JsFolder {
     }
 }
 
-/// The storage root of the platform as the steps of the migration see it
+/// A storage root of the platform as the steps of the migration see it, with the log of the platform. It needs no
+/// runtime: the clock, the timers and the random ids are the ones of the global scope.
 pub(crate) struct JsStorageRoot {
-    platform: JsPlatform,
     root: JsValue,
+    /// Logs a message: `(level, message, details, target)`
+    log: Option<Function>,
 }
 
 impl JsStorageRoot {
-    /// The storage root of the platform, an error without one
-    pub fn of(platform: &JsPlatform) -> Result<Self, HostError> {
-        Ok(JsStorageRoot { platform: platform.clone(), root: platform.storage_root()? })
-    }
-
     async fn call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
         call_method(&self.root, name, args).await
     }
 }
 
+/// A member of the global scope, e.g. `crypto`
+fn global(name: &str) -> Result<JsValue, HostError> {
+    Reflect::get(&js_sys::global(), &JsValue::from_str(name)).map_err(|error| HostError::new(message_of(&error)))
+}
+
 impl Host for JsStorageRoot {
     fn now(&self) -> f64 {
-        self.platform.now()
+        js_sys::Date::now()
     }
 
     fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
-        self.platform.sleep(ms)
+        let set_timeout = global("setTimeout").ok().and_then(|f| f.dyn_into::<Function>().ok());
+        let promise = Promise::new(&mut |resolve, _| {
+            match &set_timeout {
+                Some(set_timeout) => {
+                    let _ = set_timeout.call2(&JsValue::NULL, &resolve, &JsValue::from_f64(ms));
+                }
+                None => {
+                    let _ = resolve.call0(&JsValue::NULL);
+                }
+            }
+        });
+        async move {
+            let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+        }
     }
 
     fn spawn(&self, task: LocalTask) {
-        self.platform.spawn(task);
+        wasm_bindgen_futures::spawn_local(task);
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        self.platform.log_on(level, message, details, "storage_migration");
+        if let Some(log) = &self.log {
+            let args: Array = [JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into(), JsValue::from_str("storage_migration")]
+                .into_iter()
+                .collect();
+            let _ = log.apply(&JsValue::NULL, &args);
+        }
     }
 }
 
@@ -170,15 +210,27 @@ impl StorageRootHost for JsStorageRoot {
         Ok(folder.is_object().then_some(JsFolder::Object(folder)))
     }
 
-    fn random_uuid(&self) -> String {
-        self.platform.random_uuid().unwrap_or_default()
+    fn random_uuid(&self) -> Result<String, HostError> {
+        let crypto = global("crypto")?;
+        let random_uuid = Reflect::get(&crypto, &JsValue::from_str("randomUUID"))
+            .ok()
+            .and_then(|f| f.dyn_into::<Function>().ok())
+            .ok_or_else(|| HostError::new("the platform gives no random UUIDs"))?;
+        random_uuid
+            .call0(&crypto)
+            .map_err(|error| HostError::new(message_of(&error)))?
+            .as_string()
+            .ok_or_else(|| HostError::new("the platform returned no UUID"))
     }
 }
 
-/// Bring the storage root of the platform to the current storage version and its workbook folders to the current
-/// workbook format
-pub(crate) async fn migrate(platform: JsPlatform) -> Result<StorageMigrationOutcome, HostError> {
-    let root = JsStorageRoot::of(&platform)?;
+/// Bring a storage root of the platform to the current storage version and its workbook folders to the current
+/// workbook format, logging through a function of the platform
+pub(crate) async fn migrate(root: JsValue, log: Option<Function>) -> Result<StorageMigrationOutcome, HostError> {
+    if !root.is_object() {
+        return Err(HostError::new("the platform has no storage root to migrate"));
+    }
+    let root = JsStorageRoot { root, log };
     Ok(migrate_storage(&root).await?.into())
 }
 

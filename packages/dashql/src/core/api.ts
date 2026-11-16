@@ -463,6 +463,18 @@ export class DashQL {
         return this.bindings.Runtime.workbookTables();
     }
 
+    /// The versions of the storage format: the storage version of the manifest and the format version of workbook files
+    public storageVersions(): glue.StorageVersions {
+        return this.bindings.Runtime.storageVersions();
+    }
+
+    /// Bring a storage root to the current storage version and its workbook folders to the current workbook format,
+    /// without a runtime. A fresh storage gets a manifest with the current version, a storage of a newer version of the
+    /// app is refused. The caller holds the lock of the manifest.
+    public async migrateStorage(root: glue.RuntimeStorageRoot, log: glue.RuntimePlatform['log'] | null = null): Promise<glue.StorageMigrationOutcome> {
+        return await this.bindings.Runtime.migrateStorage(root, log);
+    }
+
     /// Create the table parameters of a session, the tables that `:foo` in table position reads
     public createTableParameters(): DashQLTableParameters {
         return new DashQLTableParameters(new Ptr(TABLE_PARAMETERS_TYPE, this, new this.bindings.TableParameters()));

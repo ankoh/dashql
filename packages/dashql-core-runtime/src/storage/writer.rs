@@ -2,9 +2,17 @@
 //!
 //! A write has a key (`keys`) and a task. A newer write of a pending key replaces the task and keeps the timer of the
 //! first one, the caller of the replaced task learns that it was superseded. A timer runs a task after its debounce
-//! duration, the tasks of a chain (`keys::chain_key`) run one after another. A paused writer or workbook keeps its
-//! tasks pending until it resumes, a flush writes them anyway. A write that would overwrite a script that changed
-//! outside the app pauses its workbook and stays pending until the host decides between the disk and the app.
+//! duration, the tasks of a chain (`keys::chain_key`) run one after another.
+//!
+//! Holds keep tasks pending. A hold has a reason (`HoldReason`) and is counted: every hold is released on its own, a
+//! check of a folder releases the hold it took and not the one of an open question. A hold of the writer (`pause`, a
+//! handover to another tab) keeps every task pending, a forced flush (`flush`, e.g. when the page hides) writes past
+//! it. A hold of a workbook is never forced: a write that would overwrite a script or a workbook file that changed
+//! outside the app holds its workbook (`HoldReason::ExternalChange`) until the host decides between the disk and the
+//! app, a reload or an import holds the workbook it replaces.
+//!
+//! A failed task stays pending and runs again after a backoff, its key and its last error are part of the status of
+//! the writer (`WriterStatus`) until a write of the key succeeds or the task is cancelled.
 //!
 //! The writer decides, the host does the I/O. The state lives behind a `RefCell`: a task reads it, awaits the host
 //! without holding a borrow, then applies the result. What the host is told (resolved writes, statistics, external
@@ -12,22 +20,26 @@
 //! again from any of them.
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
-use super::keys::{belongs_to_workbook, chain_key, connection_file_prefix};
-use super::workbook_file::{
-    items, iso_timestamp, manifest_equals, patch_workbook_connection, present, truthy, upsert_connection_entry,
-    with_workbook_scripts,
+use super::keys::{
+    belongs_to_workbook, chain_key, connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key,
+    script_key, script_rename_key, workbook_attachment_list_key, workbook_connection_copy_key, workbook_file_key,
+    workbook_script_list_key, workbook_scripts_key,
 };
-use super::{StorageHost, CONNECTIONS_FOLDER, SCRIPTS_FOLDER, WORKBOOK_FILE};
+use super::workbook_file::{attachments_patch, manifest_file, properties_patch, replaced_workbook_file, same_file, upsert_connection_entry};
+use super::StorageHost;
 use crate::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
 use crate::host::{HostError, LogLevel};
+use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
+use crate::workbook_format::files::{patch_workbook_connection, with_workbook_scripts};
+use crate::workbook_format::storage_migration::iso_timestamp;
 
 /// A text that is written, or how to read it when the write runs
 pub enum TextSource {
@@ -49,17 +61,17 @@ impl TextSource {
 pub enum WriteTask {
     /// Write the workbook file with the given copies of connections. The scripts, the name and the attachments on disk
     /// stay, an ephemeral workbook is marked as one.
-    WriteWorkbookManifest { workbook_id: String, connections: Vec<Value>, ephemeral: bool },
+    WriteWorkbookManifest { workbook_id: String, connections: Vec<WorkbookConnection>, ephemeral: bool },
     /// Patch the properties that the user owns into the workbook file. A write without `ephemeral` promotes the
     /// workbook, one without `cloud` removes the link to the cloud.
-    WriteWorkbookProperties { workbook_id: String, name: Option<String>, ephemeral: bool, cloud: Option<Value> },
+    WriteWorkbookProperties { workbook_id: String, name: Option<String>, ephemeral: bool, cloud: Option<WorkbookCloudLink> },
     /// Write a workbook as a whole, its scripts first and its workbook file last. The script list on disk stays.
     ReplaceWorkbookScripts {
         workbook_id: String,
         name: Option<String>,
         scripts: Vec<(String, TextSource)>,
         /// The connection of a workbook that is not stored yet
-        connection: Option<Value>,
+        connection: Option<WorkbookConnection>,
         original_file_name: Option<String>,
     },
     /// Insert or replace a connection entry of the app manifest
@@ -68,15 +80,104 @@ pub enum WriteTask {
     DeleteConnectionEntry { connection_id: String },
     /// Write a file of a connection
     WriteConnectionFile { connection_id: String, file_name: String, text: TextSource },
-    /// Patch the copies of a connection into an existing workbook file, see `patch_workbook_connection`
-    PatchWorkbookConnection { workbook_id: String, copy: Value, replaced: Vec<String> },
+    /// Patch the copies of a connection into an existing workbook file, see `files::patch_workbook_connection`
+    PatchWorkbookConnection { workbook_id: String, copy: WorkbookConnection, replaced: Vec<String> },
     WriteScript { workbook_id: String, file_name: String, text: String },
     DeleteScript { workbook_id: String, file_name: String },
     RenameScript { workbook_id: String, from: String, to: String },
     /// Patch the script list and the copies of the connections it uses into the workbook file
-    WriteWorkbookScripts { workbook_id: String, scripts: Vec<Value>, connections: Vec<Value> },
+    WriteWorkbookScripts { workbook_id: String, scripts: Vec<WorkbookScript>, connections: Vec<WorkbookConnection> },
     /// Patch the attachment list of the workbook file from the attachments on disk
     RefreshWorkbookAttachments { workbook_id: String },
+}
+
+impl WriteTask {
+    /// The key that the runtime writes the task under (`keys`), e.g. for a write that the host schedules. A connection
+    /// copy is keyed by the connection it replaces, or its own.
+    pub fn key(&self) -> String {
+        match self {
+            WriteTask::WriteWorkbookManifest { workbook_id, .. } | WriteTask::WriteWorkbookProperties { workbook_id, .. } => {
+                workbook_file_key(workbook_id)
+            }
+            WriteTask::ReplaceWorkbookScripts { workbook_id, .. } => workbook_scripts_key(workbook_id),
+            WriteTask::WriteConnectionEntry { entry } => connection_entry_key(entry.get("id").and_then(Value::as_str).unwrap_or_default()),
+            WriteTask::DeleteConnectionEntry { connection_id } => connection_entry_key(connection_id),
+            WriteTask::WriteConnectionFile { connection_id, file_name, .. } => connection_file_key(connection_id, file_name),
+            WriteTask::PatchWorkbookConnection { workbook_id, copy, replaced } => {
+                workbook_connection_copy_key(workbook_id, replaced.first().unwrap_or(&copy.connection_id))
+            }
+            WriteTask::WriteScript { workbook_id, file_name, .. } => script_key(workbook_id, file_name),
+            WriteTask::DeleteScript { workbook_id, file_name } => script_deletion_key(workbook_id, file_name),
+            WriteTask::RenameScript { workbook_id, from, .. } => script_rename_key(workbook_id, from),
+            WriteTask::WriteWorkbookScripts { workbook_id, .. } => workbook_script_list_key(workbook_id),
+            WriteTask::RefreshWorkbookAttachments { workbook_id } => workbook_attachment_list_key(workbook_id),
+        }
+    }
+}
+
+/// Why writes are held. Holds are counted per reason, each is released on its own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum HoldReason {
+    /// A write would overwrite a file that changed outside the app, the host asks the user. Taken by the writer, held
+    /// once per workbook, one release ends it.
+    ExternalChange,
+    /// A check of a folder that changed outside the app, or a reload of a workbook from disk
+    Reload,
+    /// An import replaces the workbook
+    Import,
+    /// Another tab took over the app
+    Handover,
+    /// The host paused the writes, e.g. while it moves a workbook
+    Pause,
+}
+
+/// A hold of the writer (no workbook) or of a workbook
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WriteHold {
+    pub workbook_id: Option<String>,
+    pub reason: HoldReason,
+    pub count: u32,
+}
+
+/// A task that failed and waits for its next attempt
+#[derive(Clone, Debug, PartialEq)]
+pub struct FailedWrite {
+    pub key: String,
+    /// The workbook of the key, none for a key of the app storage
+    pub workbook_id: Option<String>,
+    /// The last error
+    pub error: String,
+    /// The failed attempts in a row
+    pub attempts: u32,
+}
+
+/// What the writer holds and what failed, the host shows it
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WriterStatus {
+    /// The holds of the writer, then those of the workbooks by id
+    pub holds: Vec<WriteHold>,
+    /// The failed keys in the order they were scheduled
+    pub failed: Vec<FailedWrite>,
+}
+
+impl WriterStatus {
+    /// The workbooks that a change outside the app holds
+    pub fn externally_changed(&self) -> impl Iterator<Item = &str> {
+        self.holds.iter().filter(|hold| hold.reason == HoldReason::ExternalChange).filter_map(|hold| hold.workbook_id.as_deref())
+    }
+}
+
+/// The delay before the next attempt of a failed task: one second, doubled with every failure, at most a minute
+pub fn retry_delay_ms(attempts: u32) -> f64 {
+    (1000.0 * 2f64.powi(attempts.saturating_sub(1).min(6) as i32)).min(60_000.0)
+}
+
+/// The workbook of a key, none for a key of the app storage
+fn workbook_of_key(key: &str) -> Option<&str> {
+    if key.starts_with('@') {
+        return None;
+    }
+    key.split('/').next().filter(|id| !id.is_empty())
 }
 
 /// Why a write failed
@@ -152,8 +253,6 @@ struct PendingTask {
     debounce_ms: f64,
     /// The armed timer
     timer: Option<u64>,
-    /// The flush of a workbook that waits for the task
-    flush_round: Option<u64>,
 }
 
 struct Execution {
@@ -171,8 +270,14 @@ enum Effect {
     CancelTimer(CancelHandle),
     RunChain(String),
     Statistics(String, WriteStatistics),
-    ExternalChange(String),
+    Status(WriterStatus),
     Log(LogLevel, String, Vec<(String, String)>),
+}
+
+/// The failure of a key
+struct Failure {
+    error: String,
+    attempts: u32,
 }
 
 #[derive(Default)]
@@ -181,10 +286,16 @@ struct State {
     /// The keys of the pending tasks in the order they were scheduled
     order: BTreeMap<u64, String>,
     next_seq: u64,
-    paused: bool,
-    paused_workbooks: BTreeSet<String>,
+    /// The holds of the writer by reason, with their counts
+    holds: BTreeMap<HoldReason, u32>,
+    /// The holds of workbooks by reason, with their counts
+    workbook_holds: HashMap<String, BTreeMap<HoldReason, u32>>,
+    /// The failures of the keys whose tasks failed last
+    failures: HashMap<String, Failure>,
+    /// Did the holds or the failures change since the host was told?
+    status_changed: bool,
     /// Writes of deleted workbooks are discarded until a workbook with the id is registered again
-    deleted_workbooks: BTreeSet<String>,
+    deleted_workbooks: HashSet<String>,
     /// The armed timers, with their cancel handles once they run
     timers: HashMap<u64, Option<CancelHandle>>,
     next_timer: u64,
@@ -192,10 +303,7 @@ struct State {
     chains: HashMap<String, VecDeque<Execution>>,
     in_flight: usize,
     settle_waiters: Vec<Sender<()>>,
-    /// The failed tasks of the flushes of workbooks
-    flush_rounds: HashMap<u64, Vec<(String, PendingTask)>>,
-    next_flush_round: u64,
-    /// The latest generation of every key, every scheduled write advances it
+    /// The latest generation of every key, every scheduled write advances it. A deleted workbook drops its keys.
     generations: HashMap<String, u64>,
     next_generation: u64,
     statistics: BTreeMap<String, WriteStatistics>,
@@ -203,12 +311,102 @@ struct State {
 }
 
 impl State {
-    fn is_paused_key(&self, key: &str) -> bool {
-        self.paused || self.paused_workbooks.iter().any(|id| belongs_to_workbook(key, id))
+    /// Does a hold keep the task of a key pending? A forced write passes the holds of the writer, never those of a
+    /// workbook.
+    fn is_held_key(&self, key: &str, force: bool) -> bool {
+        (!force && !self.holds.is_empty()) || workbook_of_key(key).is_some_and(|id| self.workbook_holds.contains_key(id))
     }
 
-    fn is_workbook_paused(&self, workbook_id: &str) -> bool {
-        self.paused || self.paused_workbooks.contains(workbook_id)
+    fn is_paused_key(&self, key: &str) -> bool {
+        self.is_held_key(key, false)
+    }
+
+    fn is_workbook_held(&self, workbook_id: &str) -> bool {
+        !self.holds.is_empty() || self.workbook_holds.contains_key(workbook_id)
+    }
+
+    /// Take a hold of the writer or of a workbook. A change outside the app holds a workbook once.
+    fn hold(&mut self, workbook_id: Option<&str>, reason: HoldReason) {
+        let holds = match workbook_id {
+            Some(id) => self.workbook_holds.entry(id.to_string()).or_default(),
+            None => &mut self.holds,
+        };
+        let count = holds.entry(reason).or_insert(0);
+        if reason == HoldReason::ExternalChange && *count > 0 {
+            return;
+        }
+        *count += 1;
+        match workbook_id {
+            Some(id) => self.clear_timers_where(|key| belongs_to_workbook(key, id)),
+            None => self.clear_timers_where(|_| true),
+        }
+        self.status_changed = true;
+    }
+
+    /// Release a hold, or all holds of the reason. The tasks that no hold keeps any more wait for their debounce
+    /// duration again.
+    fn release(&mut self, workbook_id: Option<&str>, reason: HoldReason, all: bool) {
+        let holds = match workbook_id {
+            Some(id) => match self.workbook_holds.get_mut(id) {
+                Some(holds) => holds,
+                None => return,
+            },
+            None => &mut self.holds,
+        };
+        let Some(count) = holds.get_mut(&reason) else { return };
+        *count = if all { 0 } else { count.saturating_sub(1) };
+        if *count == 0 {
+            holds.remove(&reason);
+        }
+        let released = holds.is_empty();
+        if let Some(id) = workbook_id.filter(|_| released) {
+            self.workbook_holds.remove(id);
+        }
+        self.status_changed = true;
+        if !released || !self.holds.is_empty() {
+            return;
+        }
+        match workbook_id {
+            Some(id) => self.rearm_timers_where(|key| belongs_to_workbook(key, id)),
+            None => {
+                let held: HashSet<String> = self.workbook_holds.keys().cloned().collect();
+                self.rearm_timers_where(|key| !workbook_of_key(key).is_some_and(|id| held.contains(id)))
+            }
+        }
+    }
+
+    /// What the writer holds and what failed
+    fn status(&self) -> WriterStatus {
+        let mut holds: Vec<WriteHold> =
+            self.holds.iter().map(|(reason, count)| WriteHold { workbook_id: None, reason: *reason, count: *count }).collect();
+        let mut workbooks: Vec<(&String, &BTreeMap<HoldReason, u32>)> = self.workbook_holds.iter().collect();
+        workbooks.sort_by(|a, b| a.0.cmp(b.0));
+        for (id, reasons) in workbooks {
+            holds.extend(reasons.iter().map(|(reason, count)| WriteHold { workbook_id: Some(id.clone()), reason: *reason, count: *count }));
+        }
+        let mut failed: Vec<(u64, FailedWrite)> = self
+            .failures
+            .iter()
+            .map(|(key, failure)| {
+                let seq = self.pending.get(key).map_or(u64::MAX, |pending| pending.seq);
+                let write = FailedWrite {
+                    key: key.clone(),
+                    workbook_id: workbook_of_key(key).map(str::to_string),
+                    error: failure.error.clone(),
+                    attempts: failure.attempts,
+                };
+                (seq, write)
+            })
+            .collect();
+        failed.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.key.cmp(&b.1.key)));
+        WriterStatus { holds, failed: failed.into_iter().map(|(_, write)| write).collect() }
+    }
+
+    /// A key no longer fails, e.g. its task ran or was cancelled
+    fn clear_failure(&mut self, key: &str) {
+        if self.failures.remove(key).is_some() {
+            self.status_changed = true;
+        }
     }
 
     fn resolve(&mut self, resolver: Option<Sender<WriteOutcome>>, outcome: WriteOutcome) {
@@ -302,18 +500,10 @@ impl State {
             Some(pending) => {
                 let previous = pending.resolver.replace(sender);
                 pending.task = task;
-                pending.flush_round = None;
                 Some(previous)
             }
             None => {
-                let pending = PendingTask {
-                    seq: 0,
-                    task,
-                    resolver: Some(sender),
-                    debounce_ms: debounce_ms.max(0.0),
-                    timer: None,
-                    flush_round: None,
-                };
+                let pending = PendingTask { seq: 0, task, resolver: Some(sender), debounce_ms: debounce_ms.max(0.0), timer: None };
                 self.insert_pending(key.to_string(), pending);
                 self.arm_timer(key);
                 None
@@ -327,9 +517,9 @@ impl State {
     }
 
     /// Start the pending task of a key: it leaves the pending tasks and waits for the tasks of its chain. A held key
-    /// stays pending unless forced. Returns what completes once the task ran.
+    /// stays pending, a forced one passes the holds of the writer. Returns what completes once the task ran.
     fn process(&mut self, key: &str, force: bool) -> Option<Receiver<()>> {
-        if !self.pending.contains_key(key) || (!force && self.is_paused_key(key)) {
+        if !self.pending.contains_key(key) || self.is_held_key(key, force) {
             return None;
         }
         let pending = self.remove_pending(key)?;
@@ -352,16 +542,17 @@ impl State {
             Ok(()) => {
                 let resolver = pending.resolver.take();
                 self.resolve(resolver, WriteOutcome::Written);
+                self.clear_failure(&key);
             }
             Err(WriteError::Host(error)) if error.external_change().is_some() => {
                 let workbook_id = error.external_change().map(|c| c.workbook_id.clone()).unwrap_or_default();
                 let file = error.external_change().map(|c| c.file_name.clone()).unwrap_or_default();
                 self.log(
                     LogLevel::Warn,
-                    "script changed outside the app, holding the write",
+                    "file changed outside the app, holding the write",
                     &[("key", &key), ("workbookId", &workbook_id), ("file", &file)],
                 );
-                self.pause_workbook(&workbook_id);
+                self.hold(Some(&workbook_id), HoldReason::ExternalChange);
                 if self.pending.contains_key(&key) {
                     // A newer task with the same key was scheduled while this one ran
                     let resolver = pending.resolver.take();
@@ -369,14 +560,20 @@ impl State {
                 } else {
                     self.insert_pending(key, pending);
                 }
-                self.effects.push(Effect::ExternalChange(workbook_id));
             }
             Err(error) => {
-                self.log(LogLevel::Error, "executing write task failed", &[("key", &key), ("error", &error.message())]);
+                let message = error.message();
+                self.log(LogLevel::Error, "executing write task failed", &[("key", &key), ("error", &message)]);
                 let resolver = pending.resolver.take();
                 self.resolve(resolver, WriteOutcome::Failed(error));
-                if let Some(round) = pending.flush_round.and_then(|round| self.flush_rounds.get_mut(&round)) {
-                    round.push((key, pending));
+                // The task stays pending and runs again after a backoff, unless a newer task replaced it
+                let attempts = self.failures.get(&key).map_or(0, |failure| failure.attempts) + 1;
+                self.failures.insert(key.clone(), Failure { error: message, attempts });
+                self.status_changed = true;
+                if !self.pending.contains_key(&key) && !self.deleted_workbooks.iter().any(|id| belongs_to_workbook(&key, id)) {
+                    pending.debounce_ms = retry_delay_ms(attempts);
+                    self.insert_pending(key.clone(), pending);
+                    self.arm_timer(&key);
                 }
             }
         }
@@ -389,15 +586,21 @@ impl State {
         }
     }
 
-    fn pause_workbook(&mut self, workbook_id: &str) {
-        self.paused_workbooks.insert(workbook_id.to_string());
-        self.clear_timers_where(|key| belongs_to_workbook(key, workbook_id));
-    }
-
     fn cancel(&mut self, key: &str) {
         if let Some(mut pending) = self.remove_pending(key) {
             let resolver = pending.resolver.take();
             self.resolve(resolver, WriteOutcome::Cancelled);
+        }
+        self.clear_failure(key);
+    }
+
+    /// Forget the keys of a deleted workbook: their generations, statistics and failures
+    fn forget_workbook(&mut self, workbook_id: &str) {
+        self.generations.retain(|key, _| !belongs_to_workbook(key, workbook_id));
+        self.statistics.retain(|key, _| !belongs_to_workbook(key, workbook_id));
+        let failed: Vec<String> = self.failures.keys().filter(|key| belongs_to_workbook(key, workbook_id)).cloned().collect();
+        for key in failed {
+            self.clear_failure(&key);
         }
     }
 
@@ -426,7 +629,7 @@ impl State {
 struct Shared<H: StorageHost> {
     host: H,
     /// The format version of workbook files that the writer writes
-    format_version: u64,
+    format_version: i64,
     state: RefCell<State>,
 }
 
@@ -435,6 +638,10 @@ fn update<H: StorageHost, R>(shared: &Rc<Shared<H>>, change: impl FnOnce(&mut St
     let (result, effects) = {
         let mut state = shared.state.borrow_mut();
         let result = change(&mut state);
+        if std::mem::take(&mut state.status_changed) {
+            let status = state.status();
+            state.effects.push(Effect::Status(status));
+        }
         (result, std::mem::take(&mut state.effects))
     };
     apply(shared, effects);
@@ -453,7 +660,7 @@ fn apply<H: StorageHost>(shared: &Rc<Shared<H>>, effects: Vec<Effect>) {
                 shared.host.spawn(Box::pin(task));
             }
             Effect::Statistics(key, statistics) => shared.host.statistics_changed(&key, &statistics),
-            Effect::ExternalChange(workbook_id) => shared.host.external_script_change(&workbook_id),
+            Effect::Status(status) => shared.host.status_changed(&status),
             Effect::Log(level, message, details) => {
                 let details: Vec<(&str, &str)> = details.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
                 shared.host.log(level, &message, &details);
@@ -550,10 +757,15 @@ fn log<H: StorageHost>(shared: &Rc<Shared<H>>, level: LogLevel, message: &str, d
 }
 
 /// Save the workbook file of a workbook and record the write
-async fn save_workbook_file<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str, workbook: &Value) -> Result<(), HostError> {
-    let bytes = serde_json::to_string_pretty(workbook).map(|text| text.len()).unwrap_or_default();
-    let path = format!("{workbook_id}/{WORKBOOK_FILE}");
-    timed_write(shared, &path, bytes, shared.host.save_workbook(workbook_id, workbook)).await
+async fn save_workbook_file<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str, workbook: &WorkbookData) -> Result<(), HostError> {
+    let json = workbook.to_json();
+    let bytes = serde_json::to_string_pretty(&json).map(|text| text.len()).unwrap_or_default();
+    timed_write(shared, &workbook_file_key(workbook_id), bytes, shared.host.save_workbook(workbook_id, &json)).await
+}
+
+/// The workbook file of a workbook, none if there is none
+async fn load_workbook_file<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str) -> Option<WorkbookData> {
+    shared.host.load_workbook(workbook_id).await.ok().map(|json| WorkbookData::from_json(&json))
 }
 
 /// Patch an existing workbook file, the write is skipped when nothing changed. A missing workbook file is not
@@ -562,24 +774,21 @@ async fn patch_workbook_file<H: StorageHost>(
     shared: &Rc<Shared<H>>,
     key: &str,
     workbook_id: &str,
-    patch: impl FnOnce(&Value) -> Value,
+    patch: impl FnOnce(&WorkbookData) -> WorkbookData,
 ) -> Result<(), WriteError> {
     let existing = shared
         .host
         .load_workbook(workbook_id)
         .await
         .map_err(|cause| WriteError::WorkbookUnavailable { workbook_id: workbook_id.to_string(), cause })?;
+    let existing = WorkbookData::from_json(&existing);
     let next = patch(&existing);
-    if manifest_equals(&existing, &next) {
+    if same_file(&existing, &next) {
         return Ok(());
     }
     log(shared, LogLevel::Info, "Patching workbook", &[("key", key), ("workbookId", workbook_id)]);
     save_workbook_file(shared, workbook_id, &next).await?;
     Ok(())
-}
-
-fn object_at(value: Option<&Value>, key: &str) -> Option<Map<String, Value>> {
-    value.and_then(|v| v.get(key)).and_then(Value::as_object).cloned()
 }
 
 async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &WriteTask) -> Result<(), WriteError> {
@@ -588,144 +797,45 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         WriteTask::WriteWorkbookManifest { workbook_id, connections, ephemeral } => {
             log(shared, LogLevel::Info, "Writing workbook", &[("key", key), ("workbookId", workbook_id)]);
             // What is on disk keeps its creation time, and the write is skipped when nothing changed
-            let existing = host.load_workbook(workbook_id).await.ok();
-            let existing = existing.as_ref();
-            let mut metadata = object_at(existing, "metadata").unwrap_or_default();
-            let created_at = metadata
-                .get("createdAt")
-                .filter(|v| !v.is_null())
-                .cloned()
-                .unwrap_or_else(|| Value::String(iso_timestamp(host.now())));
-            metadata.insert("createdAt".to_string(), created_at);
-            if *ephemeral {
-                metadata.insert("ephemeral".to_string(), Value::Bool(true));
-            }
-            let mut workbook = Map::new();
-            workbook.insert("formatVersion".to_string(), Value::from(shared.format_version));
-            workbook.insert("workbookId".to_string(), Value::String(workbook_id.clone()));
-            if let Some(name) = existing.and_then(|e| e.get("name")).filter(|name| truthy(name)) {
-                workbook.insert("name".to_string(), name.clone());
-            }
-            workbook.insert("connections".to_string(), Value::Array(Vec::new()));
-            workbook.insert("scripts".to_string(), Value::Array(Vec::new()));
-            let attachments = existing.and_then(|e| present(e, "attachments")).cloned().unwrap_or(Value::Array(Vec::new()));
-            workbook.insert("attachments".to_string(), attachments);
-            workbook.insert("metadata".to_string(), Value::Object(metadata));
-            // The given connections replace the copies on disk, the scripts keep theirs
-            let scripts = existing.map(|e| items(e, "scripts")).unwrap_or_default();
-            let mut copies = connections.clone();
-            copies.extend(existing.map(|e| items(e, "connections")).unwrap_or_default());
-            let next = with_workbook_scripts(&Value::Object(workbook), scripts, &copies);
-            if let Some(existing) = existing {
-                if manifest_equals(existing, &next) {
-                    log(shared, LogLevel::Debug, "Skipping workbook write: manifest unchanged", &[("workbookId", workbook_id)]);
-                    return Ok(());
-                }
+            let existing = load_workbook_file(shared, workbook_id).await;
+            let now = iso_timestamp(host.now());
+            let next = manifest_file(existing.as_ref(), workbook_id, shared.format_version, connections, *ephemeral, &now);
+            if existing.as_ref().is_some_and(|existing| same_file(existing, &next)) {
+                log(shared, LogLevel::Debug, "Skipping workbook write: manifest unchanged", &[("workbookId", workbook_id)]);
+                return Ok(());
             }
             save_workbook_file(shared, workbook_id, &next).await?;
         }
         WriteTask::WriteWorkbookProperties { workbook_id, name, ephemeral, cloud } => {
-            patch_workbook_file(shared, key, workbook_id, |existing| {
-                let mut next = existing.as_object().cloned().unwrap_or_default();
-                match name.as_ref().filter(|name| !name.is_empty()) {
-                    Some(name) => {
-                        next.insert("name".to_string(), Value::String(name.clone()));
-                    }
-                    None => {
-                        next.shift_remove("name");
-                    }
-                }
-                let mut metadata = next.get("metadata").and_then(Value::as_object).cloned();
-                if !*ephemeral {
-                    if let Some(metadata) = metadata.as_mut().filter(|m| m.get("ephemeral").is_some_and(|v| !v.is_null())) {
-                        metadata.shift_remove("ephemeral");
-                    }
-                }
-                match cloud {
-                    Some(cloud) => {
-                        let mut fields = metadata.unwrap_or_default();
-                        fields.insert("cloud".to_string(), cloud.clone());
-                        metadata = Some(fields);
-                    }
-                    None => {
-                        if let Some(metadata) = metadata.as_mut().filter(|m| m.get("cloud").is_some_and(|v| !v.is_null())) {
-                            metadata.shift_remove("cloud");
-                        }
-                    }
-                }
-                if let Some(metadata) = metadata {
-                    next.insert("metadata".to_string(), Value::Object(metadata));
-                }
-                Value::Object(next)
-            })
-            .await?;
+            patch_workbook_file(shared, key, workbook_id, |existing| properties_patch(existing, name.as_deref(), *ephemeral, cloud.as_ref())).await?;
         }
         WriteTask::ReplaceWorkbookScripts { workbook_id, name, scripts, connection, original_file_name } => {
             log(shared, LogLevel::Info, "Creating workbook", &[("key", key), ("workbookId", workbook_id)]);
             for (file_name, source) in scripts {
                 let Some(text) = source.read()? else { continue };
-                let path = format!("{workbook_id}/{SCRIPTS_FOLDER}/{file_name}");
-                timed_write(shared, &path, text.len(), host.save_script(workbook_id, file_name, &text)).await?;
+                timed_write(shared, &script_key(workbook_id, file_name), text.len(), host.save_script(workbook_id, file_name, &text)).await?;
             }
             // The workbook file comes last so it never names a script that doesn't exist yet. It keeps the name, the
             // creation time, the attachments and the script list on disk.
-            let existing = host.load_workbook(workbook_id).await.ok();
-            let now = || Value::String(iso_timestamp(host.now()));
-            let (scripts_on_disk, connections, created_at) = match existing.as_ref() {
-                Some(existing) => (
-                    items(existing, "scripts"),
-                    items(existing, "connections"),
-                    existing.get("metadata").and_then(|m| present(m, "createdAt")).cloned().unwrap_or_else(now),
-                ),
-                None => (Vec::new(), connection.iter().cloned().collect(), now()),
-            };
-            let mut metadata = object_at(existing.as_ref(), "metadata").unwrap_or_default();
-            match original_file_name {
-                Some(file_name) => {
-                    metadata.insert("originalFileName".to_string(), Value::String(file_name.clone()));
-                }
-                None => {
-                    metadata.shift_remove("originalFileName");
-                }
-            }
-            metadata.insert("createdAt".to_string(), created_at);
-            let mut workbook = Map::new();
-            workbook.insert("formatVersion".to_string(), Value::from(shared.format_version));
-            workbook.insert("workbookId".to_string(), Value::String(workbook_id.clone()));
-            let existing_name = existing.as_ref().and_then(|e| e.get("name")).filter(|name| truthy(name)).cloned();
-            match name.as_ref().filter(|name| !name.is_empty()) {
-                Some(name) => {
-                    workbook.insert("name".to_string(), Value::String(name.clone()));
-                }
-                None => {
-                    if let Some(name) = existing_name {
-                        workbook.insert("name".to_string(), name);
-                    }
-                }
-            }
-            workbook.insert("connections".to_string(), Value::Array(connections));
-            workbook.insert("scripts".to_string(), Value::Array(Vec::new()));
-            let attachments = existing.as_ref().and_then(|e| present(e, "attachments")).cloned().unwrap_or(Value::Array(Vec::new()));
-            workbook.insert("attachments".to_string(), attachments);
-            workbook.insert("metadata".to_string(), Value::Object(metadata));
-            let next = with_workbook_scripts(&Value::Object(workbook), scripts_on_disk, &[]);
+            let existing = load_workbook_file(shared, workbook_id).await;
+            let now = iso_timestamp(host.now());
+            let next = replaced_workbook_file(
+                existing.as_ref(),
+                workbook_id,
+                shared.format_version,
+                name.as_deref(),
+                connection.as_ref(),
+                original_file_name.as_deref(),
+                &now,
+            );
             save_workbook_file(shared, workbook_id, &next).await?;
         }
         WriteTask::WriteWorkbookScripts { workbook_id, scripts, connections } => {
-            patch_workbook_file(shared, key, workbook_id, |existing| {
-                with_workbook_scripts(existing, scripts.clone(), connections)
-            })
-            .await?;
+            patch_workbook_file(shared, key, workbook_id, |existing| with_workbook_scripts(existing, scripts.clone(), connections)).await?;
         }
         WriteTask::RefreshWorkbookAttachments { workbook_id } => {
             let names = host.list_attachments(workbook_id).await?;
-            let attachments: Vec<Value> = names.into_iter().map(|name| serde_json::json!({ "name": name })).collect();
-            patch_workbook_file(shared, key, workbook_id, |existing| {
-                let mut next = existing.as_object().cloned().unwrap_or_default();
-                next.insert("attachments".to_string(), Value::Array(attachments));
-                Value::Object(next)
-            })
-            .await?;
+            patch_workbook_file(shared, key, workbook_id, |existing| attachments_patch(existing, &names)).await?;
         }
         WriteTask::WriteConnectionEntry { entry } => {
             let bytes = serde_json::to_string(entry).map(|text| text.len()).unwrap_or_default();
@@ -749,8 +859,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         }
         WriteTask::WriteConnectionFile { connection_id, file_name, text } => {
             let Some(text) = text.read()? else { return Ok(()) };
-            let path = format!("@{CONNECTIONS_FOLDER}/{connection_id}/{file_name}");
-            timed_write(shared, &path, text.len(), host.save_connection_file(connection_id, file_name, &text)).await?;
+            timed_write(shared, &connection_file_key(connection_id, file_name), text.len(), host.save_connection_file(connection_id, file_name, &text)).await?;
         }
         WriteTask::PatchWorkbookConnection { workbook_id, copy, replaced } => {
             // Only an existing workbook file is patched
@@ -761,8 +870,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         }
         WriteTask::WriteScript { workbook_id, file_name, text } => {
             log(shared, LogLevel::Info, "Writing workbook script", &[("key", key), ("workbookId", workbook_id), ("file", file_name)]);
-            let path = format!("{workbook_id}/{SCRIPTS_FOLDER}/{file_name}");
-            timed_write(shared, &path, text.len(), host.save_script(workbook_id, file_name, text)).await?;
+            timed_write(shared, &script_key(workbook_id, file_name), text.len(), host.save_script(workbook_id, file_name, text)).await?;
         }
         WriteTask::DeleteScript { workbook_id, file_name } => {
             log(shared, LogLevel::Info, "Deleting workbook script", &[("key", key), ("workbookId", workbook_id), ("file", file_name)]);
@@ -790,7 +898,7 @@ impl<H: StorageHost> Clone for StorageWriter<H> {
 
 impl<H: StorageHost> StorageWriter<H> {
     /// A writer that writes workbook files of a format version
-    pub fn new(host: H, format_version: u64) -> StorageWriter<H> {
+    pub fn new(host: H, format_version: i64) -> StorageWriter<H> {
         StorageWriter { shared: Rc::new(Shared { host, format_version, state: RefCell::new(State::default()) }) }
     }
 
@@ -822,44 +930,51 @@ impl<H: StorageHost> StorageWriter<H> {
         })
     }
 
-    /// Pause the writer. Nothing is written until it resumes or flushes, writes scheduled meanwhile stay pending.
+    /// Hold the writes of the writer (no workbook) or of a workbook for a reason. Nothing of it is written until the
+    /// hold is released, writes scheduled meanwhile stay pending. A forced flush writes past a hold of the writer,
+    /// never past one of a workbook.
+    pub fn hold(&self, workbook_id: Option<&str>, reason: HoldReason) {
+        update(&self.shared, |state| state.hold(workbook_id, reason));
+    }
+
+    /// Release one hold of a reason. Once nothing holds them, the pending tasks wait for their debounce duration again.
+    pub fn release(&self, workbook_id: Option<&str>, reason: HoldReason) {
+        update(&self.shared, |state| state.release(workbook_id, reason, false));
+    }
+
+    /// Release every hold of a reason, e.g. the hold of a change outside the app once the host decided
+    pub fn release_all(&self, workbook_id: Option<&str>, reason: HoldReason) {
+        update(&self.shared, |state| state.release(workbook_id, reason, true));
+    }
+
+    /// Pause the writer, a hold of the writer (`HoldReason::Pause`)
     pub fn pause(&self) {
-        update(&self.shared, |state| {
-            state.paused = true;
-            state.clear_timers_where(|_| true);
-        });
+        self.hold(None, HoldReason::Pause);
     }
 
-    /// Resume the writer, the pending tasks of workbooks that are not paused wait for their debounce duration again
+    /// Release a pause of the writer
     pub fn resume(&self) {
-        update(&self.shared, |state| {
-            if !state.paused {
-                return;
-            }
-            state.paused = false;
-            let paused_workbooks = state.paused_workbooks.clone();
-            state.rearm_timers_where(|key| !paused_workbooks.iter().any(|id| belongs_to_workbook(key, id)));
-        });
+        self.release(None, HoldReason::Pause);
     }
 
-    /// Hold the writes of a workbook, e.g. while the app reloads it from disk
-    pub fn pause_workbook(&self, workbook_id: &str) {
-        update(&self.shared, |state| state.pause_workbook(workbook_id));
+    /// Is a workbook held, by a hold of the writer or of the workbook?
+    pub fn is_workbook_held(&self, workbook_id: &str) -> bool {
+        self.shared.state.borrow().is_workbook_held(workbook_id)
     }
 
-    /// Resume the writes of a workbook, its pending tasks wait for their debounce duration again
-    pub fn resume_workbook(&self, workbook_id: &str) {
-        update(&self.shared, |state| {
-            if !state.paused_workbooks.remove(workbook_id) || state.paused {
-                return;
-            }
-            state.rearm_timers_where(|key| belongs_to_workbook(key, workbook_id));
-        });
+    /// The reasons that hold a workbook itself, without the holds of the writer
+    pub fn workbook_holds(&self, workbook_id: &str) -> Vec<HoldReason> {
+        self.shared.state.borrow().workbook_holds.get(workbook_id).map(|holds| holds.keys().copied().collect()).unwrap_or_default()
     }
 
-    /// Is a workbook held, by a paused writer or a paused workbook?
-    pub fn is_workbook_paused(&self, workbook_id: &str) -> bool {
-        self.shared.state.borrow().is_workbook_paused(workbook_id)
+    /// What the writer holds and what failed
+    pub fn status(&self) -> WriterStatus {
+        self.shared.state.borrow().status()
+    }
+
+    /// The failed keys of a workbook with their last errors
+    pub fn failed_writes_for_workbook(&self, workbook_id: &str) -> Vec<FailedWrite> {
+        self.status().failed.into_iter().filter(|write| belongs_to_workbook(&write.key, workbook_id)).collect()
     }
 
     /// The pending keys in the order they were scheduled
@@ -925,23 +1040,18 @@ impl<H: StorageHost> StorageWriter<H> {
         settle(self.shared.clone())
     }
 
-    /// Run every pending task right away and wait until all tasks ran. A paused writer or workbook is flushed as
-    /// well and stays paused.
+    /// Run every pending task right away and wait until all tasks ran. A flush writes past the holds of the writer,
+    /// they stay; the tasks of a held workbook stay pending, they would overwrite what the hold protects.
     pub fn flush(&self) -> impl Future<Output = ()> + 'static {
         let shared = self.shared.clone();
         async move {
-            let (was_paused, keys) = update(&shared, |state| {
-                let was_paused = state.paused;
-                state.paused = false;
-                (was_paused, state.pending_keys())
-            });
+            let keys = update(&shared, |state| state.pending_keys());
             for key in keys {
                 let ran = update(&shared, |state| state.process(&key, true));
                 if let Some(ran) = ran {
                     ran.await;
                 }
             }
-            update(&shared, |state| state.paused = was_paused);
             settle(shared).await;
         }
     }
@@ -950,44 +1060,28 @@ impl<H: StorageHost> StorageWriter<H> {
     ///
     /// True when every pending write of the workbook reached the storage. A held writer or workbook keeps its writes
     /// pending and gives false: unlike a flush, it never forces them, they would overwrite an external change. A
-    /// failed write stays pending as well unless a newer one replaced it, the next flush writes it again.
+    /// failed write stays pending and gives false, it runs again after its backoff.
     pub fn flush_workbook(&self, workbook_id: &str) -> impl Future<Output = bool> + 'static {
         let shared = self.shared.clone();
         let workbook_id = workbook_id.to_string();
         async move {
-            let round = update(&shared, |state| {
-                if state.is_workbook_paused(&workbook_id) {
-                    return None;
+            let flushed = update(&shared, |state| {
+                if state.is_workbook_held(&workbook_id) {
+                    return false;
                 }
-                let round = state.next_flush_round;
-                state.next_flush_round += 1;
-                state.flush_rounds.insert(round, Vec::new());
                 let keys: Vec<String> = state.pending_keys().into_iter().filter(|key| belongs_to_workbook(key, &workbook_id)).collect();
                 for key in keys {
-                    if let Some(pending) = state.pending.get_mut(&key) {
-                        pending.flush_round = Some(round);
-                    }
                     state.process(&key, false);
                 }
-                Some(round)
+                true
             });
-            let Some(round) = round else { return false };
+            if !flushed {
+                return false;
+            }
             settle(shared.clone()).await;
-            update(&shared, |state| {
-                let failed = state.flush_rounds.remove(&round).unwrap_or_default();
-                let all_written = failed.is_empty();
-                for (key, mut pending) in failed {
-                    if state.pending.contains_key(&key) {
-                        continue;
-                    }
-                    pending.resolver = None;
-                    pending.flush_round = None;
-                    state.insert_pending(key.clone(), pending);
-                    state.arm_timer(&key);
-                }
-                // A write that would overwrite an external change pauses the workbook and stays pending
-                all_written && !state.is_workbook_paused(&workbook_id)
-            })
+            // A write that would overwrite an external change holds the workbook and stays pending
+            let state = shared.state.borrow();
+            !state.is_workbook_held(&workbook_id) && !state.failures.keys().any(|key| belongs_to_workbook(key, &workbook_id))
         }
     }
 
@@ -1011,6 +1105,7 @@ impl<H: StorageHost> StorageWriter<H> {
                 });
                 return Err(error);
             }
+            update(&shared, |state| state.forget_workbook(&workbook_id));
             log(&shared, LogLevel::Info, "Deleted workbook", &[("workbookId", &workbook_id)]);
             Ok(())
         }
