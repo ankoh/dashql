@@ -233,6 +233,8 @@ struct Run<'a, H: RestoreHost, W: StorageHost> {
     /// The workbooks whose promotion is written
     promotions: Vec<Promotion>,
     progress: RestoreProgress,
+    /// What the host failed with when it loaded the last workbook, the error of a single restore
+    load_error: Option<HostError>,
 }
 
 impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
@@ -248,6 +250,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             connection_files: Vec::new(),
             promotions: Vec::new(),
             progress: RestoreProgress::default(),
+            load_error: None,
         };
         for live in live {
             run.script_connections.insert(live.connection.connection_id.clone(), live.script_connection);
@@ -346,6 +349,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             Err(error) => {
                 // The tree registers the workbook, but its files may be gone, e.g. a native folder that was moved
                 self.log(LogLevel::Warn, "Refusing to load workbook with unreadable files", &[("workbookId", workbook_id), ("error", error.message())]);
+                self.load_error = Some(error);
                 None
             }
         };
@@ -659,15 +663,21 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
 
     /// Restore a single workbook that was written at runtime, e.g. an imported one, against the live connections. The
     /// result holds the workbook and the connections it registered. Fails if the workbook can't be restored.
-    pub async fn restore_workbook(self, workbook_id: &str) -> Result<RestoredState> {
+    pub async fn restore_workbook(self, workbook_id: &str) -> std::result::Result<RestoredState, HostError> {
         let AppRestore { host, writer, options, live } = self;
         let mut run = Run::new(&host, &writer, options, live);
         let workbook = match run.restore_workbook(workbook_id).await {
             WorkbookOutcome::Restored(workbook) => workbook,
-            WorkbookOutcome::Skipped(invalid) => {
-                return Err(Error::invalid_argument(format!("invalid workbook {workbook_id}: {}", invalid.error.code())));
+            failed => {
+                // What the host failed with keeps its value, e.g. an error of the storage that the caller recognizes
+                if let Some(error) = run.load_error.take() {
+                    return Err(error);
+                }
+                return Err(match failed {
+                    WorkbookOutcome::Skipped(invalid) => HostError::new(format!("invalid workbook {workbook_id}: {}", invalid.error.code())),
+                    _ => HostError::new(not_restored_error(workbook_id).what()),
+                });
             }
-            WorkbookOutcome::Failed(_) | WorkbookOutcome::ScriptsFailed(_) => return Err(not_restored_error(workbook_id)),
         };
         run.flush_writes().await;
         let progress = run.progress.clone();

@@ -4,6 +4,7 @@
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
 
 rust_library(
     name = "dashql_core_runtime",
@@ -11,6 +12,7 @@ rust_library(
     crate_name = "dashql_core_runtime",
     crate_root = "src/lib.rs",
     edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
     visibility = ["//visibility:public"],
     deps = [
         "//packages/dashql-core:dashql_core",
@@ -33,6 +35,12 @@ rust_test(
     name = "dashql_core_runtime_unit_tests",
     size = "small",
     crate = ":dashql_core_runtime",
+)
+
+# Clippy with the safety lints: no unwraps, expects or panics outside of tests, no RefCell borrow across an await
+rust_safety_test(
+    name = "clippy_test",
+    deps = [":dashql_core_runtime"],
 )
 
 rust_test(

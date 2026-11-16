@@ -98,11 +98,13 @@ pub struct ShellOperation {
 
 impl ShellOperation {
     fn effect_header(&self) -> Option<(u32, u64)> {
-        if self.inner.status != dashql_core_shell::ShellStatus::Pending || self.inner.data.len() < 16 {
+        if self.inner.status != dashql_core_shell::ShellStatus::Pending {
             return None;
         }
         let data = &self.inner.data;
-        Some((u32::from_le_bytes(data[4..8].try_into().unwrap()), u64::from_le_bytes(data[8..16].try_into().unwrap())))
+        let kind = data.get(4..8)?.try_into().ok()?;
+        let id = data.get(8..16)?.try_into().ok()?;
+        Some((u32::from_le_bytes(kind), u64::from_le_bytes(id)))
     }
 }
 

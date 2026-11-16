@@ -87,10 +87,9 @@ export interface WorkbookDerived {
 export type WorkbookAction = Extract<core.RuntimeAction, { kind: WorkbookActionKind }>;
 type WorkbookActionKind =
     | 'createScript' | 'deleteScript' | 'renameScript' | 'reorderScripts' | 'setScriptText' | 'acceptPendingDiff'
-    | 'rejectPendingDiff' | 'setScriptVisSpec' | 'setWorkbookInput' | 'analyzeOutdatedScript' | 'showScript' | 'hideScript' | 'registerQuery'
-    | 'registerScriptResult' | 'renameWorkbook' | 'setScriptConnection' | 'setPendingConnection' | 'replaceConnection'
-    | 'detachConnection' | 'setWorkbookAttachments' | 'setAttachmentColumns' | 'renameAttachment' | 'setCloudLink'
-    | 'replaceFromStorage';
+    | 'rejectPendingDiff' | 'setScriptVisSpec' | 'setWorkbookInput' | 'analyzeOutdatedScript' | 'showScript' | 'hideScript'
+    | 'renameWorkbook' | 'setScriptConnection' | 'setPendingConnection' | 'replaceConnection' | 'detachConnection'
+    | 'setWorkbookAttachments' | 'renameAttachment' | 'setCloudLink';
 
 /// Apply an action to a workbook, it applies at once and the views follow with the next flush of the store
 export type ModifyWorkbookScripts = (action: WorkbookAction) => core.DispatchOutcome;

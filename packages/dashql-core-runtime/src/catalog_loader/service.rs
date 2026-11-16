@@ -415,7 +415,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         }
         for command in schedule.commands {
             match command {
-                CatalogLoaderCommand::Abort { task_id, .. } => self.cancel(task_id, SUPERSEDED_MESSAGE),
+                CatalogLoaderCommand::Abort { task_id } => self.cancel(task_id, SUPERSEDED_MESSAGE),
                 CatalogLoaderCommand::Start { connection_id, task_id, relations } => {
                     let service = self.clone();
                     self.host.spawn(Box::pin(async move {

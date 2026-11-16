@@ -109,7 +109,8 @@ bazel test //...
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test |
 | `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, and the Hyper validation |
 | `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests |
-| `//packages/dashql-core-runtime:all` | Runtime tests, the planner and dataflow snapshot tests, and the Hyper validation of the planner |
+| `//packages/dashql-core-runtime:all` | Runtime tests, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
+| `//packages/dashql-core-wasm:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
 | `//packages/dashql-core-shell:all` | Shell tests |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
@@ -294,6 +295,25 @@ Rust type checking happens automatically during `bazel build` and `bazel test`. 
 # This type-checks as part of building
 bazel build //packages/dashql-native-proxy:addon
 ```
+
+### Clippy
+
+The crates of the runtime, `dashql-core-runtime` and the bindings of the core module `dashql-core-wasm`, run Clippy with
+the safety lints of `//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic` and
+`await_holding_refcell_ref` are denied outside of tests, a panic traps the whole module. The other lints of Clippy stay
+warnings. `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test, part of `//packages/...`; the bindings are
+checked as a host build of the same sources (`//packages/dashql-core-wasm:dashql_core_wasm_lint`), they compile on the
+host.
+
+```bash
+# Clippy with the safety lints, a breach fails the build of the test
+bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-wasm:clippy_test
+
+# The findings, warnings included
+bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-wasm:clippy_test_clippy
+```
+
+A new crate takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
 
 ### C++
 

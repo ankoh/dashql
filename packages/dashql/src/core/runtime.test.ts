@@ -86,18 +86,19 @@ describe('DashQL runtime', () => {
         runtime.free();
     });
 
-    it('throws on arguments of the wrong type instead of trapping the module', () => {
+    it('refuses or throws on arguments of the wrong type instead of trapping the module', () => {
         const runtime = dql!.createRuntime(platform().platform);
         const unchecked = runtime as unknown as {
             dispatch(target: unknown, action: unknown): unknown;
             views(kind: unknown, ids: unknown): unknown;
             analyzeTable(tableId: unknown, table: unknown, options: unknown): unknown;
         };
-        expect(() => unchecked.dispatch({ computation: 'one' }, { kind: 'deleteComputation' })).toThrow();
-        expect(() => unchecked.dispatch({ notebook: 'a' }, { kind: 'deleteComputation' })).toThrow();
-        expect(() => unchecked.dispatch({ kind: 'deleteComputation' }, { computation: 1 })).toThrow();
-        expect(() => unchecked.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: 'a' } })).toThrow();
-        expect(() => unchecked.dispatch({ computation: 1 }, { kind: 'unknown' })).toThrow();
+        // A dispatch never throws, it refuses what it can't read
+        expect(unchecked.dispatch({ computation: 'one' }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
+        expect(unchecked.dispatch({ notebook: 'a' }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
+        expect(unchecked.dispatch({ kind: 'deleteComputation' }, { computation: 1 })).toMatchObject({ ok: false });
+        expect(unchecked.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: 'a' } })).toMatchObject({ ok: false });
+        expect(unchecked.dispatch({ computation: 1 }, { kind: 'unknown' })).toMatchObject({ ok: false });
         expect(() => unchecked.views('computation', ['a'])).toThrow();
         expect(() => unchecked.views('computation', 1)).toThrow();
         expect(() => unchecked.views('workbook', [1])).toThrow();

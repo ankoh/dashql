@@ -184,7 +184,7 @@ impl Connections {
         if let Some(listener) = listener {
             listener(connection_id);
         }
-        self.platform.signal(true);
+        self.platform.changed(super::changes::Slice::Connection(connection_id), true);
     }
 
     /// The number of the announcements of a new catalog of a connection

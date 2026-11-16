@@ -50,10 +50,10 @@ function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; ch
 /// A workbook and the dispatch of its actions
 type ScriptsHook = [WorkbookScripts | null, (action: dashql.RuntimeAction) => dashql.DispatchOutcome];
 
-function Consumer(props: { workbookId: string; scriptKey: number; capture: (scripts: ScriptsHook, latestQueryId: number | null) => void }) {
+function Consumer(props: { workbookId: string; scriptKey: number; capture: (scripts: ScriptsHook, fileName: string | null) => void }) {
     const scripts: ScriptsHook = [useWorkbook(props.workbookId), useDispatch({ workbook: props.workbookId })];
     const script = useScript(props.scriptKey);
-    React.useLayoutEffect(() => props.capture(scripts, script?.latestQueryId ?? null));
+    React.useLayoutEffect(() => props.capture(scripts, script?.fileName ?? null));
     return null;
 }
 
@@ -68,10 +68,10 @@ describe('the dispatch of a workbook', () => {
         let runtime!: Runtime;
         let keys: number[] = [];
         let current!: ScriptsHook;
-        let latestQueryId: number | null = null;
-        const capture = (scripts: ScriptsHook, queryId: number | null) => {
+        let fileName: string | null = null;
+        const capture = (scripts: ScriptsHook, name: string | null) => {
             current = scripts;
-            latestQueryId = queryId;
+            fileName = name;
         };
         const render = async (workbookId: string, scriptKey: number) => {
             await act(async () => {
@@ -99,11 +99,11 @@ describe('the dispatch of a workbook', () => {
 
             // Both actions apply at once to their workbooks, the views follow with the next flush
             act(() => {
-                expect(modifyA({ kind: 'registerQuery', value: { scriptKey: keys[0], queryId: 101 } }).ok).toBe(true);
-                expect(modifyB({ kind: 'registerQuery', value: { scriptKey: keys[1], queryId: 202 } }).ok).toBe(true);
+                expect(modifyA({ kind: 'renameScript', value: { fileName: runtime.store.get('script', keys[0])!.fileName, newName: 'from_a' } }).ok).toBe(true);
+                expect(modifyB({ kind: 'renameScript', value: { fileName: runtime.store.get('script', keys[1])!.fileName, newName: 'from_b' } }).ok).toBe(true);
             });
-            await vi.waitFor(() => expect(latestQueryId).toBe(202));
-            expect(runtime.store.get('script', keys[0])?.latestQueryId).toBe(101);
+            await vi.waitFor(() => expect(fileName).toContain('from_b'));
+            expect(runtime.store.get('script', keys[0])?.fileName).toContain('from_a');
 
             // A rename is written into the workbook file of its workbook
             act(() => {

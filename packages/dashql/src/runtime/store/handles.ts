@@ -4,10 +4,11 @@
 /// runtime (`Runtime.handles`).
 ///
 /// The adapter registers an object and hands its handle over with the action that gives the object to a state. From
-/// then on the state owns the handle: it keeps the handle where it keeps the object and lets go of it with an effect,
-/// also right away when the action didn't take it. An action that throws leaves the handle with the adapter, which
-/// releases it. The effects on handles are three, `apply` runs them and returns the effects of the state that are no
-/// effects on handles.
+/// then on the runtime owns the handle, also when it refuses the action: the state keeps the handle where it keeps the
+/// object and lets go of it with an effect, a refused action releases it. The adapter never releases a handle that it
+/// handed over. The effects on handles are three: the runtime aborts and closes at once through `abort` and `close`,
+/// releases wait for the store, which runs the effects that are left with `apply`, and gets back the effects of the
+/// state that are no effects on handles.
 
 /// An effect of a state on a handle
 export type HandleEffect =
@@ -76,7 +77,8 @@ export class HandleTable {
         object?.abort?.(new DOMException(reason, 'AbortError'));
     }
 
-    /// Run the effects on handles in order, returns the other effects in order
+    /// Run the effects on handles in order, returns the other effects in order. An object that throws on its close or
+    /// abort is forgotten as the effect says, the effects after it still run.
     apply<E extends { type: string }>(effects: readonly E[]): Exclude<E, HandleEffect>[] {
         const rest: Exclude<E, HandleEffect>[] = [];
         for (const effect of effects) {
@@ -84,16 +86,20 @@ export class HandleTable {
                 rest.push(effect as Exclude<E, HandleEffect>);
                 continue;
             }
-            switch (effect.type) {
-                case 'release':
-                    this.release(effect.handle);
-                    break;
-                case 'close':
-                    this.close(effect.handle);
-                    break;
-                case 'abort':
-                    this.abort(effect.handle, effect.reason);
-                    break;
+            try {
+                switch (effect.type) {
+                    case 'release':
+                        this.release(effect.handle);
+                        break;
+                    case 'close':
+                        this.close(effect.handle);
+                        break;
+                    case 'abort':
+                        this.abort(effect.handle, effect.reason);
+                        break;
+                }
+            } catch (e) {
+                console.warn(`the ${effect.type} of the handle ${effect.handle} failed`, e);
             }
         }
         return rest;

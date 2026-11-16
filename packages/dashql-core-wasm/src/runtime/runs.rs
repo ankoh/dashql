@@ -41,6 +41,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
+use super::changes::Slice;
 use super::connections::Connections;
 use super::queries::{LocalFuture, Statement};
 use super::workbooks::Workbooks;
@@ -182,7 +183,7 @@ impl Runs {
                 result
             }
         };
-        self.platform.signal(true);
+        self.platform.changed(Slice::Runs, true);
         result
     }
 
@@ -538,7 +539,7 @@ impl Runs {
             before != entries.len()
         };
         if gone {
-            self.platform.signal(true);
+            self.platform.changed(Slice::Runs, true);
         }
         self.start_pending();
         self.describe_attachments();
@@ -904,7 +905,7 @@ impl RunHost for RuntimeRunHost {
         if let Some(workbooks) = self.workbooks.upgrade() {
             workbooks.write_effects(&self.workbook_id, effects);
         }
-        self.platform.signal(true);
+        self.platform.changed(Slice::Workbook(&self.workbook_id), true);
     }
 
     fn state(&self, state: &RunState) {

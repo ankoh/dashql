@@ -1,10 +1,25 @@
 # Package for Bzlmod external_projects extension and build_file fragments.
+load("@rules_rust//rust:defs.bzl", "rust_lint_config")
+
 exports_files([
+    "clippy_test.sh",
     "external_bison.bzl",
     "external_duckdb_cli.BUILD",
     "external_m4.bzl",
     "macos_packaging.bzl",
 ])
+
+# The safety lints of the Rust crates of the runtime, see rust_safety.bzl: a panic traps the whole module of the core
+rust_lint_config(
+    name = "rust_safety_lints",
+    clippy = {
+        "await_holding_refcell_ref": "deny",
+        "expect_used": "deny",
+        "panic": "deny",
+        "unwrap_used": "deny",
+    },
+    visibility = ["//visibility:public"],
+)
 
 # DuckDB CLI executable, selected per exec platform. Used as a build tool
 # (exec config) by //packages/dashql-datasets for Parquet conversion genrules.

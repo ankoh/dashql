@@ -248,6 +248,10 @@ pub struct WorkbookDerivedView {
     pub workbook_id: String,
     /// The keys of the scripts in the order of the derived buffers, the feed order
     pub script_keys: Vec<u32>,
+    /// The file names of the scripts in the order of the derived buffers, the references name scripts by index
+    pub script_files: Vec<String>,
+    /// The file names of the attachments in the order that the references name them by index
+    pub attachments: Vec<String>,
     #[tsify(type = "FlatBuffer<buffers_execution.ScriptReferenceCheck>")]
     pub references: FlatBufferBytes,
     #[tsify(type = "FlatBuffer<buffers_execution.SessionDataflow>")]

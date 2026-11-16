@@ -5,6 +5,10 @@
 //! `@ankoh/dashql/buffers` without copying it. The declarations type it as `FlatBuffer<T>`, the bytes of a
 //! FlatBuffer whose root table is `T`. A payload crosses only when its key differs from the key that the host holds.
 
+use std::cell::Cell;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 use js_sys::{Array, Function, Object, Reflect};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Number, Value};
@@ -32,6 +36,31 @@ pub struct FlatBufferBytes(#[serde(with = "serde_bytes")] pub Vec<u8>);
 /// A view as a JS object
 pub(crate) fn to_js<T: tsify::Tsify + Serialize>(view: &T) -> Result<tsify::Ts<T>, JsError> {
     Ok(tsify::Ts::from_rust(view)?)
+}
+
+thread_local! {
+    /// Is a view serialized for its hash? The values of JS in it are read in Rust then, see `view_hash`.
+    static HASHING: Cell<bool> = const { Cell::new(false) };
+}
+
+/// The hash of a view: of its serialized form, the values of JS in it as their JSON or their message. The runtime moves
+/// a slice whose view hashes differently, so no key of a slice is written by hand and none can miss a field of its
+/// view. None if the view can't be serialized, the slice then always moves.
+pub(crate) fn view_hash<T: Serialize>(view: &T) -> Option<u64> {
+    HASHING.with(|hashing| hashing.set(true));
+    let bytes = serde_json::to_vec(view);
+    HASHING.with(|hashing| hashing.set(false));
+    let mut hasher = DefaultHasher::new();
+    bytes.ok()?.hash(&mut hasher);
+    Some(hasher.finish())
+}
+
+/// Serialize a value of JS as the host gets it, or as its message for the hash of a view
+pub(crate) fn preserve<S: Serializer>(value: &JsValue, serializer: S) -> Result<S::Ok, S::Error> {
+    if HASHING.with(Cell::get) {
+        return crate::host::message_of(value).serialize(serializer);
+    }
+    serde_wasm_bindgen::preserve::serialize(value, serializer)
 }
 
 /// A view that the host handed over
@@ -109,6 +138,9 @@ fn json_of(value: &JsValue) -> Value {
 
 impl Serialize for JsonValue {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if HASHING.with(Cell::get) {
+            return self.0.serialize(serializer);
+        }
         let value = self.to_js().map_err(serde::ser::Error::custom)?;
         serde_wasm_bindgen::preserve::serialize(&value, serializer)
     }

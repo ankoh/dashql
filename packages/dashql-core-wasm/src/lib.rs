@@ -110,6 +110,29 @@ impl SharedCatalog {
 pub struct Catalog {
     /// The core catalog, shared with the scripts and sessions created on it
     inner: SharedCatalog,
+    /// Is it the catalog of a connection of a runtime? It changes only through the runtime then: the writes of the
+    /// handle fail, so do the ones of the sessions on it.
+    read_only: bool,
+}
+
+impl Catalog {
+    /// A handle of the catalog of a connection of a runtime, it reads only
+    pub(crate) fn read_only(inner: SharedCatalog) -> Catalog {
+        Catalog { inner, read_only: true }
+    }
+
+    /// A handle of a shared catalog that writes, e.g. for tests that stand in for the catalog loader
+    pub(crate) fn read_write(inner: SharedCatalog) -> Catalog {
+        Catalog { inner, read_only: false }
+    }
+
+    /// The catalog to write, an error for the catalog of a connection of a runtime
+    fn writable(&self) -> Result<RefMut<'_, CoreCatalog>, JsError> {
+        if self.read_only {
+            return Err(JsError::new("the catalog of a connection changes only through the runtime"));
+        }
+        Ok(self.inner.borrow_mut())
+    }
 }
 
 #[wasm_bindgen]
@@ -118,11 +141,19 @@ impl Catalog {
     pub fn new() -> Catalog {
         Catalog {
             inner: SharedCatalog::new(dashql_core_runtime::workbook::new_catalog()),
+            read_only: false,
         }
     }
 
-    pub fn clear(&self) {
-        self.inner.borrow_mut().clear();
+    pub fn clear(&self) -> Result<(), JsError> {
+        self.writable()?.clear();
+        Ok(())
+    }
+
+    /// Does the catalog change only through the runtime, the catalog of a connection?
+    #[wasm_bindgen(js_name = isReadOnly)]
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
     }
 
     /// The version of the catalog, every change of its contents bumps it. Sessions and shells change the catalog
@@ -139,30 +170,31 @@ impl Catalog {
     /// Publish descriptor bytes in a `CatalogLayer`
     #[wasm_bindgen(js_name = replaceDescriptor)]
     pub fn replace_descriptor(&self, id: u32, layer: u8, descriptor: &[u8]) -> Result<(), JsError> {
-        self.inner.borrow_mut().replace_descriptor(id, CatalogLayer(layer), descriptor).map_err(js_error)
+        self.writable()?.replace_descriptor(id, CatalogLayer(layer), descriptor).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropDescriptor)]
     pub fn drop_descriptor(&self, id: u32) -> Result<(), JsError> {
-        self.inner.borrow_mut().drop_descriptor(id).map_err(js_error)
+        self.writable()?.drop_descriptor(id).map_err(js_error)
     }
 
     /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
     #[wasm_bindgen(js_name = registerClientFunctions)]
     pub fn register_client_functions(&self, spec: &str) -> Result<String, JsError> {
-        self.inner.borrow_mut().register_client_functions(spec).map(|namespace| namespace.to_string()).map_err(js_error)
+        self.writable()?.register_client_functions(spec).map(|namespace| namespace.to_string()).map_err(js_error)
     }
 
     /// Drop the client functions of a namespace
     #[wasm_bindgen(js_name = dropClientFunctions)]
-    pub fn drop_client_functions(&self, namespace: &str) {
-        self.inner.borrow_mut().drop_client_functions(namespace);
+    pub fn drop_client_functions(&self, namespace: &str) -> Result<(), JsError> {
+        self.writable()?.drop_client_functions(namespace);
+        Ok(())
     }
 
     /// Update the tables of a descriptor entry with a packed `CatalogTableUpdate`
     #[wasm_bindgen(js_name = replaceTables)]
     pub fn replace_tables(&self, id: u32, layer: u8, update: &[u8]) -> Result<(), JsError> {
-        self.inner.borrow_mut().replace_tables(id, CatalogLayer(layer), update).map_err(js_error)
+        self.writable()?.replace_tables(id, CatalogLayer(layer), update).map_err(js_error)
     }
 
     /// The relations that the connection reported as gone, as packed `TouchedRelations`
@@ -216,19 +248,20 @@ impl Catalog {
     #[wasm_bindgen(js_name = loadScript)]
     pub fn load_script(&self, script: &Script, layer: u8) -> Result<(), JsError> {
         let analyzed = script.inner.analyzed.clone().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED)))?;
-        self.inner.borrow_mut().load_script(analyzed, CatalogLayer(layer)).map_err(js_error)
+        self.writable()?.load_script(analyzed, CatalogLayer(layer)).map_err(js_error)
     }
 
     /// Load the analyses of several scripts atomically
     #[wasm_bindgen(js_name = loadScripts)]
     pub fn load_scripts(&self, batch: &ScriptBatch) -> Result<(), JsError> {
-        self.inner.borrow_mut().load_scripts(&batch.scripts).map_err(js_error)
+        self.writable()?.load_scripts(&batch.scripts).map_err(js_error)
     }
 
     /// Drop a script from the catalog
     #[wasm_bindgen(js_name = dropScript)]
-    pub fn drop_script(&self, script: &Script) {
-        self.inner.borrow_mut().drop_script(script.inner.catalog_entry_id());
+    pub fn drop_script(&self, script: &Script) -> Result<(), JsError> {
+        self.writable()?.drop_script(script.inner.catalog_entry_id());
+        Ok(())
     }
 }
 
@@ -531,6 +564,8 @@ pub struct ScriptSession {
     catalog: SharedCatalog,
     /// The core session, shared with the session lists it was added to
     inner: Rc<RefCell<CoreScriptSession>>,
+    /// Is the catalog the one of a connection of a runtime? The session doesn't write it then.
+    read_only: bool,
 }
 
 impl ScriptSession {
@@ -549,6 +584,7 @@ impl ScriptSession {
         Ok(ScriptSession {
             catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
+            read_only: catalog.read_only,
         })
     }
 
@@ -561,6 +597,7 @@ impl ScriptSession {
         Ok(ScriptSession {
             catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
+            read_only: catalog.read_only,
         })
     }
 
@@ -772,12 +809,19 @@ impl ScriptSession {
     /// Publish the analysis into the session layer of the catalog
     #[wasm_bindgen(js_name = loadIntoCatalog)]
     pub fn load_into_catalog(&self) -> Result<(), JsError> {
+        if self.read_only {
+            return Err(JsError::new("the catalog of a connection changes only through the runtime"));
+        }
         self.inner.borrow_mut().load_into_catalog(&mut self.catalog.borrow_mut(), CatalogLayer::SESSION).map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropFromCatalog)]
-    pub fn drop_from_catalog(&self) {
+    pub fn drop_from_catalog(&self) -> Result<(), JsError> {
+        if self.read_only {
+            return Err(JsError::new("the catalog of a connection changes only through the runtime"));
+        }
         self.inner.borrow().drop_from_catalog(&mut self.catalog.borrow_mut());
+        Ok(())
     }
 }
 
@@ -934,11 +978,18 @@ pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
 /// prefix.
 #[wasm_bindgen(js_name = checkScriptReferences)]
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, pack_reference_check)
+    with_session_plan_request(request, |core, sessions| pack_reference_check(core, sessions, false))
 }
 
-/// The packed `ScriptReferenceCheck` of a plan request, the text spans in the offset unit of the session of each script
-pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
+/// The packed `ScriptReferenceCheck` of a plan request, the text spans in the offset unit of the session of each
+/// script. For the derived view of a workbook (`for_view`) a script whose references have no errors carries neither
+/// its text version nor the spans of its references: the editors show only the errors of references, in the text that
+/// was checked, so typing in such a script leaves the buffer as it is.
+pub(crate) fn pack_reference_check(
+    core: &dashql_core_runtime::planner::SessionPlanRequest,
+    sessions: &[std::cell::Ref<CoreScriptSession>],
+    for_view: bool,
+) -> Vec<u8> {
     use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
     use dashql_core_runtime::planner::script_references::ReferenceKind;
     {
@@ -976,6 +1027,13 @@ pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionP
                         Some(t)
                     })
                     .collect();
+                let mut references = references;
+                if for_view && references.iter().all(|r| r.errors.is_none()) {
+                    packed.text_version = 0;
+                    for reference in &mut references {
+                        reference.text_span = None;
+                    }
+                }
                 packed.references = (!references.is_empty()).then_some(references);
                 packed
             })
@@ -1000,11 +1058,51 @@ pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionP
 /// `SessionDataflow`. The text spans are in the offset unit of the session of each script.
 #[wasm_bindgen(js_name = deriveSessionDataflow)]
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, pack_dataflow)
+    with_session_plan_request(request, |core, sessions| pack_dataflow(core, sessions, false))
 }
 
-/// The packed `SessionDataflow` of a plan request, the text spans in the offset unit of the session of each script
-pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
+/// The span of the label of a statement: its first line that is not blank, trimmed
+fn label_span(text: &str, span: dashql_parser::span::TextSpan) -> Option<dashql_parser::span::TextSpan> {
+    let start = span.offset as usize;
+    let statement = text.get(start..start + span.length as usize)?;
+    let mut offset = 0;
+    for line in statement.split('\n') {
+        let trimmed = line.trim_start();
+        if !trimmed.trim_end().is_empty() {
+            let begin = offset + (line.len() - trimmed.len());
+            return Some(dashql_parser::span::TextSpan { offset: (start + begin) as _, length: trimmed.trim_end().len() as _ });
+        }
+        offset += line.len() + 1;
+    }
+    None
+}
+
+#[cfg(test)]
+mod label_tests {
+    use super::label_span;
+    use dashql_parser::span::TextSpan;
+
+    fn label(text: &str, offset: u32, length: u32) -> Option<&str> {
+        let span = label_span(text, TextSpan { offset, length })?;
+        text.get(span.offset as usize..(span.offset + span.length) as usize)
+    }
+
+    #[test]
+    fn the_label_of_a_statement_is_its_first_line_that_is_not_blank() {
+        let text = "select 1;\n\n  \n  select a,\n    b\n  from t;";
+        assert_eq!(label(text, 0, 8), Some("select 1"));
+        assert_eq!(label(text, 9, (text.len() - 9) as u32), Some("select a,"));
+        assert_eq!(label(text, 9, 3), None);
+        assert_eq!(label(text, 0, 1000), None);
+        assert_eq!(label("  ünïcode  \nx", 0, 13), Some("ünïcode"));
+    }
+}
+
+/// The packed `SessionDataflow` of a plan request, the text spans in the offset unit of the session of each script.
+/// For the derived view of a workbook (`for_view`) the scripts carry no text versions and a statement carries the span
+/// of its label instead of its own, none with a target: the dataflow shows the target or the first line of a statement,
+/// so typing within a statement after its first line leaves the buffer as it is.
+pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>], for_view: bool) -> Vec<u8> {
     use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
     use dashql_core_runtime::planner::dataflow::DataflowEdgeKind as Kind;
     {
@@ -1016,10 +1114,19 @@ pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequ
                 .into_iter()
                 .zip(sessions)
                 .map(|(script, session)| {
-                    let spans = session.project_text_spans(script.statements.iter().map(|s| s.text_span));
+                    let spans = if for_view {
+                        let text = session.text();
+                        let labels: Vec<Option<dashql_parser::span::TextSpan>> =
+                            script.statements.iter().map(|s| if s.target.is_some() { None } else { label_span(&text, s.text_span) }).collect();
+                        let projected = session.project_text_spans(labels.iter().flatten().copied());
+                        let mut projected = projected.into_iter();
+                        labels.iter().map(|label| label.and_then(|_| projected.next().flatten())).collect()
+                    } else {
+                        session.project_text_spans(script.statements.iter().map(|s| s.text_span))
+                    };
                     let mut packed = DataflowScriptT::default();
                     packed.analyzed = script.analyzed;
-                    packed.text_version = script.text_version;
+                    packed.text_version = if for_view { 0 } else { script.text_version };
                     packed.manual = script.manual;
                     let statements: Vec<_> = script
                         .statements

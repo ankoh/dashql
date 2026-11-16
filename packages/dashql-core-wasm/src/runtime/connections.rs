@@ -32,12 +32,14 @@ use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::query::{QueryExecutionAction, QueryId};
 use dashql_core_runtime::storage::keys::connection_entry_key;
 use dashql_core_runtime::storage::{StorageWriter as RuntimeStorageWriter, WriteTask};
-use dashql_core_runtime::workbook::next_revision;
+use dashql_core_runtime::workbook::{next_revision, CatalogHandle};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
 use super::catalog::{CatalogLoader, LoaderHost};
 use super::compute_tracking::ComputeTracker;
+use super::changes::{Read, Slice};
+use crate::connection::view::ConnectionView;
 use super::queries::{QueryHost, QueryRun};
 use dashql_core_runtime::connections::open_setup::OpenSetups;
 use super::setups::RunningSetup;
@@ -58,8 +60,6 @@ pub(crate) type StorageWriter = RuntimeStorageWriter<JsStorage>;
 pub(crate) struct SaveState {
     pub saving: bool,
     pub outcome: Option<ConnectionSaveOutcome>,
-    /// Changes with every change of the save
-    pub revision: u64,
 }
 
 /// A new connection
@@ -100,6 +100,8 @@ pub(crate) struct Connections {
     pub follow_requested: Cell<bool>,
     /// The number of the announcements of a new catalog by connection
     pub catalog_versions: RefCell<Vec<(String, u64)>>,
+    /// The identities of the catalogs of the connections, see `catalog_id`
+    pub catalog_ids: RefCell<Vec<(String, u64, Weak<RefCell<dashql_core::catalog::Catalog>>)>>,
     /// Hears the announcements of a new catalog of a connection, the workbooks analyze the scripts on it again
     pub catalog_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
     /// Hears the changes of the registry at the end of their task, the runs follow the connections
@@ -122,6 +124,7 @@ impl Connections {
             loader: RefCell::new(None),
             follow_requested: Cell::new(false),
             catalog_versions: RefCell::new(Vec::new()),
+            catalog_ids: RefCell::new(Vec::new()),
             catalog_listener: RefCell::new(None),
             follow_listener: RefCell::new(None),
         });
@@ -146,9 +149,19 @@ impl Connections {
 
     /// Hand the effects of the registry to the host and to the services: the effects on handles, the cancelled setups
     /// and catalog updates, the queries that stop and the computations of the results that a later result of their
-    /// owner superseded. A change that is urgent lets the catalog loader follow the registry, e.g. a query that started
-    /// or finished.
-    pub fn settle(self: &Rc<Self>, connection_id: Option<&str>, outcome: &RegistryOutcome, urgent: bool) {
+    /// owner superseded. The change marks the slices of the owner, the connection or the history. A change that is
+    /// urgent lets the catalog loader follow the registry, e.g. a query that started or finished.
+    pub fn settle(self: &Rc<Self>, owner: &QueryOwner, outcome: &RegistryOutcome, urgent: bool) {
+        let connection_id = match owner {
+            QueryOwner::Connection(id) => Some(id.as_str()),
+            QueryOwner::History(_) => None,
+        };
+        if outcome.changed || !outcome.effects.is_empty() {
+            self.platform.mark(match owner {
+                QueryOwner::Connection(id) => Slice::Connection(id),
+                QueryOwner::History(name) => Slice::History(name),
+            });
+        }
         let follow_up = self.platform.push_registry_effects(&outcome.effects);
         for query_id in &outcome.stopped {
             // The cancel happens in the call, the query ends on its own
@@ -179,7 +192,7 @@ impl Connections {
         if let Ok(outcome) = outcome {
             self.platform.push_effects(&outcome.effects);
             if outcome.changed || !outcome.effects.is_empty() {
-                self.platform.signal(true);
+                self.platform.changed(Slice::Computations, true);
             }
         }
     }
@@ -215,7 +228,7 @@ impl Connections {
             }
             self.write(&connection_entry_key(&connection_id), WriteTask::WriteConnectionEntry { entry }, 0.0);
         }
-        self.platform.signal(true);
+        self.platform.changed(Slice::Connection(&connection_id), true);
         self.follow_later();
         Ok(connection_id)
     }
@@ -224,9 +237,36 @@ impl Connections {
     pub fn adopt(self: &Rc<Self>, state: ConnectionState) -> Result<String> {
         let connection_id = state.connection_id().to_string();
         self.registry.borrow_mut().insert(state)?;
-        self.platform.signal(true);
+        self.platform.changed(Slice::Connection(&connection_id), true);
         self.follow_later();
         Ok(connection_id)
+    }
+
+    /// The identity of the catalog of a connection, a new one for a new catalog under the same id
+    pub fn catalog_id(&self, connection_id: &str, catalog: &CatalogHandle) -> u64 {
+        let mut ids = self.catalog_ids.borrow_mut();
+        let held = ids.iter().find(|(id, _, _)| id == connection_id);
+        if let Some((_, id, held)) = held {
+            if held.upgrade().is_some_and(|held| Rc::ptr_eq(&held, catalog)) {
+                return *id;
+            }
+        }
+        let id = next_revision();
+        ids.retain(|(held, _, _)| held != connection_id);
+        ids.push((connection_id.to_string(), id, Rc::downgrade(catalog)));
+        id
+    }
+
+    /// The view of a connection, busy if the connection or its history is borrowed
+    pub fn view(&self, registry: &ConnectionRegistry, connection_id: &str) -> Read<ConnectionView> {
+        let Some(connection) = registry.get(connection_id) else { return Read::Gone };
+        let (Ok(state), Ok(queries)) = (connection.state.try_borrow(), connection.queries.try_borrow()) else { return Read::Busy };
+        let (Ok(_), Ok(_)) = (self.saves.try_borrow(), self.setups.try_borrow()) else { return Read::Busy };
+        let mut view = ConnectionView::of(&state, &queries, registry.workbooks_of(connection_id), self.save_view(connection_id));
+        view.catalog_version = self.catalog_version(connection_id);
+        view.setup_running = self.setup_running(connection_id);
+        view.catalog_id = self.catalog_id(connection_id, state.catalog());
+        Read::Value(view)
     }
 
     /// Schedule a write if the runtime has a writer
@@ -257,10 +297,19 @@ impl Connections {
             _ => ConnectionChange::Other,
         };
         let now = self.now();
+        // The workbooks that use the connection show its params and derive with its catalog
+        let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
         let outcome = self.registry.borrow_mut().apply(connection_id, action, now)?;
-        self.settle(Some(connection_id), &outcome, true);
+        if outcome.changed {
+            for workbook_id in &workbooks {
+                self.platform.mark(Slice::Workbook(workbook_id));
+            }
+        }
+        self.settle(&QueryOwner::Connection(connection_id.to_string()), &outcome, true);
         if outcome.deleted {
             self.saves.borrow_mut().retain(|(id, _)| id != connection_id);
+            self.catalog_versions.borrow_mut().retain(|(id, _)| id != connection_id);
+            self.catalog_ids.borrow_mut().retain(|(id, _, _)| id != connection_id);
         }
         let (Some(connection), Some(prev)) = (connection, prev) else { return Ok(outcome) };
         // The decisions of the persistence on the connection after the change
@@ -292,11 +341,7 @@ impl Connections {
     /// Apply an action to a query of a history
     pub fn apply_query(self: &Rc<Self>, owner: &QueryOwner, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
         let outcome = self.registry.borrow_mut().apply_query(owner, action)?;
-        let connection_id = match owner {
-            QueryOwner::Connection(id) => Some(id.as_str()),
-            QueryOwner::History(_) => None,
-        };
-        self.settle(connection_id, &outcome, urgent);
+        self.settle(owner, &outcome, urgent);
         Ok(outcome)
     }
 
@@ -308,13 +353,14 @@ impl Connections {
 
     /// Mark a save of a connection and tell the host
     fn set_save(&self, connection_id: &str, saving: bool, outcome: Option<ConnectionSaveOutcome>) {
-        let save = SaveState { saving, outcome, revision: next_revision() };
+        let save = SaveState { saving, outcome };
         let mut saves = self.saves.borrow_mut();
         match saves.iter_mut().find(|(id, _)| id == connection_id) {
             Some((_, held)) => *held = save,
             None => saves.push((connection_id.to_string(), save)),
         }
-        self.platform.signal(true);
+        drop(saves);
+        self.platform.changed(Slice::Connection(connection_id), true);
     }
 
     /// The view of the save of a connection
@@ -322,11 +368,6 @@ impl Connections {
         let saves = self.saves.borrow();
         let save = saves.iter().find(|(id, _)| id == connection_id).map(|(_, save)| save);
         ConnectionSaveView { saving: save.is_some_and(|save| save.saving), outcome: save.and_then(|save| save.outcome.clone()) }
-    }
-
-    /// The revision of the save of a connection, 0 before one
-    pub fn save_revision(&self, connection_id: &str) -> u64 {
-        self.saves.borrow().iter().find(|(id, _)| id == connection_id).map(|(_, save)| save.revision).unwrap_or(0)
     }
 
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, then the params

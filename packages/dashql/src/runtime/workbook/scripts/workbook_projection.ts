@@ -159,19 +159,16 @@ export const WORKBOOK_PROJECTION: ViewProjection<'workbook', WorkbookScripts> = 
 };
 
 /// The projection of the derived views of the workbooks, the FlatBuffers read once per view. A buffer with the bytes of
-/// the previous view keeps what was read from it. The names of the scripts and the attachments come from the view of
-/// the workbook of the same flush.
+/// the previous view keeps what was read from it. The view carries the names of the scripts and the attachments that
+/// its buffers refer to, the projection reads no other slice.
 export class WorkbookDerivedProjection implements ViewProjection<'workbookDerived', WorkbookDerived> {
     /// The last view of every workbook with the names that its references were read with
     private readonly held = new Map<string, { view: core.WorkbookDerivedView; names: string }>();
 
-    constructor(private readonly workbook: (workbookId: string) => WorkbookScripts | null) { }
-
     project(workbookId: string, prev: WorkbookDerived | null, view: core.WorkbookDerivedView): WorkbookDerived {
         const before = prev != null ? this.held.get(workbookId) ?? null : null;
-        const workbook = this.workbook(workbookId);
-        const files = view.scriptKeys.map((key, i) => workbook?.scriptKeys[i] === key ? workbook.scriptOrder[i] : null);
-        const attachments = (workbook?.attachments ?? []).map(attachment => attachment.fileName);
+        const files = view.scriptFiles;
+        const attachments = view.attachments;
         const names = JSON.stringify([files, attachments]);
         this.held.set(workbookId, { view, names });
         const scriptKeys = share(prev?.scriptKeys, view.scriptKeys);

@@ -10,7 +10,18 @@ import type { UpdateScheduler } from './update_scheduler.js';
 export interface RuntimeViewSource {
     takeChanges(): core.ChangeSet;
     views<K extends core.ViewKind>(kind: K, ids: core.ViewId<K>[], known?: core.KnownKeys<K>): (core.ViewOf<K> | null)[];
+    /// The store failed to project slices, they move with the next changes
+    resync(kind: core.ViewKind, ids: core.ViewId<core.ViewKind>[]): void;
 }
+
+/// The order in which the store projects the kinds of a flush: a kind after the kinds it reads, e.g. the scripts and
+/// the derived views of a workbook after the workbook
+export const VIEW_KIND_ORDER: readonly core.ViewKind[] = [
+    'computation', 'connectionList', 'connection', 'history', 'query', 'workbookList', 'workbook', 'script', 'workbookDerived', 'storage', 'run',
+];
+
+/// How often a slice whose projection fails is asked for again before the store gives up on it until it changes
+const RESYNC_ATTEMPTS = 3;
 
 /// What the store keeps of a slice of a kind: the view as it is, shared with the previous one, or what a projection
 /// builds from it, e.g. a script with its payloads read
@@ -41,9 +52,13 @@ type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
 ///
 /// The runtime tells the store that its state changed (`changed`). The store flushes at the end of the task when the
 /// change is urgent, before the next frame otherwise: it takes the changed slices and the effects on handles, applies
-/// the effects to the handle table, reads the views of each changed kind with one call, shares each view with the
-/// previous one of its slice and notifies the subscribers of the changed slices only. A slice keeps its view while its
-/// revision doesn't move. Reads never cross into the module.
+/// the effects to the handle table, reads the views of each changed kind with one call in a fixed order of the kinds
+/// (`VIEW_KIND_ORDER`), shares each view with the previous one of its slice and notifies the subscribers of the changed
+/// slices only. A slice keeps its view while its revision doesn't move. Reads never cross into the module.
+///
+/// A flush is all or nothing per slice: a kind whose views can't be read and a slice whose projection throws keep
+/// their previous views, and the runtime is asked for them again (`resync`), at most `RESYNC_ATTEMPTS` times in a
+/// row. A slice that reads as null while the runtime names it busy keeps its view, the runtime reports it again.
 export class RuntimeStore {
     private source: RuntimeViewSource | null = null;
     /// The projections of the kinds
@@ -59,10 +74,14 @@ export class RuntimeStore {
     /// The scheduled flush
     private scheduled: { type: 'task' } | { type: 'frame'; handle: unknown } | null = null;
     private disposed = false;
+    /// The failed projections of slices in a row
+    private readonly failures = new Map<string, number>();
 
     constructor(
         private readonly handles: HandleTable,
         private readonly scheduler: UpdateScheduler,
+        /// Hears the failures of projections, e.g. the logger of the runtime
+        private readonly logger: ((message: string) => void) | null = null,
     ) { }
 
     /// Read the views of a runtime with the projections of the kinds
@@ -98,7 +117,7 @@ export class RuntimeStore {
         this.handles.apply(changes.effects);
         if (changes.changes.length === 0) return;
 
-        // The views of each changed kind with one call
+        // The changes by kind, projected in the order of the kinds
         const byKind = new Map<core.ViewKind, core.SliceChange[]>();
         for (const change of changes.changes) {
             let list = byKind.get(change.kind);
@@ -108,8 +127,10 @@ export class RuntimeStore {
             }
             list.push(change);
         }
+        const kinds = [...VIEW_KIND_ORDER.filter(kind => byKind.has(kind)), ...[...byKind.keys()].filter(kind => !VIEW_KIND_ORDER.includes(kind))];
         const notify: string[] = [];
-        for (const [kind, list] of byKind) {
+        for (const kind of kinds) {
+            const list = byKind.get(kind)!;
             let cache = this.caches.get(kind);
             if (cache == null) {
                 cache = new RevisionCache();
@@ -118,18 +139,35 @@ export class RuntimeStore {
             const present = list.filter(change => change.revision != null);
             const projection = this.projections[kind] as ViewProjection<typeof kind, unknown> | undefined;
             const ids = present.map(change => change.id) as core.ViewId<typeof kind>[];
-            const known = projection?.known?.(ids, ids.map(id => cache.peek(id) ?? null));
-            const views = present.length === 0 ? [] : source.views(kind, ids, known);
+            const failed: core.ViewId<typeof kind>[] = [];
+            let views: (core.ViewOf<typeof kind> | null)[] = [];
+            try {
+                const known = projection?.known?.(ids, ids.map(id => cache.peek(id) ?? null));
+                views = present.length === 0 ? [] : source.views(kind, ids, known);
+            } catch (e) {
+                // The slices of the kind keep their views
+                this.failed(source, kind, ids, e);
+                views = [];
+                present.length = 0;
+            }
             present.forEach((change, i) => {
                 const view = views[i] ?? null;
-                if (view == null) {
-                    this.release(kind, change.id);
-                } else {
+                // A slice that is busy reads as null, the runtime reports it again
+                if (view == null) return;
+                try {
                     cache.get(change.id, change.revision!, prev => projection == null ? share(prev, view) : projection.project(change.id, prev, view));
+                    this.failures.delete(sliceKey(kind, change.id));
+                } catch (e) {
+                    failed.push(change.id);
+                    this.logger?.(`the projection of the slice ${sliceKey(kind, change.id)} failed: ${String(e)}`);
                 }
             });
+            if (failed.length > 0) this.failed(source, kind, failed, null);
             for (const change of list) {
-                if (change.revision == null) this.release(kind, change.id);
+                if (change.revision == null) {
+                    this.failures.delete(sliceKey(kind, change.id));
+                    this.release(kind, change.id);
+                }
                 notify.push(sliceKey(kind, change.id));
             }
             this.maps.delete(kind);
@@ -137,10 +175,27 @@ export class RuntimeStore {
         for (const key of notify) {
             for (const listener of [...(this.listeners.get(key) ?? [])]) listener();
         }
-        for (const kind of byKind.keys()) {
+        for (const kind of kinds) {
             for (const listener of [...(this.kindListeners.get(kind) ?? [])]) listener();
         }
     };
+
+    /// Slices that the store failed to project keep their views, the runtime is asked for them again a few times
+    private failed(source: RuntimeViewSource, kind: core.ViewKind, ids: core.ViewId<core.ViewKind>[], error: unknown): void {
+        if (error != null) this.logger?.(`the views of ${kind} failed: ${String(error)}`);
+        const again = ids.filter(id => {
+            const key = sliceKey(kind, id);
+            const attempts = (this.failures.get(key) ?? 0) + 1;
+            this.failures.set(key, attempts);
+            return attempts <= RESYNC_ATTEMPTS;
+        });
+        if (again.length === 0) return;
+        try {
+            source.resync(kind, again);
+        } catch (e) {
+            this.logger?.(`the runtime can't report ${kind} again: ${String(e)}`);
+        }
+    }
 
     /// Forget a slice that is gone
     private release(kind: core.ViewKind, id: core.ViewId<core.ViewKind>): void {

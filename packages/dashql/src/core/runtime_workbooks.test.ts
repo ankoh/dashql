@@ -151,7 +151,7 @@ describe('The workbooks of the runtime', () => {
         runtime.free();
     });
 
-    it('move the derived view only when what it derives changed', () => {
+    it('move the derived view only when what it derives changed', async () => {
         const { runtime } = createRuntime();
         runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'create table t (x int)', base: 'alpha' } });
@@ -160,8 +160,8 @@ describe('The workbooks of the runtime', () => {
         const derived = viewOf(runtime, 'workbookDerived', 'w')!;
         // The scripts share the connection of the runtime: new params reach them and the script list of the workbook,
         // the derived view derives again and keeps its slice, its buffers stay the same
-        const committed = runtime.dispatch({ connection: 'main' }, { kind: 'commitParams', value: { params: { hyper: { protocol: 'WASM', endpoint: 'moved' } } } });
-        expect(committed.ok).toBe(true);
+        const saved = await runtime.saveConnection('main', { hyper: { protocol: 'WASM', endpoint: 'moved' } });
+        expect(saved.manifest.status).toBe('written');
         expect(changesOf(runtime, ['workbook', 'workbookDerived'])).toEqual(['workbook:w']);
         expect(viewOf(runtime, 'workbook', 'w')!.scriptList.connections[0].params).toContain('moved');
         expect(viewOf(runtime, 'workbookDerived', 'w')!.dataflow).toEqual(derived.dataflow);

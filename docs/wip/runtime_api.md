@@ -273,6 +273,25 @@ type Outcome = { ok: true; id?: string | number } | { ok: false; error: Detailed
   one (`share` of `projection.ts`) and notifies the subscribers of the changed slices only.
 - A read right after `dispatch` sees the last flush, as today. A command resolves after the flush that holds its
   change; `flush()` flushes at once for the CLI and the tests.
+- As built (`runtime/changes.rs` of the bindings): a service marks the slices it changes where it tells the platform
+  (`JsPlatform::changed(slice, urgent)`), `takeChanges` reads only the marked slices and nothing else. A marked slice
+  moves when its view changed: a connection, a history, a workbook and the lists compare the hash of their serialized
+  views, a script, a query, a computation, a run and the storage the revisions of their objects, the derived view of a
+  workbook the hash of its buffers. No key is written by hand. The changes come in a fixed order of the kinds, the
+  store projects them in that order (`VIEW_KIND_ORDER`): a workbook before its scripts and what it derives, the derived
+  view carries the file names of the scripts and the attachments that its buffers refer to.
+- A slice that a task holds borrowed is busy: it is never reported as gone, it stays marked and the host is told
+  again; its view reads as null and the store keeps the previous one. A projection that throws, or a kind whose views
+  can't be read, keeps the previous views; the store asks for the slices again (`resync(kind, ids)`), they move with
+  the next changes, at most three times in a row.
+- Aborts and closes of handles apply at once: the runtime calls `abort` and `close` of the handle table in a task of
+  its own, a hidden tab without frames doesn't hold them up. Releases wait for the flush, a view of the last flush may
+  still name the handle. Every effect tells the host.
+- `dispatch` never throws: a target or an action that can't be read is a failed outcome like a refused action. The
+  handles that an action carries (`trackQuery`, `queryReceivedAllBatches`) are the runtime's from the call on, the
+  runtime releases them when it refuses the action; the host never releases a handle it handed over.
+- `Runtime.catalog` hands out a catalog that reads only, the catalog changes through the runtime. Its identity is
+  `catalogId` of the view of the connection, a connection created again under its id has another one.
 
 ### The platform object
 
@@ -345,7 +364,11 @@ const dispatch = useDispatch({ workbook: workbookId });         // (action) => O
 
 - The editor sends the event to the runtime (`applyEditorEvent`, one call): the workbook applies it to the session of
   the script, takes the update, hands its effects to its writer in Rust and returns the update once. It marks the
-  script slice, and the `workbookDerived` slice if the derived buffers changed.
+  script slice, and the `workbookDerived` slice if the derived buffers changed. The derived buffers of the view leave
+  out what typing moves and no consumer reads: the text version and the spans of a script whose references have no
+  errors, the text versions of the dataflow, and a statement of the dataflow carries the span of its label (its first
+  line that is not blank, none with a target) instead of its own. Typing within a statement after its first line, in a
+  script without erroneous references, leaves the slice where it is; the runtime still derives the workbook again.
 - The flush is two crossings at most: `takeChanges` and the view of the script, plus the derived view when it moved.
   The projection budget is today's 25 µs median; the typing benchmark of core_runtime.md runs with every step and
   must not exceed it.

@@ -73,8 +73,9 @@ buffers in between. The boundary moves to what the UI reads.
   `connection/view.rs` and `query_history/view.rs`, the status, the health, the connector, the catalog updates and
   the queries have numeric enums of the module.
 - **A connection owns its catalog.** The connection holds its catalog with the entry ids of all catalogs of the module.
-  `Runtime.catalog(connectionId)` is a `Catalog` handle that shares it, `catalog` of the TypeScript `Runtime` keeps one per connection
-  and the app hands it to the scripts of workbooks, so the scripts publish into the catalog of the connection. The
+  `Runtime.catalog(connectionId)` is a `Catalog` handle that shares it and reads only, the catalog changes through the
+  runtime; `catalog` of the TypeScript `Runtime` keeps one per identity of a catalog (`catalogId` of the view of the
+  connection). The scripts of the workbooks publish into the catalog of the connection in Rust. The
   script with the functions of the connection stays in Rust, the catalog loader replaces its text through the
   connection.
 - **Channels and tables stay in JavaScript, under handles.** The channels, the result tables and the records of the
@@ -976,8 +977,12 @@ With `applyEditorEvent` (one call per keystroke) the benchmark types next to two
 of three passes at a load of about 9, medians: the event in the runtime 156 µs (the editor and the update before: 151
 and 69 µs), the flush with the derivation 41 µs, reading the derived view 5 µs; per keystroke 209 µs against about 272
 µs before. Next to 19 scripts the event takes 158 µs, the flush 150 µs and the keystroke 331 µs against about 386 µs.
-The derivation runs for every keystroke that changes the text: the buffers carry the text version and the spans of the
-statements of the typed script, so the derived slice moves with them; it is linear in the scripts of the workbook.
+The derivation runs for every keystroke that changes the text, it is linear in the scripts of the workbook. The derived
+slice moves only when the buffers change: they leave out the text versions and the spans that no consumer reads
+(runtime_api.md, "Per keystroke"), and the typed script of the benchmark moves it on 510 of 11,319 keystrokes, against
+every keystroke before. A move of the cursor derives nothing. The flush takes only the slices that the services
+marked, the rescan of every workbook and script per flush is gone; the planner of the derivation is what remains
+linear.
 
 ## Open
 

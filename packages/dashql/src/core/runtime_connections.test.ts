@@ -321,7 +321,7 @@ describe('The connections of the runtime', () => {
         runtime.free();
     });
 
-    it('shares the catalog of a connection and keeps its function script', () => {
+    it('shares the catalog of a connection read-only and keeps its function script', () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
         const catalog = dql!.runtimeCatalog(runtime, 'main')!;
@@ -329,24 +329,48 @@ describe('The connections of the runtime', () => {
         const script = dql!.createScript(catalog);
         script.replaceText('create table t (a int)');
         script.analyze();
-        catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION);
+        // The catalog changes only through the runtime
+        expect(() => catalog.loadScript(script, dashql.buffers.catalog.CatalogLayer.CONNECTION)).toThrow(/only through the runtime/);
+        expect(() => catalog.clear()).toThrow(/only through the runtime/);
+        // A script of a workbook publishes into it
+        runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
         const version = catalog.version();
-        runtime.dispatch({ connection: 'main' }, { kind: 'resetConnection' });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'create table t (a int)', base: 'alpha' } });
         expect(catalog.version()).toBeGreaterThan(version);
+        // The identity of the catalog is in the view of the connection
+        const catalogId = viewOf(runtime, 'connection', 'main')!.catalogId;
+        expect(catalogId).toBeGreaterThan(0);
+        expect(viewOf(runtime, 'connection', 'main')!.catalogId).toBe(catalogId);
+        const reset = catalog.version();
+        runtime.dispatch({ connection: 'main' }, { kind: 'resetConnection' });
+        expect(catalog.version()).toBeGreaterThan(reset);
         expect(runtime.functionScriptText('main')).toContain('DashQL Connection Functions');
-        runtime.dispatch({ connection: 'main' }, { kind: 'replaceFunctionScriptText', value: { text: 'create function f() returns int;' } });
-        expect(runtime.functionScriptText('main')).toBe('create function f() returns int;');
         script.destroy();
         catalog.destroy();
         runtime.destroy();
         runtime.free();
     });
 
-    it('refuses actions of the wrong shape and stays usable', () => {
+    it('gives a connection that is created again under its id a catalog of another identity', () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
-        expect(() => runtime.dispatch({ connection: 'main' }, { kind: 'setDraft', value: { params: 42 } } as unknown as dashql.RuntimeAction)).toThrow();
-        expect(() => runtime.dispatch({ connection: 'main' }, { kind: 'nope' } as unknown as dashql.RuntimeAction)).toThrow();
+        const trino = { connectionId: 'other', connectorType: dashql.ConnectorType.TRINO, setupParams: { endpoint: TRINO, defaultCatalog: 'tpch', defaultSchema: 'tiny' } };
+        runtime.dispatch('app', { kind: 'createConnection', value: trino });
+        const before = viewOf(runtime, 'connection', 'other')!.catalogId;
+        expect(runtime.dispatch({ connection: 'other' }, { kind: 'deleteConnection' })).toMatchObject({ ok: true });
+        runtime.dispatch('app', { kind: 'createConnection', value: trino });
+        expect(viewOf(runtime, 'connection', 'other')!.catalogId).not.toBe(before);
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('refuses actions of the wrong shape without throwing and stays usable', () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        expect(runtime.dispatch({ connection: 'main' }, { kind: 'setDraft', value: { params: 42 } } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
+        expect(runtime.dispatch({ connection: 'main' }, { kind: 'nope' } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false });
+        expect(runtime.dispatch({ nope: 1 } as unknown as dashql.Target, { kind: 'rename', value: { name: 'x' } })).toMatchObject({ ok: false });
+        expect(runtime.dispatch({ history: 'shell' }, { kind: 'querySending', value: { queryId: -1 } })).toMatchObject({ ok: false });
         expect(() => runtime.views('query', ['x' as unknown as number])).toThrow();
         expect(() => runtime.cancelQuery(-1)).toThrow();
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'rename', value: { name: 'Main' } })).toMatchObject({ ok: true, changed: true });
@@ -408,6 +432,32 @@ describe('The queries of the runtime', () => {
             { kind: 'query', id: queryId, revision: null },
         ]);
         expect(viewOf(runtime, 'query', queryId)).toBeNull();
+        runtime.destroy();
+        runtime.free();
+    });
+
+    it('owns the handles of the actions it refuses and releases them', () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        const handles = platform.platform.handles;
+        // A history that is not there
+        const record = handles.register({ abort: () => { } });
+        expect(runtime.dispatch({ history: 'none' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: record } })).toMatchObject({ ok: false });
+        expect(handles.get(record)).toBeUndefined();
+        // A query id that is no integer
+        runtime.dispatch({ history: 'shell' }, { kind: 'createHistory', value: {} });
+        const table = handles.register('table');
+        expect(runtime.dispatch({ history: 'shell' }, { kind: 'queryReceivedAllBatches', value: { queryId: 1.5, table, rows: 1 } })).toMatchObject({ ok: false });
+        expect(handles.get(table)).toBeUndefined();
+        // An action that can't be read
+        const unread = handles.register({ abort: () => { } });
+        const malformed = { kind: 'trackQuery', value: { traceId: 'x', handle: unread } } as unknown as dashql.RuntimeAction;
+        expect(runtime.dispatch({ history: 'shell' }, malformed)).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
+        expect(handles.get(unread)).toBeUndefined();
+        // An action that the runtime takes keeps its handle
+        const kept = handles.register({ abort: () => { } });
+        expect(runtime.dispatch({ history: 'shell' }, { kind: 'trackQuery', value: { traceId: 1, text: 'select 1', metadata: USER_QUERY, handle: kept } })).toMatchObject({ ok: true });
+        expect(handles.get(kept)).toBeDefined();
         runtime.destroy();
         runtime.free();
     });

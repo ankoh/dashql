@@ -304,7 +304,7 @@ impl StorageHost for JsStorage {
     fn status_changed(&self, status: &WriterStatus) {
         *self.state.status.borrow_mut() = status.clone();
         self.state.revision.set(next_revision());
-        self.platform.signal(true);
+        self.platform.changed(crate::runtime::changes::Slice::Storage, true);
     }
 }
 

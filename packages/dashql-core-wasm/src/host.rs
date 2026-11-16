@@ -34,6 +34,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 
+use crate::runtime::changes::{Dirty, Slice};
 use crate::runtime::computation::ComputeCallContext;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -257,6 +258,10 @@ export interface RuntimeHandles {
     get(handle: number): unknown;
     /** Keep the object of a handle under a new handle as well, e.g. a result table that a computation takes too */
     duplicate(handle: number): number;
+    /** Close the object of a handle and forget it, the runtime closes at once with it and leaves the close to the store without it */
+    close?(handle: number): void;
+    /** Abort the object of a handle with a reason, the runtime aborts at once with it and leaves the abort to the store without it */
+    abort?(handle: number, reason: string): void;
 }
 
 /** The Arrow tables of the host by handle */
@@ -435,6 +440,10 @@ struct Pending {
     effects: Vec<HandleEffect>,
     /// Was the host told, and was it urgent?
     signaled: Option<bool>,
+    /// Is a task scheduled that applies the aborts and the closes?
+    immediate: bool,
+    /// The slices that changed since the host took the changes
+    dirty: Dirty,
 }
 
 struct Inner {
@@ -574,8 +583,34 @@ impl JsPlatform {
         &self.inner.object
     }
 
+    /// A slice of the state changed: it is marked for the next changes that the host takes, and the host is told
+    pub fn changed(&self, slice: Slice<'_>, urgent: bool) {
+        self.mark(slice);
+        self.signal(urgent);
+    }
+
+    /// Mark a slice for the next changes without telling the host, e.g. several slices of one change
+    pub fn mark(&self, slice: Slice<'_>) {
+        self.inner.pending.borrow_mut().dirty.mark(slice);
+    }
+
+    /// Mark the slices of a set again, e.g. the ones that were busy when the host took the changes
+    pub fn mark_all(&self, dirty: Dirty) {
+        self.inner.pending.borrow_mut().dirty.merge(dirty);
+    }
+
+    /// Take the marked slices
+    pub fn take_dirty(&self) -> Dirty {
+        std::mem::take(&mut self.inner.pending.borrow_mut().dirty)
+    }
+
+    /// Read the marked slices
+    pub fn dirty<R>(&self, read: impl FnOnce(&Dirty) -> R) -> R {
+        read(&self.inner.pending.borrow().dirty)
+    }
+
     /// Tell the host that the state changed. The host is told once until it takes the changes, again only when a
-    /// change becomes urgent.
+    /// change becomes urgent. A change of state marks its slice, see `changed`.
     pub fn signal(&self, urgent: bool) {
         let tell = {
             let mut pending = self.inner.pending.borrow_mut();
@@ -593,43 +628,96 @@ impl JsPlatform {
         }
     }
 
-    /// Collect the effects of the computations on handles
-    pub fn push_effects(&self, effects: &[ComputationEffect]) {
-        let mut pending = self.inner.pending.borrow_mut();
-        for effect in effects {
-            match *effect {
-                ComputationEffect::Abort { handle, reason } => pending.effects.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
-                ComputationEffect::Release { handle } => pending.effects.push(HandleEffect::Release { handle }),
-                // The service cancels the runs of a search and drops the data frames
-                ComputationEffect::AbortDataSearch { .. } | ComputationEffect::ReleaseDataFrame { .. } => {}
+    /// Queue effects on handles in order and tell the host. An abort or a close is applied at once, in a task of its
+    /// own that runs before the host takes the changes or at the end of the task: a query or a channel stops without
+    /// waiting for the next frame. A release waits for the changes, a view of the last flush may still name its handle.
+    fn push(&self, effects: impl IntoIterator<Item = HandleEffect>) {
+        let (pushed, schedule) = {
+            let mut pending = self.inner.pending.borrow_mut();
+            let before = pending.effects.len();
+            pending.effects.extend(effects);
+            let immediate = pending.effects[before..].iter().any(|effect| !matches!(effect, HandleEffect::Release { .. }));
+            let schedule = immediate && !pending.immediate;
+            if schedule {
+                pending.immediate = true;
             }
+            (pending.effects.len() != before, schedule)
+        };
+        if schedule {
+            let platform = self.clone();
+            spawn_local(async move { platform.apply_immediate() });
+        }
+        if pushed {
+            self.signal(false);
         }
     }
 
-    /// Collect the effects of the connections and the queries on handles, returns what the services of the runtime do
+    /// Apply the aborts and the closes that wait, the releases stay for the host. Without the members on the handle
+    /// table of the platform they stay for the host as well.
+    fn apply_immediate(&self) {
+        let immediate: Vec<HandleEffect> = {
+            let mut pending = self.inner.pending.borrow_mut();
+            pending.immediate = false;
+            let (releases, immediate) = std::mem::take(&mut pending.effects).into_iter().partition(|effect| matches!(effect, HandleEffect::Release { .. }));
+            pending.effects = releases;
+            immediate
+        };
+        let handles = member(self.object(), "handles").ok();
+        let mut left = Vec::new();
+        for effect in immediate {
+            let applied = match (&handles, &effect) {
+                (Some(handles), HandleEffect::Abort { handle, reason }) => {
+                    call(handles, "abort", &[JsValue::from_f64(f64::from(*handle)), JsValue::from_str(reason)]).is_ok()
+                }
+                (Some(handles), HandleEffect::Close { handle }) => call(handles, "close", &[JsValue::from_f64(f64::from(*handle))]).is_ok(),
+                _ => false,
+            };
+            if !applied {
+                left.push(effect);
+            }
+        }
+        if !left.is_empty() {
+            let mut pending = self.inner.pending.borrow_mut();
+            left.append(&mut pending.effects);
+            pending.effects = left;
+        }
+    }
+
+    /// Queue the effects of the computations on handles
+    pub fn push_effects(&self, effects: &[ComputationEffect]) {
+        self.push(effects.iter().filter_map(|effect| match *effect {
+            ComputationEffect::Abort { handle, reason } => Some(HandleEffect::Abort { handle, reason: reason.to_string() }),
+            ComputationEffect::Release { handle } => Some(HandleEffect::Release { handle }),
+            // The service cancels the runs of a search and drops the data frames
+            ComputationEffect::AbortDataSearch { .. } | ComputationEffect::ReleaseDataFrame { .. } => None,
+        }));
+    }
+
+    /// Queue the effects of the connections and the queries on handles, returns what the services of the runtime do
     pub fn push_registry_effects(&self, effects: &[RegistryEffect]) -> RegistryFollowUp {
         let mut follow_up = RegistryFollowUp::default();
-        let mut pending = self.inner.pending.borrow_mut();
+        let mut queued = Vec::new();
         for effect in effects {
             match *effect {
-                RegistryEffect::Release { handle } => pending.effects.push(HandleEffect::Release { handle }),
-                RegistryEffect::Close { handle } => pending.effects.push(HandleEffect::Close { handle }),
-                RegistryEffect::Abort { handle, reason } => pending.effects.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
+                RegistryEffect::Release { handle } => queued.push(HandleEffect::Release { handle }),
+                RegistryEffect::Close { handle } => queued.push(HandleEffect::Close { handle }),
+                RegistryEffect::Abort { handle, reason } => queued.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
                 RegistryEffect::CancelSetup => follow_up.cancel_setup = true,
                 RegistryEffect::CancelCatalogUpdate { task_id, reason } => follow_up.cancel_catalog_updates.push((task_id, reason)),
             }
         }
+        self.push(queued);
         follow_up
     }
 
-    /// Close a handle with the next changes, e.g. a channel that a setup doesn't hand out
+    /// Close a handle at once, e.g. a channel that a setup doesn't hand out
     pub fn push_close(&self, handle: Handle) {
-        self.inner.pending.borrow_mut().effects.push(HandleEffect::Close { handle });
+        self.push([HandleEffect::Close { handle }]);
     }
 
     /// Release a handle with the next changes
     pub fn push_release(&self, handle: Handle) {
-        self.inner.pending.borrow_mut().effects.push(HandleEffect::Release { handle });
+        self.push([HandleEffect::Release { handle }]);
     }
 
     /// Take the effects on handles, the host is told again with the next change
@@ -1213,8 +1301,10 @@ impl ComputeHost for JsPlatform {
         }
     }
 
+    /// A step of a task changed a computation: its slice waits for the next frame, its aborts apply at once
     fn changed(&self, effects: &[ComputationEffect]) {
         self.push_effects(effects);
+        self.mark(Slice::Computations);
         self.signal(false);
     }
 }

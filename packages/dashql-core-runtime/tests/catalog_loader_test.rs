@@ -1372,7 +1372,7 @@ impl Registry {
         let schedule = self.loader.schedule(&view, &[], self.now);
         for command in schedule.commands {
             match command {
-                CatalogLoaderCommand::Abort { task_id, .. } => {
+                CatalogLoaderCommand::Abort { task_id } => {
                     self.aborted.push(task_id);
                     if let Some(update) = self.running.iter_mut().find(|update| update.task_id() == task_id) {
                         update.cancel("Superseded by forced catalog refresh");

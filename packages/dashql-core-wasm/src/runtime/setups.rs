@@ -35,6 +35,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use super::changes::Slice;
 use super::connections::Connections;
 use crate::connection::view::JsonParams;
 use crate::host::{field, host_value, JsPlatform};
@@ -338,7 +339,6 @@ impl SetupHost for RuntimeSetupHost {
 
     fn close_channel(&self, id: ChannelId) {
         self.platform.push_close(id);
-        self.platform.signal(true);
     }
 
     fn error_details(&self, error: &HostError) -> BTreeMap<String, String> {
@@ -395,7 +395,6 @@ impl Connections {
         if let Err(error) = self.apply(connection_id, action, None) {
             if let Some(channel) = channel {
                 self.platform.push_release(channel);
-                self.platform.signal(true);
             }
             self.log(LogLevel::Warn, error.what(), &[("connectionId", connection_id)]);
         }
@@ -416,14 +415,15 @@ impl Connections {
         if let Some(previous) = previous {
             previous.cancel();
         }
-        self.platform.signal(true);
+        // The id of the setup of a connection is the id of the connection, its view shows that a setup runs
+        self.platform.changed(Slice::Connection(setup_id), true);
         (number, token)
     }
 
     /// Forget a setup that ended, unless another one of its id replaced it
     fn end_setup(&self, setup_id: &str, number: u64) {
         self.setups.borrow_mut().retain(|setup| !(setup.id == setup_id && setup.number == number));
-        self.platform.signal(true);
+        self.platform.changed(Slice::Connection(setup_id), true);
     }
 
     /// Cancel the setup of an id that runs
@@ -446,6 +446,9 @@ impl Connections {
             .and_then(|connection_id| self.registry.borrow().get(connection_id).cloned())
             .map(|connection| connection.state.borrow_mut().begin_setup())
             .unwrap_or_default();
+        if let Some(connection_id) = connection_id.as_deref() {
+            self.platform.changed(Slice::Connection(connection_id), true);
+        }
         Rc::new(RuntimeSetupHost {
             connections: Rc::downgrade(self),
             platform: self.platform.clone(),

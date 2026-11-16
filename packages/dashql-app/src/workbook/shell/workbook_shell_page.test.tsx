@@ -53,8 +53,10 @@ function loadRelations(catalog: dashql.DashQLCatalog, sql: string): void {
 /// A connection of a test: online, its catalog describes it
 interface TestShellConnection {
     connectionId: string;
-    /// The catalog of the connection, once the runtime of the test holds it
+    /// The catalog of the connection, once the runtime of the test holds it. It reads only.
     readonly catalog: dashql.DashQLCatalog;
+    /// Write the catalog of the connection as the catalog loader would
+    write(write: (catalog: dashql.DashQLCatalog) => void): void;
     /// Create it in the runtime of the test, the runtime sets it up
     create(runtime: Runtime): Promise<void>;
 }
@@ -72,6 +74,15 @@ function createConnection(connectionId: string, options: {
             if (catalog == null) throw new Error(`the runtime holds no connection ${connectionId}`);
             return catalog;
         },
+        write(write: (catalog: dashql.DashQLCatalog) => void) {
+            const catalog = runtime?.module != null ? runtime.core?.runtimeTestCatalog(runtime.module, connectionId) ?? null : null;
+            if (catalog == null) throw new Error(`the runtime holds no connection ${connectionId}`);
+            try {
+                write(catalog);
+            } finally {
+                catalog.destroy();
+            }
+        },
         async create(into: Runtime) {
             runtime = into;
             if (into.connection(connectionId) != null) return;
@@ -84,8 +95,8 @@ function createConnection(connectionId: string, options: {
             // The catalog of the test is loaded by the test, the catalog loader doesn't describe the connection
             into.module.runCatalogLoader(false);
             into.flush();
-            if (options.relationsSql != null) loadRelations(this.catalog, options.relationsSql);
-            if (options.clientFunctions != null) this.catalog.registerClientFunctions(options.clientFunctions);
+            if (options.relationsSql != null) this.write(catalog => loadRelations(catalog, options.relationsSql!));
+            if (options.clientFunctions != null) this.write(catalog => catalog.registerClientFunctions(options.clientFunctions!));
         },
     };
 }
@@ -603,13 +614,13 @@ describe('WorkbookShellPage', () => {
             await open([connection]);
             act(() => root.render(<div />));
             await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
-            loadRelations(connection.catalog, 'create table items (id integer);');
+            connection.write(catalog => loadRelations(catalog, 'create table items (id integer);'));
         });
 
         it('completes what the catalog gets after the shell opened, on the same shell', async () => {
             const connection = createConnection(MAIN, { relationsSql: 'create table orders (id integer);' });
             await open([connection]);
-            loadRelations(connection.catalog, 'create table items (id integer);');
+            connection.write(catalog => loadRelations(catalog, 'create table items (id integer);'));
             type('select * from ite');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
@@ -619,7 +630,8 @@ describe('WorkbookShellPage', () => {
         it('completes client functions that are registered after the shell opened', async () => {
             const connection = createConnection(MAIN);
             await open([connection]);
-            connection.catalog.registerClientFunctions(JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec()));
+            const spec = JSON.stringify(await SALESFORCE_CLIENT_FUNCTIONS.loadSpec());
+            connection.write(catalog => catalog.registerClientFunctions(spec));
             type('call cdp.access_policy_g');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('access_policy_get'), WAIT);

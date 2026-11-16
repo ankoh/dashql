@@ -429,9 +429,17 @@ export class DashQL {
     }
 
     /// The catalog of a connection of a runtime of this instance, shared with the connection and the scripts that
-    /// analyze with it. Null for an unknown connection. Every call is a handle of its own that the caller destroys.
+    /// analyze with it. It reads only, the catalog changes through the runtime. Null for an unknown connection. Every
+    /// call is a handle of its own that the caller destroys.
     public runtimeCatalog(runtime: glue.Runtime, connectionId: string): DashQLCatalog | null {
         const native = runtime.catalog(connectionId);
+        return native == null ? null : new DashQLCatalog(new Ptr(CATALOG_TYPE, this, native));
+    }
+
+    /// Tests that stand in for the catalog loader: the catalog of a connection as a handle that writes, its writes
+    /// bypass the runtime. Null for an unknown connection. The caller destroys the handle.
+    public runtimeTestCatalog(runtime: glue.Runtime, connectionId: string): DashQLCatalog | null {
+        const native = runtime.testCatalog(connectionId);
         return native == null ? null : new DashQLCatalog(new Ptr(CATALOG_TYPE, this, native));
     }
 

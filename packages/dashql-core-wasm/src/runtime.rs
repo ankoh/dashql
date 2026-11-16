@@ -13,11 +13,13 @@
 //! its slices to `ViewKind`, its targets and actions to the unions.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
-//! call into the platform. Arguments of the wrong type fail with a JS error, nothing panics.
+//! call into the platform. The services mark the slices they change, `takeChanges` reads only those (`changes.rs`).
+//! Arguments of the wrong type fail with a JS error, `dispatch` refuses them with a failed outcome, nothing panics.
 
 pub(crate) mod archives;
 pub(crate) mod attachments;
 pub(crate) mod catalog;
+pub(crate) mod changes;
 pub(crate) mod computation;
 pub(crate) mod compute_tracking;
 pub(crate) mod connections;
@@ -32,9 +34,6 @@ pub(crate) mod storage;
 pub(crate) mod workbooks;
 
 use std::cell::RefCell;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::BTreeMap;
-use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use dashql_core::error::Error;
@@ -42,11 +41,10 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connections::registry::{ListedConnection, QueryOwner, RegistryOutcome};
+use dashql_core_runtime::connections::registry::{QueryOwner, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryResultTable};
-use dashql_core_runtime::workbook::next_revision;
 use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
@@ -61,6 +59,7 @@ use crate::query_history::view::{ProfileLayoutView, QueryHistoryView, QueryMetad
 use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog};
+use changes::{Read, Slice, Taken};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
 use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
@@ -261,10 +260,6 @@ pub enum RuntimeAction {
     ShowScript { script_key: u32, selected: bool },
     /// An editor no longer shows a script, with the selection of its `showScript`
     HideScript { script_key: u32, selected: bool },
-    /// A query of a script started
-    RegisterQuery { script_key: u32, query_id: u32 },
-    /// A query of a script produced the result that the script shows
-    RegisterScriptResult { script_key: u32, query_id: u32 },
     /// Rename the workbook, null removes the name
     RenameWorkbook {
         #[serde(default)]
@@ -281,8 +276,6 @@ pub enum RuntimeAction {
     DetachConnection { from: String, into: String },
     /// The data files of the workbook as storage lists them
     SetWorkbookAttachments { files: Vec<WorkbookDataFile> },
-    /// The columns of an attachment, read from the file with the stamp
-    SetAttachmentColumns { file_name: String, stamp: String, columns: Vec<String> },
     /// An attachment whose file was renamed
     RenameAttachment { file_name: String, new_file_name: String },
     /// Link the workbook to a published workbook, the whole link is written into the workbook file, null removes it
@@ -291,17 +284,12 @@ pub enum RuntimeAction {
         #[tsify(optional)]
         link: Option<JsonValue>,
     },
-    /// Replace the scripts with the ones that storage holds, e.g. after the files changed outside of the app. Writes
-    /// nothing back.
-    ReplaceFromStorage { scripts: Vec<StoredScriptView> },
 
     // A connection
     /// Set the draft of the params, params of another connector are ignored
     SetDraft { params: JsonParams },
     /// Drop the draft and the errors of the last setup
     DiscardDraft,
-    /// The params were saved
-    CommitParams { params: JsonParams },
     /// Rename the connection, a blank name removes the name
     Rename { name: String },
     /// Choose whether the connection caches query results
@@ -310,15 +298,9 @@ pub enum RuntimeAction {
     DeleteConnection,
     /// Stop the connection and clear its catalog and queries
     ResetConnection,
-    /// Switch a connection that was never configured to another connector
-    SwitchConnectorType {
-        #[tsify(type = "ConnectorType")]
-        connector_type: ConnectorType,
-    },
-    /// Executed statements touched relations, the names have nulls for the parts that a statement left out
+    /// Statements that the host ran on the connection itself touched relations, e.g. those of the shell. The names have
+    /// nulls for the parts that a statement left out.
     RelationsTouched { names: Vec<ConnectionTableName> },
-    /// Replace the text of the script with the functions of the connection
-    ReplaceFunctionScriptText { text: String },
 
     // A history without a connection
     /// Create the history, it keeps at most `limit` queries. An existing history stays.
@@ -332,7 +314,7 @@ pub enum RuntimeAction {
 
     // The queries that the host runs itself, of a connection or of a history
     /// Start tracking a query, the outcome names its id. The host keeps the record of the query under the handle, an
-    /// abort of the handle stops the query.
+    /// abort of the handle stops the query. The runtime owns the handle from the dispatch on, also of a refused action.
     TrackQuery {
         trace_id: f64,
         text: String,
@@ -368,7 +350,8 @@ pub enum RuntimeAction {
         #[tsify(optional)]
         metrics: Option<QueryStreamMetrics>,
     },
-    /// All batches arrived, the history takes the table of the handle table
+    /// All batches arrived, the history takes the table of the handle table. The runtime owns the handle of the table
+    /// from the dispatch on, also of a refused action.
     QueryReceivedAllBatches {
         query_id: f64,
         table: u32,
@@ -379,6 +362,30 @@ pub enum RuntimeAction {
     },
     /// The cached result of the query was deleted
     QueryCacheDeleted { query_id: f64 },
+}
+
+impl RuntimeAction {
+    /// The handles of the host that the action hands to the runtime: the runtime owns them from the dispatch on and
+    /// releases them if it refuses the action
+    pub fn handles(&self) -> Vec<u32> {
+        match self {
+            RuntimeAction::TrackQuery { handle, .. } => handle.iter().copied().collect(),
+            RuntimeAction::QueryReceivedAllBatches { table, .. } => vec![*table],
+            _ => Vec::new(),
+        }
+    }
+
+    /// The handles of an action that can't be read, by the fields of the actions that carry handles
+    fn handles_of(action: &JsValue) -> Vec<u32> {
+        let kind = crate::host::field(action, "kind").and_then(|kind| kind.as_string());
+        let field = match kind.as_deref() {
+            Some("trackQuery") => "handle",
+            Some("queryReceivedAllBatches") => "table",
+            _ => return Vec::new(),
+        };
+        let handle = crate::host::field(action, "value").and_then(|value| crate::host::field(&value, field)).and_then(|handle| handle.as_f64());
+        handle.filter(|handle| *handle >= 1.0 && *handle <= f64::from(u32::MAX) && handle.fract() == 0.0).map(|handle| handle as u32).into_iter().collect()
+    }
 }
 
 /// The id of a slice or of what an action created: a number or a string
@@ -453,94 +460,6 @@ const RUN: &str = "run";
 /// The id of the lists of the connections and the workbooks and of the storage
 const ROOT: &str = "root";
 
-/// What decides the view of a connection
-#[derive(Clone, PartialEq)]
-struct ConnectionKey {
-    state: u64,
-    queries: u64,
-    workbooks: Vec<String>,
-    save: u64,
-    catalog_version: u64,
-    setup_running: bool,
-}
-
-/// The revisions of the slices that the host took
-#[derive(Default)]
-struct Taken {
-    computations: BTreeMap<TableId, u64>,
-    list: Option<(Vec<ListedConnection>, u64)>,
-    /// The connections and the histories are few, they are lists
-    connections: Vec<(String, ConnectionKey, u64)>,
-    histories: Vec<(String, Vec<QueryId>, u64)>,
-    /// The queries of every history: the revision of the history and the revisions of its queries
-    queries: Vec<(QueryOwner, u64, BTreeMap<QueryId, u64>)>,
-    /// The key of the list of the workbooks and the revision of its slice
-    workbook_list: Option<(u64, u64)>,
-    /// The workbooks: the revision of the workbook of the crate, the key of its view and the revision of its slice
-    workbooks: Vec<(String, (u64, u64, u64))>,
-    /// The scripts of all workbooks by key
-    scripts: BTreeMap<u32, u64>,
-    /// The derived views of the workbooks
-    derived: Vec<(String, Derived)>,
-    /// The revision of the view of the storage
-    storage: Option<(u64, u64)>,
-    /// The revisions of the runs of the workbooks
-    runs: BTreeMap<String, u64>,
-}
-
-/// The derived view of a workbook that the host took
-struct Derived {
-    /// What the view derives from, see `derived_key`
-    inputs: u64,
-    /// The packed buffers of the view: the checked references, the dataflow and the inputs
-    buffers: Rc<[Vec<u8>; 3]>,
-    /// A hash of the buffers, the slice moves only when it moves
-    hash: u64,
-    /// The revision of the slice
-    slice: u64,
-}
-
-/// Derive the buffers of the derived view of a workbook: the checked references, the dataflow and the inputs, packed
-/// like the free functions of the planner. Returns them with their hash, which includes the keys of the scripts.
-fn derive_buffers(workbook: &dashql_core_runtime::workbook::Workbook) -> (Rc<[Vec<u8>; 3]>, u64) {
-    let buffers = workbook.with_planner(|request, sessions| {
-        [crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request)]
-    });
-    let mut hasher = DefaultHasher::new();
-    buffers.hash(&mut hasher);
-    workbook.scripts().iter().for_each(|script| script.key().hash(&mut hasher));
-    (Rc::new(buffers), hasher.finish())
-}
-
-/// What the derived view of a workbook derives from, as a hash: the names, the connections and the analyses of its
-/// scripts and its attachments. The view derives again only when they change, its slice moves only when the derived
-/// buffers change.
-fn derived_key(workbook: &dashql_core_runtime::workbook::Workbook) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    for script in workbook.scripts() {
-        let connection = script.connection();
-        script.key().hash(&mut hasher);
-        script.file_name().hash(&mut hasher);
-        connection.connection_id.hash(&mut hasher);
-        connection.revision().hash(&mut hasher);
-        script.session().try_borrow().map(|session| session.text_version()).unwrap_or_default().hash(&mut hasher);
-        script.editor_update().map(|update| (update.text_version, update.catalog_revision, update.analysis_available)).hash(&mut hasher);
-    }
-    for attachment in workbook.attachments().unwrap_or_default() {
-        attachment.file_name.hash(&mut hasher);
-        attachment.size_bytes.hash(&mut hasher);
-        attachment.mtime_ms.hash(&mut hasher);
-        attachment.columns.hash(&mut hasher);
-    }
-    hasher.finish()
-}
-
-/// Take the entry of a key out of a list
-fn take_entry<K: PartialEq, V>(list: &mut Vec<(K, V)>, key: &K) -> Option<V> {
-    let index = list.iter().position(|(held, _)| held == key)?;
-    Some(list.swap_remove(index).1)
-}
-
 /// The runtime of DashQL, see the module
 #[wasm_bindgen]
 pub struct Runtime {
@@ -553,6 +472,15 @@ pub struct Runtime {
     external: Rc<external::ExternalChanges>,
     storage: Rc<StorageState>,
     taken: RefCell<Taken>,
+}
+
+/// The id of a query or a trace of an action, malformed input is refused
+fn id_of(value: f64, what: &str) -> Result<u64, String> {
+    if value.is_finite() && value >= 0.0 && value.fract() == 0.0 && value <= 9_007_199_254_740_991.0 {
+        Ok(value as u64)
+    } else {
+        Err(format!("the {what} is no integer"))
+    }
 }
 
 /// A checked integer id of the host
@@ -582,7 +510,7 @@ impl Runtime {
             Ok(outcome) => {
                 self.platform.push_effects(&outcome.effects);
                 if outcome.changed || !outcome.effects.is_empty() {
-                    self.platform.signal(true);
+                    self.platform.changed(Slice::Computations, true);
                 }
                 DispatchOutcome::changed(outcome.changed)
             }
@@ -614,41 +542,235 @@ impl Runtime {
         }
     }
 
+    /// The views of slices of a kind, null for a slice that is gone or busy. The ids of the busy ones go to `busy`.
+    fn read_views(&self, kind: &str, ids: JsValue, known: JsValue, busy: &mut Vec<JsValue>) -> Result<JsValue, JsError> {
+        /// A read as the view of a slice, a busy slice is noted
+        fn view<T>(read: Read<T>, id: JsValue, busy: &mut Vec<JsValue>) -> Option<T> {
+            match read {
+                Read::Value(view) => Some(view),
+                Read::Gone => None,
+                Read::Busy => {
+                    busy.push(id);
+                    None
+                }
+            }
+        }
+        let text = |id: &str| JsValue::from_str(id);
+        let number = |id: u64| JsValue::from_f64(id as f64);
+        match kind {
+            COMPUTATION => {
+                let ids = Self::number_ids(&ids, "id of a computation")?;
+                let views: Vec<Option<ComputationView>> =
+                    self.computations.read(|state| ids.iter().map(|id| state.computation(*id).map(ComputationView::from)).collect());
+                value_to_js(&views).map_err(|e| JsError::new(&e.to_string()))
+            }
+            CONNECTION_LIST => {
+                let ids = Self::text_ids(&ids, "connection list")?;
+                let list = match self.connections.registry.try_borrow() {
+                    Ok(registry) => Read::Value(ConnectionListView::of(&registry.list())),
+                    Err(_) => Read::Busy,
+                };
+                let list = view(list, text(ROOT), busy);
+                let views: Vec<Option<ConnectionListView>> = ids.iter().map(|id| list.clone().filter(|_| id == ROOT)).collect();
+                views_to_js(&views)
+            }
+            CONNECTION => {
+                let ids = Self::text_ids(&ids, "connection")?;
+                let Ok(registry) = self.connections.registry.try_borrow() else {
+                    busy.extend(ids.iter().map(|id| text(id)));
+                    return views_to_js(&vec![Option::<ConnectionView>::None; ids.len()]);
+                };
+                let views: Vec<Option<ConnectionView>> = ids.iter().map(|id| view(self.connections.view(&registry, id), text(id), busy)).collect();
+                views_to_js(&views)
+            }
+            QUERY => {
+                let ids = Self::number_ids(&ids, "id of a query")?;
+                let known: Vec<Option<QueryProfileKeys>> = if known.is_undefined() || known.is_null() {
+                    Vec::new()
+                } else {
+                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the queries: {e}")))?
+                };
+                let Ok(registry) = self.connections.registry.try_borrow() else {
+                    busy.extend(ids.iter().map(|id| number(*id)));
+                    return views_to_js(&vec![Option::<QueryView>::None; ids.len()]);
+                };
+                let views: Vec<Option<QueryView>> = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, id)| {
+                        let read = match registry.query_history(*id) {
+                            None => Read::Gone,
+                            Some((owner, history)) => match history.try_borrow() {
+                                Err(_) => Read::Busy,
+                                Ok(history) => match history.query(*id) {
+                                    None => Read::Gone,
+                                    Some(query) => {
+                                        let connection_id = match &owner {
+                                            QueryOwner::Connection(id) => Some(id.as_str()),
+                                            QueryOwner::History(_) => None,
+                                        };
+                                        let known = known.get(i).copied().flatten().unwrap_or_default();
+                                        Read::Value(QueryView::of(query, connection_id, known))
+                                    }
+                                },
+                            },
+                        };
+                        view(read, number(*id), busy)
+                    })
+                    .collect();
+                views_to_js(&views)
+            }
+            HISTORY => {
+                let ids = Self::text_ids(&ids, "history")?;
+                let Ok(registry) = self.connections.registry.try_borrow() else {
+                    busy.extend(ids.iter().map(|id| text(id)));
+                    return views_to_js(&vec![Option::<QueryHistoryView>::None; ids.len()]);
+                };
+                let views: Vec<Option<QueryHistoryView>> = ids
+                    .iter()
+                    .map(|name| {
+                        let read = match registry.history(&QueryOwner::History(name.clone())) {
+                            None => Read::Gone,
+                            Some(history) => history.try_borrow().map_or(Read::Busy, |history| Read::Value(QueryHistoryView::from(&*history))),
+                        };
+                        view(read, text(name), busy)
+                    })
+                    .collect();
+                views_to_js(&views)
+            }
+            WORKBOOK_LIST => {
+                let ids = Self::text_ids(&ids, "workbook list")?;
+                let list = view(self.workbooks.list_view(), text(ROOT), busy);
+                let views: Vec<Option<WorkbookListView>> = ids.iter().map(|id| list.clone().filter(|_| id == ROOT)).collect();
+                views_to_js(&views)
+            }
+            WORKBOOK => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookView>> = ids.iter().map(|id| view(self.workbooks.view(id), text(id), busy)).collect();
+                views_to_js(&views)
+            }
+            SCRIPT => {
+                let ids = Self::number_ids(&ids, "key of a script")?;
+                let known: Vec<Option<WorkbookScriptKeys>> = if known.is_undefined() || known.is_null() {
+                    Vec::new()
+                } else {
+                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
+                };
+                let views: Vec<Option<WorkbookScriptView>> = ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, key)| {
+                        let script_key = u32::try_from(*key).ok()?;
+                        let read = match self.workbooks.of_script(script_key) {
+                            // A script of a busy workbook is found once the workbook is free
+                            None if self.workbooks.busy() => Read::Busy,
+                            None => Read::Gone,
+                            Some((workbook_id, workbook)) => match workbook.try_borrow() {
+                                Err(_) => Read::Busy,
+                                Ok(workbook) => match workbook.script(script_key) {
+                                    None => Read::Gone,
+                                    Some(script) => {
+                                        let known = known.get(i).cloned().flatten().unwrap_or_default();
+                                        Read::Value(WorkbookScriptView::new(&workbook_id, script, &known))
+                                    }
+                                },
+                            },
+                        };
+                        view(read, number(*key), busy)
+                    })
+                    .collect();
+                views_to_js(&views)
+            }
+            WORKBOOK_DERIVED => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookDerivedView>> = ids
+                    .iter()
+                    .map(|id| {
+                        let parts = view(self.derived_parts(id), text(id), busy)?;
+                        let [references, dataflow, inputs] = &parts.buffers;
+                        Some(WorkbookDerivedView {
+                            workbook_id: id.clone(),
+                            script_keys: parts.script_keys.clone(),
+                            script_files: parts.script_files.clone(),
+                            attachments: parts.attachments.clone(),
+                            references: FlatBufferBytes(references.clone()),
+                            dataflow: FlatBufferBytes(dataflow.clone()),
+                            inputs: FlatBufferBytes(inputs.clone()),
+                        })
+                    })
+                    .collect();
+                views_to_js(&views)
+            }
+            RUN => {
+                let ids = Self::text_ids(&ids, "workbook")?;
+                let views: Vec<Option<WorkbookRunView>> = ids.iter().map(|id| self.runs.view(id)).collect();
+                views_to_js(&views)
+            }
+            STORAGE => {
+                let ids = Self::text_ids(&ids, "storage")?;
+                let view = self.storage.view();
+                let views: Vec<Option<StorageView>> = ids.iter().map(|id| (id == ROOT).then(|| view.clone())).collect();
+                views_to_js(&views)
+            }
+            _ => Err(JsError::new(&format!("the runtime has no views of the kind {kind}"))),
+        }
+    }
+
+    /// Apply an action to a slice. Malformed input fails with its error, a refused action is a failed outcome.
+    fn dispatch_action(&self, target: Target, action: RuntimeAction) -> Result<DispatchOutcome, String> {
+        Ok(match target {
+            Target::Computation(table_id) => {
+                let service = &self.computations;
+                match action {
+                    RuntimeAction::DeleteComputation => self.settle(service.delete_computation(table_id)),
+                    RuntimeAction::OrderBy { constraints } => {
+                        self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect()))
+                    }
+                    RuntimeAction::HistogramFilter { column_group, selection } => {
+                        self.settle(service.histogram_filter(table_id, column_group, selection))
+                    }
+                    RuntimeAction::MostFrequentValueFilter { column_group, value_id } => {
+                        self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
+                    }
+                    RuntimeAction::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
+                    RuntimeAction::SetResultSearchPattern { search, pattern } => {
+                        self.settle(service.set_search_pattern(table_id, search.into(), pattern))
+                    }
+                    RuntimeAction::RequestFilteredColumnAggregation { column_group } => {
+                        let requested =
+                            service.request_filtered_column_aggregation(table_id, column_group).map(|_| ComputationOutcome::default());
+                        self.settle(requested)
+                    }
+                    _ => DispatchOutcome::failed("the action doesn't apply to a computation"),
+                }
+            }
+            Target::Connection(connection_id) => self.dispatch_connection(connection_id, action)?,
+            Target::History(name) => self.dispatch_query(QueryOwner::History(name), action)?,
+            Target::Workbook(workbook_id) => self.dispatch_workbook(workbook_id, action),
+            Target::App => self.dispatch_app(action),
+        })
+    }
+
     /// Apply an action to a connection, the actions of its queries included
-    fn dispatch_connection(&self, connection_id: String, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
+    fn dispatch_connection(&self, connection_id: String, action: RuntimeAction) -> Result<DispatchOutcome, String> {
         let connections = &self.connections;
-        if connections.registry.borrow().get(&connection_id).is_none() {
+        let Ok(registry) = connections.registry.try_borrow() else { return Ok(DispatchOutcome::failed("the connections are busy")) };
+        if registry.get(&connection_id).is_none() {
             return Ok(DispatchOutcome::failed(format!("no connection registered with id {connection_id}")));
         }
-        let params = |params: JsonParams| params.connection_params().map_err(error_text);
+        drop(registry);
         let action = match action {
-            RuntimeAction::SetDraft { params: draft } => match params(draft) {
+            RuntimeAction::SetDraft { params: draft } => match draft.connection_params() {
                 // Params of another connector are ignored
                 Ok(draft) => ConnectionAction::SetDraft(draft),
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
+                Err(error) => return Ok(DispatchOutcome::failed(error_text(error))),
             },
             RuntimeAction::DiscardDraft => ConnectionAction::DiscardDraft,
-            RuntimeAction::CommitParams { params: committed } => match params(committed) {
-                Ok(committed) => ConnectionAction::CommitParams(committed),
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
-            },
             RuntimeAction::Rename { name } => ConnectionAction::Rename(name),
             RuntimeAction::SetQueryResultCaching { caching } => ConnectionAction::SetQueryResultCaching(caching),
             RuntimeAction::DeleteConnection => ConnectionAction::Delete,
             RuntimeAction::ResetConnection => ConnectionAction::Reset,
-            RuntimeAction::SwitchConnectorType { connector_type } => ConnectionAction::SwitchConnectorType(connector_type.into()),
             RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            RuntimeAction::ReplaceFunctionScriptText { text } => {
-                let connection = connections.registry.borrow().get(&connection_id).cloned();
-                let replaced = match connection {
-                    Some(connection) => connection.state.borrow_mut().replace_function_script_text(&text),
-                    None => Ok(()),
-                };
-                return Ok(match replaced {
-                    Ok(()) => DispatchOutcome::changed(false),
-                    Err(error) => DispatchOutcome::failed(error_text(error)),
-                });
-            }
             action => return self.dispatch_query(QueryOwner::Connection(connection_id), action),
         };
         let outcome = connections.apply(&connection_id, action, None);
@@ -659,14 +781,15 @@ impl Runtime {
     }
 
     /// Apply an action to a query that the host runs itself, or to a history without a connection
-    fn dispatch_query(&self, owner: QueryOwner, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
+    fn dispatch_query(&self, owner: QueryOwner, action: RuntimeAction) -> Result<DispatchOutcome, String> {
         let connections = &self.connections;
         let now = connections.now() as i64;
+        let query = |query_id: f64| id_of(query_id, "query id");
         let ended = |query_id: f64, message: String, details: Option<String>, metrics: Option<QueryStreamMetrics>, cancelled: bool| {
-            let query_id = integer(query_id, "query id")?;
+            let query_id = query(query_id)?;
             let error = QueryError { message, details };
             let metrics = metrics.map(Into::into);
-            Ok::<_, JsError>(if cancelled {
+            Ok::<_, String>(if cancelled {
                 QueryExecutionAction::QueryCancelled { query_id, error, metrics, now }
             } else {
                 QueryExecutionAction::QueryFailed { query_id, error, metrics, now }
@@ -676,46 +799,43 @@ impl Runtime {
             RuntimeAction::CreateHistory { limit } => {
                 let QueryOwner::History(name) = &owner else { return Ok(DispatchOutcome::failed("a connection has its own history")) };
                 connections.registry.borrow_mut().create_history(name, limit.map(|limit| limit as usize));
-                connections.platform.signal(true);
+                connections.platform.changed(Slice::History(name), true);
                 return Ok(DispatchOutcome::changed(true));
             }
             RuntimeAction::DropHistory => {
                 let QueryOwner::History(name) = &owner else { return Ok(DispatchOutcome::failed("a connection has its own history")) };
                 let outcome = connections.registry.borrow_mut().drop_history(name);
-                connections.settle(None, &outcome, true);
+                connections.platform.mark(Slice::History(name));
+                connections.settle(&owner, &outcome, true);
                 return Ok(DispatchOutcome::changed(true));
             }
             RuntimeAction::TrackQuery { trace_id, text, metadata, handle } => {
+                let trace_id = id_of(trace_id, "trace id")?;
                 if connections.registry.borrow().history(&owner).is_none() {
-                    // The host keeps the handle of a query that wasn't tracked
                     return Ok(DispatchOutcome::failed(format!("no query history of {owner:?}")));
                 }
                 let query_id = connections.registry.borrow_mut().next_query_id();
-                let mut state = QueryExecutionState::new(query_id, integer(trace_id, "trace id")?, text, metadata.into(), now);
+                let mut state = QueryExecutionState::new(query_id, trace_id, text, metadata.into(), now);
                 state.handle = handle;
                 return Ok(match connections.apply_query(&owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
                     Ok(_) => DispatchOutcome::created(SliceId::Number(query_id)),
                     Err(error) => DispatchOutcome::failed(error_text(error)),
                 });
             }
-            RuntimeAction::QuerySending { query_id } => QueryExecutionAction::QuerySending { query_id: integer(query_id, "query id")?, now },
-            RuntimeAction::QueryRunning { query_id } => QueryExecutionAction::QueryRunning { query_id: integer(query_id, "query id")?, now },
-            RuntimeAction::QueryProcessingResults { query_id } => {
-                QueryExecutionAction::QueryProcessingResults { query_id: integer(query_id, "query id")?, now }
-            }
-            RuntimeAction::QueryProcessedResults { query_id } => {
-                QueryExecutionAction::QueryProcessedResults { query_id: integer(query_id, "query id")?, now }
-            }
-            RuntimeAction::QuerySucceeded { query_id } => QueryExecutionAction::QuerySucceeded { query_id: integer(query_id, "query id")?, now },
+            RuntimeAction::QuerySending { query_id } => QueryExecutionAction::QuerySending { query_id: query(query_id)?, now },
+            RuntimeAction::QueryRunning { query_id } => QueryExecutionAction::QueryRunning { query_id: query(query_id)?, now },
+            RuntimeAction::QueryProcessingResults { query_id } => QueryExecutionAction::QueryProcessingResults { query_id: query(query_id)?, now },
+            RuntimeAction::QueryProcessedResults { query_id } => QueryExecutionAction::QueryProcessedResults { query_id: query(query_id)?, now },
+            RuntimeAction::QuerySucceeded { query_id } => QueryExecutionAction::QuerySucceeded { query_id: query(query_id)?, now },
             RuntimeAction::QueryFailed { query_id, message, details, metrics } => ended(query_id, message, details, metrics, false)?,
             RuntimeAction::QueryCancelled { query_id, message, details, metrics } => ended(query_id, message, details, metrics, true)?,
             RuntimeAction::QueryReceivedAllBatches { query_id, table, rows, metrics } => QueryExecutionAction::QueryReceivedAllBatches {
-                query_id: integer(query_id, "query id")?,
+                query_id: query(query_id)?,
                 table: QueryResultTable { id: table, rows: rows.max(0.0) as u64 },
                 metrics: metrics.map(Into::into).unwrap_or_default(),
                 now,
             },
-            RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: integer(query_id, "query id")? },
+            RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: query(query_id)? },
             _ => return Ok(DispatchOutcome::failed("the action doesn't apply to the target")),
         };
         // The history releases a table that it doesn't take
@@ -726,7 +846,7 @@ impl Runtime {
     }
 
     /// Apply an action of the runtime
-    fn dispatch_app(&self, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
+    fn dispatch_app(&self, action: RuntimeAction) -> DispatchOutcome {
         let connections = &self.connections;
         match action {
             RuntimeAction::CreateConnection {
@@ -744,7 +864,7 @@ impl Runtime {
                 };
                 let (params, params_draft) = match (parse(params), parse(params_draft)) {
                     (Ok(params), Ok(draft)) => (params, draft),
-                    (Err(error), _) | (_, Err(error)) => return Ok(DispatchOutcome::failed(error)),
+                    (Err(error), _) | (_, Err(error)) => return DispatchOutcome::failed(error),
                 };
                 let created = connections.create(NewConnection {
                     connection_id,
@@ -756,10 +876,10 @@ impl Runtime {
                     name,
                     cache_query_results,
                 });
-                Ok(match created {
+                match created {
                     Ok(id) => DispatchOutcome::created(SliceId::Text(id)),
                     Err(error) => DispatchOutcome::failed(error_text(error)),
-                })
+                }
             }
             RuntimeAction::CreateWorkbook { workbook_id, connection_id, name, ephemeral, original_file_name } => {
                 let created = self.workbooks.create(NewWorkbook {
@@ -769,153 +889,29 @@ impl Runtime {
                     ephemeral: ephemeral.unwrap_or(false),
                     original_file_name,
                 });
-                Ok(match created {
+                match created {
                     Ok(id) => DispatchOutcome::created(SliceId::Text(id)),
                     Err(error) => DispatchOutcome::failed(error_text(error)),
-                })
+                }
             }
             RuntimeAction::DeleteWorkbook { workbook_id } => {
                 // The run of a workbook that is gone stops
                 self.runs.stop(&workbook_id);
-                Ok(DispatchOutcome::changed(self.workbooks.delete(&workbook_id)))
+                DispatchOutcome::changed(self.workbooks.delete(&workbook_id))
             }
-            _ => Ok(DispatchOutcome::failed("the action doesn't apply to the runtime")),
+            _ => DispatchOutcome::failed("the action doesn't apply to the runtime"),
         }
     }
 }
 
 impl Runtime {
-    /// The changed slices of the workbooks, their scripts, their derived views and the storage
-    fn take_workbook_changes(&self, taken: &mut Taken, changes: &mut Vec<SliceChange>) {
-        let list = Workbooks::list_key(&self.workbooks.entries.borrow(), self.workbooks.invalid_revision.get());
-        if taken.workbook_list.map(|(taken, _)| taken) != Some(list) {
-            let revision = next_revision();
-            changes.push(SliceChange { kind: WORKBOOK_LIST.into(), id: SliceId::Text(ROOT.into()), revision: Some(revision) });
-            taken.workbook_list = Some((list, revision));
-        }
-
-        let mut held = std::mem::take(&mut taken.workbooks);
-        let mut held_derived = std::mem::take(&mut taken.derived);
-        let mut scripts = BTreeMap::new();
-        let entries = self.workbooks.entries.borrow();
-        for entry in entries.iter() {
-            let previous = take_entry(&mut held, &entry.id);
-            let previous_derived = take_entry(&mut held_derived, &entry.id);
-            let Ok(workbook) = entry.workbook.try_borrow() else {
-                // A workbook that is busy keeps its slices until the next changes
-                if let Some(previous) = previous {
-                    taken.workbooks.push((entry.id.clone(), previous));
-                }
-                if let Some(previous) = previous_derived {
-                    taken.derived.push((entry.id.clone(), previous));
-                }
-                continue;
-            };
-            let revision = workbooks::workbook_revision(&workbook);
-            let slice = match previous {
-                Some((taken_revision, key, slice)) if taken_revision == revision => (revision, key, slice),
-                previous => {
-                    let key = workbooks::workbook_key(entry, &workbook);
-                    match previous {
-                        Some((_, taken_key, slice)) if taken_key == key => (revision, key, slice),
-                        _ => {
-                            let slice = next_revision();
-                            changes.push(SliceChange { kind: WORKBOOK.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
-                            (revision, key, slice)
-                        }
-                    }
-                }
-            };
-            taken.workbooks.push((entry.id.clone(), slice));
-            for script in workbook.scripts() {
-                let key = script.key();
-                if taken.scripts.get(&key) != Some(&script.revision()) {
-                    changes.push(SliceChange { kind: SCRIPT.into(), id: SliceId::Number(key.into()), revision: Some(script.revision()) });
-                }
-                scripts.insert(key, script.revision());
-            }
-            // A keystroke derives the view again, its slice moves only if the derived buffers changed
-            let inputs = derived_key(&workbook);
-            let derived = match previous_derived {
-                Some(held) if held.inputs == inputs => held,
-                previous => {
-                    let (buffers, hash) = derive_buffers(&workbook);
-                    let slice = match previous {
-                        Some(held) if held.hash == hash => held.slice,
-                        _ => {
-                            let slice = next_revision();
-                            changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(entry.id.clone()), revision: Some(slice) });
-                            slice
-                        }
-                    };
-                    Derived { inputs, buffers, hash, slice }
-                }
-            };
-            taken.derived.push((entry.id.clone(), derived));
-        }
-        drop(entries);
-        for (id, _) in held {
-            changes.push(SliceChange { kind: WORKBOOK.into(), id: SliceId::Text(id), revision: None });
-        }
-        for (id, _) in held_derived {
-            changes.push(SliceChange { kind: WORKBOOK_DERIVED.into(), id: SliceId::Text(id), revision: None });
-        }
-        for key in taken.scripts.keys() {
-            if !scripts.contains_key(key) {
-                changes.push(SliceChange { kind: SCRIPT.into(), id: SliceId::Number((*key).into()), revision: None });
-            }
-        }
-        taken.scripts = scripts;
-
-        let revision = self.storage.revision();
-        if taken.storage.map(|(taken, _)| taken) != Some(revision) {
-            let slice = next_revision();
-            changes.push(SliceChange { kind: STORAGE.into(), id: SliceId::Text(ROOT.into()), revision: Some(slice) });
-            taken.storage = Some((revision, slice));
-        }
-
-        // The runs of the workbooks
-        let runs: BTreeMap<String, u64> = self.runs.revisions().into_iter().collect();
-        for (id, revision) in &runs {
-            if taken.runs.get(id) != Some(revision) {
-                changes.push(SliceChange { kind: RUN.into(), id: SliceId::Text(id.clone()), revision: Some(*revision) });
-            }
-        }
-        for id in taken.runs.keys() {
-            if !runs.contains_key(id) {
-                changes.push(SliceChange { kind: RUN.into(), id: SliceId::Text(id.clone()), revision: None });
-            }
-        }
-        taken.runs = runs;
-    }
-
-    /// The derived view of a workbook: the checked references, the dataflow and the inputs of its scripts
-    fn derived_view(&self, workbook_id: &str) -> Option<WorkbookDerivedView> {
-        let workbook = self.workbooks.get(workbook_id)?;
-        let workbook = workbook.try_borrow().ok()?;
-        // The buffers that the last changes derived, if the workbook didn't change since
-        let inputs = derived_key(&workbook);
-        let held = self.taken.try_borrow().ok().and_then(|taken| {
-            taken.derived.iter().find(|(id, held)| id == workbook_id && held.inputs == inputs).map(|(_, held)| held.buffers.clone())
-        });
-        let buffers = held.unwrap_or_else(|| derive_buffers(&workbook).0);
-        let [references, dataflow, inputs] = &*buffers;
-        Some(WorkbookDerivedView {
-            workbook_id: workbook_id.to_string(),
-            script_keys: workbook.scripts().iter().map(|script| script.key()).collect(),
-            references: FlatBufferBytes(references.clone()),
-            dataflow: FlatBufferBytes(dataflow.clone()),
-            inputs: FlatBufferBytes(inputs.clone()),
-        })
-    }
-
     /// The connection of the scripts on a connection by id
     fn script_connection(&self, connection_id: &str) -> Result<Rc<dashql_core_runtime::workbook::ScriptConnection>, String> {
         self.workbooks.script_connection(connection_id).map_err(error_text)
     }
 
     /// Apply an action to a workbook
-    fn dispatch_workbook(&self, workbook_id: String, action: RuntimeAction) -> Result<DispatchOutcome, JsError> {
+    fn dispatch_workbook(&self, workbook_id: String, action: RuntimeAction) -> DispatchOutcome {
         use dashql_core_runtime::workbook::WorkbookAction as A;
         let workbooks = &self.workbooks;
         let connection = |id: &str| self.script_connection(id);
@@ -923,7 +919,7 @@ impl Runtime {
             RuntimeAction::CreateScript { index, text, base, connection_id } => {
                 let connection = match connection_id.as_deref().map(connection).transpose() {
                     Ok(connection) => connection,
-                    Err(error) => return Ok(DispatchOutcome::failed(error)),
+                    Err(error) => return DispatchOutcome::failed(error),
                 };
                 A::CreateScript { index: index.map(|index| index as usize), text, base, connection }
             }
@@ -940,63 +936,44 @@ impl Runtime {
             RuntimeAction::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
             RuntimeAction::ShowScript { script_key, selected } => {
                 workbooks.visible.show(script_key, selected);
-                return Ok(DispatchOutcome::changed(false));
+                return DispatchOutcome::changed(false);
             }
             RuntimeAction::HideScript { script_key, selected } => {
                 workbooks.visible.hide(script_key, selected);
-                return Ok(DispatchOutcome::changed(false));
+                return DispatchOutcome::changed(false);
             }
-            RuntimeAction::RegisterQuery { script_key, query_id } => A::RegisterQuery { key: script_key, query_id },
-            RuntimeAction::RegisterScriptResult { script_key, query_id } => A::RegisterScriptResult { key: script_key, query_id },
             RuntimeAction::RenameWorkbook { name } => A::RenameWorkbook { name },
             RuntimeAction::SetScriptConnection { file_name, connection_id } => match connection(&connection_id) {
                 Ok(connection) => A::SetScriptConnection { file_name, connection },
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
+                Err(error) => return DispatchOutcome::failed(error),
             },
             RuntimeAction::SetPendingConnection { connection_id } => match connection(&connection_id) {
                 Ok(connection) => A::SetPendingConnection { connection },
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
+                Err(error) => return DispatchOutcome::failed(error),
             },
             RuntimeAction::ReplaceConnection { from, into } => match connection(&into) {
                 Ok(into) => A::ReplaceConnection { from, into },
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
+                Err(error) => return DispatchOutcome::failed(error),
             },
             RuntimeAction::DetachConnection { from, into } => match connection(&into) {
                 Ok(into) => A::DetachConnection { from, into },
-                Err(error) => return Ok(DispatchOutcome::failed(error)),
+                Err(error) => return DispatchOutcome::failed(error),
             },
             RuntimeAction::SetWorkbookAttachments { files } => {
                 let action = A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
                 let outcome = self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action));
                 // The columns of new Parquet attachments are read with the compute database
                 self.runs.describe_attachments();
-                return Ok(outcome);
-            }
-            RuntimeAction::SetAttachmentColumns { file_name, stamp, columns } => {
-                A::SetAttachmentColumns { file_name, stamp, columns: columns.into_iter().map(std::sync::Arc::<str>::from).collect() }
+                return outcome;
             }
             RuntimeAction::RenameAttachment { file_name, new_file_name } => A::RenameAttachment { file_name, new_file_name },
             RuntimeAction::SetCloudLink { link } => {
                 let link = link.map(|link| link.0).filter(|link| !link.is_null());
-                return Ok(self.workbook_outcome(&workbook_id, workbooks.set_cloud_link(&workbook_id, link)));
+                return self.workbook_outcome(&workbook_id, workbooks.set_cloud_link(&workbook_id, link));
             }
-            RuntimeAction::ReplaceFromStorage { scripts } => {
-                let scripts = scripts
-                    .into_iter()
-                    .map(|script| StoredScriptRef {
-                        name: script.name,
-                        sql: script.sql,
-                        connection_id: script.connection_id,
-                        unresolved_connection_id: script.unresolved_connection_id,
-                    })
-                    .collect();
-                let outcome = self.workbook_outcome(&workbook_id, workbooks.replace_from_storage(&workbook_id, scripts));
-                self.runs.describe_attachments();
-                return Ok(outcome);
-            }
-            _ => return Ok(DispatchOutcome::failed("the action doesn't apply to a workbook")),
+            _ => return DispatchOutcome::failed("the action doesn't apply to a workbook"),
         };
-        Ok(self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action)))
+        self.workbook_outcome(&workbook_id, workbooks.apply(&workbook_id, action))
     }
 
     /// What restores the stored state into the runtime
@@ -1069,7 +1046,7 @@ impl Restorer {
                 self.runs.describe_attachments();
                 Ok(outcome)
             }
-            Err(error) => Err(dashql_core_runtime::host::HostError::new(error.what())),
+            Err(error) => Err(error),
         }
     }
 }
@@ -1095,290 +1072,67 @@ impl Runtime {
         let imports = imports::Imports::new(platform.clone(), connections.clone());
         let external = external::ExternalChanges::new(platform.clone(), storage.clone(), connections.clone(), workbooks.clone(), runs.clone());
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
-        let taken = Taken {
-            list: Some((Vec::new(), 0)),
-            workbook_list: Some((Workbooks::list_key(&[], 0), 0)),
-            storage: Some((0, 0)),
-            ..Taken::default()
-        };
-        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, taken: RefCell::new(taken) }
+        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, taken: RefCell::new(Taken::default()) }
     }
 
-    /// The slices that changed and the effects on handles since the last call
+    /// The slices that changed and the effects on handles since the last call: the slices that the services marked,
+    /// see `changes.rs`. A slice that is busy is never reported as gone, it follows with the next changes.
     #[wasm_bindgen(js_name = takeChanges)]
     pub fn take_changes(&self) -> Result<Ts<ChangeSet>, JsError> {
-        let effects = self.platform.take_effects();
-        let mut changes = Vec::new();
-        let mut taken = self.taken.borrow_mut();
-        let taken = &mut *taken;
-
-        // The computations
-        let current: BTreeMap<TableId, u64> =
-            self.computations.read(|state| state.computations().map(|(id, computation)| (id, computation.revision())).collect());
-        for (id, revision) in &current {
-            if taken.computations.get(id) != Some(revision) {
-                changes.push(SliceChange { kind: COMPUTATION.into(), id: SliceId::Number(*id), revision: Some(*revision) });
-            }
-        }
-        for id in taken.computations.keys() {
-            if !current.contains_key(id) {
-                changes.push(SliceChange { kind: COMPUTATION.into(), id: SliceId::Number(*id), revision: None });
-            }
-        }
-        taken.computations = current;
-
-        let registry = self.connections.registry.borrow();
-
-        // The list of the connections
-        let list = registry.list();
-        if taken.list.as_ref().map(|(taken, _)| taken) != Some(&list) {
-            let revision = next_revision();
-            changes.push(SliceChange { kind: CONNECTION_LIST.into(), id: SliceId::Text(ROOT.into()), revision: Some(revision) });
-            taken.list = Some((list, revision));
-        }
-
-        // The connections
-        let mut held: Vec<(String, (ConnectionKey, u64))> = std::mem::take(&mut taken.connections).into_iter().map(|(id, key, revision)| (id, (key, revision))).collect();
-        for (id, connection) in registry.connections() {
-            let key = ConnectionKey {
-                state: connection.state.borrow().revision(),
-                queries: connection.queries.borrow().snapshot_queries_active_finished(),
-                workbooks: registry.workbooks_of(id).to_vec(),
-                save: self.connections.save_revision(id),
-                catalog_version: self.connections.catalog_version(id),
-                setup_running: self.connections.setup_running(id),
-            };
-            let revision = match take_entry(&mut held, &id.to_string()) {
-                Some((taken_key, revision)) if taken_key == key => revision,
-                _ => {
-                    let revision = next_revision();
-                    changes.push(SliceChange { kind: CONNECTION.into(), id: SliceId::Text(id.to_string()), revision: Some(revision) });
-                    revision
-                }
-            };
-            taken.connections.push((id.to_string(), key, revision));
-        }
-        for (id, _) in held {
-            changes.push(SliceChange { kind: CONNECTION.into(), id: SliceId::Text(id), revision: None });
-        }
-
-        // The histories without a connection
-        let mut held: Vec<(String, (Vec<QueryId>, u64))> = std::mem::take(&mut taken.histories).into_iter().map(|(name, ids, revision)| (name, (ids, revision))).collect();
-        for (name, history) in registry.histories() {
-            let ids = QueryHistoryView::from(&*history.borrow()).queries;
-            let revision = match take_entry(&mut held, &name.to_string()) {
-                Some((taken_ids, revision)) if taken_ids == ids => revision,
-                _ => {
-                    let revision = next_revision();
-                    changes.push(SliceChange { kind: HISTORY.into(), id: SliceId::Text(name.to_string()), revision: Some(revision) });
-                    revision
-                }
-            };
-            taken.histories.push((name.to_string(), ids, revision));
-        }
-        for (name, _) in held {
-            changes.push(SliceChange { kind: HISTORY.into(), id: SliceId::Text(name), revision: None });
-        }
-
-        // The queries of every history, the histories that didn't change are skipped
-        let owners: Vec<(QueryOwner, _)> = registry
-            .connections()
-            .map(|(id, connection)| (QueryOwner::Connection(id.to_string()), connection.queries.clone()))
-            .chain(registry.histories().map(|(name, history)| (QueryOwner::History(name.to_string()), history.clone())))
-            .collect();
-        drop(registry);
-        let mut held: Vec<(QueryOwner, (u64, BTreeMap<QueryId, u64>))> =
-            std::mem::take(&mut taken.queries).into_iter().map(|(owner, revision, queries)| (owner, (revision, queries))).collect();
-        for (owner, history) in owners {
-            let history = history.borrow();
-            let revision = history.revision();
-            let queries = match take_entry(&mut held, &owner) {
-                Some((taken_revision, taken_queries)) if taken_revision == revision => taken_queries,
-                taken_entry => {
-                    let mut taken_queries = taken_entry.map(|(_, queries)| queries).unwrap_or_default();
-                    let mut current = BTreeMap::new();
-                    for query_id in history.active_ids().iter().chain(history.finished_ids()) {
-                        let Some(query) = history.query(*query_id) else { continue };
-                        if taken_queries.remove(query_id) != Some(query.revision) {
-                            changes.push(SliceChange { kind: QUERY.into(), id: SliceId::Number(*query_id), revision: Some(query.revision) });
-                        }
-                        current.insert(*query_id, query.revision);
-                    }
-                    for query_id in taken_queries.into_keys() {
-                        changes.push(SliceChange { kind: QUERY.into(), id: SliceId::Number(query_id), revision: None });
-                    }
-                    current
-                }
-            };
-            taken.queries.push((owner, revision, queries));
-        }
-        for (_, (_, gone)) in held {
-            for query_id in gone.into_keys() {
-                changes.push(SliceChange { kind: QUERY.into(), id: SliceId::Number(query_id), revision: None });
-            }
-        }
-        self.take_workbook_changes(taken, &mut changes);
-        to_js(&ChangeSet { changes, effects })
+        to_js(&self.take())
     }
 
-    /// The views of slices, see the declaration of `views` in `RuntimeViews`
+    /// The host failed to project slices of a kind, e.g. a projection threw: they move with the next changes, also if
+    /// their views didn't change, and the host is told
+    pub fn resync(&self, #[wasm_bindgen(unchecked_param_type = "ViewKind")] kind: &str, #[wasm_bindgen(unchecked_param_type = "(string | number)[]")] ids: JsValue) -> Result<(), JsError> {
+        let ids = Self::ids(&ids)?;
+        self.resync_slices(kind, &ids)
+    }
+
+    /// The views of slices, see the declaration of `views` in `RuntimeViews`. A slice that is busy reads as null and
+    /// moves with the next changes, the host keeps its previous view.
     #[wasm_bindgen(skip_typescript)]
     pub fn views(&self, kind: &str, ids: JsValue, known: JsValue) -> Result<JsValue, JsError> {
-        match kind {
-            COMPUTATION => {
-                let ids = Self::number_ids(&ids, "id of a computation")?;
-                let views: Vec<Option<ComputationView>> =
-                    self.computations.read(|state| ids.iter().map(|id| state.computation(*id).map(ComputationView::from)).collect());
-                value_to_js(&views).map_err(|e| JsError::new(&e.to_string()))
-            }
-            CONNECTION_LIST => {
-                let ids = Self::text_ids(&ids, "connection list")?;
-                let list = self.connections.registry.borrow().list();
-                let views: Vec<Option<ConnectionListView>> =
-                    ids.iter().map(|id| (id == ROOT).then(|| ConnectionListView::of(&list))).collect();
-                views_to_js(&views)
-            }
-            CONNECTION => {
-                let ids = Self::text_ids(&ids, "connection")?;
-                let connections = &self.connections;
-                let views: Vec<Option<ConnectionView>> = ids
-                    .iter()
-                    .map(|id| {
-                        let registry = connections.registry.borrow();
-                        let connection = registry.get(id)?;
-                        let save = connections.save_view(id);
-                        let mut view = ConnectionView::of(&connection.state.borrow(), &connection.queries.borrow(), registry.workbooks_of(id), save);
-                        view.catalog_version = connections.catalog_version(id);
-                        view.setup_running = connections.setup_running(id);
-                        Some(view)
-                    })
-                    .collect();
-                views_to_js(&views)
-            }
-            QUERY => {
-                let ids = Self::number_ids(&ids, "id of a query")?;
-                let known: Vec<Option<QueryProfileKeys>> = if known.is_undefined() || known.is_null() {
-                    Vec::new()
-                } else {
-                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the queries: {e}")))?
-                };
-                let registry = self.connections.registry.borrow();
-                let views: Vec<Option<QueryView>> = ids
-                    .iter()
-                    .enumerate()
-                    .map(|(i, id)| {
-                        let (owner, history) = registry.query_history(*id)?;
-                        let history = history.borrow();
-                        let query = history.query(*id)?;
-                        let connection_id = match &owner {
-                            QueryOwner::Connection(id) => Some(id.as_str()),
-                            QueryOwner::History(_) => None,
-                        };
-                        let known = known.get(i).copied().flatten().unwrap_or_default();
-                        Some(QueryView::of(query, connection_id, known))
-                    })
-                    .collect();
-                views_to_js(&views)
-            }
-            HISTORY => {
-                let ids = Self::text_ids(&ids, "history")?;
-                let registry = self.connections.registry.borrow();
-                let views: Vec<Option<QueryHistoryView>> = ids
-                    .iter()
-                    .map(|name| registry.history(&QueryOwner::History(name.clone())).map(|history| QueryHistoryView::from(&*history.borrow())))
-                    .collect();
-                views_to_js(&views)
-            }
-            WORKBOOK_LIST => {
-                let ids = Self::text_ids(&ids, "workbook list")?;
-                let list = self.workbooks.list_view();
-                let views: Vec<Option<WorkbookListView>> = ids.iter().map(|id| (id == ROOT).then(|| list.clone())).collect();
-                views_to_js(&views)
-            }
-            WORKBOOK => {
-                let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookView>> = ids.iter().map(|id| self.workbooks.view(id)).collect();
-                views_to_js(&views)
-            }
-            SCRIPT => {
-                let ids = Self::number_ids(&ids, "key of a script")?;
-                let known: Vec<Option<WorkbookScriptKeys>> = if known.is_undefined() || known.is_null() {
-                    Vec::new()
-                } else {
-                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
-                };
-                let views: Vec<Option<WorkbookScriptView>> = ids
-                    .iter()
-                    .enumerate()
-                    .map(|(i, key)| {
-                        let key = u32::try_from(*key).ok()?;
-                        let (workbook_id, workbook) = self.workbooks.of_script(key)?;
-                        let workbook = workbook.try_borrow().ok()?;
-                        let script = workbook.script(key)?;
-                        let known = known.get(i).cloned().flatten().unwrap_or_default();
-                        Some(WorkbookScriptView::new(&workbook_id, script, &known))
-                    })
-                    .collect();
-                views_to_js(&views)
-            }
-            WORKBOOK_DERIVED => {
-                let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookDerivedView>> = ids.iter().map(|id| self.derived_view(id)).collect();
-                views_to_js(&views)
-            }
-            RUN => {
-                let ids = Self::text_ids(&ids, "workbook")?;
-                let views: Vec<Option<WorkbookRunView>> = ids.iter().map(|id| self.runs.view(id)).collect();
-                views_to_js(&views)
-            }
-            STORAGE => {
-                let ids = Self::text_ids(&ids, "storage")?;
-                let view = self.storage.view();
-                let views: Vec<Option<StorageView>> = ids.iter().map(|id| (id == ROOT).then(|| view.clone())).collect();
-                views_to_js(&views)
-            }
-            _ => Err(JsError::new(&format!("the runtime has no views of the kind {kind}"))),
+        let mut busy: Vec<JsValue> = Vec::new();
+        let views = self.read_views(kind, ids, known, &mut busy)?;
+        if !busy.is_empty() {
+            let details = [("kind", kind), ("slices", &busy.len().to_string())];
+            self.platform.log_on(LogLevel::Warn, "Slices were busy when the host read their views, they follow with the next changes", &details, "runtime");
+            // The take that follows runs after the borrow ended
+            let _ = self.resync_slices(kind, &busy);
         }
+        Ok(views)
     }
 
-    /// Apply an action to a slice
-    pub fn dispatch(&self, target: Ts<Target>, action: Ts<RuntimeAction>) -> Result<Ts<DispatchOutcome>, JsError> {
-        let target = from_js(&target)?;
-        let action = from_js(&action)?;
-        let outcome = match target {
-            Target::Computation(table_id) => {
-                let service = &self.computations;
-                match action {
-                    RuntimeAction::DeleteComputation => self.settle(service.delete_computation(table_id)),
-                    RuntimeAction::OrderBy { constraints } => {
-                        self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect()))
-                    }
-                    RuntimeAction::HistogramFilter { column_group, selection } => {
-                        self.settle(service.histogram_filter(table_id, column_group, selection))
-                    }
-                    RuntimeAction::MostFrequentValueFilter { column_group, value_id } => {
-                        self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
-                    }
-                    RuntimeAction::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
-                    RuntimeAction::SetResultSearchPattern { search, pattern } => {
-                        self.settle(service.set_search_pattern(table_id, search.into(), pattern))
-                    }
-                    RuntimeAction::RequestFilteredColumnAggregation { column_group } => {
-                        let requested =
-                            service.request_filtered_column_aggregation(table_id, column_group).map(|_| ComputationOutcome::default());
-                        self.settle(requested)
-                    }
-                    _ => DispatchOutcome::failed("the action doesn't apply to a computation"),
-                }
+    /// Apply an action to a slice. Never throws: a malformed target or action and a refused action are failed outcomes.
+    /// The handles that the action carries are the runtime's from the call on, a refused action releases them.
+    #[wasm_bindgen(unchecked_return_type = "DispatchOutcome")]
+    pub fn dispatch(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "Target")] target: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "RuntimeAction")] action: JsValue,
+    ) -> JsValue {
+        let (outcome, handles) = match (serde_wasm_bindgen::from_value::<Target>(target), serde_wasm_bindgen::from_value::<RuntimeAction>(action.clone())) {
+            (Ok(target), Ok(action)) => {
+                let handles = action.handles();
+                let outcome = self.dispatch_action(target, action).unwrap_or_else(DispatchOutcome::failed);
+                (outcome, handles)
             }
-            Target::Connection(connection_id) => self.dispatch_connection(connection_id, action)?,
-            Target::History(name) => self.dispatch_query(QueryOwner::History(name), action)?,
-            Target::Workbook(workbook_id) => self.dispatch_workbook(workbook_id, action)?,
-            Target::App => self.dispatch_app(action)?,
+            (Err(error), _) => (DispatchOutcome::failed(format!("the target is malformed: {error}")), RuntimeAction::handles_of(&action)),
+            (_, Err(error)) => (DispatchOutcome::failed(format!("the action is malformed: {error}")), RuntimeAction::handles_of(&action)),
         };
-        to_js(&outcome)
+        if !outcome.ok {
+            // No view named the handles of a refused action
+            for handle in handles {
+                self.platform.release_handle(handle);
+            }
+        }
+        views_to_js(&outcome).unwrap_or_else(|_| {
+            let failed = Object::new();
+            let _ = Reflect::set(&failed, &JsValue::from_str("ok"), &JsValue::FALSE);
+            failed.into()
+        })
     }
-
     /// Analyze a result as the computation of a table: its import into the compute database, the statistics, the
     /// system columns, the summaries of the columns and the ordering of the options. The result is a table of the
     /// handle table, the computation takes its handle; an analysis that starts no computation releases it, so does a
@@ -1562,9 +1316,9 @@ impl Runtime {
     /// views only summarize them. Null without the connection.
     #[wasm_bindgen(js_name = revealConnectionSecrets, unchecked_return_type = "ConnectionSecrets | null")]
     pub fn reveal_connection_secrets(&self, connection_id: &str) -> Result<JsValue, JsError> {
-        let connection = self.connections.registry.borrow().get(connection_id).cloned();
+        let connection = self.connections.registry.try_borrow().map_err(|_| busy())?.get(connection_id).cloned();
         let Some(connection) = connection else { return Ok(JsValue::NULL) };
-        let secrets = ConnectionSecrets::of(&connection.state.borrow().details().connector);
+        let secrets = ConnectionSecrets::of(&connection.state.try_borrow().map_err(|_| busy())?.details().connector);
         Ok(to_js(&secrets)?.into())
     }
 
@@ -1590,31 +1344,43 @@ impl Runtime {
         }
     }
 
-    /// The catalog of a connection, shared with the connection and the scripts that analyze with it. None for an
-    /// unknown connection.
+    /// The catalog of a connection, shared with the connection and the scripts that analyze with it. The handle reads
+    /// only: the catalog changes through the runtime, which tells the scripts on it. None for an unknown connection.
+    /// The identity of the catalog is `catalogId` of the view of the connection.
     pub fn catalog(&self, connection_id: &str) -> Option<Catalog> {
-        let registry = self.connections.registry.borrow();
+        let registry = self.connections.registry.try_borrow().ok()?;
         let connection = registry.get(connection_id)?;
-        let catalog = connection.state.borrow().catalog().clone();
-        Some(Catalog { inner: SharedCatalog(catalog) })
+        let catalog = connection.state.try_borrow().ok()?.catalog().clone();
+        Some(Catalog::read_only(SharedCatalog(catalog)))
+    }
+
+    /// Tests that stand in for the catalog loader: the catalog of a connection as a handle that writes. Its writes
+    /// bypass the runtime, nothing is announced. None for an unknown connection.
+    #[wasm_bindgen(js_name = testCatalog)]
+    pub fn test_catalog(&self, connection_id: &str) -> Option<Catalog> {
+        let registry = self.connections.registry.try_borrow().ok()?;
+        let connection = registry.get(connection_id)?;
+        let catalog = connection.state.try_borrow().ok()?.catalog().clone();
+        Some(Catalog::read_write(SharedCatalog(catalog)))
     }
 
     /// The text of the script with the functions of a connection, none once it is deleted
     #[wasm_bindgen(js_name = functionScriptText)]
-    pub fn function_script_text(&self, connection_id: &str) -> Option<String> {
-        let registry = self.connections.registry.borrow();
-        let connection = registry.get(connection_id)?;
-        let state = connection.state.borrow();
-        state.function_script().map(|script| script.to_text())
+    pub fn function_script_text(&self, connection_id: &str) -> Result<Option<String>, JsError> {
+        let registry = self.connections.registry.try_borrow().map_err(|_| busy())?;
+        let Some(connection) = registry.get(connection_id) else { return Ok(None) };
+        let state = connection.state.try_borrow().map_err(|_| busy())?;
+        Ok(state.function_script().map(|script| script.to_text()))
     }
 
     /// The recording of the progress of a query as JSON, none without structured progress
     #[wasm_bindgen(js_name = queryProgressRecording)]
     pub fn query_progress_recording(&self, query_id: f64) -> Result<Option<String>, JsError> {
         let query_id = integer(query_id, "query id")?;
-        let registry = self.connections.registry.borrow();
-        let history = registry.query_history(query_id).map(|(_, history)| history);
-        Ok(history.and_then(|history| progress_recording(&history.borrow(), query_id)))
+        let registry = self.connections.registry.try_borrow().map_err(|_| busy())?;
+        let Some((_, history)) = registry.query_history(query_id) else { return Ok(None) };
+        let history = history.try_borrow().map_err(|_| busy())?;
+        Ok(progress_recording(&history, query_id))
     }
 
     /// Follow the progress of a query with the layout of a follower, none without structured progress. The structure
@@ -1629,11 +1395,11 @@ impl Runtime {
         let query_id = integer(query_id, "query id")?;
         let known = known.as_ref().map(from_js).transpose()?.unwrap_or_default();
         let history = {
-            let registry = self.connections.registry.borrow();
+            let registry = self.connections.registry.try_borrow().map_err(|_| busy())?;
             registry.query_history(query_id).map(|(_, history)| history)
         };
         match history {
-            Some(history) => follower.follow(&history.borrow(), query_id, known),
+            Some(history) => follower.follow(&*history.try_borrow().map_err(|_| busy())?, query_id, known),
             None => Ok(None),
         }
     }
@@ -1665,7 +1431,18 @@ impl Runtime {
         let (_, workbook) = self.workbooks.of_script(script_key)?;
         let workbook = workbook.try_borrow().ok()?;
         let script = workbook.script(script_key)?;
-        Some(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone() })
+        Some(ScriptSession { catalog: SharedCatalog(script.connection().catalog.clone()), inner: script.session().clone(), read_only: true })
+    }
+
+    /// Tests of the seam: call a function while a workbook is borrowed, as a task of the runtime would hold it. The
+    /// function may take the changes and read the views of the busy workbook.
+    #[wasm_bindgen(js_name = testHoldWorkbook)]
+    pub fn test_hold_workbook(&self, workbook_id: &str, f: &Function) -> Result<JsValue, JsError> {
+        let workbook = self.workbooks.get(workbook_id).ok_or_else(|| JsError::new("no workbook registered with the id"))?;
+        let held = workbook.try_borrow_mut().map_err(|_| JsError::new("the workbook is busy"))?;
+        let result = f.call0(&JsValue::NULL);
+        drop(held);
+        result.map_err(|error| JsError::new(&crate::host::message_of(&error)))
     }
 
     /// Is the analysis of a script outdated, also by a change that the workbook missed?
@@ -1741,7 +1518,8 @@ impl Runtime {
         Ok(future_to_promise(async move {
             match restore.await {
                 Ok(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
-                Err(error) => Err(JsError::new(error.message()).into()),
+                // What the platform failed with keeps its identity, e.g. an `ExternalScriptChangeError`
+                Err(error) => Err(error_value(&error)),
             }
         }))
     }
@@ -2154,6 +1932,12 @@ fn run_result((outcome, error): (runs::view::RunOutcome, JsValue)) -> Result<JsV
 /// The outcome of a setup as a JS value
 fn setup_outcome(outcome: SetupOutcome) -> Result<JsValue, JsValue> {
     views_to_js(&outcome).map_err(JsValue::from)
+}
+
+/// The error of a read of a state that a task holds. The seam never panics on a borrow: a view of a busy slice reads as
+/// null and follows with the next changes, a read for a command fails with this error.
+fn busy() -> JsError {
+    JsError::new("the state is busy, a task of the runtime holds it")
 }
 
 /// The error of a task as a JS error

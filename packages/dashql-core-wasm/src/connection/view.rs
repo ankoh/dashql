@@ -548,6 +548,9 @@ pub struct ConnectionView {
     pub setup_running: bool,
     /// Counts the announcements of a new catalog: the scripts that use the connection are analyzed again with it
     pub catalog_version: u64,
+    /// The identity of the catalog of the connection: a connection that is created again under the same id has another
+    /// catalog, a handle of the catalog (`Runtime.catalog`) goes with its identity
+    pub catalog_id: u64,
 }
 
 impl ConnectionView {
@@ -607,6 +610,7 @@ impl ConnectionView {
             can_refresh: state.can_refresh_catalog(),
             setup_running: false,
             catalog_version: 0,
+            catalog_id: 0,
         }
     }
 }

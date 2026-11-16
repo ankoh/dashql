@@ -237,6 +237,6 @@ impl ComputeHost for ComputeTracker {
     }
 
     fn changed(&self, effects: &[ComputationEffect]) {
-        self.inner.platform.changed(effects)
+        ComputeHost::changed(&self.inner.platform, effects)
     }
 }

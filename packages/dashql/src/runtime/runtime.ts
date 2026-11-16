@@ -167,8 +167,9 @@ export class Runtime {
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
-    /// The catalogs of the connections, one handle each
-    private readonly catalogs = new Map<string, core.DashQLCatalog>();
+    /// The catalogs of the connections by the identity of the catalog (`catalogId` of the view of a connection), one
+    /// handle each that reads only
+    private readonly catalogs = new Map<number, core.DashQLCatalog>();
     /// The fetches and the OAuth flows of the runtime
     private readonly requests: PlatformRequests;
     /// The projection of the scripts of the workbooks, with the session handles of the scripts
@@ -180,7 +181,7 @@ export class Runtime {
         this.platform = platform;
         this.logger = platform.logger;
         this.core = platform.core;
-        this.store = new RuntimeStore(this.handles, platform.scheduler);
+        this.store = new RuntimeStore(this.handles, platform.scheduler, message => this.logger.error(message, {}, LOG_CTX));
         this.storage = new StorageWriter(this);
         this.requests = new PlatformRequests(platform);
         this.tables = createRuntimeTables(this.handles);
@@ -197,14 +198,15 @@ export class Runtime {
             query: createQueryProjection(this.core, this.module),
             script: this.scriptProjection,
             workbook: WORKBOOK_PROJECTION,
-            workbookDerived: new WorkbookDerivedProjection(workbookId => this.store.get('workbook', workbookId)),
+            workbookDerived: new WorkbookDerivedProjection(),
         });
-        // A catalog handle goes with its connection
+        // A catalog handle goes with the catalog of its connection
         this.store.subscribeKind('connection', () => {
-            for (const [connectionId, catalog] of this.catalogs) {
-                if (this.store.get('connection', connectionId) == null) {
+            const live = new Set([...this.store.all('connection').values()].map(connection => connection.catalogId));
+            for (const [catalogId, catalog] of this.catalogs) {
+                if (!live.has(catalogId)) {
                     catalog.destroy();
-                    this.catalogs.delete(connectionId);
+                    this.catalogs.delete(catalogId);
                 }
             }
         });
@@ -257,7 +259,8 @@ export class Runtime {
     }
 
     /// Apply an action to a slice. It applies at once, the views follow with the next flush. A refused action is
-    /// logged.
+    /// logged. Never throws: the runtime refuses an action that it can't read. The handles that an action carries are
+    /// the runtime's from the call on, it releases the ones of a refused action.
     dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome {
         if (this.freed) return { ok: false, changed: false, error: 'the runtime was destroyed', id: null };
         const outcome = this.module.dispatch(target, action);
@@ -320,10 +323,12 @@ export class Runtime {
     /// The catalog of a connection, shared with the connection and the scripts that analyze with it. One handle per
     /// connection, it goes with the connection.
     catalog(connectionId: string): core.DashQLCatalog | null {
-        let catalog = this.catalogs.get(connectionId) ?? null;
+        const catalogId = this.connection(connectionId)?.catalogId;
+        if (catalogId == null) return null;
+        let catalog = this.catalogs.get(catalogId) ?? null;
         if (catalog == null && !this.freed) {
             catalog = this.core.runtimeCatalog(this.module, connectionId);
-            if (catalog != null) this.catalogs.set(connectionId, catalog);
+            if (catalog != null) this.catalogs.set(catalogId, catalog);
         }
         return catalog;
     }

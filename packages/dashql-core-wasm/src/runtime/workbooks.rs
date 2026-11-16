@@ -10,8 +10,7 @@
 pub(crate) mod view;
 
 use std::cell::{Cell, RefCell};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_buffers::editor::{EditorEventT, EditorOffsetUnit};
@@ -28,6 +27,7 @@ use dashql_core_runtime::workbook::{
 };
 use serde_json::{json, Map, Value};
 
+use super::changes::{Read, Slice};
 use super::connections::Connections;
 use super::storage::RuntimeWriter;
 use crate::host::JsPlatform;
@@ -102,6 +102,8 @@ pub(crate) struct Workbooks {
     pub writer: RuntimeWriter,
     /// The workbooks in the order they were registered
     pub entries: RefCell<Vec<WorkbookEntry>>,
+    /// The workbook of a script by its key. A lookup checks the entry and searches the workbooks when it is gone.
+    pub script_index: RefCell<HashMap<u32, String>>,
     /// The workbooks that were refused a load, they can only be deleted
     pub invalid: RefCell<Vec<RestoredInvalidWorkbook>>,
     /// Changes with the list of the invalid workbooks
@@ -120,6 +122,7 @@ impl Workbooks {
             connections: connections.clone(),
             writer,
             entries: RefCell::new(Vec::new()),
+            script_index: RefCell::new(HashMap::new()),
             invalid: RefCell::new(Vec::new()),
             invalid_revision: Cell::new(0),
             changed_listener: RefCell::new(None),
@@ -150,13 +153,32 @@ impl Workbooks {
         self.entries.borrow().iter().find(|entry| entry.id == workbook_id).map(|entry| entry.workbook.clone())
     }
 
-    /// The workbook that holds a script
+    /// The workbook that holds a script, by the index of the scripts. A busy workbook holds none.
     pub fn of_script(&self, key: u32) -> Option<(String, Rc<RefCell<Workbook>>)> {
-        let entries = self.entries.borrow();
-        entries
-            .iter()
-            .find(|entry| entry.workbook.try_borrow().is_ok_and(|workbook| workbook.script(key).is_some()))
-            .map(|entry| (entry.id.clone(), entry.workbook.clone()))
+        let entries = self.entries.try_borrow().ok()?;
+        let holds = |entry: &WorkbookEntry| entry.workbook.try_borrow().is_ok_and(|workbook| workbook.script(key).is_some());
+        let indexed = self.script_index.borrow().get(&key).cloned();
+        if let Some(entry) = indexed.and_then(|id| entries.iter().find(|entry| entry.id == id)).filter(|entry| holds(entry)) {
+            return Some((entry.id.clone(), entry.workbook.clone()));
+        }
+        let entry = entries.iter().find(|entry| holds(entry))?;
+        self.script_index.borrow_mut().insert(key, entry.id.clone());
+        Some((entry.id.clone(), entry.workbook.clone()))
+    }
+
+    /// Is a workbook borrowed, so that a lookup of a script may miss it?
+    pub fn busy(&self) -> bool {
+        self.entries.try_borrow().map_or(true, |entries| entries.iter().any(|entry| entry.workbook.try_borrow().is_err()))
+    }
+
+    /// Index the scripts of a workbook by their keys
+    pub fn index_scripts(&self, workbook_id: &str, workbook: &Workbook) {
+        let mut index = self.script_index.borrow_mut();
+        for script in workbook.scripts() {
+            if index.get(&script.key()).is_none_or(|held| held != workbook_id) {
+                index.insert(script.key(), workbook_id.to_string());
+            }
+        }
     }
 
     /// The connection of the scripts on a connection of the runtime, with its catalog
@@ -198,7 +220,7 @@ impl Workbooks {
             }
         }
         if self.connections.registry.borrow_mut().set_references(references) {
-            self.platform.signal(true);
+            self.platform.changed(Slice::Connections, true);
         }
     }
 
@@ -222,7 +244,7 @@ impl Workbooks {
             let mut workbook = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
             workbook.apply(action)?
         };
-        let changed = self.settle(workbook_id, &workbook, outcome, editor_only);
+        let changed = self.settle(workbook_id, &workbook, outcome, editor_only, true);
         Ok(changed)
     }
 
@@ -230,26 +252,39 @@ impl Workbooks {
     /// the one of the outcome, or the one that the script holds now. None for a script that holds another session.
     pub fn apply_editor_event(&self, workbook_id: &str, key: u32, generation: u64, event: EditorEventT) -> Result<Option<Vec<u8>>> {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
-        let (outcome, update) = {
+        let (outcome, update, derives) = {
             let mut held = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
             if !held.script(key).is_some_and(|script| script.session_generation() == generation) {
                 return Ok(None);
             }
+            let before = analysis_key(&held, key);
             let outcome = held.apply(WorkbookAction::ApplyEditorEvent { key, event })?;
             let update = match &outcome.editor_update {
                 Some(update) => finish!(update),
                 None => held.script(key).and_then(|script| script.editor_update()).map(|update| finish!(update)).unwrap_or_default(),
             };
-            (outcome, update)
+            // A move of the cursor leaves the text and the analysis, the workbook derives nothing new
+            let derives = before.is_none() || before != analysis_key(&held, key);
+            (outcome, update, derives)
         };
-        self.settle(workbook_id, &workbook, outcome, true);
+        self.settle(workbook_id, &workbook, outcome, true, derives);
         Ok(Some(update))
     }
 
-    /// Write the effects of an outcome, promote the workbook and tell the host
-    fn settle(&self, workbook_id: &str, workbook: &Rc<RefCell<Workbook>>, outcome: WorkbookOutcome, editor_only: bool) -> bool {
+    /// Write the effects of an outcome, promote the workbook and tell the host. An editor event changes the script and,
+    /// if it changed the text or the analysis (`derives`), what the workbook derives; the other actions mark the
+    /// workbook with its scripts.
+    fn settle(&self, workbook_id: &str, workbook: &Rc<RefCell<Workbook>>, outcome: WorkbookOutcome, editor_only: bool, derives: bool) -> bool {
         let mut changed = outcome.changed;
         self.write_effects(workbook_id, outcome.effects);
+        if editor_only {
+            self.platform.mark(Slice::Scripts(workbook_id));
+            if derives {
+                self.platform.mark(Slice::Derived(workbook_id));
+            }
+        } else {
+            self.platform.mark(Slice::Workbook(workbook_id));
+        }
         if !editor_only {
             let taken = self.taken_names(workbook_id);
             let promoted = workbook.try_borrow_mut().ok().and_then(|mut workbook| workbook.promote(taken.iter().map(String::as_str)));
@@ -348,7 +383,7 @@ impl Workbooks {
         let manifest = WriteTask::WriteWorkbookManifest { workbook_id: workbook_id.clone(), connections: vec![copy], ephemeral: new.ephemeral };
         drop(self.writer.write(&workbook_file_key(&workbook_id), manifest, 0.0));
         self.sync_references();
-        self.platform.signal(true);
+        self.platform.changed(Slice::Workbook(&workbook_id), true);
         Ok(workbook_id)
     }
 
@@ -368,7 +403,7 @@ impl Workbooks {
         };
         // The scripts of a replaced workbook leave the catalogs of their connections
         drop(replaced);
-        self.platform.signal(true);
+        self.platform.changed(Slice::Workbook(&id), true);
     }
 
     /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
@@ -381,8 +416,9 @@ impl Workbooks {
         let deleted = removed.is_some();
         drop(removed);
         if deleted {
+            self.script_index.borrow_mut().retain(|_, held| held != workbook_id);
             self.sync_references();
-            self.platform.signal(true);
+            self.platform.changed(Slice::Workbook(workbook_id), true);
         }
         deleted
     }
@@ -394,7 +430,8 @@ impl Workbooks {
         invalid.retain(|workbook| workbook.workbook_id != workbook_id);
         if invalid.len() != before {
             self.invalid_revision.set(next_revision());
-            self.platform.signal(true);
+            drop(invalid);
+            self.platform.changed(Slice::WorkbookList, true);
         }
     }
 
@@ -402,7 +439,7 @@ impl Workbooks {
     pub fn set_invalid(&self, invalid: Vec<RestoredInvalidWorkbook>) {
         *self.invalid.borrow_mut() = invalid;
         self.invalid_revision.set(next_revision());
-        self.platform.signal(true);
+        self.platform.changed(Slice::WorkbookList, true);
     }
 
     /// Link a workbook to a published workbook, the whole link goes into the workbook file, none removes it. A failed
@@ -427,7 +464,7 @@ impl Workbooks {
             }
             entry.metadata_revision = next_revision();
         }
-        Ok(self.settle(workbook_id, &workbook, outcome, false))
+        Ok(self.settle(workbook_id, &workbook, outcome, false, true))
     }
 
     /// The scripts that storage holds, with the connections of the runtime
@@ -453,7 +490,7 @@ impl Workbooks {
         let changed = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.replace_from_storage(stored)?;
         if changed {
             self.sync_references();
-            self.platform.signal(true);
+            self.platform.changed(Slice::Workbook(workbook_id), true);
         }
         Ok(changed)
     }
@@ -468,46 +505,44 @@ impl Workbooks {
         }
     }
 
-    /// The view of a workbook
-    pub fn view(&self, workbook_id: &str) -> Option<WorkbookView> {
-        let entries = self.entries.borrow();
-        let entry = entries.iter().find(|entry| entry.id == workbook_id)?;
-        let workbook = entry.workbook.try_borrow().ok()?;
-        Some(workbook_view(entry, &workbook))
+    /// The view of a workbook, busy while the workbook is borrowed
+    pub fn view(&self, workbook_id: &str) -> Read<WorkbookView> {
+        let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
+        let Some(entry) = entries.iter().find(|entry| entry.id == workbook_id) else { return Read::Gone };
+        let Ok(workbook) = entry.workbook.try_borrow() else { return Read::Busy };
+        Read::Value(workbook_view(entry, &workbook))
     }
 
-    /// What the view of the list of the workbooks shows, as a hash
-    pub fn list_key(entries: &[WorkbookEntry], invalid_revision: u64) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        invalid_revision.hash(&mut hasher);
-        for entry in entries {
-            entry.id.hash(&mut hasher);
-            if let Ok(workbook) = entry.workbook.try_borrow() {
-                (workbook.name(), workbook.ephemeral(), workbook.is_cloud_preview()).hash(&mut hasher);
+    /// The view of the list of the workbooks, busy while a workbook is borrowed
+    pub fn list_view(&self) -> Read<WorkbookListView> {
+        let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
+        let mut workbooks = Vec::with_capacity(entries.len());
+        let mut names = Vec::new();
+        for entry in entries.iter() {
+            let Ok(workbook) = entry.workbook.try_borrow() else { return Read::Busy };
+            if !workbook.ephemeral() {
+                names.extend(workbook.name().map(str::to_string));
             }
+            workbooks.push(WorkbookListEntry {
+                workbook_id: entry.id.clone(),
+                name: workbook.name().map(str::to_string),
+                ephemeral: workbook.ephemeral(),
+                cloud_preview: workbook.is_cloud_preview(),
+            });
         }
-        hasher.finish()
+        let Ok(invalid) = self.invalid.try_borrow() else { return Read::Busy };
+        let next_workbook_name = free_workbook_name(names.iter().map(String::as_str));
+        Read::Value(WorkbookListView { workbooks, invalid_workbooks: invalid.clone(), next_workbook_name })
     }
+}
 
-    /// The view of the list of the workbooks
-    pub fn list_view(&self) -> WorkbookListView {
-        let workbooks = self
-            .entries
-            .borrow()
-            .iter()
-            .filter_map(|entry| {
-                let workbook = entry.workbook.try_borrow().ok()?;
-                Some(WorkbookListEntry {
-                    workbook_id: entry.id.clone(),
-                    name: workbook.name().map(str::to_string),
-                    ephemeral: workbook.ephemeral(),
-                    cloud_preview: workbook.is_cloud_preview(),
-                })
-            })
-            .collect();
-        let next_workbook_name = free_workbook_name(self.taken_names("").iter().map(String::as_str));
-        WorkbookListView { workbooks, invalid_workbooks: self.invalid.borrow().clone(), next_workbook_name }
-    }
+/// What the derived view of a workbook reads of a script: the version of its text and the analysis that it holds, with
+/// the revision of the catalog it was analyzed with. None for a script that is gone or a session that is busy.
+fn analysis_key(workbook: &Workbook, key: u32) -> Option<(u64, Option<(u64, u64, bool)>)> {
+    let script = workbook.script(key)?;
+    let text_version = script.session().try_borrow().ok()?.text_version();
+    let analysis = script.editor_update().map(|update| (update.text_version, update.catalog_revision, update.analysis_available));
+    Some((text_version, analysis))
 }
 
 /// The copy of a connection in a workbook file
@@ -524,32 +559,7 @@ fn cloud_link_of(link: &Value) -> Option<CloudLink> {
     Some(CloudLink { workbook_id, version_id, preview })
 }
 
-/// The newest of the revisions of a workbook and of the connections of its scripts. Revisions grow, a change of the
-/// workbook or of a connection that its scripts read moves it.
-pub(crate) fn workbook_revision(workbook: &Workbook) -> u64 {
-    let connections = workbook.scripts().iter().map(|script| script.connection()).chain(workbook.pending_connection());
-    connections.map(|connection| connection.revision()).fold(workbook.revision(), u64::max)
-}
 
-/// What the view of a workbook shows, as a hash: everything but the texts and analyses of its scripts. A change of a
-/// script changes the slice of the script, the workbook keeps its slice while its key doesn't move.
-pub(crate) fn workbook_key(entry: &WorkbookEntry, workbook: &Workbook) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    entry.metadata_revision.hash(&mut hasher);
-    workbook.name().hash(&mut hasher);
-    workbook.ephemeral().hash(&mut hasher);
-    workbook.pending_connection().map(|connection| (&connection.connection_id, connection.revision())).hash(&mut hasher);
-    workbook.cloud().map(|link| (&link.workbook_id, &link.version_id, link.preview)).hash(&mut hasher);
-    workbook.attachments().map(|attachments| attachments.len()).hash(&mut hasher);
-    for attachment in workbook.attachments().unwrap_or_default() {
-        (&attachment.file_name, attachment.size_bytes, attachment.mtime_ms, &attachment.columns).hash(&mut hasher);
-    }
-    for script in workbook.scripts() {
-        let connection = script.connection();
-        (script.key(), script.file_name(), &connection.connection_id, connection.revision(), script.unresolved_connection_id()).hash(&mut hasher);
-    }
-    hasher.finish()
-}
 
 /// The view of a workbook of an entry
 pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> WorkbookView {

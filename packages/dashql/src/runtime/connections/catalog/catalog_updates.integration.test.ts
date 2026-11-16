@@ -37,24 +37,28 @@ describe('the catalog of a connection follows statements', () => {
     let relations: number;
     let queries: string[];
     let storage: WorkbookTestRegistry;
+    /// The statements of the test, the other queries on the channel are the ones of the catalog loader
+    const statements = new Set<string>();
 
     /// Wait until the catalog loader answered every relation that statements touched
     const settled = () => vi.waitFor(() => {
         const updates = runtime.connection('connection')!.catalogUpdates;
         expect([updates.touchedRelations, updates.tasksRunning]).toEqual([[], []]);
     }, { timeout: 4000 });
-    /// The relations that a statement touched, like the query executor does after a statement, the catalog loader asks
-    /// the connection about them
-    const follow = async (statement: string) => {
-        const names = dql.touchedRelations(statement).map(name => readRelationName(name));
-        if (names.length === 0) return;
-        const value = names.map(name => ({ databaseName: name.databaseName || null, schemaName: name.schemaName || null, tableName: name.tableName || null }));
-        runtime.dispatch({ connection: 'connection' }, { kind: 'relationsTouched', value: { names: value } });
-        await settled();
+    /// Run a statement with the query executor of the runtime: it tells the connection about the relations that the
+    /// statement touched, also after a failure, and the catalog loader asks the connection about them
+    const execute = async (statement: string) => {
+        statements.add(statement);
+        const metadata = { queryType: dashql.QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
+        const [, done] = runtime.execute('connection', { query: statement, metadata, throwOnError: true, publishResults: false });
+        try {
+            await done;
+        } finally {
+            await settled();
+        }
     };
     const run = async (statement: string) => {
-        await connection.query(statement);
-        await follow(statement);
+        await execute(statement);
     };
     /// The relations as `schema.table(a, b)`
     const tables = () => (catalog.readDescriptor(relations)?.tables ?? [])
@@ -90,7 +94,7 @@ describe('the catalog of a connection follows statements', () => {
         const embedded = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(connection));
         const channel = {
             executeQuery: (params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal) => {
-                queries.push(params.query);
+                if (!statements.has(params.query)) queries.push(params.query);
                 return embedded.executeQuery(params, abort);
             },
             close: async () => { },
@@ -143,18 +147,16 @@ describe('the catalog of a connection follows statements', () => {
 
     it('follows a statement that failed halfway', async () => {
         const statements = 'create table it_half (a int); select * from it_does_not_exist';
-        await expect(connection.query(statements)).rejects.toThrow();
-        await follow(statements);
+        await expect(execute(statements)).rejects.toThrow();
         const exists = (await connection.query(`select count(*) as n from pg_catalog.pg_class where relname = 'it_half'`)).getChild('n')!.get(0);
         expect(tables().some(table => table.includes('it_half'))).toBe(Number(exists) > 0);
         if (Number(exists) > 0) await run('drop table it_half');
     });
 
     it('does not let a script bring back a table that was dropped', async () => {
-        const declaring = dql.createScript(catalog);
-        declaring.replaceText('create table it_declared (a int)');
-        declaring.analyze();
-        catalog.loadScript(declaring, dashql.buffers.catalog.CatalogLayer.SESSION);
+        // A script of a workbook on the connection declares the table, its catalog changes only through the runtime
+        const { workbookId } = runtime.createWorkbook('connection', null, false);
+        runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'create table it_declared (a int)', base: 'declaring' } });
         // It didn't run yet, the declaration provides it
         expect(reads(catalog, 'select * from it_declared')).toBe(true);
         await run('create table it_declared (a int)');
@@ -164,6 +166,7 @@ describe('the catalog of a connection follows statements', () => {
         expect(reads(catalog, 'select * from it_declared')).toBe(true);
         expect(tables()).toContain('public.it_declared(b)');
         await run('drop table it_declared');
+        runtime.deleteWorkbook(workbookId);
     });
 
     it('follows a schema that is dropped', async () => {

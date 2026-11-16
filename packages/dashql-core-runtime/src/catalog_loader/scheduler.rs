@@ -60,7 +60,7 @@ impl<'a> CatalogLoaderConnection<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CatalogLoaderCommand {
     /// Abort a running update, a forced refresh supersedes it
-    Abort { connection_id: String, task_id: u32 },
+    Abort { task_id: u32 },
     /// Start an update with `CatalogUpdate::start`, of all of the catalog or of relations, and report its end with
     /// `finished`
     Start { connection_id: String, task_id: u32, relations: Option<Vec<RelationName>> },
@@ -188,7 +188,7 @@ impl CatalogLoader {
                 }
                 for task_id in updates.tasks_running.keys() {
                     if self.aborted.insert(*task_id) {
-                        schedule.commands.push(CatalogLoaderCommand::Abort { connection_id: id.clone(), task_id: *task_id });
+                        schedule.commands.push(CatalogLoaderCommand::Abort { task_id: *task_id });
                     }
                 }
             }

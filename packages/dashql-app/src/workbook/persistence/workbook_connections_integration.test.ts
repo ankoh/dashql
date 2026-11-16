@@ -83,14 +83,14 @@ describe('Workbook connections', () => {
     const scriptOf = (restored: RestoredApp, fileName: string, workbookId: string = WORKBOOK_ID): ScriptData =>
         restored.runtime.store.get('script', workbookOf(restored, workbookId).scriptRefs[fileName].scriptId)!;
 
-    /// Load every script into the catalog of its connection like a workbook run does and return the
-    /// number of table references of a script that its catalog does not resolve
+    /// Analyze every script like a workbook run does, the workbook publishes it into the catalog of its connection, and
+    /// return the number of table references of a script that its catalog does not resolve
     const unresolvedReferences = (restored: RestoredApp, fileName: string): number => {
         for (const name of workbookOf(restored).scriptOrder) {
-            const session = scriptOf(restored, name).scriptSession;
-            session.analyze();
-            session.loadIntoCatalog();
+            const scriptKey = scriptOf(restored, name).scriptKey;
+            restored.runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
         }
+        restored.runtime.flush();
         const script = scriptOf(restored, fileName);
         script.scriptSession.analyze();
         return dql.planSession({

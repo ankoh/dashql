@@ -37,6 +37,7 @@ use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
 use super::attachments::reconcile_attachments;
+use super::changes::Slice;
 use super::connections::Connections;
 use super::runs::Runs;
 use super::storage::restore_view::RestoreScriptFile;
@@ -243,10 +244,10 @@ impl ExternalChanges {
         let (answer, receiver) = oneshot();
         self.waiting.borrow_mut().insert(workbook_id.to_string(), Waiting { prompt, answer });
         self.storage.ask(workbook_id, prompt, pending_writes);
-        self.platform.signal(true);
+        self.platform.changed(Slice::Storage, true);
         let answer = receiver.await.flatten();
         self.storage.answered(workbook_id);
-        self.platform.signal(true);
+        self.platform.changed(Slice::Storage, true);
         answer
     }
 
@@ -303,7 +304,7 @@ impl ExternalChanges {
             }
         }
         writer.release(Some(&workbook_id), HoldReason::Reload);
-        self.platform.signal(true);
+        self.platform.changed(Slice::Storage, true);
     }
 
     async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<Checked, HostError> {

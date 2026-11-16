@@ -59,12 +59,11 @@ export async function executeTrackedQuery<T>(args: TrackedQueryExecutionArgs<T>)
     const cancellation = args.cancellation ?? new AbortController();
     const record = { abort: (reason?: unknown) => cancellation.abort(reason) };
     const handle = runtime.handles.register(record);
+    // The runtime owns the handle of the record from here on, a query without a history runs untracked
     const tracked = runtime.dispatch(target, {
         kind: 'trackQuery',
         value: { traceId: trace.traceId, text: args.query, metadata: args.metadata as core.QueryMetadataView, handle },
     });
-    // A query without a history runs untracked
-    if (!tracked.ok) runtime.handles.release(handle);
     const queryId = typeof tracked.id === 'number' ? tracked.id : 0;
     let done = !tracked.ok;
     const dispatch = (action: core.RuntimeAction) => {
