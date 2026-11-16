@@ -1,4 +1,5 @@
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
+import { fetchAgentSession } from './agent_session_protocol.js';
 import type { AgentSessionLoginAnswer, AgentSessionOAuth, AgentSessionState } from './agent_session_state.js';
 import type { SessionConnections } from './workbook_journal.js';
 
@@ -34,13 +35,14 @@ export function agentSessionStreamUrl(target: AgentSessionTarget): string {
 }
 
 /// Follow a session: the server sends its state with every event as server-sent events. Resolves when the server
-/// ends the stream, rejects when it cannot be reached or the signal aborts.
+/// ends the stream, rejects when it cannot be reached or the signal aborts, with an AgentSessionProtocolError when
+/// the page and the server don't speak with each other.
 export async function followAgentSession(
     target: AgentSessionTarget,
     onState: (state: AgentSessionState) => void,
     signal: AbortSignal,
 ): Promise<void> {
-    const response = await fetch(agentSessionStreamUrl(target), { signal, headers: { Accept: 'text/event-stream' } });
+    const response = await fetchAgentSession(agentSessionStreamUrl(target), { signal, headers: { Accept: 'text/event-stream' } });
     if (!response.ok || response.body == null) throw new Error(`the session answered with ${response.status}`);
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffered = '';
@@ -84,26 +86,34 @@ export async function writeAgentSessionWorkbook(
     files: readonly AgentSessionWorkbookFile[],
     signal?: AbortSignal,
 ): Promise<void> {
-    await expectOk(await fetch(workbookUrl(target, workbookId), { method: 'DELETE', signal }), 'the removal of the copy');
+    await expectOk(await fetchAgentSession(workbookUrl(target, workbookId), { method: 'DELETE', signal }), 'the removal of the copy');
     const ordered = [...files.filter(file => file.path !== STORAGE_WORKBOOK_FILE), ...files.filter(file => file.path === STORAGE_WORKBOOK_FILE)];
     for (const file of ordered) await writeAgentSessionWorkbookFile(target, workbookId, file, signal);
 }
 
 /// Write a file of the copy of a workbook in the session, e.g. a script that the page changed
 export async function writeAgentSessionWorkbookFile(target: AgentSessionTarget, workbookId: string, file: AgentSessionWorkbookFile, signal?: AbortSignal): Promise<void> {
-    await expectOk(await fetch(workbookUrl(target, workbookId, file.path), { method: 'PUT', body: file.content, signal }), `the write of ${file.path}`);
+    await expectOk(await fetchAgentSession(workbookUrl(target, workbookId, file.path), { method: 'PUT', body: file.content, signal }), `the write of ${file.path}`);
 }
 
 /// Remove a file of the copy of a workbook in the session, e.g. a script that the page deleted
 export async function deleteAgentSessionWorkbookFile(target: AgentSessionTarget, workbookId: string, path: string, signal?: AbortSignal): Promise<void> {
-    await expectOk(await fetch(workbookUrl(target, workbookId, path), { method: 'DELETE', signal }), `the removal of ${path}`);
+    await expectOk(await fetchAgentSession(workbookUrl(target, workbookId, path), { method: 'DELETE', signal }), `the removal of ${path}`);
 }
 
 /// Read a file of the copy of a workbook in the session as text
 export async function readAgentSessionWorkbookText(target: AgentSessionTarget, workbookId: string, path: string, signal?: AbortSignal): Promise<string> {
-    const response = await fetch(workbookUrl(target, workbookId, path), { signal });
+    const response = await fetchAgentSession(workbookUrl(target, workbookId, path), { signal });
     await expectOk(response, `the read of ${path}`);
     return await response.text();
+}
+
+/// Read the newest file of a key of the query result cache of the session, the result of a run of the agent
+export async function readAgentSessionResult(target: AgentSessionTarget, key: string, signal?: AbortSignal): Promise<Blob> {
+    const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
+    const response = await fetchAgentSession(url, { signal });
+    if (!response.ok) throw new Error(`the session answered the result ${key} with ${response.status}`);
+    return await response.blob();
 }
 
 /// The files of a workbook folder in the layout of OPFS (`workbooks/<id>/` of the root of the app) as a page copies
@@ -144,12 +154,12 @@ export async function writeAgentSessionConnections(
 ): Promise<void> {
     const url = new URL(`/v1/connections/${encodeURIComponent(target.token)}`, target.endpoint);
     const body = oauth == null ? connections : { ...connections, oauth };
-    await expectOk(await fetch(url, { method: 'PUT', body: JSON.stringify(body), signal }), 'the connections of the agent');
+    await expectOk(await fetchAgentSession(url, { method: 'PUT', body: JSON.stringify(body), signal }), 'the connections of the agent');
 }
 
 /// Answer a login that a run of the agent waits for (`logins` of the state): the callback of the redirect page or the
 /// credentials of the connection of the tab. They go to the process of `dashql connect`, never to the agent.
 export async function answerAgentSessionLogin(target: AgentSessionTarget, connectionId: string, answer: AgentSessionLoginAnswer, signal?: AbortSignal): Promise<void> {
     const url = new URL(`/v1/login/${encodeURIComponent(target.token)}/${encodeURIComponent(connectionId)}`, target.endpoint);
-    await expectOk(await fetch(url, { method: 'POST', body: JSON.stringify(answer), signal }), 'the login of the agent');
+    await expectOk(await fetchAgentSession(url, { method: 'POST', body: JSON.stringify(answer), signal }), 'the login of the agent');
 }

@@ -51,8 +51,8 @@ export interface AgentSessionLogin {
     connectionId: string;
     /// The label of the connection
     name: string;
-    /// How the login goes through the tab, absent in the state of an older server: `loopback`
-    kind?: AgentSessionLoginKind;
+    /// How the login goes through the tab
+    kind: AgentSessionLoginKind;
     /// The authorization URL of the identity provider, empty for credentials
     url: string;
     /// The flow of a redirect, its callback names it
@@ -101,8 +101,8 @@ export interface AgentSessionState {
     workbooks: SessionWorkbook[];
     /// The latest other log records of the dashql commands of the session, oldest first
     log: LogRecord[];
-    /// The logins that runs of the agent wait for, absent in the state of an older server
-    logins?: AgentSessionLogin[];
+    /// The logins that runs of the agent wait for
+    logins: AgentSessionLogin[];
     /// Counts the events and the lines of the journal, a page tells a new state by it
     version: number;
 }

@@ -9,8 +9,9 @@ export enum ComposerMode {
 /// The harnesses that `dashql connect` runs
 export type ConnectHarness = 'claude' | 'codex';
 
-/// The command that runs the CLI of DashQL from npm
-export const DASHQL_CLI_COMMAND = 'npx -y @ankoh/dashql-cli';
+/// The command that runs the CLI of DashQL from npm, the latest version: npx would otherwise keep running a version
+/// that it fetched once, and the page tells a server of an older protocol to update (agent_session_protocol.ts)
+export const DASHQL_CLI_COMMAND = 'npx -y @ankoh/dashql-cli@latest';
 
 /// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
 const MIN_PORT = 49152;

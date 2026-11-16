@@ -1,5 +1,6 @@
 import {
     deleteAgentSessionWorkbookFile,
+    readAgentSessionResult,
     readAgentSessionWorkbookText,
     readWorkbookFolderFiles,
     writeAgentSessionWorkbook,
@@ -121,12 +122,7 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
             runtime.flush();
             return refsOf(workbookId).find(ref => !before.has(ref.scriptId))?.scriptId ?? null;
         },
-        importResult: async key => {
-            const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`the session answered the result ${key} with ${response.status}`);
-            return await runtime.importCachedResult(key, await response.blob());
-        },
+        importResult: async key => await runtime.importCachedResult(key, await readAgentSessionResult(target, key)),
         delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
     };
 }

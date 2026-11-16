@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, wri
 import { homedir } from 'node:os';
 import path from 'node:path';
 
+import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
 import type { AgentSessionEvent } from '@ankoh/dashql/platform/session/agent_session_state';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
@@ -95,10 +96,10 @@ export function sessionLink(appUrl: string, file: Pick<SessionFile, 'port' | 'to
     return `${appUrl.replace(/\/$/, '')}/?data=${data}`;
 }
 
-/// Does the server of a session answer?
+/// Does the server of a session answer? A server of another protocol does not, a new one takes its place.
 async function alive(file: SessionFile): Promise<boolean> {
     try {
-        const response = await fetch(`http://127.0.0.1:${file.port}/v1/state`, {
+        const response = await fetchAgentSession(`http://127.0.0.1:${file.port}/v1/state`, {
             headers: { Authorization: `Bearer ${file.token}` },
             signal: AbortSignal.timeout(1000),
         });
@@ -136,7 +137,7 @@ export function options(args: string[], flags: ReadonlySet<string> = new Set()):
 
 /// Send an event to the server of a session
 export async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent): Promise<void> {
-    await fetch(`${target.endpoint}/v1/events`, {
+    await fetchAgentSession(`${target.endpoint}/v1/events`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${target.token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(event),

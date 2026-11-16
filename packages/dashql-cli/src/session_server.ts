@@ -15,6 +15,14 @@ import {
     type AgentSessionState,
 } from '@ankoh/dashql/platform/session/agent_session_state';
 import {
+    AGENT_SESSION_MIN_PROTOCOL,
+    AGENT_SESSION_MIN_PROTOCOL_HEADER,
+    AGENT_SESSION_PROTOCOL,
+    AGENT_SESSION_PROTOCOL_HEADER,
+    parseAgentSessionProtocol,
+    serverAcceptsAgentSessionClient,
+} from '@ankoh/dashql/platform/session/agent_session_protocol';
+import {
     isWorkbookCopyId,
     parseSessionConnections,
     SESSION_CONNECTIONS_FILE,
@@ -34,11 +42,14 @@ import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FI
 /// How long a request for a login waits before it answers that the login still waits
 export const LOGIN_POLL_MS = 20_000;
 /// The headers of a request of a run that the relay doesn't forward: the connection, its own token and its address
-const RELAY_DROPPED_HEADERS = new Set(['host', 'authorization', 'x-dashql-url', 'connection', 'content-length', 'origin', 'transfer-encoding', 'keep-alive']);
+const RELAY_DROPPED_HEADERS = new Set(['host', 'authorization', 'x-dashql-url', 'x-dashql-protocol', 'connection', 'content-length', 'origin', 'transfer-encoding', 'keep-alive']);
 
 /// The headers of an answer of an endpoint that the relay doesn't hand back: the encoding and the length of the body,
-/// which fetch decoded, the connection and the cookies of the endpoint
-const RELAY_DROPPED_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive', 'set-cookie']);
+/// which fetch decoded, the connection and the cookies of the endpoint, and the protocol, which the server names
+const RELAY_DROPPED_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive', 'set-cookie', 'x-dashql-protocol', 'x-dashql-min-protocol']);
+
+/// The headers of an answer that a page reads
+const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}, X-DashQL-Cached-At`;
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
@@ -273,6 +284,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         if (!origins.has(origin)) return false;
         response.setHeader('Access-Control-Allow-Origin', origin);
         response.setHeader('Vary', 'Origin');
+        response.setHeader('Access-Control-Expose-Headers', EXPOSED_HEADERS);
         return true;
     };
     // The files of the workbooks and the results carry the token in their path, so the relative URLs of a workbook
@@ -382,6 +394,9 @@ export async function startSessionServer(options: SessionServerOptions): Promise
 
     const handle = (request: http.IncomingMessage, response: http.ServerResponse) => {
         const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+        // Every answer names the protocol of the server, a client tells by it whether one of the two is too old
+        response.setHeader(AGENT_SESSION_PROTOCOL_HEADER, String(AGENT_SESSION_PROTOCOL));
+        response.setHeader(AGENT_SESSION_MIN_PROTOCOL_HEADER, String(AGENT_SESSION_MIN_PROTOCOL));
         if (!cors(request, response)) {
             response.writeHead(403).end();
             return;
@@ -389,7 +404,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         if (request.method === 'OPTIONS') {
             response.writeHead(204, {
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+                'Access-Control-Allow-Headers': `Authorization, Content-Type, ${AGENT_SESSION_PROTOCOL_HEADER}`,
                 // Chrome asks before a public page reaches the local network
                 'Access-Control-Allow-Private-Network': 'true',
             }).end();
@@ -397,6 +412,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         }
         if (!authorized(request, url)) {
             response.writeHead(401).end();
+            return;
+        }
+        // A client that is too old for the server, or names no protocol, gets nothing else
+        const clientProtocol = parseAgentSessionProtocol(request.headers[AGENT_SESSION_PROTOCOL_HEADER.toLowerCase()]);
+        if (!serverAcceptsAgentSessionClient(clientProtocol)) {
+            sendJson(response, 426, { error: `the server of the session speaks protocol ${AGENT_SESSION_PROTOCOL} with clients of protocol ${AGENT_SESSION_MIN_PROTOCOL} or newer, the client speaks ${clientProtocol ?? 'none'}` });
             return;
         }
         if (request.method === 'POST' && url.pathname === '/v1/events') {
@@ -539,7 +560,6 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 return;
             }
             response.setHeader('X-DashQL-Cached-At', String(Math.trunc(file.mtimeMs)));
-            response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Cached-At');
             sendFile(response, file.path, 'application/vnd.apache.parquet');
             return;
         }

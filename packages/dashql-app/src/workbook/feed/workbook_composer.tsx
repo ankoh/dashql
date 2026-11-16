@@ -11,6 +11,7 @@ import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/seg
 import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
 import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
+import type { AgentSessionOutdated } from '@ankoh/dashql/platform/session/agent_session_protocol';
 import { PromptEditor } from '../editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
@@ -37,6 +38,16 @@ const NO_SCRIPT_NAMES: readonly string[] = [];
 const NO_INPUTS: SessionInput[] = [];
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
+
+/// The status of the line to connect while the page waits for the session. A server of another protocol answers: the
+/// command runs an older dashql-cli, or the page is older than dashql-cli.
+function connectStatus(outdated: AgentSessionOutdated | null): string {
+    switch (outdated) {
+        case 'server': return 'The session runs an older dashql-cli, stop it and run the command again';
+        case 'client': return 'The session runs a newer dashql-cli than this page, reload the page';
+        case null: return 'Run the command in the folder of your project, the session shows here';
+    }
+}
 
 /// The harnesses of the line to connect, in the order of their switch
 const CONNECT_HARNESSES: ConnectHarness[] = ['claude', 'codex'];
@@ -327,7 +338,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                         <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
                             {session != null
                                 ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
-                                : 'Run the command in the folder of your project, the session shows here'}
+                                : connectStatus(connect.outdated)}
                         </div>
                         {/* A run of the agent waits for a login: the user opens the authorization page, the tab
                             sends the password of a connection with basic auth by itself */}

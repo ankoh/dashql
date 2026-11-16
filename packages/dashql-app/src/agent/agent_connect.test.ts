@@ -20,6 +20,6 @@ describe('agent connect', () => {
 
     it('writes the line of dashql connect', () => {
         expect(agentConnectCommand('codex', { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' }))
-            .toBe('npx -y @ankoh/dashql-cli connect --launch codex --port 51234 --secret k3x9');
+            .toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
     });
 });

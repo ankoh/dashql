@@ -27,7 +27,11 @@ export async function readDashQLSession(home) {
     if (files.length !== 1) return { files, state: null };
     const session = JSON.parse(readFileSync(join(home, files[0]), 'utf8'));
     try {
-        const response = await fetch(`http://127.0.0.1:${session.port}/v1/state`, { headers: { Authorization: `Bearer ${session.token}` } });
+        // The server answers a client of its oldest protocol, every answer names it
+        const url = `http://127.0.0.1:${session.port}/v1/state`;
+        const auth = { Authorization: `Bearer ${session.token}` };
+        const protocol = (await fetch(url, { headers: auth })).headers.get('x-dashql-min-protocol') ?? '';
+        const response = await fetch(url, { headers: { ...auth, 'X-DashQL-Protocol': protocol } });
         return { files, state: await response.json() };
     } finally {
         try { process.kill(session.pid); } catch { /* gone */ }

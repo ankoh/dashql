@@ -116,7 +116,7 @@ export function agentSessionOf(
         folder: state.folder,
         connected: followed.connected && !state.ended,
         turns,
-        logins: followed.connected && !state.ended ? state.logins ?? [] : [],
+        logins: followed.connected && !state.ended ? state.logins : [],
         onDismiss,
         onShowScript,
     };

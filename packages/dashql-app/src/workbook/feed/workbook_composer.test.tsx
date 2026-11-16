@@ -345,12 +345,12 @@ describe('Workbook composer', () => {
         beforeEach(() => { openLogin = vi.fn(); });
 
         /// The composer with the connect state of a provider
-        const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean }> = ({ initial, session, pickers }) => {
+        const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean; outdated?: AgentConnect['outdated'] }> = ({ initial, session, pickers, outdated }) => {
             const [mode, setMode] = React.useState(initial);
             const [harness, setHarness] = React.useState<ConnectHarness>('claude');
             const [target, setTarget] = React.useState(TARGET);
             const connect: AgentConnect = {
-                mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED),
+                mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED), outdated: outdated ?? null,
                 excludedConnections: new Set(), toggleConnection: () => { }, openLogin: login => openLogin(login),
             };
             return (
@@ -361,8 +361,8 @@ describe('Workbook composer', () => {
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             );
         };
-        async function renderConnected(initial: ComposerMode, session?: Session, pickers = false) {
-            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} pickers={pickers} /></LoggerProvider>));
+        async function renderConnected(initial: ComposerMode, session?: Session, pickers = false, outdated: AgentConnect['outdated'] = null) {
+            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} pickers={pickers} outdated={outdated} /></LoggerProvider>));
             await vi.waitFor(() => expect(view).not.toBeNull());
             return view!;
         }
@@ -382,7 +382,7 @@ describe('Workbook composer', () => {
             expect(editor.dom.checkVisibility()).toBe(false);
             expect(sendButton().disabled).toBe(true);
             expect(snippets().disabled).toBe(true);
-            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch claude --port 51234 --secret k3x9');
+            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch claude --port 51234 --secret k3x9');
             // The command is only copied, a new port and copy stay usable
             expect(container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')!.disabled).toBe(true);
             expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.disabled).toBe(false);
@@ -406,11 +406,19 @@ describe('Workbook composer', () => {
             Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
             await renderConnected(ComposerMode.Ai);
             act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-harness"][data-harness="codex"]')!.click());
-            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch codex --port 51234 --secret k3x9');
+            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
             await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.click());
-            expect(writeText).toHaveBeenCalledWith('npx -y @ankoh/dashql-cli connect --launch codex --port 51234 --secret k3x9');
+            expect(writeText).toHaveBeenCalledWith('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 51234 --secret k3x9');
             act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.click());
-            expect(command()).toBe('npx -y @ankoh/dashql-cli connect --launch codex --port 60001 --secret z7q2');
+            expect(command()).toBe('npx -y @ankoh/dashql-cli@latest connect --launch codex --port 60001 --secret z7q2');
+        });
+
+        it('tells which side to update when the session speaks another protocol', async () => {
+            const status = () => container.querySelector('[data-testid="composer-connect-status"]')!.textContent;
+            await renderConnected(ComposerMode.Ai, undefined, false, 'server');
+            expect(status()).toBe('The session runs an older dashql-cli, stop it and run the command again');
+            await renderConnected(ComposerMode.Ai, undefined, false, 'client');
+            expect(status()).toBe('The session runs a newer dashql-cli than this page, reload the page');
         });
 
         it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {

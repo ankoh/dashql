@@ -5,6 +5,7 @@
 // the stand-in responses of the process, with a token that authorizes nothing, and every request to an endpoint of the
 // connection goes through the relay, which puts the real auth in.
 import type { OAuthFlow } from '@ankoh/dashql/platform/oauth_flow';
+import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
 import type { OAuthRedirectData, OAuthState } from '@ankoh/dashql/platform/oauth_types';
 import type { ClientOptions, HttpClient, HttpFetchResult } from '@ankoh/dashql/platform/http_client';
 
@@ -84,7 +85,7 @@ export class RelayedConnections {
         const body = JSON.stringify({ name, params });
         while (true) {
             signal?.throwIfAborted();
-            const response = await this.send(url, { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, signal });
+            const response = await fetchAgentSession(url, { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, signal }, this.send);
             const answer = await response.json().catch(() => ({})) as {
                 principal?: string | null;
                 origins?: unknown;
@@ -151,7 +152,7 @@ export class RelayedConnections {
                 headers.delete('authorization');
                 headers.set('X-DashQL-Url', url.toString());
                 const relay = new URL(`/v1/relay/${encodeURIComponent(this.server.token)}/${encodeURIComponent(relayed.connectionId)}`, this.server.endpoint);
-                return await this.send(relay, { ...init, method, headers });
+                return await fetchAgentSession(relay, { ...init, method, headers }, this.send);
             },
         };
     }

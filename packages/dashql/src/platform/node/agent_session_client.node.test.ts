@@ -6,6 +6,10 @@ import path from 'node:path';
 import { followAgentSession, parseAgentSessionTarget, readWorkbookFolderFiles } from '../session/agent_session_client.js';
 import { openNodeRoot } from './node_directory_handle.js';
 import { createAgentSessionState, type AgentSessionState } from '../session/agent_session_state.js';
+import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, AgentSessionProtocolError } from '../session/agent_session_protocol.js';
+
+/// The protocols that a server of the session names on its answers
+const PROTOCOL_HEADERS = { 'X-DashQL-Protocol': String(AGENT_SESSION_PROTOCOL), 'X-DashQL-Min-Protocol': String(AGENT_SESSION_MIN_PROTOCOL) };
 
 describe('the client of an agent session', () => {
     it('takes only servers on this machine with a token', () => {
@@ -19,9 +23,11 @@ describe('the client of an agent session', () => {
     it('reads the states of the stream until the server ends it', async () => {
         const states = [createAgentSessionState('claude', '/a'), { ...createAgentSessionState('claude', '/a'), version: 1 }];
         let token: string | null = null;
+        let protocol: string | null = null;
         const server = http.createServer((request, response) => {
             token = new URL(request.url ?? '/', 'http://x').searchParams.get('token');
-            response.writeHead(200, { 'Content-Type': 'text/event-stream' });
+            protocol = request.headers['x-dashql-protocol'] as string;
+            response.writeHead(200, { 'Content-Type': 'text/event-stream', ...PROTOCOL_HEADERS });
             // A state may arrive in pieces, comments are skipped
             const second = `data: ${JSON.stringify(states[1])}\n\n`;
             response.write(`: alive\n\ndata: ${JSON.stringify(states[0])}\n\n${second.slice(0, 10)}`);
@@ -34,6 +40,25 @@ describe('the client of an agent session', () => {
             await followAgentSession(target, state => received.push(state), new AbortController().signal);
             expect(received).toEqual(states);
             expect(token).toBe('secret');
+            expect(protocol).toBe(String(AGENT_SESSION_PROTOCOL));
+        } finally {
+            server.close();
+        }
+    });
+
+    it('reads no state of a server that names no protocol', async () => {
+        const server = http.createServer((_request, response) => {
+            response.writeHead(200, { 'Content-Type': 'text/event-stream' });
+            response.end(`data: ${JSON.stringify(createAgentSessionState('claude', '/a'))}\n\n`);
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+        try {
+            const received: AgentSessionState[] = [];
+            const target = { endpoint: `http://127.0.0.1:${(server.address() as { port: number }).port}`, token: 'secret' };
+            const followed = followAgentSession(target, state => received.push(state), new AbortController().signal);
+            await expect(followed).rejects.toBeInstanceOf(AgentSessionProtocolError);
+            await expect(followed).rejects.toMatchObject({ outdated: 'server' });
+            expect(received).toEqual([]);
         } finally {
             server.close();
         }

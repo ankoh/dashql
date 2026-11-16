@@ -13,7 +13,8 @@ access per workbook and no prompt in natural language.
 
 The prompt switches between SQL and AI. AI keeps the white card of the prompt, disables Run and the snippets, and
 shows in the place of the editor a line to run in the folder of a project, in a field to copy with a button for a new
-port: `npx -y @ankoh/dashql-cli connect --launch claude --port <port> --secret <secret>`. A switch between Claude Code
+port: `npx -y @ankoh/dashql-cli@latest connect --launch claude --port <port> --secret <secret>`. `@latest`, because
+npx otherwise keeps running a version that it fetched once. A switch between Claude Code
 and Codex follows the switch of SQL and AI while AI is on. The editor keeps its draft for SQL.
 
 - **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
@@ -40,6 +41,30 @@ and Codex follows the switch of SQL and AI while AI is on. The editor keeps its 
 - **The agent works on files.** Its commands (`dashql lint`, `format`, `run`) read and write the workbook folder
   The page follows the folder.
 - **The page watches.** The questions come from the terminal, and the terminal stops the agent.
+
+## Protocol
+
+The server of a session and its clients (the page, the hooks, `dashql run`) come from different versions: npx picks a
+`dashql-cli`, the page is whatever the tab loaded. Both sides name a protocol, an integer in
+`platform/session/agent_session_protocol.ts`, so that a mismatch shows instead of failing later in one request.
+
+- **Two numbers.** `AGENT_SESSION_PROTOCOL` is the protocol that this side speaks, `AGENT_SESSION_MIN_PROTOCOL` the
+  oldest protocol of a peer that it still works with: for the server the oldest client it answers, for a client the
+  oldest server it talks to.
+- **On the wire.** A client sends `X-DashQL-Protocol` with every request. The server sends `X-DashQL-Protocol` and
+  `X-DashQL-Min-Protocol` with every answer, also with an error, and pages may read both (CORS expose). A request
+  without a protocol or of an older one than the server's minimum gets 426 and nothing else.
+- **The client decides.** `fetchAgentSession` sends the protocol and checks every answer: a server that names no
+  protocol or one below the client's minimum is outdated, a server whose minimum is above the client's protocol finds
+  the client outdated. Either throws `AgentSessionProtocolError` with the side to update.
+- **The page** keeps trying the server and shows in the status of the composer which side to update: an older
+  `dashql-cli` (stop it, run the command again) or the page (reload). The hook treats a server of another protocol as
+  gone and starts a new one, `dashql run` fails with the error.
+- **Changing it.** Raise `AGENT_SESSION_PROTOCOL` with every change of what goes over the wire, also an added field, and
+  add a line to the list in the module. Raise `AGENT_SESSION_MIN_PROTOCOL` to it as well when this side no longer works
+  with a peer of the older protocol: a route or a field it needs, a meaning that changed. A field that a newer peer
+  added is ignored. The fake server of the page test `app_agent_session` speaks protocol 1 and fails the test once the
+  page needs a newer one.
 
 ## The journal
 
@@ -109,9 +134,13 @@ goes through a `dashql` command, so the commands tell what they changed.
   markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
   the progress and the results of a workbook in the workspace it is given.
 - `//packages/dashql:test_platform_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
-  a session with the log of the commands.
+  a session with the log of the commands, the protocol (`session/agent_session_protocol.test.ts`: the side that is too
+  old, the header of a request, the check of an answer).
+- `//packages/dashql-cli:test` also: the server names its protocol on every answer and to pages, answers a client
+  without one or of an older one with 426, a newer one as long as it is not older than the client's minimum.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
-  then a new port, Codex, and a server on the port and secret of the line.
+  then a new port, Codex, a server without a protocol on the port and secret of the line that the composer calls an
+  older `dashql-cli`, and a server of the protocol in its place.
 - `//packages/dashql-cli:test`: `dashql connect` with a harness of the test that runs the hooks it was given; the
   journal of a session of its own; the copy of the workbook of a page (writes, replacement, the stamps after a tool,
   paths it refuses).

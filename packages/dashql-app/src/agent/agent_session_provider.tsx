@@ -7,6 +7,7 @@ import {
     writeAgentSessionConnections,
     type AgentSessionTarget,
 } from '@ankoh/dashql/platform/session/agent_session_client';
+import { AgentSessionProtocolError, type AgentSessionOutdated } from '@ankoh/dashql/platform/session/agent_session_protocol';
 import type { AgentSessionLogin } from '@ankoh/dashql/platform/session/agent_session_state';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
@@ -135,6 +136,9 @@ export interface AgentConnect {
     target: AgentSessionTarget | null;
     /// Wait on a new port and secret, e.g. when the port is taken
     renewTarget: () => void;
+    /// The side that is too old when the server of the target answers with a protocol that the page doesn't speak:
+    /// the server, then the command runs an older dashql-cli, or the page. Null while the two speak or before an answer.
+    outdated: AgentSessionOutdated | null;
     /// The connections that the user unticked for the agent, every other connection is allowed
     excludedConnections: ReadonlySet<string>;
     /// Allow or forbid a connection for the agent
@@ -330,8 +334,10 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     React.useEffect(() => {
         if (connect.mode === ComposerMode.Ai && target == null) follow(newAgentConnectTarget());
     }, [connect.mode, target, follow]);
+    const [outdated, setOutdated] = React.useState<AgentSessionOutdated | null>(null);
     React.useEffect(() => {
         store.update(null);
+        setOutdated(null);
         if (target == null) return;
         const controller = new AbortController();
         const { signal } = controller;
@@ -339,12 +345,13 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         let reached = false;
         const copies = copiesOf(target).copies;
         const onState = (state: FollowedAgentSession['state']) => {
+            setOutdated(null);
             store.update({ state, connected: true });
             // The copies never end the stream of the session
             try {
                 copyShown();
                 sendConnections();
-                answerLogins(state.ended ? [] : state.logins ?? []);
+                answerLogins(state.ended ? [] : state.logins);
                 void copies?.update(state);
                 // An ended session takes no edits of the page
                 if (state.ended) copies?.dispose();
@@ -357,12 +364,20 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             }
         };
         void (async () => {
+            let warned: AgentSessionOutdated | null = null;
             while (!signal.aborted) {
                 try {
                     await followAgentSession(target, onState, signal);
                 } catch (error) {
                     if (signal.aborted) return;
-                    logger.debug('Cannot reach the session of the agent', { endpoint: target.endpoint, error: stringifyError(error) }, LOG_CTX);
+                    if (error instanceof AgentSessionProtocolError) {
+                        // The page keeps trying, the user may run the command of a newer dashql-cli on the same port
+                        if (warned !== error.outdated) logger.warn('The session of the agent speaks another protocol', { endpoint: target.endpoint, error: error.message }, LOG_CTX);
+                        warned = error.outdated;
+                        setOutdated(error.outdated);
+                    } else {
+                        logger.debug('Cannot reach the session of the agent', { endpoint: target.endpoint, error: stringifyError(error) }, LOG_CTX);
+                    }
                 }
                 store.update(prev => prev == null ? prev : { ...prev, connected: false });
                 // The server ends the stream once the harness ended the session
@@ -379,10 +394,11 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         setHarness: harness => updateConnect({ harness }),
         target,
         renewTarget: () => follow(newAgentConnectTarget()),
+        outdated,
         excludedConnections: excluded,
         toggleConnection,
         openLogin,
-    }), [connect, target, updateConnect, follow, excluded, toggleConnection, openLogin]);
+    }), [connect, target, updateConnect, follow, excluded, toggleConnection, openLogin, outdated]);
     return (
         <FOLLOWED_CTX.Provider value={store}>
             <SHOWN_CTX.Provider value={shownValue}>

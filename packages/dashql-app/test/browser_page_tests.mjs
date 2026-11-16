@@ -171,9 +171,11 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     }
 }
 
-async function startSessionServer({ port = 0, token = 'secret' } = {}) {
+/// A server of a session like the one of dashql. It speaks protocol 1 (agent_session_protocol.ts), the page speaks
+/// with it until the page needs a newer server; `protocol: null` is a server older than the protocol.
+async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } = {}) {
     const streams = new Set();
-    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
+    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], logins: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
     const writes = [];
     const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
@@ -194,11 +196,16 @@ async function startSessionServer({ port = 0, token = 'secret' } = {}) {
     };
     const server = http.createServer((request, response) => {
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
+        if (protocol != null) {
+            response.setHeader('X-DashQL-Protocol', String(protocol));
+            response.setHeader('X-DashQL-Min-Protocol', '1');
+            response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Protocol, X-DashQL-Min-Protocol');
+        }
         if (request.method === 'OPTIONS') {
             // The preflight of the server of dashql
             return response.writeHead(204, {
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+                'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-DashQL-Protocol',
                 'Access-Control-Allow-Private-Network': 'true',
             }).end();
         }
@@ -309,8 +316,15 @@ async function testAppAgentSession(page, navigate) {
     await page.getByTestId('composer-connect-renew').click();
     await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
     const line = await page.getByTestId('composer-connect-command').inputValue();
-    const match = /^npx -y @ankoh\/dashql-cli connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
+    const match = /^npx -y @ankoh\/dashql-cli@latest connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
     assert.ok(match, line);
+    // An older dashql-cli answers on the port first: the page tells to run the command again
+    const outdated = await startSessionServer({ port: Number(match[1]), token: match[2], protocol: null });
+    try {
+        await page.getByTestId('composer-connect-status').getByText('The session runs an older dashql-cli, stop it and run the command again').waitFor();
+    } finally {
+        await outdated.close();
+    }
     const connected = await startSessionServer({ port: Number(match[1]), token: match[2] });
     try {
         connected.push({ harness: 'codex' });

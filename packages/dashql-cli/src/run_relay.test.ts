@@ -7,6 +7,7 @@ import { answerSalesforceMock, type SalesforceConnectorMockConfig } from '@ankoh
 import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
 import type { OAuthState } from '@ankoh/dashql/platform/oauth_types';
 import { Logger } from '@ankoh/dashql/platform/logger/logger';
+import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
 import { createNodePlatform } from '@ankoh/dashql/runtime/node/node_platform';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 
@@ -107,7 +108,7 @@ describe('the relay of dashql connect', () => {
         try {
             // The tab says how its redirect page hands the login back
             const oauth = { redirect: 'https://dashql.app/oauth.html', redirectVariant: 'WEB_OPENER_FLOW', redirectCallbackUrl: 'http://localhost:9002/oauth.html', flavor: null };
-            const put = await fetch(`${base}/v1/connections/${server.token}`, { method: 'PUT', body: JSON.stringify({ connections: [{ connectionId: CONNECTION_ID, name: 'Data 360' }], oauth }) });
+            const put = await fetchAgentSession(`${base}/v1/connections/${server.token}`, { method: 'PUT', body: JSON.stringify({ connections: [{ connectionId: CONNECTION_ID, name: 'Data 360' }], oauth }) });
             expect(put.status).toBe(204);
 
             // The runtime of the run, wired like dashql run in a session
@@ -127,7 +128,7 @@ describe('the relay of dashql connect', () => {
             expect(authorization.searchParams.get('redirect_uri')).toBe('https://dashql.app/oauth.html');
             const state = JSON.parse(Buffer.from(authorization.searchParams.get('state')!, 'base64url').toString('utf8')) as OAuthState;
             expect(state).toMatchObject({ flowId: shown.flowId, flowVariant: 'WEB_OPENER_FLOW', callbackUrl: 'http://localhost:9002/oauth.html' });
-            const answered = await fetch(`${base}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify({ oauthRedirect: { state, code: 'code1' } }) });
+            const answered = await fetchAgentSession(`${base}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify({ oauthRedirect: { state, code: 'code1' } }) });
             expect(answered.status).toBe(204);
             expect(await login).toEqual({ principal: 'ann@org' });
 
@@ -150,7 +151,7 @@ describe('the relay of dashql connect', () => {
             for (const secret of ['real-core', 'real-refresh', 'real-signature']) expect(secrets).not.toContain(secret);
 
             // The relay reaches the instance and the tenant of the login, nothing else
-            const relay = (url: string) => fetch(`${base}/v1/relay/${server.token}/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': url } });
+            const relay = (url: string) => fetchAgentSession(`${base}/v1/relay/${server.token}/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': url } });
             expect((await relay('https://elsewhere.example/')).status).toBe(403);
             expect((await relay(`${salesforce.instanceUrl}/services/oauth2/userinfo`)).status).toBe(200);
             run.destroy();

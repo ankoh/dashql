@@ -6,6 +6,7 @@ import { LogLevel, type LogRecord } from '@ankoh/dashql/platform/logger/log_buff
 import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@ankoh/dashql/platform/session/workbook_journal';
 
 import { writeAgentSessionConnections, writeAgentSessionWorkbook } from '@ankoh/dashql/platform/session/agent_session_client';
+import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
 
 import { startSessionServer, type SessionServer } from './session_server.js';
 
@@ -67,28 +68,28 @@ describe('the session server', () => {
         expect(server.state().log.map(r => r.message)).toEqual(['Executed query']);
 
         const base = `http://127.0.0.1:${server.port}`;
-        const file = await fetch(`${base}/v1/workbooks/${server.token}/w1/scripts/a.sql`);
+        const file = await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w1/scripts/a.sql`);
         expect(file.status).toBe(200);
         expect(await file.text()).toBe('select 1\n');
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/w1/dashql-workbook.json`)).status).toBe(200);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w1/dashql-workbook.json`)).status).toBe(200);
         // Only the files of a workbook folder, only with the token
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/w1/../secret.txt`)).status).toBe(404);
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/w1/scripts/%2E%2E/%2E%2E/secret.txt`)).status).toBe(404);
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/w2/scripts/a.sql`)).status).toBe(404);
-        expect((await fetch(`${base}/v1/workbooks/wrong/w1/scripts/a.sql`)).status).toBe(401);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w1/../secret.txt`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w1/scripts/%2E%2E/%2E%2E/secret.txt`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w2/scripts/a.sql`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/wrong/w1/scripts/a.sql`)).status).toBe(401);
         // A workbook folder outside the folder of the session is not handed out
         writeFileSync(path.join(folder, '..', 'outside.sql'), 'no');
         appendFileSync(journal, `${JSON.stringify(record(JOURNAL_FILES, JOURNAL_TARGET, { [JOURNAL_KEYS.workbook]: '..', [JOURNAL_KEYS.workbookId]: 'w9', [JOURNAL_KEYS.files]: ['dashql-workbook.json'] }))}\n`);
         await until(() => server!.state().workbooks.some(workbook => workbook.workbookId === 'w9'));
         expect(server.state().workbooks.find(workbook => workbook.workbookId === 'w9')?.files).toEqual([]);
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/w9/dashql-workbook.json`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w9/dashql-workbook.json`)).status).toBe(404);
 
-        const newest = await fetch(`${base}/v1/results/${server.token}/${key}`);
+        const newest = await fetchAgentSession(`${base}/v1/results/${server.token}/${key}`);
         expect(newest.status).toBe(200);
         expect(await newest.text()).toBe('newer');
         expect(Number(newest.headers.get('X-DashQL-Cached-At'))).toBeGreaterThan(0);
-        expect((await fetch(`${base}/v1/results/${server.token}/${'b'.repeat(64)}`)).status).toBe(404);
-        expect((await fetch(`${base}/v1/results/${server.token}/not-a-key`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/results/${server.token}/${'b'.repeat(64)}`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/results/${server.token}/not-a-key`)).status).toBe(404);
 
         // A stopped server leaves no journal, later commands find no session
         await server.close();
@@ -140,7 +141,7 @@ describe('the session server', () => {
         expect(server.state().workbooks).toMatchObject([{ path: '.dashql/workbooks/w1', workbookId: 'w1' }]);
         expect(server.state().workbooks[0].files.map(file => file.path)).toEqual(['dashql-workbook.json', 'scripts/a.sql', 'attachments/t.parquet']);
         const base = `http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/w1`;
-        expect(await (await fetch(`${base}/scripts/a.sql`)).text()).toBe('select 1\n');
+        expect(await (await fetchAgentSession(`${base}/scripts/a.sql`)).text()).toBe('select 1\n');
 
         // A new copy replaces the old one, the scripts that the page no longer has are gone
         await writeAgentSessionWorkbook(target, 'w1', [
@@ -154,25 +155,25 @@ describe('the session server', () => {
         const before = stamp();
         writeFileSync(path.join(copy, 'scripts', 'b.sql'), 'select 22, 23\n');
         const event = { event: 'PostToolUse', harness: 'claude', folder, status: 'Edit', files: [] };
-        const posted = await fetch(`http://127.0.0.1:${server.port}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: JSON.stringify(event) });
+        const posted = await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: JSON.stringify(event) });
         expect(posted.status).toBe(204);
         expect(stamp()?.size).toBe(14);
         expect(stamp()).not.toEqual(before);
 
         // A file of the copy can go on its own
-        expect((await fetch(`${base}/scripts/b.sql`, { method: 'DELETE' })).status).toBe(204);
+        expect((await fetchAgentSession(`${base}/scripts/b.sql`, { method: 'DELETE' })).status).toBe(204);
         expect(server.state().workbooks[0].files.map(file => file.path)).toEqual(['dashql-workbook.json']);
 
         // Only the files of a workbook folder, only with the token, only into the folder of the copy
-        expect((await fetch(`${base}/secret.txt`, { method: 'PUT', body: 'no' })).status).toBe(400);
-        expect((await fetch(`${base}/scripts/..%2F..%2Fx.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
-        expect((await fetch(`http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/..%2Fx/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
-        expect((await fetch(`http://127.0.0.1:${server.port}/v1/workbooks/wrong/w1/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(401);
-        const preflight = await fetch(`${base}/scripts/a.sql`, { method: 'OPTIONS', headers: { Origin: 'https://dashql.app' } });
+        expect((await fetchAgentSession(`${base}/secret.txt`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetchAgentSession(`${base}/scripts/..%2F..%2Fx.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/..%2Fx/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/workbooks/wrong/w1/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(401);
+        const preflight = await fetchAgentSession(`${base}/scripts/a.sql`, { method: 'OPTIONS', headers: { Origin: 'https://dashql.app' } });
         expect(preflight.headers.get('access-control-allow-methods')).toContain('PUT');
 
         // The whole copy goes, the state forgets it
-        expect((await fetch(base, { method: 'DELETE' })).status).toBe(204);
+        expect((await fetchAgentSession(base, { method: 'DELETE' })).status).toBe(204);
         expect(existsSync(copy)).toBe(false);
         expect(server.state().workbooks).toEqual([]);
     });
@@ -185,8 +186,8 @@ describe('the session server', () => {
         const file = path.join(folder, '.dashql', 'sessions', '51005', 'connections.json');
         expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [{ connectionId: 'c1', name: 'Trino prod' }] });
         const base = `http://127.0.0.1:${server.port}/v1/connections`;
-        expect((await fetch(`${base}/${server.token}`, { method: 'PUT', body: '{"connections":7}' })).status).toBe(400);
-        expect((await fetch(`${base}/wrong`, { method: 'PUT', body: '{"connections":[]}' })).status).toBe(401);
+        expect((await fetchAgentSession(`${base}/${server.token}`, { method: 'PUT', body: '{"connections":7}' })).status).toBe(400);
+        expect((await fetchAgentSession(`${base}/wrong`, { method: 'PUT', body: '{"connections":[]}' })).status).toBe(401);
         // None is a choice as well
         await writeAgentSessionConnections(target, { connections: [] });
         expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [] });
@@ -196,14 +197,14 @@ describe('the session server', () => {
         const server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
         try {
             const base = `http://127.0.0.1:${server.port}`;
-            expect((await fetch(`${base}/v1/state`)).status).toBe(401);
-            expect((await fetch(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
-            expect((await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: 'https://evil.example' } })).status).toBe(403);
+            expect((await fetchAgentSession(`${base}/v1/state`)).status).toBe(401);
+            expect((await fetchAgentSession(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
+            expect((await fetchAgentSession(`${base}/v1/state?token=${server.token}`, { headers: { Origin: 'https://evil.example' } })).status).toBe(403);
             for (const origin of ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app']) {
-                const page = await fetch(`${base}/v1/state?token=${server.token}`, { headers: { Origin: origin } });
+                const page = await fetchAgentSession(`${base}/v1/state?token=${server.token}`, { headers: { Origin: origin } });
                 expect(page.headers.get('access-control-allow-origin')).toBe(origin);
             }
-            const preflight = await fetch(`${base}/v1/events`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:9002' } });
+            const preflight = await fetchAgentSession(`${base}/v1/events`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:9002' } });
             expect(preflight.status).toBe(204);
             expect(preflight.headers.get('access-control-allow-private-network')).toBe('true');
         } finally {
@@ -211,12 +212,43 @@ describe('the session server', () => {
         }
     });
 
+    it('names its protocol on every answer and answers clients of an older protocol with nothing', async () => {
+        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        const base = `http://127.0.0.1:${server.port}`;
+        // A page reads the protocols of every answer, also of an error
+        for (const answer of [
+            await fetchAgentSession(`${base}/v1/state?token=${server.token}`, { headers: { Origin: 'https://dashql.app' } }),
+            await fetchAgentSession(`${base}/v1/state?token=wrong`, { headers: { Origin: 'https://dashql.app' } }),
+        ]) {
+            expect(answer.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
+            expect(answer.headers.get('x-dashql-min-protocol')).toBe(String(AGENT_SESSION_MIN_PROTOCOL));
+            expect(answer.headers.get('access-control-expose-headers')).toContain('X-DashQL-Protocol');
+            expect(answer.headers.get('access-control-expose-headers')).toContain('X-DashQL-Min-Protocol');
+        }
+        // A page sends the protocol with every request, the preflight allows it
+        const preflight = await fetch(`${base}/v1/stream`, { method: 'OPTIONS', headers: { Origin: 'https://dashql.app', 'Access-Control-Request-Headers': 'x-dashql-protocol' } });
+        expect(preflight.headers.get('access-control-allow-headers')).toContain('X-DashQL-Protocol');
+        // A client without a protocol or of one that is too old gets nothing but the protocols of the server
+        const events = `${base}/v1/events`;
+        const event = JSON.stringify({ event: 'UserPromptSubmit', harness: 'claude', folder: '/w', prompt: 'q' });
+        const headers = { Authorization: `Bearer ${server.token}` };
+        const none = await fetch(events, { method: 'POST', headers, body: event });
+        expect(none.status).toBe(426);
+        expect(none.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
+        expect((await fetch(events, { method: 'POST', headers: { ...headers, 'X-DashQL-Protocol': String(AGENT_SESSION_MIN_PROTOCOL - 1) }, body: event })).status).toBe(426);
+        expect((await fetch(events, { method: 'POST', headers: { ...headers, 'X-DashQL-Protocol': 'x' }, body: event })).status).toBe(426);
+        expect(server.state().turns).toEqual([]);
+        // A newer client works with the server as long as the server is not older than its oldest
+        expect((await fetch(events, { method: 'POST', headers: { ...headers, 'X-DashQL-Protocol': String(AGENT_SESSION_PROTOCOL + 1) }, body: event })).status).toBe(204);
+        expect(server.state().turns.map(turn => turn.question)).toEqual(['q']);
+    });
+
     it('answers malformed paths without ending', async () => {
         server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
         const base = `http://127.0.0.1:${server.port}`;
-        expect((await fetch(`${base}/v1/workbooks/%E0/x`)).status).toBe(401);
-        expect((await fetch(`${base}/v1/workbooks/${server.token}/%E0/x`)).status).toBe(404);
-        expect((await fetch(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/%E0/x`)).status).toBe(401);
+        expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/%E0/x`)).status).toBe(404);
+        expect((await fetchAgentSession(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
     });
 
     it('follows the conversation in a folder without a journal', async () => {

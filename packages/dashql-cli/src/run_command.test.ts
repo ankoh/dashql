@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { createDashQLCoreSetup } from '@ankoh/dashql/platform/node/node_core';
+import { fetchAgentSession } from '@ankoh/dashql/platform/session/agent_session_protocol';
 
 import { ConnectAuth, coreLoginRuntime } from './connect_auth.js';
 import { runRun, type RunEnvironment } from './run_command.js';
@@ -404,8 +405,8 @@ describe('dashql run', () => {
             expect(new Set(trino.authorizations)).toEqual(new Set(['Bearer real-token']));
             // The relay reaches the endpoints of logged in connections only
             const relay = `http://127.0.0.1:${server.port}/v1/relay/${server.token}/${CONNECTION_ID}`;
-            expect((await fetch(relay, { headers: { 'X-DashQL-Url': 'https://elsewhere.example/v1/info' } })).status).toBe(403);
-            expect((await fetch(`http://127.0.0.1:${server.port}/v1/relay/wrong/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': `${trino.endpoint}/v1/info` } })).status).toBe(401);
+            expect((await fetchAgentSession(relay, { headers: { 'X-DashQL-Url': 'https://elsewhere.example/v1/info' } })).status).toBe(403);
+            expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/relay/wrong/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': `${trino.endpoint}/v1/info` } })).status).toBe(401);
         } finally {
             trino.bearer = null;
             await server.close();
@@ -426,7 +427,7 @@ describe('dashql run', () => {
             const running = run(dir, ['.'], { session: '51007' });
             // The run waits for the password of the tab, the tab sends it to the server
             await vi.waitFor(() => expect(server.state().logins).toEqual([{ connectionId: CONNECTION_ID, name: `trino ${trino.endpoint}`, kind: 'credentials', url: '' }]), { timeout: 20_000 });
-            const answer = (body: unknown) => fetch(`http://127.0.0.1:${server.port}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify(body) });
+            const answer = (body: unknown) => fetchAgentSession(`http://127.0.0.1:${server.port}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify(body) });
             expect((await answer({ oauthRedirect: { state: { flowId: 'f' } } })).status).toBe(409);
             expect((await answer({ basic: { username: 'ann', secret: 'pw' } })).status).toBe(204);
             const output = await running;
