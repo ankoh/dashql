@@ -4,9 +4,12 @@ import { Route, Routes, Navigate, BrowserRouter, HashRouter, useLocation } from 
 
 import { AppConfigProvider, useAppConfig } from '../config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
+import { AppLoadingPage } from './app_loading_page.js';
+import type { AppLoadingProgress } from './loading/app_loading_progress.js';
+import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { ProgressCounter } from '@ankoh/dashql/platform/utils/progress';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
-import { ComputationScheduler } from '../compute/computation_scheduler.js';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { RuntimeProvider } from '../runtime/runtime_provider.js';
@@ -15,10 +18,8 @@ import { FlavorProvider, FlavorUrlKeeper } from '../config/flavor_provider.js';
 import { getRequestedFlavor } from '../config/flavor_resolution.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { HttpClientProvider } from '../platform/http/http_client_provider.js';
-import { ChannelConnectorProvider } from '../connections/hyper/hyper_connection_setup.js';
 import { CloudStateProvider } from '../cloud/cloud_state.js';
 import { CloudPreviewCleanup } from '../cloud/cloud_workbooks.js';
-import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_client_provider.js';
 import { LoggerToast } from '../ui/logger/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
@@ -36,7 +37,6 @@ import { getGlobalLogger, LoggerProvider } from '../platform/logger/logger_provi
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platform/database/embedded_database_provider.js';
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
-import { WorkbookComputeQueryExecutionProvider } from './workbook_compute_query_execution.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
 
 import '@ankoh/dashql-ui/fonts/fonts.css';
@@ -48,38 +48,39 @@ import '../connections/clfn/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';
 
-// The RuntimeProvider creates the runtime of DashQL over the storage, the http client, the core, the embedded database
-// and the API of Salesforce of the providers above it. The providers below it bind parts of it to the app:
-// - ChannelConnectorProvider gives it the clients that connect the channels of the setups.
-// - CloudStateProvider runs its statements through the query executor, the AppLoader shows the cloud setup from it.
+// The RuntimeProvider creates the runtime of DashQL once the core is there, over the storage, the http client, the
+// clients of the channels, the embedded database and the API of Salesforce of the providers above it, and provides
+// the extracts of the Hyper logs that its channels feed. The loading page shows until then. The providers below it bind
+// parts of it to the app, e.g. the CloudStateProvider runs its statements through the query executor and the AppLoader
+// shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <SalesforceConnector>
-        <RuntimeProvider>
-            <HyperLogMetricsProvider>
-                <ChannelConnectorProvider>
-                    <WorkbookComputeQueryExecutionProvider>
-                        <ComputationScheduler />
-                        <NativeWorkbookSync />
-                        <AgentSessionProvider>
-                            <WorkbookImportProvider>
-                                <WorkbookViewModeProvider>
-                                    <WorkbookCommands>
-                                        <CloudStateProvider>
-                                            <CloudPreviewCleanup />
-                                            <AppLoader>
-                                                {props.children}
-                                            </AppLoader>
-                                        </CloudStateProvider>
-                                    </WorkbookCommands>
-                                </WorkbookViewModeProvider>
-                            </WorkbookImportProvider>
-                        </AgentSessionProvider>
-                    </WorkbookComputeQueryExecutionProvider>
-                </ChannelConnectorProvider>
-            </HyperLogMetricsProvider>
+        <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={INITIAL_LOADING_PROGRESS} embeddedDatabaseStatus={IndicatorStatus.None} />}>
+            <NativeWorkbookSync />
+            <AgentSessionProvider>
+                <WorkbookImportProvider>
+                    <WorkbookViewModeProvider>
+                        <WorkbookCommands>
+                            <CloudStateProvider>
+                                <CloudPreviewCleanup />
+                                <AppLoader>
+                                    {props.children}
+                                </AppLoader>
+                            </CloudStateProvider>
+                        </WorkbookCommands>
+                    </WorkbookViewModeProvider>
+                </WorkbookImportProvider>
+            </AgentSessionProvider>
         </RuntimeProvider>
     </SalesforceConnector>
 );
+
+/// The progress of the loading page before the core is there
+const INITIAL_LOADING_PROGRESS: AppLoadingProgress = {
+    restoreConnections: new ProgressCounter(),
+    restoreCatalogs: new ProgressCounter(),
+    restoreWorkbookScripts: new ProgressCounter(),
+};
 
 /// The embedded database with the startup options of the app settings.
 /// It waits until the persisted settings are loaded, a change of the options applies with a restart of the app.

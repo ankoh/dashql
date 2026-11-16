@@ -143,6 +143,45 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
+    it('write the pending writes of a replaced workbook first and discard the later ones', async () => {
+        const { runtime, storage } = createRuntime();
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
+        // The workbook is registered and has an edit that waits for its debounce
+        await runtime.restore(null);
+        const scriptKey = (runtime.views('workbook', [WB])[0] as { scriptKeys: number[] }).scriptKeys[0];
+        expect(runtime.dispatch({ workbook: WB }, { kind: 'setScriptText', value: { scriptKey, text: 'select 42' } }).changed).toBe(true);
+        expect(runtime.storagePendingKeys(WB).length).toBeGreaterThan(0);
+        expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
+
+        // The writes of the script in order; an edit while the replacement writes is held
+        const writes: string[] = [];
+        let laterEdit: dashql.DispatchOutcome | null = null;
+        const saveScript = storage.saveScript;
+        storage.saveScript = async (workbookId, fileName, text) => {
+            if (workbookId === WB && fileName === 'a.sql') {
+                writes.push(text);
+                if (text === 'select 1' && laterEdit == null) {
+                    laterEdit = runtime.dispatch({ workbook: WB }, { kind: 'setScriptText', value: { scriptKey, text: 'select 43' } });
+                }
+            }
+            await saveScript(workbookId, fileName, text);
+        };
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        const outcome = await runtime.commitImport(preview.importId, { conflict: 'replace' }, null);
+        expect(outcome).toMatchObject({ workbookId: WB, restored: false });
+
+        // The pending edit reached the storage before the replacement wrote the script of the import
+        expect(writes.slice(0, 2)).toEqual(['select 42', 'select 1']);
+        expect(laterEdit).toMatchObject({ ok: true, changed: true });
+        // The edit during the replacement belongs to the replaced version, it is discarded
+        expect(runtime.storagePendingKeys(WB)).toEqual([]);
+        await runtime.storage({ kind: 'flush' });
+        expect(writes).not.toContain('select 43');
+        expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
+        runtime.destroy();
+        runtime.free();
+    });
+
     it('roll back a replacement whose write fails in the middle', async () => {
         const { runtime, storage } = createRuntime();
         const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);

@@ -130,7 +130,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 }),
             );
             const fontsPromise = trackInitialization("Fonts", loadFonts());
-            const [core] = await Promise.all([corePromise, embeddedDatabasePromise, fontsPromise]);
+            await Promise.all([corePromise, embeddedDatabasePromise, fontsPromise]);
 
             const coreDuration = performance.now() - coreStartTime;
             traced.info("Core and embedded database ready", {
@@ -144,7 +144,6 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 loadApp(traced, {
                     restoreAppState: async progressConsumer => {
                         // The connections and the workbooks restore into the runtime, it writes through its writer
-                        runtime.setCore(core);
                         const restored = await runtime.restore(progress => progressConsumer(restoreProgress(progress)));
                         progressConsumer(restoreProgress(restored.progress));
                         const workbooks = new Map<string, WorkbookScripts>();

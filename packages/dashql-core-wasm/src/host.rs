@@ -811,6 +811,11 @@ impl JsPlatform {
         async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
     }
 
+    /// Does the platform keep anything?
+    pub fn has_storage(&self) -> bool {
+        member(self.object(), "storage").is_ok()
+    }
+
     /// Call a member of the storage of the platform
     pub fn storage_call(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
         let storage = member(self.object(), "storage").map_err(|_| HostError::new("the platform has no storage"))?;

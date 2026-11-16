@@ -7,7 +7,7 @@ import type { EmbeddedComputeDatabase } from '../../platform/platform/database/e
 import type { HttpClient } from '../../platform/platform/http/http_client.js';
 import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
 import { createRuntime, type Runtime, type RuntimePlatform } from '../runtime.js';
-import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
+import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import type { StorageBackend, WorkbookData } from '../../platform/storage/storage_backend.js';
 import { storageVersions } from '../../platform/storage/storage_versions.js';
 import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/scripts/workbook_scripts.js';
@@ -60,7 +60,7 @@ export interface TestRuntime extends Runtime {
 export function analyzeWorkbook(runtime: Runtime, workbookId: string): void {
     for (let round = 0; round < 4; ++round) {
         runtime.flush();
-        const outdated = (runtime.store.get('workbook', workbookId)?.scriptKeys ?? []).filter(key => runtime.module?.isAnalysisOutdated(key));
+        const outdated = (runtime.store.get('workbook', workbookId)?.scriptKeys ?? []).filter(key => runtime.module.isAnalysisOutdated(key));
         if (outdated.length === 0) break;
         for (const scriptKey of outdated) runtime.dispatch({ workbook: workbookId }, { kind: 'analyzeOutdatedScript', value: { scriptKey } });
     }
@@ -77,11 +77,14 @@ export function workbookScripts(runtime: Runtime, workbookId: string): ScriptDat
     return scripts;
 }
 
+/// The compute database of a test for the platform of a runtime, null without one
+export function computeDatabaseOf(database: EmbeddedComputeDatabase | null | undefined): (() => Promise<EmbeddedComputeDatabase>) | null {
+    return database == null ? null : async () => database;
+}
+
 /// A runtime of the module of a test with the core of the tests and a storage in memory, its catalog loader stopped
 export function testStorageRuntime(dql: dashql.DashQL, storage: StorageBackend = new WorkbookTestBackend(), logger = new TestLogger()): Runtime {
-    const runtime = createRuntime({ logger, scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
-    runtime.runCatalogLoader(false);
-    return runtime;
+    return createRuntime({ logger, scheduler: TASK_UPDATE_SCHEDULER, core: dql, storage, catalogLoader: false });
 }
 
 /// A script of a stored workbook: its file name, its text and the id of its connection
@@ -156,15 +159,13 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         http: options.http ?? ({ fetch: offline } as HttpClient),
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: { authorizeWithRedirectPage: offline, authorizeWithLoopback: offline } as unknown as OAuthFlow,
-        setupCore: async () => instance,
-        computeDatabase: options.computeDatabase ?? null,
+        core: instance,
+        computeDatabase: computeDatabaseOf(options.computeDatabase),
         resultCache: options.resultCache ?? null,
         archives: options.archiveDatabase == null ? undefined : handles => createRuntimeArchives(handles, options.archiveDatabase!),
+        catalogLoader: options.catalogLoader === true,
     };
     const runtime = createRuntime(platform);
-    if (!options.catalogLoader) runtime.runCatalogLoader(false);
-    // The runtime of the module has the core of the tests from the start
-    runtime.setCore(instance);
     const read = runtime.connection.bind(runtime);
     return Object.assign(runtime, {
         logger,

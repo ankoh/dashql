@@ -28,7 +28,7 @@ function deferred() {
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
 /// A query as the runtime holds it now
-const queryView = (runtime: Runtime, queryId: number) => runtime.module?.views('query', [queryId])[0] ?? null;
+const queryView = (runtime: Runtime, queryId: number) => runtime.module.views('query', [queryId])[0] ?? null;
 
 /// A published workbook that a workbook is a preview of
 const PREVIEW = { workbookId: 'c0ffee00-0000-4000-8000-000000000001', versionId: 'c0ffee00-0000-4000-8000-000000000002', connectionId: 'cloud', preview: true };
@@ -127,7 +127,7 @@ describe('the runs of workbooks of the runtime', () => {
             get busy() { return workbookExecutionIsBusy(core.store.get('run', workbookId)?.state); },
             get held() { return core.store.get('run', workbookId)?.held != null; },
             start: options => core.runWorkbook(workbookId, { inputs: options?.inputs }),
-            stop: () => core.module?.stopRun(workbookId),
+            stop: () => core.module.stopRun(workbookId),
         };
     }
 
@@ -472,7 +472,7 @@ describe('the runs of scripts of the runtime', () => {
         });
         const second = f.run('foo.sql');
         await imported;
-        f.core.module?.stopRun(f.workbookId);
+        f.core.module.stopRun(f.workbookId);
         release();
         await second;
         f.core.flush();
@@ -525,8 +525,8 @@ describe('the runs of scripts of the runtime', () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const first = await f.run('foo.sql');
         expect(first.outcome.failure).toBeNull();
-        await f.core.module?.flushCacheWrites();
-        const [key] = await f.core.resultKeys(f.workbookId);
+        await f.core.module.flushCacheWrites();
+        const [key] = await f.core.module.resultKeys(f.workbookId);
         expect(key).not.toBeNull();
         expect(await f.cache!.has(key!)).toBe(true);
         // The write after the query records the key on the fresh result
@@ -541,15 +541,30 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
     });
 
+    it('shows the cached result of a script on its view and follows a deleted cache entry', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        expect(f.script('foo.sql').cachedResult).toBeNull();
+        await f.run('foo.sql');
+        await f.core.module?.flushCacheWrites();
+        const [key] = await f.core.module.resultKeys(f.workbookId);
+        const entry = (await f.cache!.lookup(key!))!;
+        // The runtime looks the key up once the run wrote its result
+        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).toEqual({ key, cachedAt: entry.cachedAtMs }));
+        // The cache entry is deleted, the query of the script no longer advertises it
+        await f.cache!.remove(entry.name);
+        f.core.dispatch({ connection: f.connectionId }, { kind: 'queryCacheDeleted', value: { queryId: f.script('foo.sql').latestQueryId! } });
+        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).toBeNull());
+    });
+
     it('keeps the query result cache within its limits, the least recently read files go first', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
         f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };
         await f.run('foo.sql');
-        await f.core.module?.flushCacheWrites();
-        const [foo, bar] = await f.core.resultKeys(f.workbookId);
+        await f.core.module.flushCacheWrites();
+        const [foo, bar] = await f.core.module.resultKeys(f.workbookId);
         const fooFile = (await f.cache!.lookup(foo!))!.name;
         await f.run('bar.sql');
-        await f.core.module?.flushCacheWrites();
+        await f.core.module.flushCacheWrites();
         // The runtime evicts after the write of bar, the file of foo was read longer ago
         expect(f.cache!.remove).toHaveBeenCalledWith(fooFile);
         expect(await f.cache!.has(foo!)).toBe(false);

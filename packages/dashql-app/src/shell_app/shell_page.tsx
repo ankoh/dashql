@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import * as connectionTypes from '@ankoh/dashql-jsonschema/connection.js';
 
-import type { EmbeddedConnection } from '@ankoh/dashql/platform/platform/database/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { LoggableException, stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -11,12 +10,12 @@ import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '..
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { useRuntime } from '../runtime/runtime_hooks.js';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
-import { EmbeddedDatabaseCatalog } from './embedded_database_catalog.js';
+import { connectEmbeddedSession, type EmbeddedSession } from '@ankoh/dashql/runtime/connections/catalog/embedded_session';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
 import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { createExamplesCommand } from '../shell/shell_examples.js';
-import { useShellQueryHistory } from './shell_query_history.js';
+import { historyName, useShellQueryHistory } from './shell_query_history.js';
 import { createShellLastCommand } from '../shell/shell_result.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../shell/shell_files.js';
 import { useShellFiles } from '../shell/filesystem_dialog.js';
@@ -54,6 +53,8 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 }
 
 const INSTANTIATING_SHELL = 'Instantiating shell';
+/// The connection of the shell to the embedded Hyper in its runtime
+const SHELL_CONNECTION_ID = 'shell';
 
 export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
@@ -110,9 +111,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         let cancelled = false;
         // The logins of the shell are setups of the runtime by an id each
         let loginCount = 0;
-        let connection: EmbeddedConnection | null = null;
+        // The connection of the shell to the embedded Hyper, a connection of its runtime: the statements of the shell run
+        // on its session and its catalog follows them
+        let session: EmbeddedSession | null = null;
         let shell: DashQLShell | null = null;
-        let shellCatalog: EmbeddedDatabaseCatalog | null = null;
         let controller: BrowserShellController | null = null;
         let fileRegistry: ShellFileRegistry | null = null;
 
@@ -130,15 +132,17 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 .catch(error => {
                     logger.warn('Failed to load engine version', { error: stringifyError(error) }, LOG_CTX);
                 });
-            const nextConnection = await database.connect({ defaultDatabase: 'hyper' });
-            if (cancelled) {
-                await nextConnection.close();
-                return;
-            }
-            connection = nextConnection;
 
             setStatus(INSTANTIATING_SHELL);
             const core = await setupCore(LOG_CTX);
+            // A later setup of the page takes the connection
+            if (cancelled) return;
+            const nextSession = await connectEmbeddedSession(runtime, SHELL_CONNECTION_ID);
+            if (cancelled) {
+                nextSession.close();
+                return;
+            }
+            session = nextSession;
             const loginCommand = createLoginCommand({
                 requestForm: loginDialog.request,
                 authenticate: async (form, signal, onProgress) => {
@@ -152,9 +156,8 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         login: form.loginHint,
                     };
                     // The runtime logs in with the flow of this login, the window of the click of the user
-                    runtime.setHttp(httpClient);
                     const loginId = `shell-login-${++loginCount}`;
-                    const cancel = () => runtime.module?.cancelSetup(loginId);
+                    const cancel = () => runtime.module.cancelSetup(loginId);
                     signal?.addEventListener('abort', cancel, { once: true });
                     const messages: Record<string, string> = {
                         GENERATING_PKCE_CHALLENGE: 'Preparing secure Salesforce login',
@@ -261,16 +264,17 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             ];
             const nextShell = await createDashQLShell({
                 core,
-                environment: createEmbeddedDatabaseShellEnvironment(connection, queryExecutions, {
+                catalog: nextSession.catalog,
+                environment: createEmbeddedDatabaseShellEnvironment(nextSession.session, queryExecutions, {
                     prepareResult: (queryId, table) => {
-                        // The computations of the results of the shell run on its database
-                        runtime.setComputeDatabase(database);
-                        return runtime.analyzeTable(queryId, table);
+                        // The computations of the results of the shell run on its database, the history of the shell
+                        // lists their queries
+                        return runtime.analyzeTable(queryId, table, { history: historyName(queryExecutions) });
                     },
                     // The statement succeeded, following the catalog must not fail it
                     afterStatement: async statement => {
                         try {
-                            await shellCatalog?.afterStatement(statement);
+                            await nextSession.follow(statement);
                         } catch (error) {
                             logger.warn('Failed to update the catalog of the shell', { error: stringifyError(error) }, LOG_CTX);
                         }
@@ -284,7 +288,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 return;
             }
             shell = nextShell;
-            shellCatalog = new EmbeddedDatabaseCatalog(nextShell.core, nextShell.catalog, text => connection!.query(text));
             shellRef.current = nextShell;
             nextShell.setKeywordCase(keywordCaseRef.current);
             const { embedDashQLShell } = await import('../shell/browser_shell.js');
@@ -337,11 +340,11 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             cancelled = true;
             controller?.dispose();
             controllerRef.current = null;
-            shellCatalog?.destroy();
             shell?.destroy();
             shellRef.current = null;
             fileRegistryRef.current = null;
-            void fileRegistry?.dispose().finally(() => connection?.close());
+            // The connection stops after the shell, its channel closes the session
+            void (fileRegistry?.dispose() ?? Promise.resolve()).finally(() => session?.close());
         };
     }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, queryExecutions, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 

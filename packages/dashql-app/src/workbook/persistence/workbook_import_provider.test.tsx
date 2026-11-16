@@ -249,29 +249,21 @@ describe('WorkbookImportProvider', () => {
             expect(registry.workbooks.get(OTHER_WORKBOOK_ID)?.connections.map(connection => connection.connectionId)).toEqual([HYPER_ID]);
         });
 
-        it('reloads after the write when asked to, and keeps the writer paused for the reload', async () => {
+        it('reloads after the write when asked to', async () => {
             await renderProvider();
-            const pause = vi.spyOn(api.writer, 'pause');
-            const resume = vi.spyOn(api.writer, 'resume');
-            const flush = vi.spyOn(api.writer, 'flush');
             let id: string | null = null;
             await act(async () => { id = await importBundle(bundleOf(), { ...CENTERED, reloadAfterSuccess: true }); });
             expect(id).toBe(WORKBOOK_ID);
             expect(reload).toHaveBeenCalledOnce();
-            expect(pause).toHaveBeenCalledOnce();
-            expect(flush).toHaveBeenCalledOnce();
-            expect(resume).not.toHaveBeenCalled();
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select 1');
             // The reload restores the workbook
             expect(api.workbooks.has(WORKBOOK_ID)).toBe(false);
         });
 
-        it('resumes the writer and does not reload when the write fails', async () => {
+        it('does not reload when the write fails', async () => {
             await renderProvider();
-            const resume = vi.spyOn(api.writer, 'resume');
             registry.failScriptWrites = true;
             await expect(importBundle(bundleOf(), { ...CENTERED, reloadAfterSuccess: true })).rejects.toThrow('disk full');
-            expect(resume).toHaveBeenCalledOnce();
             expect(reload).not.toHaveBeenCalled();
             // A failed import leaves no workbook behind
             expect(registry.manifest).toEqual([]);
@@ -467,46 +459,28 @@ describe('WorkbookImportProvider', () => {
 
         it('replaces the workbook and reloads', async () => {
             await renderProvider();
-            const pause = vi.spyOn(api.writer, 'pause');
-            const resume = vi.spyOn(api.writer, 'resume');
             const { result } = await askConflict(() => importBundle(bundleOf(), CENTERED));
             await click(byTestId('workbook-import-replace'));
             expect(await result).toBe(WORKBOOK_ID);
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select 1');
             expect(registry.workbooks.get(WORKBOOK_ID)?.name).toBe('Imported');
             expect(reload).toHaveBeenCalledOnce();
-            expect(pause).toHaveBeenCalledOnce();
-            expect(resume).not.toHaveBeenCalled();
+            // The writer holds no writes after the replacement, the runtime held the workbook while it imported
+            expect(api.writer.getPendingKeysForWorkbook(WORKBOOK_ID)).toEqual([]);
             // The staged copy is gone again
             expect(registry.manifest.map(entry => entry.path)).toEqual([WORKBOOK_ID]);
         });
 
         it('keeps the workbook and the question when the replacement fails', async () => {
             await renderProvider();
-            const resume = vi.spyOn(api.writer, 'resume');
             const error = vi.spyOn(api.logger, 'error');
             const { result } = await askConflict(() => importBundle(bundleOf(), CENTERED));
             registry.failScriptWrites = true;
             await click(byTestId('workbook-import-replace'));
             await vi.waitFor(() => expect(error).toHaveBeenCalledWith('workbook import failed', expect.objectContaining({ error: expect.stringContaining('disk full') }), 'workbook_import'));
-            expect(resume).toHaveBeenCalledOnce();
             expect(reload).not.toHaveBeenCalled();
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select old');
             // The user may try again or leave
-            await vi.waitFor(() => expect(byTestId('workbook-import-replace')?.disabled).toBe(false));
-            await cancelQuestion();
-            expect(await result).toBeNull();
-        });
-
-        it('does not start the replacement when the pending writes cannot be flushed', async () => {
-            await renderProvider();
-            vi.spyOn(api.writer, 'flush').mockRejectedValue(new Error('flush failed'));
-            const resume = vi.spyOn(api.writer, 'resume');
-            const { result } = await askConflict(() => importBundle(bundleOf(), CENTERED));
-            await click(byTestId('workbook-import-replace'));
-            await vi.waitFor(() => expect(resume).toHaveBeenCalledOnce());
-            expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select old');
-            expect(reload).not.toHaveBeenCalled();
             await vi.waitFor(() => expect(byTestId('workbook-import-replace')?.disabled).toBe(false));
             await cancelQuestion();
             expect(await result).toBeNull();
@@ -603,13 +577,11 @@ describe('WorkbookImportProvider', () => {
             expect(reload).toHaveBeenCalledOnce();
         });
 
-        it('resumes the writer when the replacement fails', async () => {
+        it('keeps the workbook when the replacement fails', async () => {
             await registerWorkbook();
             await renderProvider();
-            const resume = vi.spyOn(api.writer, 'resume');
             registry.failScriptWrites = true;
             await expect(importWithChoice(bundleOf(), 'replace')).rejects.toThrow('disk full');
-            expect(resume).toHaveBeenCalledOnce();
             expect(reload).not.toHaveBeenCalled();
             expect(registry.scripts.get(WORKBOOK_ID)?.get('query.sql')).toBe('select old');
         });

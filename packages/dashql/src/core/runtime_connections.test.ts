@@ -354,6 +354,25 @@ describe('The connections of the runtime', () => {
         runtime.destroy();
         runtime.free();
     });
+
+    it('sets up the embedded Hyper of an opened workbook once', async () => {
+        const platform = new TestPlatform();
+        const runtime = createRuntime(platform);
+        expect(runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'memory', connectionId: 'main' } }).ok).toBe(true);
+        expect(runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'remote', connectionId: 'trino' } }).ok).toBe(true);
+        // The Trino connection needs the user, an unknown workbook has nothing to set up
+        runtime.setUpOpenedWorkbook('remote');
+        runtime.setUpOpenedWorkbook('gone');
+        runtime.setUpOpenedWorkbook('memory');
+        await vi.waitFor(() => expect(platform.connected.map(request => request.type)).toEqual(['hyper']));
+        // The health check of the channel fails here, the connection is not set up again
+        await vi.waitFor(() => expect(viewOf(runtime, 'connection', 'main')!.connectionHealth).not.toBe(dashql.ConnectionHealth.CONNECTING));
+        runtime.setUpOpenedWorkbook('memory');
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(platform.connected).toHaveLength(1);
+        runtime.destroy();
+        runtime.free();
+    });
 });
 
 describe('The queries of the runtime', () => {

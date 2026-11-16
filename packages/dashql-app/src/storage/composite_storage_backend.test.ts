@@ -1,7 +1,7 @@
 import * as core from '@ankoh/dashql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
 
 import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
@@ -232,11 +232,11 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         const runtime = createRuntime({
             logger: new TestLogger(),
             scheduler: TASK_UPDATE_SCHEDULER,
-            setupCore: await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
+            core: await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }),
             storage: backend,
         });
         try {
-            expect(await runtime.migrateWorkbookFolder(workbookId)).toBe('migrated');
+            expect(await runtime.module.migrateWorkbookFolder(workbookId)).toBe('migrated');
         } finally {
             await runtime.destroy();
         }

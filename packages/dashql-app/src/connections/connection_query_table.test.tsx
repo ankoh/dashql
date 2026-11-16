@@ -1,12 +1,9 @@
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
+import * as dashql from '@ankoh/dashql';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeQueryExecutionProvider } from '../compute/compute_query_execution.js';
-
-import { ComputationScheduler } from '../compute/computation_scheduler.js';
-import type { ComputeQueryExecution } from '@ankoh/dashql/runtime/compute/compute_platform';
 import { ComputeConnectionProvider } from '../compute/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../platform/database/embedded_database_provider.js';
 import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -17,8 +14,7 @@ import { StandaloneRuntime } from '../runtime/runtime_hooks.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-/// Run the queries of the computations without tracking them
-const execute: ComputeQueryExecution = (_query, run) => run(null);
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 describe('QueryTable', () => {
     let client: HyperDBClient;
@@ -30,6 +26,8 @@ describe('QueryTable', () => {
     let root: Root;
 
     beforeAll(async () => {
+        // The runtime of the table is created with the core
+        await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
         ({ client, shared: sharedClient } = await getTestHyperDBClient());
     }, 60_000);
 
@@ -70,10 +68,7 @@ describe('QueryTable', () => {
                 <EmbeddedDatabaseProvider setupDatabase={async () => computeDatabase}>
                     <ComputeConnectionProvider>
                         <StandaloneRuntime>
-                            <ComputeQueryExecutionProvider createExecution={() => execute}>
-                                <ComputationScheduler />
-                                <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
-                            </ComputeQueryExecutionProvider>
+                            <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
                         </StandaloneRuntime>
                     </ComputeConnectionProvider>
                 </EmbeddedDatabaseProvider>

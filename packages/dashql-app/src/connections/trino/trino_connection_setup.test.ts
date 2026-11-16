@@ -10,7 +10,7 @@ import { TestLogger } from '@ankoh/dashql/platform/testing/test_logger';
 import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
@@ -69,14 +69,14 @@ async function setup(http: HttpClient, params = OAUTH_PARAMS, cancelled = false)
     const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
-        setupCore: dql,
+        core: dql,
         http,
         oauthFlow: new AppOAuthFlow({} as never, PlatformType.DESKTOP),
     });
-    runtime.runCatalogLoader(false);
+    runtime.module.runCatalogLoader(false);
     runtime.createConnection({ connectorType: ConnectorType.TRINO, setupParams: params, params: { trino: params } }, 'trino');
     const done = runtime.setupConnection('trino');
-    if (cancelled) runtime.module?.cancelSetup('trino');
+    if (cancelled) runtime.module.cancelSetup('trino');
     const outcome = await done;
     return { outcome, runtime, connection: runtime.connection('trino')! };
 }

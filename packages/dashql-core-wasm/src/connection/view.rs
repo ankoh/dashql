@@ -457,6 +457,10 @@ pub struct ConnectionCatalogUpdates {
     pub touched_relations: Vec<ConnectionRelationName>,
     /// The updates in a row that failed to answer them
     pub touched_failures: u32,
+    /// Might the catalog miss what executed statements did, since asking the connection failed too often?
+    pub out_of_date: bool,
+    /// Is the current full refresh running?
+    pub refresh_running: bool,
 }
 
 /// The database and schema of the relations that unqualified statements of a connection create or drop
@@ -538,6 +542,8 @@ pub struct ConnectionView {
     pub workbooks: Vec<String>,
     /// Saving the connection
     pub save: ConnectionSaveView,
+    /// Can the user refresh the catalog: is the connection online without a running full refresh?
+    pub can_refresh: bool,
     /// Does a setup of the connection run?
     pub setup_running: bool,
     /// Counts the announcements of a new catalog: the scripts that use the connection are analyzed again with it
@@ -573,6 +579,8 @@ impl ConnectionView {
                 current_full_refresh: updates.current_full_refresh,
                 touched_relations: relations(&updates.touched_relations),
                 touched_failures: updates.touched_failures,
+                out_of_date: updates.is_out_of_date(),
+                refresh_running: updates.is_refresh_running(),
             },
             catalog_relation_entry_id: state.relation_entry_id(),
             catalog_name_defaults: {
@@ -596,6 +604,7 @@ impl ConnectionView {
             snapshot_queries_active_finished: queries.snapshot_queries_active_finished(),
             workbooks: workbooks.to_vec(),
             save,
+            can_refresh: state.can_refresh_catalog(),
             setup_running: false,
             catalog_version: 0,
         }

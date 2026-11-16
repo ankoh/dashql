@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attachmentParameterName, attachmentPrefix, planAttachments, readWorkbookAttachments, sameWorkbookAttachments, renamedAttachmentFileName, uniqueAttachmentFileName } from './workbook_attachments.js';
+import { attachmentParameterName, attachmentPrefix, renamedAttachmentFileName } from './workbook_attachments.js';
 
 describe('workbook attachments', () => {
     it('names the table parameter of a Parquet file after the file', () => {
@@ -8,38 +8,11 @@ describe('workbook attachments', () => {
         expect(attachmentParameterName('Sales.2024.PARQUET')).toBe('Sales.2024');
         expect(attachmentParameterName('notes.csv')).toBeNull();
         expect(attachmentParameterName('.parquet')).toBeNull();
-    });
-
-    it('keeps the columns of an attachment whose file is unchanged', () => {
-        const first = readWorkbookAttachments([{ name: 'a.parquet', sizeBytes: 1, mtimeMs: 1 }, { name: 'b.parquet', sizeBytes: 1, mtimeMs: 1 }]);
-        const described = first.map(a => ({ ...a, columns: ['x'] }));
-        const next = readWorkbookAttachments([{ name: 'a.parquet', sizeBytes: 1, mtimeMs: 1 }, { name: 'b.parquet', sizeBytes: 2, mtimeMs: 3 }], described);
-        expect(next.map(a => a.columns)).toEqual([['x'], null]);
-        expect(sameWorkbookAttachments(described, next)).toBe(false);
-        expect(sameWorkbookAttachments(next, readWorkbookAttachments([{ name: 'a.parquet', sizeBytes: 1, mtimeMs: 1 }, { name: 'b.parquet', sizeBytes: 2, mtimeMs: 3 }], next))).toBe(true);
-    });
-
-    it('leaves out the files that are no Parquet file', () => {
-        expect(readWorkbookAttachments([{ name: 'notes.csv', sizeBytes: 1 }, { name: 'a.PARQUET', sizeBytes: 1 }]).map(a => a.name)).toEqual(['a']);
-    });
-
-    it('passes the Parquet attachments to the core', () => {
-        const attachments = readWorkbookAttachments([{ name: 'notes.txt', sizeBytes: 1 }, { name: 'sales.parquet', sizeBytes: 5, mtimeMs: 7 }]);
-        expect(planAttachments(attachments)).toEqual([{ name: 'sales', file: 'sales.parquet', stamp: '5-7', columns: null }]);
         expect(attachmentPrefix('s1')).toBe('/mnt/external/attachments/s1');
     });
 
-    it('names a new attachment past the scripts and the other attachments', () => {
-        const attachments = readWorkbookAttachments([{ name: 'orders.parquet', sizeBytes: 1 }, { name: 'sales-2.parquet', sizeBytes: 1 }]);
-        expect(uniqueAttachmentFileName('Sales.parquet', ['sales', 'items'], attachments)).toBe('Sales-3.parquet');
-        expect(uniqueAttachmentFileName('ORDERS.parquet', [], attachments)).toBe('ORDERS-2.parquet');
-        // A file with the name of an attachment replaces it
-        expect(uniqueAttachmentFileName('orders.parquet', ['orders'], attachments)).toBe('orders.parquet');
-        expect(uniqueAttachmentFileName('fresh.parquet', ['sales'], attachments)).toBe('fresh.parquet');
-    });
-
     it('names a renamed attachment past the scripts and the other attachments', () => {
-        const attachments = readWorkbookAttachments([{ name: 'sales.parquet', sizeBytes: 1 }, { name: 'orders.parquet', sizeBytes: 1 }]);
+        const attachments = [{ fileName: 'sales.parquet', name: 'sales' }, { fileName: 'orders.parquet', name: 'orders' }];
         expect(renamedAttachmentFileName('sales.parquet', ' revenue ', ['items'], attachments)).toBe('revenue.parquet');
         expect(renamedAttachmentFileName('sales.parquet', 'revenue.parquet', [], attachments)).toBe('revenue.parquet');
         expect(renamedAttachmentFileName('sales.parquet', 'Items', ['items'], attachments)).toBe('Items-2.parquet');

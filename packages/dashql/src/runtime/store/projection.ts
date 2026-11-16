@@ -54,19 +54,6 @@ export class RevisionCache<K, V> {
         return value;
     }
 
-    /// Forget the slices that are not in the list, returns whether one went
-    retain(ids: Iterable<K>): boolean {
-        const keep = new Set(ids);
-        let dropped = false;
-        for (const id of [...this.entries.keys()]) {
-            if (!keep.has(id)) {
-                this.entries.delete(id);
-                dropped = true;
-            }
-        }
-        return dropped;
-    }
-
     /// The projection of a slice, undefined without one
     peek(id: K): V | undefined {
         return this.entries.get(id)?.value;
@@ -80,9 +67,5 @@ export class RevisionCache<K, V> {
     /// The ids of the slices
     keys(): IterableIterator<K> {
         return this.entries.keys();
-    }
-
-    clear(): void {
-        this.entries.clear();
     }
 }

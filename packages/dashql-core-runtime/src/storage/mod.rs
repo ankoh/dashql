@@ -10,6 +10,7 @@ pub mod writer;
 use serde_json::Value;
 
 use crate::host::{Host, HostError};
+use crate::http::HostBytes;
 pub use writer::{
     FailedWrite, HoldReason, StorageWriter, TextSource, WriteError, WriteHold, WriteOutcome, WriteResult, WriteStatistics, WriteTask,
     WriterStatus,
@@ -19,6 +20,8 @@ pub use writer::{
 pub const WORKBOOK_FILE: &str = "dashql-workbook.json";
 /// The folder of the scripts of a workbook
 pub const SCRIPTS_FOLDER: &str = "scripts";
+/// The folder of the attachments of a workbook
+pub const ATTACHMENTS_FOLDER: &str = "attachments";
 /// The folder of the files of the connections
 pub const CONNECTIONS_FOLDER: &str = "connections";
 
@@ -43,6 +46,10 @@ pub trait StorageHost: Host {
     async fn rename_script(&self, workbook_id: &str, from: &str, to: &str) -> Result<(), HostError>;
     /// The names of the attachments of a workbook in natural order, the order of the attachment list
     async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError>;
+    /// Save an attachment of a workbook, the file stays with the host. A storage without attachments refuses.
+    async fn save_data_file(&self, _workbook_id: &str, file_name: &str, _file: &HostBytes) -> Result<(), HostError> {
+        Err(HostError::new(format!("the storage keeps no attachments, {file_name} was not saved")))
+    }
     /// Update the connection entries of the app manifest exclusively
     async fn update_connections(&self, update: ConnectionsUpdate) -> Result<(), HostError>;
     /// Save a file of a connection

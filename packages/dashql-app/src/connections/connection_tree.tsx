@@ -28,8 +28,6 @@ import {
 } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
 import { ConnectionHealth, type ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import { isCatalogOutOfDate, isCatalogRefreshRunning } from '@ankoh/dashql/platform/connections/catalog/catalog_update_state';
-import { canRefreshConnection } from '@ankoh/dashql/platform/connections/connection_refresh';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {
     connectionLabelParts,
@@ -855,7 +853,7 @@ function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
     const runtime = useOptionalRuntime();
     return React.useCallback((connectionId: string, force: boolean) => {
         if (runtime == null) throw new Error('the catalog loader needs a RuntimeProvider');
-        runtime.refreshCatalog(connectionId, force);
+        runtime.module.refreshCatalog(connectionId, force);
     }, [runtime]);
 }
 
@@ -878,8 +876,8 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
     const canShare = !isHyperWasmConnection(database);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useRefreshCatalog();
-    const isRefreshing = isCatalogRefreshRunning(database);
-    const canRefresh = canRefreshConnection(database);
+    const isRefreshing = database.catalogUpdates.refreshRunning;
+    const canRefresh = database.canRefresh;
 
     return (
         <AnchoredOverlay
@@ -1055,8 +1053,8 @@ interface ConnectionRefreshButtonProps {
 
 export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = ({ database, label, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
     const refreshCatalog = dependencies.useRefreshCatalog();
-    const isRefreshing = isCatalogRefreshRunning(database);
-    const canRefresh = canRefreshConnection(database);
+    const isRefreshing = database.catalogUpdates.refreshRunning;
+    const canRefresh = database.canRefresh;
 
     return (
         <IconButton
@@ -1064,15 +1062,15 @@ export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = (
             variant={ButtonVariant.Invisible}
             className={styles.database_refresh_button}
             data-testid="connection-refresh"
-            aria-label={isCatalogOutOfDate(database) ? `The catalog of ${label} may be out of date, refresh it` : `Refresh catalog for ${label}`}
-            title={isCatalogOutOfDate(database) ? 'The catalog may be out of date. Refresh it.' : undefined}
+            aria-label={database.catalogUpdates.outOfDate ? `The catalog of ${label} may be out of date, refresh it` : `Refresh catalog for ${label}`}
+            title={database.catalogUpdates.outOfDate ? 'The catalog may be out of date. Refresh it.' : undefined}
             aria-busy={isRefreshing}
             disabled={!canRefresh}
             onClick={() => refreshCatalog(database.connectionId, true)}
         >
             {isRefreshing
                 ? <StatusIndicator status={IndicatorStatus.Running} width="14px" height="14px" />
-                : isCatalogOutOfDate(database)
+                : database.catalogUpdates.outOfDate
                     ? <AlertIcon size={14} />
                     : <SyncIcon size={14} />}
         </IconButton>

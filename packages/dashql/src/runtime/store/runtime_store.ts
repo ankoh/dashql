@@ -1,9 +1,10 @@
 import type * as core from '../../core/index.js';
 
 import type { HandleTable } from './handles.js';
+import type { QueryExecutionState } from '../../platform/query/query_execution_state.js';
 import type { ScriptData, WorkbookDerived, WorkbookScripts } from '../../platform/workbook/scripts/workbook_scripts.js';
 import { RevisionCache, share } from './projection.js';
-import type { UpdateScheduler } from './store.js';
+import type { UpdateScheduler } from './update_scheduler.js';
 
 /// What the store reads: the runtime of the module
 export interface RuntimeViewSource {
@@ -24,6 +25,7 @@ export interface ViewProjection<K extends core.ViewKind, P> {
 
 /// The kinds that the store keeps as projections
 export interface ProjectedViews {
+    query: QueryExecutionState;
     script: ScriptData;
     workbook: WorkbookScripts;
     workbookDerived: WorkbookDerived;
@@ -31,23 +33,6 @@ export interface ProjectedViews {
 
 /// What the store keeps of a slice of a kind
 export type StoreView<K extends core.ViewKind> = K extends keyof ProjectedViews ? ProjectedViews[K] : core.ViewOf<K>;
-
-/// The structured progress of a query crosses only when its revision or the version of its structure moved
-const QUERY_PROJECTION: ViewProjection<'query', core.QueryView> = {
-    known: (_ids, views) => views.map(view => {
-        const profile = view?.latestProgressUpdate?.profile;
-        return profile == null ? null : { revision: profile.revision, structureVersion: profile.structureVersion };
-    }),
-    project: (_id, prev, next) => {
-        const held = prev?.latestProgressUpdate?.profile;
-        const profile = next.latestProgressUpdate?.profile;
-        if (held != null && profile != null) {
-            if (profile.structure == null && held.structureVersion === profile.structureVersion) profile.structure = held.structure;
-            if (profile.execution == null && held.revision === profile.revision) profile.execution = held.execution;
-        }
-        return share(prev, next);
-    },
-};
 
 /// The projections of the kinds, the others are shared with their previous view
 type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
@@ -62,7 +47,7 @@ type Projections = { [K in core.ViewKind]?: ViewProjection<K, StoreView<K>> };
 export class RuntimeStore {
     private source: RuntimeViewSource | null = null;
     /// The projections of the kinds
-    private projections: Projections = { query: QUERY_PROJECTION };
+    private projections: Projections = {};
     /// The views of the last flush, a revision cache per kind
     private readonly caches = new Map<core.ViewKind, RevisionCache<core.ViewId<core.ViewKind>, unknown>>();
     /// The subscribers by slice
@@ -80,10 +65,10 @@ export class RuntimeStore {
         private readonly scheduler: UpdateScheduler,
     ) { }
 
-    /// Read the views of a runtime, with the projections of kinds besides the queries
+    /// Read the views of a runtime with the projections of the kinds
     attach(source: RuntimeViewSource, projections: Projections = {}): void {
         this.source = source;
-        this.projections = { query: QUERY_PROJECTION, ...projections };
+        this.projections = projections;
     }
 
     /// The runtime changed, flush at the end of the task when urgent, before the next frame otherwise

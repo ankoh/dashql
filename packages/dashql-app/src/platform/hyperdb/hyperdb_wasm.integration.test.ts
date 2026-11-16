@@ -438,7 +438,7 @@ describe('HyperDB embedded database integration', () => {
             const cached = cache.newFileName(KEY_A);
             await cache.writeTable(database!, table, cached);
             const handles = new HandleTable();
-            const mounts = createRunMounts(database!, cache, handles);
+            const mounts = createRunMounts(async () => database!, cache, handles);
             const prefix = mounts.prefix();
             expect(prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
             // The run writes the result of another key and reads the cached one
@@ -480,7 +480,7 @@ describe('HyperDB embedded database integration', () => {
             // A run keeps reading its file through the shared mount while the cache removes another one
             const kept = cache.newFileName(KEY_B);
             await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
-            const mounts = createRunMounts(database!, cache, new HandleTable());
+            const mounts = createRunMounts(async () => database!, cache, new HandleTable());
             try {
                 await mounts.use(1, `${mounts.prefix()}/${kept}`);
                 await cache.delete(KEY_A);

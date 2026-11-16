@@ -14,6 +14,9 @@ import type { LogRecord } from '../../platform/platform/logger/log_buffer.js';
 import type { EmbeddedComputeDatabase } from '../../platform/platform/database/embedded_database.js';
 import { supportsParquet, type ParquetDatabase } from '../../platform/platform/hyperdb/hyperdb_parquet_export.js';
 
+/// The compute database of the platform, it resolves once the platform set it up
+type ComputeDatabase = () => Promise<EmbeddedComputeDatabase>;
+
 const LOG_CTX = 'query_executor';
 
 /// A message of a channel of the host, what the stream produced. The batches stay in the table of the query.
@@ -26,7 +29,7 @@ interface QueryRecord {
     query: core.RuntimeChannelQuery | null;
     /// The channel of the connection
     channel: unknown;
-    /// Aborted by the caller and by a cancel, it stops the stream of a channel of the host
+    /// Aborted by a cancel of the runtime, it stops the stream of a channel of the host
     cancellation: AbortController;
     /// The stream of a channel of the host and its messages
     stream: QueryExecutionResponseStream | null;
@@ -58,16 +61,15 @@ function abortError(): DOMException {
     return new DOMException('Query was cancelled', 'AbortError');
 }
 
-/// What the channels and the cache need of the platform. The runtime replaces them while queries run, e.g. once the
-/// compute database is ready.
+/// What the channels and the cache need of the platform
 export interface QueryChannelsDependencies {
     logger: Logger;
     handles: HandleTable;
     tables: PlatformTables;
-    /// The database of the computations, null until it is ready
-    computeDatabase: () => EmbeddedComputeDatabase | null;
+    /// The database of the computations, null without one
+    computeDatabase: ComputeDatabase | null;
     /// The cache of query results, null without one
-    resultCache: () => QueryResultCache | null;
+    resultCache: QueryResultCache | null;
 }
 
 /// The half of the queries of the runtime that touches the objects of the platform (docs/wip/runtime_api.md). The
@@ -83,7 +85,22 @@ export class QueryChannels {
     private readonly retained = new Map<number, () => Promise<void>>();
     private nextRetained = 0;
 
-    constructor(private readonly deps: QueryChannelsDependencies) { }
+    /// The query result cache of the platform, Parquet files that the compute database reads and writes. Null without
+    /// a cache.
+    readonly resultCache: core.RuntimeResultCache | null;
+
+    constructor(private readonly deps: QueryChannelsDependencies) {
+        this.resultCache = deps.resultCache == null ? null : this.createResultCache(deps.resultCache, deps.computeDatabase);
+    }
+
+    /// Let go of what the platform keeps for the runtime: the queries stop, the files that the runs kept are released
+    dispose(): void {
+        for (const record of this.records.values()) record.cancellation.abort(abortError());
+        this.records.clear();
+        const retained = [...this.retained.values()];
+        this.retained.clear();
+        for (const release of retained) void release().catch(() => { });
+    }
 
     /// The channels of the platform by query
     readonly channels: Pick<core.RuntimeChannels, 'describe' | 'auth' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
@@ -144,14 +161,12 @@ export class QueryChannels {
         },
     };
 
-    /// The query result cache of the platform, Parquet files that the compute database reads and writes
-    resultCache(): core.RuntimeResultCache | null {
-        const cache = this.deps.resultCache();
-        if (cache == null) return null;
-        const database = () => {
-            const database = this.deps.computeDatabase();
+    /// The query result cache over the compute database
+    private createResultCache(cache: QueryResultCache, computeDatabase: ComputeDatabase | null): core.RuntimeResultCache {
+        const database = async (): Promise<ParquetDatabase> => {
+            const database = await computeDatabase?.() ?? null;
             if (!supportsParquet(database)) throw new Error('The compute database reads no Parquet files');
-            return database as ParquetDatabase;
+            return database;
         };
         return {
             lookup: async key => {
@@ -159,7 +174,7 @@ export class QueryChannels {
                 return entry == null ? null : { name: entry.name, cachedAt: entry.cachedAtMs, size: entry.size };
             },
             read: async name => {
-                const table = await cache.readTable(database(), name);
+                const table = await cache.readTable(await database(), name);
                 return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols };
             },
             touch: name => cache.touch(name),
@@ -195,7 +210,7 @@ export class QueryChannels {
                     const name = cache.newFileName(key);
                     const release = await cache.pin(name);
                     try {
-                        await cache.writeTable(database(), table, name);
+                        await cache.writeTable(await database(), table, name);
                     } finally {
                         await release();
                     }
@@ -247,9 +262,8 @@ export class QueryChannels {
         // The runtime describes the query once the call returned, the record of the caller is there by then
         const record = this.records.get(queryId) ?? newRecord();
         this.records.set(queryId, record);
-        // Every abort of the caller stops the query in the runtime, it cancels the query at the backend
+        // An abort of the caller cancels the query in the runtime, the runtime cancels the channel
         const cancelFromCaller = () => {
-            record.cancellation.abort(args.abortSignal?.reason ?? abortError());
             void runtime.cancelQuery(queryId).catch(() => { });
         };
         if (args.abortSignal?.aborted) {
@@ -274,12 +288,6 @@ export class QueryChannels {
             this.records.delete(queryId);
         });
         return [queryId, execution];
-    }
-
-    /// Cancel a query of the runtime, resolves once the query ended
-    async cancel(runtime: core.Runtime, queryId: number): Promise<void> {
-        this.records.get(queryId)?.cancellation.abort(abortError());
-        await runtime.cancelQuery(queryId);
     }
 
     /// The error of a failure. What the host failed with stays, the cancellation of the caller is its reason.

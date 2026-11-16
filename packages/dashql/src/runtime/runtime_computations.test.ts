@@ -7,8 +7,10 @@ import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMat
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import type { HyperDB } from '../platform/platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/testing/test_logger.js';
+import { newDefaultHyperWasmConnection } from '../platform/connections/connection_params.js';
+import { QueryExecutionStatus, QueryType } from '../platform/query/query_execution_state.js';
 import { vectorFromArray } from '../platform/testing/arrow_fixtures.js';
-import { TASK_UPDATE_SCHEDULER } from './store/store.js';
+import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -46,7 +48,7 @@ describe('The computations of the runtime', () => {
 
     async function analyzed(): Promise<Runtime> {
         database = await openTestHyperDB('runtime_computations_test');
-        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, computeDatabase: database });
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
         const table = new arrow.Table({
             score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
@@ -149,10 +151,94 @@ describe('The computations of the runtime', () => {
         await vi.waitFor(async () => expect(await dataFrameTables()).toEqual([]));
     }, 60_000);
 
-    it('dispatches nothing without a core and analyzes nothing without columns', async () => {
-        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER });
-        expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
+    it('lists the queries of the tasks in the history of the connection and in a history without one', async () => {
+        database = await openTestHyperDB('runtime_computations_history_test');
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
+        const table = () => new arrow.Table({
+            score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
+            name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
+        });
+        const sqlframe = (queryIds: readonly number[]) => queryIds
+            .map(queryId => runtime!.store.get('query', queryId))
+            .filter(query => query?.queryMetadata.issuer === 'SQLFrame');
+
+        // The tasks of a result of a connection run their SELECTs in its history
+        const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
+        await runtime.analyzeTable(1, table(), { connectionId: connection.connectionId });
+        runtime.flush();
+        const view = runtime.store.get('connection', connection.connectionId)!;
+        expect(view.queriesActiveOrdered).toEqual([]);
+        const ofConnection = sqlframe(view.queriesFinishedOrdered);
+        expect(ofConnection.length).toBeGreaterThan(0);
+        expect(ofConnection.every(query => query?.status === QueryExecutionStatus.SUCCEEDED)).toBe(true);
+        expect(ofConnection.every(query => query?.queryMetadata.queryType === QueryType.INTERNAL_SQLFRAME && query.queryMetadata.title != null)).toBe(true);
+
+        // A result of the shell names its history
+        expect(runtime.dispatch({ history: 'shell-test' }, { kind: 'createHistory', value: {} }).ok).toBe(true);
+        await runtime.analyzeTable(2, table(), { history: 'shell-test' });
+        runtime.flush();
+        const ofHistory = sqlframe(runtime.store.get('history', 'shell-test')?.queries ?? []);
+        expect(ofHistory.length).toBe(ofConnection.length);
+        expect(ofHistory.every(query => query?.status === QueryExecutionStatus.SUCCEEDED)).toBe(true);
+    }, 60_000);
+
+    it('aborts the running query of a task when its connection is reset', async () => {
+        database = await openTestHyperDB('runtime_computations_reset_test');
+        const real = database;
+        // The first SELECT of a task hangs until its call is aborted
+        let aborted: unknown = null;
+        let hanging: (() => void) | null = null;
+        const hangs = new Promise<void>(resolve => { hanging = resolve; });
+        const computeDatabase = {
+            ...real,
+            connect: async (options?: Parameters<HyperDB['connect']>[0]) => {
+                const conn = await real.connect(options);
+                return Object.assign(Object.create(Object.getPrototypeOf(conn)), conn, {
+                    createTableAs: (name: string, sql: string, signal?: AbortSignal) => {
+                        if (aborted != null || signal == null) return conn.createTableAs(name, sql, signal);
+                        hanging?.();
+                        return new Promise<void>((_resolve, reject) => signal.addEventListener('abort', () => {
+                            aborted = signal.reason;
+                            reject(signal.reason);
+                        }, { once: true }));
+                    },
+                });
+            },
+        } as unknown as HyperDB;
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => computeDatabase });
+        const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
+        const table = new arrow.Table({
+            score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
+            name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
+        });
+        const analysis = runtime.analyzeTable(1, table, { connectionId: connection.connectionId }).then(() => null, error => error);
+        await hangs;
+
+        // The SELECT of the task runs in the history of the connection
+        runtime.flush();
+        const [queryId] = runtime.store.get('connection', connection.connectionId)!.queriesActiveOrdered;
+        expect(runtime.store.get('query', queryId)).toMatchObject({ status: QueryExecutionStatus.RUNNING, queryMetadata: { issuer: 'SQLFrame' } });
+        const warn = vi.spyOn(runtime.logger, 'warn');
+
+        // A reset stops the queries of the connection: the call of the task is aborted, the query leaves the history of
+        // the connection with the other queries of the connection, the analysis fails
+        runtime.dispatch({ connection: connection.connectionId }, { kind: 'resetConnection' });
+        await vi.waitFor(() => expect(aborted).not.toBeNull());
+        expect(String((aborted as Error).message ?? aborted)).toMatch(/cancelled/i);
+        expect(await analysis).not.toBeNull();
+        runtime.flush();
+        const view = runtime.store.get('connection', connection.connectionId)!;
+        expect(view.queriesActiveOrdered).toEqual([]);
+        expect(view.queriesFinishedOrdered).toEqual([]);
+        expect(runtime.store.get('query', queryId)).toBeNull();
+        expect(warn).not.toHaveBeenCalledWith('Failed to close a query of a computation', expect.anything(), expect.anything());
+    }, 60_000);
+
+    it('analyzes nothing without columns and dispatches nothing once destroyed', async () => {
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql });
         await runtime.analyzeTable(1, new arrow.Table());
         expect(runtime.store.get('computation', 1)).toBeNull();
+        await runtime.destroy();
+        expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
     });
 });

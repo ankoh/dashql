@@ -67,6 +67,11 @@ pub fn workbook_attachment_list_key(workbook_id: &str) -> String {
     format!("{}:attachments", workbook_file_key(workbook_id))
 }
 
+/// The key of an attachment of a workbook, `<workbookId>/attachments/<file>`
+pub fn attachment_key(workbook_id: &str, file_name: &str) -> String {
+    format!("{workbook_id}/{}/{file_name}", super::ATTACHMENTS_FOLDER)
+}
+
 /// The key of a workbook that is written as a whole, `<workbookId>/scripts`
 pub fn workbook_scripts_key(workbook_id: &str) -> String {
     format!("{workbook_id}/{}", super::SCRIPTS_FOLDER)
@@ -116,6 +121,7 @@ mod tests {
         assert_eq!(workbook_connection_copy_key(id, "c"), "w/dashql-workbook.json:connection/c");
         assert_eq!(script_deletion_key(id, "a.sql"), "w/scripts/a.sql:delete");
         assert_eq!(script_rename_key(id, "a.sql"), "w/scripts/a.sql:rename");
+        assert_eq!(attachment_key(id, "a.parquet"), "w/attachments/a.parquet");
         assert_eq!(connection_entry_key("c"), "@manifest/connections/c");
         assert_eq!(connection_file_key("c", "f.sql"), "@connections/c/f.sql");
         assert!(is_reloaded_key(&script_key(id, "a.sql"), id) && is_reloaded_key(&workbook_scripts_key(id), id));

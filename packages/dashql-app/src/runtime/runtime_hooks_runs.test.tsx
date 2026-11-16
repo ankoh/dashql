@@ -191,27 +191,25 @@ describe('the runs of workbooks in the app', () => {
         await start();
     });
 
-    it('starts no run before the compute database that reads the cached results is set up', async () => {
+    it('runs a workbook that starts before the compute database once the database is set up', async () => {
         const setup = deferred();
         setupDatabase = vi.fn(async () => {
             await setup.promise;
             return { terminate: vi.fn() } as unknown as EmbeddedComputeDatabase;
         });
-        // A run without a connection would find no cached result, it doesn't start
         fixtures[0].database.online = false;
         const rendering = render();
         await vi.waitFor(() => expect(early).not.toBeNull());
         expect(early!.ready).toBe(false);
+        // The run starts, the runtime waits for the compute database of the platform
         await act(async () => {
             early!.start();
             await new Promise(resolve => setTimeout(resolve, 0));
         });
-        expect(early!.state).toBeNull();
-        expect(early!.runActive).toBe(false);
+        expect(early!.state).not.toBeNull();
         setup.resolve();
         await rendering;
         expect(current.ready).toBe(true);
-        act(() => current.start());
         await vi.waitFor(() => expect(current.state?.phase).toBe('succeeded'));
     });
 

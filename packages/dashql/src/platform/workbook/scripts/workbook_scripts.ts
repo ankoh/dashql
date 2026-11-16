@@ -56,6 +56,8 @@ export interface ScriptData {
     latestQueryId: number | null;
     /// The retained result/computation id, independent of later commands or failures
     latestResultQueryId: number | null;
+    /// The cached result of a run of the script in the query result cache, null without one
+    cachedResult: core.WorkbookScriptCachedResult | null;
     /// The file name of the script
     fileName: string;
     /// The connection the script is analyzed and executed with
@@ -85,7 +87,7 @@ export interface WorkbookDerived {
 export type WorkbookAction = Extract<core.RuntimeAction, { kind: WorkbookActionKind }>;
 type WorkbookActionKind =
     | 'createScript' | 'deleteScript' | 'renameScript' | 'reorderScripts' | 'setScriptText' | 'acceptPendingDiff'
-    | 'rejectPendingDiff' | 'setScriptVisSpec' | 'setWorkbookInput' | 'analyzeOutdatedScript' | 'registerQuery'
+    | 'rejectPendingDiff' | 'setScriptVisSpec' | 'setWorkbookInput' | 'analyzeOutdatedScript' | 'showScript' | 'hideScript' | 'registerQuery'
     | 'registerScriptResult' | 'renameWorkbook' | 'setScriptConnection' | 'setPendingConnection' | 'replaceConnection'
     | 'detachConnection' | 'setWorkbookAttachments' | 'setAttachmentColumns' | 'renameAttachment' | 'setCloudLink'
     | 'replaceFromStorage';

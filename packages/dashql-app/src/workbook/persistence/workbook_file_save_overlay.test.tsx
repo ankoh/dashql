@@ -121,7 +121,7 @@ describe('WorkbookFileSaveOverlay', () => {
     /// The workbook and the number of cached results of an archive, as an import of the runtime reads them
     async function readArchive(bytes: Blob): Promise<{ workbook: WorkbookData; results: number }> {
         const preview = await runtime!.readImport({ archive: bytes });
-        runtime!.module?.dropImport(preview.importId);
+        runtime!.module.dropImport(preview.importId);
         return { workbook: preview.workbook as WorkbookData, results: preview.results.count };
     }
 
@@ -167,7 +167,7 @@ describe('WorkbookFileSaveOverlay', () => {
             runtime!.dispatch({ workbook: TEST_WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 1 as a', base: '1' } });
             runtime!.dispatch({ workbook: TEST_WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 2 as b', base: '2' } });
             analyzeWorkbook(runtime!, TEST_WORKBOOK_ID);
-            const keys = await runtime!.resultKeys(TEST_WORKBOOK_ID);
+            const keys = await runtime!.module.resultKeys(TEST_WORKBOOK_ID);
             expect(keys).toHaveLength(2);
             key = keys[0];
         });

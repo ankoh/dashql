@@ -6,6 +6,8 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { ScriptEditor, type ScriptEditorDependencies } from './script_editor.js';
+import { RuntimeContextProvider } from '../../runtime/runtime_hooks.js';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -55,6 +57,24 @@ describe('ScriptEditor', () => {
 
         expect(state.codeMirrorProps.initialDoc).toBe('SELECT\n    1;');
         expect(state.codeMirrorProps.style).toEqual({ height: 'auto' });
+    });
+
+    it('tells the runtime which script it shows, the runtime analyzes it when it is outdated', () => {
+        const dispatch = vi.fn(() => ({ ok: true, changed: false, error: null, id: null }));
+        const runtime = { dispatch } as unknown as Runtime;
+        act(() => root.render(
+            <RuntimeContextProvider value={runtime}>
+                <ScriptEditor workbookId="workbook" scriptKey={7} dependencies={dependencies} />
+            </RuntimeContextProvider>,
+        ));
+        const shown = dispatch.mock.calls.filter(call => (call as unknown[])[1] != null && ((call as unknown[])[1] as { kind: string }).kind === 'showScript');
+        expect(shown).toHaveLength(1);
+        const [target, action] = shown[0] as unknown as [unknown, { value: { scriptKey: number; selected: boolean } }];
+        expect(target).toEqual({ workbook: 'workbook' });
+        expect(action.value.scriptKey).toBe(7);
+        dispatch.mockClear();
+        act(() => root.render(<div />));
+        expect(dispatch).toHaveBeenCalledWith({ workbook: 'workbook' }, { kind: 'hideScript', value: action.value });
     });
 
     describe('line wrapping', () => {

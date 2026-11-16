@@ -1,8 +1,9 @@
+import type * as core from '../../core/index.js';
 import type { Logger } from '../../platform/platform/logger/logger.js';
 import type { RuntimePlatform } from '../runtime.js';
 import type { StorageBackend } from '../../platform/storage/storage_backend.js';
 import type { OAuthFlow } from '../../platform/oauth/oauth_flow.js';
-import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
+import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import { WebHttpClient } from '../../platform/platform/http/web_http_client.js';
 import { createDashQLCoreSetup } from '../../platform/node/node_core.js';
 
@@ -22,16 +23,18 @@ export interface NodePlatformOptions {
     storage: StorageBackend;
     /// How connectors authorize, none by default
     oauthFlow?: OAuthFlow;
+    /// The core, by default the one of the file next to the package
+    core?: core.DashQL;
 }
 
 /// The platform of Node for createRuntime: fetch, the core from its file, updates at the end of a task
-export function createNodePlatform(options: NodePlatformOptions): RuntimePlatform {
+export async function createNodePlatform(options: NodePlatformOptions): Promise<RuntimePlatform> {
     return {
         logger: options.logger,
         storage: options.storage,
         http: new WebHttpClient(options.logger),
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: options.oauthFlow ?? NO_OAUTH_FLOW,
-        setupCore: createDashQLCoreSetup(),
+        core: options.core ?? await createDashQLCoreSetup()('runtime'),
     };
 }

@@ -103,7 +103,7 @@ describe('WorkbookURLShareOverlay', () => {
         const archive = new Blob([BASE64URL_CODEC.decode(url.searchParams.get('zip')!)]);
         // The runtime reads the archive like the import of the link
         const preview = await runtime!.readImport({ archive });
-        runtime!.module?.dropImport(preview.importId);
+        runtime!.module.dropImport(preview.importId);
         return preview.workbook as WorkbookData;
     }
 

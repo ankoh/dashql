@@ -40,13 +40,13 @@ export interface QueryProfileProgress {
 }
 
 /// The keys of a projected progress, the payloads of a view with these keys don't cross again
-export function profileKeys(progress: QueryProfileProgress | null | undefined): dashql.QueryProfileKeys | null {
+function profileKeys(progress: QueryProfileProgress | null | undefined): dashql.QueryProfileKeys | null {
     return progress == null ? null : { revision: progress.revision, structureVersion: progress.structureVersion };
 }
 
 /// Project the structured progress of a view. The previous projection is the one whose keys the view was read with:
 /// it stays while the revision doesn't move, and the payloads that the view leaves out are its ones.
-export function projectProfileProgress(
+function projectProfileProgress(
     view: dashql.QueryProfileProgressView,
     previous: QueryProfileProgress | null,
     source: QueryProgressSource | null,
@@ -55,14 +55,40 @@ export function projectProfileProgress(
     if (previous != null && previous.revision === view.revision && previous.structureVersion === view.structureVersion) {
         return previous;
     }
-    const structure = view.structure != null
-        ? readProfile(view.structure)
-        : previous?.structureVersion === view.structureVersion ? previous.structure : null;
+    // A structure of the same version is the one that the previous projection read
+    const structure = previous?.structureVersion === view.structureVersion
+        ? previous.structure
+        : view.structure != null ? readProfile(view.structure) : null;
     if (structure == null) return null;
     const execution = view.execution != null
         ? ProfileExecutionState.EMPTY.withEvents(dashql.readFlatBuffer(view.execution, bb => dashql.buffers.profile.QueryProfileEvents.getRootAsQueryProfileEvents(bb)))
         : (previous?.execution ?? ProfileExecutionState.EMPTY);
     return { revision: view.revision, structureVersion: view.structureVersion, structure, execution, source };
+}
+
+/// The progress of a query with its structured progress, built from the view of its latest progress. The previous
+/// progress of the query keeps its structure while the version of the structure doesn't move, and is returned as is
+/// while the view is the same object. The store of the runtime projects it once per change of the query view.
+export function projectQueryProgress(
+    core: dashql.DashQL,
+    view: dashql.QueryLatestProgressView | null | undefined,
+    previous: { view: dashql.QueryLatestProgressView; progress: QueryExecutionProgress } | null,
+    source: QueryProgressSource | null,
+): QueryExecutionProgress | null {
+    if (view == null) return null;
+    if (previous != null && previous.view === view) return previous.progress;
+    const profileProgress = view.profile == null ? null
+        : projectProfileProgress(view.profile, previous?.progress.profileProgress ?? null, source, bytes => core.readQueryProfile(bytes));
+    return {
+        isQueued: view.isQueued,
+        progressPercent: view.progressPercent,
+        resultRows: view.resultRows,
+        rowsProcessed: view.rowsProcessed,
+        executionTimeMs: view.executionTimeMs,
+        metrics: view.metrics,
+        phase: view.phase,
+        profileProgress,
+    };
 }
 
 /// The recording of the progress of a query as JSON: the payloads of the engine and when they arrived, replaying them
@@ -74,45 +100,6 @@ export function readProgressRecording(progress: QueryProfileProgress): string | 
     } catch {
         return null;
     }
-}
-
-/// The structures of the progress of queries by their bytes, a structure that didn't change keeps its bytes
-const STRUCTURES = new WeakMap<Uint8Array, dashql.FlatBufferPtr<dashql.buffers.profile.QueryProfile>>();
-/// The progress of queries by the view of their latest progress, a view that didn't change keeps its object
-const PROGRESSES = new WeakMap<dashql.QueryLatestProgressView, QueryExecutionProgress>();
-
-/// The progress of a query of a runtime with its structured progress, the same object while the view of the progress
-/// doesn't change. The source names the query, its recording and its followers read it there.
-export function queryProgress(core: dashql.DashQL, view: dashql.QueryLatestProgressView | null | undefined, source: QueryProgressSource | null): QueryExecutionProgress | null {
-    if (view == null) return null;
-    const cached = PROGRESSES.get(view);
-    if (cached != null) return cached;
-    const profile = view.profile;
-    let profileProgress: QueryProfileProgress | null = null;
-    if (profile?.structure != null) {
-        const bytes = profile.structure;
-        let structure = STRUCTURES.get(bytes);
-        if (structure == null) {
-            structure = core.readQueryProfile(bytes);
-            STRUCTURES.set(bytes, structure);
-        }
-        const execution = profile.execution != null
-            ? ProfileExecutionState.EMPTY.withEvents(dashql.readFlatBuffer(profile.execution, bb => dashql.buffers.profile.QueryProfileEvents.getRootAsQueryProfileEvents(bb)))
-            : ProfileExecutionState.EMPTY;
-        profileProgress = { revision: profile.revision, structureVersion: profile.structureVersion, structure, execution, source };
-    }
-    const progress: QueryExecutionProgress = {
-        isQueued: view.isQueued,
-        progressPercent: view.progressPercent,
-        resultRows: view.resultRows,
-        rowsProcessed: view.rowsProcessed,
-        executionTimeMs: view.executionTimeMs,
-        metrics: view.metrics,
-        phase: view.phase,
-        profileProgress,
-    };
-    PROGRESSES.set(view, progress);
-    return progress;
 }
 
 /// Replay a recording of the progress of a query (JSON) up to a point in time in milliseconds since its first payload,

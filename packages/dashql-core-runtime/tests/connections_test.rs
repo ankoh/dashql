@@ -329,6 +329,21 @@ fn a_refresh_is_running_only_while_the_current_full_refresh_runs() {
 }
 
 #[test]
+fn a_catalog_can_be_refreshed_only_online_without_a_running_full_refresh() {
+    let mut connection = hyper();
+    assert!(!connection.can_refresh_catalog(), "not online yet");
+    let params = hyper_params("a").params;
+    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
+    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: 1, params }));
+    assert_eq!(connection.health(), ConnectionHealth::Online);
+    assert!(connection.can_refresh_catalog());
+    apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
+    assert!(!connection.can_refresh_catalog());
+    apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 7 });
+    assert!(connection.can_refresh_catalog());
+}
+
+#[test]
 fn a_finished_refresh_keeps_a_superseding_refresh() {
     let terminals = [
         ConnectionAction::CatalogUpdateCancelled { task_id: 7, error: error("cancelled") },
@@ -1135,4 +1150,82 @@ fn edits_of_the_raw_rows_during_a_setup_stay_and_the_promoted_params_drop_them()
     apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
     assert_eq!(connection.params_draft(), Some(&newer));
     assert!(!connection.params().params.contains_key("draftRows"));
+}
+
+// The setups that the opening of a workbook starts, ported from `app/loading/initial_memory_setup.test.tsx`
+
+mod open_setup {
+    use super::*;
+    use dashql_core_runtime::connections::open_setup::{OpenSetup, OpenSetups};
+
+    fn embedded(connection_id: &str) -> ConnectionState {
+        let params = ConnectionParams::default_for(ConnectorType::Hyper);
+        ConnectionState::from_params(connection_id, params, NOW)
+    }
+
+    fn with_protocol(connection_id: &str, protocol: &str, endpoint: &str) -> ConnectionState {
+        let mut params = ConnectionParams::default_for(ConnectorType::Hyper);
+        params.params.insert("protocol".into(), json!(protocol));
+        params.params.insert("endpoint".into(), json!(endpoint));
+        ConnectionState::from_params(connection_id, params, NOW)
+    }
+
+    fn online(mut connection: ConnectionState) -> ConnectionState {
+        let params = connection.params().params.clone();
+        apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
+        apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: 1, params }));
+        // A remote Hyper is online once its health check succeeded
+        if connection.health() != ConnectionHealth::Online {
+            apply(&mut connection, ConnectionAction::HealthCheckStarted);
+            apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
+        }
+        assert_eq!(connection.health(), ConnectionHealth::Online);
+        connection
+    }
+
+    #[test]
+    fn sets_up_the_embedded_hyper_once() {
+        let mut setups = OpenSetups::new();
+        let memory = embedded("memory");
+        assert_eq!(setups.consider(&memory, None), OpenSetup::Setup);
+        // Reopened, disconnected or online: never again
+        assert_eq!(setups.consider(&memory, None), OpenSetup::Skip);
+        assert_eq!(setups.consider(&online(embedded("memory")), None), OpenSetup::Skip);
+        // Another connection of another workbook is considered on its own
+        assert_eq!(setups.consider(&embedded("second-memory"), None), OpenSetup::Setup);
+    }
+
+    #[test]
+    fn consumes_a_draft_another_protocol_and_an_open_connection_without_a_setup() {
+        let draft = {
+            let mut connection = embedded("draft");
+            apply(&mut connection, ConnectionAction::SetDraft(with_draft_rows(hyper_params("a"))));
+            connection
+        };
+        let http = with_protocol("http", "V3_HTTP", "https://hyper");
+        let open = online(embedded("open"));
+        let trino = ConnectionState::from_params("trino", ConnectionParams::default_for(ConnectorType::Trino), NOW);
+        for connection in [draft, http, open, trino] {
+            let mut setups = OpenSetups::new();
+            assert_eq!(setups.consider(&connection, None), OpenSetup::Skip, "{}", connection.connection_id());
+            // Consumed: the committed embedded params of a later reset don't opt it back in
+            let reset = embedded(connection.connection_id());
+            assert_eq!(setups.consider(&reset, None), OpenSetup::Skip, "{}", connection.connection_id());
+        }
+    }
+
+    #[test]
+    fn sets_up_the_hyper_of_a_link_once_per_link_and_resets_an_earlier_one() {
+        let mut setups = OpenSetups::new();
+        let linked = with_protocol("link", "V3_HTTP_LINK", "http://127.0.0.1:7484");
+        // Without the token of the link it waits, nothing is consumed
+        assert_eq!(setups.consider(&linked, None), OpenSetup::Skip);
+        assert_eq!(setups.consider(&linked, Some("t1")), OpenSetup::Setup);
+        assert_eq!(setups.consider(&linked, Some("t1")), OpenSetup::Skip);
+        // A new link of the same connection speaks to another Hyper, the connection is reset first
+        let open = online(with_protocol("link", "V3_HTTP_LINK", "http://127.0.0.1:7484"));
+        assert_eq!(setups.consider(&open, Some("t2")), OpenSetup::ResetAndSetup);
+        let moved = with_protocol("link", "V3_HTTP_LINK", "http://127.0.0.1:7485");
+        assert_eq!(setups.consider(&moved, Some("t2")), OpenSetup::Setup);
+    }
 }

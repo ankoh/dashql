@@ -27,7 +27,7 @@ function database(connectionId: string, params: any, options: { active?: boolean
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorType,
         details: { setupParams: Object.values(params)[0], channel: null, connector: { kind: connectorType === ConnectorType.HYPER ? 'hyper' : 'trino' } },
-        catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+        catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
         queriesActiveOrdered: Array.from({ length: options.queries ?? 0 }, (_, i) => i),
         workbooks: options.workbooks ?? [],
     } as unknown as ConnectionState;

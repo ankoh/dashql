@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
 import type { ConnectionState } from '@ankoh/dashql/platform/connections/connection_state';
-import type { DataFile } from '@ankoh/dashql/platform/storage/storage_backend';
+import type * as dashql from '@ankoh/dashql';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -10,12 +10,12 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/butt
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '../../ui/foundations/symbol_icon.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { formatBytes } from '../../utils/format.js';
-import { attachmentParameterName } from '@ankoh/dashql/platform/workbook/attachments/workbook_attachments';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 export interface WorkbookDataCardProps {
     workbookId: string;
-    file: DataFile;
+    /// The attachment as the view of the workbook lists it
+    attachment: Pick<dashql.WorkbookAttachmentView, 'fileName' | 'name' | 'sizeBytes'>;
     conn: ConnectionState | null;
     storageReader: StorageReader;
     onRemoved: () => void;
@@ -38,15 +38,16 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
     const enabled = props.conn?.readsAttachments ?? false;
     const disabled = !enabled || busy;
     // An attachment is the table parameter of its name, scripts read `sales.parquet` as `:sales`
-    const parameter = attachmentParameterName(props.file.name) ?? props.file.name;
+    const parameter = props.attachment.name;
+    const fileName = props.attachment.fileName;
 
     const download = async () => {
         if (disabled) return;
         setBusy(true);
         setError(null);
         try {
-            const bytes = await props.storageReader.backend.loadDataFile(props.workbookId, props.file.name);
-            await downloader.downloadBufferAsFile(bytes, props.file.name);
+            const bytes = await props.storageReader.backend.loadDataFile(props.workbookId, fileName);
+            await downloader.downloadBufferAsFile(bytes, fileName);
         } catch (e) {
             setError('Downloading data file failed');
             logger.error('Downloading data file failed', { error: stringifyError(e) }, 'workbook_data_card');
@@ -59,7 +60,7 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
         setBusy(true);
         setError(null);
         try {
-            await props.storageReader.backend.deleteDataFile(props.workbookId, props.file.name);
+            await props.storageReader.backend.deleteDataFile(props.workbookId, fileName);
             props.onRemoved();
         } catch (e) {
             setError('Removing data file failed');
@@ -70,15 +71,15 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
     };
 
     return (
-        <article className={styles.feed_data_card} aria-label={`${props.file.name} attachment`} data-electron-drag-region="false">
+        <article className={styles.feed_data_card} aria-label={`${fileName} attachment`} data-electron-drag-region="false">
             <div className={styles.feed_data_card_topline}>
                 <div className={styles.feed_data_file_icon} aria-hidden="true" data-testid="data-file-type">
                     <FileIcon size={24} />
                     <span>PARQUET</span>
                 </div>
                 <div className={styles.feed_data_title}>
-                    <span className={styles.feed_data_name}>{props.file.name}</span>
-                    <span className={styles.feed_data_size}>{formatBytes(props.file.sizeBytes)}</span>
+                    <span className={styles.feed_data_name}>{fileName}</span>
+                    <span className={styles.feed_data_size}>{formatBytes(props.attachment.sizeBytes)}</span>
                 </div>
                 <div className={styles.feed_data_actions}>
                     {/* The table parameter of the attachment, mentioned and renamed like a script */}
@@ -95,16 +96,16 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
                         <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium} disabled={disabled}
                             // The input takes the focus, a click while it is open keeps the edit
                             onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => setRenaming(true)} aria-label={`Rename ${props.file.name}`} data-testid="data-file-rename">
+                            onClick={() => setRenaming(true)} aria-label={`Rename ${fileName}`} data-testid="data-file-rename">
                             <PencilIcon size={16} />
                         </IconButton>
                     )}
                     <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
-                        disabled={disabled} onClick={download} aria-label={`Download ${props.file.name}`} data-testid="data-file-download">
+                        disabled={disabled} onClick={download} aria-label={`Download ${fileName}`} data-testid="data-file-download">
                         <DownloadIcon size={16} />
                     </IconButton>
                     {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Medium}
-                        disabled={disabled} onClick={remove} aria-label={`Remove ${props.file.name}`} data-testid="data-file-remove">
+                        disabled={disabled} onClick={remove} aria-label={`Remove ${fileName}`} data-testid="data-file-remove">
                         <TrashIcon size={16} />
                     </IconButton>}
                 </div>

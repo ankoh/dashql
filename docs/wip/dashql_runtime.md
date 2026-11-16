@@ -55,7 +55,7 @@ What the app looked like before step 1, with the paths of then.
 
 ### The state already lives outside React
 
-`utils/store.ts` (now `store/store.ts` of the runtime) has `Store<T>` (`current`, `subscribe`, `update`) and `UpdateQueue<T>`. The registries free Wasm
+`utils/store.ts` (back in `utils/store.ts` of the app, for its UI state) has `Store<T>` (`current`, `subscribe`, `update`) and `UpdateQueue<T>`. The registries free Wasm
 objects and schedule storage writes while they reduce, so an update must run exactly once, which React's state hooks
 don't promise. Components read the stores through `useSyncExternalStore`. React appears only in:
 
@@ -177,8 +177,9 @@ The runtime and the platform are two folders (decision 6 of [runtime_api.md](run
   the workbook and script views (`workbook/scripts/workbook_projection.ts`), `storage/runtime_storage.ts`, and the
   adapters that turn platform objects into the platform of the core: `query/query_channels.ts`,
   `compute/compute_platform.ts`, `workbook/scripts/run_mounts.ts`, `store/runtime_tables.ts` with
-  `query/query_result_stream.ts`, `storage/workbook_archives.ts` (`archives`), `query/tracked_query_execution.ts`
-  (queries that the host runs and the runtime tracks) and `node/node_platform.ts` (`createNodePlatform`). Its tests are
+  `query/query_result_stream.ts`, `storage/workbook_archives.ts` (`archives`), `platform_requests.ts` (the fetches and
+  the OAuth flows), `query/tracked_query_execution.ts` (the statements of the shell, which the host runs and the
+  runtime tracks) and `node/node_platform.ts` (`createNodePlatform`). Its tests are
   the ones that create a runtime, its test helpers `testing/test_runtime.ts`, `testing/connection_fixtures.ts` and
   `testing/mocks/connector_state.ts`.
 - **The platform** (`src/platform`) gets the rest that more than the app uses: `platform/`, `storage/` (the backends,
@@ -262,7 +263,7 @@ packages/dashql                     @ankoh/dashql, a source package, npm/package
   src/core/                         the bindings: `@ankoh/dashql` is index.ts, /buffers, /browser-worker, /batch-worker
   src/runtime/                      `@ankoh/dashql/runtime/<path>` is src/runtime/<path>.ts
     runtime.ts                      createRuntime(platform) → Runtime, the facade over the runtime of the module
-    store/                          Store, UpdateScheduler, the store of the views with its projections, the handle
+    store/                          UpdateScheduler, the store of the views with its projections, the handle
                                     table, the Arrow tables by handle
     workbook/scripts/               the projections of the workbook and script views, the files of the runs
     query/                          the channels of the queries of the host and the query result cache
@@ -302,26 +303,29 @@ class Runtime {
     readonly store: RuntimeStore;           // the views of the last flush, subscriptions per slice
     readonly handles: HandleTable;          // the host objects the module names by number: tables, channels, ...
     readonly storage: StorageWriter;        // the commands of the storage writer of the module
-    get core(): core.DashQL | null;
-    get module(): core.Runtime | null;      // the Runtime class of the module, null until the core is set
-    ready(): Promise<core.Runtime>;         // the module, the core is set up with the first call
+    readonly core: core.DashQL;
+    readonly module: core.Runtime;          // the Runtime class of the module, there from the start
     dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome;
-    // Typed commands where the caller needs more than the module returns: the core set up on the first call, the flush
-    // of the store after the command, handles for the objects that cross
+    // Typed commands where the caller needs more than the module returns: the flush of the store after the command,
+    // handles for the objects that cross
     execute, cancel, watchProfile, analyzeTable, createConnection, createWorkbook, deleteWorkbook, setupConnection,
-    authenticateSalesforce, saveConnection, retrySave, refreshCatalog, migrateStorage, migrateWorkbookFolder, restore,
-    restoreWorkbook, runWorkbook,
-    runScript, resultKeys, exportArchive, exportLink, exportTables, readImport, commitImport, reportEditorUpdate, ...
-    destroy(): Promise<void>;               // stops the runs and the loader, writes what is pending, frees the module
+    authenticateSalesforce, saveConnection, retrySave, restore, restoreWorkbook, runWorkbook, runScript, resultKeys,
+    exportArchive, exportLink, exportTables, readImport, commitImport, applyEditorEvent, ...
+    destroy(): Promise<void>;               // stops the runs and the loader, writes what is pending, frees the module,
+                                            // aborts the requests and the OAuth flows of the platform
 }
 ```
 
 `RuntimePlatform` names what a platform hands over: the logger, the scheduler of the store, the core, the storage
-backend, the storage root to migrate, the HTTP client, the OAuth flow, the connector of channels, the compute database,
-the query result cache, the API of Salesforce and the archives. Every member but the logger and the scheduler is optional, the shell of Hyper runs
-a runtime with the core and the compute database only. The runtime builds the one platform object of the module from
-it (`core.RuntimePlatform`, see [runtime_api.md](runtime_api.md)). Everything else the app calls on the module itself
-(`runtime.module?.stopRun(id)`, `cancelSetup`, `dropImport`, `exportConnection`, ...) and reads through the store.
+backend, the HTTP client, the OAuth flow, the connector of channels, the compute database, the query result cache, the
+archives and whether the catalog loader runs. The platform creates the runtime once its core is there and owns the
+members for the lifetime of the runtime: nothing is set later. The compute database is a provider
+(`() => Promise<EmbeddedComputeDatabase>`), the runtime asks for it when a task, a run or the query result cache first
+needs it and waits until the platform set it up. Every member but the logger, the scheduler and the core is optional,
+the shell of Hyper runs a runtime with the core, the HTTP client and the compute database only. The runtime builds the
+one platform object of the module from it (`core.RuntimePlatform`, see [runtime_api.md](runtime_api.md)). Everything
+else the app calls on the module itself (`runtime.module.stopRun(id)`, `cancelSetup`, `dropImport`,
+`exportConnection`, `refreshCatalog`, `migrateWorkbookFolder`, ...) and reads through the store.
 
 ### Platform seams
 
@@ -344,10 +348,11 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
 - **The platform of the app.** The provider sits below the providers of the storage, the http client, the core, the
   embedded database, the query result cache and the mock of Salesforce, and passes them to `createRuntime`; the storage
   writer is the one of the runtime (`runtime.storage`): the app flushes it when the page hides and stops it when another
-  tab takes over. The compute database starts after the settings loaded, so the runtime takes it later
-  (`setComputeDatabase`). The config may choose the mock of Salesforce after the settings loaded: the HTTP client and
-  the OAuth flow of the runtime read it when they are called. `createRuntime` is synchronous, the core is
-  instantiated when the runtime needs it.
+  tab takes over. The provider creates the runtime once the core is there and shows the loading page until then. The
+  compute database starts after the settings loaded, the runtime waits for it through its provider. The provider
+  passes the connector of the channels of the setups (`createChannelConnector` of `hyper_connection_setup.tsx`) and
+  provides the extracts of the Hyper logs that the channels feed. The config may choose the mock of Salesforce after
+  the settings loaded: the HTTP client, the OAuth flow and the connector of the runtime read it when they are called.
 - **One object.** The app holds one `Runtime`, the same class as the command line tool and the tests. A component gets
   it with `useRuntime()` (`useOptionalRuntime()` where a test may render it without a provider) and calls its commands
   or the module (`runtime.module`).
@@ -362,8 +367,9 @@ CLI wire the services in one place, and the tests of `runtime.ts` cover the wiri
   (`script_selection.ts`), the drafts of the forms of connections (`connection_draft.ts`), the state of the saves of
   connections (`connection_persistence.tsx`), creating and deleting workbooks with the selection
   (`workbook_lifecycle.ts`).
-- **The shell of Hyper** has no runtime of the app; `StandaloneRuntime` gives it a runtime of its own with the core and
-  the compute database of the providers above.
+- **The shell of Hyper** has no runtime of the app; `StandaloneRuntime` gives it a runtime of its own with the core,
+  the HTTP client and the embedded database of the providers above, created once the core is there and destroyed with
+  the component.
 - **Tests.** `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`) is the provider in the tests of
   components: the catalog loader stopped like in `createTestRuntime`, and the functions of the query executor that a
   test replaces (`execute`, `cancel`, `watchProfile` of the runtime).

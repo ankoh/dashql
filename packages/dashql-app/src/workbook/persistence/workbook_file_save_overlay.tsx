@@ -88,8 +88,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         setResultCounts(null);
         if (!props.isOpen || workbookScripts == null || cache == null || runtime == null) return;
         let cancelled = false;
-        runtime.ready()
-            .then(module => module.exportedResults(workbookScripts.workbookId))
+        runtime.module.exportedResults(workbookScripts.workbookId)
             .then(counts => { if (!cancelled) setResultCounts(counts); })
             .catch(() => {});
         return () => { cancelled = true; };

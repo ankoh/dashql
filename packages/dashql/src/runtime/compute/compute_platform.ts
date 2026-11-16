@@ -4,25 +4,6 @@ import type * as core from '../../core/index.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../../platform/platform/database/embedded_database.js';
 import { appendRowNumbers, isArrowTable } from '../store/runtime_tables.js';
 
-/// Executes the query of a task, e.g. to track it as a query of the connection of the table.
-/// The query runs with the client context that execute receives, e.g. to attribute it in the Hyper log.
-export type ComputeQueryExecution = <T>(
-    queryText: string,
-    execute: (clientContext: EmbeddedClientContext | null) => Promise<T>,
-) => Promise<T>;
-
-/// Execute the query of a task without tracking it
-export const executeDirectly: ComputeQueryExecution = (_queryText, execute) => execute(null);
-
-/// The task of a query of the computations: the computation and the title of the task in the query history
-export interface ComputeTaskContext {
-    tableId: number;
-    title: string;
-}
-
-/// Create the execution of the queries of a task, e.g. to track them in the query history of the connection of the table
-export type CreateComputeQueryExecution = (task: ComputeTaskContext) => ComputeQueryExecution;
-
 /// The client context of the opaque JSON of the runtime
 export function clientContextOf(json: string | null | undefined): EmbeddedClientContext | null {
     if (json == null) return null;
@@ -43,12 +24,12 @@ export function clientContextJson(clientContext: EmbeddedClientContext | null | 
     }
 }
 
-/// The compute database of the computations of the runtime (`ComputePlatform` of the module) over the embedded Hyper.
-/// The SELECTs that create the tables of the tasks run through the query execution of the app, e.g. tracked in the
-/// query history of the connection of a computation. A cancelled run aborts its calls. Result data never enters the
+/// The compute database of the computations of the runtime (`ComputePlatform` of the module) over the embedded Hyper,
+/// the calls wait until the platform set it up. The runtime tracks the SELECTs that create the tables of the tasks in a
+/// query history and names their client context. A cancelled run aborts its calls. Result data never enters the
 /// module: a result is imported from its Arrow table with the row numbers appended here, the tables that the tasks
 /// read stay Arrow tables (`queryTable`), only the small ones that the runtime parses cross as Arrow IPC.
-export function createComputePlatform(database: EmbeddedComputeDatabase, queryExecution: () => CreateComputeQueryExecution | null): core.ComputePlatform {
+export function createComputePlatform(database: () => Promise<EmbeddedComputeDatabase>): core.ComputePlatform {
     /// The abort controllers of the calls of the runs
     const runs = new Map<number, Set<AbortController>>();
     const inRun = async <T>(run: number, call: (signal: AbortSignal) => Promise<T>): Promise<T> => {
@@ -67,7 +48,7 @@ export function createComputePlatform(database: EmbeddedComputeDatabase, queryEx
         }
     };
     const withConnection = async <T>(clientContext: EmbeddedClientContext | null, fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> => {
-        const conn = await database.connect({ pooled: true, clientContext: clientContext ?? undefined });
+        const conn = await (await database()).connect({ pooled: true, clientContext: clientContext ?? undefined });
         try {
             return await fn(conn);
         } finally {
@@ -81,9 +62,7 @@ export function createComputePlatform(database: EmbeddedComputeDatabase, queryEx
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
         },
         createTable: async (_dataFrame, tableName, sql, context) => {
-            const execution = queryExecution()?.({ tableId: context.tableId, title: context.title }) ?? executeDirectly;
-            await inRun(context.run, signal => execution(sql, clientContext =>
-                withConnection(clientContext ?? clientContextOf(context.clientContext), conn => conn.createTableAs(tableName, sql, signal))));
+            await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.createTableAs(tableName, sql, signal)));
         },
         query: async (sql, context) => {
             const table = await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));

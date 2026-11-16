@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as core from '@ankoh/dashql';
 
 import { createRuntime, type Runtime } from '@ankoh/dashql/runtime/runtime';
 import { createRuntimeArchives } from '@ankoh/dashql/runtime/storage/workbook_archives';
@@ -6,10 +7,13 @@ import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_clien
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
-import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { RuntimeContextProvider } from './runtime_hooks.js';
 import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@ankoh/dashql/platform/connections/salesforce/salesforce_api_client_mock';
+import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
+import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
+import { useHyperGrpcClient, useHyperHttpClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';
+import { useEmbeddedDatabaseSetup } from '../platform/database/embedded_database_provider.js';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useHttpClient } from '../platform/http/http_client_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -18,67 +22,81 @@ import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from '../platform/crosstab/app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
-import { useDashQLCoreSetup } from './core_provider.js';
+import { useDashQLCore } from './core_provider.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 
 const NO_HTTP: HttpClient = {
     fetch: () => Promise.reject(new Error('the app has no http client')),
 };
-const NO_CORE = () => Promise.reject(new Error('the app has no core'));
 
 interface Props {
     /// The runtime to provide, e.g. one of a test. By default the provider creates one over the providers above it.
     runtime?: Runtime;
+    /// The core of the runtime, by default the one of the DashQLCoreProvider above
+    core?: core.DashQL;
+    /// Run the catalog loader, true by default. The tests of components stop it.
+    catalogLoader?: boolean;
+    /// What shows until the core is there
+    loading?: React.ReactNode;
     children?: React.ReactNode;
 }
 
 /// The runtime of DashQL (packages/dashql/src/runtime/runtime.ts). By default over the platform of the app: the
-/// storage, the http client, the core and the embedded database of the providers above it. The hooks of
-/// `runtime_hooks.tsx` read from it.
+/// storage, the http client, the core and the embedded database of the providers above it. The provider creates it once
+/// the core is there and shows `loading` until then. The hooks of `runtime_hooks.tsx` read from it.
 export function RuntimeProvider(props: Props) {
-    if (props.runtime != null) return <ProvideRuntime runtime={props.runtime}>{props.children}</ProvideRuntime>;
-    return <AppRuntime>{props.children}</AppRuntime>;
+    const provided = useDashQLCore();
+    if (props.runtime != null) return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;
+    const core = props.core ?? provided;
+    if (core == null) return <>{props.loading ?? null}</>;
+    return <AppRuntime core={core} catalogLoader={props.catalogLoader}>{props.children}</AppRuntime>;
 }
 
 /// The runtime over the providers of the app, it lives as long as the component
-function AppRuntime(props: { children?: React.ReactNode }) {
+function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; children?: React.ReactNode }) {
     const logger = useLogger();
     const storage = useStorageReader();
     const http = useHttpClient();
-    const setupCore = useDashQLCoreSetup();
     const resultCache = useQueryResultCache();
-    const computeDatabase = useComputeDatabase();
-    // The config may choose the mock of Salesforce after the settings loaded, the requests and the flows read it
-    const salesforceMock = useSalesforceMock();
-    const salesforceMockRef = React.useRef(salesforceMock);
-    salesforceMockRef.current = salesforceMock;
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
-    // The imports and exports of `.dashql` archives set the embedded database up when they first need it, through
-    // the setup of the latest render
-    const archiveDatabase = useWorkbookArchiveDatabase();
-    const archiveDatabaseRef = React.useRef(archiveDatabase);
-    archiveDatabaseRef.current = archiveDatabase;
+    const logMetrics = useCreateHyperLogMetrics();
+    // The platform owns what it passes to the runtime for the lifetime of the runtime. The parts that the providers
+    // above set up later or change with the settings are read when the runtime asks: the mock of Salesforce that the
+    // config may choose, the clients of the channels, the embedded database and the database of the archives.
+    const latest = {
+        salesforceMock: useSalesforceMock(),
+        grpcClient: useHyperGrpcClient(),
+        httpClient: useHyperHttpClient(),
+        setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
+        archiveDatabase: useWorkbookArchiveDatabase(),
+    };
+    const ref = React.useRef(latest);
+    ref.current = latest;
 
-    const [runtime] = React.useState(() => createRuntime({
-        logger,
-        storage: storage.backend,
-        http: mockSalesforceHttp(() => salesforceMockRef.current, http ?? NO_HTTP),
-        scheduler: FRAME_UPDATE_SCHEDULER,
-        oauthFlow: mockSalesforceOAuthFlow(() => salesforceMockRef.current, new AppOAuthFlow(appEvents, platformType)),
-        setupCore: setupCore ?? NO_CORE,
-        computeDatabase,
-        resultCache,
-        archives: handles => createRuntimeArchives(handles, context => archiveDatabaseRef.current(context)),
-    }));
-
-    // The embedded database starts after the settings loaded. It is set during the render: a run that a handler of a
-    // child starts in the same render reads it.
-    const attached = React.useRef({ computeDatabase });
-    if (computeDatabase != null && attached.current.computeDatabase !== computeDatabase) {
-        attached.current.computeDatabase = computeDatabase;
-        runtime.setComputeDatabase(computeDatabase);
-    }
+    const [runtime] = React.useState(() => {
+        const clients = (): ChannelClients => ({
+            grpcClient: ref.current.grpcClient,
+            httpClient: ref.current.httpClient,
+            setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
+            logMetrics,
+            salesforceMock: ref.current.salesforceMock != null,
+        });
+        return createRuntime({
+            logger,
+            core: props.core,
+            storage: storage.backend,
+            http: mockSalesforceHttp(() => ref.current.salesforceMock, http ?? NO_HTTP),
+            scheduler: FRAME_UPDATE_SCHEDULER,
+            oauthFlow: mockSalesforceOAuthFlow(() => ref.current.salesforceMock, new AppOAuthFlow(appEvents, platformType)),
+            channels: createChannelConnector(clients),
+            // The embedded database starts once the settings loaded, the runtime waits for it
+            computeDatabase: ref.current.setupEmbeddedDatabase == null ? null : () => ref.current.setupEmbeddedDatabase('compute'),
+            resultCache,
+            archives: handles => createRuntimeArchives(handles, context => ref.current.archiveDatabase(context)),
+            catalogLoader: props.catalogLoader,
+        });
+    });
 
     // Write the pending changes when the page goes away, the writer debounces them. Browsers don't wait for the writes
     // when the page unloads, a hidden page usually still finishes them. Electron asks for the writes before it closes a
@@ -108,7 +126,7 @@ function AppRuntime(props: { children?: React.ReactNode }) {
 
     // Another tab takes over the app, the pending writes finish first and nothing is written after
     useAppHandOver(async () => {
-        await runtime.storage.handOver();
+        runtime.storage.handOver();
         await runtime.storage.flush();
     });
 
@@ -118,9 +136,11 @@ function AppRuntime(props: { children?: React.ReactNode }) {
         });
     }, [runtime, logger]);
 
-    return <ProvideRuntime runtime={runtime}>{props.children}</ProvideRuntime>;
-}
-
-function ProvideRuntime(props: { runtime: Runtime; children?: React.ReactNode }) {
-    return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;
+    return (
+        <RuntimeContextProvider value={runtime}>
+            <HyperLogMetricsProvider metrics={logMetrics}>
+                <>{props.children}</>
+            </HyperLogMetricsProvider>
+        </RuntimeContextProvider>
+    );
 }

@@ -7,7 +7,7 @@ import { newDefaultHyperWasmConnection } from '../../platform/connections/connec
 describe('the platform of Node', () => {
     it('runs a runtime with the core from its file', async () => {
         const storage = new WorkbookTestBackend();
-        const runtime = createRuntime(createNodePlatform({ logger: new TestLogger(), storage }));
+        const runtime = createRuntime(await createNodePlatform({ logger: new TestLogger(), storage }));
         try {
             await runtime.restore();
             const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));

@@ -21,6 +21,7 @@ use dashql_core_runtime::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
 use dashql_core_runtime::storage::keys::{workbook_connection_copy_key, workbook_file_key, workbook_scripts_key};
 use dashql_core_runtime::storage::{TextSource, WriteTask};
+use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts, BACKGROUND_ANALYSIS_DELAY_MS};
 use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
     next_revision, CloudLink, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
@@ -39,6 +40,21 @@ const DEBOUNCE_MS: f64 = 100.0;
 
 /// The target of the log messages of the workbooks
 const LOG_TARGET: &str = "workbook_scripts";
+
+impl ScriptAnalyses for Workbooks {
+    fn outdated(&self, key: u32) -> bool {
+        let Some((_, workbook)) = self.of_script(key) else { return false };
+        let Ok(workbook) = workbook.try_borrow() else { return false };
+        workbook.script(key).is_some_and(|script| script.analysis_outdated())
+    }
+
+    fn analyze(&self, key: u32) {
+        let Some((workbook_id, _)) = self.of_script(key) else { return };
+        if let Err(error) = self.apply(&workbook_id, WorkbookAction::AnalyzeOutdatedScript { key }) {
+            self.log(LogLevel::Warn, "Failed to analyze an outdated script", &[("workbookId", &workbook_id), ("error", error.what())]);
+        }
+    }
+}
 
 /// The key of an editor update: its versions, its status and whether it holds an analysis
 pub(crate) fn editor_update_key(update: &dashql_buffers::editor::EditorUpdateT) -> String {
@@ -90,18 +106,26 @@ pub(crate) struct Workbooks {
     pub invalid: RefCell<Vec<RestoredInvalidWorkbook>>,
     /// Changes with the list of the invalid workbooks
     pub invalid_revision: Cell<u64>,
+    /// Hears that a workbook changed, the runs look up the cached results of its scripts again
+    pub changed_listener: RefCell<Option<Rc<dyn Fn()>>>,
+    /// The scripts that the editors show, their outdated analyses run on their own
+    pub visible: VisibleScripts<JsPlatform>,
 }
 
 impl Workbooks {
     pub fn new(platform: JsPlatform, connections: Rc<Connections>, writer: RuntimeWriter) -> Rc<Self> {
         let workbooks = Rc::new(Workbooks {
+            visible: VisibleScripts::new(platform.clone(), BACKGROUND_ANALYSIS_DELAY_MS),
             platform,
             connections: connections.clone(),
             writer,
             entries: RefCell::new(Vec::new()),
             invalid: RefCell::new(Vec::new()),
             invalid_revision: Cell::new(0),
+            changed_listener: RefCell::new(None),
         });
+        let scripts: std::rc::Weak<dyn ScriptAnalyses> = Rc::downgrade(&(workbooks.clone() as Rc<dyn ScriptAnalyses>));
+        workbooks.visible.set_scripts(scripts);
         // A new catalog of a connection outdates the analyses of the scripts on it
         let weak = Rc::downgrade(&workbooks);
         *connections.catalog_listener.borrow_mut() = Some(Rc::new(move |connection_id: &str| {
@@ -192,8 +216,8 @@ impl Workbooks {
     /// connections learn the workbooks that use them. A failed action leaves the workbook as it was.
     pub fn apply(&self, workbook_id: &str, action: WorkbookAction) -> Result<bool> {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
-        // An editor event changes neither the connections nor the scripts of the workbook
-        let editor_only = matches!(action, WorkbookAction::ApplyEditorEvent { .. });
+        // An editor event and a cached result change neither the connections nor the scripts of the workbook
+        let editor_only = matches!(action, WorkbookAction::ApplyEditorEvent { .. } | WorkbookAction::SetCachedResult { .. });
         let outcome = {
             let mut workbook = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
             workbook.apply(action)?
@@ -237,6 +261,12 @@ impl Workbooks {
         }
         if changed {
             self.platform.signal(true);
+            let listener = self.changed_listener.borrow().clone();
+            if let Some(listener) = listener {
+                listener();
+            }
+            // The outdated scripts that the editors show analyze again
+            self.visible.changed();
         }
         changed
     }

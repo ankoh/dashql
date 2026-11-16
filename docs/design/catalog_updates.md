@@ -73,8 +73,9 @@ The query of a connector selects the relations with `relationFilter`:
 | Hyper Cloud, Database.com | `_hyper_catalog` |
 | Salesforce | None, it only refreshes in full |
 
-The standalone shell runs on an embedded database without a connection state. It asks about the same relations with the
-same query, before the prompt returns (`embedded_database_catalog.ts`).
+The standalone shell runs its statements on the session of a connection of its runtime to the embedded Hyper and tells
+the catalog loader about the relations they touched, the prompt returns once the loader answered
+(`runtime/connections/catalog/embedded_session.ts`).
 
 ## Relations that are gone
 

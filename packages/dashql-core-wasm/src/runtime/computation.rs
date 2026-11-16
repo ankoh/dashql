@@ -665,6 +665,10 @@ pub struct AnalyzeTableOptions {
     #[serde(default)]
     #[tsify(optional)]
     pub client_context: Option<String>,
+    /// The history without a connection that lists the queries of the computation, e.g. the one of the shell
+    #[serde(default)]
+    #[tsify(optional)]
+    pub history: Option<String>,
     /// Compute the summaries of the columns, true without
     #[serde(default)]
     #[tsify(optional)]

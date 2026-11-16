@@ -17,6 +17,7 @@ mod details;
 pub mod health_check;
 mod hyper;
 pub mod import;
+pub mod open_setup;
 pub mod label;
 mod params;
 pub mod refresh;
@@ -434,6 +435,10 @@ impl ConnectionState {
     }
     pub fn catalog_updates(&self) -> &CatalogUpdates {
         &self.catalog_updates
+    }
+    /// Can the user refresh the catalog? An online connection without a running full refresh.
+    pub fn can_refresh_catalog(&self) -> bool {
+        self.health == ConnectionHealth::Online && !self.catalog_updates.is_refresh_running()
     }
     pub fn relation_entry_id(&self) -> CatalogEntryId {
         self.relation_entry_id

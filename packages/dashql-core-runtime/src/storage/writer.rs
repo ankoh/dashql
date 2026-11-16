@@ -29,7 +29,7 @@ use std::task::{Context, Poll};
 use serde_json::Value;
 
 use super::keys::{
-    belongs_to_workbook, chain_key, connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key,
+    attachment_key, belongs_to_workbook, chain_key, connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key,
     script_key, script_rename_key, workbook_attachment_list_key, workbook_connection_copy_key, workbook_file_key,
     workbook_script_list_key, workbook_scripts_key,
 };
@@ -37,6 +37,7 @@ use super::workbook_file::{attachments_patch, manifest_file, properties_patch, r
 use super::StorageHost;
 use crate::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
 use crate::host::{HostError, LogLevel};
+use crate::http::HostBytes;
 use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::{patch_workbook_connection, with_workbook_scripts};
 use crate::workbook_format::storage_migration::iso_timestamp;
@@ -89,6 +90,8 @@ pub enum WriteTask {
     WriteWorkbookScripts { workbook_id: String, scripts: Vec<WorkbookScript>, connections: Vec<WorkbookConnection> },
     /// Patch the attachment list of the workbook file from the attachments on disk
     RefreshWorkbookAttachments { workbook_id: String },
+    /// Save an attachment of a workbook, a file that stays with the host
+    SaveDataFile { workbook_id: String, file_name: String, file: HostBytes },
 }
 
 impl WriteTask {
@@ -111,6 +114,7 @@ impl WriteTask {
             WriteTask::RenameScript { workbook_id, from, .. } => script_rename_key(workbook_id, from),
             WriteTask::WriteWorkbookScripts { workbook_id, .. } => workbook_script_list_key(workbook_id),
             WriteTask::RefreshWorkbookAttachments { workbook_id } => workbook_attachment_list_key(workbook_id),
+            WriteTask::SaveDataFile { workbook_id, file_name, .. } => attachment_key(workbook_id, file_name),
         }
     }
 }
@@ -862,6 +866,10 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         }
         WriteTask::WriteWorkbookScripts { workbook_id, scripts, connections } => {
             patch_workbook_file(shared, key, workbook_id, |existing| with_workbook_scripts(existing, scripts.clone(), connections)).await?;
+        }
+        WriteTask::SaveDataFile { workbook_id, file_name, file } => {
+            log(shared, LogLevel::Info, "Writing attachment", &[("key", key), ("workbookId", workbook_id)]);
+            timed_write(shared, key, file.len(), host.save_data_file(workbook_id, file_name, file)).await?;
         }
         WriteTask::RefreshWorkbookAttachments { workbook_id } => {
             let names = host.list_attachments(workbook_id).await?;

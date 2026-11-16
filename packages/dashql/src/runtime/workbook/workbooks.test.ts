@@ -2,12 +2,12 @@
 // workbooks that are refused a load, the promotion of the ephemeral workbook, the writes of the changes of the scripts
 // and the workbooks that use a connection. The workbook itself is tested in Rust
 // (packages/dashql-core-runtime/tests/workbook_test.rs), the views in `runtime_workbooks.test.ts` of packages/dashql/src/core.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import { storageVersions } from '../../platform/storage/storage_versions.js';
 import type { WorkbookData } from '../../platform/storage/storage_backend.js';
-import { createTestRuntime, testCore, type TestRuntime } from '../testing/test_runtime.js';
+import { createTestRuntime, restoreTestWorkbook, testCore, type TestRuntime } from '../testing/test_runtime.js';
 import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../../platform/testing/workbook_test_backend.js';
 
 /// A Hyper server, its catalog outlives the app
@@ -84,6 +84,50 @@ describe('the workbooks of the runtime', () => {
         expect(storage.workbooks.get(workbookId)).toMatchObject({ scripts: [] });
     });
 
+    it('attaches files through the storage writer and lists them in the view of the workbook', async () => {
+        const storage = new WorkbookTestBackend();
+        const rt = runtime = await createTestRuntime({ storage });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { workbookId } = rt.addWorkbook(TEST_CONNECTION_ID, [['sales.sql', 'select 1;']], { name: 'Attachments' });
+        await rt.storage.flush();
+
+        // The table parameter of an attachment takes no name of a script or another attachment, files that are no
+        // Parquet files are refused
+        const parquet = (content: string) => new Blob([content]);
+        const outcome = await rt.attachFiles(workbookId, [
+            { name: 'Sales.parquet', file: parquet('a') },
+            { name: 'orders.parquet', file: new TextEncoder().encode('bb') },
+            { name: 'ORDERS.parquet', file: parquet('ccc') },
+            { name: 'notes.txt', file: parquet('d') },
+        ]);
+        expect(outcome).toEqual({
+            attached: [
+                { name: 'Sales.parquet', fileName: 'Sales-2.parquet' },
+                { name: 'orders.parquet', fileName: 'orders.parquet' },
+                { name: 'ORDERS.parquet', fileName: 'ORDERS-2.parquet' },
+            ],
+            refused: ['notes.txt'],
+        });
+        expect(new Map((await storage.listDataFiles(workbookId)).map(file => [file.name, file.sizeBytes]))).toEqual(new Map([
+            ['orders.parquet', 2], ['ORDERS-2.parquet', 3], ['Sales-2.parquet', 1],
+        ]));
+        // The view of the workbook is the one list of the attachments, in natural order with their table parameters
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => [attachment.fileName, attachment.name, attachment.sizeBytes])).toEqual([
+            ['ORDERS-2.parquet', 'ORDERS-2', 3], ['orders.parquet', 'orders', 2], ['Sales-2.parquet', 'Sales-2', 1],
+        ]);
+        // The workbook file lists them once the writer wrote it
+        await rt.storage.flush();
+        expect(storage.workbooks.get(workbookId)?.attachments.map(attachment => attachment.name)).toEqual(['ORDERS-2.parquet', 'orders.parquet', 'Sales-2.parquet']);
+
+        // A file with the name of an attachment replaces it, a removed one leaves the view with a refresh
+        await rt.attachFiles(workbookId, [{ name: 'orders.parquet', file: parquet('eeee') }]);
+        await storage.deleteDataFile(workbookId, 'Sales-2.parquet');
+        await rt.refreshAttachments(workbookId);
+        expect(rt.store.get('workbook', workbookId)!.attachments?.map(attachment => [attachment.fileName, attachment.sizeBytes])).toEqual([
+            ['ORDERS-2.parquet', 3], ['orders.parquet', 4],
+        ]);
+    });
+
     it('promotes the ephemeral workbook with its first script to a name that no other workbook has', async () => {
         const rt = runtime = await createTestRuntime();
         await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
@@ -117,5 +161,32 @@ describe('the workbooks of the runtime', () => {
         expect(rt.store.get('workbook', workbook.workbookId)).toBeNull();
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([]);
         expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(true);
+    });
+
+    it('analyzes the outdated scripts that the editors show', async () => {
+        const rt = runtime = await createTestRuntime();
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        // A restored workbook is not analyzed yet
+        const workbook = await restoreTestWorkbook(rt, rt.platform.storage!, [
+            ['a.sql', 'select 1;', TEST_CONNECTION_ID], ['b.sql', 'select 2;', TEST_CONNECTION_ID], ['c.sql', 'select 3;', TEST_CONNECTION_ID],
+        ]);
+        const [a, b, c] = workbook.scriptKeys;
+        const outdated = (key: number) => rt.store.get('script', key)?.analysisOutdated;
+        expect([a, b, c].map(outdated)).toEqual([true, true, true]);
+        const show = (scriptKey: number, selected: boolean) => rt.dispatch({ workbook: workbook.workbookId }, { kind: 'showScript', value: { scriptKey, selected } });
+
+        // The selected script right away, a shown one once the changes paused, one that no editor shows not at all
+        expect(show(a, true).ok).toBe(true);
+        show(b, false);
+        rt.flush();
+        expect([a, b, c].map(outdated)).toEqual([false, true, true]);
+        await vi.waitFor(() => {
+            rt.flush();
+            expect(outdated(b)).toBe(false);
+        });
+        await new Promise(resolve => setTimeout(resolve, 200));
+        rt.flush();
+        expect(outdated(c)).toBe(true);
+        expect(rt.dispatch({ workbook: workbook.workbookId }, { kind: 'hideScript', value: { scriptKey: b, selected: false } }).ok).toBe(true);
     });
 });

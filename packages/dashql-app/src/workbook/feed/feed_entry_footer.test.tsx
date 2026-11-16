@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus } from '@ankoh/dashql/platform/query/query_execution_state';
 
@@ -15,6 +15,7 @@ import type { QueryExecutionState } from '@ankoh/dashql/platform/query/query_exe
 import { tableFromArrays } from '@ankoh/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider, StandaloneRuntime } from '../../runtime/runtime_hooks.js';
 import { testRuntime } from '@ankoh/dashql/runtime/testing/mocks/connector_state';
+import { projectQueryProgress } from '@ankoh/dashql/platform/query/query_progress';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -64,6 +65,9 @@ const FooterWithTabs: React.FC<{ queryState: QueryExecutionState; visualizeQuery
 };
 
 describe('FeedEntryFooter', () => {
+    // The runtime of the footer is created with the core
+    beforeAll(async () => { await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
     let container: HTMLDivElement;
     let root: Root;
 
@@ -227,12 +231,14 @@ describe('FeedEntryFooter', () => {
         const recording = { version: 1, payloads: [{ elapsedMs: 0, payload: { kind: 'trino_query_info', info, receivedAt: 1 } }] };
         // The progress of the query as its view holds it, the runtime reads it with its core
         const profileView = core.replayQueryProgress(JSON.stringify(recording), Number.MAX_SAFE_INTEGER);
+        const latestProgressUpdate = { phase: 'RUNNING', profile: profileView } as unknown as dashql.QueryLatestProgressView;
         const queryState = {
             queryId: 44,
             traceId: 11,
             status: QueryExecutionStatus.RUNNING,
             metrics: { queryRequestedAt: Date.now() },
-            latestProgressUpdate: { phase: 'RUNNING', profile: profileView },
+            latestProgressUpdate,
+            progress: projectQueryProgress(core, latestProgressUpdate, null, null),
         } as unknown as QueryExecutionState;
         act(() => root.render(
             <RuntimeContextProvider value={testRuntime(core)}>

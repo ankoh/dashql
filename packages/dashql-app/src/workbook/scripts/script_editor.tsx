@@ -18,9 +18,6 @@ import { applyScriptTextChanges } from '@ankoh/dashql/platform/workbook/scripts/
 import { DashQLScriptReferencesEffect, shownScriptReferences } from '../editor/dashql_script_references.js';
 
 const LOG_CTX = "workbook_editor";
-/// Typing in one script marks all other scripts outdated.
-/// Re-analyze the scripts in the background once the user pauses instead of on every keystroke.
-const BACKGROUND_ANALYSIS_DELAY_MS = 150;
 const WRITABLE_WORKBOOK_VIEWS = new WeakMap<object, EditorView>();
 
 function leaseWritableSession(scriptSession: object, view: EditorView): () => void {
@@ -89,24 +86,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Only the editor of the selected script shows a semantic focus
     const selected = useSelectedScriptRef(scripts)?.scriptId === props.scriptKey;
 
-    // Update outdated scripts that are displayed in the editor.
-    // The selected script is analyzed right away, all others are deferred.
-    // Deferring is safe since the script stays marked as outdated until the analysis ran,
-    // and anything that needs the analysis analyzes it on demand, e.g. a run of the script (`Runtime.runScript`).
+    // The runtime analyzes the outdated scripts that the editors show: the selected one right away, the others once
+    // the changes pause (`visible_scripts` of the runtime crate)
     React.useEffect(() => {
-        if (scripts == null || !scriptData?.analysisOutdated) {
-            return;
-        }
-        const scriptKey = scriptData.scriptKey;
-        if (selected) {
-            modifyScripts({ kind: 'analyzeOutdatedScript', value: { scriptKey } });
-            return;
-        }
-        const timeout = setTimeout(() => {
-            modifyScripts({ kind: 'analyzeOutdatedScript', value: { scriptKey } });
-        }, BACKGROUND_ANALYSIS_DELAY_MS);
-        return () => clearTimeout(timeout);
-    }, [scriptData]);
+        if (runtime == null) return;
+        const scriptKey = props.scriptKey;
+        modifyScripts({ kind: 'showScript', value: { scriptKey, selected } });
+        return () => { modifyScripts({ kind: 'hideScript', value: { scriptKey, selected } }); };
+    }, [runtime, modifyScripts, props.scriptKey, selected]);
 
     // Track the current CodeMirror view
     const [view, setViewState] = React.useState<EditorView | null>(null);

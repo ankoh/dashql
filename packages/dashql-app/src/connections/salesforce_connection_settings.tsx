@@ -420,7 +420,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const dcSummary = oauthState?.dataCloudAccessToken ?? null;
     const summaries = JSON.stringify([coreSummary, dcSummary]);
     const secrets = React.useMemo(
-        () => props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.module?.revealConnectionSecrets(props.connectionId) ?? null : null,
+        () => props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.module.revealConnectionSecrets(props.connectionId) ?? null : null,
         // The summaries change with the tokens
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [runtime, props.connectionId, summaries],

@@ -335,6 +335,15 @@ pub struct WorkbookScriptKeys {
     pub statistics: Option<u64>,
 }
 
+/// The cached result of a script: the reusable key of its result and when the newest file of the key was written
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbookScriptCachedResult {
+    pub key: String,
+    /// Milliseconds since the epoch
+    pub cached_at: f64,
+}
+
 /// A script with its payloads
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -353,6 +362,8 @@ pub struct WorkbookScriptView {
     pub analysis_outdated: bool,
     pub latest_query_id: Option<u32>,
     pub latest_result_query_id: Option<u32>,
+    /// The cached result of a run of the script in the query result cache, null without one
+    pub cached_result: Option<WorkbookScriptCachedResult>,
     pub external_changes: Option<WorkbookExternalChanges>,
     /// What the views read of the analysis
     pub annotations: WorkbookScriptAnnotations,
@@ -405,6 +416,7 @@ impl WorkbookScriptView {
             analysis_outdated: script.analysis_outdated(),
             latest_query_id: script.latest_query_id(),
             latest_result_query_id: script.latest_result_query_id(),
+            cached_result: script.cached_result().map(|cached| WorkbookScriptCachedResult { key: cached.key.clone(), cached_at: cached.cached_at }),
             external_changes: script.external_changes().map(WorkbookExternalChanges::from),
             annotations: WorkbookScriptAnnotations::of(update),
             editor_update_key,

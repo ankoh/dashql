@@ -9,7 +9,7 @@ import { createRuntime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectionHealth } from '@ankoh/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
 import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@ankoh/dashql/platform/connections/connector_descriptor';
-import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/store';
+import { TASK_UPDATE_SCHEDULER } from '@ankoh/dashql/runtime/store/update_scheduler';
 import type { HttpClient } from '@ankoh/dashql/platform/platform/http/http_client';
 import { PlatformType } from '../../platform/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
@@ -28,7 +28,7 @@ function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFl
     const runtime = createRuntime({
         logger: new TestLogger(),
         scheduler: TASK_UPDATE_SCHEDULER,
-        setupCore: dql,
+        core: dql,
         http,
         oauthFlow,
         channels: {
@@ -37,7 +37,7 @@ function runtimeOf(http: HttpClient, client: HyperDatabaseClient | null, oauthFl
             }, connectionId, request),
         },
     });
-    runtime.runCatalogLoader(false);
+    runtime.module.runCatalogLoader(false);
     return runtime;
 }
 
@@ -124,7 +124,7 @@ describe('the setup of Salesforce', () => {
     it('cancels a setup', async () => {
         const runtime = create(ConnectorType.DBCOM);
         const setup = runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
-        runtime.module?.cancelSetup('salesforce');
+        runtime.module.cancelSetup('salesforce');
         expect(await setup).toMatchObject({ status: 'cancelled' });
         expect(runtime.connection('salesforce')!.connectionHealth).not.toBe(ConnectionHealth.ONLINE);
         runtime.destroy();
@@ -154,7 +154,7 @@ describe('the mock of Salesforce of the config', () => {
         const runtime = createRuntime({
             logger: new TestLogger(),
             scheduler: TASK_UPDATE_SCHEDULER,
-            setupCore: dql,
+            core: dql,
             http: mockSalesforceHttp(() => MOCK, offline),
             oauthFlow: mockSalesforceOAuthFlow(() => MOCK, flow),
             channels: {
@@ -163,7 +163,7 @@ describe('the mock of Salesforce of the config', () => {
                 }, connectionId, request),
             },
         });
-        runtime.runCatalogLoader(false);
+        runtime.module.runCatalogLoader(false);
         const params = { instanceUrl: 'https://mock.my.salesforce.com', appConsumerKey: 'key', appConsumerSecret: '', login: '' } as connection.SalesforceConnectionParams;
         const connector = CONNECTOR_DESCRIPTORS[ConnectorType.SALESFORCE_DATA_CLOUD];
         runtime.createConnection({ connectorType: ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: params, params: connectionParamsOf(connector, params) }, 'salesforce');
@@ -185,12 +185,12 @@ describe('the mock of Salesforce of the config', () => {
             dataCloudAccessToken: { instanceUrl: 'https://mock.c360a.salesforce.com/', tenantId: 'mock-tenant', tokenType: 'Bearer' },
         });
         expect(JSON.stringify(state)).not.toContain('mock-core-token');
-        const secrets = runtime.module!.revealConnectionSecrets('salesforce')!;
+        const secrets = runtime.module.revealConnectionSecrets('salesforce')!;
         expect(JSON.parse(secrets.coreAccessToken!).accessToken).toBe('mock-core-token');
         expect(JSON.parse(secrets.dataCloudAccessToken!).jwt.payload.audienceTenantId).toBe('mock-tenant');
 
         // The catalog loader fetches the metadata of the mock
-        runtime.runCatalogLoader(true);
+        runtime.module.runCatalogLoader(true);
         await vi.waitFor(() => expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished).toHaveLength(1));
         expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished[0].error).toBeNull();
         runtime.destroy();

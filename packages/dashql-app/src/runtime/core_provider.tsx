@@ -21,6 +21,7 @@ export interface InstantiationProgress {
 
 const INSTANTIATOR_CONTEXT = React.createContext<((context: string) => Promise<dashql.DashQL>) | null>(null);
 const PROGRESS_CONTEXT = React.createContext<InstantiationProgress | null>(null);
+const CORE_CONTEXT = React.createContext<dashql.DashQL | null>(null);
 
 interface Props {
     children: React.ReactElement;
@@ -31,6 +32,8 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
     const lifecycle = React.useRef<{ disposed: boolean; core: dashql.DashQL | null }>({ disposed: false, core: null });
     const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
+    // The core once it is instantiated
+    const [core, setCore] = React.useState<dashql.DashQL | null>(null);
 
     const instantiator = React.useCallback(async (context: string): Promise<dashql.DashQL> => {
         const owner = lifecycle.current;
@@ -116,10 +119,11 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
         };
         // Start the instantiation
         instantiation.current = instantiate();
+        instantiation.current.then(instance => { if (!owner.disposed) setCore(instance); }, () => { });
         // Await the instantiation
         return await instantiation.current;
 
-    }, [logger, setProgress]);
+    }, [logger, setProgress, setCore]);
 
     React.useEffect(() => {
         if (lifecycle.current.disposed) lifecycle.current = { disposed: false, core: null };
@@ -133,10 +137,10 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     return (
         <INSTANTIATOR_CONTEXT.Provider value={instantiator}>
             <PROGRESS_CONTEXT.Provider value={progress}>
-                <>
+                <CORE_CONTEXT.Provider value={core}>
                     {props.children}
                     <CorePanicOverlay />
-                </>
+                </CORE_CONTEXT.Provider>
             </PROGRESS_CONTEXT.Provider>
         </INSTANTIATOR_CONTEXT.Provider>
     );
@@ -148,3 +152,15 @@ export type DashQLSetupFn = (context: string) => Promise<dashql.DashQL>;
 export function useDashQLCoreSetup(): DashQLSetupFn {
     return React.useContext(INSTANTIATOR_CONTEXT)!;
 };
+
+/// The core once it is instantiated, null before; the first call starts the instantiation. Without a provider, the core
+/// that this copy of the package instantiated already, e.g. in a test.
+export function useDashQLCore(): dashql.DashQL | null {
+    const setup = React.useContext(INSTANTIATOR_CONTEXT);
+    const core = React.useContext(CORE_CONTEXT);
+    const [instantiated] = React.useState(() => setup == null ? dashql.DashQL.instantiated() : null);
+    React.useEffect(() => {
+        if (setup != null && core == null) void setup('runtime').catch(() => { });
+    }, [setup, core]);
+    return setup == null ? instantiated : core;
+}

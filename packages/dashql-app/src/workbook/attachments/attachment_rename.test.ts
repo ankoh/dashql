@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { WorkbookScripts } from '@ankoh/dashql/platform/workbook/scripts/workbook_scripts';
-import { readWorkbookAttachments } from '@ankoh/dashql/platform/workbook/attachments/workbook_attachments';
 import { renameAttachment } from './attachment_rename.js';
 
 function workbook(): WorkbookScripts {
     return {
         workbookId: 'workbook', scriptOrder: ['revenue.sql'], scriptKeys: [1], scriptRefs: {},
-        attachments: readWorkbookAttachments([{ name: 'sales.parquet', sizeBytes: 1, mtimeMs: 1 }]),
+        attachments: [{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 1, mtimeMs: 1, columns: null }],
     } as unknown as WorkbookScripts;
 }
 

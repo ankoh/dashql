@@ -31,7 +31,8 @@ function connection(connectionId: string, connector: ConnectorType.HYPER | Conne
         details: connector === ConnectorType.HYPER
             ? { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } }
             : { setupParams: {}, channel: null, connector: { kind: 'trino' } },
-        catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+        catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
+        canRefresh: true,
     } as unknown as ConnectionState;
 }
 

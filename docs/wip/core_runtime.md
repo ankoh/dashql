@@ -170,6 +170,11 @@ cloud), and the workbooks that the restore refused.
   name that no other workbook has, the registry of the connections learns which workbooks use a connection after every
   action that can change it, and an announced catalog of a connection outdates the analyses of the scripts on it
   (`catalog_listener` of the connections).
+- **The scripts that the editors show.** An editor tells the runtime that it shows a script (`showScript` and
+  `hideScript` with the script key and whether it is selected). After every change of a workbook the runtime analyzes
+  an outdated selected script right away and the other shown ones once the changes paused for 150 ms
+  (`visible_scripts` of the crate, a timer of the host); scripts that no editor shows stay outdated until something
+  needs their analysis, e.g. a run.
 - **Per keystroke.** `applyEditorEvent(workbookId, scriptKey, sessionGeneration, event)` takes the packed event of an
   editor, applies it to the session of the script and returns the packed update once. The event names the text version
   that the document of the editor shows: an editor that missed a change of the text (an input, a rewrite of a
@@ -225,9 +230,14 @@ the views (`store/runtime_store.ts`) and attaches the runtime of the module once
   handle with its rows numbered in an appended column (`importTable`, `appendRowNumbers` of `store/runtime_tables.ts`,
   `insertArrowTable` with the abort signal of the run), creates tables with `createTableAs`, reads the small tables
   that the runtime parses back as Arrow IPC (`query`) and the others as Arrow tables that the runtime keeps by handle
-  (`queryTable`), drops them and aborts the calls of a cancelled run. The SELECT of a task runs through the query execution of the app (`setQueryExecution`), e.g. into
-  the query history of the connection of the computation. The platform reads the compute database when it is called,
-  it arrives after the settings.
+  (`queryTable`), drops them and aborts the calls of a cancelled run. The calls wait for the compute database of the
+  platform, it arrives after the settings.
+- **The queries of the tasks in a history.** The compute host of the runtime (`runtime/compute_tracking.rs` of the
+  core module) lists the SELECT of a task in the query history of the connection of the computation, or in the history
+  without a connection that the analysis names (`history`, the shell), as an SQLFrame query with the title of the task.
+  It opens the query before the call and closes it with the outcome; the query of a connection carries the client
+  context that attributes it in the Hyper log. A reset of the connection stops the query like any query of the
+  connection: the call of the run is aborted and the query ends cancelled, so does a call that is dropped with its run.
 - **Arrow tables stay with the host.** Arrow data never lives in the core module: every table of the computations,
   the result of an analysis and the derived tables (filter, ordering, search, statistics, summaries, system columns),
   is an object of the handle table, and the state names it by its handle with what it read of it, the rows, the schema
@@ -511,8 +521,15 @@ tool stops the loader (`runCatalogLoader(false)`).
 The setups of the crate (`src/connection_setup/`) are commands of `Runtime` (`runtime/setups.rs` of the bindings):
 `setupConnection(connectionId, options)` sets up a connection with its connector and checks its health,
 `authenticateSalesforce(setupId, params, options, onStep)` logs in to Salesforce without a connection (the login of the
-shell), `cancelSetup(setupId)` cancels either. The settings pages, the startup, the cloud login, the shell and the
-command line tool call them through the TypeScript `Runtime`.
+shell), `cancelSetup(setupId)` cancels either. The settings pages, the cloud login, the shell and the command line
+tool call them through the TypeScript `Runtime`.
+
+- **The setups of an opened workbook.** `setUpOpenedWorkbook(workbookId)` sets up the connections of a workbook that
+  the app opens and that need nothing of the user (`connections::open_setup` of the crate): the embedded Hyper with
+  committed params, and the Hyper of a link once the tab holds its token, resetting a connection that speaks to the
+  Hyper of an earlier link. Every connection is considered once, one to the Hyper of a link once per link; a connection
+  that is open, cancelled, carries a draft or another protocol is consumed without a setup. The app calls it when the
+  opened workbook, its connections or the tokens of the links change.
 
 - **A setup is known by an id.** The id of its connection or of a login. A new setup of an id cancels the one that runs,
   a reset or a delete of the connection cancels it (`RegistryEffect::CancelSetup`). The view of the connection shows
@@ -806,8 +823,9 @@ holds the structured progress that the app reads, the TypeScript progress model 
   (`QueryProfileProgressView`): the packed `QueryProfile` and the execution state as packed `QueryProfileEvents`, one
   event per entity with state. The store passes the keys that it holds (the revision and the version of the
   structure, `known` of the `query` kind) and the module leaves those payloads out, so an update of the execution
-  state crosses only the events and a batch crosses neither. `queryProgress` of `query/query_progress.ts` folds the
-  events into the `ProfileExecutionState` that the panels read, once per view of the progress.
+  state crosses only the events and a batch crosses neither. The query projection of the store
+  (`runtime/query/query_projection.ts`) builds the `progress` of the query view once per change of its latest update,
+  it folds the events into the `ProfileExecutionState` that the panels read and reads the structure once per version.
 - **The recording stays with the progress.** The model records the payloads of the engine with the milliseconds since
   the first one, the progress of every update shares the recording (`SharedRecording`), so a finished query keeps it.
   `Runtime.queryProgressRecording` returns it as JSON for the download of the panel, `ProfileRecording::from_json` reads it
@@ -825,8 +843,8 @@ The shell tracks its queries in a history without a connection of its runtime (`
 
 - **The queries that the host runs.** `executeTrackedQuery` of `query/tracked_query_execution.ts` tracks a query that
   the host runs itself in a history of the runtime, of a connection or without one (`trackQuery` and the steps of its
-  lifecycle): the shell, and the SQLFrame queries of the computations in the history of the connection of their
-  result. The history hands out the id and keeps the record of the host under a handle, an abort of the handle (a
+  lifecycle): the statements of the shell. The SQLFrame queries of the computations are tracked by the runtime, see
+  [The computations](#the-computations). The history hands out the id and keeps the record of the host under a handle, an abort of the handle (a
   reset of the connection) cancels it.
 - **The last 100 queries.** `QueryExecutionHistory::with_limit` keeps at most a number of queries: a query that starts
   beyond the limit drops the oldest finished queries, then the oldest active ones, and releases their result tables.
@@ -834,8 +852,7 @@ The shell tracks its queries in a history without a connection of its runtime (`
 - **Read as views.** The shell reads its history (`history` slice, the finished queries then the active ones) and its
   queries (`query` slices) through the store. A result that the shell shows keeps its computation after its query left
   the history.
-- **Changed on purpose.** The history exists once the runtime has its core; a query of the shell before that runs
-  untracked. A query id that the history knows is refused instead of replacing the query.
+- **Changed on purpose.** A query id that the history knows is refused instead of replacing the query.
 
 ## The runs of workbooks
 
@@ -854,7 +871,8 @@ waits). The TypeScript `Runtime` has the same commands, the app reads the slice 
   they need, or the scripts that a change of inputs affects (`plan::affected_scripts` on the dataflow of the workbook).
   A run of a script needs a statement of its target. The result keys follow the plan (`plan::result_keys`): the
   runtime derives a key from a signature (`Connections::result_key`), the run decides whether the key is reusable.
-  `resultKeys` plans without analyzing and returns the reusable keys, for the cache indicators and the exports.
+  `resultKeys` plans without analyzing and returns the reusable keys, for the exports; the runtime plans them the same
+  way for the `cachedResult` of the script views (`runs/cached_results.rs`).
 - **Cached results.** A script with a reusable key whose file the cache holds and that follows no script that runs is
   served from the cache: the run keeps the file (`resultCache.retain`), the terminal query of the script reads the
   cache only, and the run plans again with the file as a result that the platform provides. A miss runs the script.

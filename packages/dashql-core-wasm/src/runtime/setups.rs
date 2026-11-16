@@ -16,6 +16,7 @@ use dashql_core_runtime::connection_setup::{
     authenticate_salesforce, check_health, setup_action_json, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, OAuthEvents,
     OAuthHost, ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
 };
+use dashql_core_runtime::connections::open_setup::OpenSetup;
 use dashql_core_runtime::connections::{
     ChannelId, ConnectionAction, ConnectionHealth, ConnectorType, DetailedError, HyperAction, JsonObject, OAuthPkceChallenge, SalesforceAction,
     TrinoAction,
@@ -511,6 +512,42 @@ impl Connections {
                 Ok(()) => SetupOutcome::succeeded(None),
                 Err(failure) => SetupOutcome::of(failure),
             }
+        }
+    }
+
+    /// Set up the connections of a workbook that the app opens and that need nothing of the user: the embedded Hyper
+    /// and the Hyper of a link once the tab holds its token (`open_setup` of the crate). Every connection is considered
+    /// once, a connection to the Hyper of a link once per link. The setups run on their own, a failure is in the view
+    /// of the connection and in the log.
+    pub(crate) fn set_up_opened(self: &Rc<Self>, workbook_id: &str, connection_ids: Vec<String>) {
+        for connection_id in connection_ids {
+            let decision = {
+                let registry = self.registry.borrow();
+                let Some(connection) = registry.get(&connection_id) else { continue };
+                let token = self.platform.hyper_link_token(&connection_id);
+                let state = connection.state.borrow();
+                self.open_setups.borrow_mut().consider(&state, token.as_deref())
+            };
+            match decision {
+                OpenSetup::Skip => continue,
+                OpenSetup::Setup => {}
+                // The connection speaks to the Hyper of an earlier link
+                OpenSetup::ResetAndSetup => {
+                    if let Err(error) = self.apply(&connection_id, ConnectionAction::Reset, None) {
+                        self.log(LogLevel::Warn, error.what(), &[("connectionId", &connection_id)]);
+                    }
+                }
+            }
+            let setup = self.setup(connection_id, SetupOptions::default());
+            let connections = Rc::downgrade(self);
+            let workbook_id = workbook_id.to_string();
+            self.platform.spawn(Box::pin(async move {
+                let outcome = setup.await;
+                if let (Some(connections), "failed") = (connections.upgrade(), outcome.status) {
+                    let error = outcome.message.unwrap_or_default();
+                    connections.log(LogLevel::Warn, "Memory database setup failed", &[("workbookId", &workbook_id), ("error", &error)]);
+                }
+            }));
         }
     }
 

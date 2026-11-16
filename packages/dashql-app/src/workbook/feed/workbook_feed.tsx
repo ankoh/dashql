@@ -33,24 +33,20 @@ import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWo
 import {
     useOptionalRuntime,
     useRuntime,
-    useScriptResultKey,
     useScriptRun,
     useWorkbookDerived,
     useWorkbookExecution,
     useWorkbookScriptMap,
 } from '../../runtime/runtime_hooks.js';
-import type { StorageWriter } from '@ankoh/dashql/runtime/storage/runtime_storage';
+import type { Runtime } from '@ankoh/dashql/runtime/runtime';
 import { ConnectorType } from '@ankoh/dashql/platform/connections/connector_info';
-import { markWorkbookAttachmentsChanged } from '@ankoh/dashql/platform/workbook/attachments/attachment_mounts';
 import { renameAttachment } from '../attachments/attachment_rename.js';
-import { attachmentParameterName, readWorkbookAttachments, sameWorkbookAttachments, uniqueAttachmentFileName } from '@ankoh/dashql/platform/workbook/attachments/workbook_attachments';
 import { scriptDisplayName } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@ankoh/dashql/platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -58,7 +54,7 @@ import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './workbook_feed_drag.js';
-import { ATTACHMENT_EXTENSION, isAttachmentFileName, type DataFile } from '@ankoh/dashql/platform/storage/storage_backend';
+import { ATTACHMENT_EXTENSION } from '@ankoh/dashql/platform/storage/storage_backend';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
@@ -113,14 +109,13 @@ export interface WorkbookFeedRevealRequest {
 
 export interface WorkbookFeedDependencies {
     useStorageReader: typeof useStorageReader;
-    /// The storage writer of the runtime
-    useRuntimeStorage: () => StorageWriter;
+    /// The commands of the runtime that attach files and list the attachments again
+    useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'refreshAttachments'>;
     usePickScriptConnection: typeof usePickScriptConnection;
     usePickPendingConnection: typeof usePickPendingConnection;
     useAttachPendingConnection: typeof useAttachPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     useScriptRun: typeof useScriptRun;
-    useScriptResultKey: typeof useScriptResultKey;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
     useWorkbookDerived: typeof useWorkbookDerived;
     useLiveWorkbookReader: typeof useLiveWorkbookReader;
@@ -135,13 +130,12 @@ export interface WorkbookFeedDependencies {
 
 const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useStorageReader,
-    useRuntimeStorage: () => useRuntime().storage,
+    useAttachmentCommands: () => useRuntime(),
     usePickScriptConnection,
     usePickPendingConnection,
     useAttachPendingConnection,
     useKeyEvents,
     useScriptRun,
-    useScriptResultKey,
     useWorkbookScriptMap,
     useWorkbookDerived,
     useLiveWorkbookReader,
@@ -155,6 +149,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
 };
 
 const LOG_CTX = 'workbook_feed';
+const NO_ATTACHMENTS: readonly dashql.WorkbookAttachmentView[] = [];
 const OVERSCAN_ROW_COUNT = 16;
 const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
@@ -255,54 +250,22 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         [props.conn],
     );
     const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
-    // The connections that cache query results, the cache indicators follow them
-    const cachingConnections = [...(props.scriptConnections ?? defaultConnections).values()]
-        .filter(connection => connection.cachesQueryResults).map(connection => connection.connectionId).join(',');
     // The composer drafts the next script, on the connection that the script will run on
     const composerConnectionId = props.workbookScripts.nextScriptConnectionId ?? null;
     const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
     const storageReader = dependencies.useStorageReader();
-    const queryResultCache = useQueryResultCache();
-    const storageWriter = dependencies.useRuntimeStorage();
+    const attachmentCommands = dependencies.useAttachmentCommands();
     const workbookId = props.workbookScripts.workbookId;
-    const [dataFiles, setDataFiles] = React.useState<{ workbookId: string; files: DataFile[] } | null>(null);
-    const [dataFilesVersion, setDataFilesVersion] = React.useState(0);
     const [attachmentsExpanded, setAttachmentsExpanded] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     const attachmentInputRef = React.useRef<HTMLInputElement>(null);
-    const latestAttachments = React.useRef(props.workbookScripts.attachments);
-    latestAttachments.current = props.workbookScripts.attachments;
-    const latestScriptOrder = React.useRef(props.workbookScripts.scriptOrder);
-    latestScriptOrder.current = props.workbookScripts.scriptOrder;
-    // The workbook file lists the attachments, a changed attachment updates the list and the mount of the attachments
-    const refreshDataFiles = React.useCallback(() => {
-        markWorkbookAttachmentsChanged(workbookId);
-        setDataFilesVersion(version => version + 1);
-        void storageWriter.write({ type: 'refreshWorkbookAttachments', workbookId });
-    }, [workbookId, storageWriter]);
-    React.useEffect(() => {
-        const cancel = new AbortController();
-        storageReader.backend.listDataFiles(workbookId).then(files => {
-            if (!cancel.signal.aborted) {
-                // The scripts read the Parquet attachments as table parameters
-                const known = latestAttachments.current ?? [];
-                if (!sameWorkbookAttachments(known, readWorkbookAttachments(files, known))) {
-                    props.modifyWorkbookScripts({ kind: 'setWorkbookAttachments', value: { files: files.map(file => ({ name: file.name, sizeBytes: file.sizeBytes, mtimeMs: file.mtimeMs })) } });
-                }
-                setDataFiles({
-                    workbookId, files: [...files].sort((a, b) => (
-                        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-                    ))
-                });
-            }
-        }).catch(e => {
-            if (!cancel.signal.aborted) {
-                logger.error('Listing workbook data files failed', { error: stringifyError(e) }, LOG_CTX);
-            }
+    // The view of the workbook lists its attachments, a changed attachment is listed again
+    const attachments = props.workbookScripts.attachments ?? NO_ATTACHMENTS;
+    const refreshAttachments = React.useCallback(() => {
+        attachmentCommands.refreshAttachments(workbookId).catch(e => {
+            logger.error('Listing workbook attachments failed', { error: stringifyError(e) }, LOG_CTX);
         });
-        return () => cancel.abort();
-    }, [workbookId, storageReader.backend, dataFilesVersion, logger, props.modifyWorkbookScripts]);
-    const pinnedDataFiles = dataFiles?.workbookId === workbookId ? dataFiles.files : [];
+    }, [workbookId, attachmentCommands, logger]);
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
     const attachmentsEnabled = !readOnly && (props.conn?.readsAttachments ?? false);
@@ -314,26 +277,17 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const logFiles = (tone: WorkbookStatusTone, text: string, detail: string | null = null) => reportOutcomes(workbookId, [{
             key: `files:${text}:${Date.now()}`, source: WorkbookStatusSource.Files, tone, text, detail, at: Date.now(),
         }]);
-        // A workbook attaches Parquet files only, they are table parameters of the scripts
-        const parquet = [...files].filter(file => isAttachmentFileName(file.name));
-        const refused = [...files].filter(file => !isAttachmentFileName(file.name));
-        if (refused.length > 0) {
-            setAttachmentError(`Only Parquet files can be attached: ${refused.map(file => file.name).join(', ')}`);
-            logFiles(WorkbookStatusTone.Failed, 'Only Parquet files can be attached', refused.map(file => file.name).join(', '));
-        }
-        if (parquet.length === 0) return;
-        setAttaching({ workbookId, files: parquet.length });
+        const dropped = [...files];
+        if (dropped.length === 0) return;
+        setAttaching({ workbookId, files: dropped.length });
         try {
-            // An attachment takes no name of a script or another attachment
-            const scriptNames = latestScriptOrder.current.map(scriptDisplayName);
-            const attachments = [...(latestAttachments.current ?? [])];
-            for (const file of parquet) {
-                const fileName = uniqueAttachmentFileName(file.name, scriptNames, attachments);
-                await storageReader.backend.saveDataFile(workbookId, fileName, file);
-                attachments.push(...readWorkbookAttachments([{ name: fileName, sizeBytes: file.size }]));
-                logFiles(WorkbookStatusTone.Success, `Attached ${fileName}`);
+            // The runtime names the attachments past the scripts and the other attachments, Parquet files only
+            const outcome = await attachmentCommands.attachFiles(workbookId, dropped.map(file => ({ name: file.name, file })));
+            if (outcome.refused.length > 0) {
+                setAttachmentError(`Only Parquet files can be attached: ${outcome.refused.join(', ')}`);
+                logFiles(WorkbookStatusTone.Failed, 'Only Parquet files can be attached', outcome.refused.join(', '));
             }
-            refreshDataFiles();
+            for (const attached of outcome.attached) logFiles(WorkbookStatusTone.Success, `Attached ${attached.fileName}`);
         } catch (e) {
             setAttachmentError('Adding attachment failed');
             // The outcome is the record of the log
@@ -341,7 +295,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         } finally {
             setAttaching(null);
         }
-    }, [logger, workbookId, refreshDataFiles, storageReader.backend, reportOutcomes]);
+    }, [workbookId, attachmentCommands, reportOutcomes]);
     const attachingFiles = attaching?.workbookId === workbookId ? attaching.files : 0;
     const filesLive = React.useMemo<WorkbookStatus[]>(() => attachingFiles === 0 ? [] : [{
         key: 'files:attaching', source: WorkbookStatusSource.Files, tone: WorkbookStatusTone.Progress,
@@ -396,7 +350,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const isScriptOnline = (scriptData: ScriptData) =>
         latest.current.scriptConnections.get(scriptData.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
     const runScript = dependencies.useScriptRun();
-    const resultKey = dependencies.useScriptResultKey();
 
     // Refresh: run the script and the scripts it references without reading cached results, their results become the
     // newest files of their keys. Resolves the script by feed file name.
@@ -409,18 +362,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         }
         void runScript(workbookScripts.workbookId, scriptData.scriptKey, { refresh: true });
     }, [runScript]);
-
-    // The cache indicator of a script looks up the key of a run of the script in the cache of the app
-    const lookupCachedResult = React.useCallback(async (cacheKey: string) => (await queryResultCache?.lookup(cacheKey))?.cachedAtMs ?? null, [queryResultCache]);
-
-    // The cache key of a run of a script, the cache indicator of the script checks it. A new callback when connections
-    // start or stop caching, so the indicators check again.
-    const computeCacheKey = React.useCallback(async (scriptKey: number) => {
-        const { workbookScripts, scripts } = latest.current;
-        const scriptData = scripts[scriptKey];
-        if (scriptData == null || resultKey == null) return null;
-        return await resultKey(workbookScripts.workbookId, scriptKey);
-    }, [cachingConnections, resultKey]);
 
     const handleExecuteEntry = React.useCallback((fileName: string) => {
         const { workbookScripts, scripts } = latest.current;
@@ -545,12 +486,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // An attachment renames like a script, the scripts and the draft that read it follow
     const handleRenameAttachment = React.useCallback((fileName: string, name: string) => {
         void renameAttachment(latest.current.workbookScripts, props.modifyWorkbookScripts, storageReader.backend, fileName, name, composerRenameScriptRef.current)
-            .then(renamed => { if (renamed != null) refreshDataFiles(); })
+            .then(renamed => { if (renamed != null) refreshAttachments(); })
             .catch(e => {
                 setAttachmentError('Renaming attachment failed');
                 logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
-    }, [props.modifyWorkbookScripts, storageReader.backend, composerRenameScriptRef, refreshDataFiles, logger]);
+    }, [props.modifyWorkbookScripts, storageReader.backend, composerRenameScriptRef, refreshAttachments, logger]);
     const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global
@@ -796,8 +737,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         workbookId: props.workbookScripts.workbookId,
         scriptReferences,
         connections: scriptConnections,
-        computeCacheKey,
-        lookupCachedResult,
         entries,
         storageReader: storageReader,
         scripts,
@@ -828,7 +767,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onCreate: handleCreate,
         onEditorView: handleEditorView,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, rowsActive, scriptConnections, scripts, selectedFileName, computeCacheKey, lookupCachedResult, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, rowsActive, scriptConnections, scripts, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
@@ -905,7 +844,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         aria-controls="workbook-attachments"
                         onClick={() => setAttachmentsExpanded(expanded => !expanded)}>
                         Attached Files
-                        <span className={styles.feed_data_count}>{pinnedDataFiles.length}</span>
+                        <span className={styles.feed_data_count}>{attachments.length}</span>
                         {attachmentsExpanded ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
                     </button>
                 ) : undefined}
@@ -925,14 +864,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                                     <PlusIcon size={16} />
                                 </IconButton>}
                                 <div className={styles.feed_data_cards}>
-                                    {pinnedDataFiles.map(file => (
-                                        <WorkbookDataCard key={`${workbookId}/${file.name}`} workbookId={workbookId}
-                                            file={file} conn={props.conn} storageReader={storageReader} onRemoved={refreshDataFiles}
+                                    {attachments.map(attachment => (
+                                        <WorkbookDataCard key={`${workbookId}/${attachment.fileName}`} workbookId={workbookId}
+                                            attachment={attachment} conn={props.conn} storageReader={storageReader} onRemoved={refreshAttachments}
                                             onMention={handleMentionAttachment}
-                                            onRename={name => handleRenameAttachment(file.name, name)}
-                                            collides={scriptNames.some(name => name.toLowerCase() === attachmentParameterName(file.name)?.toLowerCase())} />
+                                            onRename={name => handleRenameAttachment(attachment.fileName, name)}
+                                            collides={scriptNames.some(name => name.toLowerCase() === attachment.name.toLowerCase())} />
                                     ))}
-                                    {pinnedDataFiles.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
+                                    {attachments.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
                                 </div>
                             </div>
                         )}

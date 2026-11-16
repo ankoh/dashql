@@ -67,7 +67,8 @@ class TestSetups {
             },
             hyperLinkToken: connectionId => channels?.hyperLinkToken?.(connectionId) ?? null,
         };
-        runtime.setChannelConnector(connector);
+        // The platform of a test is the test's, the runtime asks it for every channel and request
+        runtime.platform.channels = connector;
         const fetch: HttpClient['fetch'] = async (input, init) => {
             const url = input instanceof Request ? input.url : input.toString();
             for (const [endpoint, setup] of this.trino) {
@@ -76,7 +77,7 @@ class TestSetups {
             if (http == null) throw new Error('the test has no network');
             return await http.fetch(input, init);
         };
-        runtime.setHttp({ fetch });
+        runtime.platform.http = { fetch };
     }
 
     /// Prepare the setup of a connection
@@ -172,8 +173,7 @@ export async function setupTestConnection(runtime: Runtime, connectionId: string
     };
     testSetups(runtime).prepare(connectionId, current.params, setup);
     // The setup of the module, a test may replace the one of the runtime to see what the app asks for
-    const module = runtime.module ?? await runtime.ready();
-    const done = module.setupConnection(connectionId, {}).finally(() => { setup.probing = false; });
+    const done = runtime.module.setupConnection(connectionId, {}).finally(() => { setup.probing = false; });
     if (setup.health === ConnectionHealth.CONNECTING) {
         // The setup runs until the runtime cancels it
         void done.catch(() => { });

@@ -44,8 +44,9 @@ describe('RevisionCache', () => {
         const second = cache.get(1, 11, prev => ({ revision: 11, prev }));
         expect(second.prev).toBe(first);
         cache.get(2, 1, () => ({ revision: 1, prev: null }));
-        expect(cache.retain([2])).toBe(true);
-        expect(cache.retain([2])).toBe(false);
+        cache.delete(1);
+        expect(cache.peek(1)).toBeUndefined();
+        expect([...cache.keys()]).toEqual([2]);
         expect(cache.get(1, 11, prev => ({ revision: 11, prev })).prev).toBeNull();
     });
 });

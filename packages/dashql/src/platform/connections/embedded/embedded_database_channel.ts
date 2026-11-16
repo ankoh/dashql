@@ -104,16 +104,27 @@ export class EmbeddedDatabaseChannel {
 
     constructor(private readonly connection: EmbeddedConnection) {}
 
-    async executeQuery(query: string, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+    /// Wait for the turn of a query, returns what ends it. The next query waits for this one as well, this query may be
+    /// cancelled while it waits.
+    private async turn(abort?: AbortSignal): Promise<() => void> {
         abort?.throwIfAborted();
         const previous = this.previousQuery;
         let release!: () => void;
         const finished = new Promise<void>(resolve => { release = resolve; });
-        // The next query waits for the previous one as well, this query may be cancelled while it waits
         this.previousQuery = previous.then(() => finished);
         try {
             await waitUnlessAborted(previous, abort);
             abort?.throwIfAborted();
+            return release;
+        } catch (error) {
+            release();
+            throw error;
+        }
+    }
+
+    async executeQuery(query: string, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+        const release = await this.turn(abort);
+        try {
             const startedAt = performance.now();
             const stream = new EmbeddedQueryResultStream(await this.connection.queryStream(query, abort), startedAt);
             void stream.finished.then(release);
@@ -122,6 +133,25 @@ export class EmbeddedDatabaseChannel {
             release();
             throw error;
         }
+    }
+
+    /// The session of the channel for statements that the host runs itself, e.g. the statements of the shell. They take
+    /// their turns with the queries of the channel, the session stays with the channel.
+    session(): EmbeddedConnection {
+        const inTurn = async <T>(abort: AbortSignal | undefined, run: () => Promise<T>): Promise<T> => {
+            const release = await this.turn(abort);
+            try {
+                return await run();
+            } finally {
+                release();
+            }
+        };
+        return {
+            query: (query, abort) => inTurn(abort, () => this.connection.query(query, abort)),
+            execute: (statement, abort) => inTurn(abort, () => this.connection.execute(statement, abort)),
+            queryStream: () => Promise.reject(new Error('the session of a channel streams no results, the channel does')),
+            close: () => Promise.reject(new Error('the session of a channel closes with the channel')),
+        };
     }
 
     async close(): Promise<void> {
@@ -143,6 +173,11 @@ export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
 
     async close(): Promise<void> {
         await this.channel.close();
+    }
+
+    /// The session of the channel, see `EmbeddedDatabaseChannel.session`
+    session(): EmbeddedConnection {
+        return this.channel.session();
     }
 }
 

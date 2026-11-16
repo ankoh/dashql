@@ -23,7 +23,7 @@ use dashql_core_runtime::connections::ConnectionAction;
 use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::restore::connection_state;
-use dashql_core_runtime::storage::keys::{is_reloaded_key, script_key, workbook_attachment_list_key, workbook_script_list_key};
+use dashql_core_runtime::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
 use dashql_core_runtime::storage::{HoldReason, WriteTask};
 use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_runtime::workbook_format::data::{WorkbookConnection, WorkbookData};
@@ -36,11 +36,11 @@ use js_sys::{Array, JsString};
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
+use super::attachments::reconcile_attachments;
 use super::connections::Connections;
 use super::runs::Runs;
 use super::storage::restore_view::RestoreScriptFile;
 use super::storage::{JsStorage, StorageState};
-use super::workbooks::view::WorkbookDataFile;
 use super::workbooks::{StoredScriptRef, Workbooks};
 use crate::host::{call_method, field, JsPlatform};
 use crate::views::JsonValue;
@@ -319,12 +319,8 @@ impl ExternalChanges {
         let previous = self.attachments.borrow().get(workbook_id).cloned();
         if previous.as_ref().is_some_and(|previous| *previous != attachments) {
             workbook_file = Some(self.load_workbook(workbook_id).await?);
-            // The scripts read the mirrored attachments, the mount looks them up again
-            let _ = self.platform.storage_call("attachmentsChanged", &[JsValue::from_str(workbook_id)]);
+            // The scripts read the mirrored attachments, the mount looks them up again and the workbook file lists them
             self.list_attachments(workbook_id);
-            // The workbook file lists the attachments, the write runs once the workbook resumes
-            let key = workbook_attachment_list_key(workbook_id);
-            drop(writer.write(&key, WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0));
         }
         // A change is remembered once it was handled, a failed read is retried by the next check
         self.attachments.borrow_mut().insert(workbook_id.to_string(), attachments);
@@ -450,24 +446,12 @@ impl ExternalChanges {
 
     /// List the attachments of a workbook again, e.g. after files changed on disk
     fn list_attachments(self: &Rc<Self>, workbook_id: &str) {
-        let listing = self.platform.storage_await("listDataFiles", &[JsValue::from_str(workbook_id)]);
         let sync = self.clone();
         let workbook_id = workbook_id.to_string();
         self.platform.spawn(Box::pin(async move {
-            let files = match listing.await.and_then(|files| super::archives::items::<WorkbookDataFile>(files, "the data files")) {
-                Ok(files) => files,
-                Err(error) => {
-                    sync.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
-                    return;
-                }
-            };
-            let action = WorkbookAction::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
-            if let Err(error) = sync.workbooks.apply(&workbook_id, action) {
-                sync.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id.as_str()), ("error", error.what())]);
-                return;
+            if let Err(error) = reconcile_attachments(&sync.platform, &sync.workbooks, &sync.runs, &workbook_id).await {
+                sync.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
             }
-            // The columns of new Parquet attachments are read with the compute database
-            sync.runs.describe_attachments();
         }));
     }
 

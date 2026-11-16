@@ -7,7 +7,6 @@ import { useScriptSelection } from './script_selection.js';
 import type { ScriptRef } from '@ankoh/dashql/platform/workbook/scripts/script_types';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext } from '../../app/router/router.js';
-import { isCatalogRefreshRunning } from '@ankoh/dashql/platform/connections/catalog/catalog_update_state';
 import { useConnectionViews, useOptionalRuntime, useScriptRun, useWorkbook } from '../../runtime/runtime_hooks.js';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
@@ -71,7 +70,7 @@ function useConnectionReader(): (connectionId: string) => ConnectionState | null
 /// Refresh the catalog of a connection, `force` refreshes the whole catalog. Without a runtime nothing is refreshed.
 function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
     const runtime = useOptionalRuntime();
-    return React.useCallback((connectionId: string, force: boolean) => runtime?.refreshCatalog(connectionId, force), [runtime]);
+    return React.useCallback((connectionId: string, force: boolean) => runtime?.module.refreshCatalog(connectionId, force), [runtime]);
 }
 
 /// The connections that a workbook uses, from the view of the workbook: the connections of its scripts, then its
@@ -158,7 +157,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     const { scriptConnection } = selectedScriptConnection(workbookScripts, selected, readConnection, readScript);
                     if (scriptConnection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.warn("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
-                    } else if (isCatalogRefreshRunning(scriptConnection)) {
+                    } else if (scriptConnection.catalogUpdates.refreshRunning) {
                         logger.debug("Catalog refresh already running", { workbookId: workbookScripts.workbookId }, LOG_CTX);
                     } else {
                         refreshCatalog(scriptConnection.connectionId, true);

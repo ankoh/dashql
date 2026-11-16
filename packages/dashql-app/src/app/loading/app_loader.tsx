@@ -1,13 +1,12 @@
 import * as React from 'react';
 
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router/router.js';
-import { useLogger } from '../../platform/logger/logger_provider.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { useInitialMemorySetup, type InitialSetups } from './initial_memory_setup.js';
-import { useConnectionViews, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
+import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
@@ -22,19 +21,20 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const appSettingsReady = useAppSettingsReady();
     const reconfigure = useAppReconfigure();
     const showNarrowScreenWarning = useNarrowScreenWarning(appSettingsReady, config?.settings?.narrowScreenLayout ?? false);
-    const logger = useLogger();
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
-    // The startup sets up the connections that the slice of the opened workbook names (`connectionIds`)
-    const workbookConnections = useConnectionViews(useWorkbook(routeContext.workbookId ?? null)?.connectionIds);
     const runtime = useOptionalRuntime();
-    // The startup sets up the connections with the runtime, the Hyper connector of the config enables it
+    // The runtime sets up the connections of the opened workbook that need nothing of the user: the embedded Hyper, and
+    // the Hyper of a link once the tab holds its token. It considers every connection once (`open_setup` of the runtime
+    // crate). The Hyper connector of the config enables it.
     const hyperEnabled = config?.connectors?.hyper != null;
-    const setups = React.useMemo<InitialSetups | null>(() => runtime == null || !hyperEnabled ? null : {
-        setup: connectionId => runtime.setupConnection(connectionId),
-        reset: connectionId => { runtime.dispatch({ connection: connectionId }, { kind: 'resetConnection' }); },
-        cancel: connectionId => runtime.module?.cancelSetup(connectionId),
-    }, [runtime, hyperEnabled]);
+    const openedWorkbook = useWorkbook(routeContext.workbookId ?? null);
+    const openedConnections = openedWorkbook?.connectionIds.join(' ') ?? null;
+    const hyperLinks = useHyperLinkTabState();
+    React.useEffect(() => {
+        if (runtime == null || !hyperEnabled || openedWorkbook == null) return;
+        runtime.module.setUpOpenedWorkbook(openedWorkbook.workbookId);
+    }, [runtime, hyperEnabled, openedWorkbook?.workbookId, openedConnections, hyperLinks]);
 
     // The import of a workbook that the app was started with, the setup then doesn't open another one
     const initialImport = React.useRef<Promise<boolean> | null>(null);
@@ -50,13 +50,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             navigate({ type: SELECT_WORKBOOK, value: routeContext.workbookId });
         }
     }, [navigate, routeContext.workbookId, routeContext.workbookSetupStatus]);
-
-    useInitialMemorySetup(
-        routeContext.workbookId,
-        workbookConnections,
-        setups,
-        logger,
-    );
 
     if (showNarrowScreenWarning) {
         return <NarrowScreenWarning onEnable={() => reconfigure(value => value == null ? null : {

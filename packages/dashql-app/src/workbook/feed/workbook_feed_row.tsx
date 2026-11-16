@@ -53,11 +53,6 @@ export interface ScriptCardProps {
     connectorType: ConnectorType;
     /// The connection the script runs on, null while it is not registered
     connection: ScriptConnectionView | null;
-    /// The cache key of the result of a script, the key that a run of the script reads and writes
-    computeCacheKey: (scriptKey: number) => Promise<string | null>;
-    /// Is a cache key cached in the query result cache of the app?
-    /// The time the result of a cache key was written, null if the key is not cached
-    lookupCachedResult: (cacheKey: string) => Promise<number | null>;
     storageReader: StorageReader;
     isFocused: boolean;
     scriptData: ScriptData | undefined;
@@ -149,51 +144,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // in-place diff and these actions provide the same explicit accept/reject alternatives.
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
 
-    // Is the script cached?
-    // Planning the script is a full pass over the scripts it needs, only re-check when the text, the catalog,
-    // the queries or their cache entries changed (and not on every cursor move).
-    // The time the cached result of a run of the script was written, null if it is not cached
-    const [cachedAtMs, setCachedAtMs] = React.useState<number | null>(null);
-    React.useEffect(() => {
-        const cancel = new AbortController();
-        const connectionDetails = props.connectionDetails;
-        const run = async () => {
-            // Not script data? Clear cache indicator.
-            if (props.scriptData == null || !connectionDetails) {
-                setCachedAtMs(null);
-                return;
-            }
-            // Outdated analysis? Keep the last known indicator until the script is re-analyzed.
-            // Every keystroke outdates all scripts of the workbook, clearing it would make it flicker.
-            if (props.scriptData.analysisOutdated) {
-                return;
-            }
-            try {
-                // The key of a run of the script, null if its result is not cacheable
-                const cacheKey = await props.computeCacheKey(props.scriptData.scriptKey);
-                // Look up the key in the cache of the app
-                const cachedAt = cacheKey != null ? await props.lookupCachedResult(cacheKey) : null;
-                if (!cancel.signal.aborted) {
-                    setCachedAtMs(cachedAt);
-                }
-            } catch { }
-        };
-        run();
-        return () => cancel.abort();
-    }, [
-        props.scriptData?.scriptSession,
-        props.scriptData?.analysisOutdated,
-        props.scriptData?.editorUpdate?.textVersion,
-        props.scriptData?.editorUpdate?.catalogRevision,
-        props.scriptData?.latestQueryId,
-        props.scriptData?.latestResultQueryId,
-        queryState?.cacheKey,
-        queryState?.cacheDeleted,
-        props.connectionDetails,
-        props.computeCacheKey,
-        props.lookupCachedResult,
-        props.workbookId,
-    ]);
+    // The time the cached result of a run of the script was written, null if it is not cached. The runtime looks it up
+    // when the analysis, the queries or the cache entries of the script changed.
+    const cachedAtMs = props.scriptData?.cachedResult?.cachedAt ?? null;
 
     // The result header persists for active and terminal execution states. It can collapse the
     // result body without affecting its cancel, cache, and rerun actions.
@@ -419,11 +372,6 @@ export interface ScriptFeedRowProps {
     workbookId: string;
     /// The connections that the scripts run on
     connections: ReadonlyMap<string, ScriptConnectionView>;
-    /// The cache key of the result of a script, the key that a run of the script reads and writes
-    computeCacheKey: (scriptKey: number) => Promise<string | null>;
-    /// Is a cache key cached in the query result cache of the app?
-    /// The time the result of a cache key was written, null if the key is not cached
-    lookupCachedResult: (cacheKey: string) => Promise<number | null>;
     storageReader: StorageReader;
     entries: ReturnType<typeof getScriptRefs>;
     scripts: ScriptDataMap;
@@ -576,8 +524,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     connectionDetails={connection?.details ?? null}
                     connectorType={connection?.connectorInfo.connectorType ?? ConnectorType.HYPER}
                     connection={connection}
-                    computeCacheKey={props.computeCacheKey}
-                    lookupCachedResult={props.lookupCachedResult}
                     storageReader={props.storageReader}
                     isFocused={scriptFileName === props.focusedFileName}
                     scriptData={scriptData}

@@ -70,7 +70,7 @@ describe('TrinoConnectorSettings', () => {
         registry = useConnections();
         appRuntime = useRuntime();
         appRuntime.setupConnection = setup;
-        appRuntime.module!.cancelSetup = cancel;
+        appRuntime.module.cancelSetup = cancel;
         return null;
     }
 

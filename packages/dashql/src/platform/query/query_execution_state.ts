@@ -24,7 +24,7 @@ export function queryIsDone(status: QueryExecutionStatus) {
 export type QueryExecutionMetrics = core.QueryStreamMetrics;
 
 /// The progress of a query: the plain fields and the structured progress of the progress model of the query in the
-/// runtime (`queryProgress` of `query_progress.ts`)
+/// runtime, projected once per change of the query view (`progress` of `QueryExecutionState`)
 export interface QueryExecutionProgress {
     /// Is queued?
     isQueued: boolean | null;
@@ -119,6 +119,9 @@ export interface PlannedStatement {
 /// milliseconds since epoch, the result table is a handle of the handle table of the runtime (`useTable`).
 export type QueryExecutionState = Omit<core.QueryView, 'queryMetadata'> & {
     queryMetadata: QueryMetadata;
+    /// The progress of the latest progress update with its structured progress, the store of the runtime projects it
+    /// once per change of the view (`runtime/query/query_projection.ts`), null without an update
+    progress?: QueryExecutionProgress | null;
 };
 
 /// The details of the error of a failed or cancelled query, null without any

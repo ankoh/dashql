@@ -19,22 +19,19 @@ const SHELL_QUERY_HISTORY_CTX = React.createContext<QueryTracker | null>(null);
 export const ShellQueryHistoryProvider: React.FC<{ children: React.ReactElement }> = props => {
     const runtime = useRuntime();
     const [tracker] = React.useState<QueryTracker>(() => ({ runtime, target: { history: `shell-${NEXT_SHELL_HISTORY++}` } }));
-    // The history exists once the runtime has its core, the queries before that run untracked
+    // The history exists before the components below render, it goes with the component
     const created = React.useRef(false);
-    const create = () => {
-        if (created.current) return;
+    if (!created.current) {
         created.current = runtime.dispatch(tracker.target, { kind: 'createHistory', value: { limit: SHELL_QUERY_HISTORY_LIMIT } }).ok;
-    };
-    if (runtime.module != null) create();
+    }
     React.useEffect(() => {
-        let dropped = false;
-        void runtime.ready().then(() => { if (!dropped) create(); }).catch(() => { });
+        if (!created.current) {
+            created.current = runtime.dispatch(tracker.target, { kind: 'createHistory', value: { limit: SHELL_QUERY_HISTORY_LIMIT } }).ok;
+        }
         return () => {
-            dropped = true;
             created.current = false;
             runtime.dispatch(tracker.target, { kind: 'dropHistory' });
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runtime, tracker]);
     return <SHELL_QUERY_HISTORY_CTX.Provider value={tracker}>{props.children}</SHELL_QUERY_HISTORY_CTX.Provider>;
 };
@@ -45,7 +42,7 @@ export function useShellQueryHistory(): QueryTracker {
 }
 
 /// The name of the history of the shell
-function historyOf(tracker: QueryTracker): string {
+export function historyName(tracker: QueryTracker): string {
     const target = tracker.target;
     return typeof target === 'object' && 'history' in target ? target.history : SHELL_DATABASE_ID;
 }
@@ -53,7 +50,7 @@ function historyOf(tracker: QueryTracker): string {
 /// The queries of the shell, the finished ones first, it renders again when they change
 export function useShellQueries(): QueryExecutionState[] {
     const tracker = useShellQueryHistory();
-    const history = useView('history', historyOf(tracker));
+    const history = useView('history', historyName(tracker));
     const queries = useAllQueries();
     return React.useMemo(() => (history?.queries ?? [])
         .map(queryId => queries.get(queryId))

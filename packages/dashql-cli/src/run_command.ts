@@ -202,7 +202,7 @@ async function setupConnection(rt: Runtime, conn: ConnectionState, env: RunEnvir
         };
         options = { channelParams };
     }
-    const cancel = () => rt.module?.cancelSetup(conn.connectionId);
+    const cancel = () => rt.module.cancelSetup(conn.connectionId);
     signal.addEventListener('abort', cancel, { once: true });
     try {
         const outcome = await rt.setupConnection(conn.connectionId, {
@@ -227,7 +227,7 @@ function dashqlRootOf(workspace: string): string {
 async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise<WorkbookScripts> {
     // The folder is the workbook, its file names its id. A folder of an older version of the app is brought to the
     // current format first.
-    await rt.migrateWorkbookFolder('');
+    await rt.module.migrateWorkbookFolder('');
     const { workbookId } = await storage.loadWorkbook('');
     await rt.restoreWorkbook(workbookId);
     const workbook = rt.store.get('workbook', workbookId);
@@ -277,10 +277,11 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     }
     const embedded = hyper?.database ?? null;
     const runtime = createRuntime({
-        ...createNodePlatform({ logger, storage }),
-        setupCore: () => cli.setupCore(),
-        computeDatabase: embedded,
+        ...await createNodePlatform({ logger, storage, core: await cli.setupCore() }),
+        computeDatabase: embedded == null ? null : async () => embedded,
         resultCache: hyper?.resultCache ?? null,
+        // A run doesn't describe the connections, it only runs the scripts
+        catalogLoader: false,
         // The embedded Hyper of the run is the channel of its connections to the embedded Hyper
         channels: {
             connect: async (_connectionId, request) => {
@@ -292,10 +293,8 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         },
     });
     const reporters: RunReporter[] = [];
-    let progressTimer: ReturnType<typeof setInterval> | null = null;
+    let stopProgress: (() => void) | null = null;
     try {
-        // A run doesn't describe the connections, it only runs the scripts
-        runtime.runCatalogLoader(false);
         let workbook: WorkbookScripts;
         try {
             workbook = await loadWorkbook(runtime, storage);
@@ -353,16 +352,14 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
 
         // A query as the runtime holds it now
-        const queryOf = (queryId: number) => runtime.module?.views('query', [queryId])[0] ?? null;
-        // The progress of the running queries of the scripts, read from the queries of the runtime and sent when it changed
+        const queryOf = (queryId: number) => runtime.module.views('query', [queryId])[0] ?? null;
+        // The progress of the running queries of the scripts, read from the views of the store a while after a query
+        // changed and sent when it changed
         const lastProgress = new Map<string, string>();
         const sampleProgress = () => {
-            const module = runtime.module;
-            const list = module?.views('connectionList', ['root'])[0];
-            const ids = list?.connections.map(entry => entry.connectionId) ?? [];
-            for (const conn of ids.length === 0 ? [] : module!.views('connection', ids)) {
-                for (const queryId of conn?.queriesActiveOrdered ?? []) {
-                    const query = queryOf(queryId);
+            for (const conn of runtime.store.all('connection').values()) {
+                for (const queryId of conn.queriesActiveOrdered) {
+                    const query = runtime.store.get('query', queryId);
                     const script = scriptOfOwner.get(query?.queryMetadata.resultOwner ?? '');
                     const update = query?.latestProgressUpdate;
                     if (script == null || update == null) continue;
@@ -375,7 +372,19 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             }
         };
         if (live || journal != null) {
-            progressTimer = setInterval(sampleProgress, live ? LIVE_PROGRESS_INTERVAL_MS : JOURNAL_PROGRESS_INTERVAL_MS);
+            const interval = live ? LIVE_PROGRESS_INTERVAL_MS : JOURNAL_PROGRESS_INTERVAL_MS;
+            let sample: ReturnType<typeof setTimeout> | null = null;
+            const unsubscribe = runtime.store.subscribeKind('query', () => {
+                sample ??= setTimeout(() => {
+                    sample = null;
+                    sampleProgress();
+                }, interval);
+            });
+            stopProgress = () => {
+                unsubscribe();
+                if (sample != null) clearTimeout(sample);
+                sample = null;
+            };
         }
 
         // What happened to the scripts. The events of the runtime arrive in order, a result is read before it is
@@ -394,7 +403,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             // The history of the connection keeps the result table of the query
             const table = queryId == null ? null : runtime.table(queryOf(queryId)?.resultTable?.id) ?? null;
             // The executor writes the result into the cache after the query resolved
-            await runtime.module?.flushCacheWrites();
+            await runtime.module.flushCacheWrites();
             const entry = hyper == null || key == null ? null : await hyper.resultCache.lookup(key);
             const file = entry == null ? null : path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name);
             return { type: 'script_done', script, ms, table, cached, key: entry?.key ?? null, file };
@@ -437,7 +446,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         };
 
         // The run stops on an interrupt
-        const stopRun = () => runtime.module?.stopRun(workbookId);
+        const stopRun = () => runtime.module.stopRun(workbookId);
         stop.signal.addEventListener('abort', stopRun, { once: true });
         let run: RunResult | null = null;
         try {
@@ -453,8 +462,8 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
             stop.signal.removeEventListener('abort', stopRun);
         }
         await reports;
-        if (progressTimer != null) clearInterval(progressTimer);
-        progressTimer = null;
+        stopProgress?.();
+        stopProgress = null;
 
         const interrupted = stop.signal.aborted;
         // An error of the run itself, e.g. a script that can't be planned; a failed script reported its own
@@ -484,7 +493,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         const allOk = error == null && selected.every(script => outcomes.get(script) === 'ok') && tally('failed') + tally('cancelled') + tally('not run') === 0;
         return allOk ? EXIT_OK : EXIT_FAILED;
     } finally {
-        if (progressTimer != null) clearInterval(progressTimer);
+        stopProgress?.();
         for (const reporter of reporters) reporter.close();
         cli.interrupt?.removeEventListener('abort', interrupt);
         await runtime.destroy();

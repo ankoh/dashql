@@ -30,7 +30,10 @@ function database(connector: symbol = HYPER_CONNECTOR): ConnectionState {
         catalogUpdates: {
             currentFullRefresh: null,
             tasksRunning: [],
+            refreshRunning: false,
+            outOfDate: false,
         },
+        canRefresh: true,
     } as unknown as ConnectionState;
 }
 

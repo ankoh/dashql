@@ -17,6 +17,7 @@ export type {
     WorkbookScriptKeys,
     WorkbookScriptList,
     WorkbookScriptListEntry,
+    WorkbookScriptCachedResult,
     WorkbookScriptStatistics,
     WorkbookScriptView,
     WorkbookScriptVisualization,

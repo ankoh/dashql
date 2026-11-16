@@ -37,7 +37,9 @@ use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
 use super::catalog::{CatalogLoader, LoaderHost};
+use super::compute_tracking::ComputeTracker;
 use super::queries::{QueryHost, QueryRun};
+use dashql_core_runtime::connections::open_setup::OpenSetups;
 use super::setups::RunningSetup;
 use crate::connection::view::ConnectionSaveView;
 use crate::connection_persistence::view::{copies, ConnectionSaveOutcome};
@@ -77,7 +79,7 @@ pub(crate) struct NewConnection {
 pub(crate) struct Connections {
     pub platform: JsPlatform,
     pub registry: RefCell<ConnectionRegistry>,
-    pub computations: ComputeService<JsPlatform>,
+    pub computations: ComputeService<ComputeTracker>,
     /// The writer of the storage of the runtime
     pub writer: RefCell<Option<StorageWriter>>,
     /// The saves of the connections by id. The connections are few, it is a list.
@@ -90,6 +92,8 @@ pub(crate) struct Connections {
     pub setups: RefCell<Vec<RunningSetup>>,
     /// The number of the last setup
     pub setup_numbers: Cell<u64>,
+    /// The connections that the openings of workbooks considered for a setup
+    pub open_setups: RefCell<OpenSetups>,
     /// The catalog loader, its host holds the connections weakly
     pub loader: RefCell<Option<CatalogLoader>>,
     /// Is the catalog loader asked to follow the registry at the end of the task?
@@ -103,7 +107,7 @@ pub(crate) struct Connections {
 }
 
 impl Connections {
-    pub fn new(platform: JsPlatform, computations: ComputeService<JsPlatform>) -> Rc<Self> {
+    pub fn new(platform: JsPlatform, computations: ComputeService<ComputeTracker>) -> Rc<Self> {
         let connections = Rc::new(Connections {
             platform: platform.clone(),
             registry: RefCell::new(ConnectionRegistry::new()),
@@ -114,6 +118,7 @@ impl Connections {
             executor: RefCell::new(None),
             setups: RefCell::new(Vec::new()),
             setup_numbers: Cell::new(0),
+            open_setups: RefCell::new(OpenSetups::new()),
             loader: RefCell::new(None),
             follow_requested: Cell::new(false),
             catalog_versions: RefCell::new(Vec::new()),
@@ -278,7 +283,8 @@ impl Connections {
         let writer = self.writer.borrow().clone();
         match writer {
             Some(writer) => schedule_connection_writes(&writer, writes, connection_id),
-            None => self.log(LogLevel::Warn, "The runtime has no storage writer, a change of a connection is not saved", &[("connection", connection_id)]),
+            // A runtime without storage keeps nothing, e.g. the one of the shell
+            None => self.log(LogLevel::Debug, "The runtime has no storage writer, a change of a connection is not saved", &[("connection", connection_id)]),
         }
         Ok(outcome)
     }

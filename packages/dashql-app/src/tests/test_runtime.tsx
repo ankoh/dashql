@@ -22,27 +22,17 @@ interface TestRuntimeProps extends TestQueryExecutorFunctions {
     children?: React.ReactNode;
 }
 
-/// The runtime of the app in a test: the RuntimeProvider over the providers above it, the catalog loader stopped and
-/// the functions of the query executor that the test replaces
+/// The runtime of the app in a test: the RuntimeProvider over the providers above it with the core of the test, the
+/// catalog loader stopped and the functions of the query executor that the test replaces
 export function TestRuntime(props: TestRuntimeProps) {
-    const { children, ...setup } = props;
+    const { children, catalogLoader, core: instance, ...executor } = props;
+    // The connections are slices of the runtime, it is created with the core before they are created
+    const [testCore] = React.useState(() => instance ?? core.DashQL.instantiated() ?? undefined);
     return (
-        <RuntimeProvider>
-            <TestRuntimeSetup {...setup}>{children}</TestRuntimeSetup>
+        <RuntimeProvider core={testCore} catalogLoader={catalogLoader === true}>
+            <TestQueryExecutor {...executor}>{children}</TestQueryExecutor>
         </RuntimeProvider>
     );
-}
-
-function TestRuntimeSetup(props: TestRuntimeProps) {
-    const runtime = useRuntime();
-    // Before the components below render and create their connections and workbooks
-    React.useState(() => {
-        if (!props.catalogLoader) runtime.runCatalogLoader(false);
-        // The connections are slices of the runtime, it needs its core before they are created
-        const instance = props.core ?? core.DashQL.instantiated();
-        if (instance != null) runtime.setCore(instance);
-    });
-    return <TestQueryExecutor execute={props.execute} cancel={props.cancel} watchProfile={props.watchProfile}>{props.children}</TestQueryExecutor>;
 }
 
 /// Replace functions of the query executor of the runtime for the components below, before they render. The

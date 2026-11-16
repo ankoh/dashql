@@ -165,7 +165,7 @@ const EMPTY_CATALOG = {
             read: () => ({ catalogReader: { databasesLength: () => 0 } }),
         }),
     },
-    catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+    catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
 };
 
 describe('WorkbookWorkbenchSidebar workbook creation', () => {
@@ -244,7 +244,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
                     read: () => ({ catalogReader: { databasesLength: () => 0 } }),
                 }),
             },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+            catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
         } as unknown as ConnectionState;
         const attached = { ...main, connectionId: 'attached-database' };
         state.connections.set(main.connectionId, main);
@@ -278,7 +278,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             catalog: { flatten: () => ({
                 read: () => ({ catalogReader: { databasesLength: () => 0 } }),
             }) },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+            catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
         } as unknown as ConnectionState;
         state.workbookAttachedDatabases = { main, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{

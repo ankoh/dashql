@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::restore::{RestoreHost, RestoreProgress};
 use dashql_core_runtime::storage::{ConnectionsUpdate, StorageHost, StorageWriter, WriteOutcome, WriterStatus};
 use dashql_core_runtime::workbook::next_revision;
@@ -264,6 +265,11 @@ impl StorageHost for JsStorage {
         // The attachments in natural order
         let names: Vec<String> = Array::from(&names).iter().filter_map(|name| name.as_string()).collect();
         Ok(dashql_core_runtime::workbook_format::files::workbook_attachments(&names).into_iter().map(|attachment| attachment.name).collect())
+    }
+
+    async fn save_data_file(&self, workbook_id: &str, file_name: &str, file: &HostBytes) -> Result<(), HostError> {
+        let file = file.value().downcast_ref::<JsValue>().cloned().ok_or_else(|| HostError::new(format!("the attachment {file_name} is no file of the host")))?;
+        self.call("saveDataFile", &[text(workbook_id), text(file_name), file]).await.map(|_| ())
     }
 
     async fn update_connections(&self, mut update: ConnectionsUpdate) -> Result<(), HostError> {

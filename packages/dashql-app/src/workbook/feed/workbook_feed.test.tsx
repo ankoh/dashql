@@ -61,7 +61,7 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 
 function baseProps() {
     return {
-        workbookId: 'workbook', connections: new Map(), computeCacheKey: vi.fn(async () => null),
+        workbookId: 'workbook', connections: new Map(),
         storageReader: { backend: {}, getWorkbookLocation: () => ({ type: 'opfs' }) },
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
         scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
@@ -88,7 +88,7 @@ describe('V2 workbook feed rows', () => {
     it('disables every file action for non-WASM connections', () => {
         const workbookId = '12345678-1234-1234-1234-123456789abc';
         const props: WorkbookDataCardProps = {
-            workbookId, file: { name: 'sales 2.parquet', sizeBytes: 42 },
+            workbookId, attachment: { fileName: 'sales 2.parquet', name: 'sales 2', sizeBytes: 42 },
             conn: null, storageReader: { backend: new WorkbookTestBackend() } as any, onRemoved: vi.fn(),
         };
         for (const conn of [null,
@@ -116,7 +116,7 @@ describe('V2 workbook feed rows', () => {
         const onRename = vi.fn();
         const wasm = { connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any;
         act(() => root.render(<LoggerProvider>
-            <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }} conn={wasm}
+            <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }} conn={wasm}
                 storageReader={{ backend: new WorkbookTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
         </LoggerProvider>));
         const tag = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
@@ -144,7 +144,7 @@ describe('V2 workbook feed rows', () => {
         const download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
         try {
             act(() => root.render(<LoggerProvider>
-                <WorkbookDataCard workbookId="workbook" file={{ name: 'sales.parquet', sizeBytes: 3 }}
+                <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }}
                     conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
                     storageReader={{ backend } as any} onRemoved={onRemoved} />
             </LoggerProvider>));
@@ -189,14 +189,13 @@ describe('V2 workbook feed rows', () => {
 
     it('marks a result that was loaded from the cache as cached in the status bar', async () => {
         const props = baseProps();
-        props.scripts[1] = { ...props.scripts[1], latestQueryId: 42, analysisOutdated: false } as any;
+        // The runtime looked up the cached result of the script
+        props.scripts[1] = { ...props.scripts[1], latestQueryId: 42, analysisOutdated: false, cachedResult: { key: 'key', cachedAt: Date.now() - 8 * 60_000 } } as any;
         Object.assign(props, {
             connections: new Map([['database', {
                 connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } },
                 connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
             }]]),
-            computeCacheKey: vi.fn(async () => 'key'),
-            lookupCachedResult: vi.fn(async () => Date.now() - 8 * 60_000),
             dependencies: { ...dependencies, scriptCard: { ...dependencies.scriptCard, EntryStatusBar, CachedResultBean, FeedEntryTabStrip } },
         });
         state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {}, servedFromCache: true };
@@ -488,18 +487,20 @@ describe('Workbook feed composer', () => {
         /// The heights of the text and the results of the scripts that the rows lay out
         rowLayouts: new Map<number, { text: number; result: number }>(),
     };
-    // Stable like the storage contexts, the feed lists the data files again whenever the backend changes
-    const storageReader = { backend: { listDataFiles: () => Promise.resolve([]) } } as any;
-    const storageWriter = { write: () => Promise.resolve({ status: 'written' }) } as any;
+    // Stable like the storage contexts
+    const storageReader = { backend: {} } as any;
+    const attachmentCommands = {
+        attachFiles: vi.fn(async (_workbookId: string, files: readonly { name: string }[]) => ({ attached: files.map(file => ({ name: file.name, fileName: file.name })), refused: [] as string[] })),
+        refreshAttachments: vi.fn(async () => {}),
+    };
     const feedDependencies: WorkbookFeedDependencies = {
         useStorageReader: () => storageReader,
-        useRuntimeStorage: () => storageWriter,
+        useAttachmentCommands: () => attachmentCommands,
         usePickScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
         useAttachPendingConnection: () => vi.fn(),
         useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
         useScriptRun: () => feedState.runScript,
-        useScriptResultKey: () => null,
         useWorkbookScriptMap: () => feedState.scripts,
         useWorkbookDerived: () => null,
         useLiveWorkbookReader: () => () => feedState.next,

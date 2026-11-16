@@ -260,6 +260,15 @@ fn execution_compilation_config(dialect: FormattingDialect) -> FormattingConfigT
 /// borrow ends with the call that took it.
 pub type SessionHandle = Rc<RefCell<ScriptSession>>;
 
+/// The cached result of a script: the reusable key of its result and when the newest file of the key in the query
+/// result cache was written
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScriptCachedResult {
+    pub key: String,
+    /// Milliseconds since the epoch
+    pub cached_at: f64,
+}
+
 /// A script of a workbook
 pub struct WorkbookScript {
     /// The key of the script
@@ -290,6 +299,8 @@ pub struct WorkbookScript {
     latest_query_id: Option<u32>,
     /// The query whose result the script shows, independent of later queries that failed
     latest_result_query_id: Option<u32>,
+    /// The cached result of the script as the host last looked it up, none without one
+    cached_result: Option<ScriptCachedResult>,
     /// The connection that the workbook file names for the script while the app doesn't know it
     unresolved_connection_id: Option<String>,
     /// The revision of the script, it changes with every change of the script
@@ -375,6 +386,9 @@ impl WorkbookScript {
     }
     pub fn latest_result_query_id(&self) -> Option<u32> {
         self.latest_result_query_id
+    }
+    pub fn cached_result(&self) -> Option<&ScriptCachedResult> {
+        self.cached_result.as_ref()
     }
     pub fn unresolved_connection_id(&self) -> Option<&str> {
         self.unresolved_connection_id.as_deref()
@@ -594,6 +608,8 @@ pub enum WorkbookAction {
     RegisterQuery { key: ScriptKey, query_id: u32 },
     /// A query of a script produced the result that the script shows. An older query never replaces a newer result.
     RegisterScriptResult { key: ScriptKey, query_id: u32 },
+    /// The cached result of a script as the host looked it up, none for a script without one
+    SetCachedResult { key: ScriptKey, cached: Option<ScriptCachedResult> },
     /// Rename the workbook, an empty name removes the name
     RenameWorkbook { name: Option<String> },
     /// Move a script to another connection. It keeps its key, its text and its queries, and picking the connection it
@@ -652,6 +668,7 @@ impl WorkbookAction {
                 | WorkbookAction::SetExecutionVisualization { .. }
                 | WorkbookAction::RegisterQuery { .. }
                 | WorkbookAction::RegisterScriptResult { .. }
+                | WorkbookAction::SetCachedResult { .. }
                 | WorkbookAction::RenameWorkbook { .. }
                 | WorkbookAction::SetPendingConnection { .. }
                 | WorkbookAction::DetachConnection { .. }
@@ -1328,6 +1345,13 @@ impl Workbook {
                     }
                 }
             }
+            WorkbookAction::SetCachedResult { key, cached } => {
+                if let Some(script) = self.script_mut(key).filter(|script| script.cached_result != cached) {
+                    script.cached_result = cached;
+                    script.revision = next_revision();
+                    outcome.changed = true;
+                }
+            }
             WorkbookAction::SetScriptConnection { file_name, connection } => {
                 self.set_script_connection(&file_name, connection, &mut outcome)?
             }
@@ -1444,6 +1468,7 @@ impl Workbook {
             statistics: Default::default(),
             latest_query_id: None,
             latest_result_query_id: None,
+            cached_result: None,
             unresolved_connection_id: None,
             revision: next_revision(),
         })
@@ -1769,6 +1794,7 @@ impl Workbook {
         moved.replace_text(&previous.text())?;
         moved.latest_query_id = previous.latest_query_id;
         moved.latest_result_query_id = previous.latest_result_query_id;
+        moved.cached_result = previous.cached_result.clone();
         Ok(moved)
     }
 

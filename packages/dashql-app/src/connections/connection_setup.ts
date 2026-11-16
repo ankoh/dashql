@@ -37,7 +37,7 @@ export function useConnectionSetup(connectionId: string | null): ConnectionSetup
     }, [connectionId, forceRelogin, oauthRedirect, runtime, saveBeforeConnect]);
 
     const cancel = React.useCallback(() => {
-        if (connectionId != null) runtime?.module?.cancelSetup(connectionId);
+        if (connectionId != null) runtime?.module.cancelSetup(connectionId);
     }, [connectionId, runtime]);
 
     const reset = React.useCallback(() => {

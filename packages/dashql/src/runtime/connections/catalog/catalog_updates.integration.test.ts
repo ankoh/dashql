@@ -9,13 +9,22 @@ import { setupTestConnection } from '../../testing/connection_fixtures.js';
 import { createRuntime, type Runtime } from '../../runtime.js';
 import type { ConnectionParams } from '../../../platform/storage/storage_backend.js';
 import { STORAGE_CATALOG_RELATIONS } from '../../../platform/storage/storage_backend.js';
-import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
+import { TASK_UPDATE_SCHEDULER } from '../../store/update_scheduler.js';
 import { TestLogger } from '../../../platform/testing/test_logger.js';
 import { WorkbookTestRegistry } from '../../../platform/testing/workbook_test_backend.js';
 import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../../../platform/connections/embedded/embedded_database_channel.js';
-import { catalogTablesOfDescriptor, generateRelationsFile, packRelationName, readRelationName } from '../../../platform/connections/catalog/catalog_sql_generator.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// A relation name of the core as the test compares it
+interface RelationName { databaseName: string; schemaName: string; tableName: string }
+const readRelationName = (name: dashql.buffers.analyzer.QualifiedTableNameT): RelationName => ({
+    databaseName: String(name.databaseName ?? ''),
+    schemaName: String(name.schemaName ?? ''),
+    tableName: String(name.tableName ?? ''),
+});
+const packRelationName = (relation: RelationName) =>
+    new dashql.buffers.analyzer.QualifiedTableNameT(0, relation.databaseName, relation.schemaName, relation.tableName);
 
 const CONNECTION = dashql.buffers.catalog.CatalogLayer.CONNECTION;
 
@@ -27,6 +36,7 @@ describe('the catalog of a connection follows statements', () => {
     let catalog: dashql.DashQLCatalog;
     let relations: number;
     let queries: string[];
+    let storage: WorkbookTestRegistry;
 
     /// Wait until the catalog loader answered every relation that statements touched
     const settled = () => vi.waitFor(() => {
@@ -47,8 +57,8 @@ describe('the catalog of a connection follows statements', () => {
         await follow(statement);
     };
     /// The relations as `schema.table(a, b)`
-    const tables = () => catalogTablesOfDescriptor(catalog.readDescriptor(relations))
-        .map(table => `${table.schemaName}.${table.tableName}(${table.columns.map(column => column.name).join(', ')})`);
+    const tables = () => (catalog.readDescriptor(relations)?.tables ?? [])
+        .map(table => `${table.tableName?.schemaName}.${table.tableName?.tableName}(${table.tableColumns.map(column => column.columnName).join(', ')})`);
     /// A script that reads a table, what it resolves to
     const reads = (target: dashql.DashQLCatalog, text: string) => {
         const script = dql.createScript(target);
@@ -66,10 +76,13 @@ describe('the catalog of a connection follows statements', () => {
         connection = await database.connect();
         // A Hyper server that a restored catalog describes: the loader only asks about the relations of statements
         const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' };
-        const storage = new WorkbookTestRegistry();
+        storage = new WorkbookTestRegistry();
         storage.connections = [{ id: 'connection', params: { hyper: params } as ConnectionParams }];
-        storage.connectionFiles.set(`connection/${STORAGE_CATALOG_RELATIONS}`, generateRelationsFile(null));
-        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql, storage });
+        storage.connectionFiles.set(`connection/${STORAGE_CATALOG_RELATIONS}`, `-- DashQL Connection Relations.
+-- This file is auto-generated and can only be updated through a catalog refresh.
+
+`);
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, storage });
         await runtime.restore();
         const state = runtime.connection('connection')!;
         expect(state.connectorType).toBe(ConnectorType.HYPER);
@@ -175,7 +188,10 @@ describe('the catalog of a connection follows statements', () => {
         await run('create table it_kept (id int, name text)');
         await run('create table it_gone (a int)');
         await run('drop table it_gone');
-        const file = generateRelationsFile(catalog.readDescriptor(relations));
+        // The file that the runtime wrote
+        await runtime.storage.flush();
+        const file = storage.connectionFiles.get(`connection/${STORAGE_CATALOG_RELATIONS}`)!;
+        expect(file).toContain('it_kept');
         const gone = catalog.absentRelations().map(name => readRelationName(name));
 
         // A new app: the file is parsed once, the descriptor stays and the text goes
@@ -186,8 +202,8 @@ describe('the catalog of a connection follows statements', () => {
         restored.replaceDescriptor(entry, CONNECTION, output.catalogDescriptor!);
         restored.replaceTables(entry, CONNECTION, { relations: gone.map(packRelationName), tables: [] });
 
-        const kept = catalogTablesOfDescriptor(restored.readDescriptor(entry)).find(table => table.tableName === 'it_kept')!;
-        expect(kept.columns.map(column => column.name)).toEqual(['id', 'name']);
+        const kept = restored.readDescriptor(entry)!.tables.find(table => table.tableName?.tableName === 'it_kept')!;
+        expect(kept.tableColumns.map(column => column.columnName)).toEqual(['id', 'name']);
         const declaring = dql.createScript(restored);
         declaring.replaceText('create table it_gone (a int)');
         declaring.analyze();

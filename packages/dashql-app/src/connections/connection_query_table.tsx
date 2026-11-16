@@ -54,14 +54,12 @@ function useQueryComputation(
         const current = state.current;
         current.next = async () => {
             const table = await runQuery(sql);
-            // A runtime without the runtime of the app, e.g. of the shell, gets its core with the first command
-            const id = (await runtime.ready()).allocateId();
+            const id = runtime.module.allocateId();
             try {
                 // The table has no connection, the client context attributes the queries of its computation. It is
                 // ordered like the previous one, an ordering of fields that the table doesn't have is skipped.
                 const previous = current.shown;
                 const ordering = previous == null ? [] : runtime.store.get('computation', previous)?.dataTableOrdering ?? [];
-                runtime.setComputeDatabase(database);
                 await runtime.analyzeTable(id, table, { clientContext, columnAggregates: false, ordering });
             } catch (e) {
                 runtime.dispatch({ computation: id }, { kind: 'deleteComputation' });

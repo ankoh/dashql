@@ -2,7 +2,8 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '../../../core/index.js';
 
 import type { HandleTable } from '../../store/handles.js';
-import type { ParquetDatabase } from '../../../platform/platform/hyperdb/hyperdb_parquet_export.js';
+import { supportsParquet, type ParquetDatabase } from '../../../platform/platform/hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase } from '../../../platform/platform/database/embedded_database.js';
 import type { QueryResultCache } from '../../../platform/query/query_result_cache.js';
 import { mountWorkbookAttachments, readAttachmentColumns } from '../../../platform/workbook/attachments/attachment_mounts.js';
 
@@ -19,9 +20,15 @@ interface RunFiles {
 /// mount path. The result of a script whose key is reusable is a new file of its key, every other result is a transient
 /// file. Hyper writes the files and reads the byte ranges a scan needs from disk. A run pins its files until it releases
 /// them, so eviction and other windows leave them alone; its transient files are removed then. The attachments of a
-/// workbook are mounted from its folder. Without the query result cache a run materializes nothing.
-export function createRunMounts(database: ParquetDatabase, cache: QueryResultCache | null, handles: HandleTable): core.RuntimeMounts {
+/// workbook are mounted from its folder. Without the query result cache a run materializes nothing. The calls wait until
+/// the platform set the compute database up.
+export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable): core.RuntimeMounts {
     const runs = new Map<number, RunFiles>();
+    const database = async (): Promise<ParquetDatabase> => {
+        const database = await computeDatabase();
+        if (!supportsParquet(database)) throw new Error('Scripts that read the results of other scripts or attachments need a compute database that reads Parquet files');
+        return database;
+    };
     const filesOf = (run: number) => {
         let files = runs.get(run);
         if (files == null) {
@@ -42,7 +49,7 @@ export function createRunMounts(database: ParquetDatabase, cache: QueryResultCac
     /// Mount the files and pin a file until the release of the run
     const keep = async (run: number, name: string) => {
         const cache = requireCache();
-        await cache.mount(database);
+        await cache.mount(await database());
         const unpin = await cache.pin(name);
         filesOf(run).pins.push(unpin);
     };
@@ -61,7 +68,7 @@ export function createRunMounts(database: ParquetDatabase, cache: QueryResultCac
             if (table == null) throw new Error('The statement has no result');
             const name = nameOf(cache, path);
             await keep(run, name);
-            await cache.writeTable(database, table, name);
+            await cache.writeTable(await database(), table, name);
             return table.numRows;
         },
         use: async (run, path) => {
@@ -76,8 +83,8 @@ export function createRunMounts(database: ParquetDatabase, cache: QueryResultCac
             await Promise.all(files.transient.map(name => cache?.remove(name).catch(() => {})));
         },
         attachments: async workbookId => {
-            await mountWorkbookAttachments(database, workbookId);
+            await mountWorkbookAttachments(await database(), workbookId);
         },
-        attachmentColumns: (workbookId, fileName) => readAttachmentColumns(database, workbookId, fileName),
+        attachmentColumns: async (workbookId, fileName) => readAttachmentColumns(await database(), workbookId, fileName),
     };
 }

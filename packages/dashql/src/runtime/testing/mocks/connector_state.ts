@@ -3,12 +3,12 @@ import type * as core from '../../../core/index.js';
 import type { ConnectionState } from '../../../platform/connections/connection_state.js';
 import { ConnectorType } from '../../../platform/connections/connector_info.js';
 import { createRuntime, type Runtime } from '../../runtime.js';
-import { TASK_UPDATE_SCHEDULER } from '../../store/store.js';
+import { TASK_UPDATE_SCHEDULER } from '../../store/update_scheduler.js';
 import { TestLogger } from '../../../platform/testing/test_logger.js';
 
 /// A runtime of a test without a platform beyond the core
 export function testRuntime(dql: core.DashQL): Runtime {
-    return createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: dql });
+    return createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql });
 }
 
 /// A new connection of a connector with setup params in the runtime

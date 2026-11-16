@@ -27,6 +27,7 @@ pub mod restore;
 pub mod salesforce;
 pub mod storage;
 pub mod trino;
+pub mod visible_scripts;
 pub mod workbook;
 pub mod workbook_format;
 pub mod workbook_run;

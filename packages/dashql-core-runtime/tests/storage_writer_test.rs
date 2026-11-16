@@ -10,6 +10,7 @@ use std::task::{Context, Poll, Wake, Waker};
 
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::storage::keys::chain_key;
 use dashql_core_runtime::storage::{
     ConnectionsUpdate, HoldReason, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteStatistics, WriteTask,
@@ -212,6 +213,12 @@ impl StorageHost for FakeHost {
 
     async fn list_attachments(&self, _workbook_id: &str) -> Result<Vec<String>, HostError> {
         Ok(Vec::new())
+    }
+
+    async fn save_data_file(&self, workbook_id: &str, file_name: &str, file: &HostBytes) -> Result<(), HostError> {
+        let content = file.value().downcast_ref::<String>().cloned().unwrap_or_default();
+        self.store.borrow_mut().calls.push(format!("data-file:{workbook_id}/{file_name}={content}"));
+        Ok(())
     }
 
     async fn update_connections(&self, mut update: ConnectionsUpdate) -> Result<(), HostError> {
@@ -784,6 +791,30 @@ fn reports_failed_writes_and_never_recreates_a_missing_workbook() {
     }
     assert!(h.store.borrow().workbooks.is_empty());
     assert!(h.store.borrow().logs.iter().any(|(level, message)| *level == LogLevel::Error && message == "executing write task failed"));
+}
+
+// Attachments
+
+#[test]
+fn writes_an_attachment_once_its_workbook_is_released() {
+    let h = Harness::new();
+    let file = |content: &str| WriteTask::SaveDataFile {
+        workbook_id: WORKBOOK.to_string(),
+        file_name: "sales.parquet".to_string(),
+        file: HostBytes::new(Rc::new(content.to_string()), content.len()),
+    };
+    let task = file("rows");
+    let key = task.key();
+    assert_eq!(key, format!("{WORKBOOK}/attachments/sales.parquet"));
+    // An import holds the workbook, the attachment waits for it like the scripts do
+    h.writer.hold(Some(WORKBOOK), HoldReason::Import);
+    assert!(matches!(h.block_on(h.writer.write_durable(&key, task)), WriteOutcome::Deferred));
+    assert!(!h.store.borrow().calls.iter().any(|call| call.starts_with("data-file:")));
+    h.writer.release(Some(WORKBOOK), HoldReason::Import);
+    h.flush();
+    assert!(written(&h.block_on(h.writer.write_durable(&key, file("more rows")))));
+    let calls: Vec<String> = h.store.borrow().calls.iter().filter(|call| call.starts_with("data-file:")).cloned().collect();
+    assert_eq!(calls, [format!("data-file:{WORKBOOK}/sales.parquet=rows"), format!("data-file:{WORKBOOK}/sales.parquet=more rows")]);
 }
 
 // Connections

@@ -115,6 +115,7 @@ export class ScriptProjection implements ViewProjection<'script', ScriptData> {
             externalChanges: view.externalChanges,
             latestQueryId: view.latestQueryId,
             latestResultQueryId: view.latestResultQueryId,
+            cachedResult: view.cachedResult,
             fileName: view.fileName,
             connectionId: view.connectionId,
             ...(view.unresolvedConnectionId != null ? { unresolvedConnectionId: view.unresolvedConnectionId } : {}),

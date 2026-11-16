@@ -295,6 +295,15 @@ rust_test(
     ],
 )
 
+# The analyses of the scripts that the editors show on a clock of the test
+rust_test(
+    name = "visible_scripts_test",
+    size = "small",
+    srcs = ["tests/visible_scripts_test.rs"],
+    edition = "2021",
+    deps = [":dashql_core_runtime"],
+)
+
 # The migrations of the storage root and of workbook folders on a storage in memory
 rust_test(
     name = "storage_migration_test",

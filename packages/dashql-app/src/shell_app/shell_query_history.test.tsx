@@ -51,8 +51,6 @@ describe('ShellQueryHistoryProvider', () => {
             </StandaloneRuntime>
         ));
 
-        // The history waits for the core of the shell
-        await act(async () => { await runtime!.ready(); });
         await act(async () => {
             await executeTrackedQuery({
                 query: 'SELECT 1',

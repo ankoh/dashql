@@ -1,6 +1,4 @@
 //! The columns of the relations of a PostgreSQL catalog, Hyper reads its relations with them.
-//!
-//! Ported from `catalog_query_pg_attribute.ts` of `packages/dashql/src/runtime/connections/catalog/`.
 
 use arrow_array::RecordBatch;
 

@@ -34,7 +34,8 @@ function database(connectionId: string, params: any, health = ConnectionHealth.N
         connectionHealth: health,
         connectorType,
         details: { setupParams: Object.values(params)[0], channel: null, connector: { kind: connectorType === ConnectorType.HYPER ? 'hyper' : 'trino' } },
-        catalogUpdates: { currentFullRefresh: null, tasksRunning: [] },
+        catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
+        canRefresh: health === ConnectionHealth.ONLINE,
     } as unknown as ConnectionState;
 }
 

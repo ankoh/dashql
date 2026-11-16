@@ -16,8 +16,10 @@
 //! call into the platform. Arguments of the wrong type fail with a JS error, nothing panics.
 
 pub(crate) mod archives;
+pub(crate) mod attachments;
 pub(crate) mod catalog;
 pub(crate) mod computation;
+pub(crate) mod compute_tracking;
 pub(crate) mod connections;
 pub(crate) mod exports;
 pub(crate) mod external;
@@ -60,6 +62,7 @@ use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog};
 use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
+use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
 use queries::QueryArgs;
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
@@ -253,6 +256,11 @@ pub enum RuntimeAction {
     SetWorkbookInput { name: String, literal: String, script_keys: Vec<u32> },
     /// Analyze a script if its analysis is outdated
     AnalyzeOutdatedScript { script_key: u32 },
+    /// An editor shows a script, the selected one or not: its outdated analysis runs right away when it is selected,
+    /// once the changes pause otherwise
+    ShowScript { script_key: u32, selected: bool },
+    /// An editor no longer shows a script, with the selection of its `showScript`
+    HideScript { script_key: u32, selected: bool },
     /// A query of a script started
     RegisterQuery { script_key: u32, query_id: u32 },
     /// A query of a script produced the result that the script shows
@@ -537,7 +545,7 @@ fn take_entry<K: PartialEq, V>(list: &mut Vec<(K, V)>, key: &K) -> Option<V> {
 #[wasm_bindgen]
 pub struct Runtime {
     pub(crate) platform: JsPlatform,
-    computations: ComputeService<JsPlatform>,
+    computations: ComputeService<ComputeTracker>,
     connections: Rc<Connections>,
     pub(crate) workbooks: Rc<Workbooks>,
     runs: Rc<Runs>,
@@ -930,6 +938,14 @@ impl Runtime {
             RuntimeAction::SetScriptVisSpec { script_key, spec } => A::SetScriptVisSpec { key: script_key, spec },
             RuntimeAction::SetWorkbookInput { name, literal, script_keys } => A::SetWorkbookInput { name, literal, keys: script_keys },
             RuntimeAction::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
+            RuntimeAction::ShowScript { script_key, selected } => {
+                workbooks.visible.show(script_key, selected);
+                return Ok(DispatchOutcome::changed(false));
+            }
+            RuntimeAction::HideScript { script_key, selected } => {
+                workbooks.visible.hide(script_key, selected);
+                return Ok(DispatchOutcome::changed(false));
+            }
             RuntimeAction::RegisterQuery { script_key, query_id } => A::RegisterQuery { key: script_key, query_id },
             RuntimeAction::RegisterScriptResult { script_key, query_id } => A::RegisterScriptResult { key: script_key, query_id },
             RuntimeAction::RenameWorkbook { name } => A::RenameWorkbook { name },
@@ -1063,12 +1079,17 @@ impl Runtime {
     /// A runtime on a platform
     pub fn create(platform: JsRuntimePlatform) -> Runtime {
         let platform = JsPlatform::new(platform);
-        let computations = ComputeService::new(platform.clone());
+        let tracker = ComputeTracker::new(platform.clone());
+        let computations = ComputeService::new(tracker.clone());
         let connections = Connections::new(platform.clone(), computations.clone());
+        tracker.attach(&connections);
         let storage = Rc::new(StorageState::default());
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
         let writer = dashql_core_runtime::storage::StorageWriter::new(host, WORKBOOK_FORMAT_VERSION);
-        *connections.writer.borrow_mut() = Some(writer.clone());
+        // A runtime without storage keeps no connections, e.g. the one of the shell
+        if platform.has_storage() {
+            *connections.writer.borrow_mut() = Some(writer.clone());
+        }
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
         let imports = imports::Imports::new(platform.clone(), connections.clone());
@@ -1378,6 +1399,9 @@ impl Runtime {
         let lifetime = self.platform.register(&lifetime_token()).map_err(fail)?;
         let handles = AnalysisHandles { table, lifetime };
         let analyze_options = RuntimeAnalyzeOptions { column_aggregates: options.column_aggregates.unwrap_or(true) };
+        if let Some(history) = options.history {
+            self.computations.host().track_in_history(table_id, history);
+        }
         let analysis =
             self.computations.analyze_table(table_id, result, handles, options.connection_id, options.client_context, analyze_options);
         let ordering: Vec<OrderByConstraint> = options.ordering.unwrap_or_default().into_iter().map(OrderByConstraint::from).collect();
@@ -1498,6 +1522,15 @@ impl Runtime {
         let options = options.as_ref().map(from_js).transpose()?.unwrap_or_default();
         let setup = self.connections.setup(connection_id, options);
         Ok(future_to_promise(async move { setup_outcome(setup.await) }))
+    }
+
+    /// Set up the connections of a workbook that the app opens and that need nothing of the user: the embedded Hyper
+    /// and the Hyper of a link once the tab holds its token. Every connection is considered once, the app calls it
+    /// again when the workbook or the tokens of the links change.
+    #[wasm_bindgen(js_name = setUpOpenedWorkbook)]
+    pub fn set_up_opened_workbook(&self, workbook_id: &str) {
+        let connection_ids = self.workbooks.get(workbook_id).and_then(|workbook| workbook.try_borrow().ok().map(|workbook| Workbooks::connection_ids(&workbook)));
+        self.connections.set_up_opened(workbook_id, connection_ids.unwrap_or_default());
     }
 
     /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell. The

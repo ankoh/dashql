@@ -54,7 +54,7 @@ class SilentLogger extends Logger {
 }
 const folder = await mkdtemp(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-node-smoke-'));
 try {
-    const runtime = createRuntime(createNodePlatform({ logger: new SilentLogger(), storage: new NativeStorageBackend(folder, NODE_FILE_SYSTEM) }));
+    const runtime = createRuntime(await createNodePlatform({ logger: new SilentLogger(), storage: new NativeStorageBackend(folder, NODE_FILE_SYSTEM) }));
     try {
         await runtime.restore();
         const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));

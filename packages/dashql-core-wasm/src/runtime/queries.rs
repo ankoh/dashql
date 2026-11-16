@@ -1112,6 +1112,10 @@ impl Connections {
     /// the host tracks is aborted through its record
     pub(crate) fn cancel_now(&self, query_id: QueryId) {
         let Some(run) = self.run_of(query_id) else {
+            // A query of a computation aborts the call of its run
+            if self.computations.host().stop(query_id) {
+                return;
+            }
             // A query that the host tracks is aborted through its record
             let history = self.registry.borrow().query_history(query_id).map(|(_, history)| history);
             let handle = history.and_then(|history| history.borrow().active(query_id).and_then(|query| query.handle));

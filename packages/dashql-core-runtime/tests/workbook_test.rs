@@ -9,7 +9,7 @@ use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, 
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::workbook::{
-    new_catalog, text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
+    new_catalog, text_change, CloudLink, ConnectionCopy, ExternalChanges, ScriptCachedResult, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
     Workbook, WorkbookAction, WorkbookEffect,
 };
 
@@ -414,6 +414,24 @@ fn keeps_the_result_of_the_newest_query() {
     assert!(!workbook.apply(WorkbookAction::RegisterScriptResult { key: alpha, query_id: 5 }).unwrap().changed);
     let script = workbook.script(alpha).unwrap();
     assert_eq!((script.latest_query_id(), script.latest_result_query_id()), (Some(8), Some(7)));
+}
+
+#[test]
+fn keeps_the_cached_result_that_the_host_looked_up() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
+    let alpha = key(&workbook, "alpha.sql");
+    assert_eq!(workbook.script(alpha).unwrap().cached_result(), None);
+    let cached = ScriptCachedResult { key: "k".into(), cached_at: 1000.0 };
+    let set = |cached: Option<ScriptCachedResult>| WorkbookAction::SetCachedResult { key: alpha, cached };
+    let revision = workbook.script(alpha).unwrap().revision();
+    let outcome = workbook.apply(set(Some(cached.clone()))).unwrap();
+    // The cached result is no content of the workbook, nothing is written
+    assert!(outcome.changed && outcome.effects.is_empty());
+    assert_eq!(workbook.script(alpha).unwrap().cached_result(), Some(&cached));
+    assert_ne!(workbook.script(alpha).unwrap().revision(), revision);
+    assert!(!workbook.apply(set(Some(cached))).unwrap().changed);
+    assert!(workbook.apply(set(None)).unwrap().changed);
+    assert_eq!(workbook.script(alpha).unwrap().cached_result(), None);
 }
 
 #[test]

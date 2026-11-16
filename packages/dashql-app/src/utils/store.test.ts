@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Store } from '@ankoh/dashql/runtime/store/store';
+import { Store } from './store.js';
 
 describe('store', () => {
     it('runs every updater exactly once and notifies after changes', () => {

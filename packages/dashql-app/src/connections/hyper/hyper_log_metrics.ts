@@ -17,7 +17,7 @@ import {
 } from '../../platform/hyperdb/hyperdb_log_extract.js';
 import type { Logger } from '@ankoh/dashql/platform/platform/logger/logger';
 import { stringifyError } from '@ankoh/dashql/platform/platform/logger/logger';
-import { Store } from '@ankoh/dashql/runtime/store/store';
+import { Store } from '../../utils/store.js';
 import { quoteIdentifier, quoteLiteral } from '@ankoh/dashql/platform/utils/sql_quote';
 
 const LOG_CTX = 'hyper_log_metrics';

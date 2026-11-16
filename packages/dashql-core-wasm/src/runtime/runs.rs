@@ -16,6 +16,7 @@
 //! the attachments, are files of the platform (`mounts`, `resultCache`). The runtime reads the columns of the Parquet
 //! attachments of the workbooks once per file with the compute database.
 
+mod cached_results;
 pub(crate) mod view;
 
 use std::cell::{Cell, RefCell};
@@ -99,6 +100,8 @@ pub(crate) struct Runs {
     numbers: Cell<u64>,
     /// The Parquet attachments whose columns were read, by workbook, file and stamp
     described: RefCell<BTreeSet<String>>,
+    /// The cached results of the scripts that the runtime looked up
+    cached: cached_results::CachedResults,
     destroyed: Cell<bool>,
 }
 
@@ -140,6 +143,7 @@ impl Runs {
             entries: RefCell::new(Vec::new()),
             numbers: Cell::new(0),
             described: RefCell::new(BTreeSet::new()),
+            cached: Default::default(),
             destroyed: Cell::new(false),
         });
         // The runs follow the changes of the registry: dropped connections, workbooks that are gone, changes of inputs
@@ -148,6 +152,13 @@ impl Runs {
         *connections.follow_listener.borrow_mut() = Some(Rc::new(move || {
             if let Some(runs) = weak.upgrade() {
                 runs.follow();
+            }
+        }));
+        // The cached results of the scripts follow the changes of the workbooks, e.g. their analyses
+        let weak = Rc::downgrade(&runs);
+        *runs.workbooks.changed_listener.borrow_mut() = Some(Rc::new(move || {
+            if let Some(runs) = weak.upgrade() {
+                runs.check_cached_results();
             }
         }));
         runs
@@ -447,6 +458,8 @@ impl Runs {
     fn release(self: &Rc<Self>, workbook_id: &str) {
         self.update(workbook_id, |entry| entry.held = None);
         self.start_pending();
+        // The run wrote the files of its keys
+        self.forget_cached_results(workbook_id);
     }
 
     /// Drop a change of inputs that still waits after a while
@@ -529,6 +542,7 @@ impl Runs {
         }
         self.start_pending();
         self.describe_attachments();
+        self.check_cached_results();
     }
 
     /// Stop the run of a workbook

@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { createRuntime } from '../runtime.js';
-import { TASK_UPDATE_SCHEDULER } from '../store/store.js';
+import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import { TestLogger } from '../../platform/testing/test_logger.js';
 import { testCore } from '../testing/test_runtime.js';
 import { openNodeRoot } from '../../platform/node/node_directory_handle.js';
@@ -97,11 +97,11 @@ describe('the migrations of the runtime', () => {
         }));
         await write('folder/scripts/a.sql', 'select 1');
         const storage = new NativeStorageBackend(path.join(dir, 'folder'), NODE_FILE_SYSTEM);
-        const runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, setupCore: await testCore(), storage });
+        const runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: await testCore(), storage });
         try {
             // The folder is its own storage, the id is only known after the migration
-            expect(await runtime.migrateWorkbookFolder('')).toBe('migrated');
-            expect(await runtime.migrateWorkbookFolder('')).toBe('current');
+            expect(await runtime.module.migrateWorkbookFolder('')).toBe('migrated');
+            expect(await runtime.module.migrateWorkbookFolder('')).toBe('current');
             const { workbookId } = await storage.loadWorkbook('');
             expect(workbookId).toBe(SESSION_A);
             await runtime.restoreWorkbook(workbookId);
