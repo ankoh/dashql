@@ -19,26 +19,28 @@ const PAGE_TIMEOUT = 60_000;
 /// The editor with the script of a workbook that holds the text
 const scriptEditor = (page, text) => page.locator('.cm-content').filter({ hasText: text });
 
-/// A query of the feed runs on an engine that is up, it does not get the time of a boot
-const QUERY_TIMEOUT = 20_000;
-
 /// Wait until the query of the script cell is done, in a workbook with a single one.
 /// A failed query fails the test right away with its message, it doesn't wait for a timeout.
+/// The query gets the time of a page: the first query of a page also waits for Hyper to boot.
 async function waitForQuery(page) {
     const done = page.locator('[data-testid="entry-status"]:is([data-status="succeeded"], [data-status="failed"])');
-    await done.waitFor({ timeout: QUERY_TIMEOUT });
+    await done.waitFor();
     if (await done.getAttribute('data-status') !== 'succeeded') throw new Error(`The query failed: ${await done.textContent()}`);
+}
+
+/// Run a query from the composer of the greeter, its first script creates the workbook
+async function sendFromComposer(page, text) {
+    await page.getByTestId('composer-send').waitFor();
+    await page.locator('.cm-content').first().click();
+    await page.keyboard.insertText(text);
+    await page.getByTestId('composer-send').click();
+    await waitForQuery(page);
 }
 
 /// Open the app and run a query in the composer of the new workbook
 async function openWorkbookWithQuery(page, navigate) {
     await navigate('/');
-    await page.getByRole('navigation', { name: 'Areas' }).waitFor();
-    await page.getByTestId('composer-send').waitFor();
-    await page.locator('.cm-content').first().click();
-    await page.keyboard.type('select 42 as answer');
-    await page.getByTestId('composer-send').click();
-    await waitForQuery(page);
+    await sendFromComposer(page, 'select 42 as answer');
     // The result card counts the rows, the bar of Wobble tells them too
     await page.getByText('1 row, 4 bytes').waitFor();
     await page.getByText('42', { exact: true }).last().waitFor();
@@ -49,6 +51,8 @@ const pathnameOf = page => new URL(page.url()).pathname;
 
 /// Wait until the storage wrote a script with the text to OPFS. The writer debounces the edits, and a reload doesn't
 /// wait for the write that the page starts when it goes away; a slow machine loses it.
+/// Only the `.sql` files count: Chromium writes into a swap file `<name>.crswap` and moves it over the script when the
+/// write closes, a reload before that keeps the old script.
 async function waitForScriptWrite(page, text) {
     await page.waitForFunction(async text => {
         const root = await navigator.storage.getDirectory();
@@ -57,7 +61,7 @@ async function waitForScriptWrite(page, text) {
             if (workbook.kind !== 'directory') continue;
             const scripts = await workbook.getDirectoryHandle('scripts').catch(() => null);
             for await (const script of scripts?.values() ?? []) {
-                if (script.kind === 'file' && (await (await script.getFile()).text()).includes(text)) return true;
+                if (script.kind === 'file' && script.name.endsWith('.sql') && (await (await script.getFile()).text()).includes(text)) return true;
             }
         }
         return false;
@@ -68,12 +72,8 @@ async function waitForScriptWrite(page, text) {
 /// An editor that measured before the list had a width would stay thousands of pixels too high.
 async function testAppWrappedScript(page, navigate) {
     await navigate('/');
-    await page.getByTestId('composer-send').waitFor();
-    await page.locator('.cm-content').first().click();
     const columns = Array.from({ length: 30 }, (_, i) => `1 as column_${i}_with_a_long_name`);
-    await page.keyboard.insertText(`select ${columns.join(', ')};`);
-    await page.getByTestId('composer-send').click();
-    await waitForQuery(page);
+    await sendFromComposer(page, `select ${columns.join(', ')};`);
     const { contentHeight, scrollerHeight, overflow, rowHeight } = await scriptEditor(page, 'column_0_with_a_long_name').evaluate(content => {
         const scroller = content.closest('.cm-scroller');
         return {
@@ -104,11 +104,7 @@ async function testAppGreeter(page, navigate) {
     await expectGreeter();
     if (await page.getByTestId('workbook-row-menu').count() !== 0) throw new Error('The reload created a workbook');
 
-    await page.getByTestId('composer-send').waitFor();
-    await page.locator('.cm-content').first().click();
-    await page.keyboard.type('select 42 as answer');
-    await page.getByTestId('composer-send').click();
-    await waitForQuery(page);
+    await sendFromComposer(page, 'select 42 as answer');
     await page.waitForURL(url => url.pathname.startsWith('/workbooks/'));
     const workbookPathname = pathnameOf(page);
     await page.getByTestId('workbook-row-menu').waitFor();
@@ -460,12 +456,8 @@ const findDragRegionErrors = page => page.evaluate(() => {
 async function testAppDragRegions(page, navigate) {
     if (page.context().browser().browserType().name() !== 'chromium') return;
     await navigate('/');
-    await page.getByTestId('composer-send').waitFor();
-    await page.locator('.cm-content').first().click();
-    const columns = Array.from({ length: 200 }, (_, i) => `${i} as column_${i}`);
-    await page.keyboard.insertText(`select\n${columns.join(',\n')};`);
-    await page.getByTestId('composer-send').click();
-    await waitForQuery(page);
+    // 200 lines but one column, the analysis of a result with 200 columns took longer than the test on CI
+    await sendFromComposer(page, `select\n${Array.from({ length: 200 }, (_, i) => i).join(' +\n')} as total;`);
 
     // The row reaches behind both bars when the feed follows its end
     const cell = page.getByTestId('script-cell').first();
