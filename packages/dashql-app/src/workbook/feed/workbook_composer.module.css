@@ -11,11 +11,6 @@
     --prompt_editor_max_height: 30vh;
 }
 
-/* In AI the prompt takes nothing, an agent in the terminal writes the scripts: the whole prompt is greyed */
-.composer[data-mode="ai"] {
-    --composer_bg: var(--color_bg_subtle);
-}
-
 .composer[data-variant="hero"] {
     --composer_bar_padding: 3px 6px 3px 16px;
     --prompt_editor_max_height: 40vh;

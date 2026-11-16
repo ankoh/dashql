@@ -366,7 +366,7 @@ describe('Workbook composer', () => {
         const command = () => container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')?.value ?? null;
         const snippets = () => container.querySelector<HTMLButtonElement>('[data-testid="composer-snippets"]')!;
 
-        it('greys the prompt, disables Run and the snippets and shows the line that launches a harness', async () => {
+        it('disables Run and the snippets and shows the line that launches a harness', async () => {
             const editor = await renderConnected(ComposerMode.Sql);
             act(() => type(editor, 'select 1'));
             expect(command()).toBeNull();
