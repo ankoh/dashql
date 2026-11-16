@@ -230,13 +230,15 @@ server stays the one place the page talks to.
 
 ### How the agent learns DashQL
 
-Today the agent gets one line from the hook at the start, "DashQL shows this session live", nothing about the commands.
-
-- **The output of the hook at the start** goes into the context of the agent with both harnesses. `dashql connect`
-  knows the session, so the hook says what is specific to it: the folder of the workbook, the connections the agent
-  may use, to run `dashql describe` first. Nothing is installed.
-- **`dashql describe`** (new) prints the commands, the workbook folder and how to work with them, like `hyperdb-edge
-  describe` (`docs/wip/hyperdb_edge.md`). The text lives in the command, it fits the installed version.
+- **The output of the hook at the start** goes into the context of the agent with both harnesses. Built: the hook of
+  `dashql connect` says that DashQL shows the session, that the tab copies its workbook into `.dashql/workbooks/<id>/`
+  and to run `dashql describe` first. Nothing is installed. Not yet: the connections the agent may use.
+- **`dashql describe`** (built) prints the layout of a workbook folder, the commands, how the tab takes the changes of
+  the agent and the workbooks that the tabs copied into the folder, like `hyperdb-edge describe`
+  (`docs/wip/hyperdb_edge.md`). The text lives in the command, it fits the installed version. It reads the copies from
+  disk, it needs no server and no token.
+- **`dashql` on the path.** The agent of a harness that `npx` launched has no `dashql`: `dashql connect` writes one
+  into the folder of the session and puts it first on the `PATH` of the harness (built).
 - **A skill** only for the installed path without `dashql connect` (case B with hooks in the settings): a short
   `SKILL.md` in the package that says when to use DashQL and to run `dashql describe`, as the one of hyperdb-edge.
   Whether `dashql connect` can hand a skill to a harness without installing it is to check in the vendored harnesses,
@@ -260,7 +262,7 @@ To check before the runs over the server:
    the page to the server. Built: one journal per session, the copy, the scripts in both directions. Open: the rest of
    the copy (see above), the results of the agent's runs in the tab.
 2. The parameters of connections from the folder in `dashql run` and in the app.
-3. The output of the hook at the start and `dashql describe`.
+3. The output of the hook at the start and `dashql describe`. Built, without the connections of the agent.
 4. Logins through the page, runs of connections with a login in the process of `dashql connect`.
 5. The menu of the connections of the agent.
 

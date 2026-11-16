@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import type { AgentSessionState } from '@ankoh/dashql/platform/session/agent_ses
 
 import { claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
 import { SESSION_NAME_ENV } from './session_journal.js';
-import { runSession, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionEnvironment } from './session_command.js';
+import { CONNECTED_SESSION_START, runSession, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionEnvironment } from './session_command.js';
 import { runWith } from './test_process.js';
 
 /// The folder of the session, the server writes its journal there
@@ -48,7 +48,7 @@ function runHook(command: string, harnessEnv: Record<string, string>, payload: o
 
 /// A connect environment whose harness is a function of the test
 function connectEnvironment(harness: ConnectEnvironment['runHarness']): ConnectEnvironment {
-    return { home: null, dashql: DASHQL, runHarness: harness };
+    return { home: null, dashql: DASHQL, searchPath: '/usr/bin', posix: true, runHarness: harness };
 }
 
 const connect = (env: ConnectEnvironment, args: string[]) => runWith((a, cli) => runConnect(a, cli, env), W, args);
@@ -64,7 +64,16 @@ describe('dashql connect', () => {
             program = harnessProgram;
             args = harnessArgs;
             expect(cwd).toBe(W);
-            expect(harnessEnv).toEqual({ [SESSION_ENDPOINT_ENV]: `http://127.0.0.1:${port}`, [SESSION_TOKEN_ENV]: 's3cret', [SESSION_NAME_ENV]: String(port) });
+            const bin = path.join(W, '.dashql', 'sessions', String(port), 'bin');
+            expect(harnessEnv).toEqual({
+                [SESSION_ENDPOINT_ENV]: `http://127.0.0.1:${port}`,
+                [SESSION_TOKEN_ENV]: 's3cret',
+                [SESSION_NAME_ENV]: String(port),
+                PATH: `${bin}:/usr/bin`,
+            });
+            // The agent runs dashql like the hooks
+            expect(readFileSync(path.join(bin, 'dashql'), 'utf8')).toBe(`#!/bin/sh\nexec /usr/bin/node '/opt/dash ql/dashql.js' "$@"\n`);
+            expect(statSync(path.join(bin, 'dashql')).mode & 0o111).not.toBe(0);
             // The journal of the session is its own, named by the port
             expect(existsSync(path.join(W, '.dashql', 'sessions', String(port), 'journal.jsonl'))).toBe(true);
             // The page follows the server like the tab that showed the line
@@ -72,7 +81,7 @@ describe('dashql connect', () => {
             const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
             const command = (event: string) => hooks[event][0].hooks[0].command as string;
             const start = await runHook(command('SessionStart'), harnessEnv, { session_id: 'c1', cwd: W });
-            expect(start.stdout).toBe('DashQL shows this session live\n');
+            expect(start.stdout).toBe(`${CONNECTED_SESSION_START}\n`);
             await runHook(command('UserPromptSubmit'), harnessEnv, { session_id: 'c1', cwd: W, prompt: 'how many orders' });
             await runHook(command('PostToolUse'), harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'Bash', tool_input: { command: 'dashql lint a.sql' } });
             await runHook(command('Stop'), harnessEnv, { session_id: 'c1', cwd: W, last_assistant_message: '42' });

@@ -1,4 +1,8 @@
 import { spawn } from 'node:child_process';
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@ankoh/dashql/platform/session/workbook_journal';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
@@ -29,6 +33,10 @@ export interface ConnectEnvironment {
     home: string | null;
     /// The program and the arguments that run dashql again, the hooks call it
     dashql: string[];
+    /// The search path of the process, the harness gets a `dashql` in front of it
+    searchPath: string;
+    /// Can the harness run a shell script as `dashql`? Not on Windows.
+    posix: boolean;
     /// Run the harness in this terminal, resolves with its exit code
     runHarness: (program: string, args: string[], env: Record<string, string>, cwd: string) => Promise<number>;
 }
@@ -37,6 +45,8 @@ export function processConnectEnvironment(): ConnectEnvironment {
     return {
         home: process.env.DASHQL_HOME || null,
         dashql: [process.execPath, process.argv[1]],
+        searchPath: process.env.PATH ?? '',
+        posix: process.platform !== 'win32',
         runHarness: (program, args, env, cwd) => new Promise<number>((resolve, reject) => {
             const child = spawn(program, args, { cwd, env: { ...process.env, ...env }, stdio: 'inherit' });
             // Ctrl-C reaches the harness in the same terminal, the harness decides what it means
@@ -66,6 +76,22 @@ const signalNumbers: Record<string, number> = { SIGHUP: 1, SIGINT: 2, SIGKILL: 9
 /// A word of a POSIX shell command
 export function shellWord(word: string): string {
     return /^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replace(/'/g, `'\\''`)}'`;
+}
+
+/// Put a `dashql` that runs this dashql into the folder of the session, the agent of a harness that `npx` launched
+/// has none on its path. Returns the folder of the command, null if it can't be written. The folder of the session goes
+/// when the session ends.
+export function writeDashqlCommand(folder: string, session: string, dashql: string[]): string | null {
+    const bin = path.join(folder, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), 'bin');
+    try {
+        mkdirSync(bin, { recursive: true });
+        const command = path.join(bin, 'dashql');
+        writeFileSync(command, `#!/bin/sh\nexec ${dashql.map(shellWord).join(' ')} "$@"\n`);
+        chmodSync(command, 0o755);
+        return bin;
+    } catch {
+        return null;
+    }
 }
 
 /// The command of a hook of a harness
@@ -131,13 +157,17 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     const program = named.get('command') ?? harness;
     const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql) : codexHookArgs(env.dashql)), ...rest];
     cli.stdout(`DashQL follows this session on 127.0.0.1:${server.port}\n`);
+    const harnessEnv: Record<string, string> = {
+        [SESSION_ENDPOINT_ENV]: target.endpoint,
+        [SESSION_TOKEN_ENV]: target.token,
+        [SESSION_NAME_ENV]: String(server.port),
+    };
+    // The agent runs `dashql` like the hooks do
+    const bin = env.posix ? writeDashqlCommand(folder, String(server.port), env.dashql) : null;
+    if (bin != null) harnessEnv.PATH = env.searchPath.length > 0 ? `${bin}${path.delimiter}${env.searchPath}` : bin;
     let code: number;
     try {
-        code = await env.runHarness(program, args, {
-            [SESSION_ENDPOINT_ENV]: target.endpoint,
-            [SESSION_TOKEN_ENV]: target.token,
-            [SESSION_NAME_ENV]: String(server.port),
-        }, folder);
+        code = await env.runHarness(program, args, harnessEnv, folder);
     } catch (error) {
         cli.stderr((error as { code?: string }).code === 'ENOENT'
             ? `dashql: cannot run ${program}, is ${harness === 'claude' ? 'Claude Code' : 'Codex'} installed?\n`

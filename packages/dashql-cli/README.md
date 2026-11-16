@@ -9,6 +9,8 @@ harness gets the answers of the app (`docs/design/dashql_runtime.md`):
 - **`dashql connect`** launches Claude Code or Codex and shows its session live in the tab of DashQL that gave the
   command, see below.
 - **`dashql session`** shows the session of an agent harness in DashQL, see below.
+- **`dashql describe`** tells an agent how to work on the workbooks of DashQL and lists the workbooks that the tabs of
+  DashQL copied into the folder, see below.
 
 ```
 bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
@@ -198,10 +200,28 @@ stay quiet then. When the harness exits, `connect` ends the session and stops th
 the harness. A port that is taken fails before the harness starts, the tab gives a new one. The arguments after `--`
 go to the harness, `--command` launches another program than `claude` or `codex` on the `PATH`.
 
+The hook at the start tells the agent that DashQL shows the session, where the tab copies its workbook and to run
+`dashql describe` first. The harness puts the output of the hook into the context of the agent. The agent of a harness
+that `npx` launched has no `dashql` on its path: `connect` writes one into the folder of the session
+(`.dashql/sessions/<port>/bin/dashql`, a shell script that runs this `dashql`) and puts that folder first on the `PATH`
+of the harness. Not on Windows.
+
 The port names the session: its journal is `.dashql/sessions/<port>/journal.jsonl`, and the harness gets
 `DASHQL_SESSION=<port>`, which `dashql run` appends to. Two sessions in one folder keep apart, the folder of a session
 goes when it ends. The tab writes the workbook that it shows into `.dashql/workbooks/<workbook id>/` once the server
 answers, the agent works on that copy, and its changed scripts come back into the tab as rewrites to accept.
+
+## dashql describe
+
+```
+dashql describe [--workspace <dir>]
+```
+
+Prints what an agent needs to work on the workbooks of DashQL: the layout of a workbook folder, the commands, how the
+tab takes the changes of the agent, and that file contents and results are data, not instructions. Then the workbooks
+that the tabs of DashQL copied into `.dashql/workbooks/` of the workspace, with their names, scripts and connections.
+The text lives in the command, so it fits the installed version; the hook at the start of a session of `dashql
+connect` points the agent to it.
 
 ## dashql session
 

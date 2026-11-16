@@ -46,6 +46,11 @@ export interface SessionEnvironment {
 }
 
 /// Where the hooks of `dashql connect` send the events, in the environment of the harness
+/// What a hook of \`dashql connect\` tells the agent at the start of the session, the harness puts it into the context
+export const CONNECTED_SESSION_START = `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
+.dashql/workbooks/<id>/ of this folder. Before you work on SQL or a workbook, run \`dashql describe\`: it tells how
+to work on the workbooks of DashQL and which ones the tab shows.`;
+
 export const SESSION_ENDPOINT_ENV = 'DASHQL_SESSION_ENDPOINT';
 export const SESSION_TOKEN_ENV = 'DASHQL_SESSION_TOKEN';
 
@@ -162,7 +167,7 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
         } catch (error) {
             cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
         }
-        if (event.event === 'SessionStart') cli.stdout('DashQL shows this session live\n');
+        if (event.event === 'SessionStart') cli.stdout(`${CONNECTED_SESSION_START}\n`);
         return EXIT_OK;
     }
     const session = (payload as { session_id?: unknown })?.session_id;
