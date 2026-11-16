@@ -17,6 +17,6 @@
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {
     "@ankoh/dashql": "0.0.2-dev.17",
-    "hyperdb-wasm": "0.0.27368-dev.wasm.ge6142229"
+    "hyperdb-wasm": "0.0.27368-dev.wasm.ge0a6b4a9"
   }
 }
