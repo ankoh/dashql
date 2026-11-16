@@ -28,7 +28,7 @@ use dashql_buffers::parser::{
 use dashql_buffers::visualization::{DashboardSpecT, TableSpecT};
 use dashql_parser::keywords::Keyword;
 use dashql_parser::parser::context::resolve_text_span;
-use dashql_parser::parser::ParsedScript;
+use dashql_parser::parser::{ParsedScript, Statement};
 use dashql_parser::scanner::{ScannedScript, Symbol};
 use dashql_parser::span::TextSpan;
 use dashql_parser::symbol_kind::*;
@@ -64,10 +64,6 @@ fn symbol_span(span: SymbolSpan) -> SymbolSpanT {
 }
 
 /// The index of a node in its AST
-fn n_index(nodes: &[Node], n: &Node) -> usize {
-    (n as *const Node as usize - nodes.as_ptr() as usize) / std::mem::size_of::<Node>()
-}
-
 fn comment_block(b: &dashql_parser::comment_blocks::CommentBlock) -> CommentBlockT {
     build!(CommentBlockT {
         block_type: b.block_type,
@@ -146,11 +142,11 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
     let mut offsets = Vec::with_capacity(count);
     let mut lengths = Vec::with_capacity(count);
     let mut types = Vec::with_capacity(count);
-    for (id, symbol) in scanned.symbols[..count].iter().enumerate() {
+    for (symbol, &name_override) in scanned.symbols.iter().zip(&name_overrides).take(count) {
         offsets.push(symbol.location.offset);
         lengths.push(symbol.location.length);
         let mut t = token_type(symbol, &scanned.text);
-        if t == ScannerTokenType::KEYWORD && name_overrides[id] {
+        if t == ScannerTokenType::KEYWORD && name_override {
             t = ScannerTokenType::IDENTIFIER;
         }
         types.push(t);
@@ -159,7 +155,7 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
     let mut breaks = Vec::with_capacity(scanned.line_breaks.len());
     let mut oi = 0;
     for lb in &scanned.line_breaks {
-        while oi < offsets.len() && offsets[oi] < lb.offset {
+        while offsets.get(oi).is_some_and(|&offset| offset < lb.offset) {
             oi += 1;
         }
         breaks.push(oi as u32);
@@ -173,8 +169,7 @@ pub fn pack_tokens(parsed: &ParsedScript) -> ScannerTokensT {
 }
 
 /// Pack a statement with its target
-fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
-    let statement = &parsed.statements[statement_id];
+fn pack_statement(parsed: &ParsedScript, statement: &Statement) -> StatementT {
     let nodes = &parsed.nodes;
     let mut out = build!(StatementT {
         statement_type: statement.statement_type,
@@ -182,10 +177,11 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
         nodes_begin: statement.nodes_begin,
         node_count: statement.node_count,
     });
-    let root = &nodes[statement.root as usize];
+    // A statement without a root node has no target
+    let Some(root) = nodes.get(statement.root as usize) else { return out };
     fn children<'a>(nodes: &'a [Node], n: &Node) -> &'a [Node] {
         let begin = n.children_begin_or_value() as usize;
-        &nodes[begin..begin + n.children_count() as usize]
+        nodes.get(begin..begin + n.children_count() as usize).unwrap_or_default()
     }
     let find_attribute = |key: AttributeKey| children(nodes, root).iter().find(|c| c.attribute_key() == key);
     // Follow the left inputs of set operations
@@ -201,7 +197,7 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
                     && child.node_type() == NodeType::ARRAY
                     && child.children_count() > 0
                 {
-                    next = Some(&nodes[child.children_begin_or_value() as usize]);
+                    next = nodes.get(child.children_begin_or_value() as usize);
                 }
             }
             current = next?;
@@ -217,7 +213,7 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
         }
     };
     let read_target = |out: &mut StatementT, source: Option<&Node>| {
-        let mut source: Option<&Node> = source.map(|n| &nodes[n_index(nodes, n)]);
+        let mut source = source;
         if let Some(s) = source.filter(|s| s.node_type() == NodeType::OBJECT_SQL_TABLEREF) {
             if let Some(name) = children(nodes, s).iter().find(|c| c.attribute_key() == AttributeKey::SQL_TABLEREF_NAME)
             {
@@ -225,13 +221,15 @@ fn pack_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
             }
         }
         let Some(source) = source.filter(|s| s.node_type() == NodeType::ARRAY) else { return };
-        let names = children(nodes, source);
-        if names.is_empty() || names.len() > 3 {
-            return;
-        }
-        let relation_name = read_name(names.last());
-        let schema_name = if names.len() >= 2 { read_name(Some(&names[names.len() - 2])) } else { String::new() };
-        let database_name = if names.len() == 3 { read_name(Some(&names[0])) } else { String::new() };
+        let (database, schema, relation) = match children(nodes, source) {
+            [relation] => (None, None, relation),
+            [schema, relation] => (None, Some(schema), relation),
+            [database, schema, relation] => (Some(database), Some(schema), relation),
+            _ => return,
+        };
+        let relation_name = read_name(Some(relation));
+        let schema_name = read_name(schema);
+        let database_name = read_name(database);
         if !relation_name.is_empty() {
             out.target = Some(Box::new(build!(StatementTargetT {
                 database_name: non_empty_str(&database_name),
@@ -293,18 +291,23 @@ pub fn read_name_path(parsed: &ParsedScript, node: &Node) -> Vec<String> {
     }
 }
 
+/// An empty statement for an id outside of the script
 pub fn pack_parsed_statement(parsed: &ParsedScript, statement_id: usize) -> StatementT {
-    pack_statement(parsed, statement_id)
+    parsed.statements.get(statement_id).map_or_else(StatementT::default, |statement| pack_statement(parsed, statement))
 }
 
 /// Pack a parsed script
 pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
     let scanned = &parsed.scanned;
     let descriptions = parsed.associate_descriptions();
-    let statements = (0..parsed.statements.len())
-        .map(|i| {
-            let mut statement = pack_statement(parsed, i);
-            let metadata = &descriptions[i];
+    let statements = parsed
+        .statements
+        .iter()
+        .enumerate()
+        .map(|(i, statement)| {
+            let mut statement = pack_statement(parsed, statement);
+            // One description per statement
+            let metadata = descriptions.get(i).copied().unwrap_or_default();
             statement.statement_span = Some(text_span(metadata.statement_span));
             statement.description_begin = metadata.description_begin;
             statement.description_count = metadata.description_count;
@@ -480,7 +483,11 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
             let arguments = match f.arguments {
                 FunctionArguments::None => None,
                 FunctionArguments::Generic { begin, count } => Some(
-                    script.function_arguments[begin as usize..(begin + count) as usize]
+                    // Arguments outside of the script are left out
+                    script
+                        .function_arguments
+                        .get(begin as usize..(begin + count) as usize)
+                        .unwrap_or_default()
                         .iter()
                         .filter_map(|a| a.expression_id)
                         .collect(),
@@ -560,7 +567,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             build!(InsertStatementT {
                 ast_node_id: insert.ast_node_id,
                 ast_statement_id: insert.ast_statement_id.unwrap_or(PROTO_NULL_U32),
-                target_table_reference_id: script.table_references[insert.target as usize].table_reference_id.object,
+                target_table_reference_id: script.table_ref(insert.target).map_or(PROTO_NULL_U32, |t| t.table_reference_id.object),
                 source_ast_node_id: insert.source_ast_node_id.unwrap_or(PROTO_NULL_U32),
                 default_values: insert.default_values,
                 returning: insert.returning,
@@ -575,7 +582,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
                                 let table = script.table(loc.table)?;
                                 let ids = ResolvedColumnIds {
                                     catalog_schema_id: table.catalog_schema_id,
-                                    catalog_table_column_id: table.table_columns[loc.column as usize].object_id,
+                                    catalog_table_column_id: table.table_columns.get(loc.column as usize)?.object_id,
                                     referenced_catalog_version: table.catalog_version,
                                 };
                                 Some(Box::new(resolved_column(&ids)))
@@ -650,8 +657,9 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
     let constant_expressions = script
         .constant_expressions
         .iter()
-        .map(|c| {
-            let root = &script.expressions[c.root as usize];
+        // A constant expression without its root expression is left out
+        .filter_map(|c| script.expression(c.root))
+        .map(|root| {
             build!(ConstantExpressionT {
                 ast_node_id: root.ast_node_id,
                 ast_statement_id: root.ast_statement_id.unwrap_or(PROTO_NULL_U32),
@@ -944,8 +952,8 @@ pub fn pack_completion(
             let catalog_objects = candidate
                 .catalog_objects
                 .iter()
-                .map(|&co| {
-                    let object = &completion.candidate_objects[co];
+                .filter_map(|&co| completion.candidate_objects.get(co))
+                .map(|object| {
                     let mut o = CompletionCandidateObjectT::default();
                     o.object_type = CompletionCandidateObjectType(object.object.object_type() as u8);
                     o.candidate_tags = object.candidate_tags;
@@ -976,10 +984,10 @@ pub fn pack_completion(
                             }
                         }
                         CandidateObjectRef::Column(loc) => {
-                            if let Some(table) = completion.table(loc.table) {
+                            let table = completion.table(loc.table);
+                            if let Some((table, column)) = table.zip(table.and_then(|t| t.table_columns.get(loc.column as usize))) {
                                 let (db, schema) = table.catalog_schema_id.unpack_schema_id();
-                                let (table_id, column) =
-                                    table.table_columns[loc.column as usize].object_id.unpack_table_column_id();
+                                let (table_id, column) = column.object_id.unpack_table_column_id();
                                 o.catalog_database_id = db;
                                 o.catalog_schema_id = schema;
                                 o.catalog_table_id = table_id.pack();

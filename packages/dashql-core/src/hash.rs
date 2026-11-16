@@ -33,7 +33,9 @@ impl Hasher for FxHasher {
         let rest = chunks.remainder();
         if !rest.is_empty() {
             let mut word = [0u8; 8];
-            word[..rest.len()].copy_from_slice(rest);
+            for (byte, &value) in word.iter_mut().zip(rest) {
+                *byte = value;
+            }
             self.add(u64::from_le_bytes(word));
         }
     }

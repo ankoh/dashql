@@ -284,7 +284,7 @@ fn check_attributes(owner: &str, attributes: &[ClientFunctionAttribute], schemas
         if attribute.name.is_empty() {
             return Err(Error::invalid_argument(format!("{owner}: an attribute has no name")));
         }
-        if attributes[..i].iter().any(|a| a.name.eq_ignore_ascii_case(&attribute.name)) {
+        if attributes.iter().take(i).any(|a| a.name.eq_ignore_ascii_case(&attribute.name)) {
             return Err(Error::invalid_argument(format!("{owner}: duplicate attribute {}", attribute.name)));
         }
         if let Some(schema) = attribute.schema.as_ref().filter(|s| !schemas.contains_key(*s)) {
@@ -442,7 +442,7 @@ impl ClientFunctionSpec {
 
     /// A function by its lower-case name
     pub fn function(&self, name: &str) -> Option<&ClientFunction> {
-        self.functions_by_name.get(name).map(|&i| &self.functions[i])
+        self.functions_by_name.get(name).and_then(|&i| self.functions.get(i))
     }
 
     /// A schema by name
@@ -470,8 +470,8 @@ impl ClientFunctionSpec {
         let mut fit = ClientFunctionFit { variants: variants.clone(), tag_field: None, conflicts: Vec::new() };
         if let Some(tag) = &schema.tag {
             let is_tag = |f: &ClientFunctionField| if f.quoted { f.name == tag.attribute } else { f.name.eq_ignore_ascii_case(&tag.attribute) };
-            if let Some(i) = fields.iter().position(is_tag) {
-                let selected = fields[i].text.as_ref().and_then(|text| tag.values.iter().find(|(value, _)| value.eq_ignore_ascii_case(text)));
+            if let Some((i, field)) = fields.iter().enumerate().find(|(_, f)| is_tag(f)) {
+                let selected = field.text.as_ref().and_then(|text| tag.values.iter().find(|(value, _)| value.eq_ignore_ascii_case(text)));
                 if let Some(variant) = selected.and_then(|(_, name)| self.schema(name)) {
                     fit.variants = vec![variant];
                     fit.tag_field = Some(i);
@@ -533,17 +533,22 @@ fn normalized(name: &str) -> Vec<u8> {
 
 /// The edit distance of two byte strings
 fn edit_distance(l: &[u8], r: &[u8]) -> usize {
+    // The row of the distances of the prefixes of `r`, its first cell is the distance to the empty prefix
     let mut row: Vec<usize> = (0..=r.len()).collect();
     for (i, lc) in l.iter().enumerate() {
-        let mut diagonal = row[0];
-        row[0] = i + 1;
-        for (j, rc) in r.iter().enumerate() {
+        let mut diagonal = i;
+        let mut left = i + 1;
+        if let Some(first) = row.first_mut() {
+            *first = left;
+        }
+        for (rc, cell) in r.iter().zip(row.iter_mut().skip(1)) {
             let cost = diagonal + usize::from(lc != rc);
-            diagonal = row[j + 1];
-            row[j + 1] = cost.min(row[j] + 1).min(row[j + 1] + 1);
+            diagonal = *cell;
+            *cell = cost.min(left + 1).min(*cell + 1);
+            left = *cell;
         }
     }
-    row[r.len()]
+    row.last().copied().unwrap_or_default()
 }
 
 /// The candidate closest to a misspelled name, if one is close enough

@@ -342,7 +342,8 @@ impl CatalogSnapshot {
 
     /// The entries in resolution order: by layer, then by entry id
     pub fn entries_ranked(&self) -> impl Iterator<Item = (CatalogLayer, &CatalogEntryRef)> {
-        self.entries_ranked.iter().map(|(layer, id)| (*layer, &self.entries[id]))
+        // Every ranked entry is an entry
+        self.entries_ranked.iter().filter_map(|(layer, id)| Some((*layer, self.entries.get(id)?)))
     }
 
     pub fn databases(&self) -> &BTreeMap<Arc<str>, Arc<DatabaseDeclaration>> {
@@ -432,15 +433,16 @@ impl Catalog {
 
     fn check_canonical_ids(&self, entry: &CatalogEntryData) -> Result<()> {
         let ids = self.ids.borrow();
+        let out_of_sync = || Error::status(StatusCode::CATALOG_ID_OUT_OF_SYNC);
         for (name, &i) in &entry.databases_by_name {
-            let object_id = entry.database_references[i].object_id;
+            let object_id = entry.database_references.get(i).ok_or_else(out_of_sync)?.object_id;
             match ids.database_ids_by_name.get(&**name) {
                 Some(&id) if object_id == QualifiedCatalogObjectId::database(id) => {}
                 _ => return Err(Error::status(StatusCode::CATALOG_ID_OUT_OF_SYNC)),
             }
         }
         for ((db, schema), &i) in &entry.schemas_by_qualified_name {
-            let object_id = entry.schema_references[i].object_id;
+            let object_id = entry.schema_references.get(i).ok_or_else(out_of_sync)?.object_id;
             match ids.schema_ids_by_name.get(&(db.to_string(), schema.to_string())) {
                 Some(&id) if id == object_id => {}
                 _ => return Err(Error::status(StatusCode::CATALOG_ID_OUT_OF_SYNC)),
@@ -519,8 +521,9 @@ impl Catalog {
             let data = entry.data();
             let entry_id = data.catalog_entry_id;
             entries_ranked.insert((layer, entry_id));
+            let out_of_sync = || Error::status(StatusCode::CATALOG_ID_OUT_OF_SYNC);
             for (name, &i) in &data.databases_by_name {
-                let db = &data.database_references[i];
+                let db = data.database_references.get(i).ok_or_else(out_of_sync)?;
                 if let Some(existing) = databases.get(name) {
                     if existing.object_id != db.object_id {
                         return Err(Error::status(StatusCode::CATALOG_ID_OUT_OF_SYNC));
@@ -537,7 +540,7 @@ impl Catalog {
                 );
             }
             for ((db_name, schema_name), &i) in &data.schemas_by_qualified_name {
-                let schema = &data.schema_references[i];
+                let schema = data.schema_references.get(i).ok_or_else(out_of_sync)?;
                 let key = (db_name.clone(), schema_name.clone());
                 if let Some(existing) = schemas.get(&key) {
                     if existing.object_id != schema.object_id {
@@ -560,7 +563,7 @@ impl Catalog {
             for ((db_name, schema_name), &i) in &data.schemas_by_qualified_name {
                 let info = SchemaEntryInfo {
                     catalog_entry_id: entry_id,
-                    catalog_schema_id: data.schema_references[i].object_id,
+                    catalog_schema_id: data.schema_references.get(i).ok_or_else(out_of_sync)?.object_id,
                 };
                 entries_by_qualified_schema.insert((db_name.clone(), schema_name.clone(), layer, entry_id), info);
                 entries_by_schema.insert((schema_name.clone(), layer, entry_id), info);
@@ -646,8 +649,8 @@ impl Catalog {
         let mut before_keys: Vec<QualifiedKey> = Vec::with_capacity(before.len());
         for table in &before {
             let key = key_of_table(table);
-            if let Some(next) = new_keys.iter().position(|k| *k == key) {
-                tables.push(new_tables[next].clone());
+            if let Some((next, _)) = new_tables.iter().zip(&new_keys).find(|(_, k)| **k == key) {
+                tables.push(next.clone());
             } else if !relations.iter().any(|r| same_relation(r, &key)) && !databases.iter().any(|d| d.as_str() == &*key.0) {
                 tables.push(table.clone());
             }
@@ -856,8 +859,7 @@ impl CatalogSnapshot {
                 database_node_map.insert(db_ref.object_id, database_nodes.len() - 1);
                 root.entry(db_ref.database_name.clone()).or_insert(database_nodes.len() - 1);
             }
-            for &i in data.schemas_by_qualified_name.values() {
-                let schema_ref = &data.schema_references[i];
+            for schema_ref in data.schemas_by_qualified_name.values().filter_map(|&i| data.schema_references.get(i)) {
                 if schema_node_map.contains_key(&schema_ref.object_id) {
                     continue;
                 }
@@ -869,8 +871,11 @@ impl CatalogSnapshot {
                 });
                 let schema_node = schema_nodes.len() - 1;
                 schema_node_map.insert(schema_ref.object_id, schema_node);
-                let db_node = database_node_map[&QualifiedCatalogObjectId::database(schema_ref.database_id())];
-                database_nodes[db_node].children.entry(schema_ref.schema_name.clone()).or_insert(schema_node);
+                // The databases of the entry are added before its schemas
+                let db_node = database_node_map.get(&QualifiedCatalogObjectId::database(schema_ref.database_id()));
+                if let Some(db) = db_node.and_then(|&n| database_nodes.get_mut(n)) {
+                    db.children.entry(schema_ref.schema_name.clone()).or_insert(schema_node);
+                }
             }
         }
 
@@ -880,9 +885,10 @@ impl CatalogSnapshot {
                 if self.is_absent(entry.data().catalog_entry_id, table) || entry.data().tables_by_qualified_name.get(&table.table_name.key()) != Some(&index) {
                     continue;
                 }
-                let schema_node = schema_node_map[&table.catalog_schema_id];
+                // A table outside of the schemas of the catalog is left out
+                let Some(&schema_node) = schema_node_map.get(&table.catalog_schema_id) else { continue };
                 let table_name = &table.table_name.table_name.text;
-                if schema_nodes[schema_node].children.contains_key(table_name) {
+                if schema_nodes.get(schema_node).is_none_or(|s| s.children.contains_key(table_name)) {
                     continue;
                 }
                 let columns_begin = column_nodes.len();
@@ -897,7 +903,9 @@ impl CatalogSnapshot {
                     columns_begin,
                     column_count: table.table_columns.len(),
                 });
-                schema_nodes[schema_node].children.insert(table_name.clone(), table_nodes.len() - 1);
+                if let Some(schema) = schema_nodes.get_mut(schema_node) {
+                    schema.children.insert(table_name.clone(), table_nodes.len() - 1);
+                }
             }
         }
 
@@ -919,16 +927,14 @@ impl CatalogSnapshot {
         let mut databases_by_id = Vec::new();
         let mut schemas_by_id = Vec::new();
         let mut tables_by_id = Vec::new();
-        for &db_node in root.values() {
-            let db = &database_nodes[db_node];
+        for db in root.values().filter_map(|&n| database_nodes.get(n)) {
             let db_idx = databases.len();
             databases.push(entry(db_idx, 0, db.database_id as u64, db.name_id, schemas.len(), db.children.len()));
             databases_by_id.push(IndexedFlatDatabaseEntryT {
                 database_id: db.database_id,
                 flat_entry_idx: db_idx as u32,
             });
-            for &schema_node in db.children.values() {
-                let schema = &schema_nodes[schema_node];
+            for schema in db.children.values().filter_map(|&n| schema_nodes.get(n)) {
                 let schema_idx = schemas.len();
                 let schema_id = schema.schema_id as u64;
                 schemas.push(entry(schema_idx, db_idx, schema_id, schema.name_id, tables.len(), schema.children.len()));
@@ -936,8 +942,7 @@ impl CatalogSnapshot {
                     schema_id: schema.schema_id,
                     flat_entry_idx: schema_idx as u32,
                 });
-                for &table_node in schema.children.values() {
-                    let table = &table_nodes[table_node];
+                for table in schema.children.values().filter_map(|&n| table_nodes.get(n)) {
                     let table_idx = tables.len();
                     let table_id = table.table_id.pack();
                     let column_count = table.column_count;
@@ -947,7 +952,7 @@ impl CatalogSnapshot {
                         flat_entry_idx: table_idx as u32,
                     });
                     let table_columns = table.columns_begin..table.columns_begin + table.column_count;
-                    for &(column_id, name_id) in &column_nodes[table_columns] {
+                    for &(column_id, name_id) in column_nodes.get(table_columns).unwrap_or_default() {
                         columns.push(entry(columns.len(), table_idx, column_id as u64, name_id, 0, 0));
                     }
                 }
@@ -1027,7 +1032,9 @@ impl CatalogSnapshot {
                 if *candidate == ignore_entry {
                     continue;
                 }
-                let entry = self.entries[candidate].data();
+                // The schema index and the ranking hold the ids of the entries
+                let Some(entry) = self.entries.get(candidate) else { continue };
+                let entry = entry.data();
                 if let Some(&i) = entry.tables_by_qualified_name.get(&key) {
                     out.push(entry.table_loc(i));
                     if out.len() >= limit {
@@ -1045,7 +1052,8 @@ impl CatalogSnapshot {
                 if *candidate == ignore_entry {
                     continue;
                 }
-                self.entries[candidate].data().resolve_table_in_schema(schema_name, &name.table_name.text, out, limit);
+                let Some(entry) = self.entries.get(candidate) else { continue };
+                entry.data().resolve_table_in_schema(schema_name, &name.table_name.text, out, limit);
                 if out.len() >= limit {
                     break;
                 }
@@ -1056,7 +1064,8 @@ impl CatalogSnapshot {
                 if *entry_id == ignore_entry {
                     continue;
                 }
-                self.entries[entry_id].data().resolve_table_everywhere(&name.table_name.text, out, limit);
+                let Some(entry) = self.entries.get(entry_id) else { continue };
+                entry.data().resolve_table_everywhere(&name.table_name.text, out, limit);
                 if out.len() >= limit {
                     break;
                 }
@@ -1118,11 +1127,12 @@ fn describe_entry(snapshot: &CatalogSnapshot, layer: CatalogLayer, entry: &Catal
                 .schemas_by_qualified_name
                 .iter()
                 .map(|((db, name), &i)| {
-                    let schema_id = data.schema_references[i].object_id;
+                    // A schema without its reference has no tables
+                    let schema_id = data.schema_references.get(i).map(|s| s.object_id);
                     let tables = data
                         .table_declarations
                         .iter()
-                        .filter(|t| t.catalog_schema_id == schema_id)
+                        .filter(|t| Some(t.catalog_schema_id) == schema_id)
                         .map(|table| {
                             let mut t = SchemaTableT::default();
                             t.table_id = table.table_id().object;

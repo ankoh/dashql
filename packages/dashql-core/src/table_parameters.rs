@@ -33,9 +33,9 @@ pub enum TableParameterLookup {
 /// Find the name of a table parameter: the only exact name, or the only name that differs in ASCII case. Empty
 /// names are never found.
 pub fn find_table_parameter<'a>(names: impl Iterator<Item = &'a str> + Clone, name: &str) -> TableParameterLookup {
-    let pick = |matches: Vec<usize>| match matches.len() {
-        0 => None,
-        1 => Some(TableParameterLookup::Found(matches[0])),
+    let pick = |matches: Vec<usize>| match *matches.as_slice() {
+        [] => None,
+        [found] => Some(TableParameterLookup::Found(found)),
         _ => Some(TableParameterLookup::Ambiguous(matches)),
     };
     let exact = names.clone().enumerate().filter(|(_, n)| !n.is_empty() && *n == name).map(|(i, _)| i).collect();
@@ -54,7 +54,11 @@ pub fn colliding_names<'a>(names: impl Iterator<Item = &'a str>) -> Vec<Vec<usiz
     for (i, name) in names.enumerate().filter(|(_, n)| !n.is_empty()) {
         let key = name.to_ascii_lowercase();
         match by_name.get(&key) {
-            Some(&group) => groups[group].1.push(i),
+            Some(&group) => {
+                if let Some((_, members)) = groups.get_mut(group) {
+                    members.push(i);
+                }
+            }
             None => {
                 by_name.insert(key.clone(), groups.len());
                 groups.push((key, vec![i]));
@@ -156,7 +160,7 @@ impl TableParameters {
             .collect();
         let cyclic = on_cycle(&edges);
         let mut out = Vec::with_capacity(scripts.len() + attachments.len());
-        for (i, (name, analyzed)) in scripts.iter().enumerate() {
+        for (i, ((name, analyzed), &cyclic)) in scripts.iter().zip(&cyclic).enumerate() {
             let columns = match analyzed {
                 Some(analyzed) => query_columns(analyzed),
                 None => previous
@@ -165,7 +169,7 @@ impl TableParameters {
                     .map(|t| t.table_columns.iter().map(|c| c.column_name.text.clone()).collect()),
             };
             let table = match columns {
-                Some(columns) if !cyclic[i] => Some(result_table(i as u32, name, columns)),
+                Some(columns) if !cyclic => Some(result_table(i as u32, name, columns)),
                 _ => None,
             };
             out.push(TableParameter { name: Arc::from(*name), source: TableParameterSource::Script(i as u32), table });
@@ -224,16 +228,21 @@ fn result_table(index: u32, name: &str, columns: Vec<Arc<str>>) -> TableDeclarat
 fn on_cycle(edges: &[Vec<usize>]) -> Vec<bool> {
     let n = edges.len();
     // A node lies on a cycle if it reaches itself
-    (0..n)
-        .map(|start| {
+    edges
+        .iter()
+        .enumerate()
+        .map(|(start, targets)| {
             let mut seen = vec![false; n];
-            let mut pending: Vec<usize> = edges[start].clone();
+            let mut pending: Vec<usize> = targets.clone();
             while let Some(i) = pending.pop() {
                 if i == start {
                     return true;
                 }
-                if i < n && !std::mem::replace(&mut seen[i], true) {
-                    pending.extend(&edges[i]);
+                // An edge out of the graph leads nowhere
+                if let (Some(seen), Some(targets)) = (seen.get_mut(i), edges.get(i)) {
+                    if !std::mem::replace(seen, true) {
+                        pending.extend(targets);
+                    }
                 }
             }
             false

@@ -192,7 +192,9 @@ pub(crate) fn rewrite_vis_renderer_tag(
         }
         Ok(match (renderer, tags.iter().position(is_renderer)) {
             (Some(renderer), Some(i)) => {
-                tags[i] = renderer.tag();
+                if let Some(tag) = tags.get_mut(i) {
+                    *tag = renderer.tag();
+                }
                 Some(i)
             }
             (Some(renderer), None) => {
@@ -221,7 +223,9 @@ pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize,
         let tags = &mut annotation.tags;
         Ok(match (board, tags.iter().position(is_board)) {
             (Some(board), Some(i)) => {
-                tags[i] = board.tag();
+                if let Some(tag) = tags.get_mut(i) {
+                    *tag = board.tag();
+                }
                 Some(i)
             }
             (Some(board), None) => {

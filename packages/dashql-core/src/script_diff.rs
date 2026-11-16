@@ -101,9 +101,9 @@ fn padded_text(script: &ParsedScript, span: TextSpan) -> std::borrow::Cow<'_, [u
     let begin = (span.offset as usize).min(text.len() + 2);
     let end = (span.end() as usize).min(text.len() + 2);
     if end <= text.len() {
-        return std::borrow::Cow::Borrowed(&text[begin..end]);
+        return std::borrow::Cow::Borrowed(text.get(begin..end).unwrap_or_default());
     }
-    let mut out = text[begin.min(text.len())..].to_vec();
+    let mut out = text.get(begin.min(text.len())..).unwrap_or_default().to_vec();
     out.resize(end - begin, 0);
     std::borrow::Cow::Owned(out)
 }
@@ -130,12 +130,24 @@ fn resolve_statement_span(script: &ParsedScript, statement: &Statement) -> TextS
     }
 }
 
-/// An object's child node indices sorted (stably) by attribute key
-fn collect_sorted_children(script: &ParsedScript, node: &Node, out: &mut Vec<u32>) {
+/// An object's child nodes as (attribute key, node index), sorted (stably) by attribute key
+fn collect_sorted_children(script: &ParsedScript, node: &Node, out: &mut Vec<(u16, u32)>) {
     out.clear();
     let begin = node.children_begin_or_value();
-    out.extend(begin..begin + node.children_count());
-    out.sort_by_key(|&i| key_id(&script.nodes[i as usize]));
+    out.extend(script.children(node).iter().zip(begin..).map(|(child, i)| (key_id(child), i)));
+    out.sort_by_key(|&(key, _)| key);
+}
+
+/// Is a statement flagged? An index outside of the flags counts as flagged, there is nothing to emit for it.
+fn flagged(flags: &[bool], index: usize) -> bool {
+    flags.get(index).copied().unwrap_or(true)
+}
+
+/// Flag a statement
+fn flag(flags: &mut [bool], index: usize) {
+    if let Some(flag) = flags.get_mut(index) {
+        *flag = true;
+    }
 }
 
 /// The diff between two parsed scripts
@@ -173,8 +185,8 @@ impl<'a> ScriptDiff<'a> {
         }
         if sizes.len() != script.nodes.len() {
             *sizes = vec![0; script.nodes.len()];
-        } else if sizes[root] > 0 {
-            return sizes[root];
+        } else if let Some(&size) = sizes.get(root).filter(|&&size| size > 0) {
+            return size;
         }
         // (node, parent, visited)
         let mut pending: Vec<(usize, usize, bool)> = Vec::with_capacity(32);
@@ -182,19 +194,23 @@ impl<'a> ScriptDiff<'a> {
         let mut node_count = 0;
         while let Some(&(node_id, parent, visited)) = pending.last() {
             if visited {
+                let size = sizes.get(node_id).copied().unwrap_or(0);
                 if pending.len() == 1 {
-                    node_count = sizes[node_id];
+                    node_count = size;
                     break;
                 }
-                sizes[parent] += sizes[node_id];
+                if let Some(parent_size) = sizes.get_mut(parent) {
+                    *parent_size += size;
+                }
                 pending.pop();
                 continue;
             }
-            sizes[node_id] = 1;
             if let Some(last) = pending.last_mut() {
                 last.2 = true;
             }
-            let node = &script.nodes[node_id];
+            // A child outside of the AST counts as no node, `sizes` is as long as the AST
+            let (Some(size), Some(node)) = (sizes.get_mut(node_id), script.nodes.get(node_id)) else { continue };
+            *size = 1;
             if has_children(node.node_type()) {
                 let begin = node.children_begin_or_value() as usize;
                 for i in begin..begin + node.children_count() as usize {
@@ -273,21 +289,26 @@ impl<'a> ScriptDiff<'a> {
         let mut src_children = Vec::new();
         let mut tgt_children = Vec::new();
         let mut sim = StatementSimilarity::default();
-        while !pending.is_empty() {
-            let idx = pending.len() - 1;
-            if pending[idx].visited {
+        loop {
+            let idx = pending.len().wrapping_sub(1);
+            let Some(entry) = pending.last_mut() else { break };
+            if entry.visited {
                 if idx == 0 {
                     sim.total_nodes = node_count;
-                    sim.matching_nodes = pending[0].matching_nodes;
+                    sim.matching_nodes = entry.matching_nodes;
                     break;
                 }
                 let Some(entry) = pending.pop() else { break };
-                pending[entry.parent_entry].matching_nodes += entry.matching_nodes;
+                if let Some(parent) = pending.get_mut(entry.parent_entry) {
+                    parent.matching_nodes += entry.matching_nodes;
+                }
                 continue;
             }
-            pending[idx].visited = true;
-            let s = self.source.nodes[pending[idx].source_node];
-            let t = self.target.nodes[pending[idx].target_node];
+            entry.visited = true;
+            // A pair outside of the AST doesn't match
+            let (Some(&s), Some(&t)) = (self.source.nodes.get(entry.source_node), self.target.nodes.get(entry.target_node)) else {
+                continue;
+            };
             let mut matched = true;
             if s.node_type() != t.node_type() {
                 matched = false;
@@ -312,9 +333,7 @@ impl<'a> ScriptDiff<'a> {
                 collect_sorted_children(self.target, &t, &mut tgt_children);
                 matched = s.children_count() == t.children_count();
                 let (mut i, mut j) = (0, 0);
-                while i < src_children.len() && j < tgt_children.len() {
-                    let sk = key_id(&self.source.nodes[src_children[i] as usize]);
-                    let tk = key_id(&self.target.nodes[tgt_children[j] as usize]);
+                while let (Some(&(sk, si)), Some(&(tk, ti))) = (src_children.get(i), tgt_children.get(j)) {
                     if sk < tk {
                         i += 1;
                         matched = false;
@@ -323,8 +342,8 @@ impl<'a> ScriptDiff<'a> {
                         matched = false;
                     } else {
                         pending.push(Entry {
-                            source_node: src_children[i] as usize,
-                            target_node: tgt_children[j] as usize,
+                            source_node: si as usize,
+                            target_node: ti as usize,
                             parent_entry: idx,
                             matching_nodes: 0,
                             visited: false,
@@ -337,7 +356,9 @@ impl<'a> ScriptDiff<'a> {
                 matched = s.children_begin_or_value() == t.children_begin_or_value();
             }
             if matched {
-                pending[idx].matching_nodes += 1;
+                if let Some(entry) = pending.get_mut(idx) {
+                    entry.matching_nodes += 1;
+                }
             }
         }
         sim
@@ -354,8 +375,10 @@ impl<'a> ScriptDiff<'a> {
         let mut src_children = Vec::new();
         let mut tgt_children = Vec::new();
         while let Some((source_id, target_id)) = pending.pop() {
-            let s = self.source.nodes[source_id];
-            let t = self.target.nodes[target_id];
+            // A pair outside of the AST is not equal
+            let (Some(&s), Some(&t)) = (self.source.nodes.get(source_id), self.target.nodes.get(target_id)) else {
+                return false;
+            };
             if s.node_type() != t.node_type() {
                 return false;
             }
@@ -377,8 +400,8 @@ impl<'a> ScriptDiff<'a> {
                 }
                 collect_sorted_children(self.source, &s, &mut src_children);
                 collect_sorted_children(self.target, &t, &mut tgt_children);
-                for (&si, &ti) in src_children.iter().zip(&tgt_children) {
-                    if key_id(&self.source.nodes[si as usize]) != key_id(&self.target.nodes[ti as usize]) {
+                for (&(sk, si), &(tk, ti)) in src_children.iter().zip(&tgt_children) {
+                    if sk != tk {
                         return false;
                     }
                     pending.push((si as usize, ti as usize));
@@ -400,11 +423,9 @@ impl<'a> ScriptDiff<'a> {
         let mut unique_pairs = Vec::new();
         let mut equal_pairs = Vec::new();
 
-        for source_id in 0..source_count {
-            let source_stmt = &self.source.statements[source_id];
+        for (source_id, source_stmt) in self.source.statements.iter().enumerate() {
             let mut matched: Option<usize> = None;
-            for target_id in 0..target_count {
-                let target_stmt = &self.target.statements[target_id];
+            for (target_id, target_stmt) in self.target.statements.iter().enumerate() {
                 let equal = match self.estimate_similarity(source_stmt, target_stmt) {
                     SimilarityEstimate::NotEqual => false,
                     SimilarityEstimate::Similar => self.check_deep_equality(source_stmt, target_stmt),
@@ -414,27 +435,28 @@ impl<'a> ScriptDiff<'a> {
                     continue;
                 }
                 equal_pairs.push((source_id, target_id));
-                if let Some(existing) = target_mapping[target_id] {
+                let Some(mapping) = target_mapping.get_mut(target_id) else { continue };
+                if let Some(existing) = *mapping {
                     // Two source statements map to the same target statement
-                    source_ambiguous[source_id] = true;
-                    source_ambiguous[existing] = true;
-                    target_ambiguous[target_id] = true;
+                    flag(&mut source_ambiguous, source_id);
+                    flag(&mut source_ambiguous, existing);
+                    flag(&mut target_ambiguous, target_id);
                     continue;
                 } else if let Some(m) = matched {
                     // The source statement maps to two target statements
-                    source_ambiguous[source_id] = true;
-                    target_ambiguous[m] = true;
-                    target_ambiguous[target_id] = true;
+                    flag(&mut source_ambiguous, source_id);
+                    flag(&mut target_ambiguous, m);
+                    flag(&mut target_ambiguous, target_id);
                     continue;
                 }
-                target_mapping[target_id] = Some(source_id);
+                *mapping = Some(source_id);
                 matched = Some(target_id);
             }
         }
 
-        for (target_id, &source_id) in target_mapping.iter().enumerate() {
+        for (target_id, (&source_id, &ambiguous)) in target_mapping.iter().zip(&target_ambiguous).enumerate() {
             let Some(source_id) = source_id else { continue };
-            if source_ambiguous[source_id] || target_ambiguous[target_id] {
+            if ambiguous || flagged(&source_ambiguous, source_id) {
                 continue;
             }
             unique_pairs.push((source_id, target_id));
@@ -451,9 +473,10 @@ impl<'a> ScriptDiff<'a> {
         for &(source_id, target_id) in unique_pairs {
             match piles.iter().position(|pile| pile.last().is_some_and(|top| top.1 >= target_id)) {
                 Some(p) => {
-                    let prev_pile_id = p.max(1) - 1;
-                    let prev_pile_size = piles[prev_pile_id].len();
-                    piles[p].push((source_id, target_id, prev_pile_size));
+                    let prev_pile_size = piles.get(p.max(1) - 1).map_or(0, Vec::len);
+                    if let Some(pile) = piles.get_mut(p) {
+                        pile.push((source_id, target_id, prev_pile_size));
+                    }
                 }
                 None => {
                     let prev_pile_size = piles.last().map_or(0, Vec::len);
@@ -461,20 +484,17 @@ impl<'a> ScriptDiff<'a> {
                 }
             }
         }
+        // Walk back from the top of the last pile, an entry points to the top of the previous pile when it was pushed
         let mut lcs = Vec::new();
-        if piles.is_empty() {
-            return lcs;
-        }
-        let mut pile_id = piles.len() - 1;
-        let mut entry_id = piles[pile_id].len() - 1;
-        loop {
-            let (source_id, target_id, prev_pile_size) = piles[pile_id][entry_id];
+        let mut entry_id = None;
+        for pile in piles.iter().rev() {
+            let entry = match entry_id {
+                None => pile.last(),
+                Some(i) => pile.get(i),
+            };
+            let Some(&(source_id, target_id, prev_pile_size)) = entry else { break };
             lcs.push((source_id, target_id));
-            if pile_id == 0 {
-                break;
-            }
-            entry_id = prev_pile_size - 1;
-            pile_id -= 1;
+            entry_id = Some(prev_pile_size.wrapping_sub(1));
         }
         lcs.reverse();
         lcs
@@ -487,7 +507,9 @@ impl<'a> ScriptDiff<'a> {
             return changes;
         }
         let record = |changes: &mut Vec<TextSpan>, target_node_id: usize| {
-            let span = resolve(self.target, &self.target.nodes[target_node_id]);
+            // A node outside of the AST has no text
+            let Some(node) = self.target.nodes.get(target_node_id) else { return };
+            let span = resolve(self.target, node);
             if span.length > 0 {
                 changes.push(span);
             }
@@ -496,8 +518,10 @@ impl<'a> ScriptDiff<'a> {
         let mut src_children = Vec::new();
         let mut tgt_children = Vec::new();
         while let Some((source_id, target_id)) = pending.pop() {
-            let s = self.source.nodes[source_id];
-            let t = self.target.nodes[target_id];
+            // A pair outside of the AST has no changes to show
+            let (Some(&s), Some(&t)) = (self.source.nodes.get(source_id), self.target.nodes.get(target_id)) else {
+                continue;
+            };
             // Different node type: the entire target subtree changed
             if s.node_type() != t.node_type() {
                 record(&mut changes, target_id);
@@ -522,21 +546,19 @@ impl<'a> ScriptDiff<'a> {
                 collect_sorted_children(self.source, &s, &mut src_children);
                 collect_sorted_children(self.target, &t, &mut tgt_children);
                 let (mut i, mut j) = (0, 0);
-                while i < src_children.len() && j < tgt_children.len() {
-                    let sk = key_id(&self.source.nodes[src_children[i] as usize]);
-                    let tk = key_id(&self.target.nodes[tgt_children[j] as usize]);
+                while let (Some(&(sk, si)), Some(&(tk, ti))) = (src_children.get(i), tgt_children.get(j)) {
                     if sk < tk {
                         i += 1;
                     } else if sk > tk {
-                        record(&mut changes, tgt_children[j] as usize);
+                        record(&mut changes, ti as usize);
                         j += 1;
                     } else {
-                        pending.push((src_children[i] as usize, tgt_children[j] as usize));
+                        pending.push((si as usize, ti as usize));
                         i += 1;
                         j += 1;
                     }
                 }
-                for &child in &tgt_children[j..] {
+                for &(_, child) in tgt_children.iter().skip(j) {
                     record(&mut changes, child as usize);
                 }
             } else if is_enum_type(s.node_type()) && s.children_begin_or_value() != t.children_begin_or_value() {
@@ -547,9 +569,11 @@ impl<'a> ScriptDiff<'a> {
         if changes.len() > 1 {
             changes.sort_by_key(|c| c.offset);
             let mut coalesced: Vec<TextSpan> = Vec::with_capacity(changes.len());
-            coalesced.push(changes[0]);
-            for change in &changes[1..] {
-                let Some(last) = coalesced.last_mut() else { continue };
+            for change in &changes {
+                let Some(last) = coalesced.last_mut() else {
+                    coalesced.push(*change);
+                    continue;
+                };
                 let last_end = last.end();
                 if change.offset <= last_end {
                     let new_end = last_end.max(change.end());
@@ -573,18 +597,21 @@ impl<'a> ScriptDiff<'a> {
             target_span: TextSpan::default(),
             target_changes: Vec::new(),
         };
+        // The ids are statement indices of the scripts, the span of an id outside of them stays empty
+        let source_stmt = source_id.and_then(|s| self.source.statements.get(s));
+        let target_stmt = target_id.and_then(|t| self.target.statements.get(t));
         if let Some(s) = source_id {
             op.source_statement = Some(s as u32);
-            op.source_span = resolve_statement_span(self.source, &self.source.statements[s]);
-            out.source_emitted[s] = true;
+            op.source_span = source_stmt.map_or(TextSpan::default(), |stmt| resolve_statement_span(self.source, stmt));
+            flag(&mut out.source_emitted, s);
         }
         if let Some(t) = target_id {
             op.target_statement = Some(t as u32);
-            op.target_span = resolve_statement_span(self.target, &self.target.statements[t]);
-            out.target_emitted[t] = true;
+            op.target_span = target_stmt.map_or(TextSpan::default(), |stmt| resolve_statement_span(self.target, stmt));
+            flag(&mut out.target_emitted, t);
         }
-        if let (ScriptDiffOpCode::UPDATE, Some(s), Some(t)) = (code, source_id, target_id) {
-            op.target_changes = self.collect_target_changes(&self.source.statements[s], &self.target.statements[t]);
+        if let (ScriptDiffOpCode::UPDATE, Some(s), Some(t)) = (code, source_stmt, target_stmt) {
+            op.target_changes = self.collect_target_changes(s, t);
         }
         out.ops.push(op);
     }
@@ -616,27 +643,27 @@ impl<'a> ScriptDiff<'a> {
             for source_id in prev_source_id..next_source_id {
                 // Emit equal pairs that are ambiguous or cross section boundaries (MOVE)
                 let begin = equal_pairs.partition_point(|p| p.0 < source_id);
-                let end = begin + equal_pairs[begin..].partition_point(|p| p.0 <= source_id);
-                for &(_, target_id) in &equal_pairs[begin..end] {
-                    if out.target_emitted[target_id] {
+                let pairs = equal_pairs.get(begin..).unwrap_or_default().iter().take_while(|p| p.0 <= source_id);
+                for &(_, target_id) in pairs {
+                    if flagged(&out.target_emitted, target_id) {
                         continue;
                     }
                     self.emit(&mut out, ScriptDiffOpCode::MOVE, Some(source_id), Some(target_id));
                     break;
                 }
-                if out.source_emitted[source_id] {
+                if flagged(&out.source_emitted, source_id) {
                     continue;
                 }
-                let source_stmt = self.source.statements[source_id];
+                let Some(&source_stmt) = self.source.statements.get(source_id) else { continue };
                 // The highest-scoring remaining target in the section above the threshold (a
                 // deliberate divergence from the legacy heap, which picked the smallest score)
                 let mut best_target = None;
                 let mut best_score = -1.0;
                 for target_id in prev_target_id..next_target_id {
-                    if out.target_emitted[target_id] {
+                    if flagged(&out.target_emitted, target_id) {
                         continue;
                     }
-                    let target_stmt = self.target.statements[target_id];
+                    let Some(&target_stmt) = self.target.statements.get(target_id) else { continue };
                     match self.estimate_similarity(&source_stmt, &target_stmt) {
                         SimilarityEstimate::NotEqual => continue,
                         SimilarityEstimate::Equal => {
@@ -652,7 +679,7 @@ impl<'a> ScriptDiff<'a> {
                     }
                 }
                 // An equal match emitted a KEEP
-                if out.source_emitted[source_id] {
+                if flagged(&out.source_emitted, source_id) {
                     continue;
                 }
                 match best_target {
@@ -662,7 +689,7 @@ impl<'a> ScriptDiff<'a> {
             }
             // Insert the new statements of the section
             for target_id in prev_target_id..next_target_id {
-                if !out.target_emitted[target_id] {
+                if !flagged(&out.target_emitted, target_id) {
                     self.emit(&mut out, ScriptDiffOpCode::INSERT, None, Some(target_id));
                 }
             }

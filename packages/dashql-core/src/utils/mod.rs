@@ -33,7 +33,7 @@ pub fn ci_find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     if needle.len() > haystack.len() {
         return None;
     }
-    (0..=haystack.len() - needle.len()).find(|&i| ci_starts_with(&haystack[i..], needle))
+    haystack.windows(needle.len()).position(|window| ci_starts_with(window, needle))
 }
 
 /// A string literal of a text, quotes are doubled: `it's` is `'it''s'`
@@ -55,7 +55,7 @@ pub fn quote_identifier(text: &str) -> String {
     let bytes = text.as_bytes();
     let requires_quotes = bytes.is_empty()
         || bytes.iter().any(|c| c.is_ascii_uppercase())
-        || !is_start(bytes[0])
+        || !bytes.first().is_some_and(|&c| is_start(c))
         || !bytes.iter().all(|&c| is_cont(c));
     if !requires_quotes {
         return text.to_string();

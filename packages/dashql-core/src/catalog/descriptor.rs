@@ -45,8 +45,8 @@ fn invalid(message: &str) -> Error {
 
 /// Render a qualified name, skipping its empty leading parts
 fn qualified_name(parts: &[&str]) -> String {
-    let first = parts.iter().position(|p| !p.is_empty()).unwrap_or(parts.len() - 1);
-    parts[first..].iter().map(|p| quote_identifier(p)).collect::<Vec<_>>().join(".")
+    let first = parts.iter().position(|p| !p.is_empty()).unwrap_or(parts.len().saturating_sub(1));
+    parts.iter().skip(first).map(|p| quote_identifier(p)).collect::<Vec<_>>().join(".")
 }
 
 /// Validate a name or type text
@@ -141,7 +141,9 @@ impl DescriptorEntry {
                 })
                 .collect();
             for &(name, object) in &self.name_objects {
-                names[name as usize].objects.push(object);
+                if let Some(name) = names.get_mut(name as usize) {
+                    name.objects.push(object);
+                }
             }
             super::NameSearchIndex::new(names)
         })
@@ -163,12 +165,14 @@ impl DescriptorEntry {
         let table_version = catalog.version() + 1;
         let mut names_by_text = std::collections::HashMap::<Arc<str>, NameId>::new();
         let mut register = |out: &mut DescriptorEntry, text: &str, tag: NameTag| -> Name {
-            let id = match names_by_text.get(text) {
-                Some(&id) => {
-                    let name = &mut out.names[id as usize];
-                    name.tags |= tag.0;
-                    name.occurrences += 1;
-                    id
+            // The keys of `names_by_text` are the texts of `out.names`
+            let (id, text) = match names_by_text.get_key_value(text) {
+                Some((text, &id)) => {
+                    if let Some(name) = out.names.get_mut(id as usize) {
+                        name.tags |= tag.0;
+                        name.occurrences += 1;
+                    }
+                    (id, text.clone())
                 }
                 None => {
                     let id = out.names.len() as NameId;
@@ -178,20 +182,21 @@ impl DescriptorEntry {
                         tags: tag.0,
                         occurrences: 1,
                     });
-                    names_by_text.insert(text, id);
-                    id
+                    names_by_text.insert(text.clone(), id);
+                    (id, text)
                 }
             };
             Name {
                 entry: out.entry.catalog_entry_id,
                 id,
-                text: out.names[id as usize].text.clone(),
+                text,
             }
         };
         let register_schema = |out: &mut DescriptorEntry, database: &Name, schema: &Name| -> QualifiedCatalogObjectId {
             let entry = Arc::make_mut(&mut out.entry);
-            let db_id = match entry.databases_by_name.get(&database.text) {
-                Some(&i) => entry.database_references[i].object_id,
+            // The maps by name index the references of the entry
+            let db_id = match entry.databases_by_name.get(&database.text).and_then(|&i| entry.database_references.get(i)) {
+                Some(db) => db.object_id,
                 None => {
                     let db_id = catalog.reserve_database_id(&database.text);
                     entry.database_references.push(DatabaseReference {
@@ -206,8 +211,8 @@ impl DescriptorEntry {
                 }
             };
             let key = (database.text.clone(), schema.text.clone());
-            if let Some(&i) = entry.schemas_by_qualified_name.get(&key) {
-                return entry.schema_references[i].object_id;
+            if let Some(schema) = entry.schemas_by_qualified_name.get(&key).and_then(|&i| entry.schema_references.get(i)) {
+                return schema.object_id;
             }
             let schema_id = catalog.reserve_schema_id(&database.text, &schema.text, db_id);
             entry.schema_references.push(SchemaReference {

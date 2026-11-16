@@ -68,16 +68,16 @@ impl TagText {
         joined
     }
 
-    /// The script offset of a joined offset, the tag must have content lines
+    /// The script offset of a joined offset, the tag must have content lines. Without lines it is the joined offset.
     fn to_script(&self, joined: usize) -> usize {
         let line = self.lines.partition_point(|&(_, at)| at <= joined).saturating_sub(1);
-        let (script, at) = self.lines[line];
-        script + joined - at
+        self.lines.get(line).map_or(joined, |&(script, at)| script + joined - at)
     }
 
+    /// The length of a line, 0 for a line that doesn't exist
     fn line_len(&self, i: usize) -> usize {
         let end = self.lines.get(i + 1).map_or(self.text.len(), |&(_, at)| at - 1);
-        end - self.lines[i].1
+        self.lines.get(i).map_or(0, |&(_, at)| end - at)
     }
 }
 
@@ -136,7 +136,7 @@ impl JsonToken {
     /// The value of a closed string
     pub fn string(&self, text: &[u8]) -> Option<String> {
         match self.kind {
-            JsonTokenKind::String { closed: true } => serde_json::from_slice(&text[self.begin..self.end]).ok(),
+            JsonTokenKind::String { closed: true } => text.get(self.begin..self.end).and_then(|s| serde_json::from_slice(s).ok()),
             _ => None,
         }
     }
@@ -214,7 +214,7 @@ impl<'a> JsonScanner<'a> {
             Some(Frame::Object { key, state }) if *state == ObjectState::ExpectKey => {
                 *key = Some(match token.kind {
                     JsonTokenKind::String { .. } => token.string(text).unwrap_or_default(),
-                    _ => String::from_utf8_lossy(&text[token.begin..token.end]).into_owned(),
+                    _ => String::from_utf8_lossy(text.get(token.begin..token.end).unwrap_or_default()).into_owned(),
                 });
                 *state = ObjectState::ExpectColon;
             }
@@ -228,7 +228,7 @@ impl Iterator for JsonScanner<'_> {
 
     fn next(&mut self) -> Option<JsonToken> {
         let text = self.text;
-        while self.at < text.len() && text[self.at].is_ascii_whitespace() {
+        while text.get(self.at).is_some_and(u8::is_ascii_whitespace) {
             self.at += 1;
         }
         let begin = self.at;
@@ -276,8 +276,8 @@ impl Iterator for JsonScanner<'_> {
                 // JSON strings contain no line breaks, an unclosed string ends with its line
                 let mut i = begin + 1;
                 let mut closed = false;
-                while i < text.len() && text[i] != b'\n' {
-                    match text[i] {
+                while let Some(&c) = text.get(i).filter(|&&c| c != b'\n') {
+                    match c {
                         b'"' => {
                             closed = true;
                             i += 1;
@@ -294,11 +294,11 @@ impl Iterator for JsonScanner<'_> {
             }
             _ => {
                 let mut i = begin;
-                while i < text.len() && !DELIMITERS.contains(&text[i]) {
+                while text.get(i).is_some_and(|c| !DELIMITERS.contains(c)) {
                     i += 1;
                 }
                 self.at = i;
-                let word = &text[begin..i];
+                let word = text.get(begin..i).unwrap_or_default();
                 let kind = if matches!(word, b"true" | b"false" | b"null") {
                     JsonTokenKind::Literal
                 } else if (c == b'-' || c.is_ascii_digit())

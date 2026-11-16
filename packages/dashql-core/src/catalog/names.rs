@@ -77,17 +77,20 @@ impl NameSearchIndex {
         self.suffixes().len() * std::mem::size_of::<(u32, u32)>()
     }
 
+    /// A suffix of a name, the suffixes index the names
     fn suffix(&self, entry: (u32, u32)) -> &[u8] {
-        &self.names[entry.0 as usize].text.as_bytes()[entry.1 as usize..]
+        self.names.get(entry.0 as usize).and_then(|n| n.text.as_bytes().get(entry.1 as usize..)).unwrap_or_default()
     }
 
     /// The names that have a suffix starting with `prefix`, once per matching suffix, in index order
     pub fn search<'a>(&'a self, prefix: &'a [u8]) -> impl Iterator<Item = &'a IndexedName> + 'a {
         let suffixes = self.suffixes();
         let begin = suffixes.partition_point(|&e| ci_cmp(self.suffix(e), prefix) == std::cmp::Ordering::Less);
-        suffixes[begin..]
+        suffixes
+            .get(begin..)
+            .unwrap_or_default()
             .iter()
             .take_while(move |&&e| ci_starts_with(self.suffix(e), prefix))
-            .map(move |&(name, _)| &self.names[name as usize])
+            .filter_map(move |&(name, _)| self.names.get(name as usize))
     }
 }

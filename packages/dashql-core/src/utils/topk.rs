@@ -21,7 +21,10 @@ impl<T, C: Fn(&T, &T) -> Ordering> TopKHeap<T, C> {
     }
 
     fn less(&self, l: usize, r: usize) -> bool {
-        (self.cmp)(&self.entries[l], &self.entries[r]) == Ordering::Less
+        match (self.entries.get(l), self.entries.get(r)) {
+            (Some(l), Some(r)) => (self.cmp)(l, r) == Ordering::Less,
+            _ => false,
+        }
     }
 
     /// Move an entry down until the first `len` entries are a min heap below it
@@ -58,9 +61,11 @@ impl<T, C: Fn(&T, &T) -> Ordering> TopKHeap<T, C> {
             if self.entries.len() == self.capacity {
                 self.heapify();
             }
-        } else if self.capacity > 0 && (self.cmp)(&self.entries[0], &value) == Ordering::Less {
-            self.entries[0] = value;
-            self.sift_down(0, self.capacity);
+        } else if let Some(min) = self.entries.first_mut() {
+            if (self.cmp)(min, &value) == Ordering::Less {
+                *min = value;
+                self.sift_down(0, self.capacity);
+            }
         }
     }
 

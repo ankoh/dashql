@@ -100,10 +100,13 @@ impl Annotation {
     /// Read an annotation from comment blocks: ordinary blocks are the preamble, tagged blocks the tags.
     /// `text` is the script text.
     pub(crate) fn from_blocks<'a>(text: &[u8], blocks: &CommentBlocks, range: impl Iterator<Item = &'a CommentBlock>) -> Self {
-        let span_text = |span: TextSpan| String::from_utf8_lossy(&text[span.offset as usize..span.end() as usize]).into_owned();
+        // Spans outside of the text read as empty
+        let span_text = |span: TextSpan| {
+            String::from_utf8_lossy(text.get(span.offset as usize..span.end() as usize).unwrap_or_default()).into_owned()
+        };
         let mut annotation = Annotation::default();
         for block in range {
-            let spans = &blocks.lines[block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize];
+            let spans = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize).unwrap_or_default();
             let mut lines: Vec<String> = spans.iter().map(|&l| span_text(l)).collect();
             if block.block_type != CommentBlockType::DASHQL_TAG {
                 annotation.preamble.append(&mut lines);
@@ -111,7 +114,7 @@ impl Annotation {
             }
             // The parser drops the empty text of a tag that is alone on its line
             let tag_end = block.tag_span.end() as usize;
-            let inline = spans.first().is_some_and(|first| !text[tag_end..first.offset as usize].contains(&b'\n'));
+            let inline = spans.first().is_some_and(|first| !text.get(tag_end..first.offset as usize).unwrap_or_default().contains(&b'\n'));
             if !inline {
                 lines.insert(0, String::new());
             }
@@ -139,7 +142,7 @@ impl Annotation {
     /// The index of the first printed line of a tag
     fn first_line_of(&self, tag: usize) -> usize {
         let separator = usize::from(self.separator().is_some());
-        self.preamble.len() + separator + self.tags[..tag].iter().map(AnnotationTag::printed_len).sum::<usize>()
+        self.preamble.len() + separator + self.tags.iter().take(tag).map(AnnotationTag::printed_len).sum::<usize>()
     }
 
     /// Check that the annotation reads back unchanged
@@ -207,19 +210,21 @@ fn check_statement(parsed: &ParsedScript, statement_id: usize) -> Result<()> {
 
 /// Read the annotation of a statement and the comments that hold it, ascending indexes into the comments
 /// of the script. Every comment in front of the statement belongs to it, the ordinary ones are its description.
-fn read_with_comments(parsed: &ParsedScript, statement_id: usize) -> (Annotation, Vec<usize>) {
+fn read_with_comments(parsed: &ParsedScript, statement_id: usize) -> Result<(Annotation, Vec<usize>)> {
     let blocks = &parsed.comment_blocks;
-    let description = parsed.associate_descriptions()[statement_id];
+    let Some(&description) = parsed.associate_descriptions().get(statement_id) else {
+        return Err(Error::invalid_argument("unknown statement"));
+    };
     let begin = description.description_blocks_begin as usize;
-    let range = &blocks.blocks[begin..begin + description.description_blocks_count as usize];
+    let range = blocks.blocks.get(begin..begin + description.description_blocks_count as usize).unwrap_or_default();
     let comments = (description.description_begin..description.description_begin + description.description_count).map(|c| c as usize).collect();
-    (Annotation::from_blocks(parsed.scanned.text.as_bytes(), blocks, range.iter()), comments)
+    Ok((Annotation::from_blocks(parsed.scanned.text.as_bytes(), blocks, range.iter()), comments))
 }
 
 /// Read the annotation of a statement
 pub fn read_annotation(parsed: &ParsedScript, statement_id: usize) -> Result<Annotation> {
     check_statement(parsed, statement_id)?;
-    Ok(read_with_comments(parsed, statement_id).0)
+    Ok(read_with_comments(parsed, statement_id)?.0)
 }
 
 /// Whitespace within a line
@@ -228,25 +233,19 @@ fn is_horizontal_space(c: u8) -> bool {
 }
 
 /// The beginning of the whitespace before an offset on its line
-fn skip_space_before(text: &[u8], mut offset: usize) -> usize {
-    while offset > 0 && is_horizontal_space(text[offset - 1]) {
-        offset -= 1;
-    }
-    offset
+fn skip_space_before(text: &[u8], offset: usize) -> usize {
+    offset - text.get(..offset).unwrap_or_default().iter().rev().take_while(|&&c| is_horizontal_space(c)).count()
 }
 
 /// The end of the whitespace after an offset on its line
-fn skip_space_after(text: &[u8], mut offset: usize) -> usize {
-    while offset < text.len() && is_horizontal_space(text[offset]) {
-        offset += 1;
-    }
-    offset
+fn skip_space_after(text: &[u8], offset: usize) -> usize {
+    offset + text.get(offset..).unwrap_or_default().iter().take_while(|&&c| is_horizontal_space(c)).count()
 }
 
 /// Does an offset start its line, after whitespace?
 fn starts_line(text: &[u8], offset: usize) -> bool {
     let before = skip_space_before(text, offset);
-    before == 0 || text[before - 1] == b'\n'
+    before.checked_sub(1).is_none_or(|i| text.get(i) == Some(&b'\n'))
 }
 
 /// The text range that removes comments: their lines if nothing else is on them, otherwise the comments
@@ -254,7 +253,7 @@ fn starts_line(text: &[u8], offset: usize) -> bool {
 fn removal(text: &[u8], comments: TextSpan) -> (usize, usize) {
     let (begin, end) = (comments.offset as usize, comments.end() as usize);
     let after = skip_space_after(text, end);
-    let ends_line = after == text.len() || text[after] == b'\n';
+    let ends_line = text.get(after).is_none_or(|&c| c == b'\n');
     match (starts_line(text, begin), ends_line) {
         (true, true) => (skip_space_before(text, begin), (after + 1).min(text.len())),
         (true, false) => (begin, after),
@@ -287,7 +286,7 @@ pub(crate) fn rewrite(
     edit: impl FnOnce(&mut Annotation) -> Result<Option<usize>>,
 ) -> Result<(String, Option<TextSpan>)> {
     check_statement(parsed, statement_id)?;
-    let (before, comments) = read_with_comments(parsed, statement_id);
+    let (before, comments) = read_with_comments(parsed, statement_id)?;
     let mut annotation = before.clone();
     let written = edit(&mut annotation)?;
     if written.is_none() && annotation == before {
@@ -299,12 +298,12 @@ pub(crate) fn rewrite(
     // removes the blank lines between its comments too, they would be left behind.
     let mut runs: Vec<TextSpan> = Vec::new();
     for &id in &comments {
-        let comment = parsed.scanned.comments[id];
+        let Some(&comment) = parsed.scanned.comments.get(id) else { return Err(outdated()) };
         if comment.end() as usize > bytes.len() {
             return Err(outdated());
         }
         match runs.last_mut() {
-            Some(run) if bytes[run.end() as usize..comment.offset as usize].iter().all(u8::is_ascii_whitespace) => {
+            Some(run) if bytes.get(run.end() as usize..comment.offset as usize).is_some_and(|gap| gap.iter().all(u8::is_ascii_whitespace)) => {
                 *run = TextSpan::new(run.offset, comment.end() - run.offset);
             }
             _ => runs.push(comment),
@@ -321,7 +320,8 @@ pub(crate) fn rewrite(
                 (first.offset as usize, first.end() as usize)
             }
             None => {
-                let at = parsed.associate_descriptions()[statement_id].statement_span.offset as usize;
+                let Some(description) = parsed.associate_descriptions().get(statement_id).copied() else { return Err(outdated()) };
+                let at = description.statement_span.offset as usize;
                 (at, at)
             }
         };
@@ -337,10 +337,13 @@ pub(crate) fn rewrite(
             insert.push('\n');
         }
         if let Some(i) = written {
+            // The printed lines of the written tag, none for an index outside of the annotation
             let first_line = annotation.first_line_of(i);
-            let last_line = first_line + annotation.tags[i].printed_len() - 1;
-            let offset = begin + insert.len() + line_spans[first_line].0;
-            span = Some(TextSpan::new(offset as u32, (line_spans[last_line].1 - line_spans[first_line].0) as u32));
+            let lines = annotation.tags.get(i).and_then(|tag| line_spans.get(first_line..first_line + tag.printed_len())).unwrap_or_default();
+            if let (Some(&(first_begin, _)), Some(&(_, last_end))) = (lines.first(), lines.last()) {
+                let offset = begin + insert.len() + first_begin;
+                span = Some(TextSpan::new(offset as u32, (last_end - first_begin) as u32));
+            }
         }
         insert.push_str(&comment);
         if runs.is_empty() {

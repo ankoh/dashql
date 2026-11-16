@@ -41,7 +41,7 @@ fn append_node(parsed: &ParsedScript, node: &Node, out: &mut Vec<u8>) {
             let bytes = scanned.text.as_bytes();
             let begin = (span.offset as usize).min(bytes.len());
             let end = (begin + span.length as usize).min(bytes.len());
-            append_text(out, &bytes[begin..end]);
+            append_text(out, bytes.get(begin..end).unwrap_or_default());
         }
         NodeType::ARRAY => out.extend_from_slice(&(node.children_count()).to_le_bytes()),
         _ if is_enum_node(node_type) => out.extend_from_slice(&node.children_begin_or_value().to_le_bytes()),
@@ -72,7 +72,9 @@ pub fn compute_signature(parsed: &ParsedScript) -> Result<String> {
     for statement in &parsed.statements {
         statement_bytes.clear();
         let begin = statement.nodes_begin as usize;
-        for node in &parsed.nodes[begin..begin + statement.node_count as usize] {
+        // The nodes of a statement lie in the AST of a parsed script
+        let nodes = parsed.nodes.get(begin..begin + statement.node_count as usize);
+        for node in nodes.ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))? {
             append_node(parsed, node, &mut statement_bytes);
         }
         let digest = hash(&statement_bytes);

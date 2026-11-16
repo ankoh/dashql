@@ -325,8 +325,9 @@ impl Script {
         if parsed.statements.is_empty() {
             return Ok(String::new());
         }
-        let span = parsed.associate_descriptions()[0].statement_span;
-        Ok(self.to_text_span(span))
+        // One description per statement
+        let Some(description) = parsed.associate_descriptions().first().copied() else { return Ok(String::new()) };
+        Ok(self.to_text_span(description.statement_span))
     }
 
     /// The parsed script whose spans apply to the current text, parsed first if requested and outdated
@@ -424,7 +425,7 @@ impl Script {
             return Err(not_parsed());
         }
         let statement_id = parsed.statements.len() - 1;
-        if parsed.statements[statement_id].statement_type != StatementType::SELECT {
+        if parsed.statements.get(statement_id).is_none_or(|s| s.statement_type != StatementType::SELECT) {
             return Err(Error::invalid_argument("the last statement of the script is no query"));
         }
         let spec = match serde_json::from_str(spec) {

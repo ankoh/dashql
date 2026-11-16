@@ -92,38 +92,36 @@ fn relative_position(symbols: &[Symbol], text_offset: u32, symbol_id: u32) -> Re
     }
 }
 
-/// Find the symbol at a text offset
-pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> LocationInfo {
+/// Find the symbol at a text offset, None without symbols (a scanned script ends with EOF)
+pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> Option<LocationInfo> {
     let symbols = &scanned.symbols;
     let text_offset = text_offset.min(scanned.text.len()) as u32;
-    let location = |id: u32| SymbolLocation {
-        symbol_id: id,
-        symbol: symbols[id as usize],
-        text_offset,
-        relative_pos: relative_position(symbols, text_offset, id),
+    let location = |id: u32| -> Option<SymbolLocation> {
+        Some(SymbolLocation {
+            symbol_id: id,
+            symbol: *symbols.get(id as usize)?,
+            text_offset,
+            relative_pos: relative_position(symbols, text_offset, id),
+        })
     };
     // The last symbol that does not begin after the offset
     let mut id = symbols.partition_point(|s| s.location.offset <= text_offset).saturating_sub(1) as u32;
     // Hit EOF? Use the last symbol before it
-    if symbols[id as usize].kind == S_YYEOF {
+    if symbols.get(id as usize)?.kind == S_YYEOF {
         if id == 0 {
             // The very first symbol is EOF, the script is empty
             let current = SymbolLocation {
-                symbol_id: 0,
-                symbol: symbols[0],
-                text_offset,
                 relative_pos: RelativeSymbolPosition::BEFORE_SYMBOL,
+                ..location(0)?
             };
-            return LocationInfo { current, previous: None };
+            return Some(LocationInfo { current, previous: None });
         }
         id -= 1;
     }
-    let current = location(id);
-    let previous = location(id.saturating_sub(1));
-    LocationInfo {
-        current,
-        previous: Some(previous),
-    }
+    Some(LocationInfo {
+        current: location(id)?,
+        previous: Some(location(id.saturating_sub(1))?),
+    })
 }
 
 /// Is a text offset strictly inside a comment?
@@ -133,10 +131,9 @@ pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> LocationInfo 
 pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
     let text_offset = text_offset as u32;
     let i = scanned.comments.partition_point(|c| c.offset <= text_offset);
-    if i == 0 {
+    let Some(comment) = i.checked_sub(1).and_then(|i| scanned.comments.get(i)) else {
         return false;
-    }
-    let comment = scanned.comments[i - 1];
+    };
     let begin = comment.offset;
     let end = begin + comment.length;
     if text_offset <= begin {
@@ -153,30 +150,20 @@ pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
 
 /// Find the statement and the innermost AST node at a text offset
 pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<(u32, u32)> {
-    if parsed.statements.is_empty() {
-        return None;
-    }
     let scanned = &parsed.scanned;
     let resolve = |span: SymbolSpan| resolve_text_span(&scanned.text, &scanned.symbols, span);
     let text_offset = text_offset as u64;
-    // The predecessor of the first statement that begins after the offset
-    let mut statement_id = 0;
-    while statement_id < parsed.statements.len() {
-        let root = parsed.statements[statement_id].root;
-        let ts = resolve(*parsed.nodes[root as usize].symbol_span());
-        if ts.offset as u64 > text_offset {
-            break;
-        }
-        statement_id += 1;
-    }
-    if statement_id == 0 {
-        return None;
-    }
-    statement_id -= 1;
+    // The predecessor of the first statement that begins after the offset. A statement whose root is outside of the
+    // AST counts as beginning after it.
+    let statement_id = parsed
+        .statements
+        .iter()
+        .position(|s| parsed.nodes.get(s.root as usize).is_none_or(|root| resolve(*root.symbol_span()).offset as u64 > text_offset))
+        .unwrap_or(parsed.statements.len())
+        .checked_sub(1)?;
     // Traverse down the AST
-    let mut iter = parsed.statements[statement_id].root;
-    loop {
-        let node = &parsed.nodes[iter as usize];
+    let mut iter = parsed.statements.get(statement_id)?.root;
+    while let Some(node) = parsed.nodes.get(iter as usize) {
         if node.children_count() == 0 {
             break;
         }
@@ -184,9 +171,8 @@ pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<
         // AST nodes have holes, e.g. a select clause has no node for the FROM keyword.
         let mut child_exact = None;
         let mut child_end = None;
-        for i in 0..node.children_count() {
-            let ci = node.children_begin_or_value() + i;
-            let ts = resolve(*parsed.nodes[ci as usize].symbol_span());
+        for (child, ci) in parsed.children(node).iter().zip(node.children_begin_or_value()..) {
+            let ts = resolve(*child.symbol_span());
             let begin = ts.offset as u64;
             let end = begin + ts.length as u64;
             if begin <= text_offset {
@@ -216,7 +202,8 @@ pub fn follow_path_upwards(analyzed: &AnalyzedScript, ast_node_id: u32, path: &m
         if let Some(&scope) = analyzed.name_scopes_by_root_node.get(&node) {
             scopes.push(scope);
         }
-        let parent = nodes[node as usize].parent();
+        // A node outside of the AST ends the path
+        let Some(parent) = nodes.get(node as usize).map(|n| n.parent()) else { break };
         // Statement roots are their own parents
         if parent == node {
             break;
@@ -292,7 +279,7 @@ impl<'a> ScriptCursor<'a> {
             context: CursorContext::None,
         };
         if let Some(scanned) = script.scanned {
-            cursor.scanner_location = Some(find_symbol(scanned, text_offset));
+            cursor.scanner_location = find_symbol(scanned, text_offset);
         }
         let Some(parsed) = script.parsed else { return cursor };
 
@@ -321,14 +308,13 @@ impl<'a> ScriptCursor<'a> {
     /// Find a table or column ref in the innermost scope
     fn find_context(&mut self, analyzed: &AnalyzedScript, parsed: &ParsedScript) {
         let Some(&innermost) = self.name_scopes.first() else { return };
-        let scope = &analyzed.name_scopes[innermost as usize];
+        let Some(scope) = analyzed.scope(innermost) else { return };
         for &node_id in &self.ast_path_to_root {
             let mut matched = false;
-            match parsed.nodes[node_id as usize].node_type() {
-                NodeType::OBJECT_SQL_COLUMN_REF => {
+            match parsed.nodes.get(node_id as usize).map(|n| n.node_type()) {
+                Some(NodeType::OBJECT_SQL_COLUMN_REF) => {
                     matched = true;
-                    for &expr in &scope.expressions {
-                        let expression = &analyzed.expressions[expr as usize];
+                    for expression in scope.expressions.iter().filter_map(|&expr| analyzed.expression(expr)) {
                         if expression.ast_node_id == node_id && expression.column_ref().is_some() {
                             self.context = CursorContext::ColumnRef {
                                 expression_id: expression.expression_id,
@@ -336,10 +322,9 @@ impl<'a> ScriptCursor<'a> {
                         }
                     }
                 }
-                NodeType::OBJECT_SQL_TABLEREF => {
+                Some(NodeType::OBJECT_SQL_TABLEREF) => {
                     matched = true;
-                    for &table_ref_id in &scope.table_references {
-                        let table_ref = &analyzed.table_references[table_ref_id as usize];
+                    for table_ref in scope.table_references.iter().filter_map(|&id| analyzed.table_ref(id)) {
                         if table_ref.ast_node_id != node_id {
                             continue;
                         }
@@ -387,7 +372,7 @@ impl<'a> ScriptCursor<'a> {
 
         let mut best_scope = None;
         for &scope in &self.name_scopes {
-            if analyzed.name_scopes[scope as usize].source(qualifier_text).is_some() {
+            if analyzed.scope(scope).is_some_and(|s| s.source(qualifier_text).is_some()) {
                 best_scope = Some(scope);
                 break;
             }
@@ -400,7 +385,9 @@ impl<'a> ScriptCursor<'a> {
                 if scope.source(qualifier_text).is_none() {
                     continue;
                 }
-                let span = resolve_text_span(&scanned.text, &scanned.symbols, *parsed.nodes[scope.ast_node_id as usize].symbol_span());
+                // A scope without a node has no span to contain the cursor
+                let Some(scope_node) = parsed.nodes.get(scope.ast_node_id as usize) else { continue };
+                let span = resolve_text_span(&scanned.text, &scanned.symbols, *scope_node.symbol_span());
                 let scope_end = span.offset as usize + span.length as usize;
                 let contains_cursor = span.offset as usize <= self.text_offset && self.text_offset <= scope_end;
                 if contains_cursor && (span.length as usize) < best_length {
@@ -425,25 +412,23 @@ impl<'a> ScriptCursor<'a> {
             return Vec::new();
         };
         let name_node = match self.context {
-            CursorContext::TableRef { table_reference_id, .. } => analyzed.table_references[table_reference_id as usize]
-                .inner
-                .as_ref()
+            CursorContext::TableRef { table_reference_id, .. } => analyzed
+                .table_ref(table_reference_id)
+                .and_then(|t| t.inner.as_ref())
                 .and_then(|r| r.table_name.ast_node_id),
             CursorContext::ColumnRef { expression_id } => {
-                analyzed.expressions[expression_id as usize].column_ref().and_then(|c| c.column_name.ast_node_id)
+                analyzed.expression(expression_id).and_then(|e| e.column_ref()).and_then(|c| c.column_name.ast_node_id)
             }
             _ => None,
         };
         let Some(name_node) = name_node else { return Vec::new() };
-        let nodes = &parsed.nodes;
-        let node = &nodes[name_node as usize];
+        let Some(node) = parsed.nodes.get(name_node as usize) else { return Vec::new() };
         if node.node_type() != NodeType::ARRAY {
             return Vec::new();
         }
         *name_path_loc = *node.symbol_span();
-        let begin = node.children_begin_or_value() as usize;
         let mut components = Vec::new();
-        for child in &nodes[begin..begin + node.children_count() as usize] {
+        for child in parsed.children(node) {
             let component_type = match child.node_type() {
                 NodeType::NAME => NameComponentType::Name,
                 NodeType::OBJECT_SQL_INDIRECTION_STAR => NameComponentType::Star,
@@ -468,13 +453,9 @@ impl<'a> ScriptCursor<'a> {
 /// Returns the byte range.
 pub fn qualifier_before(text: &str, dot_offset: usize) -> (usize, usize) {
     let bytes = text.as_bytes();
-    let mut end = dot_offset.min(bytes.len());
-    while end > 0 && bytes[end - 1] == b'.' {
-        end -= 1;
-    }
-    let mut begin = end;
-    while begin > 0 && (bytes[begin - 1].is_ascii_alphanumeric() || bytes[begin - 1] == b'_') {
-        begin -= 1;
-    }
-    (begin, end)
+    let head = bytes.get(..dot_offset.min(bytes.len())).unwrap_or_default();
+    let dots = head.iter().rev().take_while(|&&b| b == b'.').count();
+    let identifier = head.iter().rev().skip(dots).take_while(|&&b| b.is_ascii_alphanumeric() || b == b'_').count();
+    let end = head.len() - dots;
+    (end - identifier, end)
 }

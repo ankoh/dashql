@@ -183,7 +183,7 @@ impl TableDeclaration {
 
     /// Find a column by name
     pub fn column_by_name(&self, name: &str) -> Option<&TableColumn> {
-        self.table_columns_by_name.get(name).map(|&i| &self.table_columns[i])
+        self.table_columns_by_name.get(name).and_then(|&i| self.table_columns.get(i))
     }
 
     /// Find a column by its id
@@ -416,20 +416,25 @@ impl CatalogEntryData {
         }
     }
 
-    /// The id of an object of this entry
+    /// The id of an object of this entry, the default id for an object outside of it
     pub fn object_id(&self, object: CatalogObjectRef) -> QualifiedCatalogObjectId {
-        match object {
-            CatalogObjectRef::Database(l) => self.database_references[l.index as usize].object_id,
-            CatalogObjectRef::Schema(l) => self.schema_references[l.index as usize].object_id,
-            CatalogObjectRef::Table(t) => self.table_declarations[t.index as usize].object_id,
-            CatalogObjectRef::Column(c) => self.table_declarations[c.table.index as usize].table_columns[c.column as usize].object_id,
-            CatalogObjectRef::Function(l) => self.function_declarations[l.index as usize].object_id,
-        }
+        let id = match object {
+            CatalogObjectRef::Database(l) => self.database_references.get(l.index as usize).map(|d| d.object_id),
+            CatalogObjectRef::Schema(l) => self.schema_references.get(l.index as usize).map(|s| s.object_id),
+            CatalogObjectRef::Table(t) => self.table_declarations.get(t.index as usize).map(|t| t.object_id),
+            CatalogObjectRef::Column(c) => self
+                .table_declarations
+                .get(c.table.index as usize)
+                .and_then(|t| t.table_columns.get(c.column as usize))
+                .map(|c| c.object_id),
+            CatalogObjectRef::Function(l) => self.function_declarations.get(l.index as usize).map(|f| f.object_id),
+        };
+        id.unwrap_or_default()
     }
 
     /// A table by id
     pub fn table_by_id(&self, table_id: CatalogTableId) -> Option<&TableDeclaration> {
-        self.table_loc_by_id(table_id).map(|loc| &self.table_declarations[loc.index as usize])
+        self.table_loc_by_id(table_id).and_then(|loc| self.table_declarations.get(loc.index as usize))
     }
 
     /// The location of a table by id
@@ -463,7 +468,7 @@ impl CatalogEntryData {
                 break;
             }
             for &i in tables {
-                if &*self.table_declarations[i].table_name.table_name.text != table_name {
+                if self.table_declarations.get(i).is_none_or(|t| &*t.table_name.table_name.text != table_name) {
                     continue;
                 }
                 out.push(self.table_loc(i));
