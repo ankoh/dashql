@@ -287,8 +287,11 @@ describe('The computations of the runtime', () => {
 
     it('analyzes nothing without columns and dispatches nothing once destroyed', async () => {
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql });
+        const handles = runtime.handles.size;
         await runtime.analyzeTable(1, new arrow.Table());
         expect(runtime.store.get('computation', 1)).toBeNull();
+        // The runtime let go of the handle of the result
+        expect(runtime.handles.size).toBe(handles);
         await runtime.destroy();
         expect(runtime.dispatch({ computation: 1 }, { kind: 'deleteComputation' })).toMatchObject({ ok: false });
     });

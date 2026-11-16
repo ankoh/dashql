@@ -304,7 +304,6 @@ export class Runtime {
     /// summaries of its columns and the ordering of the options. Settles once the analysis is done and its views are
     /// in the store, fails with the error of a failed task. A result without columns has nothing to analyze.
     async analyzeTable(tableId: number, table: arrow.Table, options: AnalyzeTableOptions = {}): Promise<void> {
-        if (table.numCols === 0) return;
         const module = this.live();
         // The handle is the runtime's from the call on, a call that fails releases it
         const handle = this.handles.register(table);

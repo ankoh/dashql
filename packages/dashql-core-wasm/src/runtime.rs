@@ -962,8 +962,9 @@ impl Runtime {
     /// Analyze a result as the computation of a table: its import into the compute database, the statistics, the
     /// system columns, the summaries of the columns and the ordering of the options. The result is a table of the
     /// handle table, the computation takes its handle; an analysis that starts no computation releases it, so does a
-    /// call that fails. The module reads only the rows and the schema of the result. Resolves once the analysis is
-    /// done, rejects with the error of a failed task.
+    /// call that fails. The module reads only the rows and the schema of the result. A result without columns has
+    /// nothing to analyze, its handle is released. Resolves once the analysis is done, rejects with the error of a
+    /// failed task.
     #[wasm_bindgen(js_name = analyzeTable, unchecked_return_type = "Promise<void>")]
     pub fn analyze_table(&self, table_id: f64, table: f64, options: Ts<AnalyzeTableOptions>) -> Result<Promise, JsError> {
         let table = integer(table, "table handle")?;
@@ -976,6 +977,10 @@ impl Runtime {
         let options: AnalyzeTableOptions = options.to_rust().map_err(|error| fail(format!("the options of the analysis: {error}")))?;
         let table_id = integer(table_id, "table id").map_err(|_| fail("the table id is no integer".to_string()))? as TableId;
         let result = self.platform.describe_table(table).map_err(|error| fail(error.to_string()))?;
+        if result.schema.fields().is_empty() {
+            self.platform.release_handle(table);
+            return Ok(Promise::resolve(&JsValue::UNDEFINED));
+        }
         let lifetime = self.platform.register(&lifetime_token()).map_err(|error| fail(error.to_string()))?;
         let handles = AnalysisHandles { table, lifetime };
         let analyze_options = RuntimeAnalyzeOptions { column_aggregates: options.column_aggregates.unwrap_or(true) };
