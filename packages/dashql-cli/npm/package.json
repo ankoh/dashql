@@ -1,6 +1,6 @@
 {
   "name": "@akohn/dashql-cli",
-  "version": "0.0.1-dev.1",
+  "version": "0.0.19-dev.247",
   "description": "dashql, the command line tool of DashQL: lint, format and run SQL, show the session of Claude Code or Codex live in DashQL",
   "type": "module",
   "license": "MPL-2.0",
@@ -16,7 +16,7 @@
   "bin": { "dashql": "./dist/dashql.js" },
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {
-    "@akohn/dashql": "0.0.2-dev.17",
+    "@akohn/dashql": "0.0.19-dev.247",
     "hyperdb-wasm": "0.0.27368-dev.wasm.ge0a6b4a9"
   }
 }

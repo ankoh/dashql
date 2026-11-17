@@ -75,6 +75,8 @@ bazel run //packages/dashql-datasets:sync
 
 # Build, test and publish the npm packages @akohn/dashql and @akohn/dashql-cli (npx -y @akohn/dashql-cli).
 # @akohn/dashql goes first, the command line tool depends on its exact version.
+# A version is published once: set_version writes the version of git describe (or the one given) everywhere first.
+bazel run //scripts:set_version
 bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-cli:npm_tarball
 bazel test --config=release //packages/dashql:all \
     //packages/dashql-cli:npm_package_test //packages/dashql-cli:binary_test
@@ -99,7 +101,7 @@ npm publish bazel-bin/packages/dashql-cli/dashql-cli.tgz --tag latest
     - CI uploads their archives of every trusted build (`dashql_npm`, `dashql_cli_npm`), those can be published instead of a local build
     - Only these two go to npm: they inline `hyperdb-edge` and the generated packages, `hyperdb-wasm` is on npm already
     - The account needs the scope `@akohn`; npm wants a tag on a prerelease version, `latest` is what `npx` installs
-    - A version is published once, the next release raises both `npm/package.json` versions and the dependency of the command on `@akohn/dashql`
+    - A version is published once: `bazel run //scripts:set_version [-- <version>]` sets the version of the root, the desktop app, both `npm/package.json` and the dependency of the command on `@akohn/dashql`, by default to the version of the app from `git describe` (`0.0.19-dev.247`)
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//packages/dashql-datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //packages/dashql-datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry

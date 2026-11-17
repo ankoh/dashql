@@ -14,6 +14,14 @@ sh_binary(
     srcs = ["repin_crates.sh"],
 )
 
+# Set the version of the root, the desktop app and the packages on npm, by default the one of the app from git describe.
+# Usage: bazel run //scripts:set_version [-- <version>]
+py_binary(
+    name = "set_version",
+    srcs = ["set_version.py"],
+    main = "set_version.py",
+)
+
 # Generate rust-project.json for rust-analyzer, see docs/agents/rust_analyzer.md.
 # Usage: bazel run //scripts:rust_project [-- <target patterns>]
 py_binary(
