@@ -158,19 +158,25 @@ test('the hooks show the session in DashQL: the question, what the agent ran and
     const { commands } = await runCodex(dir, {
         command: 'echo hello from scripts/orders.sql',
         hook: `${DASHQL} session hook {event} --harness codex`,
-        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop'],
+        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'],
         env: { DASHQL_SERVERS: servers },
     });
     assert.deepEqual(commands, ['hello from scripts/orders.sql']);
     const { files, state } = await readDashQLSession(servers);
     assert.equal(files.length, 1, JSON.stringify(files));
     assert.equal(state.harness, 'codex');
-    assert.deepEqual(state.turns, [{
+    // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
+    const steps = state.turns.flatMap(turn => turn.steps);
+    assert.equal(steps.length, 1, JSON.stringify(steps));
+    assert.equal(typeof steps[0].toolUseId, 'string');
+    assert.ok(steps[0].startedAt <= steps[0].endedAt, JSON.stringify(steps));
+    assert.deepEqual(state.turns.map(({ steps, ...turn }) => ({ ...turn, steps: steps.map(({ label, failed }) => ({ label, failed })) })), [{
         turnId: 1,
         question: 'run the probe',
         status: null,
         error: null,
         note: 'done',
         files: ['scripts/orders.sql'],
+        steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
     }]);
 });
