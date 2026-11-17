@@ -199,8 +199,9 @@ pub enum ConnectionAction {
     SetupStep { epoch: u64, step: Box<ConnectionAction> },
 
     /// The refresh of a token of the channel failed: the connection that is online fails with the error, its channel
-    /// stays until the user sets it up again
-    TokenRefreshFailed(DetailedError),
+    /// stays until the user sets it up again. `epoch` is the setup epoch of the channel that the refresh ran on, a
+    /// refresh of a channel that a later setup, a reset or a delete replaced changes nothing.
+    TokenRefreshFailed { epoch: u64, error: DetailedError },
 }
 
 impl ConnectionAction {
@@ -587,9 +588,9 @@ impl ConnectionState {
                 }
                 return Ok(outcome);
             }
-            ConnectionAction::TokenRefreshFailed(error) => {
-                // A refresh that ends after the connection went offline changes nothing
-                if self.health == ConnectionHealth::Online {
+            ConnectionAction::TokenRefreshFailed { epoch, error } => {
+                // A refresh that ends after the connection went offline or got a new channel changes nothing
+                if epoch == self.setup_epoch && self.health == ConnectionHealth::Online {
                     self.status = ConnectionStatus::AuthFailed;
                     self.health = ConnectionHealth::Failed;
                     self.details.channel_error = Some(error);

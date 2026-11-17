@@ -788,15 +788,42 @@ fn a_failed_token_refresh_fails_the_connection_that_is_online() {
     apply(&mut connection, ConnectionAction::Trino(trino_ready()));
     apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
     assert_eq!(connection.health(), ConnectionHealth::Online);
-    apply(&mut connection, ConnectionAction::TokenRefreshFailed(error("The refresh of the access token timed out")));
+    let epoch = connection.setup_epoch();
+    apply(&mut connection, ConnectionAction::TokenRefreshFailed { epoch, error: error("The refresh of the access token timed out") });
     assert_eq!((connection.status(), connection.health()), (ConnectionStatus::AuthFailed, ConnectionHealth::Failed));
     assert_eq!(connection.details().channel_error, Some(error("The refresh of the access token timed out")));
     assert!(!connection.can_refresh_catalog());
     // A refresh that ends after the connection went offline changes nothing
     let mut connection = trino();
     let revision = connection.revision();
-    assert!(!connection.apply(ConnectionAction::TokenRefreshFailed(error("late")), NOW).unwrap().changed);
+    let epoch = connection.setup_epoch();
+    assert!(!connection.apply(ConnectionAction::TokenRefreshFailed { epoch, error: error("late") }, NOW).unwrap().changed);
     assert_eq!((connection.health(), connection.revision()), (ConnectionHealth::NotStarted, revision));
+}
+
+#[test]
+fn a_failed_token_refresh_of_a_replaced_channel_changes_nothing() {
+    let mut connection = trino();
+    let first = connection.begin_setup();
+    apply(&mut connection, step(first, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+    apply(&mut connection, step(first, ConnectionAction::Trino(trino_ready())));
+    apply(&mut connection, step(first, ConnectionAction::HealthCheckSucceeded));
+    assert_eq!(connection.health(), ConnectionHealth::Online);
+    // A query on the first channel starts a refresh, the user sets the connection up again meanwhile
+    let second = connection.begin_setup();
+    apply(&mut connection, step(second, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+    apply(&mut connection, step(second, ConnectionAction::Trino(trino_ready())));
+    apply(&mut connection, step(second, ConnectionAction::HealthCheckSucceeded));
+    assert_eq!(connection.health(), ConnectionHealth::Online);
+    let revision = connection.revision();
+    // The refresh on the first channel fails late, the new channel stays online
+    let late = ConnectionAction::TokenRefreshFailed { epoch: first, error: error("The refresh of the access token timed out") };
+    assert!(!connection.apply(late, NOW).unwrap().changed);
+    assert_eq!((connection.health(), connection.revision()), (ConnectionHealth::Online, revision));
+    assert_eq!(connection.details().channel_error, None);
+    // A refresh on the channel of the second setup fails the connection
+    apply(&mut connection, ConnectionAction::TokenRefreshFailed { epoch: second, error: error("expired") });
+    assert_eq!(connection.health(), ConnectionHealth::Failed);
 }
 
 #[test]

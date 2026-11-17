@@ -171,7 +171,9 @@ marks are `runtime/changes.rs`.
   a replaced attempt change nothing and the channel of the host of such a ready step is closed. A cancellation stops
   the wait for a connect, a channel that connects after it is closed. The platform aborts the work of a host call that
   the runtime drops before it settled: a fetch, an OAuth flow (its loopback server or window), and a connect closes its
-  channel once it is there.
+  channel once it is there. A failed refresh of a token carries the epoch of the channel it ran on
+  (`ConnectionAction::TokenRefreshFailed`): a query remembers the epoch it was described on, and a refresh of a
+  replaced channel fails nothing.
 - **OAuth.** `connection_setup::OAuthHost` adds the flows to `HttpHost`: the PKCE challenge and random ids come from the
   platform, `authorize_with_loopback` serves Trino, `authorize_with_redirect_page` Salesforce. See
   [oauth_salesforce.md](oauth_salesforce.md).

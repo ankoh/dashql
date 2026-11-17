@@ -25,7 +25,7 @@
 //! their connection like the others and are described in the same way. The specs of the client functions come from
 //! the platform (`extensions`) when a call runs.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
 use std::pin::Pin;
 use std::rc::{Rc, Weak};
@@ -246,6 +246,9 @@ pub(crate) struct QueryRun {
     pub preset_failure: bool,
     /// Cancels the query
     pub token: CancellationToken,
+    /// The setup epoch of the channel that the query was described on, none before. A failed refresh of a token of that
+    /// channel fails the connection only while it keeps the channel.
+    channel_epoch: Cell<Option<u64>>,
     /// The views of the profile of the query
     controls: QueryControls,
     /// What the caller hears
@@ -289,6 +292,7 @@ impl QueryRun {
             log_details,
             preset_failure,
             token: CancellationToken::new(),
+            channel_epoch: Cell::new(None),
             controls: QueryControls::default(),
             caller: QueryCaller::default(),
             state: RefCell::new(RunState::default()),
@@ -764,8 +768,10 @@ impl ExecutorHost for QueryHost {
     }
 
     fn token_refresh_ended(&self, run: &QueryRun, outcome: Result<(), DetailedError>) {
+        // The executor refreshes the token of a channel that the description of the query named
+        let Some(epoch) = run.channel_epoch.get() else { return };
         if let Some(connections) = self.connections.upgrade() {
-            connections.token_refresh_ended(&run.connection_id, outcome);
+            connections.token_refresh_ended(&run.connection_id, epoch, outcome);
         }
     }
 
@@ -776,12 +782,13 @@ impl ExecutorHost for QueryHost {
 
 impl Connections {
     /// The refresh of a token of the channel of a connection ended. The channel keeps a new token, the view of the
-    /// connection summarizes it; a failed refresh fails the connection that is online.
-    pub(crate) fn token_refresh_ended(self: &Rc<Self>, connection_id: &str, outcome: Result<(), DetailedError>) {
+    /// connection summarizes it; a failed refresh fails the connection that is online and still keeps the channel of
+    /// setup epoch `epoch`.
+    pub(crate) fn token_refresh_ended(self: &Rc<Self>, connection_id: &str, epoch: u64, outcome: Result<(), DetailedError>) {
         match outcome {
             Ok(()) => self.platform.changed(super::changes::Slice::Connection(connection_id), false),
             Err(error) => {
-                if let Err(failure) = self.apply(connection_id, ConnectionAction::TokenRefreshFailed(error), None) {
+                if let Err(failure) = self.apply(connection_id, ConnectionAction::TokenRefreshFailed { epoch, error }, None) {
                     self.platform.log_on(LogLevel::Warn, "Failed to fail a connection after a token refresh", &[("connectionId", connection_id), ("error", failure.what())], LOG_TARGET);
                 }
             }
@@ -872,25 +879,27 @@ impl Connections {
     /// messages. The connection owns its channel: the module speaks Trino, Hyper over HTTP and the Hyper of Salesforce
     /// itself, the platform describes only a channel of the host, which it then keeps for the query until the query is
     /// forgotten.
-    async fn describe(self: &Rc<Self>, query_id: QueryId, description: &QueryDescription) -> Result<QueryRequest, QueryFailure> {
+    async fn describe(self: &Rc<Self>, run: &QueryRun, description: &QueryDescription) -> Result<QueryRequest, QueryFailure> {
+        let query_id = run.query_id;
         let connection_id = description.connection_id.as_str();
         let connection = {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
-                Some((state.connector_type(), state.details().channel.clone()))
+                Some((state.connector_type(), state.details().channel.clone(), state.setup_epoch()))
             })
         };
-        let Some((connector, channel)) = connection else {
+        let Some((connector, channel, epoch)) = connection else {
             return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
         };
+        run.channel_epoch.set(Some(epoch));
         // A Data Cloud token about to expire is refreshed before the query uses the tokens, the channel keeps the new
         // ones. A failed refresh fails the connection.
         let salesforce = channel.as_ref().and_then(ConnectionChannel::salesforce).cloned();
         if let Some(salesforce) = &salesforce {
             if let Err(message) = salesforce.fresh(&Rc::new(self.platform.clone())).await {
                 self.platform.log_on(LogLevel::Warn, "Failed to refresh the Salesforce tokens", &[("connectionId", connection_id), ("error", &message)], LOG_TARGET);
-                self.token_refresh_ended(connection_id, Err(DetailedError::new(message.clone())));
+                self.token_refresh_ended(connection_id, epoch, Err(DetailedError::new(message.clone())));
                 return Err(QueryFailure::new(FailureKind::Error, message));
             }
         }
@@ -988,7 +997,7 @@ impl Connections {
             return fail(QueryFailure { value: Some(value), ..QueryFailure::new(FailureKind::Error, message) });
         }
         let token = &run.token;
-        let mut request = match token.run(self.describe(query_id, &description)).await {
+        let mut request = match token.run(self.describe(run, &description)).await {
             None => return fail(QueryFailure::cancelled()),
             Some(Err(failure)) => return fail(failure),
             Some(Ok(request)) => request,
