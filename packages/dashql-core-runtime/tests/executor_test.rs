@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 
 use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessionDefaults};
-use dashql_core_runtime::executor::connectors::TRINO_TOKEN_REFRESH_TIMEOUT_MS;
+use dashql_core_runtime::executor::connectors::{BACKEND_CANCEL_TIMEOUT_MS, TRINO_TOKEN_REFRESH_TIMEOUT_MS};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
     CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
@@ -760,6 +760,34 @@ fn trino_cancels_a_query_at_the_server() {
     let delete = sent.last().unwrap();
     assert_eq!((delete.method.clone(), delete.url.clone()), (HttpMethod::Delete, next_uri(1)));
     assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
+}
+
+#[test]
+fn trino_gives_up_a_cancellation_at_the_server_that_hangs() {
+    let host = FakeHost::new();
+    host.serve(|request| {
+        if request.url.ends_with("/v1/statement") {
+            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }));
+        }
+        // The network is gone: neither the next page nor the cancellation answers
+        Answer::Hold
+    });
+    let executor = QueryExecutor::new(host.clone());
+    let query = request(1, QueryTarget::Trino(trino_channel()));
+    let run = query.run.clone();
+    let outcome = start(&host, &executor, query);
+    host.advance(0);
+    run.token.cancel();
+    host.advance(0);
+    assert!(host.state.borrow().sent.iter().any(|r| r.method == HttpMethod::Delete), "the cancellation is sent");
+    assert!(outcome.borrow().is_none(), "the query waits for the cancellation");
+    let aborted = host.aborted.borrow().len();
+    // The cancellation is given up and aborted, the query ends cancelled
+    host.advance(BACKEND_CANCEL_TIMEOUT_MS as u64);
+    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
+    assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
+    assert_eq!(host.aborted.borrow().get(aborted..), Some(&[next_uri(1)][..]), "the cancellation is aborted");
+    assert!(host.log_messages().iter().any(|m| m == "Failed to cancel query at the backend"), "{:?}", host.log_messages());
 }
 
 #[test]

@@ -388,17 +388,25 @@ async fn fresh_trino_relay_auth<H: HttpHost>(
     Ok(Some(auth))
 }
 
+/// How long the cancellation of a query at the backend may take. The query ends either way, a cancellation that takes
+/// longer, e.g. once the network is gone, is given up and logged, so that a stopped run never waits for it.
+pub const BACKEND_CANCEL_TIMEOUT_MS: f64 = 10.0 * 1000.0;
+
+/// The message of a cancellation at the backend that took too long
+const BACKEND_CANCEL_TIMED_OUT: &str = "The cancellation at the backend timed out";
+
 /// Cancel a Trino query at the backend by deleting its next URI, e.g. after the query was cancelled or failed while
-/// Trino still runs it. The cancellation is sent with a token of its own, a failure is logged.
+/// Trino still runs it. The cancellation is sent with a token of its own and given up after
+/// `BACKEND_CANCEL_TIMEOUT_MS`, a failure is logged.
 async fn cancel_trino<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel, query: &TrinoQuery) {
     let Some(cancel) = query.cancel_request() else { return };
     let result = match channel.http_request(&cancel).map_err(|e| e.message) {
-        Ok(request) => context
-            .host
-            .fetch(request, &CancellationToken::new())
-            .await
-            .map_err(|e| e.message().to_string())
-            .and_then(|response| crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)),
+        Ok(request) => match timeout(&*context.host, BACKEND_CANCEL_TIMEOUT_MS, context.host.fetch(request, &CancellationToken::new())).await {
+            None => Err(BACKEND_CANCEL_TIMED_OUT.to_string()),
+            Some(response) => response
+                .map_err(|e| e.message().to_string())
+                .and_then(|response| crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)),
+        },
         Err(message) => Err(message),
     };
     if let Err(message) = result {
@@ -545,10 +553,12 @@ async fn run_hyper<H: ExecutorHost>(
         // A cancelled query, or one whose result broke off while Hyper may still run it, stops at the backend
         let cancelled = failure.kind == FailureKind::Cancelled || context.token.is_cancelled();
         if cancelled || *at_backend {
-            let result = host.fetch(reader.cancel_request(&auth), &CancellationToken::new()).await;
-            let result = result
-                .map_err(|e| e.message().to_string())
-                .and_then(|response| crate::hyper::read_cancel_response(&response).map_err(|e| e.message()));
+            let result = match timeout(&*host, BACKEND_CANCEL_TIMEOUT_MS, host.fetch(reader.cancel_request(&auth), &CancellationToken::new())).await {
+                None => Err(BACKEND_CANCEL_TIMED_OUT.to_string()),
+                Some(result) => result
+                    .map_err(|e| e.message().to_string())
+                    .and_then(|response| crate::hyper::read_cancel_response(&response).map_err(|e| e.message())),
+            };
             if let Err(message) = result {
                 context.cancel_failed(&message);
             }

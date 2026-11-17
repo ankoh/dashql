@@ -229,7 +229,8 @@ marks are `runtime/changes.rs`.
   `ExecutorHost::time_zones` since the crate has no time zone database), Hyper over HTTP (`HyperResultReader`, the
   chunks passed on unread), Salesforce Data Cloud, and client functions (`ClientFunctionCallRun` with the spec that the
   catalog loader registered, see [client_functions.md](client_functions.md)). A fetch whose future is dropped is
-  aborted. The gRPC channel of Hyper and the embedded Hyper stay channels of the host.
+  aborted. The cancellation of a Trino query or of a Hyper query over HTTP at the backend is given up after 10 s
+  (`BACKEND_CANCEL_TIMEOUT_MS`) and logged, so a stopped run never waits for a network that is gone. The gRPC channel of Hyper and the embedded Hyper stay channels of the host.
 - **Results never live in the module.** A result passes through it at most one page at a time, see
   [dashql_runtime.md](dashql_runtime.md#results-stay-in-javascript).
 - **Progress.** The `QueryProgressModel` of a query (`query/progress.rs`) applies the progress payloads of its engine to
