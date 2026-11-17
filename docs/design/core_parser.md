@@ -43,6 +43,18 @@ Source text
   FlatBuffer serialization (parsed_script.fbs)
 ```
 
+### Depth limit
+
+The parser stack may not reach `MAX_STACK_DEPTH` (1000 states, `parser/driver.rs`). Nesting grows the stack:
+parentheses, brackets, subqueries, CASE, prefix operators; the snapshot corpus stays below 150. A shift past the
+limit is the syntax error `NESTING_TOO_DEEP`, and the recovery drops the whole statement: it unwinds to the lowest
+state that shifts the error token and skips to the next statement. Recovering inside the nesting would leave the
+stack at the limit, where no closing token could shift. The tree itself is flat, but the analyzer, the formatter and
+the checks of client function calls walk parts of it recursively on the 1 MiB stack of the module, where an overflow
+traps it; `packages/dashql-core/tests/nesting_test.rs` analyzes and formats every kind of nesting at the limit on half
+of that stack. A left-deep chain (`a + b + c`, `x::int::int`) builds a deep tree without growing the stack and is not
+limited.
+
 ## Flat AST Design
 
 ### The Node struct

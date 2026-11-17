@@ -294,6 +294,7 @@ The analyzer walks a `CALL` against the signature and reports through the existi
 | The same name, quoted (`"new_field" => 1`) | Accepted and sent as written. Quoting is how a script says it means it |
 | A missing required option, or a duplicate | Error. A `_poll`, or a `_next` that is a URL, carries the whole request and needs no required options |
 | A function in a value | Error |
+| A value that nests deeper than 64 levels of arrays and objects (`MAX_VALUE_DEPTH`) | Error. The checks and the description walk a value recursively, its description has a null there |
 | A standard option the function doesn't support | Error, see [Paging](#paging) and [Pending results](#pending-results) |
 | `_pages` that isn't a positive integer, or `_wait` that isn't an integer from 0, unless it's a parameter | Error |
 

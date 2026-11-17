@@ -1,6 +1,7 @@
 //! The LALR(1) driver, the `parse()` loop of bison's lalr1.cc skeleton configured with
 //! `parse.lac full`, `parse.error verbose` plus an error hint, error recovery through the `error`
-//! token, and a custom default location for reductions.
+//! token, and a custom default location for reductions. The stack has a depth limit
+//! (`MAX_STACK_DEPTH`), a shift past it is a syntax error.
 
 use super::actions::{ReduceError, ReduceStack};
 use super::context::ParseContext;
@@ -13,6 +14,17 @@ use dashql_buffers::parser::SymbolSpan;
 
 /// A parser state
 pub type StateId = i32;
+
+/// The depth of the parser stack that a shift may not reach. Nesting grows the stack: parentheses, brackets, subqueries,
+/// CASE, prefix operators. The parse tree is flat, but the analyzer, the formatter and the checks of client function
+/// calls walk parts of it recursively, on the 1 MiB stack of the module, where an overflow traps the module. A token
+/// that would nest deeper is a syntax error with `NESTING_TOO_DEEP` that drops the statement: the parser recovers at
+/// the bottom of its stack, where the statement began, and skips to the next one. Recovering inside the nesting would
+/// leave the stack at the limit, where no closing token could shift.
+pub const MAX_STACK_DEPTH: usize = 1000;
+
+/// The error of a token that would nest deeper than `MAX_STACK_DEPTH`
+pub const NESTING_TOO_DEEP: &str = "syntax error, the statement nests too deep";
 
 /// A state off the tables, every action on it is an error. The tables hold the states, rules and symbols of the
 /// grammar, so their lookups never miss; a miss ends in a syntax error instead of a panic.
@@ -302,6 +314,9 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
     let mut scratch = Vec::new();
     let mut errstatus = 0;
     let mut error_range_begin = SymbolSpan::default();
+    // Did the error come from a shift past the depth limit? Then the recovery unwinds the statement.
+    let mut too_deep = false;
+    let mut unwind = false;
     let mut label = Label::NewState;
 
     loop {
@@ -347,6 +362,10 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                                 Label::ErrLab
                             }
                         }
+                        Some(Action::Shift(_)) if stack.states.len() >= MAX_STACK_DEPTH => {
+                            too_deep = true;
+                            Label::ErrLab
+                        }
                         Some(Action::Shift(next)) => {
                             if errstatus > 0 {
                                 errstatus -= 1;
@@ -390,11 +409,17 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 }
             }
             Label::ErrLab => {
+                let deep = std::mem::take(&mut too_deep);
                 if errstatus == 0 {
-                    let (message, hint) = syntax_error(&stack.states, lookahead.map(|la| la.kind), &mut scratch);
+                    let (message, hint) = if deep {
+                        (NESTING_TOO_DEEP.to_string(), String::new())
+                    } else {
+                        syntax_error(&stack.states, lookahead.map(|la| la.kind), &mut scratch)
+                    };
                     ctx.state.borrow_mut().pending_hint = hint;
                     ctx.error(lookahead_location, &message);
                 }
+                unwind |= deep;
                 error_range_begin = lookahead_location;
                 if errstatus == 3 {
                     // Discard the lookahead that failed to be reused after an error
@@ -408,6 +433,14 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
             }
             Label::ErrLab1 => {
                 errstatus = 3;
+                // A statement that nests too deep recovers at the lowest state that shifts the error token
+                if std::mem::take(&mut unwind) {
+                    let bottom = stack.states.iter().position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
+                    if let Some(bottom) = bottom {
+                        error_range_begin = stack.locations.get(bottom + 1).copied().unwrap_or(error_range_begin);
+                        stack.pop(stack.states.len().saturating_sub(bottom + 1));
+                    }
+                }
                 // Pop states until one shifts the error token
                 let next = loop {
                     if let Some(Action::Shift(next)) = table_action(stack.top(), S_YYerror) {

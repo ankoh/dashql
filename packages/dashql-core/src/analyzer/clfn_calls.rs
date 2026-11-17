@@ -20,6 +20,11 @@ use dashql_parser::symbol_kind::*;
 use serde_json::{json, Map, Number, Value};
 use std::sync::Arc;
 
+/// The levels that the value of an option of a client function may nest: arrays and objects. The checks and the
+/// description walk a value recursively, a deeper value is an error and its description leaves a null there, so neither
+/// walk nor the runtime that sends the value outgrows the stack of the module. JSON APIs nest far less.
+pub const MAX_VALUE_DEPTH: usize = 64;
+
 /// A `CALL` in a namespace with client functions, it never reaches the backend
 #[derive(Clone, Debug)]
 pub struct ClientFunctionCall {
@@ -201,7 +206,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             _ => None,
         };
         match function {
-            Some(function) => Checker { state, spec, function }.check_options(args, call_id),
+            Some(function) => Checker { state, spec, function, depth: 0 }.check_options(args, call_id),
             // A name that is still typed, the parser reports the trailing dot
             None if callee.path.is_empty() => {}
             // The spec shadows its namespace, the backend never gets this call
@@ -233,6 +238,8 @@ struct Checker<'s, 'a, 'c> {
     state: &'s mut AnalysisState<'a>,
     spec: &'c ClientFunctionSpec,
     function: &'c ClientFunction,
+    /// The levels of the value that is checked, see `MAX_VALUE_DEPTH`
+    depth: usize,
 }
 
 impl Checker<'_, '_, '_> {
@@ -347,6 +354,18 @@ impl Checker<'_, '_, '_> {
     /// Check a value. `map` says that an object is the map of the attribute: its keys are free, and the attribute holds for
     /// its values.
     fn check_nested_value(&mut self, value: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool) {
+        if self.depth >= MAX_VALUE_DEPTH {
+            let message = format!("a value can't nest deeper than {MAX_VALUE_DEPTH} levels");
+            self.error(AnalyzerErrorType::CLIENT_FUNCTION_INVALID_VALUE, value, message);
+            return;
+        }
+        self.depth += 1;
+        self.check_value_at_depth(value, attribute, map);
+        self.depth -= 1;
+    }
+
+    /// Check a value below the depth limit
+    fn check_value_at_depth(&mut self, value: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool) {
         let parsed = self.state.parsed;
         match value.node_type() {
             NodeType::ARRAY if map => {
@@ -523,6 +542,8 @@ struct Describer<'a> {
     analyzed: &'a AnalyzedScript,
     spec: &'a ClientFunctionSpec,
     bindings: Vec<Value>,
+    /// The levels of the value that is described, see `MAX_VALUE_DEPTH`
+    depth: usize,
 }
 
 impl Describer<'_> {
@@ -534,6 +555,18 @@ impl Describer<'_> {
     /// The value of a node, a parameter leaves a null and a binding. `map` says that an object is the map of the attribute:
     /// its keys stay as written, and the attribute holds for its values.
     fn nested_value(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool, pointer: &str) -> Value {
+        // The checks reported a value that nests deeper
+        if self.depth >= MAX_VALUE_DEPTH {
+            return Value::Null;
+        }
+        self.depth += 1;
+        let value = self.value_at_depth(node, attribute, map, pointer);
+        self.depth -= 1;
+        value
+    }
+
+    /// The value of a node below the depth limit
+    fn value_at_depth(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool, pointer: &str) -> Value {
         let parsed = self.analyzed.parsed.clone();
         let text = source(&parsed, node);
         match node.node_type() {
@@ -611,7 +644,7 @@ impl AnalyzedScript {
         let parsed = self.parsed.clone();
         let call = parsed.nodes.get(record.ast_node_id as usize)?;
         let [args] = attrs!(parsed.children(call), [K::SQL_CALL_ARGS]);
-        let mut describer = Describer { analyzed: self, spec, bindings: Vec::new() };
+        let mut describer = Describer { analyzed: self, spec, bindings: Vec::new(), depth: 0 };
         let mut options = Map::new();
         for arg in args.map(|a| parsed.children(a)).unwrap_or(&[]) {
             let [key, value] = attrs!(parsed.children(arg), [K::SQL_FUNCTION_ARG_NAME, K::SQL_FUNCTION_ARG_VALUE]);

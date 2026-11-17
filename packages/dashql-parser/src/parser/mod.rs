@@ -282,6 +282,63 @@ mod tests {
         assert_eq!(root.node_type(), NodeType::OBJECT_SQL_SELECT);
     }
 
+    /// The depth of the deepest node, the roots have depth 1
+    fn tree_depth(parsed: &ParsedScript) -> usize {
+        // Post-order: a parent comes after its children
+        let mut depths = vec![0usize; parsed.nodes.len()];
+        for (i, node) in parsed.nodes.iter().enumerate().rev() {
+            let parent = depths.get(node.parent() as usize).copied().unwrap_or(0);
+            depths[i] = parent + 1;
+        }
+        depths.into_iter().max().unwrap_or(0)
+    }
+
+    fn nested(open: &str, inner: &str, close: &str, depth: usize) -> String {
+        format!("{}{inner}{}", open.repeat(depth), close.repeat(depth))
+    }
+
+    #[test]
+    fn parses_nesting_below_the_depth_limit() {
+        for text in [
+            format!("select {}", nested("(", "1", ")", 300)),
+            format!("select {}", nested("f(", "1", ")", 100)),
+            format!("select * from {}", nested("(select * from ", "x", ") t", 50)),
+            format!("call ns.f(x => {})", nested("[", "1", "]", 300)),
+        ] {
+            let parsed = parse_text(&text);
+            assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
+            assert_eq!(parsed.statements.len(), 1);
+        }
+    }
+
+    #[test]
+    fn drops_a_statement_that_nests_too_deep() {
+        for deep in [
+            format!("select {}", nested("(", "1", ")", 100_000)),
+            format!("select {}", nested("f(", "1", ")", 100_000)),
+            format!("call ns.f(x => {})", nested("[", "1", "]", 100_000)),
+            format!("select {}1", "- ".repeat(100_000)),
+            format!("select {}true", "not ".repeat(100_000)),
+            format!("select {}", nested("case when true then ", "1", " end", 10_000)),
+        ] {
+            let parsed = parse_text(&format!("select 1; {deep}; select 2"));
+            // One error, the parser skips the rest of the statement and parses the next one
+            let head = deep.get(..20).unwrap_or_default();
+            let errors: Vec<_> = parsed.errors.iter().map(|e| e.message.as_str()).collect();
+            assert_eq!(errors, [driver::NESTING_TOO_DEEP], "{head}");
+            let statements: Vec<String> = parsed
+                .statements
+                .iter()
+                .map(|statement| {
+                    let span = context::resolve_text_span(&parsed.scanned.text, &parsed.scanned.symbols, *parsed.nodes[statement.root as usize].symbol_span());
+                    parsed.scanned.text[span.offset as usize..span.end() as usize].to_string()
+                })
+                .collect();
+            assert_eq!(statements, ["select 1", "select 2"], "{head}");
+            assert!(tree_depth(&parsed) < 20, "{head}: {}", tree_depth(&parsed));
+        }
+    }
+
     #[test]
     fn reports_syntax_errors() {
         let parsed = parse_text("select * from foo select");
