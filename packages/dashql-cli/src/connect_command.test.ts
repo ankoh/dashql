@@ -114,7 +114,10 @@ describe('dashql connect', () => {
         expect(value).not.toContain('SessionEnd');
         const [settingsFlag, settings] = claudeHookArgs(DASHQL);
         expect(settingsFlag).toBe('--settings');
-        expect(JSON.parse(settings).hooks.PostToolUse[0].matcher).toBe('*');
+        const hooks = JSON.parse(settings).hooks;
+        for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure']) expect(hooks[event][0].matcher).toBe('*');
+        expect(value).toContain('PreToolUse=[');
+        expect(value).not.toContain('PostToolUseFailure');
     });
 
     it('fails on a port that is taken and on a harness that is missing', async () => {

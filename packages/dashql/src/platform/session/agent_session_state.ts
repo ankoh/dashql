@@ -3,7 +3,7 @@ import type { LogRecord } from '../logger/log_buffer.js';
 import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
 
 /// The events of a harness that its hooks send to `dashql session serve`, docs/wip/agent_session.md
-export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PostToolUse' | 'Stop' | 'SessionEnd';
+export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Stop' | 'SessionEnd';
 
 /// An event of a session, as the hook command of dashql reads it from the harness
 export interface AgentSessionEvent {
@@ -14,14 +14,30 @@ export interface AgentSessionEvent {
     folder: string;
     /// The question of UserPromptSubmit
     prompt?: string | null;
-    /// What a tool of PostToolUse did, in one line
+    /// What a tool of PreToolUse or PostToolUse does, in one line
     status?: string | null;
-    /// The files that a tool of PostToolUse read or wrote, as the tool named them
+    /// The files that a tool of PreToolUse or PostToolUse reads or writes, as the tool named them
     files?: string[];
+    /// The id of the use of a tool, PostToolUse names the same as its PreToolUse
+    toolUseId?: string | null;
     /// The final message of Stop
     message?: string | null;
-    /// The error of a failed turn
+    /// The error of a failed turn, or of a failed tool of PostToolUse
     error?: string | null;
+}
+
+/// A use of a tool in a turn: PreToolUse starts it, PostToolUse ends it
+export interface AgentSessionStep {
+    /// What the tool does, in one line
+    label: string;
+    /// The id of the use of the tool, null if the harness names none
+    toolUseId: string | null;
+    /// When the server got PreToolUse, in ms since the epoch
+    startedAt: number;
+    /// When the server got PostToolUse, null while the tool runs
+    endedAt: number | null;
+    /// Did the tool fail?
+    failed: boolean;
 }
 
 /// A question of the session and what the agent did for it
@@ -36,6 +52,8 @@ export interface AgentSessionTurn {
     note: string | null;
     /// The files that the tools touched, in the order of their first touch
     files: string[];
+    /// The uses of tools, oldest first, the latest MAX_AGENT_SESSION_STEPS
+    steps: AgentSessionStep[];
 }
 
 /// How a login of a run of the agent goes through the tab:
@@ -109,6 +127,8 @@ export interface AgentSessionState {
 
 /// The turns that a session keeps, the oldest go first
 export const MAX_AGENT_SESSION_TURNS = 50;
+/// The steps that a turn keeps, the oldest go first
+export const MAX_AGENT_SESSION_STEPS = 30;
 /// The log records of the commands that a session keeps, the oldest go first
 export const MAX_AGENT_SESSION_LOG = 100;
 
@@ -119,11 +139,25 @@ export function createAgentSessionState(harness: string, folder: string): AgentS
 /// A turn of a question
 function newTurn(state: AgentSessionState, question: string): AgentSessionTurn {
     const last = state.turns[state.turns.length - 1];
-    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', error: null, note: null, files: [] };
+    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', error: null, note: null, files: [], steps: [] };
 }
 
-/// Apply an event to the state of a session
-export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSessionEvent): AgentSessionState {
+/// The steps of a turn with the open ones ended
+function endSteps(steps: readonly AgentSessionStep[], now: number): AgentSessionStep[] {
+    return steps.map(step => step.endedAt == null ? { ...step, endedAt: now } : step);
+}
+
+/// The index of the open step that a PostToolUse ends: the one of its id, else the oldest one of its label, -1 if none
+function openStepOf(steps: readonly AgentSessionStep[], toolUseId: string | null, label: string): number {
+    if (toolUseId != null) {
+        const index = steps.findIndex(step => step.endedAt == null && step.toolUseId === toolUseId);
+        if (index >= 0) return index;
+    }
+    return steps.findIndex(step => step.endedAt == null && (step.toolUseId == null || toolUseId == null) && step.label === label);
+}
+
+/// Apply an event to the state of a session, at the time of the server
+export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSessionEvent, now: number = Date.now()): AgentSessionState {
     let turns = state.turns;
     const last = turns[turns.length - 1];
     const open = last != null && last.status != null ? last : null;
@@ -133,22 +167,35 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
         case 'UserPromptSubmit':
             turns = [...turns, newTurn(state, event.prompt ?? '')];
             break;
+        case 'PreToolUse':
         case 'PostToolUse': {
             // A harness that tells no question still shows what its agent does
             const turn = open ?? newTurn(state, '');
             const files = [...turn.files];
             for (const file of event.files ?? []) if (!files.includes(file)) files.push(file);
-            const next = { ...turn, status: event.status ?? turn.status, files };
+            const label = event.status ?? 'tool';
+            const toolUseId = event.toolUseId ?? null;
+            const steps = [...turn.steps];
+            if (event.event === 'PreToolUse') {
+                steps.push({ label, toolUseId, startedAt: now, endedAt: null, failed: false });
+            } else {
+                // A PostToolUse without its PreToolUse, e.g. of hooks without PreToolUse, is a step that ended
+                const failed = event.error != null;
+                const index = openStepOf(steps, toolUseId, label);
+                if (index >= 0) steps[index] = { ...steps[index], endedAt: now, failed };
+                else steps.push({ label, toolUseId, startedAt: now, endedAt: now, failed });
+            }
+            const next = { ...turn, status: event.status ?? turn.status, files, steps: steps.slice(-MAX_AGENT_SESSION_STEPS) };
             turns = open != null ? [...turns.slice(0, -1), next] : [...turns, next];
             break;
         }
         case 'Stop':
             if (open != null) {
-                turns = [...turns.slice(0, -1), { ...open, status: null, note: event.message ?? null, error: event.error ?? null }];
+                turns = [...turns.slice(0, -1), { ...open, status: null, note: event.message ?? null, error: event.error ?? null, steps: endSteps(open.steps, now) }];
             }
             break;
         case 'SessionEnd':
-            if (open != null) turns = [...turns.slice(0, -1), { ...open, status: null }];
+            if (open != null) turns = [...turns.slice(0, -1), { ...open, status: null, steps: endSteps(open.steps, now) }];
             break;
     }
     return {

@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 
 import type { AgentSessionEvent, AgentSessionEventName } from '@akohn/dashql/platform/session/agent_session_state';
+import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/workbook_journal';
 
-const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop', 'SessionEnd']);
+const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd']);
+/// The hook of Claude Code after a tool that failed, a PostToolUse with the error for a session
+const POST_TOOL_USE_FAILURE = 'PostToolUseFailure';
 
 /// The longest status line
 const MAX_STATUS = 160;
@@ -42,14 +45,46 @@ export function lastAssistantText(transcript: string): string | null {
     return last;
 }
 
-/// What a tool did, in one line, and the files it touched
-function toolUseOf(payload: unknown): { status: string; files: string[] } {
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/// The prefix of a path in the copy of a workbook of a page, `.dashql/workbooks/<workbook id>/`
+const WORKBOOK_COPY = new RegExp(`(^|[\\s"'=])${escapeRegExp(`${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/`)}[^/\\s"']+/`, 'g');
+
+/// The paths in a text as the page shows them: relative to the folder of the session, and in a copy of a workbook
+/// relative to the copy
+function shortPaths(text: string, folder: string): string {
+    let short = text;
+    if (folder.length > 1) {
+        const prefix = folder.endsWith('/') ? folder : `${folder}/`;
+        // `cd <folder> && ` in front of a command says nothing
+        short = short.replace(new RegExp(`^cd\\s+(["']?)${escapeRegExp(folder)}/?\\1\\s*&&\\s*`), '');
+        short = short.split(prefix).join('');
+    }
+    return short.replace(WORKBOOK_COPY, '$1');
+}
+
+/// The files of a patch of Codex, `*** Update File: <path>`
+function patchFilesOf(patch: string): string[] {
+    return [...patch.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map(match => match[1].trim());
+}
+
+/// What a tool does, in one line with short paths, and the files it touches as the tool names them
+function toolUseOf(payload: unknown, folder: string): { status: string; files: string[] } {
     const tool = text(payload, 'tool_name') ?? 'tool';
     const input = (payload as { tool_input?: unknown } | null)?.tool_input;
-    const command = text(input, 'command') ?? text(input, 'cmd');
-    if (command != null) return { status: oneLine(command), files: sqlFilesOf(command) };
-    const file = text(input, 'file_path') ?? text(input, 'path');
-    if (file != null) return { status: `${tool} ${file}`, files: [file] };
+    const command = text(input, 'command') ?? text(input, 'cmd') ?? (typeof input === 'string' ? input : null);
+    if (command != null && command.trimStart().startsWith('*** Begin Patch')) {
+        const files = patchFilesOf(command);
+        return { status: oneLine(shortPaths(`${tool} ${files.join(', ')}`, folder)), files };
+    }
+    if (command != null) return { status: oneLine(shortPaths(command.trim(), folder)), files: sqlFilesOf(command) };
+    const file = text(input, 'file_path') ?? text(input, 'notebook_path');
+    if (file != null) return { status: oneLine(`${tool} ${shortPaths(file, folder)}`), files: [file] };
+    // A search, a fetch or a subagent tells what it looks for, before the folder that a search looks in
+    const subject = text(input, 'pattern') ?? text(input, 'query') ?? text(input, 'url') ?? text(input, 'description');
+    if (subject != null) return { status: oneLine(`${tool} ${shortPaths(subject, folder)}`), files: [] };
+    const path = text(input, 'path');
+    if (path != null) return { status: oneLine(`${tool} ${shortPaths(path, folder)}`), files: [path] };
     return { status: tool, files: [] };
 }
 
@@ -62,14 +97,18 @@ export function sessionEventOf(
     payload: unknown,
     readText: (path: string) => string | null = path => { try { return readFileSync(path, 'utf8'); } catch { return null; } },
 ): AgentSessionEvent | null {
+    const folder = text(payload, 'cwd') ?? '';
+    if (name === POST_TOOL_USE_FAILURE) {
+        return { event: 'PostToolUse', harness, folder, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id'), error: text(payload, 'error') ?? 'failed' };
+    }
     if (!EVENTS.has(name as AgentSessionEventName)) return null;
     const event = name as AgentSessionEventName;
-    const folder = text(payload, 'cwd') ?? '';
     switch (event) {
         case 'UserPromptSubmit':
             return { event, harness, folder, prompt: text(payload, 'prompt') ?? '' };
+        case 'PreToolUse':
         case 'PostToolUse':
-            return { event, harness, folder, ...toolUseOf(payload) };
+            return { event, harness, folder, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id') };
         case 'Stop': {
             let message = text(payload, 'last_assistant_message');
             const transcript = text(payload, 'transcript_path');

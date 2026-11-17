@@ -432,7 +432,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     response.writeHead(400).end();
                     return;
                 }
-                state = reduceAgentSessionEvent(state, event);
+                state = reduceAgentSessionEvent(state, event, Date.now());
                 // The tools of the harness edit the files of a copy without a dashql command, the page sees their
                 // edits after the tool
                 if (event.event === 'PostToolUse' || event.event === 'Stop') announceCopies();

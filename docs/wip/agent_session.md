@@ -33,7 +33,8 @@ and Codex follows the switch of SQL and AI while AI is on. The editor keeps its 
 
 - **Hooks carry the events.** Every hook runs `dashql session hook <event>` (`packages/dashql-cli/README.md` has the
   settings of both harnesses). The first event starts `dashql session serve` on `127.0.0.1` with a token, detached;
-  `UserPromptSubmit`, `PostToolUse`, `Stop` and `SessionEnd` go to it, and the page reads them from there.
+  `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd` go to it, and the page reads them from
+  there. `PostToolUseFailure` of Claude Code goes as a `PostToolUse` with the error.
   `SessionStart` prints the link of the session, `https://dashql.app/?data=` with `{"agentSession": {"endpoint",
   "token"}}`; the harness hands the output of the hook to the agent, which tells the user.
   Hooks run outside the sandbox of both harnesses, the commands of the agent inside it don't need the server:
@@ -101,8 +102,13 @@ goes through a `dashql` command, so the commands tell what they changed.
 ## The page
 
 - **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the runtime reduces from the events
-  (`session/agent_session_state.ts`): per turn the question, the latest status line, the files the tools named, the
-  final message. Hooks post to `/v1/events`, pages read `/v1/stream`, server-sent events with the state after every
+  (`session/agent_session_state.ts`): per turn the question, the latest status line, the steps, the files the tools
+  named, the final message. A step is a use of a tool: `PreToolUse` starts it at the time of the server, the
+  `PostToolUse` with the same `tool_use_id` (else the oldest open step of the same line) ends it, a failed tool ends it
+  as failed, `Stop` and `SessionEnd` end the open ones. A turn keeps its latest 30 steps.
+- **The line of a step** comes from the hook (`session_hook.ts`): the command of a shell, else the tool with its file,
+  its pattern, query, URL or description, else the tool. Paths are relative to the folder of the session, paths in a
+  copy of a workbook relative to the copy, a leading `cd <folder> &&` is dropped. Hooks post to `/v1/events`, pages read `/v1/stream`, server-sent events with the state after every
   event. Every request carries the token, pages in the query; only the pages of DashQL get CORS headers, and a
   preflight allows the local network for Chrome. The server stops with `SessionEnd`.
 - **The final message** comes from the payload (`last_assistant_message` of Codex) or from the transcript (the last
@@ -116,11 +122,13 @@ goes through a `dashql` command, so the commands tell what they changed.
 | Event | What the page shows |
 |---|---|
 | `UserPromptSubmit` | A new turn with the question; the feed follows the agent again |
-| `PostToolUse` | The status line of the turn, the scripts the agent wrote; the feed follows the agent to a script it edits or runs |
-| `Stop` | The final message of the turn |
+| `PreToolUse` | A step that runs, with the time since it started; the feed follows the agent to a script it edits or runs |
+| `PostToolUse` | The step ends with the time it took, red if the tool failed; the scripts the agent wrote |
+| `Stop` | The final message of the turn below its steps |
 
 - **The bar of Wobble** shows the harness and its folder at the right end, and the log of the turns in its bubble
-  (`agent/agent_prompt_panel.tsx`). A turn can be dismissed, not stopped.
+  (`agent/agent_prompt_panel.tsx`): the steps of the turn that the agent works on, which follow the newest step while
+  the user stays at the bottom. A turn can be dismissed, not stopped.
 - **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it.
 - **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
@@ -130,14 +138,16 @@ goes through a `dashql` command, so the commands tell what they changed.
 - `//tests/agents`: Claude Code and Codex run a turn with the hooks of `dashql session hook`, the server holds the
   question, the command with its SQL file and the final message.
 - `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths), the payloads of both
-  harnesses, a session that a hook starts; the journal: the server creates it, follows partial lines, folds the
+  harnesses with the lines of their steps and the hooks of the tools that `dashql connect` gives them, a session that
+  a hook starts; the journal: the server creates it, follows partial lines, folds the
   markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
   the progress and the results of a workbook in the workspace it is given.
 - `//packages/dashql:test_platform_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
-  a session with the log of the commands, the protocol (`session/agent_session_protocol.test.ts`: the side that is too
+  a session with the log of the commands and the steps of a turn (tools at once, a failed one, hooks without an id), the protocol (`session/agent_session_protocol.test.ts`: the side that is too
   old, the header of a request, the check of an answer).
 - `//packages/dashql-cli:test` also: the server names its protocol on every answer and to pages, answers a client
   without one or of an older one with 426, a newer one as long as it is not older than the client's minimum.
+- `agent/agent_prompt_panel.test.tsx`: the steps of a turn that works and of a finished one.
 - The page test `app_agent_session`: the app with a link to a server, the bar, the log, AI and the switch back to SQL;
   then a new port, Codex, a server without a protocol on the port and secret of the line that the composer calls an
   older `dashql-cli`, and a server of the protocol in its place.

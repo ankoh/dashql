@@ -283,7 +283,8 @@ async function testAppAgentSession(page, navigate) {
     const session = await startSessionServer();
     try {
         await page.context().route(url => url.port === String(session.port), route => route.continue());
-        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, files: ['scripts/orders.sql'] };
+        const steps = [{ label: 'dashql lint scripts/orders.sql', toolUseId: 't1', startedAt: Date.now(), endedAt: null, failed: false }];
+        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, files: ['scripts/orders.sql'], steps };
         session.push({ turns: [turn] });
         const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${session.port}`, token: 'secret' } })).toString('base64url');
         await navigate(`/?data=${data}`);

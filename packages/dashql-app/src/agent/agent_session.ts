@@ -9,6 +9,17 @@ export interface AgentScript {
     scriptName: string;
 }
 
+/// A use of a tool by the agent
+export interface AgentStep {
+    /// What the tool does, in one line
+    label: string;
+    /// When it started, in ms since the epoch on the clock of the server, the same machine
+    startedAt: number;
+    /// When it ended, null while it runs
+    endedAt: number | null;
+    failed: boolean;
+}
+
 /// A question that the user asked the agent in the terminal
 export interface AgentQuestion {
     /// The question in natural language
@@ -19,6 +30,8 @@ export interface AgentQuestion {
     error: string | null;
     /// The final message of the agent
     note: string | null;
+    /// The uses of tools, oldest first
+    steps: AgentStep[];
 }
 
 /// A question with the scripts that the agent wrote for it
@@ -48,6 +61,9 @@ export interface AgentSession {
     onShowScript: (scriptKey: number) => void;
 }
 
+/// The step of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
+export const DASHQL_RUN = /(^|[\s/])dashql run\b/;
+
 /// Is the agent working on a question?
 export function isAgentAnswering(question: AgentQuestion): boolean {
     return question.status != null;
@@ -56,6 +72,16 @@ export function isAgentAnswering(question: AgentQuestion): boolean {
 /// Is the agent of a session working on a question?
 export function isAgentWorking(session: AgentSession): boolean {
     return session.turns.some(turn => isAgentAnswering(turn.question));
+}
+
+/// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
+export function formatAgentDuration(ms: number): string {
+    const seconds = Math.max(0, ms) / 1000;
+    if (seconds < 10) return `${seconds.toFixed(1)} s`;
+    if (seconds < 60) return `${Math.floor(seconds)} s`;
+    const minutes = Math.floor(seconds / 60);
+    const rest = Math.floor(seconds % 60);
+    return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
 }
 
 /// The name of a harness as users know it
@@ -107,7 +133,13 @@ export function agentSessionOf(
         }
         return {
             questionId: turn.turnId,
-            question: { question: turn.question || 'A question in the terminal', status: turn.status, error: turn.error, note: turn.note },
+            question: {
+                question: turn.question || 'A question in the terminal',
+                status: turn.status,
+                error: turn.error,
+                note: turn.note,
+                steps: turn.steps.map(step => ({ label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
+            },
             scripts,
         };
     });

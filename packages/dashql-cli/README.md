@@ -243,7 +243,8 @@ The hooks of a harness send its events to the server of the session, DashQL foll
 (`docs/wip/agent_session.md`). `session hook` reads the payload of the hook on stdin, starts the server of the session
 (`session serve`, detached, on `127.0.0.1` with a token) if it has none, and sends the event to it. `SessionStart`
 prints the link, the harness hands it to the agent. A hook never fails the harness. The server keeps the question,
-the status lines, the files that the tools touched and the final message of every turn, and stops when the harness
+the steps (every use of a tool, from `PreToolUse` to `PostToolUse`), the files that the tools touched and the final
+message of every turn, and stops when the harness
 ends the session. `DASHQL_SERVERS` is the folder of the running servers (`~/.dashql/servers`), one file per server with its
 port and token; `DASHQL_APP_URL`
 the page of the links (`https://dashql.app`).
@@ -263,7 +264,9 @@ Claude Code, in its settings (`.claude/settings.json`):
     "hooks": {
         "SessionStart": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionStart --harness claude" }] }],
         "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "dashql session hook UserPromptSubmit --harness claude" }] }],
+        "PreToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "dashql session hook PreToolUse --harness claude" }] }],
         "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "dashql session hook PostToolUse --harness claude" }] }],
+        "PostToolUseFailure": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "dashql session hook PostToolUseFailure --harness claude" }] }],
         "Stop": [{ "hooks": [{ "type": "command", "command": "dashql session hook Stop --harness claude" }] }],
         "SessionEnd": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionEnd --harness claude" }] }]
     }
@@ -277,6 +280,7 @@ Codex, in `hooks.json` of its home (`~/.codex`); Codex runs user hooks once the 
     "hooks": {
         "SessionStart": [{ "hooks": [{ "type": "command", "command": "dashql session hook SessionStart --harness codex" }] }],
         "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "dashql session hook UserPromptSubmit --harness codex" }] }],
+        "PreToolUse": [{ "hooks": [{ "type": "command", "command": "dashql session hook PreToolUse --harness codex" }] }],
         "PostToolUse": [{ "hooks": [{ "type": "command", "command": "dashql session hook PostToolUse --harness codex" }] }],
         "Stop": [{ "hooks": [{ "type": "command", "command": "dashql session hook Stop --harness codex" }] }]
     }

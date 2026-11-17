@@ -22,11 +22,13 @@ export const CONNECT_USAGE = `Usage:
 const HARNESSES = new Set(['claude', 'codex']);
 
 /// The events that the hooks of a harness send. Codex has no SessionEnd, `dashql connect` ends the session when the
-/// harness exits either way.
+/// harness exits either way. Claude Code tells a tool that failed with PostToolUseFailure instead of PostToolUse.
 const HOOK_EVENTS: Record<string, string[]> = {
-    claude: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop', 'SessionEnd'],
-    codex: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop'],
+    claude: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd'],
+    codex: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'],
 };
+/// The events of tools, their hooks match every tool
+const TOOL_EVENTS = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure']);
 
 /// What `dashql connect` takes from the process, the tests pass their own
 export interface ConnectEnvironment {
@@ -113,7 +115,7 @@ function hookCommand(dashql: string[], event: string, harness: string): string {
 /// The arguments that give Claude Code the hooks of the session: settings that it loads in addition to its own
 export function claudeHookArgs(dashql: string[]): string[] {
     const hooks = Object.fromEntries(HOOK_EVENTS.claude.map(event => [event, [{
-        ...(event === 'PostToolUse' ? { matcher: '*' } : {}),
+        ...(TOOL_EVENTS.has(event) ? { matcher: '*' } : {}),
         hooks: [{ type: 'command', command: hookCommand(dashql, event, 'claude') }],
     }]]));
     return ['--settings', JSON.stringify({ hooks })];

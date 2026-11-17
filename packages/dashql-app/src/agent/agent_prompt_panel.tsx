@@ -4,7 +4,15 @@ import * as styles from './agent_prompt_panel.module.css';
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
 import { ChevronRightIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { harnessLabel, isAgentAnswering, isAgentWorking, type AgentSession, type AgentTurn } from './agent_session.js';
+import {
+    formatAgentDuration,
+    harnessLabel,
+    isAgentAnswering,
+    isAgentWorking,
+    type AgentSession,
+    type AgentStep,
+    type AgentTurn,
+} from './agent_session.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const CrossIcon = SymbolIcon('x_16');
@@ -20,9 +28,47 @@ export function plainAgentNote(note: string): string {
         .trim();
 }
 
+/// The time now, every second while `ticking`, for the time of the steps that run
+function useNow(ticking: boolean): number {
+    const [now, setNow] = React.useState(() => Date.now());
+    React.useEffect(() => {
+        if (!ticking) return;
+        setNow(Date.now());
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(timer);
+    }, [ticking]);
+    return now;
+}
+
+/// The steps of a turn: what every tool did and how long it took. The feed shows the scripts that a step runs.
+const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
+    const now = useNow(steps.some(step => step.endedAt == null));
+    return (
+        <ol className={styles.steps} aria-label="Steps" data-testid="composer-agent-steps">
+            {steps.map((step, index) => {
+                const running = step.endedAt == null;
+                const status = running ? IndicatorStatus.Running : (step.failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
+                return (
+                    <li key={index} className={styles.step} data-state={running ? 'running' : (step.failed ? 'failed' : 'done')} data-testid="composer-agent-step">
+                        <div className={styles.step_line}>
+                            <span className={styles.step_indicator}>
+                                <StatusIndicator status={status} width="10px" height="10px" />
+                            </span>
+                            <span className={styles.step_label} title={step.label}>{step.label}</span>
+                            <span className={styles.step_time} data-testid="composer-agent-step-time">
+                                {formatAgentDuration((step.endedAt ?? now) - step.startedAt)}
+                            </span>
+                        </div>
+                    </li>
+                );
+            })}
+        </ol>
+    );
+};
+
 /// A question of the workbook with the answer of the agent.
-/// A collapsed turn shows the question in one line, an expanded turn shows the question, the status line, the final
-/// message and the error in full.
+/// A collapsed turn shows the question in one line. An expanded turn shows the question, the steps of the agent, the
+/// final message and the error in full.
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = isAgentAnswering(question);
@@ -30,6 +76,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
     const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
     const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
     const questionTextId = React.useId();
+    const { steps } = question;
     return (
         <li
             className={styles.turn}
@@ -87,7 +134,11 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     </IconButton>
                 )}
             </div>
-            {expanded && working && question.status != null && <div className={styles.turn_status} role="status">{question.status}</div>}
+            {expanded && steps.length > 0 && (
+                <div role={working ? 'status' : undefined}>
+                    <AgentSteps steps={steps} />
+                </div>
+            )}
             {expanded && failed && <div className={styles.turn_error} role="alert">{question.error}</div>}
             {expanded && !working && !failed && note != null && <div className={styles.turn_note} role="note">{note}</div>}
         </li>
@@ -110,13 +161,26 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
     const toggle = React.useCallback((questionId: number, expanded: boolean) => {
         setToggled(prev => new Map(prev).set(questionId, expanded));
     }, []);
-    // The turns scroll within a fixed height, a new question scrolls them to the bottom
+    // The turns scroll within a fixed height, a new question scrolls them to the bottom, a new step of the latest
+    // question while the user stays at the bottom
     const turnsRef = React.useRef<HTMLUListElement>(null);
-    const latestQuestionId = session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
+    const atBottomRef = React.useRef(true);
+    const latestTurn = session.turns.length > 0 ? session.turns[session.turns.length - 1] : null;
+    const latestQuestionId = latestTurn?.questionId ?? null;
+    const latestSteps = latestTurn?.question.steps.length ?? 0;
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
+        atBottomRef.current = true;
     }, [latestQuestionId]);
+    React.useLayoutEffect(() => {
+        const list = turnsRef.current;
+        if (list != null && atBottomRef.current) list.scrollTop = list.scrollHeight;
+    }, [latestSteps]);
+    const onTurnsScroll = React.useCallback(() => {
+        const list = turnsRef.current;
+        if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
+    }, []);
     const detail = !session.connected ? 'lost the session' : working ? 'working' : `in ${session.folder}`;
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
@@ -138,7 +202,7 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
                 )}
             </div>
             {session.turns.length > 0 && (
-                <ul ref={turnsRef} className={styles.turns} aria-label="Questions">
+                <ul ref={turnsRef} className={styles.turns} aria-label="Questions" onScroll={onTurnsScroll}>
                     {session.turns.map((turn, index, turns) => {
                         const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
                         return (

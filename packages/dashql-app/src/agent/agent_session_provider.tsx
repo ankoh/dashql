@@ -15,7 +15,7 @@ import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { agentSessionOf, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
+import { agentSessionOf, DASHQL_RUN, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
@@ -431,9 +431,6 @@ export function useFollowedAgentSession(): FollowedAgentSession | null {
 
 /// The session of an agent for the bar of a workbook, null without one. The feed follows the agent to the latest script
 /// it touched while it works.
-/// The status line of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
-const DASHQL_RUN = /(^|[\s/])dashql run\b/;
-
 export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const followed = useFollowedAgentSession();
     // The session gets a copy of the workbook that the page shows

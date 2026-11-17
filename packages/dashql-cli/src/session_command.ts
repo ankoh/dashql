@@ -12,10 +12,11 @@ import { startSessionServer } from './session_server.js';
 
 export const SESSION_USAGE = `Usage:
   dashql session hook <event> --harness <name> [--connected]
-      Called by a hook of the harness with its payload on stdin: SessionStart, UserPromptSubmit, PostToolUse, Stop or
-      SessionEnd. Starts the server of the session if it has none and sends the event to it. SessionStart prints the
-      link that shows the session in DashQL. Never fails the harness. In a harness that dashql connect runs, only the
-      hooks of dashql connect (--connected) send the events, to the server of dashql connect.
+      Called by a hook of the harness with its payload on stdin: SessionStart, UserPromptSubmit, PreToolUse,
+      PostToolUse, PostToolUseFailure, Stop or SessionEnd. Starts the server of the session if it has none and sends
+      the event to it. SessionStart prints the link that shows the session in DashQL. Never fails the harness. In a
+      harness that dashql connect runs, only the hooks of dashql connect (--connected) send the events, to the server
+      of dashql connect.
   dashql session serve --session <id> --harness <name> [--folder <dir>] [--port <port>]
       Runs the server of a session on 127.0.0.1 until the harness ends the session.
   dashql session link [--session <id>]

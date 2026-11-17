@@ -30,9 +30,17 @@ function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
 }
 
 const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
+/// The time of the page, the steps started before it
+const NOW = Date.now();
+const STEPS = [
+    { label: 'Read scripts/2_region_growth.sql', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
+    { label: 'Edit scripts/2_region_growth.sql', startedAt: NOW - 9_000, endedAt: NOW - 8_700, failed: false },
+    { label: 'dashql lint scripts/2_region_growth.sql', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
+    { label: 'dashql run sales 2_region_growth.sql', startedAt: NOW - 6_000, endedAt: null, failed: false },
+];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', error: null, note: null },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', error: null, note: null, steps: STEPS },
     scripts: SCRIPTS,
 };
 const ANSWERED: AgentTurn = {
@@ -42,12 +50,13 @@ const ANSWERED: AgentTurn = {
         status: null,
         error: null,
         note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
+        steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
     },
     scripts: SCRIPTS,
 };
 const FAILED: AgentTurn = {
     questionId: 2,
-    question: { question: 'And by product?', status: null, error: 'The harness stopped with an error', note: null },
+    question: { question: 'And by product?', status: null, error: 'The harness stopped with an error', note: null, steps: [] },
     scripts: [],
 };
 const LONG_STATUS: AgentTurn = {
@@ -57,6 +66,7 @@ const LONG_STATUS: AgentTurn = {
         status: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql',
         error: null,
         note: null,
+        steps: [{ label: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
     },
     scripts: [],
 };

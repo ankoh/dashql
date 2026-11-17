@@ -25,8 +25,33 @@ describe('the events of the hooks of a harness', () => {
         expect(sessionEventOf('PostToolUse', 'codex', { tool_name: 'exec_command', tool_input: { cmd: 'ls -la' } })).toMatchObject({ status: 'ls -la' });
     });
 
+    it('pairs the hooks before and after a tool by its id, a failed tool has an error', () => {
+        const payload = { cwd: '/w', tool_use_id: 'toolu_1', tool_name: 'Read', tool_input: { file_path: '/w/a.sql' } };
+        expect(sessionEventOf('PreToolUse', 'claude', payload)).toEqual({ event: 'PreToolUse', harness: 'claude', folder: '/w', status: 'Read a.sql', files: ['/w/a.sql'], toolUseId: 'toolu_1' });
+        expect(sessionEventOf('PostToolUse', 'claude', payload)).toMatchObject({ event: 'PostToolUse', toolUseId: 'toolu_1' });
+        expect(sessionEventOf('PostToolUseFailure', 'claude', { ...payload, error: 'File does not exist.' }))
+            .toMatchObject({ event: 'PostToolUse', status: 'Read a.sql', toolUseId: 'toolu_1', error: 'File does not exist.' });
+        expect(sessionEventOf('PreToolUse', 'codex', { tool_name: 'exec_command', tool_input: { cmd: 'ls' } })).toMatchObject({ status: 'ls', toolUseId: null });
+    });
+
+    it('shortens the paths of the folder and of the copies of workbooks', () => {
+        const status = (tool_name: string, tool_input: unknown) => sessionEventOf('PreToolUse', 'claude', { cwd: '/home/u/p', tool_name, tool_input })?.status;
+        expect(status('Edit', { file_path: '/home/u/p/.dashql/workbooks/wb1/scripts/a.sql' })).toBe('Edit scripts/a.sql');
+        expect(status('Edit', { file_path: '/elsewhere/a.sql' })).toBe('Edit /elsewhere/a.sql');
+        expect(status('Bash', { command: 'cd /home/u/p && dashql run .dashql/workbooks/wb1 --script /home/u/p/.dashql/workbooks/wb1/scripts/a.sql' }))
+            .toBe('dashql run .dashql/workbooks/wb1 --script scripts/a.sql');
+        expect(status('Bash', { command: 'cd "/home/u/p" && ls' })).toBe('ls');
+        expect(status('Grep', { pattern: 'orders', path: '/home/u/p' })).toBe('Grep orders');
+        expect(status('Glob', { pattern: '**/*.sql' })).toBe('Glob **/*.sql');
+        expect(status('Agent', { description: 'Find the tables', prompt: 'long' })).toBe('Agent Find the tables');
+        expect(status('TodoWrite', { todos: [] })).toBe('TodoWrite');
+        const patch = '*** Begin Patch\n*** Update File: /home/u/p/scripts/a.sql\n@@\n-x\n+y\n*** Add File: b.sql\n+z\n*** End Patch';
+        expect(sessionEventOf('PreToolUse', 'codex', { cwd: '/home/u/p', tool_name: 'apply_patch', tool_input: { command: patch } }))
+            .toMatchObject({ status: 'apply_patch scripts/a.sql, b.sql', files: ['/home/u/p/scripts/a.sql', 'b.sql'] });
+    });
+
     it('ignores events that a session does not follow', () => {
-        expect(sessionEventOf('PreToolUse', 'claude', {})).toBeNull();
+        expect(sessionEventOf('Notification', 'claude', {})).toBeNull();
         expect(sessionEventOf('SessionStart', 'claude', null)).toEqual({ event: 'SessionStart', harness: 'claude', folder: '' });
     });
 });

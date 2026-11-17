@@ -63,8 +63,8 @@ describe('dashql session', () => {
         const { env } = testEnvironment();
         // An event without a server ends nothing, an unknown event is ignored, a broken payload still counts
         expect((await hook(env, 'SessionEnd', { session_id: 'gone' })).code).toBe(0);
-        expect((await hook(env, 'PreToolUse', {})).code).toBe(0);
-        expect((await runWith((args, cli) => runSession(args, cli, env), W, ['hook', 'PreToolUse', '--harness'])).code).toBe(0);
+        expect((await hook(env, 'Notification', {})).code).toBe(0);
+        expect((await runWith((args, cli) => runSession(args, cli, env), W, ['hook', 'Notification', '--harness'])).code).toBe(0);
         expect(readdirSync(env.servers)).toEqual([]);
     });
 });
