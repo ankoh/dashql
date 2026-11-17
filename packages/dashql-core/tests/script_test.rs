@@ -38,6 +38,18 @@ fn text_version_changes_only_for_successful_text_edits() {
 }
 
 #[test]
+fn erases_to_the_end_when_the_count_overflows() {
+    // The offsets come from JavaScript, the sum of offset and count must not overflow, e.g. on wasm32
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text("select 1");
+    script.erase_text_range(1, usize::MAX);
+    assert_eq!(script.to_text(), "s");
+    script.erase_text_range(usize::MAX, usize::MAX);
+    assert_eq!(script.to_text(), "s");
+}
+
+#[test]
 fn parse_auto_scans() {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
@@ -202,6 +214,7 @@ fn converts_text_span_to_string() {
     script.replace_text("select 'Grüße'");
     assert_eq!(script.to_text_span(TextSpan { offset: 7, length: 9 }), "'Grüße'");
     assert_eq!(script.to_text_span(TextSpan { offset: 100, length: 1 }), "");
+    assert_eq!(script.to_text_span(TextSpan { offset: 7, length: u32::MAX }), "'Grüße'");
 }
 
 fn parsed_script(text: &str) -> Script {

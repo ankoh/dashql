@@ -146,13 +146,14 @@ impl Script {
         self.text_version += 1;
     }
 
-    /// Erase a code point range
+    /// Erase a code point range, clamped to the text. The offsets come from the caller, a count past the end of the
+    /// address space erases to the end.
     pub fn erase_text_range(&mut self, char_idx: usize, count: usize) {
         let len = self.text.len_chars();
         if count == 0 || char_idx >= len {
             return;
         }
-        let end = (char_idx + count).min(len);
+        let end = char_idx.saturating_add(count).min(len);
         self.text.remove(char_idx..end);
         self.text_version += 1;
     }
@@ -179,7 +180,7 @@ impl Script {
         if begin >= len {
             return String::new();
         }
-        let end = (begin + span.length as usize).min(len);
+        let end = begin.saturating_add(span.length as usize).min(len);
         let bytes: Vec<u8> = self.text.bytes_at(begin).take(end - begin).collect();
         String::from_utf8_lossy(&bytes).into_owned()
     }
