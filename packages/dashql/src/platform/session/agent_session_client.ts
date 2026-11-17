@@ -1,6 +1,6 @@
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
 import { fetchAgentSession } from './agent_session_protocol.js';
-import type { AgentSessionLoginAnswer, AgentSessionOAuth, AgentSessionState } from './agent_session_state.js';
+import type { AgentSessionState } from './agent_session_state.js';
 import type { SessionConnections } from './workbook_journal.js';
 
 /// Where a page finds the server of a session: `dashql session serve` on this machine
@@ -37,10 +37,31 @@ export function agentSessionStreamUrl(target: AgentSessionTarget): string {
 /// Follow a session: the server sends its state with every event as server-sent events. Resolves when the server
 /// ends the stream, rejects when it cannot be reached or the signal aborts, with an AgentSessionProtocolError when
 /// the page and the server don't speak with each other.
+/// A run that `dashql run` asks the tab for: the scripts of the copy of a workbook of the tab, all of them without names
+export interface AgentSessionRunRequest {
+    workbookId: string;
+    /// What the events name the workbook, the folder that the agent named
+    label: string;
+    scripts: string[];
+    refresh: boolean;
+    /// The rows of a result that go back with its event
+    rows: number;
+}
+
+/// What the stream of a session tells the tab about runs: start a run, stop it
+export type AgentSessionRunMessage =
+    | ({ type: 'run'; runId: string } & AgentSessionRunRequest)
+    | { type: 'stop'; runId: string };
+
+/// The header of the answer to a run request that names the run
+export const AGENT_SESSION_RUN_HEADER = 'X-DashQL-Run';
+
+/// Follow the state of a session: the state after every change, and the runs that `dashql run` asks the tab for
 export async function followAgentSession(
     target: AgentSessionTarget,
     onState: (state: AgentSessionState) => void,
     signal: AbortSignal,
+    onRun?: (message: AgentSessionRunMessage) => void,
 ): Promise<void> {
     const response = await fetchAgentSession(agentSessionStreamUrl(target), { signal, headers: { Accept: 'text/event-stream' } });
     if (!response.ok || response.body == null) throw new Error(`the session answered with ${response.status}`);
@@ -50,13 +71,16 @@ export async function followAgentSession(
         const { value, done } = await reader.read();
         if (done) return;
         buffered += value;
-        // An event ends with an empty line, its data lines carry the state
+        // An event ends with an empty line, its data lines carry the state, or a run with the event `run`
         let end: number;
         while ((end = buffered.indexOf('\n\n')) >= 0) {
             const block = buffered.slice(0, end);
             buffered = buffered.slice(end + 2);
-            const data = block.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
-            if (data.length > 0) onState(JSON.parse(data) as AgentSessionState);
+            const lines = block.split('\n');
+            const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
+            if (data.length === 0) continue;
+            if (lines.some(line => line === 'event: run')) onRun?.(JSON.parse(data) as AgentSessionRunMessage);
+            else onState(JSON.parse(data) as AgentSessionState);
         }
     }
 }
@@ -108,14 +132,6 @@ export async function readAgentSessionWorkbookText(target: AgentSessionTarget, w
     return await response.text();
 }
 
-/// Read the newest file of a key of the query result cache of the session, the result of a run of the agent
-export async function readAgentSessionResult(target: AgentSessionTarget, key: string, signal?: AbortSignal): Promise<Blob> {
-    const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
-    const response = await fetchAgentSession(url, { signal });
-    if (!response.ok) throw new Error(`the session answered the result ${key} with ${response.status}`);
-    return await response.blob();
-}
-
 /// The files of a workbook folder in the layout of OPFS (`workbooks/<id>/` of the root of the app) as a page copies
 /// them into a session: the workbook file, the scripts and the attachments. Null for a folder without a workbook file,
 /// e.g. the mirror of the attachments of a native workbook.
@@ -144,22 +160,57 @@ export async function readWorkbookFolderFiles(folder: FileSystemDirectoryHandle)
     return [{ path: STORAGE_WORKBOOK_FILE, content: workbook }, ...files];
 }
 
-/// Tell the session which connections the agent may use, `dashql run` refuses the others, and how the redirect page
-/// of the app hands a Salesforce login back to the tab. The server keeps the OAuth settings in memory only.
-export async function writeAgentSessionConnections(
-    target: AgentSessionTarget,
-    connections: SessionConnections,
-    oauth: AgentSessionOAuth | null = null,
-    signal?: AbortSignal,
-): Promise<void> {
+/// Tell the session which connections the agent may use: `dashql run` on a folder of its own refuses the others, the
+/// tab runs only them
+export async function writeAgentSessionConnections(target: AgentSessionTarget, connections: SessionConnections, signal?: AbortSignal): Promise<void> {
     const url = new URL(`/v1/connections/${encodeURIComponent(target.token)}`, target.endpoint);
-    const body = oauth == null ? connections : { ...connections, oauth };
-    await expectOk(await fetchAgentSession(url, { method: 'PUT', body: JSON.stringify(body), signal }), 'the connections of the agent');
+    await expectOk(await fetchAgentSession(url, { method: 'PUT', body: JSON.stringify(connections), signal }), 'the connections of the agent');
 }
 
-/// Answer a login that a run of the agent waits for (`logins` of the state): the callback of the redirect page or the
-/// credentials of the connection of the tab. They go to the process of `dashql connect`, never to the agent.
-export async function answerAgentSessionLogin(target: AgentSessionTarget, connectionId: string, answer: AgentSessionLoginAnswer, signal?: AbortSignal): Promise<void> {
-    const url = new URL(`/v1/login/${encodeURIComponent(target.token)}/${encodeURIComponent(connectionId)}`, target.endpoint);
-    await expectOk(await fetchAgentSession(url, { method: 'POST', body: JSON.stringify(answer), signal }), 'the login of the agent');
+/// The URL of the runs of a session, or of one run
+function runUrl(target: AgentSessionTarget, runId?: string): URL {
+    const parts = ['v1', 'runs', target.token, ...(runId == null ? [] : [runId])];
+    return new URL(`/${parts.map(encodeURIComponent).join('/')}`, target.endpoint);
+}
+
+/// Ask the tab that follows a session for a run: the answer streams the events of the run as JSON lines
+/// (`encodeRunEvent`) until run_finished, its header AGENT_SESSION_RUN_HEADER names the run. Throws with the error of
+/// the server, e.g. when no tab follows the session.
+export async function startAgentSessionRun(target: AgentSessionTarget, request: AgentSessionRunRequest): Promise<{ runId: string; events: ReadableStream<Uint8Array> }> {
+    const response = await fetchAgentSession(runUrl(target), { method: 'POST', body: JSON.stringify(request) });
+    const runId = response.headers.get(AGENT_SESSION_RUN_HEADER);
+    if (!response.ok || runId == null || response.body == null) {
+        let error = `the session answered the run with ${response.status}`;
+        try {
+            const answer = await response.json() as { error?: unknown };
+            if (typeof answer?.error === 'string') error = answer.error;
+        } catch {
+            // The status says enough
+        }
+        throw new Error(error);
+    }
+    return { runId, events: response.body };
+}
+
+/// Ask the tab to stop a run
+export async function stopAgentSessionRun(target: AgentSessionTarget, runId: string): Promise<void> {
+    await expectOk(await fetchAgentSession(runUrl(target, runId), { method: 'DELETE' }), 'the stop of the run');
+}
+
+/// Send an event of a run that the tab runs, as encodeRunEvent made it. False once the run is gone, e.g. `dashql run`
+/// ended: the tab stops it.
+export async function postAgentSessionRunEvent(target: AgentSessionTarget, runId: string, event: unknown): Promise<boolean> {
+    const response = await fetchAgentSession(runUrl(target, runId), { method: 'POST', body: JSON.stringify(event) });
+    if (response.status === 404) return false;
+    await expectOk(response, 'the event of the run');
+    return true;
+}
+
+/// Write the cached result of a key of a run of the tab into the query result cache of the session,
+/// `.dashql/cache/<key>.<uuid>.parquet`, where the agent reads it. Resolves with the path of the file.
+export async function writeAgentSessionResult(target: AgentSessionTarget, key: string, data: Blob): Promise<string> {
+    const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
+    const response = await fetchAgentSession(url, { method: 'PUT', body: data });
+    await expectOk(response, `the result ${key}`);
+    return ((await response.json()) as { file: string }).file;
 }

@@ -57,6 +57,8 @@ Please consult relevant docs in that directory before making changes.
   `dashql run` appends its log to the journal `.dashql/journal.jsonl` of the session, the page follows through a link)
     - `docs/wip/agent_session.md`
     - `docs/wip/agent_integration_tests.md` (Claude Code and Codex with fake models in their sandboxes, `//tests/agents`)
+    - `docs/wip/tab_driven_runs.md` (`dashql run` asks the tab to run a workbook it copied, the feed is the live
+      preview, the `RunEvent`s go back; no proxy, the tab reaches what the browser reaches)
 
 - Client functions (core and runtime implemented, Salesforce connections get checks and completion, calls run, a script with a call that writes runs only on request: `CALL` is generic, declarative client functions shadow a namespace on a connection and reach a REST API, any other call goes to the backend)
     - `docs/design/client_functions.md` (the statement, spec format, connector binding, checks, completion, paging, pending results, results, security, the core, the runtime)

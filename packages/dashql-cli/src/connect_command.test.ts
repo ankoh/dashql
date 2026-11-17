@@ -31,7 +31,6 @@ function hookEnvironment(harnessEnv: Record<string, string>): SessionEnvironment
     const token = harnessEnv[SESSION_TOKEN_ENV];
     return {
         servers: mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-servers-')),
-        home: null,
         appUrl: 'http://localhost:9002',
         startServer: () => { throw new Error('a connected hook starts no server'); },
         connected: endpoint != null && token != null ? { endpoint, token } : null,
@@ -48,7 +47,7 @@ function runHook(command: string, harnessEnv: Record<string, string>, payload: o
 
 /// A connect environment whose harness is a function of the test
 function connectEnvironment(harness: ConnectEnvironment['runHarness']): ConnectEnvironment {
-    return { home: null, dashql: DASHQL, searchPath: '/usr/bin', posix: true, runHarness: harness };
+    return { dashql: DASHQL, searchPath: '/usr/bin', posix: true, runHarness: harness };
 }
 
 const connect = (env: ConnectEnvironment, args: string[]) => runWith((a, cli) => runConnect(a, cli, env), W, args);

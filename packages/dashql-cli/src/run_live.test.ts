@@ -77,7 +77,7 @@ describe('the live view of dashql run', () => {
 · b.sql  queued
 · c.sql  waits for a.sql, b.sql`);
         send({
-            type: 'script_done', script: 'a.sql', ms: 2000, cached: false, key: 'k', file: '/work/.dashql/cache/k.parquet',
+            type: 'script_done', script: 'a.sql', ms: 2000, rows: 3, cached: false, key: 'k', file: '/work/.dashql/cache/k.parquet',
             table: tableFromArrays({ n: Int32Array.from([1, 2, 3]) }),
         });
         expect(screen.text()).toBe(`dashql run tpch · 3 scripts

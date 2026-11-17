@@ -2,11 +2,11 @@
 
 Status: built. The hooks of Claude Code and Codex reach `dashql session serve`, the page follows the session through a
 link or through the line of the AI side of its prompt (`dashql connect`). A tab that connects copies its workbook into
-the folder of the session and takes the scripts that the agent changes there; the other files of the agent are not
-yet the workbook of the page.
+the folder of the session, takes the scripts that the agent changes there and runs them when the agent runs them
+(`docs/wip/tab_driven_runs.md`); the other files of the agent are not yet the workbook of the page.
 
 An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
-(`docs/design/dashql_runtime.md`). The page of DashQL only watches. There is no agent server that the page asks, no agent
+(`docs/design/dashql_runtime.md`). The page of DashQL watches and runs what the agent runs. There is no agent server that the page asks, no agent
 access per workbook and no prompt in natural language.
 
 ## Connecting from the page
@@ -81,9 +81,9 @@ goes through a `dashql` command, so the commands tell what they changed.
   the target `workbook_journal` are markers of what changed (`session/workbook_journal.ts` of the runtime), with the
   workbook folder relative to the folder of the session and the workbook id in their values:
   - `Workbook files`: the paths of all files of the folder (`files` is a list, log values are texts or lists of texts);
-    the stamps of the whole folder make the edits of the harness's own tools show up with the next command
-  - `Script started`, `Script progress` (the phase, percent and rows of its query, at most once a second while it
-    changes) and `Script result` (the key in the query result cache, the rows, the error, whether the cache served it).
+    the stamps of the whole folder make the edits of the harness's own tools show up with the next command.
+
+  The runs of the copies of a tab run in the tab and need no markers (`docs/wip/tab_driven_runs.md`).
 
   A command writes its files first and the marker after. Without a journal it appends nothing. `dashql run` is the
   only command that writes one today. When the server stops, it removes the journal.
@@ -91,11 +91,8 @@ goes through a `dashql` command, so the commands tell what they changed.
   state, reading the stamps of the files of a `Workbook files` marker itself, and keeps the latest 100 other records as
   the `log` of the commands. The markers are the contract, the other records are for display.
 - **The page pulls.** The server hands out the files of a workbook folder at
-  `/v1/workbooks/<token>/<workbook id>/<path>` (the files of a published workbook, `workbook_publishing.md`) and the
-  newest result of a key at `/v1/results/<token>/<key>` from `.dashql/cache`, where the commands of the session keep
-  their files (or `DASHQL_HOME/cache`). The token is part of the path, so the
-  relative paths of a workbook folder keep it. The page fetches what it lacks and keeps it in its OPFS, results through
-  `QueryResultCache.importFile`; it doesn't do that yet.
+  `/v1/workbooks/<token>/<workbook id>/<path>` (the files of a published workbook, `workbook_publishing.md`). The token
+  is part of the path, so the relative paths of a workbook folder keep it.
 - **The hooks stay** for the conversation: `SessionStart` starts the server, `UserPromptSubmit` and `Stop` carry the
   question and the final message. The journal can replace `PostToolUse`.
 
@@ -125,6 +122,7 @@ goes through a `dashql` command, so the commands tell what they changed.
 | `PreToolUse` | A step that runs, with the time since it started; the feed follows the agent to a script it edits or runs |
 | `PostToolUse` | The step ends with the time it took, red if the tool failed; the scripts the agent wrote |
 | `Stop` | The final message of the turn below its steps |
+| A run of `dashql run` | The tab runs the workbook, the feed shows the run with its progress (`docs/wip/tab_driven_runs.md`) |
 
 - **The bar of Wobble** shows the harness and its folder at the right end, and the log of the turns in its bubble
   (`agent/agent_prompt_panel.tsx`): the steps of the turn that the agent works on, which follow the newest step while
@@ -139,12 +137,13 @@ goes through a `dashql` command, so the commands tell what they changed.
   question, the command with its SQL file and the final message.
 - `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths), the payloads of both
   harnesses with the lines of their steps and the hooks of the tools that `dashql connect` gives them, a session that
-  a hook starts; the journal: the server creates it, follows partial lines, folds the
-  markers and hands out the files and results they name, and removes it when it stops; `dashql run` appends the files,
-  the progress and the results of a workbook in the workspace it is given.
+  a hook starts; the journal: the server creates it, follows partial lines, folds the markers and hands out the files
+  they name, and removes it when it stops; `dashql run` appends the files and its log for a workbook in the workspace
+  it is given.
 - `//packages/dashql:test_platform_node`: the markers and their fold (`session/workbook_journal.test.ts`), the state of
-  a session with the log of the commands and the steps of a turn (tools at once, a failed one, hooks without an id), the protocol (`session/agent_session_protocol.test.ts`: the side that is too
-  old, the header of a request, the check of an answer).
+  a session with the log of the commands and the steps of a turn (tools at once, a failed one, hooks without an id),
+  the protocol (`session/agent_session_protocol.test.ts`: the side that is too old, the header of a request, the check
+  of an answer).
 - `//packages/dashql-cli:test` also: the server names its protocol on every answer and to pages, answers a client
   without one or of an older one with 426, a newer one as long as it is not older than the client's minimum.
 - `agent/agent_prompt_panel.test.tsx`: the steps of a turn that works and of a finished one.
@@ -155,26 +154,17 @@ goes through a `dashql` command, so the commands tell what they changed.
   journal of a session of its own; the copy of the workbook of a page (writes, replacement, the stamps after a tool,
   paths it refuses).
 - `//packages/dashql-cli:test` also: the connections of the agent next to the journal, `dashql run` that refuses
-  the others, `dashql describe` that lists them.
-- `//packages/dashql-cli:test` also: the logins of `dashql connect` (PKCE, the refresh, a callback of another
-  request, the loopback listener, the password of the tab, the redirect of a Salesforce login and answers that don't
-  fit) and a run on a Trino connection with OAuth and one with basic auth through the relay, where Trino gets the real
-  token or the password of the tab and the run neither (`run_command.test.ts`); a Salesforce login through the tab with
-  the core in both processes, the setup of a run with the stand-ins, the health checks on a fake tenant with the real
-  token (`run_relay.test.ts`).
-- `salesforce_test` of the core: the stand-ins read like the tokens of the login without a secret, the relay puts the
-  core token and the Data Cloud token on their origins.
-- `workbook_composer.test.tsx`: the logins that a run waits for open with a click, a password needs none;
-  `agent/agent_session_logins.test.ts`: the tab sends the password of a connection that the agent may use only.
-- `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, rewrites and new scripts, the edits of the
-  user into the copy, a copy adopted after a reload, the results of the agent once.
-- `runtime/workbook_runs.test.ts`: a result that `importCachedResult` adds shows on the script of its key.
+  the others, `dashql describe` that lists them; a run in the tab (`run_command.test.ts`): the events of a fake tab
+  with the first rows of a result, an interrupt that stops the run in the tab, no tab, a folder that no tab copied.
+- `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, the texts and the new scripts of the agent,
+  the edits of the user into the copy, a copy adopted after a reload.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
-  not again after a reload, that an edit reaches the copy, that a rewrite of the agent is staged to accept and that
-  the page fetches a result that the journal names, and that the menu of the connections of the agent sends the
-  connections that stay ticked.
+  not again after a reload, that an edit reaches the copy, that the tab takes the text of the agent, that a run that
+  the server asks for runs in the tab and posts its events, that the result of a connection that caches results comes
+  with its Parquet file, which the tab writes into the cache of the session, and that the menu of the connections of
+  the agent sends the connections that stay ticked.
 
-## Plan: the workbook, the connections and the logins of a session
+## Plan: the workbook, the connections and the runs of a session
 
 Status: the first step is partly built, see [Order](#order).
 
@@ -188,12 +178,12 @@ Status: the first step is partly built, see [Order](#order).
 
 In both cases the agent works on files on disk and the page follows them, the direction of the files is what differs.
 
-### Runs stay in the command line tool
+### Runs of the copies run in the tab
 
-The page reaches a database only where its endpoint allows the origin of DashQL through CORS, often not for a Trino
-behind the proxy of a company, and there is no CORS proxy of DashQL. The command line tool reaches every endpoint, the
-desktop app does as well. So the runs of a session are runs of `dashql run`, the page shows their results through the
-journal and the query result cache that the server hands out, as it does today.
+`dashql run` on a copy of the tab asks the tab, which runs the workbook with its own runtime: the feed of the tab is
+the live preview of the run, the events go back to `dashql run` (`docs/wip/tab_driven_runs.md`). The tab reaches a
+database only where its endpoint allows the origin of DashQL through CORS, there is no proxy; the desktop app reaches
+every endpoint. Other workbook folders run in the process of `dashql run`.
 
 ### Where the workbook of case A lives
 
@@ -217,22 +207,14 @@ journal and the query result cache that the server hands out, as it does today.
   change of the agent.
 - **The changes of the agent come back** (`agent/agent_session_copy.ts`). The first state that names a copy is what the
   page wrote, later stamps of its scripts that differ are changes of the agent: the page fetches a changed script and
-  stages it as a rewrite to accept or reject (`setScriptText` with a diff), a new script becomes a script of the
-  workbook, and its next changes go to that script. A script with the text of the page stays as it is. The server
+  takes its text (`setScriptText`, no rewrite to accept or reject), a new script becomes a script of the workbook, and
+  its next changes go to that script. A script with the text of the page stays as it is. The server
   stamps the copies again after every `PostToolUse` and `Stop`, so an edit with a tool of the harness shows without a
   `dashql` command.
 - **The changes of the user go into the copy.** Half a second after an edit, the page writes the scripts whose text
   differs from what the copy holds, removes the ones it deleted and, when the list of scripts changed, writes its
-  workbook file. A script that it took from the agent counts as held by the copy, a rejected rewrite goes back. Both
-  directions run one after the other (`AgentSessionCopies`).
-- **The results of the agent's runs come into the page.** A result of the journal of a copy names its key in the query
-  result cache: the page fetches its file from `/v1/results/<token>/<key>` once and adds it to its own cache with
-  `importCachedResult` of the runtime, which makes the workbooks look up the cached results of their scripts again. A
-  script of the page with the same key shows the result. The keys are equal when the connection signatures are
-  (`docs/design/query_cache.md`): Trino with basic auth needs the same user on both sides (`DASHQL_TRINO_USER`), and a
-  script that reads attachments has another key, the copy's attachments have other stamps. A key that the page has
-  cached keeps its file, a run of the agent with `--refresh` doesn't replace it. Not checked end to end yet: the keys of
-  a run of `dashql run` against the keys of the same scripts in the page.
+  workbook file. A script that it took from the agent counts as held by the copy. Both directions run one after the
+  other (`AgentSessionCopies`).
 - Not yet: scripts that the agent deletes or renames, the workbook file of the copy that the agent changes (the order,
   the connections), the attachments.
 - When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
@@ -264,80 +246,24 @@ connection but a cloud is allowed until the user unticks it, also a new one; a c
 is allowed only once the user ticks it. The tab keeps what the user ticked and unticked per target in the storage of
 the tab. Once the server answers and after every change, the
 page sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them next to
-the journal, `.dashql/sessions/<port>/connections.json`. `dashql run` with `DASHQL_SESSION` reads that file and treats
-a connection that is not in it like one that can't be set up: its scripts are not run, with the reason. A result that
-the cache serves needs no connection and is still served. `dashql describe` lists the allowed connections. The file
-is guidance for the agent, not a boundary: the agent can write it.
+the journal, `.dashql/sessions/<port>/connections.json`. A run in the tab takes only the allowed connections, the tab
+decides. `dashql run` on a folder of its own with `DASHQL_SESSION` reads that file and treats a connection that is not
+in it like one that can't be set up: its scripts are not run, with the reason. A result that the cache serves needs no
+connection and is still served. `dashql describe` lists the allowed connections. The file is guidance for the agent,
+not a boundary: the agent can write it.
 
-### Logins go through the page
+### Logins stay in the tab
 
-Built for Trino with OAuth, Salesforce and Trino with basic auth. Logins don't leave the side that made them: the page
-never hands a token to the command line tool, and no token or password reaches a process of the agent, which can read
-and print it, and the telemetry of a managed Mac logs tool content. The process of `dashql connect` logs in and keeps
-the channels, it is Node on the machine of the browser.
-
-1. `dashql run` in a session of `dashql connect` sets up such a connection as usual, but first asks the server for a
-   login (`POST /v1/auth/<token>/<connection id>` with the label and the params of the connection). It finds the
-   server in `DASHQL_SESSION_ENDPOINT` and `DASHQL_SESSION_TOKEN`, else in `.dashql/sessions/<port>/server.json`, which
-   `dashql connect` writes for the user only: a harness may keep variables with a token in their name from the
-   commands of its agent.
-2. The process of `dashql connect` (`connect_auth.ts`) keeps a runtime of its own, without storage, with the
-   connections that runs logged in to. A connection without a channel is set up there with the setup of the core: the
-   PKCE challenge, the authorization URL, the code exchange, the account of the token and, for Salesforce, the exchange
-   for the Data Cloud token. Only the way to the user is Node and the tab. The login goes into `logins` of the state of
-   the session with its kind (`AgentSessionLoginKind`):
-   - `loopback`, Trino with OAuth: it redirects to a loopback address (`http://localhost:56512/Callback` unless the
-     connection names another), not to the redirect page of the app: the web app can't take it at all, the desktop app
-     listens on it. The process listens there. The prompt of the tab shows "The agent waits for a login to
-     <connection>", **Log in** opens the URL in a popup, the identity provider redirects to the listener.
-   - `redirect`, Salesforce: the connected app knows only the redirect page of the app. The tab says how its redirect
-     page hands a login back (`AgentSessionOAuth`: the redirect page of the config of the app, the redirect variant,
-     the callback page and the flavor of its OAuth flow) with its connections (`PUT /v1/connections/<token>`, kept in
-     memory, not in `connections.json`), the setup of the process builds the state of the flow with it. **Log in**
-     opens the URL with the OAuth flow of the app (`agent_session_provider.tsx`), the redirect page hands the callback
-     to the tab, the tab posts it to the server (`POST /v1/login/<token>/<connection id>` with `{ oauthRedirect }`),
-     and the process exchanges the code with its verifier.
-   - `credentials`, Trino with basic auth: the tab sends the user and the password of its connection by itself
-     (`{ basic: { username, secret } }` to the same route), for a connection that it lets the agent use; the prompt
-     shows "The agent waits for the password of <connection>" until then. The channel of the process connects with
-     them, the params of the process keep no password. The tab has the password while its connection was set up in
-     this tab, the workbook keeps none.
-
-   Logins run one after the other. A login waits 10 minutes; the request of the run answers "waiting" after 20 s and
-   the run asks again, no request outlives the timeouts of fetch.
-3. The run gets the account of the login and stand-ins, never a token. The answer of the login names the origins that
-   the relay reaches and the responses of the token requests of the login with a stand-in token (`stand_ins` of
-   `executor/connectors.rs`): for Trino with OAuth the token response with the account, for Salesforce the core token
-   without a refresh token and the Data Cloud JWT with its header and claims and the stand-in as its signature
-   (`salesforce/relay.rs`): the run reads the tenant, the data space and the expiry from it. The runtime of the run
-   sets the connection up with the setup of the core: its OAuth flow gets a stand-in code, its HTTP client answers the
-   token requests with the stand-ins (`run_relay.ts`), so the cached results are keyed by the account like in the app.
-   Trino with basic auth needs no stand-in, its channel connects with the user of the tab and no password. Every
-   request to an origin of the connection goes to the relay of the server (`/v1/relay/<token>/<connection id>`, the
-   URL in `X-DashQL-Url`), which puts the auth of that origin in: the token of the core for the instance of Salesforce,
-   the Data Cloud token with its audience for the tenant, the token or the password for Trino. The relay hands the
-   headers of the answer back, e.g. the status of a query of Data Cloud, not the encoding of the body.
-4. The relay asks the runtime for the auth of the channel before every request, `connectionAuthorization` of the
-   runtime (`fresh_relay_auth` of the executor): the auth headers by origin and the account, with tokens that are
-   refreshed first if they are about to expire, by the same refresh that a query runs before its requests.
-
-- Anyone with the token of the session can query through the relay, as the agent can with `dashql run`. The tokens and
-  the passwords of the connections stay in the process of `dashql connect`.
-- The tokens end with the session. Keeping the refresh token in the keychain of the system is a later step.
-- A run of Salesforce keeps the expiry of the Data Cloud token of its login: a client function on the tenant fails
-  once it passed, a new run asks the process again, which refreshed it.
-- Trino with basic auth keeps `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`: with the password set, a run doesn't
-  ask the tab. A server of `dashql session serve` logs in to nothing, a run there takes the password of the workbook.
-- Not checked against a real org or a real Trino with OAuth yet, the tests fake the login API of Salesforce and the
-  Hyper of the tenant.
+The tab logs in as it does for its own runs, a run of the agent in the tab uses its connections as they are. No token or
+password reaches `dashql connect` or a process of the agent. A login of the agent through the tab, with a relay of
+`dashql connect` and stand-in tokens for the runs of the command line tool, was built and removed again with the runs
+in the tab (`docs/wip/tab_driven_runs.md`).
 
 ### What the page sends to the server
 
-One channel from the page to the server, requests with the token of the session, for three things: the workbook of
-case A (built, `PUT` and `DELETE` on the routes of its files), the selection of connections with the OAuth settings of
-the tab (built, `PUT /v1/connections/<token>`), the answers to logins (built, `POST /v1/login/<token>/<connection id>`:
-the callback of a Salesforce login, the password of a Trino connection; Trino with OAuth logs in on a loopback
-address). The server stays the one place the page talks to.
+One channel from the page to the server, requests with the token of the session: the workbook of case A (`PUT` and
+`DELETE` on the routes of its files), the selection of connections (`PUT /v1/connections/<token>`) and the events of the
+runs that it runs (`POST /v1/runs/<token>/<run id>`). The server stays the one place the page talks to.
 
 ### How the agent learns DashQL
 
@@ -370,15 +296,15 @@ To check before the runs over the server:
 ### Order
 
 1. The tab sends its workbook to `.dashql/workbooks/<id>/` and follows it; one journal per session; the channel from
-   the page to the server. Built: one journal per session, the copy, the scripts in both directions, the results of the
-   agent's runs. Open: the rest of the copy (see above).
+   the page to the server. Built: one journal per session, the copy, the scripts in both directions. Open: the rest of
+   the copy (see above).
 2. The parameters of connections from the folder in `dashql run` and in the app.
 3. The output of the hook at the start and `dashql describe`. Built, without the connections of the agent.
-4. Logins through the page, runs of connections with a login through the process of `dashql connect`. Built for Trino
-   with OAuth or basic auth and for Salesforce, through the relay.
+4. Runs of the copies in the tab, with the logins of the tab. Built (`docs/wip/tab_driven_runs.md`).
 5. The menu of the connections of the agent. Built.
 
 ## Next
+
 
 - The browser reaches `127.0.0.1` from `https://dashql.app` only with the permission for the local network of the
   browser (Chrome asks), Safari doesn't; the desktop app reaches it directly.

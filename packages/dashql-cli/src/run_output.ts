@@ -21,8 +21,9 @@ function cellText(value: unknown): string {
     return text.length > MAX_CELL_LENGTH ? `${text.slice(0, MAX_CELL_LENGTH - 1)}…` : text;
 }
 
-/// The schema and the first rows of a result, indented
-export function describeTable(table: arrow.Table, rows: number): string {
+/// The schema and the first rows of a result, indented. The table may hold only the first rows of the result, `total`
+/// counts all of them.
+export function describeTable(table: arrow.Table, rows: number, total: number = table.numRows): string {
     const fields = table.schema.fields;
     let out = `  ${fields.map(field => `${field.name} ${field.type}`).join(', ')}\n`;
     const shown = Math.min(rows, table.numRows);
@@ -37,13 +38,13 @@ export function describeTable(table: arrow.Table, rows: number): string {
         out += `  ${columns.map((cells, c) => cells[r].padEnd(widths[c])).join(' | ').trimEnd()}\n`;
         if (r === 0) out += `  ${widths.map(width => '-'.repeat(width)).join('-+-')}\n`;
     }
-    if (shown < table.numRows) out += `  … ${table.numRows - shown} more\n`;
+    if (shown < total) out += `  … ${total - shown} more\n`;
     return out;
 }
 
 /// The row count of a result
-export function rowsText(table: arrow.Table | null): string {
-    return table == null ? 'no result' : plural(table.numRows, 'row');
+export function rowsText(rows: number | null): string {
+    return rows == null ? 'no result' : plural(rows, 'row');
 }
 
 /// The line and the column that an error names, e.g. `line 1:8: Column 'x' cannot be resolved` of Trino
@@ -93,8 +94,8 @@ export class PlainRunReporter implements RunReporter {
             case 'script_done': {
                 if (!this.reported.has(event.script)) break;
                 const from = event.cached ? '  from the cache' : '';
-                let out = `${event.script}  ok  ${rowsText(event.table)}  ${seconds(event.ms)}${from}\n`;
-                if (event.table != null) out += describeTable(event.table, this.rows);
+                let out = `${event.script}  ok  ${rowsText(event.rows)}  ${seconds(event.ms)}${from}\n`;
+                if (event.table != null) out += describeTable(event.table, this.rows, event.rows ?? event.table.numRows);
                 if (event.file != null) out += `  ${pathBelow(event.file, this.cwd)}\n`;
                 this.write(out);
                 break;

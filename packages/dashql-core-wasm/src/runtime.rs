@@ -43,7 +43,6 @@ use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
-use dashql_core_runtime::executor::connectors::fresh_relay_auth;
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
 use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
@@ -55,7 +54,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
 use crate::connection::view::{
-    ConnectionAuthorization, ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams,
+    ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams,
 };
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryProfileKeys, QueryProfileProgressView, QueryView};
@@ -1081,28 +1080,6 @@ impl Runtime {
         })
     }
 
-    /// Add a result of a key to the query result cache, e.g. one that a run of the command line tool wrote, from a file of
-    /// the handle table that the caller keeps and releases. A key that is cached already keeps its files. An added file
-    /// is followed by the eviction of a written one, and the workbooks look up the cached results of their scripts
-    /// again. Resolves whether the file was added.
-    #[wasm_bindgen(js_name = importCachedResult, unchecked_return_type = "Promise<boolean>")]
-    pub fn import_cached_result(&self, key: String, file: f64) -> Result<Promise, JsError> {
-        let file = integer(file, "file handle")?;
-        let platform = self.platform.clone();
-        let runs = Rc::downgrade(&self.runs);
-        let import = platform.cache_call("import", &[JsValue::from_str(&key), JsValue::from_f64(file as f64), JsValue::NULL]);
-        Ok(future_to_promise(async move {
-            let added = import.await.map_err(|error| JsValue::from(JsError::new(error.message())))?.is_truthy();
-            if added {
-                platform.evict_cache().await;
-                if let Some(runs) = runs.upgrade() {
-                    runs.forget_cached_results();
-                }
-            }
-            Ok(JsValue::from_bool(added))
-        }))
-    }
-
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, then the params
     /// are committed and the copies of the workbooks that use the connection are written. The view of the connection
     /// shows the save while it runs.
@@ -1182,42 +1159,6 @@ impl Runtime {
         let Some(connection) = connection else { return Ok(JsValue::NULL) };
         let secrets = ConnectionSecrets::of(connection.state.try_borrow().map_err(|_| busy())?.details());
         Ok(to_js(&secrets)?.into())
-    }
-
-    /// The auth of a connection as it goes with its requests, for a process that sends the requests of the connection
-    /// for another one, e.g. the relay of `dashql connect`: the auth headers by the origin of the endpoints, with
-    /// tokens that are refreshed first if they are about to expire, the account and the stand-in responses of the
-    /// token requests of the login. Null for a connection without a channel of Trino or Salesforce or with a Trino
-    /// channel that has no token yet, rejects when the refresh fails.
-    #[wasm_bindgen(js_name = connectionAuthorization, unchecked_return_type = "Promise<ConnectionAuthorization | null>")]
-    pub fn connection_authorization(&self, connection_id: &str) -> Result<Promise, JsError> {
-        let connection = self.connections.registry.try_borrow().map_err(|_| busy())?.get(connection_id).cloned();
-        let (channel, principal) = match connection {
-            Some(connection) => {
-                let state = connection.state.try_borrow().map_err(|_| busy())?;
-                let details = state.details();
-                (details.channel.clone(), details.salesforce().and_then(|salesforce| salesforce.principal.clone()))
-            }
-            None => (None, None),
-        };
-        let host = Rc::new(self.platform.clone());
-        Ok(future_to_promise(async move {
-            let Some(channel) = channel else { return Ok(JsValue::NULL) };
-            let auth = fresh_relay_auth(&host, &channel, principal)
-                .await
-                .map_err(|message| JsValue::from(JsError::new(&message)))?;
-            let Some(auth) = auth else { return Ok(JsValue::NULL) };
-            let authorization = ConnectionAuthorization {
-                endpoints: auth
-                    .endpoints
-                    .into_iter()
-                    .map(|(origin, headers)| (origin, headers.into_iter().collect()))
-                    .collect(),
-                principal: auth.principal,
-                stand_ins: auth.stand_ins,
-            };
-            Ok(to_js(&authorization).map_err(JsValue::from)?.into())
-        }))
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. The catalog loader

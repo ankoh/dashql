@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { open } from 'node:fs/promises';
 import path from 'node:path';
@@ -7,13 +7,12 @@ import path from 'node:path';
 import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import {
     createAgentSessionState,
-    parseAgentSessionOAuth,
     reduceAgentSessionEvent,
     reduceAgentSessionJournal,
     type AgentSessionEvent,
-    type AgentSessionLoginAnswer,
     type AgentSessionState,
 } from '@akohn/dashql/platform/session/agent_session_state';
+import { AGENT_SESSION_RUN_HEADER, type AgentSessionRunMessage, type AgentSessionRunRequest } from '@akohn/dashql/platform/session/agent_session_client';
 import {
     AGENT_SESSION_MIN_PROTOCOL,
     AGENT_SESSION_MIN_PROTOCOL_HEADER,
@@ -36,20 +35,12 @@ import {
     workbookCopyPath,
     type JournalFile,
 } from '@akohn/dashql/platform/session/workbook_journal';
-import { loginKind, type ConnectAuth, type LoginConnection } from './connect_auth.js';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
-/// How long a request for a login waits before it answers that the login still waits
-export const LOGIN_POLL_MS = 20_000;
-/// The headers of a request of a run that the relay doesn't forward: the connection, its own token and its address
-const RELAY_DROPPED_HEADERS = new Set(['host', 'authorization', 'x-dashql-url', 'x-dashql-protocol', 'connection', 'content-length', 'origin', 'transfer-encoding', 'keep-alive']);
-
-/// The headers of an answer of an endpoint that the relay doesn't hand back: the encoding and the length of the body,
-/// which fetch decoded, the connection and the cookies of the endpoint, and the protocol, which the server names
-const RELAY_DROPPED_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive', 'set-cookie', 'x-dashql-protocol', 'x-dashql-min-protocol']);
-
 /// The headers of an answer that a page reads
-const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}, X-DashQL-Cached-At`;
+const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}`;
+/// How long a run waits for the first event of the tab
+const RUN_CLAIM_TIMEOUT_MS = 30_000;
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
@@ -57,9 +48,6 @@ export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashq
 export interface SessionServerOptions {
     harness: string;
     folder: string;
-    /// The folder of the files of DashQL whose query result cache serves the results of the journal, the `.dashql/` of the
-    /// folder by default: commands below the folder keep their files there
-    home?: string | null;
     /// The port, 0 picks a free one
     port?: number;
     /// The token, a random one by default
@@ -71,10 +59,6 @@ export interface SessionServerOptions {
     origins?: string[];
     /// Called when the harness ended the session
     onEnd?: () => void;
-    /// The logins of the connections of the session, the runs of the agent reach them through the relay
-    auth?: ConnectAuth | null;
-    /// How the relay sends the requests of the runs, fetch by default
-    fetch?: typeof fetch;
 }
 
 /// A running server of a session
@@ -88,7 +72,7 @@ export interface SessionServer {
 
 /// How often the server looks for lines that were appended to the journal
 const JOURNAL_READ_INTERVAL_MS = 200;
-/// The folder of the query result cache in the folder of the files of DashQL (docs/design/storage_layout.md)
+/// The folder of the query result cache in the root of the session (docs/design/storage_layout.md)
 const RESULT_CACHE_FOLDER = 'cache';
 /// The files of a workbook folder that the server hands out: what a published workbook holds (workbook_publishing.md)
 const WORKBOOK_FILE = /^(dashql-workbook\.json|(scripts|attachments)\/[^/]+|connections\/[^/]+\/dashql-catalog-[a-z]+\.sql)$/;
@@ -105,7 +89,7 @@ function decodePart(part: string): string | null {
 /// The token in the path of the routes of files, null for other routes
 function pathToken(url: URL): string | null {
     const parts = url.pathname.split('/');
-    const routes = ['workbooks', 'results', 'connections', 'auth', 'login', 'relay'];
+    const routes = ['workbooks', 'connections', 'runs', 'results'];
     return parts[1] === 'v1' && routes.includes(parts[2] ?? '') ? decodePart(parts[3] ?? '') : null;
 }
 
@@ -151,24 +135,6 @@ function listWorkbookFiles(folder: string): string[] {
     };
     const files = [...names(STORAGE_SCRIPTS_FOLDER), ...names(STORAGE_ATTACHMENTS_FOLDER)];
     return [STORAGE_WORKBOOK_FILE, ...files].filter(file => WORKBOOK_FILE.test(file) && workbookFile(folder, file.split('/')) != null);
-}
-
-/// The newest file of a key in the query result cache, `<key>.<uuid>.parquet`
-function newestResultFile(cache: string, key: string): { path: string; mtimeMs: number } | null {
-    if (!/^[0-9a-f]{64}$/.test(key)) return null;
-    let newest: { path: string; mtimeMs: number } | null = null;
-    try {
-        for (const name of readdirSync(cache)) {
-            if (!name.startsWith(`${key}.`) || !name.endsWith('.parquet')) continue;
-            const stats = statSync(path.join(cache, name));
-            // An empty file is still being written
-            if (stats.size === 0) continue;
-            if (newest == null || stats.mtimeMs > newest.mtimeMs) newest = { path: path.join(cache, name), mtimeMs: stats.mtimeMs };
-        }
-    } catch {
-        return null;
-    }
-    return newest;
 }
 
 function contentType(file: string): string {
@@ -293,11 +259,6 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         request.headers.authorization === `Bearer ${token}` || url.searchParams.get('token') === token
         || pathToken(url) === token;
 
-    // The tab shows the logins that runs wait for
-    const unsubscribeLogins = options.auth?.onLogins(logins => {
-        state = { ...state, logins, version: state.version + 1 };
-        broadcast();
-    }) ?? (() => { });
 
     /// The body of a request
     const readBody = (request: http.IncomingMessage) => new Promise<Buffer>((resolve, reject) => {
@@ -309,87 +270,79 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     const sendJson = (response: http.ServerResponse, status: number, value: unknown) =>
         response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(value));
 
-    /// POST /v1/auth/<token>/<connection id> with the connection: a channel of the connection, the user logs in
-    /// through the tab if the process has none. Answers the account that the cached results are keyed by, the origins
-    /// that the relay reaches and the stand-in responses of the token requests of the login.
-    const login = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
-        const auth = options.auth;
-        if (auth == null) return sendJson(response, 404, { error: 'the session has no logins' });
-        let connection: LoginConnection;
-        try {
-            const body = JSON.parse((await readBody(request)).toString('utf8')) as { name?: unknown; params?: unknown };
-            if (loginKind(body.params) == null) throw new Error('no connection that logs in through the tab');
-            connection = { connectionId, name: typeof body.name === 'string' ? body.name : connectionId, params: body.params };
-        } catch (error) {
-            return sendJson(response, 400, { error: String(error) });
-        }
-        // A login waits for the user, the run asks again after a while: no request outlives the timeouts of fetch
-        const authorization = auth.authorization(connection);
-        authorization.catch(() => { });
-        const waited = await Promise.race([
-            authorization.then(value => ({ value }), (error: unknown) => ({ error })),
-            new Promise<null>(resolve => setTimeout(() => resolve(null), LOGIN_POLL_MS).unref()),
-        ]);
-        if (waited == null) return sendJson(response, 202, { waiting: true });
-        if ('error' in waited) return sendJson(response, 502, { error: waited.error instanceof Error ? waited.error.message : String(waited.error) });
-        const { principal, endpoints, standIns } = waited.value;
-        sendJson(response, 200, { principal, origins: Object.keys(endpoints), standIns });
+    /// The runs that `dashql run` asked the tab for, by their id: the answer that streams their events
+    const runs = new Map<string, { response: http.ServerResponse; claim: ReturnType<typeof setTimeout> | null }>();
+    /// Tell the tabs about a run, after the state
+    const sendRun = (message: AgentSessionRunMessage) => {
+        for (const stream of streams) stream.write(`event: run\ndata: ${JSON.stringify(message)}\n\n`);
+    };
+    /// End the answer of a run, with a last event
+    const endRun = (runId: string, last: unknown = null) => {
+        const run = runs.get(runId);
+        if (run == null) return;
+        runs.delete(runId);
+        if (run.claim != null) clearTimeout(run.claim);
+        if (last != null) run.response.write(`${JSON.stringify(last)}\n`);
+        run.response.end();
     };
 
-    /// POST /v1/login/<token>/<connection id> from the tab: the answer to a login that waits, the callback of the
-    /// redirect page or the credentials of the connection of the tab. They stay in this process.
-    const answerLogin = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
-        let answer: AgentSessionLoginAnswer;
+    /// POST /v1/runs/<token> from `dashql run`: a run of the copy of a workbook of the tab. The tab runs it and posts
+    /// its events, the answer streams them as JSON lines until run_finished.
+    const startRun = async (request: http.IncomingMessage, response: http.ServerResponse) => {
+        let run: AgentSessionRunRequest;
         try {
-            answer = JSON.parse((await readBody(request)).toString('utf8')) as AgentSessionLoginAnswer;
-            if (answer == null || typeof answer !== 'object') throw new Error('no answer');
+            const body = JSON.parse((await readBody(request)).toString('utf8')) as Partial<AgentSessionRunRequest>;
+            if (typeof body.workbookId !== 'string' || !isWorkbookCopyId(body.workbookId)) throw new Error('no workbook');
+            run = {
+                workbookId: body.workbookId,
+                label: typeof body.label === 'string' ? body.label : body.workbookId,
+                scripts: Array.isArray(body.scripts) ? body.scripts.filter((script): script is string => typeof script === 'string') : [],
+                refresh: body.refresh === true,
+                rows: typeof body.rows === 'number' && body.rows >= 0 ? Math.floor(body.rows) : 10,
+            };
+        } catch {
+            return sendJson(response, 400, { error: 'the run names no workbook that a tab copied into the session' });
+        }
+        if (streams.size === 0) return sendJson(response, 409, { error: 'no tab of DashQL follows the session, open it with the line of dashql connect' });
+        if (!state.workbooks.some(workbook => workbook.workbookId === run.workbookId && workbook.path === workbookCopyPath(run.workbookId))) {
+            return sendJson(response, 409, { error: 'the tab of DashQL did not copy this workbook into the session' });
+        }
+        // The tab takes the files of the copy before it runs: the stamps go first on the same stream
+        announceCopies();
+        broadcast();
+        const runId = randomBytes(8).toString('hex');
+        response.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store', [AGENT_SESSION_RUN_HEADER]: runId });
+        response.flushHeaders();
+        const claim = setTimeout(() => endRun(runId, { type: 'run_failed', error: 'no tab of DashQL took the run' }), RUN_CLAIM_TIMEOUT_MS);
+        claim.unref();
+        runs.set(runId, { response, claim });
+        // A dashql run that goes away stops the run in the tab
+        response.on('close', () => {
+            if (!runs.has(runId)) return;
+            endRun(runId);
+            sendRun({ type: 'stop', runId });
+        });
+        sendRun({ type: 'run', runId, ...run });
+    };
+
+    /// POST /v1/runs/<token>/<run id> from the tab: an event of a run, the last one is run_finished
+    const runEvent = async (request: http.IncomingMessage, response: http.ServerResponse, runId: string) => {
+        const run = runs.get(runId);
+        if (run == null) return void response.writeHead(404).end();
+        let event: { type?: unknown };
+        try {
+            event = JSON.parse((await readBody(request)).toString('utf8')) as { type?: unknown };
+            if (event == null || typeof event.type !== 'string') throw new Error('no event');
         } catch {
             return void response.writeHead(400).end();
         }
-        if (options.auth?.answer(connectionId, answer) !== true) return sendJson(response, 409, { error: 'no login of the connection waits for this answer' });
+        if (run.claim != null) {
+            clearTimeout(run.claim);
+            run.claim = null;
+        }
+        if (event.type === 'run_finished') endRun(runId, event);
+        else run.response.write(`${JSON.stringify(event)}\n`);
         response.writeHead(204).end();
-    };
-
-    /// /v1/relay/<token>/<connection id> with the URL in X-DashQL-Url: a request of a run to an endpoint of a connection
-    /// that it logged in to, with the auth of that endpoint. The tokens stay in this process.
-    const relay = async (request: http.IncomingMessage, response: http.ServerResponse, connectionId: string) => {
-        const connection = options.auth?.connection(connectionId) ?? null;
-        const target = request.headers['x-dashql-url'];
-        let url: URL;
-        try {
-            url = new URL(typeof target === 'string' ? target : '');
-        } catch {
-            return sendJson(response, 400, { error: 'the relay needs the URL of the request' });
-        }
-        if (connection == null) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
-        let authorization;
-        try {
-            authorization = await options.auth!.authorization(connection);
-        } catch (error) {
-            return sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
-        }
-        const auth = authorization.endpoints[url.origin];
-        if (auth == null) return sendJson(response, 403, { error: 'the relay reaches the endpoints of logged in connections only' });
-        const headers = new Headers();
-        for (const [name, value] of Object.entries(request.headers)) {
-            if (value == null || RELAY_DROPPED_HEADERS.has(name)) continue;
-            headers.set(name, Array.isArray(value) ? value.join(', ') : value);
-        }
-        for (const [name, value] of Object.entries(auth)) headers.set(name, value);
-        const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : new Uint8Array(await readBody(request));
-        try {
-            const forwarded = await (options.fetch ?? fetch)(url, { method: request.method, headers, body });
-            const bytes = Buffer.from(await forwarded.arrayBuffer());
-            // The headers of the answer go back to the run, e.g. the status of a query of Data Cloud, but not the
-            // encoding of the body, which fetch decoded, and not the cookies of the endpoint
-            const answered: Record<string, string> = {};
-            forwarded.headers.forEach((value, name) => {
-                if (!RELAY_DROPPED_RESPONSE_HEADERS.has(name)) answered[name] = value;
-            });
-            response.writeHead(forwarded.status, answered).end(bytes);
-        } catch (error) {
-            sendJson(response, 502, { error: error instanceof Error ? error.message : String(error) });
-        }
     };
 
     const handle = (request: http.IncomingMessage, response: http.ServerResponse) => {
@@ -442,23 +395,19 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             });
             return;
         }
-        if (request.method === 'POST' && url.pathname.startsWith('/v1/auth/')) {
-            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
-            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
-            void login(request, response, connectionId);
-            return;
-        }
-        if (request.method === 'POST' && url.pathname.startsWith('/v1/login/')) {
-            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
-            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
-            void answerLogin(request, response, connectionId);
-            return;
-        }
-        if (url.pathname.startsWith('/v1/relay/')) {
-            const connectionId = decodePart(url.pathname.split('/')[4] ?? '');
-            if (connectionId == null || connectionId.length === 0) return void response.writeHead(400).end();
-            void relay(request, response, connectionId);
-            return;
+        if (url.pathname.startsWith('/v1/runs/')) {
+            // /v1/runs/<token> starts a run, /v1/runs/<token>/<run id> takes its events or stops it
+            const parts = url.pathname.split('/');
+            const runId = parts.length === 5 ? decodePart(parts[4]) : null;
+            if (request.method === 'POST' && parts.length === 4) return void startRun(request, response).catch(() => response.destroy());
+            if (runId == null) return void response.writeHead(404).end();
+            if (request.method === 'POST') return void runEvent(request, response, runId).catch(() => response.destroy());
+            if (request.method === 'DELETE') {
+                if (!runs.has(runId)) return void response.writeHead(404).end();
+                sendRun({ type: 'stop', runId });
+                return void response.writeHead(204).end();
+            }
+            return void response.writeHead(404).end();
         }
         if (request.method === 'PUT' && url.pathname.split('/').length === 4 && url.pathname.startsWith('/v1/connections/')) {
             // /v1/connections/<token>: the connections that the tab lets the agent use, next to the journal, where
@@ -472,8 +421,6 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     response.writeHead(400).end();
                     return;
                 }
-                // How the tab logs in to Salesforce stays in memory, the file names the connections only
-                options.auth?.setOAuth(parseAgentSessionOAuth(body));
                 try {
                     if (journal == null) throw new Error('the session has no folder');
                     writeFileSync(path.join(path.dirname(journal), SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
@@ -538,6 +485,35 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             request.pipe(out);
             return;
         }
+        if (request.method === 'PUT' && url.pathname.split('/').length === 5 && url.pathname.startsWith('/v1/results/')) {
+            // /v1/results/<token>/<key>: the cached result of a run of the tab, into the query result cache of the
+            // session as a new file of the key, where the agent reads it
+            const key = url.pathname.split('/')[4];
+            if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
+            const cache = path.join(journalFolder, RESULT_CACHE_FOLDER);
+            const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
+            const part = `${file}.part`;
+            mkdirSync(cache, { recursive: true });
+            const out = createWriteStream(part);
+            const fail = () => {
+                rmSync(part, { force: true });
+                if (!response.headersSent) response.writeHead(500);
+                response.end();
+            };
+            request.on('error', fail);
+            out.on('error', fail);
+            out.on('finish', () => {
+                try {
+                    renameSync(part, file);
+                } catch {
+                    fail();
+                    return;
+                }
+                sendJson(response, 200, { file });
+            });
+            request.pipe(out);
+            return;
+        }
         if (request.method === 'GET' && url.pathname.startsWith('/v1/workbooks/')) {
             // /v1/workbooks/<token>/<workbook id>/<path in the folder>
             const decoded = url.pathname.split('/').slice(4).map(decodePart);
@@ -551,18 +527,6 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             sendFile(response, file, contentType(file));
             return;
         }
-        if (request.method === 'GET' && url.pathname.startsWith('/v1/results/')) {
-            // /v1/results/<token>/<key>: the newest file of a key in the query result cache
-            const key = url.pathname.split('/')[4] ?? '';
-            const file = newestResultFile(path.join(options.home ?? journalFolder, RESULT_CACHE_FOLDER), key);
-            if (file == null) {
-                response.writeHead(404).end();
-                return;
-            }
-            response.setHeader('X-DashQL-Cached-At', String(Math.trunc(file.mtimeMs)));
-            sendFile(response, file.path, 'application/vnd.apache.parquet');
-            return;
-        }
         if (request.method === 'GET' && url.pathname === '/v1/state') {
             response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(state));
             return;
@@ -571,7 +535,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
             send(response);
             streams.add(response);
-            request.on('close', () => streams.delete(response));
+            request.on('close', () => {
+                streams.delete(response);
+                // The runs of a tab that went away end, no other tab takes them
+                if (streams.size > 0) return;
+                for (const runId of [...runs.keys()]) endRun(runId, { type: 'run_failed', error: 'the tab of DashQL went away' });
+            });
             return;
         }
         response.writeHead(404).end();
@@ -609,8 +578,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             clearInterval(journalTimer);
             // The commands of a later run find no session and append nothing
             removeJournal();
-            unsubscribeLogins();
-            options.auth?.close();
+            for (const runId of [...runs.keys()]) endRun(runId, { type: 'run_failed', error: 'the session ended' });
             for (const stream of streams) stream.end();
             server.close(() => resolve());
         }),

@@ -175,21 +175,22 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
 /// with it until the page needs a newer server; `protocol: null` is a server older than the protocol.
 async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } = {}) {
     const streams = new Set();
-    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], logins: [], version: 0 };
+    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
     const writes = [];
     const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
     // The copy, the state names it once it has its workbook file, like the server of dashql
     const files = new Map();
-    let results = [];
-    // The requests for results, the page fetches them for its query result cache
-    const resultRequests = [];
+    // The events that the page posted for the runs that the server asked for, by run
+    const runEvents = new Map();
+    // The results that the page wrote into the cache of the session, with their bytes
+    const results = [];
     // The connections that the page let the agent use, in the order it sent them
     const connectionLists = [];
     let clock = 0;
     const announce = workbookId => {
         const named = files.has('dashql-workbook.json')
-            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })), results, running: null }]
+            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })) }]
             : [];
         state = { ...state, workbooks: named, version: state.version + 1 };
         broadcast();
@@ -198,7 +199,7 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } =
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
         if (protocol != null) {
             response.setHeader('X-DashQL-Protocol', String(protocol));
-            response.setHeader('X-DashQL-Min-Protocol', '1');
+            response.setHeader('X-DashQL-Min-Protocol', String(protocol));
             response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Protocol, X-DashQL-Min-Protocol');
         }
         if (request.method === 'OPTIONS') {
@@ -235,9 +236,26 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } =
             });
             return;
         }
-        if (request.method === 'GET' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
-            resultRequests.push(request.url.split('/').pop());
-            return response.writeHead(404).end();
+        if (request.method === 'PUT' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
+            const key = request.url.split('/').pop();
+            const chunks = [];
+            request.on('data', chunk => chunks.push(chunk));
+            request.on('end', () => {
+                results.push({ key, bytes: Buffer.concat(chunks) });
+                response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ file: `/work/.dashql/cache/${key}.parquet` }));
+            });
+            return;
+        }
+        const runs = `/v1/runs/${encodeURIComponent(token)}/`;
+        if (request.method === 'POST' && request.url.startsWith(runs)) {
+            const runId = decodeURIComponent(request.url.slice(runs.length));
+            const chunks = [];
+            request.on('data', chunk => chunks.push(chunk));
+            request.on('end', () => {
+                runEvents.get(runId)?.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+                response.writeHead(runEvents.has(runId) ? 204 : 404).end();
+            });
+            return;
         }
         if (request.method === 'GET' && request.url.startsWith(copy)) {
             const file = files.get(request.url.slice(copy.length).split('/').slice(1).map(decodeURIComponent).join('/'));
@@ -253,7 +271,8 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } =
     return {
         port: server.address().port,
         writes,
-        resultRequests,
+        runEvents,
+        results,
         connectionLists,
         push: next => {
             state = { ...state, ...next, version: state.version + 1 };
@@ -264,10 +283,10 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } =
             files.set(path, { body, mtimeMs: ++clock });
             announce(workbookId);
         },
-        /// The agent ran the copy, the journal names the results
-        agentRan: (workbookId, ran) => {
-            results = ran;
-            announce(workbookId);
+        /// dashql run asks the tab to run the copy of a workbook
+        askRun: run => {
+            runEvents.set(run.runId, []);
+            for (const stream of streams) stream.write(`event: run\ndata: ${JSON.stringify({ type: 'run', ...run })}\n\n`);
         },
         close: () => {
             for (const stream of streams) stream.destroy();
@@ -353,15 +372,36 @@ async function testAppAgentSession(page, navigate) {
         await page.keyboard.insertText(', 43 as more');
         await waitUntil(() => writes.some(write => write.method === 'PUT' && write.path === script.path && write.body.includes('43 as more')));
 
-        // The agent rewrites the script in the copy, the page stages the rewrite to accept
+        // The agent rewrites the script in the copy, the page takes its text
         connected.agentWrites(script.workbookId, script.path, 'select 7 as from_agent');
-        await page.getByTestId('diff-accept').click();
         await scriptEditor(page, 'from_agent').waitFor();
+        assert.equal(await page.getByTestId('diff-accept').count(), 0);
 
-        // The agent ran the workbook, the page fetches the result for its query result cache
-        const key = 'ab'.repeat(32);
-        connected.agentRan(script.workbookId, [{ script: script.path.split('/').pop(), key, rows: 1, error: null, cached: false }]);
-        await waitUntil(() => connected.resultRequests.includes(key));
+        // The connection of the script caches its results, its result has a key
+        await page.getByTestId('workbook-connection').first().click();
+        const caching = page.getByRole('switch', { name: 'Cache query results' });
+        await caching.click();
+        await page.locator('[role="switch"][aria-checked="true"]').waitFor();
+        await page.keyboard.press('Escape');
+
+        // dashql run asks the tab to run the workbook: the tab runs it, the feed shows the result, the events go back
+        connected.askRun({ runId: 'r1', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: true, rows: 3 });
+        await waitUntil(() => connected.runEvents.get('r1').some(event => event.type === 'run_finished'));
+        const events = connected.runEvents.get('r1');
+        const done = events.find(event => event.type === 'script_done');
+        assert.ok(done != null, JSON.stringify(events));
+        assert.equal(done.script, script.path.split('/').pop());
+        assert.equal(done.rows, 1);
+        assert.equal(typeof done.table, 'string');
+        // The result has a key, its Parquet file went into the cache of the session before the event named it there
+        assert.match(done.key ?? '', /^[0-9a-f]{64}$/, JSON.stringify(done));
+        const uploaded = connected.results.find(result => result.key === done.key);
+        assert.ok(uploaded != null, JSON.stringify(connected.results.map(result => result.key)));
+        assert.equal(uploaded.bytes.subarray(0, 4).toString('latin1'), 'PAR1');
+        assert.equal(uploaded.bytes.subarray(-4).toString('latin1'), 'PAR1');
+        assert.equal(done.file, `/work/.dashql/cache/${done.key}.parquet`);
+        assert.deepEqual(events[events.length - 1], { ...events[events.length - 1], type: 'run_finished', ok: 1, failed: 0, interrupted: false });
+        await waitForQuery(page);
 
         // The agent may use every connection, the user unticks one
         await waitUntil(() => connected.connectionLists.length > 0);

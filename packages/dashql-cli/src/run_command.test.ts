@@ -4,19 +4,25 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
-import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
+import * as arrow from 'apache-arrow';
 
-import { ConnectAuth, coreLoginRuntime } from './connect_auth.js';
+import {
+    followAgentSession,
+    postAgentSessionRunEvent,
+    writeAgentSessionResult,
+    writeAgentSessionWorkbook,
+    type AgentSessionRunMessage,
+    type AgentSessionTarget,
+} from '@akohn/dashql/platform/session/agent_session_client';
+import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
+import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
+
 import { runRun, type RunEnvironment } from './run_command.js';
 import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 
 const WORKBOOK_ID = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
 const CONNECTION_ID = '0d9e8f7a-6b5c-4d3e-8f21-0a1b2c3d4e5f';
-
-/// The core of the runtime of the logins of dashql connect
-const setupCore = createDashQLCoreSetup();
 
 /// A Trino server that knows the table `orders` and the password of the user `ann`
 class FakeTrino {
@@ -270,7 +276,7 @@ describe('dashql run', () => {
         expect(readdirSync(path.join(home, 'workbooks', WORKBOOK_ID, 'attachments'))).toEqual(['fruits.parquet']);
     });
 
-    it('appends the files of the folder and every result to the journal of a session', async () => {
+    it('appends the files of the folder and the log of the run to the journal of a session', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
         // `dashql session serve` creates the journal in the folder of its session
         mkdirSync(path.join(dir, '.dashql'));
@@ -283,25 +289,9 @@ describe('dashql run', () => {
         // The log of the run, at info and above, with the markers of what changed
         expect(records.every(record => record.level >= 3)).toBe(true);
         expect(records.some(record => record.target !== 'workbook_journal')).toBe(true);
-        const markers = records.filter(record => record.target === 'workbook_journal')
-            .map(record => [record.message, record.keyValues.script ?? null, record.keyValues]);
-        // The files first, every script starts before its result; the next script may start before the result of
-        // the one before it is written
-        const names = markers.map(([message, script]) => `${message}: ${script ?? ''}`);
-        expect(names[0]).toBe('Workbook files: ');
-        expect([...names].sort()).toEqual([
-            'Script result: 01_orders.sql', 'Script result: 02_broken.sql',
-            'Script started: 01_orders.sql', 'Script started: 02_broken.sql',
-            'Workbook files: ',
-        ]);
-        for (const script of ['01_orders.sql', '02_broken.sql']) {
-            expect(names.indexOf(`Script started: ${script}`)).toBeLessThan(names.indexOf(`Script result: ${script}`));
-        }
-        const result = (script: string) => markers[names.indexOf(`Script result: ${script}`)][2];
-        const [cached] = cacheFiles(home);
-        expect(markers[0][2]).toMatchObject({ workbook: '.', workbook_id: WORKBOOK_ID, files: ['dashql-workbook.json', 'scripts/01_orders.sql', 'scripts/02_broken.sql'] });
-        expect(result('01_orders.sql')).toMatchObject({ key: cached.split('.')[0], result_rows: '3', error: '', cached: 'false' });
-        expect(result('02_broken.sql')).toMatchObject({ key: '', result_rows: '', error: "line 1:8: Column 'fail' cannot be resolved" });
+        const markers = records.filter(record => record.target === 'workbook_journal');
+        expect(markers.map(record => record.message)).toEqual(['Workbook files']);
+        expect(markers[0].keyValues).toMatchObject({ workbook: '.', workbook_id: WORKBOOK_ID, files: ['dashql-workbook.json', 'scripts/01_orders.sql', 'scripts/02_broken.sql'] });
     });
 
     it('finds the session in the workspace that it is given, not above the invoking directory', async () => {
@@ -352,108 +342,12 @@ describe('dashql run', () => {
         expect((await run(dir, ['.'], { ...PASSWORD, session: '51004' })).code).toBe(0);
     });
 
-    it('reaches a Trino connection with OAuth through the relay of dashql connect, the token stays there', async () => {
-        // The token endpoint of the identity provider, the Trino setup of the core exchanges the code there
-        const tokenRequests: URLSearchParams[] = [];
-        const idp = createServer((request, response) => {
-            let body = '';
-            request.on('data', chunk => { body += chunk; });
-            request.on('end', () => {
-                tokenRequests.push(new URLSearchParams(body));
-                const idToken = `e30.${Buffer.from(JSON.stringify({ sub: 'ann@corp' })).toString('base64url')}.sig`;
-                response.writeHead(200, { 'content-type': 'application/json' });
-                response.end(JSON.stringify({ access_token: 'real-token', token_type: 'Bearer', expires_in: 3600, id_token: idToken }));
-            });
-        });
-        await new Promise<void>(resolve => idp.listen(0, '127.0.0.1', resolve));
-        const dir = oauthTrinoWorkbook(trino.endpoint, [ORDERS], `http://127.0.0.1:${(idp.address() as AddressInfo).port}`);
-        // Outside a session of dashql connect, the connection is not reached
-        const outside = await run(dir, ['.'], {});
-        expect(outside.stdout).toContain('the connection signs in with OAuth, dashql run reaches it in a session of dashql connect only');
-
-        // The redirect of the identity provider, the test sends it
-        let callback: ((params: URLSearchParams) => void) | null = null;
-        const auth = new ConnectAuth({
-            runtime: async flow => await coreLoginRuntime(await setupCore('test'), flow),
-            listen: async () => ({ callback: new Promise<URLSearchParams>(resolve => { callback = resolve; }) }),
-        });
-        const server = await startSessionServer({ harness: 'claude', folder: dir, session: '51006', auth });
-        trino.bearer = 'real-token';
-        trino.authorizations.length = 0;
-        try {
-            // The commands of the agent find the server in the folder of the session
-            writeFileSync(path.join(dir, '.dashql', 'sessions', '51006', 'server.json'), JSON.stringify({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token }));
-            const running = run(dir, ['.'], { session: '51006' });
-            // The run waits for the login in the tab
-            await vi.waitFor(() => expect(server.state().logins).toHaveLength(1), { timeout: 20_000 });
-            const login = server.state().logins![0];
-            expect(login).toMatchObject({ connectionId: CONNECTION_ID, name: `trino ${trino.endpoint}` });
-            const authorization = new URL(login.url);
-            expect(authorization.searchParams.get('code_challenge_method')).toBe('S256');
-            callback!(new URLSearchParams({ code: 'code1', state: authorization.searchParams.get('state')! }));
-            const output = await running;
-            expect(output.stderr).toBe('');
-            expect(output.code).toBe(0);
-            expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows /m);
-            expect(server.state().logins).toEqual([]);
-            // The core exchanged the code with its verifier, once
-            expect(tokenRequests).toHaveLength(1);
-            expect(tokenRequests[0].get('code')).toBe('code1');
-            expect(tokenRequests[0].get('code_verifier')).not.toBeNull();
-            // Trino got the real token, the run only the stand-in
-            expect(trino.authorizations.length).toBeGreaterThan(0);
-            expect(new Set(trino.authorizations)).toEqual(new Set(['Bearer real-token']));
-            // The relay reaches the endpoints of logged in connections only
-            const relay = `http://127.0.0.1:${server.port}/v1/relay/${server.token}/${CONNECTION_ID}`;
-            expect((await fetchAgentSession(relay, { headers: { 'X-DashQL-Url': 'https://elsewhere.example/v1/info' } })).status).toBe(403);
-            expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/relay/wrong/${CONNECTION_ID}`, { headers: { 'X-DashQL-Url': `${trino.endpoint}/v1/info` } })).status).toBe(401);
-        } finally {
-            trino.bearer = null;
-            await server.close();
-            await new Promise(resolve => idp.close(resolve));
-        }
-    });
-
-    it('reaches a Trino connection with basic auth with the password of the tab through the relay of dashql connect', async () => {
-        const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
-        const auth = new ConnectAuth({
-            runtime: async flow => await coreLoginRuntime(await setupCore('test'), flow),
-            listen: async () => { throw new Error('a password needs no listener'); },
-        });
-        const server = await startSessionServer({ harness: 'claude', folder: dir, session: '51007', auth });
-        trino.authorizations.length = 0;
-        try {
-            writeFileSync(path.join(dir, '.dashql', 'sessions', '51007', 'server.json'), JSON.stringify({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token }));
-            const running = run(dir, ['.'], { session: '51007' });
-            // The run waits for the password of the tab, the tab sends it to the server
-            await vi.waitFor(() => expect(server.state().logins).toEqual([{ connectionId: CONNECTION_ID, name: `trino ${trino.endpoint}`, kind: 'credentials', url: '' }]), { timeout: 20_000 });
-            const answer = (body: unknown) => fetchAgentSession(`http://127.0.0.1:${server.port}/v1/login/${server.token}/${CONNECTION_ID}`, { method: 'POST', body: JSON.stringify(body) });
-            expect((await answer({ oauthRedirect: { state: { flowId: 'f' } } })).status).toBe(409);
-            expect((await answer({ basic: { username: 'ann', secret: 'pw' } })).status).toBe(204);
-            const output = await running;
-            expect(output.stderr).toBe('');
-            expect(output.code).toBe(0);
-            expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows /m);
-            // Trino got the password of the tab with every request, the run sent none
-            expect(new Set(trino.authorizations)).toEqual(new Set([`Basic ${btoa('ann:pw')}`]));
-            expect(new Set(trino.users)).toEqual(new Set(['ann']));
-            // A second run reuses the channel of the process, the tab is not asked again
-            expect((await run(dir, ['--refresh', '.'], { session: '51007' })).code).toBe(0);
-            expect(server.state().logins).toEqual([]);
-        } finally {
-            await server.close();
-        }
-    });
-
-    it('reports the progress of a running script to the journal', async () => {
-        const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"]]);
-        mkdirSync(path.join(dir, '.dashql'));
-        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
-        expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(0);
-        const progress = readFileSync(path.join(dir, '.dashql', 'journal.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line))
-            .filter(record => record.target === 'workbook_journal' && record.message === 'Script progress');
-        expect(progress.length).toBeGreaterThanOrEqual(1);
-        expect(progress[0].keyValues).toMatchObject({ script: 'slow.sql', phase: 'RUNNING', percent: '50', rows: '1000' });
+    it('reaches a connection with OAuth only in the tab of a session', async () => {
+        const dir = oauthTrinoWorkbook(trino.endpoint, [ORDERS]);
+        const output = await run(dir, ['.'], {});
+        expect(output.code).toBe(1);
+        expect(output.stdout).toContain('the connection signs in with OAuth, dashql run reaches it only in the tab of a session of dashql connect');
+        expect(trino.statements).toEqual([]);
     });
 
     it('leaves out the scripts of a connection that rejects the password', async () => {
@@ -534,5 +428,111 @@ describe('dashql run', () => {
         expect(noWorkbook.stderr).toBe('error: . is no workbook folder, it has no dashql-workbook.json\n');
         expect((await run(dir, [])).code).toBe(2);
         expect(trino.statements).toEqual([]);
+    });
+});
+
+describe('dashql run in a session of dashql connect', () => {
+    const SESSION = '51020';
+    const COPY = `.dashql/workbooks/${WORKBOOK_ID}`;
+
+    /// A session with a tab that follows it: the tab copied the workbook and answers its runs
+    async function sessionWithTab(answer: (message: Extract<AgentSessionRunMessage, { type: 'run' }>, send: (event: RunEvent) => Promise<void>, stopped: Promise<void>, target: AgentSessionTarget) => Promise<void>) {
+        const folder = testFiles([]);
+        const server = await startSessionServer({ harness: 'claude', folder, session: SESSION });
+        const target = { endpoint: `http://127.0.0.1:${server.port}`, token: server.token };
+        const tab = new AbortController();
+        const runs: Array<Extract<AgentSessionRunMessage, { type: 'run' }>> = [];
+        const stops = new Map<string, () => void>();
+        let followed: () => void = () => { };
+        const following = new Promise<void>(resolve => { followed = resolve; });
+        void followAgentSession(target, () => followed(), tab.signal, message => {
+            if (message.type === 'stop') return stops.get(message.runId)?.();
+            runs.push(message);
+            const stopped = new Promise<void>(resolve => stops.set(message.runId, resolve));
+            void answer(message, async event => { await postAgentSessionRunEvent(target, message.runId, encodeRunEvent(event, message.rows)); }, stopped, target);
+        }).catch(() => { });
+        await following;
+        const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
+        await writeAgentSessionWorkbook(target, WORKBOOK_ID, ['dashql-workbook.json', `scripts/${ORDERS[0]}`].map(file => ({ path: file, content: readFileSync(path.join(workbook, file), 'utf8') })));
+        const env: Partial<RunEnvironment> = { session: SESSION, sessionEndpoint: target.endpoint, sessionToken: target.token };
+        return {
+            folder, env, runs, target,
+            close: async () => {
+                tab.abort();
+                await server.close();
+            },
+        };
+    }
+
+    it('runs a workbook that the tab copied in the tab and prints its events', async () => {
+        const rows = arrow.tableFromArrays({ id: Int32Array.from({ length: 12 }, (_, i) => i + 1) });
+        const key = 'c'.repeat(64);
+        const session = await sessionWithTab(async (message, send, _stopped, target) => {
+            await send({ type: 'run_started', workbook: message.label, scripts: [ORDERS[0]] });
+            await send({ type: 'script_started', script: ORDERS[0] });
+            // The file of the result goes into the cache of the session first
+            const file = await writeAgentSessionResult(target, key, new Blob(['PAR1 the result PAR1']));
+            await send({ type: 'script_done', script: ORDERS[0], ms: 1200, rows: rows.numRows, table: rows, cached: false, key, file });
+            await send({ type: 'run_finished', ms: 1300, ok: 1, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
+        });
+        try {
+            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...session.env }), session.folder, ['--rows', '2', COPY]);
+            expect(output.stderr).toBe('');
+            expect(output.code).toBe(0);
+            // The table of the result came with its first rows, the count with all of them, the file is in the cache of
+            // the session
+            const [cached] = readdirSync(path.join(session.folder, '.dashql', 'cache'));
+            expect(cached).toMatch(new RegExp(`^${key}\\.[0-9a-f-]{36}\\.parquet$`));
+            expect(readFileSync(path.join(session.folder, '.dashql', 'cache', cached), 'utf8')).toBe('PAR1 the result PAR1');
+            expect(output.stdout).toBe(`${ORDERS[0]}  ok  12 rows  1.2 s\n  id Int32\n  id\n  --\n  1\n  2\n  … 10 more\n  .dashql/cache/${cached}\n\n1 ok\n`);
+            // Only files of keys
+            const url = `${session.target.endpoint}/v1/results/${session.target.token}`;
+            expect((await fetchAgentSession(`${url}/not-a-key`, { method: 'PUT', body: 'x' })).status).toBe(400);
+            expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: COPY, scripts: [], refresh: false, rows: 2 }]);
+        } finally {
+            await session.close();
+        }
+    });
+
+    it('stops the run in the tab on an interrupt', async () => {
+        const session = await sessionWithTab(async (_message, send, stopped) => {
+            await send({ type: 'run_started', workbook: COPY, scripts: [ORDERS[0]] });
+            await send({ type: 'script_started', script: ORDERS[0] });
+            await stopped;
+            await send({ type: 'script_cancelled', script: ORDERS[0], ms: 10 });
+            await send({ type: 'run_finished', ms: 20, ok: 0, failed: 0, cancelled: 1, notRun: 0, interrupted: true });
+        });
+        try {
+            const interrupt = new AbortController();
+            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }, { home: tempHome(), ...session.env }), session.folder, [COPY]);
+            await vi.waitFor(() => expect(session.runs).toHaveLength(1));
+            interrupt.abort();
+            const output = await running;
+            expect(output.code).toBe(130);
+            expect(output.stderr).toBe('interrupted\n');
+            expect(output.stdout).toBe(`${ORDERS[0]}  cancelled\n\n1 cancelled\n`);
+        } finally {
+            await session.close();
+        }
+    });
+
+    it('fails without a tab that follows the session, a folder of its own runs here', async () => {
+        const folder = testFiles([]);
+        const server = await startSessionServer({ harness: 'claude', folder, session: SESSION });
+        try {
+            const env: Partial<RunEnvironment> = { session: SESSION, sessionEndpoint: `http://127.0.0.1:${server.port}`, sessionToken: server.token };
+            const copy = path.join(folder, ...COPY.split('/'));
+            const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
+            mkdirSync(path.join(copy, 'scripts'), { recursive: true });
+            for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(copy, file));
+            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env }), folder, [COPY]);
+            expect(output.code).toBe(1);
+            expect(output.stderr).toBe('error: no tab of DashQL follows the session, open it with the line of dashql connect\n');
+            // A workbook folder that no tab copied runs in this process
+            const own = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env }), workbook, ['.']);
+            expect(own.stdout).toContain(`trino http://trino.invalid  failed`);
+        } finally {
+            await server.close();
+        }
     });
 });

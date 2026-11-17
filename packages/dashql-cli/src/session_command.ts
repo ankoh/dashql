@@ -37,8 +37,6 @@ interface SessionFile {
 export interface SessionEnvironment {
     /// The folder of the running servers of sessions, a file per server
     servers: string;
-    /// The folder of the files of DashQL (DASHQL_HOME), null for the `.dashql/` of the folder of the session
-    home: string | null;
     /// The page of the links
     appUrl: string;
     /// Start `dashql session serve` with the arguments after `session serve`, detached from the hook
@@ -68,7 +66,6 @@ export function processSessionEnvironment(): SessionEnvironment {
     const token = process.env[SESSION_TOKEN_ENV];
     return {
         servers: process.env.DASHQL_SERVERS || path.join(homedir(), '.dashql', 'servers'),
-        home: process.env.DASHQL_HOME || null,
         appUrl: process.env.DASHQL_APP_URL || 'https://dashql.app',
         startServer: args => {
             // Node runs the module of dashql again, a hook must not wait for the server
@@ -204,7 +201,6 @@ async function serve(args: string[], cli: CliProcess, env: SessionEnvironment): 
     const server = await startSessionServer({
         harness: named.get('harness') ?? 'agent',
         folder: named.get('folder') ?? cli.cwd,
-        home: env.home,
         port: Number(named.get('port') ?? 0),
         onEnd: () => setTimeout(() => void stop(), 100),
     });

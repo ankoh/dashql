@@ -318,14 +318,18 @@ is a typed method with its contract rather than a generated table, the app reads
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript`, `stopRun`, `setUpOpenedWorkbook` | Runs, and the setups of the connections of an opened workbook |
-| `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport`, `importCachedResult` | Imports and exports, a result of the command line tool into the query result cache |
+| `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
 | `storage` | `StorageCommands`, the commands of the storage writer: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
 | `computeDatabase` | The compute database of the platform and whether it is ready |
 | `flush`, `destroy` | Take the changes now; shut the runtime down, see below |
 
 Everything else the app and the CLI call on the module directly (`runtime.module`): `runCatalogLoader`, `resultKeys`,
 `dropImport`, `exportConnection`, `exportedResults`, `migrateWorkbookFolder`, `checkWorkbookFolders`,
-`answerExternalChange`, `revealConnectionSecrets`, `connectionAuthorization` (the auth headers by origin of a Trino or Salesforce channel with fresh tokens, the account and the stand-in responses of the token requests, for the relay of `dashql connect`), `queryProgressRecording`, `followQueryProgress`, and more.
+`answerExternalChange`, `revealConnectionSecrets`, `queryProgressRecording`, `followQueryProgress`, and more.
+
+**Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
+reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that
+runs a workbook for the agent of a session sends them back to `dashql run` (`docs/wip/tab_driven_runs.md`).
 `Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
 
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects

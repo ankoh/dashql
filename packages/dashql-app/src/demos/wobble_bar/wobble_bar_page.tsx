@@ -23,7 +23,6 @@ function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
         folder: '~/data/sales',
         connected,
         turns,
-        logins: [],
         onDismiss: () => { },
         onShowScript: () => { },
     };

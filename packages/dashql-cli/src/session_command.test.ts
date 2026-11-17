@@ -15,7 +15,6 @@ function testEnvironment(): { env: SessionEnvironment; servers: SessionServer[] 
     const servers: SessionServer[] = [];
     const env: SessionEnvironment = {
         servers: serversFolder,
-        home: null,
         appUrl: 'http://localhost:9002',
         startServer: args => {
             const named = new Map<string, string>();

@@ -1,13 +1,12 @@
 //! The Salesforce connector: the REST APIs of the setup and the metadata (`api`), the OAuth flow with PKCE (`auth`),
-//! the setup of a connection as a state machine (`setup`), the binding of the Data 360 client functions
-//! (`client_functions`) and the tokens of a login for the relay of `dashql connect` (`relay`). Sans-IO: the functions
+//! the setup of a connection as a state machine (`setup`) and the binding of the Data 360 client functions
+//! (`client_functions`). Sans-IO: the functions
 //! build requests and read responses, the host sends them. The actions of the setup on the connection state are
 //! `connections::SalesforceAction`.
 
 pub mod api;
 pub mod auth;
 pub mod client_functions;
-pub mod relay;
 pub mod setup;
 pub mod shared;
 pub mod types;

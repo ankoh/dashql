@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET } from '@akohn/dashql/platform/session/workbook_journal';
+import { JOURNAL_FILES, JOURNAL_KEYS, JOURNAL_TARGET } from '@akohn/dashql/platform/session/workbook_journal';
 
 import { writeAgentSessionConnections, writeAgentSessionWorkbook } from '@akohn/dashql/platform/session/agent_session_client';
 import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
@@ -29,19 +29,12 @@ describe('the session server', () => {
         server = null;
     });
 
-    it('creates the journal, follows its lines and hands out the files and results they name', async () => {
+    it('creates the journal, follows its lines and hands out the files they name', async () => {
         const folder = temp('dashql-session-');
-        // The commands below the folder keep their files in its .dashql/, the server hands out the results there
-        const home = path.join(folder, '.dashql');
         mkdirSync(path.join(folder, 'orders', 'scripts'), { recursive: true });
         writeFileSync(path.join(folder, 'orders', 'dashql-workbook.json'), '{}');
         writeFileSync(path.join(folder, 'orders', 'scripts', 'a.sql'), 'select 1\n');
         writeFileSync(path.join(folder, 'secret.txt'), 'no');
-        const key = 'a'.repeat(64);
-        mkdirSync(path.join(home, 'cache'), { recursive: true });
-        writeFileSync(path.join(home, 'cache', `${key}.00000000-0000-4000-8000-000000000001.parquet`), 'older');
-        await new Promise(resolve => setTimeout(resolve, 20));
-        writeFileSync(path.join(home, 'cache', `${key}.00000000-0000-4000-8000-000000000002.parquet`), 'newer');
 
         server = await startSessionServer({ harness: 'claude', folder });
         const journal = path.join(folder, '.dashql', 'journal.jsonl');
@@ -52,7 +45,6 @@ describe('the session server', () => {
         const entries: LogRecord[] = [
             record(JOURNAL_FILES, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.files]: ['dashql-workbook.json', 'scripts/a.sql', 'scripts/gone_ä.sql'] }),
             record('Executed query', 'query_executor', { numRows: '1' }),
-            record(JOURNAL_SCRIPT_RESULT, JOURNAL_TARGET, { ...workbook, [JOURNAL_KEYS.script]: 'a.sql', [JOURNAL_KEYS.key]: key, [JOURNAL_KEYS.resultRows]: '1' }),
         ];
         // A line arrives in two writes, the second one in the middle of a character, the server waits for its end
         const bytes = Buffer.from(entries.map(entry => `${JSON.stringify(entry)}\n`).join(''));
@@ -61,7 +53,7 @@ describe('the session server', () => {
         await new Promise(resolve => setTimeout(resolve, 300));
         expect(server.state().workbooks).toEqual([]);
         appendFileSync(journal, bytes.subarray(split));
-        await until(() => server!.state().workbooks[0]?.results.length === 1);
+        await until(() => server!.state().log.length === 1);
         // The server read the stamps of the files that exist
         expect(server.state().workbooks[0]).toMatchObject({ path: 'orders', workbookId: 'w1' });
         expect(server.state().workbooks[0].files.map(file => [file.path, file.size])).toEqual([['dashql-workbook.json', 2], ['scripts/a.sql', 9]]);
@@ -83,13 +75,6 @@ describe('the session server', () => {
         await until(() => server!.state().workbooks.some(workbook => workbook.workbookId === 'w9'));
         expect(server.state().workbooks.find(workbook => workbook.workbookId === 'w9')?.files).toEqual([]);
         expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w9/dashql-workbook.json`)).status).toBe(404);
-
-        const newest = await fetchAgentSession(`${base}/v1/results/${server.token}/${key}`);
-        expect(newest.status).toBe(200);
-        expect(await newest.text()).toBe('newer');
-        expect(Number(newest.headers.get('X-DashQL-Cached-At'))).toBeGreaterThan(0);
-        expect((await fetchAgentSession(`${base}/v1/results/${server.token}/${'b'.repeat(64)}`)).status).toBe(404);
-        expect((await fetchAgentSession(`${base}/v1/results/${server.token}/not-a-key`)).status).toBe(404);
 
         // A stopped server leaves no journal, later commands find no session
         await server.close();

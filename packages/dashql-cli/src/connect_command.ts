@@ -6,7 +6,6 @@ import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platfo
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
-import { ConnectAuth, coreLoginRuntime, listenForCallback } from './connect_auth.js';
 import { SESSION_NAME_ENV, SESSION_SERVER_FILE } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
@@ -32,8 +31,6 @@ const TOOL_EVENTS = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure'])
 
 /// What `dashql connect` takes from the process, the tests pass their own
 export interface ConnectEnvironment {
-    /// The folder of the files of DashQL (DASHQL_HOME), null for the `.dashql/` of the folder of the session
-    home: string | null;
     /// The program and the arguments that run dashql again, the hooks call it
     dashql: string[];
     /// The search path of the process, the harness gets a `dashql` in front of it
@@ -46,7 +43,6 @@ export interface ConnectEnvironment {
 
 export function processConnectEnvironment(): ConnectEnvironment {
     return {
-        home: process.env.DASHQL_HOME || null,
         dashql: [process.execPath, process.argv[1]],
         searchPath: process.env.PATH ?? '',
         posix: process.platform !== 'win32',
@@ -158,9 +154,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     let server: Awaited<ReturnType<typeof startSessionServer>>;
     try {
         // The port names the session, no other session on this machine has it while it runs
-        // The logins of the connections of the agent run the Trino setup of the core
-        const auth = new ConnectAuth({ runtime: async flow => await coreLoginRuntime(await cli.setupCore(), flow), listen: listenForCallback });
-        server = await startSessionServer({ harness, folder, home: env.home, port, token: secret, session: String(port), auth });
+        server = await startSessionServer({ harness, folder, port, token: secret, session: String(port) });
     } catch (error) {
         const code = (error as { code?: string }).code;
         cli.stderr(code === 'EADDRINUSE'

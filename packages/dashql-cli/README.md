@@ -165,17 +165,17 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
   app; the result then says `from the cache` and its connection is not needed. `--refresh` runs every script. The
   workbook folder is not written.
-- **Logins.** In a session of `dashql connect`, Trino with OAuth, Salesforce and Trino with basic auth go through the
-  process of `dashql connect`, which logs in and keeps the tokens and the password: the user clicks **Log in** in the
-  prompt of the tab for OAuth and Salesforce, the tab sends the password of a Trino connection that it lets the agent
-  use by itself. The run reaches the connection through the relay of the process and never sees a token or the
-  password (`docs/wip/agent_session.md`, "Logins go through the page").
+- **Runs in the tab.** In a session of `dashql connect`, a workbook that the tab copied into the session
+  (`.dashql/workbooks/<id>`) runs in the tab: `run` asks the server of the session, the tab runs the scripts with its
+  own runtime on its connections that the agent may use, as far as the browser reaches them, the feed of the tab shows
+  the run, and the events come back and print as above. A result comes with its first `--rows` rows, its row count
+  and, for a result with a key, its Parquet file, which the tab writes into `.dashql/cache/`. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
+  (`docs/wip/tab_driven_runs.md`). Every other workbook folder runs in the process.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
-  override the user and the password of the workbook. They stay in memory, the workbook keeps its params. With
-  `DASHQL_TRINO_PASSWORD` set, a run in a session doesn't ask the tab for the password.
+  override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
   A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
-  Outside a session of `dashql connect`, connections with OAuth and Salesforce are refused before their first
-  statement, remote Hyper servers always are. The
+  Connections with OAuth, Salesforce and remote Hyper servers are refused before their first statement, they run only
+  in the tab. The
   connections that statements run on are set up and checked with `select 1` before the first statement, all at once.
   The scripts of a connection that can't be set up don't run, nor do the scripts that follow them; the others do.
 - **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It runs on Node 24: Node 24.15
@@ -184,9 +184,8 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 - **Interrupts.** The first Ctrl-C cancels the running queries, reports the scripts as cancelled or not run and
   removes the folder of the instance, the second one ends the process.
 - **Not yet.** The catalog of a connection is not described.
-- **Sessions.** In the folder of a session (`dashql session`), `run` appends the files of the workbook folder, the
-  start, the progress and the result of every script to the journal of the session, also a script that was
-  cancelled or didn't run.
+- **Sessions.** In the folder of a session (`dashql session`), `run` appends the files of the workbook folder and its
+  log to the journal of the session.
 - **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
 
 The exit code is 0 if all scripts ran, 1 if a script failed or didn't run, 2 on usage errors or a folder without a

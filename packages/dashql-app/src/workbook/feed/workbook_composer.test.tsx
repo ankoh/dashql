@@ -340,10 +340,6 @@ describe('Workbook composer', () => {
         const RENEWED = { endpoint: 'http://127.0.0.1:60001', token: 'z7q2' };
         type Session = React.ComponentProps<typeof WorkbookComposer>['session'];
 
-        /// The logins that the composer opened
-        let openLogin = vi.fn();
-        beforeEach(() => { openLogin = vi.fn(); });
-
         /// The composer with the connect state of a provider
         const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean; outdated?: AgentConnect['outdated'] }> = ({ initial, session, pickers, outdated }) => {
             const [mode, setMode] = React.useState(initial);
@@ -351,7 +347,7 @@ describe('Workbook composer', () => {
             const [target, setTarget] = React.useState(TARGET);
             const connect: AgentConnect = {
                 mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED), outdated: outdated ?? null,
-                isConnectionAllowed: () => true, toggleConnection: () => { }, openLogin: login => openLogin(login),
+                isConnectionAllowed: () => true, toggleConnection: () => { },
             };
             return (
                 <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}
@@ -423,7 +419,7 @@ describe('Workbook composer', () => {
         });
 
         it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {
-            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], logins: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
+            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
             const editor = await renderConnected(ComposerMode.Ai, session);
             expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Codex works on this workbook in the terminal');
             act(() => mode('sql').click());
@@ -431,25 +427,6 @@ describe('Workbook composer', () => {
             act(() => type(editor, 'select 2'));
             act(() => press(editor, 'Enter'));
             expect(onSend).toHaveBeenCalledWith('select 2');
-        });
-
-        it('opens the login that a run of the agent waits for with a click, a password needs none', async () => {
-            const url = 'https://idp.example/authorize?client_id=dashql&state=s1';
-            const logins = [
-                { connectionId: 'c1', name: 'Trino prod', kind: 'loopback' as const, url },
-                { connectionId: 'c2', name: 'Data 360', kind: 'redirect' as const, url, flowId: 'f1' },
-                { connectionId: 'c3', name: 'Trino dev', kind: 'credentials' as const, url: '' },
-            ];
-            const session = { harness: 'claude', folder: '/w', connected: true, turns: [], logins, onDismiss: vi.fn(), onShowScript: vi.fn() };
-            await renderConnected(ComposerMode.Ai, session);
-            const shown = [...container.querySelectorAll('[data-testid="composer-connect-login"]')];
-            expect(shown.map(login => login.textContent)).toEqual([
-                'The agent waits for a login to Trino prodLog in',
-                'The agent waits for a login to Data 360Log in',
-                'The agent waits for the password of Trino dev',
-            ]);
-            for (const login of shown.slice(0, 2)) act(() => login.querySelector<HTMLButtonElement>('[data-testid="composer-connect-login-open"]')!.click());
-            expect(openLogin.mock.calls).toEqual([[logins[0]], [logins[1]]]);
         });
 
         it('shows the connections of the agent in place of the connection picker in AI', async () => {

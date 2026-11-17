@@ -198,8 +198,8 @@ export class LiveRunReporter implements RunReporter {
                 this.settle(event.script);
                 if (!this.reported.has(event.script)) break;
                 const from = event.cached ? `  ${this.color(ReportColor.Dim, 'from the cache')}` : '';
-                out = `${this.ok(event.script)}  ${rowsText(event.table)}  ${this.color(ReportColor.Dim, seconds(event.ms))}${from}\n`;
-                if (event.table != null) out += describeTable(event.table, this.rows);
+                out = `${this.ok(event.script)}  ${rowsText(event.rows)}  ${this.color(ReportColor.Dim, seconds(event.ms))}${from}\n`;
+                if (event.table != null) out += describeTable(event.table, this.rows, event.rows ?? event.table.numRows);
                 if (event.file != null) out += `  ${this.color(ReportColor.Dim, shortPath(event.file, this.cwd))}\n`;
                 break;
             }
