@@ -1044,7 +1044,8 @@ impl Writer<'_> {
     /// Replace a registered workbook with a bundle, staged and swapped: the bundle is written and verified as a staged
     /// copy, the files of the target are copied aside as they are, then the target is written and verified. A failure
     /// after the target changed writes the files that were copied aside back, whatever their format: a replacement is
-    /// also the recovery of a workbook that the format can no longer read.
+    /// also the recovery of a workbook that the format can no longer read. The copy aside is deleted only once the
+    /// replacement or the rollback succeeded: when both fail, it stays and the error names its folder.
     async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, staging: String, backup: String) -> Result<(), HostError> {
         let target = conflict.workbook_id.as_str();
         if bundle.workbook.workbook_id.to_lowercase() != target.to_lowercase() {
@@ -1077,16 +1078,30 @@ impl Writer<'_> {
             self.verify(bundle, target).await
         }
         .await;
+        // Every step of the rollback runs, the first failure is kept
+        let mut rollback: Result<(), HostError> = Ok(());
         if replaced.is_err() && swapped {
-            let _ = self.storage("deleteWorkbookFiles", &[text(target)]).await;
-            if !old_native {
-                let _ = self.copy_workbook_files(&backup, target).await;
-            }
-            let _ = self.storage("upsertWorkbookEntry", &[old_entry]).await;
+            let deleted = self.storage("deleteWorkbookFiles", &[text(target)]).await.map(|_| ());
+            let restored = if old_native { Ok(()) } else { self.copy_workbook_files(&backup, target).await };
+            let entry = self.storage("upsertWorkbookEntry", &[old_entry]).await.map(|_| ());
+            rollback = deleted.and(restored).and(entry);
         }
         let cleanup = self.storage("deleteWorkbook", &[text(&staging)]).await;
-        if copied {
-            let _ = self.storage("deleteWorkbook", &[text(&backup)]).await;
+        match (&replaced, rollback) {
+            // The files that were copied aside are the only full copy of the workbook when the rollback failed, they stay
+            (Err(error), Err(rollback)) if copied => {
+                let details = [("workbookId", target), ("backupId", backup.as_str()), ("error", error.message()), ("rollbackError", rollback.message())];
+                self.platform.log_on(LogLevel::Error, "Failed to restore a workbook after a failed replacement, its files are kept aside", &details, "workbook_import");
+                return Err(HostError::new(format!(
+                    "{}; restoring the workbook failed as well ({}), its files are kept in the workbook folder {backup}",
+                    error.message(),
+                    rollback.message()
+                )));
+            }
+            _ if copied => {
+                let _ = self.storage("deleteWorkbook", &[text(&backup)]).await;
+            }
+            _ => {}
         }
         replaced?;
         self.seed_catalogs(bundle).await;

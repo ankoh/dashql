@@ -269,6 +269,34 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
+    it('keep the files copied aside when the rollback of a replacement fails as well', async () => {
+        const { runtime, storage } = createRuntime();
+        const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
+        storage.scripts.set(WB, new Map([['a.sql', 'select 2']]));
+
+        // Every write of a script of the target fails: the replacement and the rollback that writes the old files back
+        const saveScript = storage.saveScript;
+        storage.saveScript = async (workbookId, fileName, text) => {
+            if (workbookId === WB) {
+                throw new Error('disk full');
+            }
+            await saveScript(workbookId, fileName, text);
+        };
+        const preview = await runtime.readImport({ archive: exported.archive! });
+        await expect(runtime.commitImport(preview.importId, { conflict: 'replace' }, null)).rejects.toThrow(
+            /disk full.*restoring the workbook failed as well.*disk full.*its files are kept in the workbook folder/,
+        );
+
+        // The copy aside is the only full copy of the old workbook, it stays; the staged copy is gone. Like every saved
+        // workbook it is registered, the next restore shows it as a workbook of its own.
+        const kept = [...storage.workbooks.keys()].filter(id => id !== WB);
+        expect(kept).toHaveLength(1);
+        expect(storage.scripts.get(kept[0])).toEqual(new Map([['a.sql', 'select 2']]));
+        expect(storage.dataFiles.get(kept[0])).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
+        expect(storage.order).toEqual([WB, kept[0]]);
+        runtime.free();
+    });
+
     it('read a workbook folder and drop the import', async () => {
         const { runtime, storage } = createRuntime();
         const folder: dashql.RuntimeImportFolder = {
