@@ -24,8 +24,7 @@ and Codex follows the switch of SQL and AI while AI is on. The editor keeps its 
 - **`dashql connect` listens and launches.** It runs the server of the session on that port with the secret as token
   and launches the harness with the hooks of the session in its arguments, nothing is installed
   (`packages/dashql-cli/README.md`). The session ends when the harness exits.
-- **The first state switches to AI**, the user can switch back to SQL. SQL opens the prompt while the bar keeps the
-  session, edits of the page can then race the writes of the agent.
+- **The first state switches to AI**, the user can switch back to SQL, see [Who has the workbook](#who-has-the-workbook).
 - The page waits with requests that fail until the server is up; the browser logs them. Chrome asks once for the local
   network of a public page.
 
@@ -42,6 +41,25 @@ and Codex follows the switch of SQL and AI while AI is on. The editor keeps its 
 - **The agent works on files.** Its commands (`dashql lint`, `format`, `run`) read and write the workbook folder
   The page follows the folder.
 - **The page watches.** The questions come from the terminal, and the terminal stops the agent.
+
+## Who has the workbook
+
+The switch of the prompt decides who changes the workbooks, the agent in AI or the user in SQL. The session stays
+attached either way, on the same port and secret: the tab picks them once and keeps them across the switch and a reload,
+only the button of a new port gives new ones.
+
+- **AI, the agent has it.** While a session that did not end follows the tab, the editors of the scripts are read-only
+  (`useAgentHasControl`, `ScriptEditor`), the status of the prompt says to switch to SQL to edit them. The tab takes the
+  scripts of the agent and runs for it.
+- **SQL, the user has it.** The editors are editable, the edits of the user go into the copies as before. The tab holds
+  the changes of the agent (`AgentSessionCopies.pause`): it keeps the latest state of the session and takes nothing. A
+  run of `dashql run` fails at once with `AGENT_PAUSED_ERROR`, which tells the agent to tell the user and stop; the guide
+  of `dashql describe` says the same.
+- **Back to AI.** The tab takes what the agent changed meanwhile from the latest state. A script that the user changed
+  in between keeps the text of the user: its write into the copy is the newest stamp, the copy holds the text of the page.
+
+The page test `app_agent_session` switches to SQL and back: the read-only editor, the edit of the user, a run and an
+edit of the agent that wait, and the edit that the tab takes in AI.
 
 ## Protocol
 
@@ -283,8 +301,8 @@ Which side does what is in [agent_integration.md](../design/agent_integration.md
 - **The guide** is `DESCRIBE_TEXT` of `describe_command.ts`: the layout of a workbook folder with the connection of a
   script in the workbook file, the commands, the rules of scripts (one statement each, reentrant DDL, `:name` of
   scripts, the embedded Hyper over cheap remote results, `@param`, `@manual`, client functions), charts (the `@vis` tag
-  with an example, no sizes, `dashql vis` after every change) and how to work. The text lives in the command, it fits
-  the installed version.
+  with an example, no sizes, `dashql vis` after every change), how to work, and that the user may take the workbook
+  back. The text lives in the command, it fits the installed version.
 - **In context from the start.** Claude Code gets the guide with a preface (`CONNECTED_AGENT_GUIDE`) in its system
   prompt (`--append-system-prompt`), which outranks the `CLAUDE.md` of a project. Codex gets the same text in the output
   of the hook at the start. The hook tells both where the copies are and lists the workbooks and the connections of the

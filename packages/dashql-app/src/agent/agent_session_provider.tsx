@@ -164,6 +164,11 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const [store] = React.useState(() => new Store<FollowedAgentSession | null>(null));
     const [target, setTarget] = React.useState<AgentSessionTarget | null>(readTabTarget);
     const [connect, setConnect] = React.useState(readTabConnect);
+    // The mode decides who has the workbooks: the agent in AI, the user in SQL. The session stays attached in SQL, the
+    // tab only holds the changes of the agent and runs nothing for it.
+    const userHasControl = connect.mode !== ComposerMode.Ai;
+    const userHasControlRef = React.useRef(userHasControl);
+    userHasControlRef.current = userHasControl;
     const follow = React.useCallback((next: AgentSessionTarget) => {
         writeTabTarget(next);
         setTarget(next);
@@ -192,6 +197,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
                 connectionId => isConnectionAllowedRef.current(connectionId),
             ).allowed.connections.map(connection => connection.connectionId);
             const copies = runtime == null ? null : new AgentSessionCopies(agentSessionCopyHost(runtime, next, agentConnectionIds), logger);
+            void copies?.pause(userHasControlRef.current);
             copied.current = { target: next, workbooks: readTabCopies(next), copies };
         }
         return copied.current;
@@ -297,6 +303,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             runtime,
             settled: async () => await copies?.settled(),
             isConnectionAllowed: connectionId => isConnectionAllowedRef.current(connectionId),
+            paused: () => userHasControlRef.current,
             send: (runId, event) => postAgentSessionRunEvent(target, runId, event),
             writeResult: key => sendCachedResult(resultCache, key, data => writeAgentSessionResult(target, key, data)),
             renderChart: (workbookId, script, table, size) => renderScriptChart(runtime, workbookId, script, table, size),
@@ -348,6 +355,10 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             runs?.dispose();
         };
     }, [target, store, logger, runtime, resultCache, updateConnect, copyShown, copiesOf, sendConnections]);
+    // The changes of the agent wait while the user has the workbooks, and come in when the agent gets them back
+    React.useEffect(() => {
+        void copied.current.copies?.pause(userHasControl);
+    }, [userHasControl, target]);
     const connectValue = React.useMemo<AgentConnect>(() => ({
         mode: connect.mode,
         setMode: mode => updateConnect({ mode }),
@@ -371,6 +382,14 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
 /// How the prompt connects an agent in the terminal, null outside of the provider
 export function useAgentConnect(): AgentConnect | null {
     return React.useContext(CONNECT_CTX);
+}
+
+/// Does the agent of a session have the workbooks? It does while the prompt is in AI and a session that did not end
+/// follows the tab; the editors of the scripts are read-only then, the user switches to SQL to edit them.
+export function useAgentHasControl(): boolean {
+    const connect = useAgentConnect();
+    const followed = useFollowedAgentSession();
+    return connect?.mode === ComposerMode.Ai && followed != null && followed.connected && !followed.state.ended;
 }
 
 const NO_SUBSCRIPTION = () => () => { };

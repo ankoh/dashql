@@ -232,6 +232,31 @@ describe('the copies of the workbooks of a page in a session', () => {
         expect(fixture.page.get('top.sql')?.connectionId).toBe('hyper');
     });
 
+    it('holds the changes of the agent while the user has the workbook', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1', 'b.sql': 'select 2' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await copies.update(fixture.state());
+        await copies.pause(true);
+
+        // The agent writes both scripts, the user edits a.sql meanwhile: the edit goes into the copy
+        fixture.agentWrites('scripts/a.sql', 'select 11');
+        fixture.agentWrites('scripts/b.sql', 'select 22');
+        await copies.update(fixture.state());
+        fixture.edit('a.sql', 'select 111');
+        await tick();
+        await copies.settled();
+        expect(fixture.taken).toEqual([]);
+        expect(fixture.copy.get('scripts/a.sql')?.text).toBe('select 111');
+
+        // The agent gets the workbook back: the page takes b.sql, a.sql keeps the text of the user
+        await copies.update(fixture.state());
+        expect(fixture.taken).toEqual([]);
+        await copies.pause(false);
+        expect(fixture.taken).toEqual([[2, 'select 22']]);
+        expect(fixture.page.get('a.sql')?.text).toBe('select 111');
+    });
+
     it('copies nothing of a workbook without a folder in OPFS and leaves other workbook folders alone', async () => {
         const fixture = new Fixture({ 'a.sql': 'select 1' });
         const copies = new AgentSessionCopies(fixture.host, logger);

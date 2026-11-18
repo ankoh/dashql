@@ -337,7 +337,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                     <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect">
                         <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
                             {session != null
-                                ? `${harnessLabel(session.harness)} works on this workbook in the terminal`
+                                ? `${harnessLabel(session.harness)} works on this workbook in the terminal, switch to SQL to edit the scripts yourself`
                                 : connectStatus(connect.outdated)}
                         </div>
                         {/* The command is only copied, the buttons stay usable */}

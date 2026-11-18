@@ -34,6 +34,9 @@ export async function renderScriptChart(runtime: Runtime, workbookId: string, sc
     return await renderVegaLitePng(vis.vegaLiteSpec, arrowTableToRows(table), size);
 }
 
+/// Why the tab runs nothing for the agent while the user has the workbooks
+export const AGENT_PAUSED_ERROR = 'the user took the workbook back in DashQL (the prompt is in SQL), the tab runs nothing for you and takes no edits until the user switches the prompt back to AI: tell the user and stop';
+
 /// What the runs of the agent need of the tab, the tests pass their own
 export interface AgentSessionRunHost {
     runtime: Runtime;
@@ -41,6 +44,8 @@ export interface AgentSessionRunHost {
     settled: () => Promise<void>;
     /// May the agent use a connection?
     isConnectionAllowed: (connectionId: string) => boolean;
+    /// Does the user have the workbooks, the prompt in SQL? The tab then runs nothing for the agent.
+    paused: () => boolean;
     /// Send an event of a run to `dashql run`, resolves false once the run is gone there
     send: (runId: string, event: unknown) => Promise<boolean>;
     /// Write the cached result of a key into the session, resolves with its path there, null if the tab has no file
@@ -106,6 +111,7 @@ export class AgentSessionRuns {
             emit({ type: 'run_finished', ms: 0, ok: 0, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         };
         try {
+            if (this.host.paused()) return fail(AGENT_PAUSED_ERROR);
             this.logger.info('Running the workbook for the agent', { run: runId, workbook: message.workbookId, scripts: message.scripts.join(', ') }, LOG_CTX);
             // The agent changed the scripts before it ran them
             await this.host.settled();

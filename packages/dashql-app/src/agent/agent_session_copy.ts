@@ -219,6 +219,9 @@ export class AgentSessionCopies {
     /// The changes apply one after the other, in both directions
     private queue: Promise<void> = Promise.resolve();
     private disposed = false;
+    /// Does the user have the workbooks? The changes of the agent then wait, the latest state is taken on resume.
+    private paused = false;
+    private pausedState: AgentSessionState | null = null;
 
     constructor(private readonly host: AgentSessionCopyHost, private readonly logger: Logger) { }
 
@@ -262,8 +265,23 @@ export class AgentSessionCopies {
         this.logger.info('Copied the workbook into the session', { workbook: workbookId, files: String(files.length) }, LOG_CTX);
     }
 
+    /// Hold the changes of the agent while the user has the workbooks (the prompt in SQL), and take what the agent
+    /// changed meanwhile when the agent gets them back. The changes of the user go into the copies either way, a script
+    /// that both changed keeps the text of the user.
+    pause(paused: boolean): Promise<void> {
+        if (this.paused === paused) return this.queue;
+        this.paused = paused;
+        const state = this.pausedState;
+        this.pausedState = null;
+        return !paused && state != null ? this.update(state) : this.queue;
+    }
+
     /// Take a state of the session, resolves when the changes of the agent were applied
     update(state: AgentSessionState): Promise<void> {
+        if (this.paused) {
+            this.pausedState = state;
+            return this.queue;
+        }
         for (const workbook of state.workbooks ?? []) {
             const copy = this.copies.get(workbook.workbookId);
             if (copy == null || workbook.path !== workbookCopyPath(workbook.workbookId)) continue;

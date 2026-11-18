@@ -58,6 +58,8 @@ decides on.
   the `@vis vegalite` chart of every script that the run reports with its result (`renderScriptChart`, the renderer of
   the image download of the feed) and sends each as `script_chart` with the PNG in base64, or with the error when the
   script has no chart or no result, then `run_finished`. A tab of protocol 1 ignores `chart` and sends none.
+- **The user has the workbook.** While the prompt of the tab is in SQL, the tab runs nothing for the agent: the run ends
+  at once with `run_failed` (`AGENT_PAUSED_ERROR`) and `run_finished`, see "Who has the workbook" in `agent_session.md`.
 - **No tab.** Without a tab on the stream the run request answers 409. A run that no tab takes within 30 s ends with
   `run_failed`, so does a run whose tab goes away.
 - **Other folders.** A workbook folder that no tab copied, and every run outside a session of `dashql connect`, runs in

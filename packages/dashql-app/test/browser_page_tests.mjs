@@ -369,15 +369,28 @@ async function testAppAgentSession(page, navigate) {
         await page.waitForTimeout(500);
         assert.equal(writes.length, written, JSON.stringify(writes.slice(written).map(write => write.path)));
 
-        // The user edits the script, the copy gets the edit
+        // The agent has the workbook in AI, the editors of the scripts are read-only
         const script = writes.find(write => write.path.startsWith('scripts/'));
+        await page.getByTestId('composer-connect-status').getByText('switch to SQL to edit the scripts yourself').waitFor();
+        await page.locator('.cm-content[aria-readonly="true"]').filter({ hasText: 'copied_answer' }).waitFor();
+
+        // SQL takes the workbook back on the same port: the user edits the script, the copy gets the edit
+        await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
         await scriptEditor(page, 'copied_answer').click();
         await page.keyboard.press('End');
         await page.keyboard.insertText(', 43 as more');
         await waitUntil(() => writes.some(write => write.method === 'PUT' && write.path === script.path && write.body.includes('43 as more')));
 
-        // The agent rewrites the script in the copy, the page takes its text
+        // Meanwhile the edits of the agent wait and the tab runs nothing for it
         connected.agentWrites(script.workbookId, script.path, '/* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "from_agent", "type": "quantitative"}}} */\nselect 7 as from_agent');
+        connected.askRun({ runId: 'r0', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: false, rows: 3 });
+        await waitUntil(() => connected.runEvents.get('r0')?.some(event => event.type === 'run_finished'));
+        assert.match(connected.runEvents.get('r0').find(event => event.type === 'run_failed')?.error ?? '', /the user took the workbook back/);
+        await page.waitForTimeout(500);
+        assert.equal(await scriptEditor(page, 'from_agent').count(), 0);
+
+        // AI hands the workbook back, the page takes what the agent wrote meanwhile
+        await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
         await scriptEditor(page, 'from_agent').waitFor();
         assert.equal(await page.getByTestId('diff-accept').count(), 0);
 

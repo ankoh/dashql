@@ -9,6 +9,7 @@ import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } f
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
+import { useAgentHasControl } from '../../agent/agent_session_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '../../runtime/runtime_hooks.js';
@@ -52,7 +53,8 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
 };
 
 const LINE_WRAPPING_EXTENSIONS = [EditorView.lineWrapping];
-/// The editor of a script of a cloud preview is read-only, importing the preview makes it editable
+/// The editor of a script of a cloud preview is read-only, importing the preview makes it editable. So is the editor of
+/// every script while the agent of a session has the workbooks, the user switches the prompt to SQL to edit.
 const READ_ONLY = new Compartment();
 
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
@@ -62,7 +64,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const scripts = dependencies.useWorkbook(props.workbookId);
     const modifyScripts = useDispatch({ workbook: props.workbookId });
     const runtime = useOptionalRuntime();
-    const readOnly = scripts != null && isCloudPreview(scripts);
+    const agentHasControl = useAgentHasControl();
+    const readOnly = (scripts != null && isCloudPreview(scripts)) || agentHasControl;
     const extraExtensions = React.useMemo(() => [
         ...(props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : []),
         READ_ONLY.of(EditorState.readOnly.of(readOnly)),
@@ -100,7 +103,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         scriptData?.connectionId,
         props.onNavigateToScript,
     ]);
-    // The editor follows an import of the preview
+    // The editor follows an import of the preview and the switch between the agent and the user
     React.useEffect(() => {
         if (view == null || view.state.readOnly === readOnly) return;
         view.dispatch({ effects: READ_ONLY.reconfigure(EditorState.readOnly.of(readOnly)) });
