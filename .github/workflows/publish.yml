@@ -347,8 +347,9 @@ jobs:
 
     org_pages_deploy:
         name: dashql.org
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
+        # Behind the gate like dashql.app: a re-run checks the tip of main again, and both sites of a commit go out together
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -379,8 +380,9 @@ jobs:
 
     coverage_pages_deploy:
         name: coverage.dashql.app
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
+        # Behind the gate like the other sites: a re-run checks the tip of main again, everything of a commit goes out together
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         # Like the coverage job: without a report the last good page stays, and the publish does not fail
         continue-on-error: true

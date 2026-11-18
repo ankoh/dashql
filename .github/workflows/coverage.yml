@@ -94,7 +94,8 @@ jobs:
               with:
                   name: coverage_site
                   path: /tmp/coverage_site/
-                  retention-days: 1
+                  # Kept as long as the artifacts of the build, a deploy behind deploy_gate can be re-run days later
+                  retention-days: 7
 
             - name: Upload to Coveralls
               uses: coverallsapp/github-action@v2
