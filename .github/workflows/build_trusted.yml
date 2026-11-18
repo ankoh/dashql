@@ -17,9 +17,35 @@ on:
                 default: true
 
 jobs:
+    # The version of the run, determined once: every job that runs Bazel gets the output of `git describe` of the commit
+    # in DASHQL_GIT_DESCRIBE (bazel/versioning.bzl) and doesn't describe the commit itself. A tag that arrives while the
+    # run is going would otherwise give the pages, the npm packages and the Electron packages different versions.
+    version:
+        name: Version
+        runs-on: ubuntu-26.04
+        outputs:
+            describe: ${{ steps.describe.outputs.describe }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Describe the commit
+              id: describe
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  DESCRIBE="$(git describe --tags --long)"
+                  echo "${DESCRIBE}"
+                  echo "describe=${DESCRIBE}" >> "${GITHUB_OUTPUT}"
+
     core_wasm_fastbuild:
         name: Core Wasm Fastbuild
         runs-on: ubuntu-26.04
+        needs: [version]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -56,6 +82,9 @@ jobs:
     core_wasm_release:
         name: Core Wasm Release
         runs-on: ubuntu-26.04
+        needs: [version]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -86,7 +115,9 @@ jobs:
     linux_fastbuild:
         name: Linux Fastbuild
         runs-on: ubuntu-26.04
-        needs: [core_wasm_fastbuild]
+        needs: [version, core_wasm_fastbuild]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -141,6 +172,9 @@ jobs:
     agent_integration:
         name: Agent Integration
         runs-on: ubuntu-26.04
+        needs: [version]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -187,7 +221,9 @@ jobs:
     linux_release:
         name: Linux Release
         runs-on: ubuntu-26.04
-        needs: [core_wasm_release]
+        needs: [version, core_wasm_release]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -256,7 +292,9 @@ jobs:
     core_npm_release:
         name: Core NPM Bundle
         runs-on: ubuntu-26.04
-        needs: [core_wasm_release]
+        needs: [version, core_wasm_release]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -323,7 +361,9 @@ jobs:
     macos_electron_arm64:
         name: macOS Electron arm64
         runs-on: macos-26
-        needs: [core_wasm_release]
+        needs: [version, core_wasm_release]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -381,7 +421,9 @@ jobs:
     macos_electron_x86_64:
         name: macOS Electron x86_64
         runs-on: macos-26
-        needs: [core_wasm_release]
+        needs: [version, core_wasm_release]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
             - uses: actions/checkout@v7
               with:
