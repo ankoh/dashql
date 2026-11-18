@@ -551,17 +551,23 @@ async function testAppFeedScrollPosition(page, navigate) {
     await page.getByTestId('composer-send').click();
     const rows = page.getByTestId('script-feed-item');
     await rows.first().waitFor();
+    // The chart of the first script makes its card taller, the scripts are added once it is there
+    await waitForQuery(page);
     // The add buttons create scripts that did not run. A created script comes into view, the rows at the start unmount.
+    // The rows move while the feed follows a created script and measures its editor: a mouse click that Playwright
+    // aimed before a row moved lands next to the button, and the page does nothing. The click goes to the button.
     const scriptCount = 30;
     for (let i = 1; i < scriptCount; ++i) {
         const last = rows.last();
         const lastKey = await last.getAttribute('data-script-key');
-        await last.hover();
-        await last.getByTestId('script-insert-below').click();
+        await last.getByTestId('script-insert-below').dispatchEvent('click');
         await page.waitForFunction(key => {
             const items = document.querySelectorAll('[data-testid="script-feed-item"]');
-            return items[items.length - 1].dataset.scriptKey !== key;
-        }, lastKey);
+            return items.length > 0 && items[items.length - 1].dataset.scriptKey !== key;
+        }, lastKey).catch(async error => {
+            const keys = await rows.evaluateAll(items => items.map(item => item.dataset.scriptKey));
+            throw new Error(`Adding script ${i + 1} after script ${lastKey} left the rows ${keys.join(', ')}: ${error.message}`);
+        });
         await rows.last().locator('.cm-content').click();
         await page.keyboard.insertText(scrollTestScript(i));
         await scriptEditor(page, `k * ${i + 1} + k * 0`).waitFor();
