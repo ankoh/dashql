@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
@@ -247,8 +247,8 @@ describe('cloud store schema', () => {
         await connections[0].execute(`UPDATE "dashql"."dashql"."cloud_store" SET lock_owner = '7c9e6679-7425-40de-944b-e07fc1f90ae7', lock_expires_at = now() + INTERVAL '1 hour'`);
         const progress: CloudInstallProgress[] = [];
         const waiting = installCloudStore(clients[1], { migrations: [...CLOUD_MIGRATIONS, adding('a')], lockPollMs: 10, onProgress: step => progress.push(step) });
-        await new Promise(resolve => setTimeout(resolve, 50));
-        expect(progress).toEqual([{ type: 'waiting' }]);
+        // The installer reads the store before it waits, on a loaded machine that takes longer than a few polls
+        await vi.waitFor(() => expect(progress).toEqual([{ type: 'waiting' }]), { timeout: 10_000 });
         await connections[0].execute(`UPDATE "dashql"."dashql"."cloud_store" SET lock_owner = NULL, lock_expires_at = NULL`);
         expect((await waiting).version).toBe(KNOWN + 1);
         expect(progress).toEqual([{ type: 'waiting' }, { type: 'migrating', version: KNOWN + 1 }, { type: 'migrated', version: KNOWN + 1 }]);
