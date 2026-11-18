@@ -214,7 +214,7 @@ const SITUATIONS: Situation[] = [
     {
         id: 'working',
         title: 'The agent works',
-        description: 'The agent leads what runs, the log with its question opens by itself.',
+        description: 'The agent leads what runs, a click on Wobble shows its question in the log.',
         session: fakeSession([WORKING]),
         live: [line('q', Q, T.Progress, 'Running 2_region_growth', null, 0, 2)],
         log: LOG,

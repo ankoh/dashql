@@ -123,16 +123,18 @@ describe('Workbook status bar', () => {
         expect(bubble()).toBeNull();
     });
 
-    it('opens the bubble when the agent starts to work and keeps it open after the answer', () => {
+    it('leaves the bubble closed while the agent works, the scripts of the agent below it stay visible', () => {
         render({ session: agentSession() });
         expect(bubble()).toBeNull();
         expect(agentState()!.dataset.state).toBe('connected');
         expect(agentState()!.textContent).toBe('Claude Code');
         expect(agentState()!.title).toBe('Claude Code in /agent');
         render({ session: agentSession([working]) });
-        expect(bubble()).not.toBeNull();
-        expect(container.querySelector('[data-testid="composer-agent"]')).not.toBeNull();
+        expect(bubble()).toBeNull();
         expect(agentState()!.dataset.state).toBe('working');
+        // A click shows the question of the agent in the log
+        act(() => wobble().click());
+        expect(container.querySelector('[data-testid="composer-agent"]')).not.toBeNull();
         // The terminal stops the agent, the page only watches
         expect(container.querySelector('[data-testid="workbook-agent-stop"]')).toBeNull();
         render({ session: agentSession([answered]) });

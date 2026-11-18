@@ -75,8 +75,8 @@ function LogLine(props: { record: LogRecord; selected: boolean; onSelect: () => 
 /// own. The agent sits at the right end.
 /// A click on Wobble opens a dark bubble above the bar with the questions of the agent and the log of the workbook: the
 /// records of the log of the app that belong to the workbook, the same that the log window shows.
-/// It opens by itself when the agent starts to work and stays open until the user closes it. A dot pulses at the top
-/// right of Wobble while anything runs.
+/// It opens only on a click: the bubble covers the end of the feed, where the scripts of an agent appear while it works,
+/// and the status line tells the step of the agent. A dot pulses at the top right of Wobble while anything runs.
 export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactElement {
     const session = props.session ?? null;
     const wobble = props.wobble ?? true;
@@ -84,13 +84,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
     const agentWorking = session != null
         ? isAgentWorking(session)
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
-    const [open, setOpen] = React.useState(agentWorking);
-    // The bubble opens when the agent starts to work, while rendering like a state that follows a prop
-    const [wasWorking, setWasWorking] = React.useState(agentWorking);
-    if (agentWorking !== wasWorking) {
-        setWasWorking(agentWorking);
-        if (agentWorking) setOpen(true);
-    }
+    const [open, setOpen] = React.useState(false);
     const bubbleId = React.useId();
     const log = useWorkbookLog(props.workbookId, wobble && open);
     // The record whose fields the overlay shows, as in the log window

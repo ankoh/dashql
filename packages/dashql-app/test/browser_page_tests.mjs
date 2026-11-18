@@ -310,9 +310,12 @@ async function testAppAgentSession(page, navigate) {
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         assert.equal(await page.getByTestId('composer-send').count(), 0);
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
-        // The log opens by itself while the agent works
-        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
+        // The status line tells the step, the log stays closed and leaves the feed to the scripts of the agent
         await page.getByRole('status').getByText('dashql lint scripts/orders.sql').first().waitFor();
+        assert.equal(await page.getByTestId('workbook-bubble').count(), 0);
+        // A click on Wobble shows the question in the log
+        await page.getByTestId('workbook-wobble').click();
+        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
 
         session.push({ turns: [{ ...turn, status: null, note: 'There are 42 orders' }] });
         await page.getByRole('note').getByText('There are 42 orders').waitFor();

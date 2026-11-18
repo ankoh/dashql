@@ -145,10 +145,13 @@ goes through a `dashql` command, so the commands tell what they changed.
 | `Stop` | The final message of the turn below its steps |
 | A run of `dashql run` | The tab runs the workbook, the feed shows the run with its progress (`docs/wip/tab_driven_runs.md`) |
 
-- **The bar of Wobble** shows the harness and its folder at the right end, and the log of the turns in its bubble
-  (`agent/agent_prompt_panel.tsx`): the steps of the turn that the agent works on, which follow the newest step while
-  the user stays at the bottom. A turn can be dismissed, not stopped.
-- **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it.
+- **The bar of Wobble** shows the harness and its folder at the right end, the step of the agent in its status line,
+  and the log of the turns in its bubble (`agent/agent_prompt_panel.tsx`): the steps of the turn that the agent works
+  on, which follow the newest step while the user stays at the bottom. The bubble opens only on a click on Wobble: it
+  covers the end of the feed, where the scripts of the agent appear while it works. A turn can be dismissed, not
+  stopped.
+- **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it, also
+  to a new script once the tab created it.
 - **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
 
