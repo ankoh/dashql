@@ -24,6 +24,8 @@ def browser_test(name, browser, executable, runtime = None, executable_root = Fa
         entry_point = "test/browser_test_driver.mjs",
         env = test_env,
         no_copy_to_bin = browser_data,
-        tags = tags,
+        # A suite runs a browser with an embedded Hyper per page, one page per four cores. A runner with four cores
+        # runs it alone, two suites on the same cores timed tests out.
+        tags = tags + ["cpu:4"],
         visibility = ["//visibility:public"],
     )
