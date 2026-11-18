@@ -346,11 +346,20 @@ genrule(
     cmd = "cp $(location //:LICENSE) $@",
 )
 
+# The version of the package is the npm version of the build (DASHQL_VERSION_NPM), not the one in npm/package.json: CI
+# publishes every build that it deploys, and the page names the command line tool of its own build
 genrule(
     name = "npm_manifest",
-    srcs = ["npm/package.json"],
+    srcs = [
+        "npm/package.json",
+        "@dashql_app_version//:version.env",
+    ],
     outs = ["npm_files/package.json"],
-    cmd = "cp $(location npm/package.json) $@",
+    cmd = """
+        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        sed -E 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' "$(location npm/package.json)" > $@
+        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
+    """,
 )
 
 npm_package(

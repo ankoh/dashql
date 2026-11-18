@@ -7,6 +7,7 @@ import { brotliCompressSync, constants as zlibConstants } from "node:zlib";
 
 const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
+const DASHQL_NPM_VERSION = "__DASHQL_NPM_VERSION__";
 const HYPERDB_WASM_VERSION = "__HYPERDB_WASM_VERSION__";
 
 // Does a chunk or a chunk it imports, statically or dynamically, reference a Wasm asset? The HyperDB module ships
@@ -308,6 +309,9 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_BUILD_MODE': JSON.stringify(command === 'serve' ? 'development' : 'production'),
             'process.env.DASHQL_VERSION': JSON.stringify(DASHQL_VERSION),
             'process.env.DASHQL_GIT_COMMIT': JSON.stringify(DASHQL_COMMIT),
+            // The version of @akohn/dashql-cli that the line of dashql connect runs: CI publishes the one of its build
+            // before it deploys the page, the dev server takes the latest
+            'process.env.DASHQL_CLI_VERSION': JSON.stringify(command === 'serve' ? 'latest' : DASHQL_NPM_VERSION),
             'process.env.HYPERDB_WASM_VERSION': JSON.stringify(HYPERDB_WASM_VERSION),
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),

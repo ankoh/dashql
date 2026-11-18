@@ -89,9 +89,11 @@ genrule(
     cmd = """
         VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
+        if [ -z "$$NPM_VERSION" ]; then NPM_VERSION="$$VERSION"; fi
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
@@ -103,6 +105,7 @@ genrule(
             -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
+            -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \\
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
             $(location vite.config.tpl.ts) > $@
     """,
@@ -119,12 +122,15 @@ genrule(
     cmd = """
         VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
+        if [ -z "$$NPM_VERSION" ]; then NPM_VERSION="$$VERSION"; fi
 
         sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
+            -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
             -e "s|__DASHQL_PATH__|../dashql|g" \
             -e "s|__DASHQL_GENERATED_PATH__|../../bazel-bin/packages/dashql/dependencies|g" \

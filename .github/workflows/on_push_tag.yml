@@ -18,6 +18,7 @@ jobs:
         name: Publish
         uses: ./.github/workflows/publish.yml
         with:
+            npm_tag: stable
             commit: ${{ github.sha }}
             channel: stable
             publish_latest_pages: false
@@ -28,3 +29,5 @@ jobs:
         permissions:
             contents: read
             deployments: write
+            # Trusted publishing of the npm packages
+            id-token: write

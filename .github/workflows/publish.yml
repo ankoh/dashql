@@ -27,6 +27,10 @@ on:
                 required: false
                 type: boolean
                 default: true
+            npm_tag:
+                description: The dist-tag of the npm packages, latest for main, dev for dev.dashql.app, stable for a release
+                required: true
+                type: string
             require_tip:
                 required: false
                 type: boolean
@@ -66,10 +70,116 @@ jobs:
                       echo "publish=false" >> "${GITHUB_OUTPUT}"
                   fi
 
+    # The pages and the desktop app show `npx ... @akohn/dashql-cli@<version of the build>`, so the packages of the build
+    # are on npm before either goes out. Trusted publishing: npm takes the OIDC token of the run, there is no npm token,
+    # and it checks the calling workflow (on_push_main.yml, on_push_dev.yml, on_push_tag.yml), see the README.
+    npm_publish:
+        name: npm
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true'
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            id-token: write
+        outputs:
+            version: ${{ steps.publish.outputs.version }}
+        steps:
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: '24'
+                  registry-url: 'https://registry.npmjs.org'
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_npm
+                  path: ${{ runner.temp }}/npm
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_cli_npm
+                  path: ${{ runner.temp }}/npm
+
+            # @akohn/dashql first, the command line tool depends on its exact version. A version that is on npm already
+            # is the same build (the version carries the commit), a re-run skips it.
+            - name: Publish @akohn/dashql and @akohn/dashql-cli
+              id: publish
+              env:
+                  NPM_DIR: ${{ runner.temp }}/npm
+                  NPM_TAG: ${{ inputs.npm_tag }}
+              run: |
+                  set -euo pipefail
+                  echo "npm $(npm --version)"
+                  for tarball in dashql.tgz dashql-cli.tgz; do
+                      manifest="$(tar -xzOf "${NPM_DIR}/${tarball}" package/package.json)"
+                      name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
+                      version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
+                      # Both packages carry the version of the build, //packages/dashql-cli:npm_package_test
+                      echo "version=${version}" >> "${GITHUB_OUTPUT}"
+                      if [[ "$(npm view "${name}@${version}" version 2>/dev/null || true)" == "${version}" ]]; then
+                          echo "${name}@${version} is on npm already"
+                          continue
+                      fi
+                      npm publish "${NPM_DIR}/${tarball}" --access public --tag "${NPM_TAG}"
+                  done
+
+    # The gate of the pages and the desktop app, right before they go out. When it times out, "Re-run failed jobs" runs
+    # it and the deploys again, days later perhaps (the artifacts are kept 7 days), while tip and npm_publish keep their
+    # results of the first attempt. So it asks again:
+    # - whether the commit is still the tip of main: a re-run must not put an older page over a newer one,
+    # - whether npm serves both packages of the build: npm has accepted them, but its CDN can serve the metadata of a
+    #   package without the new version for a while, and npx of the page would not find it (--prefer-online, no cache).
+    deploy_gate:
+        name: Gate deploy
+        needs: [npm_publish]
+        runs-on: ubuntu-26.04
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        outputs:
+            deploy: ${{ steps.tip.outputs.deploy }}
+        steps:
+            - name: Compare the commit with the tip of main again
+              id: tip
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  COMMIT: ${{ inputs.commit }}
+                  REQUIRE_TIP: ${{ inputs.require_tip }}
+              run: |
+                  set -euo pipefail
+                  if [[ "${REQUIRE_TIP}" == "true" ]]; then
+                      TIP="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+                      echo "tip of main: ${TIP}, this commit: ${COMMIT}"
+                      if [[ "${TIP}" != "${COMMIT}" ]]; then
+                          echo "a newer commit is on main, nothing is deployed"
+                          echo "deploy=false" >> "${GITHUB_OUTPUT}"
+                          exit 0
+                      fi
+                  fi
+                  echo "deploy=true" >> "${GITHUB_OUTPUT}"
+
+            - uses: actions/setup-node@v6
+              if: steps.tip.outputs.deploy == 'true'
+              with:
+                  node-version: '24'
+
+            - name: Wait until npm serves the packages of the build
+              if: steps.tip.outputs.deploy == 'true'
+              env:
+                  VERSION: ${{ needs.npm_publish.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  for name in @akohn/dashql @akohn/dashql-cli; do
+                      until [[ "$(npm view "${name}@${VERSION}" version --prefer-online --registry=https://registry.npmjs.org/ 2>/dev/null || true)" == "${VERSION}" ]]; do
+                          echo "npm does not serve ${name}@${VERSION} yet"
+                          sleep 10
+                      done
+                      echo "npm serves ${name}@${VERSION}"
+                  done
+
     desktop_release:
         name: Electron Release
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_desktop_release
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_desktop_release
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -141,8 +251,8 @@ jobs:
 
     pages_deploy:
         name: dashql.app
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -173,8 +283,8 @@ jobs:
 
     stable_pages_deploy:
         name: stable.dashql.app
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_stable_pages
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_stable_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -205,8 +315,8 @@ jobs:
 
     dev_pages_deploy:
         name: dev.dashql.app
-        needs: [tip]
-        if: needs.tip.outputs.publish == 'true' && inputs.publish_dev_pages
+        needs: [deploy_gate]
+        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_dev_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read

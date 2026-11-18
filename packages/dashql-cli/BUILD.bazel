@@ -134,13 +134,34 @@ js_test(
     env = {"DASHQL_BINARY": "$(rootpath :dashql)"},
 )
 
-# The package on npm: the bundle with the metadata of npm/package.json, `npx -y @akohn/dashql-cli connect ...` runs it.
+# The manifest on npm: the npm version of the build (DASHQL_VERSION_NPM) as the version of the package and of its
+# dependency on @akohn/dashql, the version in npm/package.json is not used. CI publishes both packages of every build
+# that it deploys, and the page names the command line tool of its own build, see //packages/dashql:npm_manifest
+genrule(
+    name = "npm_manifest",
+    srcs = [
+        "npm/package.json",
+        "@dashql_app_version//:version.env",
+    ],
+    outs = ["npm_manifest/package.json"],
+    cmd = """
+        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        sed -E \\
+            -e 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
+            -e 's/("@akohn\\/dashql": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
+            "$(location npm/package.json)" > $@
+        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
+        grep -qF "\\"@akohn/dashql\\": \\"$${VERSION}\\"" $@
+    """,
+)
+
+# The package on npm: the bundle with the stamped manifest, `npx -y @akohn/dashql-cli connect ...` runs it.
 # @akohn/dashql and hyperdb-wasm stay dependencies, the bundle reads their Wasm files from their packages.
 genrule(
     name = "npm_files",
     srcs = [
         ":bundle",
-        "npm/package.json",
+        ":npm_manifest",
         "README.md",
         "//:LICENSE",
         "//:NOTICE",
@@ -154,7 +175,7 @@ genrule(
     ],
     cmd = " && ".join([
         "cp $(location :bundle) $(RULEDIR)/npm_package_files/dist/dashql.js",
-        "cp $(location npm/package.json) $(RULEDIR)/npm_package_files/package.json",
+        "cp $(location :npm_manifest) $(RULEDIR)/npm_package_files/package.json",
         "cp $(location README.md) $(RULEDIR)/npm_package_files/README.md",
         "cp $(location //:LICENSE) $(RULEDIR)/npm_package_files/LICENSE",
         "cp $(location //:NOTICE) $(RULEDIR)/npm_package_files/NOTICE",
@@ -197,7 +218,7 @@ genrule(
     name = "npm_package_test_manifests",
     srcs = [
         "//:package.json",
-        "//packages/dashql:npm/package.json",
+        "//packages/dashql:npm_manifest",
     ],
     outs = [
         "npm_manifests/root_package.json",
@@ -205,7 +226,7 @@ genrule(
     ],
     cmd = " && ".join([
         "cp $(location //:package.json) $(RULEDIR)/npm_manifests/root_package.json",
-        "cp $(location //packages/dashql:npm/package.json) $(RULEDIR)/npm_manifests/dashql_package.json",
+        "cp $(location //packages/dashql:npm_manifest) $(RULEDIR)/npm_manifests/dashql_package.json",
     ]),
 )
 
@@ -214,13 +235,13 @@ js_test(
     size = "small",
     data = [
         ":bundle",
-        "npm/package.json",
+        ":npm_manifest",
         "npm_manifests/dashql_package.json",
         "npm_manifests/root_package.json",
     ],
     entry_point = "test/npm_package_test.mjs",
     env = {
-        "NPM_PACKAGE_JSON": "$(rootpath npm/package.json)",
+        "NPM_PACKAGE_JSON": "$(rootpath :npm_manifest)",
         "DASHQL_PACKAGE_JSON": "$(rootpath npm_manifests/dashql_package.json)",
         "ROOT_PACKAGE_JSON": "$(rootpath npm_manifests/root_package.json)",
         "DASHQL_BUNDLE": "$(rootpath :bundle)",

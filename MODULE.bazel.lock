@@ -513,7 +513,7 @@
     },
     "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
       "general": {
-        "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",
+        "bzlTransitiveDigest": "hQyDJ4zRdJUsYEmlDPazv0AQx+hi4qQlQn0CVpLSIvo=",
         "usagesDigest": "7qEg6jJ3x/4uKgcnKbgB41hPTTQZ1vwhNdr6ASBz8SU=",
         "recordedInputs": [],
         "generatedRepoSpecs": {

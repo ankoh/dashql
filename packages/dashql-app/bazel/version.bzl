@@ -16,6 +16,12 @@ def _dashql_app_version_repository_impl(repository_ctx):
 
     version = parse_dashql_git_version(repository_ctx, repo_root)
 
+    # The version of the packages on npm: a build between tags adds its commit, the same number of commits since the
+    # tag can belong to another commit on the branch dev, and a version on npm is published once
+    npm_version = version.version_text
+    if version.dev > 0 and version.commit != "unknown":
+        npm_version = "{}.g{}".format(version.version_text, version.commit)
+
     # KEY=VALUE pairs consumed by dashql-app genrules via awk substitution.
     repository_ctx.file("version.env", """DASHQL_VERSION_MAJOR={major}
 DASHQL_VERSION_MINOR={minor}
@@ -23,6 +29,7 @@ DASHQL_VERSION_PATCH={patch}
 DASHQL_VERSION_DEV={dev}
 DASHQL_VERSION_COMMIT={commit}
 DASHQL_VERSION_TEXT={version_text}
+DASHQL_VERSION_NPM={npm_version}
 """.format(
         major = version.major,
         minor = version.minor,
@@ -30,6 +37,7 @@ DASHQL_VERSION_TEXT={version_text}
         dev = version.dev,
         commit = version.commit,
         version_text = version.version_text,
+        npm_version = npm_version,
     ))
 
     repository_ctx.file("BUILD.bazel", """

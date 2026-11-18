@@ -1,5 +1,7 @@
 import type { AgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 
+import { DASHQL_CLI_VERSION } from '../globals.js';
+
 /// What the prompt of a workbook takes: SQL that runs, or nothing while an agent in the terminal writes the scripts
 export enum ComposerMode {
     Sql = 'sql',
@@ -9,11 +11,11 @@ export enum ComposerMode {
 /// The harnesses that `dashql connect` runs
 export type ConnectHarness = 'claude' | 'codex';
 
-/// The command that runs the CLI of DashQL from npm, the latest version: npx would otherwise keep running a version
-/// that it fetched once, and the page tells a server of an older protocol to update (agent_session_protocol.ts). From
-/// the public registry without a minimum release age: a company's mirror or release-age policy in the npm config of the
-/// user would hold back the version that the page speaks.
-export const DASHQL_CLI_COMMAND = 'npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@latest';
+/// The command that runs the CLI of DashQL from npm, the version of the build of the page: CI publishes it before it
+/// deploys the page, the dev server takes the latest (DASHQL_CLI_VERSION). The page still tells a server of another
+/// protocol to update (agent_session_protocol.ts). From the public registry without a minimum release age: a company's
+/// mirror or release-age policy in the npm config of the user would hold back a version published minutes ago.
+export const DASHQL_CLI_COMMAND = `npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@${DASHQL_CLI_VERSION}`;
 
 /// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
 const MIN_PORT = 49152;

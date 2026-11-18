@@ -24,10 +24,10 @@ Vite bundles the command with the sources of the runtime into one module for Nod
 `lint`, `format` and `run` need Node 22 or later.
 
 On npm the command is `@akohn/dashql-cli` (`npx -y @akohn/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
-packs the bundle with the metadata of `npm/package.json`, which depends on `@akohn/dashql` and `hyperdb-wasm`.
-`:npm_package_test` keeps their versions those of the build, so `@akohn/dashql` is published first. CI uploads the tarball
-next to the one of `@akohn/dashql` (`dashql_cli_npm`), publishing is by hand, the commands are in the top-level
-`README.md`.
+packs the bundle with the metadata of `npm/package.json`, which depends on `@akohn/dashql` and `hyperdb-wasm`. The
+build stamps the version of the commit (`0.0.19-dev.255.ge8e09a80c`) into the package and into its dependency on
+`@akohn/dashql`, and `:npm_package_test` keeps the dependencies those of the build. CI publishes both packages with every
+deploy, `@akohn/dashql` first, before the pages that name this version, see the top-level `README.md`.
 
 ## dashql lint
 
@@ -198,7 +198,7 @@ workbook and 130 when interrupted.
 ## dashql connect
 
 ```
-npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
+npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@<version> connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
