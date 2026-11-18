@@ -7,6 +7,11 @@ Please consult relevant docs in that directory before making changes.
 - Build & Test (always read this document first)
     - `docs/agents/build_bazel_targets.md`
 
+- Logic goes into the core (read before writing TypeScript: logic that fits semantically into the DashQL core is Rust
+  in the core module (Wasm), not TypeScript; TypeScript binds, does I/O and renders; the test to decide, the signs of
+  logic on the wrong side, how to move it, and what stays in TypeScript)
+    - `docs/agents/core_first.md`
+
 - Formatting
     - `docs/agents/core_sql_formatting.md`
 

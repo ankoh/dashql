@@ -34,6 +34,9 @@ the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@ako
 
 ### What goes where
 
+Logic that fits semantically into the core is Rust in the module, not a module of this package; this package binds
+the module, supplies its I/O and holds the views, see [core_first.md](../agents/core_first.md).
+
 - **`src/core`** is the API over the core module and nothing else.
 - **`src/runtime`** is what builds and holds a runtime: `runtime.ts`, `store/` (the store, `projection.ts`, the handle
   table, the Arrow tables by handle, `update_scheduler.ts`), the projections of the workbook and script views

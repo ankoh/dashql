@@ -34,8 +34,8 @@ Client functions ship in an [extension](extensions.md), the folder of a service 
 | Layer | Knows about | Doesn't know about |
 |---|---|---|
 | **Core** (Rust) | `CALL`, namespaces, functions, typed named arguments, nested schemas, result columns | HTTP, any service |
-| **Runtime** (TypeScript, `platform/connections/clfn_*.ts` of `@akohn/dashql`) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
-| **Connector binding** (TypeScript) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
+| **Runtime** (Rust, `clfn/` of `dashql_core_runtime`) | Building requests, paging, polling, errors, turning responses into result tables | Any service |
+| **Connector binding** (Rust, `clfn/connection.rs`) | Host URLs, which credentials go to which host, path variables such as the API version | Individual functions |
 | **Spec** (JSON) | Namespace, functions, API names, paging, schemas, effects | Credentials, absolute URLs |
 
 Dependencies point one way: core never imports the runtime, and the runtime never imports a connector. Core tests use a made-up fixture spec, so they can't start depending on a real one.
