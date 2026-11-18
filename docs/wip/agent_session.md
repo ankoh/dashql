@@ -13,8 +13,9 @@ access per workbook and no prompt in natural language.
 
 The prompt switches between SQL and AI. AI keeps the white card of the prompt, disables Run and the snippets, and
 shows in the place of the editor a line to run in the folder of a project, in a field to copy with a button for a new
-port: `npx -y @akohn/dashql-cli@latest connect --launch claude --port <port> --secret <secret>`. `@latest`, because
-npx otherwise keeps running a version that it fetched once. A switch between Claude Code
+port: `npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@latest connect --launch claude --port <port> --secret <secret>`. `@latest`, because
+npx otherwise keeps running a version that it fetched once. `--registry` and `--min-release-age=0`, because a company's
+npm mirror or release-age policy would otherwise hold back the version that the page speaks. A switch between Claude Code
 and Codex follows the switch of SQL and AI while AI is on. The editor keeps its draft for SQL.
 
 - **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random

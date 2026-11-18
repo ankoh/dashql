@@ -337,7 +337,7 @@ async function testAppAgentSession(page, navigate) {
     await page.getByTestId('composer-connect-renew').click();
     await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
     const line = await page.getByTestId('composer-connect-command').inputValue();
-    const match = /^npx -y @akohn\/dashql-cli@latest connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
+    const match = /^npx -y --registry=https:\/\/registry\.npmjs\.org\/ --min-release-age=0 @akohn\/dashql-cli@latest connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
     assert.ok(match, line);
     // An older dashql-cli answers on the port first: the page tells to run the command again
     const outdated = await startSessionServer({ port: Number(match[1]), token: match[2], protocol: null });

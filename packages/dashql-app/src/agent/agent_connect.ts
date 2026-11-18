@@ -10,8 +10,10 @@ export enum ComposerMode {
 export type ConnectHarness = 'claude' | 'codex';
 
 /// The command that runs the CLI of DashQL from npm, the latest version: npx would otherwise keep running a version
-/// that it fetched once, and the page tells a server of an older protocol to update (agent_session_protocol.ts)
-export const DASHQL_CLI_COMMAND = 'npx -y @akohn/dashql-cli@latest';
+/// that it fetched once, and the page tells a server of an older protocol to update (agent_session_protocol.ts). From
+/// the public registry without a minimum release age: a company's mirror or release-age policy in the npm config of the
+/// user would hold back the version that the page speaks.
+export const DASHQL_CLI_COMMAND = 'npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@latest';
 
 /// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
 const MIN_PORT = 49152;

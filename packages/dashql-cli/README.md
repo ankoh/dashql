@@ -198,7 +198,7 @@ workbook and 130 when interrupted.
 ## dashql connect
 
 ```
-npx -y @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
+npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
