@@ -12,6 +12,7 @@ describe('dashql describe', () => {
             ['.dashql/workbooks/w1/dashql-workbook.json', JSON.stringify(workbook)],
             ['.dashql/workbooks/w1/scripts/a.sql', 'select 1'],
             ['.dashql/workbooks/w1/scripts/b.sql', 'select 2'],
+            ['.dashql/workbooks/w1/attachments/prices.parquet', 'PAR1'],
             ['.dashql/workbooks/w2/dashql-workbook.json', '{}'],
             // The mirror of the attachments of a workbook of dashql run has no workbook file
             ['.dashql/workbooks/w3/attachments/t.parquet', 'PAR1'],
@@ -21,8 +22,9 @@ describe('dashql describe', () => {
         expect(output.stdout.startsWith(`${DESCRIBE_TEXT}\n\n`)).toBe(true);
         expect(output.stdout.endsWith([
             'Workbooks of DashQL in this folder, the tab shows them (work on these folders, not on copies of them):',
-            '  .dashql/workbooks/w1/  "Orders", 2 scripts, connections: Trino prod (c1), hyper',
-            '  .dashql/workbooks/w2/  "w2", 0 scripts',
+            '  .dashql/workbooks/w1/  "Orders", 2 scripts, attachments: :prices, connections: Trino prod (c1), hyper',
+            // A workbook without attachments says so, the agent reads none
+            '  .dashql/workbooks/w2/  "w2", 0 scripts, attachments: none',
             '',
         ].join('\n'))).toBe(true);
 

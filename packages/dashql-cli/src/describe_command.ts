@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/workbook_journal';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { readSessionConnections, SESSION_NAME_ENV } from './session_journal.js';
@@ -25,7 +25,9 @@ A workbook folder:
                                 runs on the connection of its neighbors. To put a new script on another connection,
                                 add its entry first, then write the script.
   scripts/<name>.sql            One script per file, with a short snake_case name.
-  attachments/<name>.parquet    Tables of the workbook, scripts on the embedded Hyper read them as :name.
+  attachments/<name>.parquet    Tables that the user attached to the workbook in DashQL, scripts on the embedded
+                                Hyper read them as :name. Only the user adds them, the tab does not take files
+                                that you put here.
   connections/<id>/             The tables of the connections, dashql catalog prints them.
 
 Commands:
@@ -51,9 +53,13 @@ Scripts:
 - Scripts run again, so make DDL reentrant: create table if not exists, create schema if not exists, drop table if
   exists. Fill a new table in its create table if not exists t as select ... instead of a separate INSERT that a
   rerun would repeat.
+- Query only data that exists: the tables that dashql catalog prints, the scripts and the attachments of the workbook.
+  Never invent a table, a script, an attachment or rows. When none of them holds the data that a request needs, tell
+  the user what is missing, e.g. a connection to allow or a file to attach in DashQL, and stop.
 - :name where a table goes reads the result of the script name.sql: select * from :orders where region = 'west'. On
   the same connection its query is inlined, so build on scripts this way instead of copying their SQL, and filter and
-  aggregate in the reading script.
+  aggregate in the reading script. On the embedded Hyper, :name also reads the attachment name.parquet. A :name that
+  names no script and no attachment of the folder fails the run.
 - Every script runs on one connection. The embedded Hyper runs inside DashQL, every other connection is remote and
   reads only its own tables. Post-process the data of remote connections on the embedded Hyper: a script there reads
   a script of any other connection as :name, the remote script runs first and the embedded Hyper scans its result.
@@ -96,7 +102,7 @@ Charts:
   reads badly.
 
 How to work:
-1. Learn the workbook: dashql-workbook.json, its scripts, and dashql catalog for the tables.
+1. Learn the workbook: dashql-workbook.json, its scripts, and dashql catalog for the tables and the attachments.
 2. Write SQL into new scripts that build on the existing ones, run them with dashql run <workbook-dir> <script> and
    fix the errors. Run the workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab
    copied runs in the tab, on the connections that the user lets you use, and the user watches the run there.
@@ -129,6 +135,8 @@ interface CopiedWorkbook {
     folder: string;
     name: string;
     scripts: number;
+    /// The names that scripts on the embedded Hyper read the attachments by, :name
+    attachments: string[];
     connections: string[];
 }
 
@@ -156,6 +164,12 @@ export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
         } catch {
             // No scripts yet
         }
+        let attachments: string[] = [];
+        try {
+            attachments = readdirSync(path.join(folder, STORAGE_ATTACHMENTS_FOLDER)).filter(name => name.endsWith('.parquet')).sort().map(name => `:${name.slice(0, -'.parquet'.length)}`);
+        } catch {
+            // No attachments
+        }
         // The connections by name with their ids, an agent names the ids in the workbook file
         const connections = (Array.isArray(workbook.connections) ? workbook.connections : []).flatMap(connection => {
             const id = connection?.connectionId;
@@ -166,6 +180,7 @@ export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
             folder: path.relative(workspace, folder).split(path.sep).join('/'),
             name: typeof workbook.name === 'string' && workbook.name.length > 0 ? workbook.name : id,
             scripts,
+            attachments,
             connections,
         }];
     });
@@ -179,7 +194,9 @@ export function describeCopiedWorkbooks(workbooks: CopiedWorkbook[]): string {
     }
     const lines = workbooks.map(workbook => {
         const connections = workbook.connections.length > 0 ? `, connections: ${workbook.connections.join(', ')}` : '';
-        return `  ${workbook.folder}/  "${workbook.name}", ${workbook.scripts} script${workbook.scripts === 1 ? '' : 's'}${connections}`;
+        // No attachments is worth saying, a script must not read one that the workbook doesn't have
+        const attachments = `, attachments: ${workbook.attachments.length > 0 ? workbook.attachments.join(', ') : 'none'}`;
+        return `  ${workbook.folder}/  "${workbook.name}", ${workbook.scripts} script${workbook.scripts === 1 ? '' : 's'}${attachments}${connections}`;
     });
     return `Workbooks of DashQL in this folder, the tab shows them (work on these folders, not on copies of them):
 ${lines.join('\n')}`;
