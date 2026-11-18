@@ -49,7 +49,10 @@ try {
     assert.deepEqual((await readdir(packageDir)).sort(), ['LICENSE', 'NOTICE', 'README.md', 'dist', 'package.json']);
     assert.ok([...paths].every(path => !/\.test\.|test_fixture|\/testing\/|\/node_modules\//.test(path)));
     const metadata = JSON.parse(await readFile(join(packageDir, 'package.json'), 'utf8'));
-    assert.deepEqual(metadata, JSON.parse(await readFile(join(pkg, 'npm/package.json'), 'utf8')));
+    // The manifest of npm/package.json with the npm version of the build (:npm_manifest), nothing else changed
+    assert.deepEqual(metadata, JSON.parse(await readFile(join(pkg, 'npm_files/package.json'), 'utf8')));
+    assert.deepEqual(metadata, { ...JSON.parse(await readFile(join(pkg, 'npm/package.json'), 'utf8')), version: metadata.version });
+    assert.match(metadata.version, /^\d+\.\d+\.\d+(-dev\.\d+\.g[0-9a-f]+)?$/);
     assert.equal(metadata.license, 'MPL-2.0');
     assert.equal(metadata.publishConfig.access, 'public');
     for (const file of ['LICENSE', 'NOTICE']) {

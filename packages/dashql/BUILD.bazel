@@ -456,6 +456,7 @@ js_test(
         "test/npm/consumer.mts",
         ":license",
         ":notice",
+        ":npm_manifest",
         ":npm_tarball",
         ":npm_tarball_reproducibility",
         "//:node_modules/flatbuffers",
