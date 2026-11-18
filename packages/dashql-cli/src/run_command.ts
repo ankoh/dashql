@@ -1,5 +1,5 @@
 // dashql run: runs the scripts of a workbook folder on their connections, like the Run of the workbook in the app
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
@@ -7,6 +7,7 @@ import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedded_database_channel';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { AgentSessionChartSize } from '@akohn/dashql/platform/session/agent_session_client';
 import { openNodeComputeDatabase, type NodeComputeDatabase } from '@akohn/dashql/platform/node/node_hyperdb';
 import { createNodePlatform } from '@akohn/dashql/runtime/node/node_platform';
 import { NODE_FILE_SYSTEM } from '@akohn/dashql/platform/node/node_file_system';
@@ -17,7 +18,9 @@ import { describeRunError, runScriptsOf, runWorkbookReported, type ReportedRunEn
 import { isWorkbookCopyId, JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker, workbookCopyPath } from '@akohn/dashql/platform/session/workbook_journal';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
-import { STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { SqlLinter } from '@akohn/dashql/platform/sql/sql_lint';
+import { formatReportFile } from '@akohn/dashql/platform/sql/sql_report';
 import { mirrorWorkbookAttachments } from '@akohn/dashql/platform/workbook/attachment_mirror';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
@@ -35,6 +38,9 @@ default, the named ones with the scripts they reference otherwise. Scripts of di
 time, a script runs once the scripts it references are done. The run stops at the first statement that fails. Prints
 the schema, the row count and the first rows of every result (--rows, 10 by default), and the Parquet file of the
 result in the query result cache.
+
+Scripts with syntax errors are printed with their errors before the run, as dashql lint prints them; the run fails
+at their first statement that fails.
 
 On a terminal the run shows what runs and what waits while it runs, otherwise and with --plain it prints a few lines
 per script once it settled and a summary at the end.
@@ -262,29 +268,80 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         : new PlainRunReporter(cli.stdout, cli.style, parsed.rows, cli.cwd)];
     const emit = (event: RunEvent) => { for (const reporter of reporters) reporter.event(event); };
     try {
-        // A workbook that the tab of a session of dashql connect copied runs in the tab
-        const server = env.session == null ? null : readSessionServer(workspace, env.session, { endpoint: env.sessionEndpoint, token: env.sessionToken });
-        const copied = copiedWorkbookId(workspace, dir);
-        if (server != null && copied != null) {
-            try {
-                const end = await runInTab(server, { workbookId: copied, label: parsed.workbook, scripts: parsed.scripts, refresh: parsed.refresh, rows: parsed.rows }, stop.signal, emit);
-                if (end === 'interrupted') cli.stderr('interrupted\n');
-                return exitCode(end);
-            } catch (error) {
-                cli.stderr(`error: ${describeRunError(error)}\n`);
-                return EXIT_FAILED;
-            }
-        }
-        return await runHere(parsed, dir, workspace, env, cli, stop.signal, emit, live);
+        await printSyntaxErrors(dir, parsed.scripts, cli);
+        return await runWorkbookFolder(parsed, dir, workspace, env, cli, stop.signal, emit, live);
     } finally {
         for (const reporter of reporters) reporter.close();
         cli.interrupt?.removeEventListener('abort', interrupt);
     }
 }
 
+/// Print the scripts of a workbook folder with syntax errors, as `dashql lint` prints them: the named ones, else all.
+/// Names are not resolved, scripts read tables of their connections and results of other scripts.
+async function printSyntaxErrors(dir: string, names: readonly string[], cli: CliProcess): Promise<void> {
+    let files: string[];
+    try {
+        files = readdirSync(path.join(dir, STORAGE_SCRIPTS_FOLDER)).filter(file => file.endsWith('.sql')).sort();
+    } catch {
+        return;
+    }
+    const named = new Set(names.map(name => name.split(/[\\/]/).pop() ?? name));
+    if (named.size > 0) files = files.filter(file => named.has(file));
+    const linter = new SqlLinter(await cli.setupCore());
+    for (const file of files) {
+        const text = readFileSync(path.join(dir, STORAGE_SCRIPTS_FOLDER, file), 'utf8');
+        const errors = linter.lint({ id: `${STORAGE_SCRIPTS_FOLDER}/${file}`, text })
+            .filter(diagnostic => diagnostic.severity === 'error' && (diagnostic.stage === 'scan' || diagnostic.stage === 'parse'));
+        if (errors.length > 0) cli.stdout(`${formatReportFile(`${STORAGE_SCRIPTS_FOLDER}/${file}`, text, errors, cli.style)}\n\n`);
+    }
+}
+
+/// What a run of a workbook folder runs
+export interface WorkbookFolderRun {
+    /// The folder as the user named it, the events name the workbook by it
+    workbook: string;
+    /// The file names of the scripts that the run reports, all of them without names
+    scripts: string[];
+    /// The rows of a result that its event carries
+    rows: number;
+    refresh: boolean;
+    verbose: boolean;
+    /// The size of the charts that the tab renders after the results, `dashql vis`; a run in this process renders none
+    chart?: AgentSessionChartSize | null;
+}
+
+/// Run the scripts of a workbook folder and report the events of the run: in the tab of DashQL for a workbook that the
+/// tab copied into the session of dashql connect, else in this process. Returns the exit code, errors go to stderr.
+export async function runWorkbookFolder(
+    run: WorkbookFolderRun,
+    dir: string,
+    workspace: string,
+    env: RunEnvironment,
+    cli: CliProcess,
+    signal: AbortSignal,
+    emit: (event: RunEvent) => void,
+    live = false,
+): Promise<number> {
+    // A workbook that the tab of a session of dashql connect copied runs in the tab
+    const server = env.session == null ? null : readSessionServer(workspace, env.session, { endpoint: env.sessionEndpoint, token: env.sessionToken });
+    const copied = copiedWorkbookId(workspace, dir);
+    if (server != null && copied != null) {
+        try {
+            const request = { workbookId: copied, label: run.workbook, scripts: run.scripts, refresh: run.refresh, rows: run.rows };
+            const end = await runInTab(server, run.chart == null ? request : { ...request, chart: run.chart }, signal, emit);
+            if (end === 'interrupted') cli.stderr('interrupted\n');
+            return exitCode(end);
+        } catch (error) {
+            cli.stderr(`error: ${describeRunError(error)}\n`);
+            return EXIT_FAILED;
+        }
+    }
+    return await runHere(run, dir, workspace, env, cli, signal, emit, live);
+}
+
 /// Run a workbook folder with a runtime of this process
 async function runHere(
-    parsed: RunArgs,
+    parsed: WorkbookFolderRun,
     dir: string,
     workspace: string,
     env: RunEnvironment,

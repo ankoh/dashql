@@ -20,7 +20,7 @@ import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agen
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { useCloudConnectionIds } from '../connections/cloud_connection.js';
-import { AgentSessionRuns, sendCachedResult } from './agent_session_runs.js';
+import { AgentSessionRuns, renderScriptChart, sendCachedResult } from './agent_session_runs.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 
 const LOG_CTX = 'agent_session';
@@ -185,7 +185,13 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const copiesOf = React.useCallback((next: AgentSessionTarget) => {
         if (copied.current.target !== next) {
             copied.current.copies?.dispose();
-            const copies = runtime == null ? null : new AgentSessionCopies(agentSessionCopyHost(runtime, next), logger);
+            // The catalogs of the connections that the agent may use go into the copies
+            const agentConnectionIds = () => runtime == null ? [] : agentConnections(
+                runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>,
+                runtime.store.get('connectionList', 'root'),
+                connectionId => isConnectionAllowedRef.current(connectionId),
+            ).allowed.connections.map(connection => connection.connectionId);
+            const copies = runtime == null ? null : new AgentSessionCopies(agentSessionCopyHost(runtime, next, agentConnectionIds), logger);
             copied.current = { target: next, workbooks: readTabCopies(next), copies };
         }
         return copied.current;
@@ -293,6 +299,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             isConnectionAllowed: connectionId => isConnectionAllowedRef.current(connectionId),
             send: (runId, event) => postAgentSessionRunEvent(target, runId, event),
             writeResult: key => sendCachedResult(resultCache, key, data => writeAgentSessionResult(target, key, data)),
+            renderChart: (workbookId, script, table, size) => renderScriptChart(runtime, workbookId, script, table, size),
         }, logger);
         const onState = (state: FollowedAgentSession['state']) => {
             setOutdated(null);

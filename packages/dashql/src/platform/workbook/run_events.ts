@@ -26,6 +26,9 @@ export type RunEvent =
     | { type: 'script_not_run'; script: string; reason: string }
     /// The run itself failed, e.g. a script can't be planned. A failed script is reported as such.
     | { type: 'run_failed'; error: string }
+    /// The chart of a script as PNG, rendered by the tab after the result of the script for a run that asked for charts
+    /// (`chart` of a run request): null with the error when the script has no Vega-Lite chart or no result
+    | { type: 'script_chart'; script: string; png: Uint8Array | null; width: number | null; height: number | null; error: string | null }
     /// The run is over: what happened to the scripts that it reports
     | { type: 'run_finished'; ms: number; ok: number; failed: number; cancelled: number; notRun: number; interrupted: boolean };
 
@@ -45,8 +48,9 @@ function toBase64(bytes: Uint8Array): string {
     return btoa(binary);
 }
 
-/// An event as JSON: the table of a result with its first rows as an Arrow IPC stream in base64
+/// An event as JSON: the table of a result with its first rows as an Arrow IPC stream in base64, a chart as PNG in base64
 export function encodeRunEvent(event: RunEvent, rows: number): unknown {
+    if (event.type === 'script_chart') return { ...event, png: event.png == null ? null : toBase64(event.png) };
     if (event.type !== 'script_done') return event;
     const table = event.table == null ? null : toBase64(arrow.tableToIPC(event.table.slice(0, rows), 'stream'));
     return { ...event, table };
@@ -55,7 +59,16 @@ export function encodeRunEvent(event: RunEvent, rows: number): unknown {
 /// An event of its JSON, null for anything else
 export function decodeRunEvent(value: unknown): RunEvent | null {
     if (value == null || typeof value !== 'object' || typeof (value as { type?: unknown }).type !== 'string') return null;
-    const event = value as RunEvent & { table?: unknown };
+    const event = value as RunEvent & { table?: unknown; png?: unknown };
+    if (event.type === 'script_chart') {
+        let png: Uint8Array | null = null;
+        try {
+            png = typeof event.png === 'string' ? fromBase64(event.png) : null;
+        } catch {
+            png = null;
+        }
+        return { ...event, png };
+    }
     if (event.type !== 'script_done') return event;
     let table: arrow.Table | null = null;
     if (typeof event.table === 'string') {

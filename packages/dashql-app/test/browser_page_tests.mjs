@@ -353,18 +353,21 @@ async function testAppAgentSession(page, navigate) {
         // The page writes its workbook into the folder of the session: the old copy goes, the workbook file comes last
         await waitUntil(() => connected.writes.some(write => write.path === 'dashql-workbook.json'));
         const { writes } = connected;
-        assert.equal(writes[0].method, 'DELETE');
-        assert.equal(writes[0].path, '');
-        assert.equal(writes[writes.length - 1].path, 'dashql-workbook.json');
-        assert.ok(writes.some(write => write.path.startsWith('scripts/') && write.body.includes('select 42 as copied_answer')), JSON.stringify(writes.map(write => write.path)));
+        // The catalogs of the connections of the agent follow the files of the workbook
+        const files = writes.filter(write => !write.path.startsWith('connections/'));
+        assert.equal(files[0].method, 'DELETE');
+        assert.equal(files[0].path, '');
+        assert.equal(files[files.length - 1].path, 'dashql-workbook.json');
+        assert.ok(files.some(write => write.path.startsWith('scripts/') && write.body.includes('select 42 as copied_answer')), JSON.stringify(files.map(write => write.path)));
         assert.equal(new Set(writes.map(write => write.workbookId)).size, 1);
-        // A reload follows the same session and leaves the copy to the agent
+        await waitUntil(() => writes.some(write => /^connections\/[^/]+\/dashql-catalog-relations\.sql$/.test(write.path)));
+        // A reload follows the same session and leaves the copy to the agent, also its catalogs
         const written = writes.length;
         await page.reload();
         await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
         connected.push({ turns: [] });
         await page.waitForTimeout(500);
-        assert.equal(writes.length, written);
+        assert.equal(writes.length, written, JSON.stringify(writes.slice(written).map(write => write.path)));
 
         // The user edits the script, the copy gets the edit
         const script = writes.find(write => write.path.startsWith('scripts/'));
@@ -374,7 +377,7 @@ async function testAppAgentSession(page, navigate) {
         await waitUntil(() => writes.some(write => write.method === 'PUT' && write.path === script.path && write.body.includes('43 as more')));
 
         // The agent rewrites the script in the copy, the page takes its text
-        connected.agentWrites(script.workbookId, script.path, 'select 7 as from_agent');
+        connected.agentWrites(script.workbookId, script.path, '/* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "from_agent", "type": "quantitative"}}} */\nselect 7 as from_agent');
         await scriptEditor(page, 'from_agent').waitFor();
         assert.equal(await page.getByTestId('diff-accept').count(), 0);
 
@@ -386,7 +389,8 @@ async function testAppAgentSession(page, navigate) {
         await page.keyboard.press('Escape');
 
         // dashql run asks the tab to run the workbook: the tab runs it, the feed shows the result, the events go back
-        connected.askRun({ runId: 'r1', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: true, rows: 3 });
+        // dashql vis asks for the charts of the run: the tab renders them as PNG before the run finishes
+        connected.askRun({ runId: 'r1', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: true, rows: 3, chart: { width: 400, height: 300, scale: 1 } });
         await waitUntil(() => connected.runEvents.get('r1').some(event => event.type === 'run_finished'));
         const events = connected.runEvents.get('r1');
         const done = events.find(event => event.type === 'script_done');
@@ -402,6 +406,12 @@ async function testAppAgentSession(page, navigate) {
         assert.equal(uploaded.bytes.subarray(-4).toString('latin1'), 'PAR1');
         assert.equal(done.file, `/work/.dashql/cache/${done.key}.parquet`);
         assert.deepEqual(events[events.length - 1], { ...events[events.length - 1], type: 'run_finished', ok: 1, failed: 0, interrupted: false });
+        const chart = events.find(event => event.type === 'script_chart');
+        assert.ok(chart?.png != null, JSON.stringify(chart));
+        assert.equal(chart.script, done.script);
+        assert.deepEqual([chart.width, chart.height], [400, 300]);
+        assert.equal(Buffer.from(chart.png, 'base64').subarray(1, 4).toString('latin1'), 'PNG');
+        assert.equal(events.indexOf(chart), events.length - 2);
         await waitForQuery(page);
 
         // The agent may use every connection, the user unticks one

@@ -12,9 +12,16 @@ import { workbookCopyPath, type SessionWorkbook } from '@akohn/dashql/platform/s
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_WORKBOOKS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logger';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
+
 const LOG_CTX = 'agent_session';
+
+/// The catalog file of a connection in a workbook folder, the file of a published workbook
+export function catalogRelationsPath(connectionId: string): string {
+    return `connections/${connectionId}/dashql-catalog-relations.sql`;
+}
 
 /// A script of the copy of a workbook, `scripts/<name>.sql`, as the page takes it
 const COPY_SCRIPT = new RegExp(`^${STORAGE_SCRIPTS_FOLDER}/([^/]+\\.sql)$`);
@@ -31,10 +38,34 @@ export function changedCopyScripts(seen: ReadonlyMap<string, string>, workbook: 
     return [...stampsOf(workbook)].filter(([path, stamp]) => COPY_SCRIPT.test(path) && seen.get(path) !== stamp).map(([path]) => path);
 }
 
+/// The catalog of a connection that the agent may use, written into the copies as the catalog file of the connection
+export interface CopyCatalog {
+    /// Changes when the catalog of the connection changed
+    stamp: string;
+    /// The text of its file
+    text: () => string;
+}
+
 /// A script of a workbook of the page
 export interface PageScript {
     scriptKey: number;
     text: string;
+    /// The connection that the script runs on
+    connectionId: string;
+}
+
+/// The connections that the workbook file of a copy names for its scripts, by file name
+export function copyScriptConnections(workbookFile: string): Map<string, string> {
+    const connections = new Map<string, string>();
+    try {
+        const workbook = JSON.parse(workbookFile) as { scripts?: unknown };
+        for (const script of Array.isArray(workbook.scripts) ? workbook.scripts as Record<string, unknown>[] : []) {
+            if (typeof script?.name === 'string' && typeof script.connectionId === 'string') connections.set(script.name, script.connectionId);
+        }
+    } catch {
+        // A workbook file that the agent is writing, the next stamp reads it again
+    }
+    return connections;
 }
 
 /// What the page does with the copies, the tests pass their own
@@ -53,18 +84,30 @@ export interface AgentSessionCopyHost {
     fetchText: (workbookId: string, path: string) => Promise<string>;
     /// The scripts of a workbook of the page by file name, null for a workbook that the page doesn't have
     scripts: (workbookId: string) => Map<string, PageScript> | null;
-    /// Call the listener when the scripts of a workbook of the page may have changed
+    /// Call the listener when the scripts of a workbook of the page or the connections may have changed
     subscribe: (workbookId: string, listener: () => void) => () => void;
+    /// The catalogs of the connections that the agent may use, by connection id
+    catalogs: () => Map<string, CopyCatalog>;
     /// Set the text of a script to the one of the agent
     setScriptText: (workbookId: string, scriptKey: number, text: string) => void;
-    /// Create a script with a text, returns its key
-    createScript: (workbookId: string, base: string, text: string) => number | null;
+    /// Create a script with a text, on a connection or on the connection of its neighbors, returns its key
+    createScript: (workbookId: string, base: string, text: string, connectionId: string | null) => number | null;
+    /// Move a script to a connection, false if the page doesn't have the connection
+    setScriptConnection: (workbookId: string, scriptKey: number, connectionId: string) => boolean;
     /// Wait for a time, the tests run it at once
     delay: (ms: number) => Promise<void>;
 }
 
-/// The host of the copies of a page over the runtime and the server of the session
-export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarget): AgentSessionCopyHost {
+/// The stamp of the catalog of a connection: its relations entry and its updates that finished
+function catalogStamp(connection: ConnectionState): string {
+    const updates = connection.catalogUpdates;
+    const last = updates.tasksFinished.at(-1);
+    return `${connection.catalogRelationEntryId}:${updates.described}:${updates.tasksFinished.length}:${last?.taskId ?? ''}:${last?.status ?? ''}`;
+}
+
+/// The host of the copies of a page over the runtime and the server of the session. `agentConnections` are the ids of
+/// the connections that the agent may use, their catalogs go into the copies.
+export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarget, agentConnections: () => string[] = () => []): AgentSessionCopyHost {
     const folderOf = async (workbookId: string) =>
         await (await (await getOPFSRoot()).getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER)).getDirectoryHandle(workbookId);
     const refsOf = (workbookId: string) => Object.values(runtime.store.get('workbook', workbookId)?.scriptRefs ?? {});
@@ -97,26 +140,48 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
             const scripts = new Map<string, PageScript>();
             for (const [fileName, ref] of Object.entries(workbook.scriptRefs)) {
                 const script = runtime.store.get('script', ref.scriptId);
-                if (script != null) scripts.set(fileName, { scriptKey: ref.scriptId, text: script.scriptSession.getText() });
+                const connectionId = workbook.scriptConnections[workbook.scriptOrder.indexOf(fileName)] ?? '';
+                if (script != null) scripts.set(fileName, { scriptKey: ref.scriptId, text: script.scriptSession.getText(), connectionId });
             }
             return scripts;
         },
         subscribe: (workbookId, listener) => {
             const scripts = runtime.store.subscribeKind('script', listener);
             const workbook = runtime.store.subscribe('workbook', workbookId, listener);
+            const connections = runtime.store.subscribeKind('connection', listener);
             return () => {
                 scripts();
                 workbook();
+                connections();
             };
+        },
+        catalogs: () => {
+            const catalogs = new Map<string, CopyCatalog>();
+            for (const connectionId of agentConnections()) {
+                const connection = runtime.store.get('connection', connectionId) as ConnectionState | null;
+                if (connection == null) continue;
+                // The core renders the file, as it writes it into the storage of the connection
+                catalogs.set(connectionId, { stamp: catalogStamp(connection), text: () => runtime.module.catalogRelationsFile(connectionId) ?? '' });
+            }
+            return catalogs;
         },
         setScriptText: (workbookId, scriptKey, text) => {
             runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptText', value: { scriptKey, text } });
         },
-        createScript: (workbookId, base, text) => {
+        createScript: (workbookId, base, text, connectionId) => {
             const before = new Set(refsOf(workbookId).map(ref => ref.scriptId));
-            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text, base } });
+            // A connection that the page doesn't have leaves the script on the connection of its neighbors
+            const known = connectionId != null && runtime.store.get('connection', connectionId) != null;
+            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: known ? { text, base, connectionId } : { text, base } });
             runtime.flush();
             return refsOf(workbookId).find(ref => !before.has(ref.scriptId))?.scriptId ?? null;
+        },
+        setScriptConnection: (workbookId, scriptKey, connectionId) => {
+            const workbook = runtime.store.get('workbook', workbookId);
+            const fileName = Object.entries(workbook?.scriptRefs ?? {}).find(([, ref]) => ref.scriptId === scriptKey)?.[0];
+            if (fileName == null || runtime.store.get('connection', connectionId) == null) return false;
+            runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptConnection', value: { fileName, connectionId } });
+            return true;
         },
         delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
     };
@@ -131,6 +196,8 @@ interface Copy {
     texts: Map<string, string>;
     /// The scripts that the page created for new scripts of the copy, by their file names in the copy
     created: Map<string, number>;
+    /// The stamps of the catalogs that the copy holds, by connection id
+    catalogs: Map<string, string>;
     /// Stop watching the scripts of the page
     unsubscribe: () => void;
     /// Is a push scheduled?
@@ -171,7 +238,7 @@ export class AgentSessionCopies {
     /// scripts that differ from the page are changes of the agent
     adopt(workbookId: string): void {
         this.known.add(workbookId);
-        this.copies.set(workbookId, { seen: null, texts: new Map(), created: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
+        this.copies.set(workbookId, { seen: null, texts: new Map(), created: new Map(), catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
     }
 
     /// Write a workbook of the page into the session, replacing an older copy, and follow it from then on. Resolves
@@ -187,7 +254,7 @@ export class AgentSessionCopies {
             const match = COPY_SCRIPT.exec(file.path);
             if (match != null) texts.set(match[1], typeof file.content === 'string' ? file.content : await new Blob([file.content]).text());
         }
-        const copy: Copy = { seen: null, texts, created: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
+        const copy: Copy = { seen: null, texts, created: new Map(), catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
         this.copies.set(workbookId, copy);
         await this.host.writeCopy(workbookId, files);
         if (this.disposed || this.copies.get(workbookId) !== copy) return;
@@ -217,6 +284,11 @@ export class AgentSessionCopies {
             if (seen == null) continue;
             for (const path of changedCopyScripts(seen, workbook)) {
                 this.enqueue('take a script of the agent', workbook.workbookId, () => this.take(workbook.workbookId, copy, path));
+            }
+            // The agent names the connections of scripts in the workbook file
+            const workbookFile = copy.seen.get(STORAGE_WORKBOOK_FILE);
+            if (workbookFile != null && seen.get(STORAGE_WORKBOOK_FILE) !== workbookFile) {
+                this.enqueue('take the connections of the agent', workbook.workbookId, () => this.takeConnections(workbook.workbookId, copy));
             }
         }
         return this.queue;
@@ -249,8 +321,31 @@ export class AgentSessionCopies {
             if (script.text !== text) this.host.setScriptText(workbookId, script.scriptKey, text);
             return;
         }
-        const key = this.host.createScript(workbookId, fileName.replace(/\.sql$/, ''), text);
+        // A new script runs on the connection that the workbook file of the copy names for it
+        let connectionId: string | null = null;
+        try {
+            connectionId = copyScriptConnections(await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE)).get(fileName) ?? null;
+        } catch {
+            // No workbook file, the script takes the connection of its neighbors
+        }
+        if (this.copies.get(workbookId) !== copy) return;
+        const key = this.host.createScript(workbookId, fileName.replace(/\.sql$/, ''), text, connectionId);
         if (key != null) copy.created.set(fileName, key);
+    }
+
+    /// Move the scripts of the page to the connections that the agent named for them in the workbook file of the copy
+    private async takeConnections(workbookId: string, copy: Copy): Promise<void> {
+        const connections = copyScriptConnections(await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE));
+        const scripts = this.host.scripts(workbookId);
+        if (scripts == null || this.copies.get(workbookId) !== copy) return;
+        for (const [fileName, connectionId] of connections) {
+            const createdKey = copy.created.get(fileName);
+            const script = scripts.get(fileName) ?? [...scripts.values()].find(other => other.scriptKey === createdKey);
+            if (script == null || script.connectionId === connectionId) continue;
+            if (!this.host.setScriptConnection(workbookId, script.scriptKey, connectionId)) {
+                this.logger.warn('The agent named a connection that the page does not have', { workbook: workbookId, script: fileName, connection: connectionId }, LOG_CTX);
+            }
+        }
     }
 
     /// Write the changes of the page into the copy from now on
@@ -299,6 +394,16 @@ export class AgentSessionCopies {
         if (listChanged) {
             const workbookFile = await this.host.readWorkbookFile(workbookId);
             if (workbookFile != null) await this.host.writeFile(workbookId, STORAGE_WORKBOOK_FILE, workbookFile);
+        }
+        // The catalogs of the connections that the agent may use, `dashql catalog` reads them
+        for (const [connectionId, catalog] of this.host.catalogs()) {
+            if (copy.catalogs.get(connectionId) === catalog.stamp) continue;
+            copy.catalogs.set(connectionId, catalog.stamp);
+            const path = catalogRelationsPath(connectionId);
+            const text = catalog.text();
+            // A copy that the page wrote before a reload holds the catalogs already
+            if (copy.adopted && copy.seen?.has(path) && await this.host.fetchText(workbookId, path).catch(() => null) === text) continue;
+            await this.host.writeFile(workbookId, path, text);
         }
     }
 }

@@ -6,9 +6,18 @@ import path from 'node:path';
 import { followAgentSession } from '@akohn/dashql/platform/session/agent_session_client';
 import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 
-import { claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
+import { CLAUDE_ALLOWED_TOOLS, claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
+import { CONNECTED_AGENT_GUIDE, DESCRIBE_TEXT } from './describe_command.js';
 import { SESSION_NAME_ENV } from './session_journal.js';
-import { CONNECTED_SESSION_START, runSession, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionEnvironment } from './session_command.js';
+import {
+    CONNECTED_SESSION_START,
+    connectedSessionStart,
+    runSession,
+    SESSION_ENDPOINT_ENV,
+    SESSION_TOKEN_ENV,
+    WORKBOOK_ONLY_ENV,
+    type SessionEnvironment,
+} from './session_command.js';
 import { runWith } from './test_process.js';
 
 /// The folder of the session, the server writes its journal there
@@ -34,6 +43,8 @@ function hookEnvironment(harnessEnv: Record<string, string>): SessionEnvironment
         appUrl: 'http://localhost:9002',
         startServer: () => { throw new Error('a connected hook starts no server'); },
         connected: endpoint != null && token != null ? { endpoint, token } : null,
+        sessionName: harnessEnv[SESSION_NAME_ENV] ?? null,
+        workbookOnly: harnessEnv[WORKBOOK_ONLY_ENV] === '1',
     };
 }
 
@@ -80,7 +91,14 @@ describe('dashql connect', () => {
             const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
             const command = (event: string) => hooks[event][0].hooks[0].command as string;
             const start = await runHook(command('SessionStart'), harnessEnv, { session_id: 'c1', cwd: W });
-            expect(start.stdout).toBe(`${CONNECTED_SESSION_START}\n`);
+            // Claude Code has the guide in its system prompt, the hook tells the workbooks of the folder
+            expect(start.stdout).toBe(`${CONNECTED_SESSION_START}\n\nWorkbooks of DashQL in this folder: none yet. The tab of DashQL copies the workbook that it shows into
+.dashql/workbooks/<id>/ once it reaches the session.
+`);
+            expect(start.stdout).toBe(connectedSessionStart('claude', W, String(port)));
+            expect(harnessArgs[harnessArgs.indexOf('--append-system-prompt') + 1]).toBe(CONNECTED_AGENT_GUIDE);
+            // The agent runs dashql and edits the copies without asking
+            expect(JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]).permissions).toEqual({ allow: CLAUDE_ALLOWED_TOOLS });
             await runHook(command('UserPromptSubmit'), harnessEnv, { session_id: 'c1', cwd: W, prompt: 'how many orders' });
             await runHook(command('PostToolUse'), harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'Bash', tool_input: { command: 'dashql lint a.sql' } });
             await runHook(command('Stop'), harnessEnv, { session_id: 'c1', cwd: W, last_assistant_message: '42' });
@@ -103,6 +121,36 @@ describe('dashql connect', () => {
         // The server is gone, with the folder of its session
         await expect(fetch(`http://127.0.0.1:${port}/v1/state`)).rejects.toThrow();
         expect(existsSync(path.join(W, '.dashql', 'sessions', String(port)))).toBe(false);
+    });
+
+    it('gives Codex the guide at the start of the session', () => {
+        const start = connectedSessionStart('codex', W, null);
+        expect(start.startsWith(`${CONNECTED_AGENT_GUIDE}\n\n${CONNECTED_SESSION_START}\n\n`)).toBe(true);
+        expect(CONNECTED_AGENT_GUIDE.endsWith(DESCRIBE_TEXT)).toBe(true);
+        expect(codexHookArgs(DASHQL)).not.toContain('--append-system-prompt');
+    });
+
+    it('lets the file tools write only into the workbooks of the session with --workbook-only', async () => {
+        const port = await freePort();
+        const env = connectEnvironment(async (_program, harnessArgs, harnessEnv) => {
+            expect(harnessEnv[WORKBOOK_ONLY_ENV]).toBe('1');
+            const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
+            const pre = hooks.PreToolUse[0].hooks[0].command as string;
+            const write = (file: string) => runHook(pre, harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'Write', tool_input: { file_path: file, content: 'select 1' } });
+            const refused = await write(path.join(W, 'notes.sql'));
+            expect(refused.code).toBe(2);
+            expect(refused.stderr).toBe(`DashQL lets you write only into the workbooks of this session, .dashql/workbooks/<id>/, not ${path.join(W, 'notes.sql')}. Put the SQL into a script of the workbook.\n`);
+            expect((await write('.dashql/workbooks/w1/scripts/a.sql')).code).toBe(0);
+            expect((await write('.dashql/workbooks/w1/../../../escape.sql')).code).toBe(2);
+            // Reads and the shell are left to the harness
+            expect((await runHook(pre, harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'Bash', tool_input: { command: 'echo > x.sql' } })).code).toBe(0);
+            // A patch of Codex names its files
+            const patch = '*** Begin Patch\n*** Update File: src/app.ts\n@@\n-a\n+b\n*** End Patch';
+            expect((await runHook(pre, harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'apply_patch', tool_input: { command: patch } })).code).toBe(2);
+            return 0;
+        });
+        const output = await connect(env, ['--launch', 'claude', '--port', String(port), '--secret', 's', '--workbook-only']);
+        expect(output.code).toBe(0);
     });
 
     it('gives Codex the hooks as a config override, without SessionEnd', () => {

@@ -5,17 +5,24 @@ import path from 'node:path';
 import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platform/session/workbook_journal';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, type SessionTarget } from './session_command.js';
+import { CONNECTED_AGENT_GUIDE } from './describe_command.js';
+import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, WORKBOOK_ONLY_ENV, type SessionTarget } from './session_command.js';
 import { SESSION_NAME_ENV, SESSION_SERVER_FILE } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
-  dashql connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
+  dashql connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>]
+                 [--command <program>] [-- <argument>...]
       Shows a session of Claude Code or Codex live in the tab of DashQL that gave this command. Starts the server of
       the session on 127.0.0.1:<port> with the secret as its token, launches the harness in this terminal with the
       hooks that send its events there, and ends the session when the harness exits. The arguments after -- go to
       the harness. --command runs another program of the harness than claude or codex on the PATH.
-      Codex asks to trust the hooks of DashQL once, at its start.`;
+      Codex asks to trust the hooks of DashQL once, at its start.
+
+      The harness learns how to work on the workbooks of DashQL at its start: Claude Code in its system prompt,
+      Codex from the output of the hook. Claude Code runs the commands of dashql and edits the workbooks of the
+      session without asking. --workbook-only lets the file tools of the harness write only into the workbooks of
+      the session, .dashql/workbooks/; the commands of its shell stay with its permissions and its sandbox.`;
 
 /// The harnesses that `dashql connect` runs
 const HARNESSES = new Set(['claude', 'codex']);
@@ -108,13 +115,17 @@ function hookCommand(dashql: string[], event: string, harness: string): string {
     return [...dashql, 'session', 'hook', event, '--harness', harness, '--connected'].map(shellWord).join(' ');
 }
 
-/// The arguments that give Claude Code the hooks of the session: settings that it loads in addition to its own
+/// What Claude Code may do in a session without asking: run dashql and edit the workbooks that the tab copied
+export const CLAUDE_ALLOWED_TOOLS = ['Bash(dashql:*)', `Edit(./${SESSION_JOURNAL_FOLDER}/workbooks/**)`];
+
+/// The arguments that give Claude Code the session: settings that it loads in addition to its own, with the hooks of
+/// the session and the tools it may use without asking, and the guide of DashQL in its system prompt
 export function claudeHookArgs(dashql: string[]): string[] {
     const hooks = Object.fromEntries(HOOK_EVENTS.claude.map(event => [event, [{
         ...(TOOL_EVENTS.has(event) ? { matcher: '*' } : {}),
         hooks: [{ type: 'command', command: hookCommand(dashql, event, 'claude') }],
     }]]));
-    return ['--settings', JSON.stringify({ hooks })];
+    return ['--settings', JSON.stringify({ hooks, permissions: { allow: CLAUDE_ALLOWED_TOOLS } }), '--append-system-prompt', CONNECTED_AGENT_GUIDE];
 }
 
 /// The arguments that give Codex the hooks of the session: a config override, its TUI asks to trust them
@@ -128,7 +139,7 @@ export function codexHookArgs(dashql: string[]): string[] {
 export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEnvironment = processConnectEnvironment()): Promise<number> {
     let parsed: ReturnType<typeof options>;
     try {
-        parsed = options(argv, new Set(['help']));
+        parsed = options(argv, new Set(['help', 'workbook-only']));
     } catch (error) {
         cli.stderr(`error: ${String(error)}\n\n${CONNECT_USAGE}\n`);
         return EXIT_USAGE;
@@ -170,6 +181,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
         [SESSION_ENDPOINT_ENV]: target.endpoint,
         [SESSION_TOKEN_ENV]: target.token,
         [SESSION_NAME_ENV]: String(server.port),
+        ...(set.has('workbook-only') ? { [WORKBOOK_ONLY_ENV]: '1' } : {}),
     };
     // The agent runs `dashql` like the hooks do
     const bin = env.posix ? writeDashqlCommand(folder, String(server.port), env.dashql) : null;

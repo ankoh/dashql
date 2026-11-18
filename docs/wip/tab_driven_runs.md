@@ -54,6 +54,10 @@ decides on.
 - **Stop.** Ctrl-C posts `DELETE /v1/runs/<token>/<run id>`, the server tells the tab (`{ type: 'stop' }`), the tab stops
   the run and its events end with `run_finished` as interrupted. A `dashql run` that goes away stops the run as well, an
   event of a run that is gone answers 404 and the tab stops.
+- **Charts.** A run request of `dashql vis` carries `chart`, the size of the images. After the results the tab renders
+  the `@vis vegalite` chart of every script that the run reports with its result (`renderScriptChart`, the renderer of
+  the image download of the feed) and sends each as `script_chart` with the PNG in base64, or with the error when the
+  script has no chart or no result, then `run_finished`. A tab of protocol 1 ignores `chart` and sends none.
 - **No tab.** Without a tab on the stream the run request answers 409. A run that no tab takes within 30 s ends with
   `run_failed`, so does a run whose tab goes away.
 - **Other folders.** A workbook folder that no tab copied, and every run outside a session of `dashql connect`, runs in

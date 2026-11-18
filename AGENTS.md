@@ -52,7 +52,8 @@ Please consult relevant docs in that directory before making changes.
     - `docs/design/dashql_core.md`
 
 - The command line tool (`packages/dashql-cli`: the Node `dashql` with `lint`, `format`, `run` on Trino and the
-  embedded Hyper, `connect` and `session`)
+  embedded Hyper, `catalog`, `vis` (charts checked here, rendered as PNG by the tab), `describe` (the guide of the
+  agent), `connect` and `session`)
     - `packages/dashql-cli/README.md`
 
 - Storage layout (the origin private file system of the app, the root of Node, native workbook folders, migrations)

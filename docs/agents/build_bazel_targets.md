@@ -67,7 +67,7 @@ bazel build //...
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
 | `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @akohn/dashql-cli` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `session serve` for the live view of an agent session |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `catalog` and `vis` (the tables of a workbook, its charts checked here and rendered as PNG by the tab), `connect` and `session serve` for the live view of an agent session |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -125,7 +125,7 @@ bazel test //...
 | `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
 | `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` against a fake Trino and the embedded Hyper, the session server and its journal |
+| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` and `vis` against a fake Trino and the embedded Hyper, `catalog`, the session server and its journal |
 | `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
 | `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
@@ -154,7 +154,7 @@ bazel test //...
 | `//packages/dashql-mcp:all` | The MCP server (a Cloudflare Worker with an MCP App that frames `/embed`): type check against the WebWorker lib, and the Worker in Node with the client of the MCP SDK. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-mcp/README.md` |
 | `//packages/dashql-org:check` | `astro check` of the website |
 | `//packages/trino-testing:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
-| `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, `dashql lint` in the sandbox, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
+| `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, `dashql lint` in the sandbox, `dashql connect` with the guide in the system prompt and the tools it allows, see `docs/wip/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
 | `//tests/agents:hyperdb_edge_claude_code_test` | hyperdb-edge in Claude Code with a fake model: `describe` and `run` in the sandbox, a database and files in the workspace, errors, rules by prefix, the skill, see `docs/wip/hyperdb_edge.md`. Needs what `claude_code_sandbox_test` needs |
 | `//tests/agents:hyperdb_edge_codex_test` | hyperdb-edge in Codex with a fake model: `describe` and `run` in `workspace-write` without network, `describe` in `read-only`, the skill, see `docs/wip/hyperdb_edge.md` |
 | `//tests/agents:hyperdb_edge_tool_runner_test` | The tools of hyperdb-edge in the Tool Runner of the Anthropic SDK with a fake model: their schemas, the calls of one turn in order, errors, `max_rows`, see `docs/wip/hyperdb_edge.md` |

@@ -2,7 +2,7 @@ import { createAgentSessionState, type AgentSessionState } from '@akohn/dashql/p
 import type { JournalFile, SessionWorkbook } from '@akohn/dashql/platform/session/workbook_journal';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 
-import { AgentSessionCopies, changedCopyScripts, type AgentSessionCopyHost, type PageScript } from './agent_session_copy.js';
+import { AgentSessionCopies, catalogRelationsPath, changedCopyScripts, copyScriptConnections, type AgentSessionCopyHost, type CopyCatalog, type PageScript } from './agent_session_copy.js';
 
 const logger = { info: () => { }, warn: () => { } } as unknown as Logger;
 
@@ -14,20 +14,23 @@ class Fixture {
     readonly copy = new Map<string, { text: string; mtimeMs: number }>();
     /// The texts that the page took from the agent
     readonly taken: [number, string][] = [];
-    readonly created: [string, string][] = [];
+    readonly created: [string, string, string | null][] = [];
+    readonly moved: [number, string][] = [];
     readonly writes: string[] = [];
+    /// The catalogs of the connections that the agent may use
+    readonly catalogs = new Map<string, CopyCatalog>();
     private listeners = new Set<() => void>();
     private clock = 1;
     private nextKey = 1;
 
     constructor(scripts: Record<string, string>) {
-        for (const [name, text] of Object.entries(scripts)) this.page.set(name, { scriptKey: this.nextKey++, text });
+        for (const [name, text] of Object.entries(scripts)) this.page.set(name, { scriptKey: this.nextKey++, text, connectionId: 'c1' });
     }
 
     /// The user edits a script of the page
     edit(name: string, text: string | null): void {
         if (text == null) this.page.delete(name);
-        else this.page.set(name, { scriptKey: this.page.get(name)?.scriptKey ?? this.nextKey++, text });
+        else this.page.set(name, { scriptKey: this.page.get(name)?.scriptKey ?? this.nextKey++, text, connectionId: this.page.get(name)?.connectionId ?? 'c1' });
         for (const listener of this.listeners) listener();
     }
 
@@ -68,14 +71,21 @@ class Fixture {
         },
         setScriptText: (_workbookId, scriptKey, text) => {
             this.taken.push([scriptKey, text]);
-            for (const [name, script] of this.page) if (script.scriptKey === scriptKey) this.page.set(name, { scriptKey, text });
+            for (const [name, script] of this.page) if (script.scriptKey === scriptKey) this.page.set(name, { ...script, text });
         },
-        createScript: (_workbookId, base, text) => {
-            this.created.push([base, text]);
+        createScript: (_workbookId, base, text, connectionId) => {
+            this.created.push([base, text, connectionId]);
             const scriptKey = this.nextKey++;
-            this.page.set(`${base}.sql`, { scriptKey, text });
+            this.page.set(`${base}.sql`, { scriptKey, text, connectionId: connectionId ?? 'c1' });
             return scriptKey;
         },
+        setScriptConnection: (_workbookId, scriptKey, connectionId) => {
+            if (connectionId === 'unknown') return false;
+            this.moved.push([scriptKey, connectionId]);
+            for (const [name, script] of this.page) if (script.scriptKey === scriptKey) this.page.set(name, { ...script, connectionId });
+            return true;
+        },
+        catalogs: () => new Map(this.catalogs),
         delay: async () => { },
     };
 }
@@ -109,7 +119,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         fixture.agentWrites('scripts/new.sql', 'select 3');
         await copies.update(fixture.state());
         expect(fixture.taken).toEqual([[2, 'select 22']]);
-        expect(fixture.created).toEqual([['new', 'select 3']]);
+        expect(fixture.created).toEqual([['new', 'select 3', null]]);
         // What the page took from the agent goes not back into the copy
         await tick();
         await copies.settled();
@@ -174,6 +184,52 @@ describe('the copies of the workbooks of a page in a session', () => {
         await copies.settled();
         expect(fixture.writes).toEqual(['scripts/a.sql']);
         expect(fixture.copy.get('scripts/b.sql')?.text).toBe('select 22');
+    });
+
+    it('writes the catalogs of the connections of the agent into the copy when they change', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1' });
+        fixture.catalogs.set('c1', { stamp: '1', text: () => 'CREATE TABLE t (a integer);\n' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await tick();
+        await copies.settled();
+        expect(fixture.copy.get('connections/c1/dashql-catalog-relations.sql')?.text).toBe('CREATE TABLE t (a integer);\n');
+        expect(catalogRelationsPath('c1')).toBe('connections/c1/dashql-catalog-relations.sql');
+
+        // An edit writes no catalog that did not change, a catalog with a new stamp is written again
+        fixture.edit('a.sql', 'select 11');
+        await tick();
+        await copies.settled();
+        expect(fixture.writes).toEqual(['connections/c1/dashql-catalog-relations.sql', 'scripts/a.sql']);
+        fixture.catalogs.set('c1', { stamp: '2', text: () => 'CREATE TABLE t (a integer, b text);\n' });
+        fixture.catalogs.set('hyper', { stamp: '1', text: () => '' });
+        fixture.edit('a.sql', 'select 12');
+        await tick();
+        await copies.settled();
+        expect(fixture.copy.get('connections/c1/dashql-catalog-relations.sql')?.text).toBe('CREATE TABLE t (a integer, b text);\n');
+        expect(fixture.copy.has('connections/hyper/dashql-catalog-relations.sql')).toBe(true);
+    });
+
+    it('puts the scripts of the agent on the connections that the workbook file of the copy names', async () => {
+        expect(copyScriptConnections('{"scripts":[{"name":"a.sql","connectionId":"c1"},{"name":"b.sql"},"c.sql"]}')).toEqual(new Map([['a.sql', 'c1']]));
+        expect(copyScriptConnections('{"scr')).toEqual(new Map());
+
+        const fixture = new Fixture({ 'a.sql': 'select 1' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await copies.update(fixture.state());
+        // The agent names the connection of a new script before it writes the script
+        fixture.agentWrites('dashql-workbook.json', JSON.stringify({ scripts: [{ name: 'a.sql', connectionId: 'c1' }, { name: 'top.sql', connectionId: 'hyper' }] }));
+        fixture.agentWrites('scripts/top.sql', 'select * from :a');
+        await copies.update(fixture.state());
+        expect(fixture.created).toEqual([['top', 'select * from :a', 'hyper']]);
+        expect(fixture.page.get('top.sql')?.connectionId).toBe('hyper');
+
+        // The agent moves a script to another connection, one that the page doesn't have stays where it is
+        fixture.agentWrites('dashql-workbook.json', JSON.stringify({ scripts: [{ name: 'a.sql', connectionId: 'hyper' }, { name: 'top.sql', connectionId: 'unknown' }] }));
+        await copies.update(fixture.state());
+        expect(fixture.moved).toEqual([[1, 'hyper']]);
+        expect(fixture.page.get('top.sql')?.connectionId).toBe('hyper');
     });
 
     it('copies nothing of a workbook without a folder in OPFS and leaves other workbook folders alone', async () => {

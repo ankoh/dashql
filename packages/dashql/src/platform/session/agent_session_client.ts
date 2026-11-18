@@ -46,6 +46,16 @@ export interface AgentSessionRunRequest {
     refresh: boolean;
     /// The rows of a result that go back with its event
     rows: number;
+    /// Render the charts of the scripts that the run reports as PNG in this size, after their results (`dashql vis`).
+    /// Absent for a run without charts; a tab of protocol 1 ignores it.
+    chart?: AgentSessionChartSize | null;
+}
+
+/// The size of the chart images of a run: CSS pixels, the images have `scale` times as many pixels
+export interface AgentSessionChartSize {
+    width: number;
+    height: number;
+    scale: number;
 }
 
 /// What the stream of a session tells the tab about runs: start a run, stop it

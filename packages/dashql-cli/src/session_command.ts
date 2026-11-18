@@ -7,7 +7,9 @@ import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_
 import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { sessionEventOf } from './session_hook.js';
+import { CONNECTED_AGENT_GUIDE, describeWorkspace } from './describe_command.js';
+import { sessionEventOf, workbookOnlyRefusal } from './session_hook.js';
+import { SESSION_NAME_ENV } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const SESSION_USAGE = `Usage:
@@ -24,6 +26,9 @@ export const SESSION_USAGE = `Usage:
 
 DASHQL_SERVERS is the folder of the running servers of sessions (~/.dashql/servers), DASHQL_APP_URL the page of the links
 (https://dashql.app). DASHQL_SESSION_ENDPOINT and DASHQL_SESSION_TOKEN name the server of dashql connect.`;
+
+/// The exit code of a hook that refuses a tool, Claude Code and Codex show its stderr to the agent
+const EXIT_REFUSED = 2;
 
 /// A running session, as its server leaves it in the folder of the servers
 interface SessionFile {
@@ -43,13 +48,26 @@ export interface SessionEnvironment {
     startServer: (args: string[]) => void;
     /// The server of `dashql connect` that runs the harness, null outside of it
     connected: SessionTarget | null;
+    /// The name of the session of `dashql connect` (DASHQL_SESSION), null outside of it
+    sessionName?: string | null;
+    /// May the agent write only into the workbooks of the session (`dashql connect --workbook-only`)?
+    workbookOnly?: boolean;
 }
 
-/// Where the hooks of `dashql connect` send the events, in the environment of the harness
-/// What a hook of \`dashql connect\` tells the agent at the start of the session, the harness puts it into the context
+/// The variable that tells the hooks of `dashql connect --workbook-only` to refuse the edits of other files
+export const WORKBOOK_ONLY_ENV = 'DASHQL_WORKBOOK_ONLY';
+
+/// What a hook of `dashql connect` tells the agent at the start of the session, the harness puts it into the context.
+/// Claude Code has the guide in its system prompt (connect_command.ts), Codex gets it here.
 export const CONNECTED_SESSION_START = `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
-.dashql/workbooks/<id>/ of this folder. Before you work on SQL or a workbook, run \`dashql describe\`: it tells how
-to work on the workbooks of DashQL and which ones the tab shows.`;
+.dashql/workbooks/<id>/ of this folder, work on that folder as the guide of DashQL says.`;
+
+/// What the hook at the start of a session of `dashql connect` prints for a harness: the guide unless the harness has
+/// it in its system prompt, then the workbooks and the connections of the folder
+export function connectedSessionStart(harness: string, workspace: string, session: string | null): string {
+    const guide = harness === 'claude' ? '' : `${CONNECTED_AGENT_GUIDE}\n\n`;
+    return `${guide}${CONNECTED_SESSION_START}\n\n${describeWorkspace(workspace, session)}`;
+}
 
 export const SESSION_ENDPOINT_ENV = 'DASHQL_SESSION_ENDPOINT';
 export const SESSION_TOKEN_ENV = 'DASHQL_SESSION_TOKEN';
@@ -72,6 +90,8 @@ export function processSessionEnvironment(): SessionEnvironment {
             spawn(process.execPath, [process.argv[1], 'session', 'serve', ...args], { detached: true, stdio: 'ignore' }).unref();
         },
         connected: endpoint && token ? { endpoint, token } : null,
+        sessionName: process.env[SESSION_NAME_ENV] || null,
+        workbookOnly: process.env[WORKBOOK_ONLY_ENV] === '1',
     };
 }
 
@@ -161,12 +181,18 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
     const event = sessionEventOf(name ?? '', harness, payload);
     if (event == null) return EXIT_OK;
     if (env.connected != null) {
+        // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why
+        const refusal = env.workbookOnly && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, event.folder || cli.cwd) : null;
+        if (refusal != null) {
+            cli.stderr(`${refusal}\n`);
+            return EXIT_REFUSED;
+        }
         try {
             await postSessionEvent(env.connected, event);
         } catch (error) {
             cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
         }
-        if (event.event === 'SessionStart') cli.stdout(`${CONNECTED_SESSION_START}\n`);
+        if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, event.folder || cli.cwd, env.sessionName ?? null));
         return EXIT_OK;
     }
     const session = (payload as { session_id?: unknown })?.session_id;

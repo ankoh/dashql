@@ -122,3 +122,46 @@ export function sessionEventOf(
             return { event, harness, folder };
     }
 }
+
+/// The tools of the harnesses that write files, with the field of the file they write
+const FILE_TOOLS: Record<string, string> = { Edit: 'file_path', MultiEdit: 'file_path', Write: 'file_path', NotebookEdit: 'notebook_path' };
+/// The files of a patch of Codex, `*** Update File: <path>` and the like
+const PATCH_FILE = /^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm;
+/// Where the move of a file of a patch goes
+const PATCH_MOVE = /^\*\*\* Move to: (.+)$/gm;
+
+/// The files that a use of a tool writes, null for a tool that writes none or whose files are unknown
+function writtenFiles(payload: unknown): string[] | null {
+    const tool = text(payload, 'tool_name') ?? '';
+    const input = payload != null && typeof payload === 'object' ? (payload as Record<string, unknown>).tool_input : null;
+    const field = FILE_TOOLS[tool];
+    if (field != null) {
+        const file = text(input, field);
+        return file == null ? null : [file];
+    }
+    // A patch of Codex names its files
+    const patch = [text(input, 'patch'), text(input, 'input'), text(input, 'command')].find(value => value?.includes('*** Begin Patch'));
+    if (patch == null) return null;
+    return [...patch.matchAll(PATCH_FILE), ...patch.matchAll(PATCH_MOVE)].map(match => match[1].trim());
+}
+
+/// Why a harness of `dashql connect --workbook-only` may not use a tool: the tool writes files outside the workbooks
+/// of the session, `.dashql/workbooks/` of the folder. Null for a tool that it may use. Commands of the shell are left
+/// to the permissions and the sandbox of the harness.
+export function workbookOnlyRefusal(payload: unknown, folder: string): string | null {
+    const files = writtenFiles(payload);
+    if (files == null || folder.length === 0) return null;
+    const root = `${folder.replace(/\/+$/, '')}/${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/`;
+    const outside = files.filter(file => {
+        const absolute = file.startsWith('/') ? file : `${folder.replace(/\/+$/, '')}/${file}`;
+        // A path that climbs out of the workbooks is outside
+        const parts: string[] = [];
+        for (const part of absolute.split('/')) {
+            if (part === '..') parts.pop();
+            else if (part !== '.' && part !== '') parts.push(part);
+        }
+        return !`/${parts.join('/')}`.startsWith(root);
+    });
+    if (outside.length === 0) return null;
+    return `DashQL lets you write only into the workbooks of this session, ${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/<id>/, not ${outside.join(', ')}. Put the SQL into a script of the workbook.`;
+}

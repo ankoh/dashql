@@ -2,7 +2,7 @@
 // The model calls Bash once, e.g. with a probe that connects to a server on loopback, and hooks run the same probe or
 // carry the events of the session to a server that a SessionStart hook started.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -176,4 +176,69 @@ test('the hooks show the session in DashQL: the question, what the agent ran and
         files: ['scripts/orders.sql'],
         steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
     }]);
+});
+
+/// A port that is free right now
+async function freePort() {
+    const { createServer } = await import('node:net');
+    const server = createServer();
+    await new Promise(done => server.listen(0, '127.0.0.1', done));
+    const { port } = server.address();
+    await new Promise(done => server.close(done));
+    return port;
+}
+
+test('dashql connect gives Claude Code the guide of DashQL and lets it run dashql and edit the workbooks without asking', async () => {
+    const dir = caseDir('connect');
+    const home = join(dir, 'home');
+    const work = join(dir, 'work');
+    mkdirSync(home, { recursive: true });
+    mkdirSync(join(work, '.dashql', 'workbooks', 'w1', 'scripts'), { recursive: true });
+    // The model runs dashql, writes a script of the copy and a file of the project, one after the other
+    const calls = [
+        toolUse('Bash', { command: 'dashql describe', description: 'read the guide' }),
+        toolUse('Write', { file_path: join(work, '.dashql', 'workbooks', 'w1', 'scripts', 'orders.sql'), content: 'select 1\n' }),
+        toolUse('Write', { file_path: join(work, 'notes.md'), content: 'notes\n' }),
+    ];
+    const model = await startFakeAnthropic({
+        turn: request => {
+            const results = (request.messages ?? []).flatMap(message => Array.isArray(message.content) ? message.content : []).filter(block => block.type === 'tool_result');
+            return results.length < calls.length ? [calls[results.length]] : [text('done')];
+        },
+    });
+    const port = await freePort();
+    try {
+        // No --allowedTools: a tool that the settings of dashql connect don't allow needs an approval, which -p never gives
+        const output = await runHarness(DASHQL, [
+            'connect', '--launch', 'claude', '--command', CLAUDE, '--port', String(port), '--secret', 's3cret',
+            '--', '-p', 'how many orders', '--output-format', 'stream-json', '--verbose',
+        ], {
+            cwd: work,
+            env: {
+                PATH: '/usr/bin:/bin',
+                HOME: home,
+                ANTHROPIC_BASE_URL: model.url,
+                ANTHROPIC_API_KEY: 'sk-fake',
+                CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+                DISABLE_AUTOUPDATER: '1',
+            },
+        });
+        const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line))
+            .flatMap(event => event.type === 'user' && Array.isArray(event.message?.content) ? event.message.content : [])
+            .filter(block => block.type === 'tool_result');
+        assert.equal(results.length, 3, JSON.stringify(results));
+        const content = result => Array.isArray(result.content) ? result.content.map(block => block.text ?? '').join('') : String(result.content);
+        // dashql runs without asking, from the dashql that connect puts on the path
+        assert.equal(results[0].is_error === true, false, content(results[0]));
+        assert.match(content(results[0]), /^DashQL works on workbooks/);
+        // A script of the copy is written without asking, a file of the project needs an approval
+        assert.equal(results[1].is_error === true, false, content(results[1]));
+        assert.equal(readFileSync(join(work, '.dashql', 'workbooks', 'w1', 'scripts', 'orders.sql'), 'utf8'), 'select 1\n');
+        assert.equal(results[2].is_error, true, content(results[2]));
+        assert.equal(existsSync(join(work, 'notes.md')), false);
+        // The guide is in the system prompt of the main conversation
+        assert.ok(model.requests.some(request => JSON.stringify(request.system ?? '').includes('The user started you from DashQL')), 'the guide is in no system prompt');
+    } finally {
+        await model.close();
+    }
 });

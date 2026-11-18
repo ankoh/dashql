@@ -12,7 +12,12 @@ import {
     type AgentSessionEvent,
     type AgentSessionState,
 } from '@akohn/dashql/platform/session/agent_session_state';
-import { AGENT_SESSION_RUN_HEADER, type AgentSessionRunMessage, type AgentSessionRunRequest } from '@akohn/dashql/platform/session/agent_session_client';
+import {
+    AGENT_SESSION_RUN_HEADER,
+    type AgentSessionChartSize,
+    type AgentSessionRunMessage,
+    type AgentSessionRunRequest,
+} from '@akohn/dashql/platform/session/agent_session_client';
 import {
     AGENT_SESSION_MIN_PROTOCOL,
     AGENT_SESSION_MIN_PROTOCOL_HEADER,
@@ -41,6 +46,14 @@ import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FI
 const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}`;
 /// How long a run waits for the first event of the tab
 const RUN_CLAIM_TIMEOUT_MS = 30_000;
+
+/// The size of the charts of a run request, null for a run without charts or a size out of bounds
+function chartSize(value: unknown): AgentSessionChartSize | null {
+    if (value == null || typeof value !== 'object') return null;
+    const { width, height, scale } = value as Record<string, unknown>;
+    const within = (n: unknown, max: number): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0 && n <= max;
+    return within(width, 4096) && within(height, 4096) && within(scale, 4) ? { width: Math.floor(width), height: Math.floor(height), scale } : null;
+}
 
 /// The pages that may follow a session: the web app, its dev server and the desktop app
 export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashql.app', 'https://dev.dashql.app', 'http://localhost:9002', 'http://127.0.0.1:9002', 'app://bundle'];
@@ -300,6 +313,9 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 refresh: body.refresh === true,
                 rows: typeof body.rows === 'number' && body.rows >= 0 ? Math.floor(body.rows) : 10,
             };
+            // A run of dashql vis asks the tab for its charts
+            const chart = chartSize(body.chart);
+            if (chart != null) run.chart = chart;
         } catch {
             return sendJson(response, 400, { error: 'the run names no workbook that a tab copied into the session' });
         }

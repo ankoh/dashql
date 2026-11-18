@@ -1,22 +1,27 @@
 // The commands of dashql, see README.md
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { runConnect } from './connect_command.js';
+import { runCatalog } from './catalog_command.js';
 import { runDescribe } from './describe_command.js';
 import { runFormat } from './format_command.js';
 import { runLint } from './lint_command.js';
 import { runRun } from './run_command.js';
 import { runSession } from './session_command.js';
+import { runVis } from './vis_command.js';
 
 export const USAGE = `Usage: dashql <command> [options]
 
 Commands:
   connect --launch <claude|codex> --port <port> --secret <secret>
                                       Launch Claude Code or Codex and show its session live in DashQL, see dashql connect --help
+  catalog <workbook-dir> [<connection>...]
+                                      The tables of the connections of a workbook as CREATE TABLE statements
   describe                            How an agent works on the workbooks of DashQL, and the workbooks of the tabs here
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help
   run <workbook-dir> [<script>...]    Run the scripts of a workbook folder on their connections, see dashql run --help
-  session <command>                   Show the session of an agent harness in DashQL, see dashql session --help`;
+  session <command>                   Show the session of an agent harness in DashQL, see dashql session --help
+  vis <workbook-dir> <script>         Check the chart of a script with its result and render it as PNG, see dashql vis --help`;
 
 /// Run dashql with its arguments, returns the exit code
 export async function runDashQL(argv: string[], process: CliProcess): Promise<number> {
@@ -34,6 +39,10 @@ export async function runDashQL(argv: string[], process: CliProcess): Promise<nu
             return await runConnect(args, process);
         case 'describe':
             return runDescribe(args, process);
+        case 'catalog':
+            return runCatalog(args, process);
+        case 'vis':
+            return await runVis(args, process);
         case '-h':
         case '--help':
             process.stdout(`${USAGE}\n`);

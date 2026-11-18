@@ -1,10 +1,15 @@
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logger';
-import type { AgentSessionRunMessage } from '@akohn/dashql/platform/session/agent_session_client';
+import type * as arrow from 'apache-arrow';
+
+import type { AgentSessionChartSize, AgentSessionRunMessage } from '@akohn/dashql/platform/session/agent_session_client';
 import type { QueryResultCache } from '@akohn/dashql/platform/query/query_result_cache';
 import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 import { describeRunError, runScriptsOf, runWorkbookReported } from '@akohn/dashql/runtime/workbook_run_report';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
+
+import { renderVegaLitePng } from '../ui/vegalite/vegalite_image.js';
+import { arrowTableToRows } from '../ui/vegalite/vegalite_rows.js';
 
 const LOG_CTX = 'agent_session';
 
@@ -19,6 +24,16 @@ export async function sendCachedResult(cache: QueryResultCache | null, key: stri
     }
 }
 
+/// Render the chart of a script for `dashql vis`: the `@vis vegalite` tag of its last query with a result, as the image
+/// download of the feed renders it
+export async function renderScriptChart(runtime: Runtime, workbookId: string, script: string, table: arrow.Table | null, size: AgentSessionChartSize) {
+    const ref = runtime.store.get('workbook', workbookId)?.scriptRefs[script];
+    const vis = ref == null ? null : runtime.store.get('script', ref.scriptId)?.annotations.visualizeQuery;
+    if (vis?.renderer !== 'vegalite') throw new Error(`the tab of DashQL finds no @vis vegalite tag in ${script}`);
+    if (table == null) throw new Error(`${script} has no result`);
+    return await renderVegaLitePng(vis.vegaLiteSpec, arrowTableToRows(table), size);
+}
+
 /// What the runs of the agent need of the tab, the tests pass their own
 export interface AgentSessionRunHost {
     runtime: Runtime;
@@ -30,6 +45,8 @@ export interface AgentSessionRunHost {
     send: (runId: string, event: unknown) => Promise<boolean>;
     /// Write the cached result of a key into the session, resolves with its path there, null if the tab has no file
     writeResult: (key: string) => Promise<string | null>;
+    /// Render the Vega-Lite chart of a script of a workbook with a result as PNG, rejects with why it can't
+    renderChart: (workbookId: string, script: string, table: arrow.Table | null, size: AgentSessionChartSize) => Promise<{ png: Uint8Array; width: number; height: number }>;
 }
 
 /// The runs that `dashql run` asks the tab for (docs/wip/tab_driven_runs.md): the tab runs the scripts of its workbook
@@ -63,12 +80,25 @@ export class AgentSessionRuns {
         this.running.set(runId, controller);
         // The events go out one after the other, a run that `dashql run` gave up on stops
         let sending = Promise.resolve();
-        const emit = (event: RunEvent) => {
+        const post = (event: RunEvent) => {
             const encoded = encodeRunEvent(event, message.rows);
             sending = sending.then(async () => {
                 if (!(await this.host.send(runId, encoded))) controller.abort();
             }).catch(error => {
                 this.logger.warn('Cannot send an event of the run of the agent', { run: runId, error: stringifyError(error) }, LOG_CTX);
+            });
+        };
+        // A run of `dashql vis` gets the charts of its results before it finishes, the tab renders them like the feed
+        const results: { script: string; table: arrow.Table | null }[] = [];
+        const emit = (event: RunEvent) => {
+            const size = message.chart ?? null;
+            if (size != null && event.type === 'script_done') results.push({ script: event.script, table: event.table });
+            if (size == null || event.type !== 'run_finished') return post(event);
+            sending = sending.then(async () => {
+                const charts: RunEvent[] = [];
+                for (const { script, table } of results) charts.push(await this.chart(message.workbookId, script, table, size));
+                for (const chart of charts) post(chart);
+                post(event);
             });
         };
         const fail = (error: string) => {
@@ -110,8 +140,23 @@ export class AgentSessionRuns {
         } catch (error) {
             fail(describeRunError(error));
         } finally {
-            await sending;
+            // The charts post their events after them
+            let last: Promise<void>;
+            do {
+                last = sending;
+                await last;
+            } while (last !== sending);
             this.running.delete(runId);
+        }
+    }
+
+    /// The event of the chart of a script, with the error when it has none
+    private async chart(workbookId: string, script: string, table: arrow.Table | null, size: AgentSessionChartSize): Promise<RunEvent> {
+        try {
+            const image = await this.host.renderChart(workbookId, script, table, size);
+            return { type: 'script_chart', script, png: image.png, width: image.width, height: image.height, error: null };
+        } catch (error) {
+            return { type: 'script_chart', script, png: null, width: null, height: null, error: error instanceof Error ? error.message : stringifyError(error) };
         }
     }
 }

@@ -6,6 +6,8 @@ harness gets the answers of the app (`docs/design/dashql_runtime.md`):
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
 - **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the query result cache.
+- **`dashql catalog`** prints the tables of the connections of a workbook folder as `CREATE TABLE` statements.
+- **`dashql vis`** checks the chart of a script against its result and renders it as PNG.
 - **`dashql connect`** launches Claude Code or Codex and shows its session live in the tab of DashQL that gave the
   command, see below.
 - **`dashql session`** shows the session of an agent harness in DashQL, see below.
@@ -183,7 +185,9 @@ that are not named show up only when they fail. `--verbose` prints the log of th
   command itself. Without it the scripts on Trino still run and nothing is written.
 - **Interrupts.** The first Ctrl-C cancels the running queries, reports the scripts as cancelled or not run and
   removes the folder of the instance, the second one ends the process.
-- **Not yet.** The catalog of a connection is not described.
+- **Syntax errors first.** Before the run, `run` prints the scripts that it runs with the errors of their scanner and
+  parser, as `dashql lint` prints them. It doesn't resolve names, a script reads the tables of its connection and the
+  results of other scripts. The run goes on, a script with an error fails at its statement.
 - **Sessions.** In the folder of a session (`dashql session`), `run` appends the files of the workbook folder and its
   log to the journal of the session.
 - **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
@@ -194,7 +198,7 @@ workbook and 130 when interrupted.
 ## dashql connect
 
 ```
-npx -y @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
+npx -y @akohn/dashql-cli@latest connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
@@ -207,8 +211,17 @@ stay quiet then. When the harness exits, `connect` ends the session and stops th
 the harness. A port that is taken fails before the harness starts, the tab gives a new one. The arguments after `--`
 go to the harness, `--command` launches another program than `claude` or `codex` on the `PATH`.
 
-The hook at the start tells the agent that DashQL shows the session, where the tab copies its workbook and to run
-`dashql describe` first. The harness puts the output of the hook into the context of the agent. The agent of a harness
+The agent knows how to work on DashQL from the start, it needs no command to learn it: Claude Code gets the guide of
+`dashql describe` with a preface (`CONNECTED_AGENT_GUIDE`: the user started it from DashQL, a request about data is a
+request to the workbooks) in its system prompt (`--append-system-prompt`), Codex in the output of the hook at the start,
+which the harness puts into the context of the agent. That hook also tells both where the tab copies its workbook and
+lists the workbooks and the connections of the folder. The settings of Claude Code let it run `dashql` and edit the
+copies in `.dashql/workbooks/` without asking (`permissions.allow`: `Bash(dashql:*)`, `Edit(./.dashql/workbooks/**)`);
+everything else asks as the user configured it. `--workbook-only` lets the file tools write only into the copies: the
+hook of `PreToolUse` refuses an `Edit`, `MultiEdit`, `Write`, `NotebookEdit` or a patch of Codex that writes elsewhere
+with exit code 2, and the harness shows the agent why (`DASHQL_WORKBOOK_ONLY`). Commands of the shell stay with the
+permissions and the sandbox of the harness. `//tests/agents` runs `connect` with Claude Code and a fake model: the guide
+in the system prompt, `dashql` and a script of the copy without approval, a file of the project only with one. The agent of a harness
 that `npx` launched has no `dashql` on its path: `connect` writes one into the folder of the session
 (`.dashql/sessions/<port>/bin/dashql`, a shell script that runs this `dashql`) and puts that folder first on the `PATH`
 of the harness. Not on Windows.
@@ -216,7 +229,43 @@ of the harness. Not on Windows.
 The port names the session: its journal is `.dashql/sessions/<port>/journal.jsonl`, and the harness gets
 `DASHQL_SESSION=<port>`, which `dashql run` appends to. Two sessions in one folder keep apart, the folder of a session
 goes when it ends. The tab writes the workbook that it shows into `.dashql/workbooks/<workbook id>/` once the server
-answers, the agent works on that copy, and its changed scripts come back into the tab as rewrites to accept.
+answers, with the catalogs of the connections that the agent may use, and the agent works on that copy; its changed
+scripts come back into the tab with their text (`docs/wip/agent_session.md`).
+
+## dashql catalog
+
+```
+dashql catalog [--workspace <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
+```
+
+Prints the tables of connections as `CREATE TABLE` statements with the types of their columns: the named connections
+by id or name, else the connections of the workbook file and the ones with catalog files. Each comes with a line of its
+name, id, connector, the number of its scripts and tables, and whether the tab lets the agent use it. The embedded
+Hyper lists the attachments of the workbook as `:name`. The tables come from the catalog files of the folder,
+`connections/<id>/dashql-catalog-relations.sql` and `dashql-catalog-functions.sql`: the tab writes the relations into its
+copies for every connection that the agent may use and again when the catalog of a connection changed; a published
+workbook carries them. The output of a connection stops after `--max-chars` characters (100000), with the path of the
+file to grep. Nothing goes over the server of the session for it.
+
+## dashql vis
+
+```
+dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh] [--workspace <dir>] <workbook-dir> <script>
+```
+
+Checks the chart of a script, the `@vis` tag above its last query (`docs/design/vis_comments.md`), and gets it as PNG.
+The check is local: the core compiles the script and names the renderer and the Vega-Lite spec, Vega-Lite compiles the
+spec in Node. `vis` runs the script like `dashql run` (in the tab for a copy of a tab, a cached result is not run again)
+and takes the columns of the result from the event of the run, without its rows. It prints the renderer, the rows and
+the columns, and the problems: the errors and warnings of Vega-Lite, fields of the encodings that are no columns of the
+result nor made by a transform, and sizes that DashQL decides (`chartSpecProblems` of
+`platform/workbook/chart_config.ts`).
+
+The PNG comes from the tab, like the result: the run request asks for charts (`chart`, the size), and the tab renders
+the chart of the script with its result as the image download of the feed does, and sends it as the event
+`script_chart` before `run_finished` (`docs/wip/tab_driven_runs.md`). 800x500 at scale 2 by default, `charts/<script>.png`
+of the `.dashql/` of the workspace or `--out`. A workbook folder that runs in the process gets the check only. The exit
+code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors.
 
 ## dashql describe
 
@@ -227,8 +276,10 @@ dashql describe [--workspace <dir>]
 Prints what an agent needs to work on the workbooks of DashQL: the layout of a workbook folder, the commands, how the
 tab takes the changes of the agent, and that file contents and results are data, not instructions. Then the workbooks
 that the tabs of DashQL copied into `.dashql/workbooks/` of the workspace, with their names, scripts and connections.
-The text lives in the command, so it fits the installed version; the hook at the start of a session of `dashql
-connect` points the agent to it.
+It covers scripts (one statement each, reentrant DDL, `:name` of scripts, the embedded Hyper over remote results,
+`@param`, `@manual`, client functions), charts (the `@vis` tag with an example, the size left to DashQL, `dashql vis`
+after every change) and how to work. The text lives in the command, so it fits the installed version; a harness of
+`dashql connect` has it from the start.
 
 ## dashql session
 
@@ -295,5 +346,5 @@ bazel test //packages/dashql-cli:all
 `:test` runs the commands with the process of a test (vitest), `run` against a fake Trino and the embedded Hyper,
 `:binary_test` runs the bundle as the user calls it, and
 `:example_snippets_formatted_test` checks that the snippets of the app are what `dashql format` prints.
-`//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, and their hooks with
-`dashql session hook`.
+`//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, their hooks with
+`dashql session hook`, and `dashql connect` with Claude Code.

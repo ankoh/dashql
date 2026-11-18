@@ -8,7 +8,8 @@
 /// the same two numbers, the server as the oldest client it answers, a client as the oldest server it talks to.
 ///
 /// 1: the routes of `/v1`, the state with turns and their steps, workbooks and log, the runs that the tab runs
-export const AGENT_SESSION_PROTOCOL = 1;
+/// 2: `chart` of a run request, the tab renders the charts of the run and sends them as the event `script_chart`
+export const AGENT_SESSION_PROTOCOL = 2;
 /// The oldest protocol of a peer that this side still works with
 export const AGENT_SESSION_MIN_PROTOCOL = 1;
 

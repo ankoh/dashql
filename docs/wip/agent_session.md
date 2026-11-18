@@ -215,8 +215,19 @@ every endpoint. Other workbook folders run in the process of `dashql run`.
   differs from what the copy holds, removes the ones it deleted and, when the list of scripts changed, writes its
   workbook file. A script that it took from the agent counts as held by the copy. Both directions run one after the
   other (`AgentSessionCopies`).
-- Not yet: scripts that the agent deletes or renames, the workbook file of the copy that the agent changes (the order,
-  the connections), the attachments.
+- **The connections of the scripts of the agent.** The workbook file of the copy names the connection of every script,
+  `{"name": "x.sql", "connectionId": "<id>"}`. A new script of the agent runs on the connection that the workbook file
+  of the copy names for it when the tab takes it, else on the connection of its neighbors; the guide tells the agent to
+  add the entry before it writes the script. A later change of the workbook file moves the scripts to the connections
+  it names (`setScriptConnection`), a connection that the tab doesn't have leaves the script where it is.
+- **The catalogs of the connections.** The tab writes `connections/<id>/dashql-catalog-relations.sql` into every copy for
+  every connection that the agent may use: the tables that the connection reported, as `CREATE TABLE` statements with
+  the types of their columns, the file that the core writes into the storage of the connection
+  (`catalogRelationsFile` of the module, `relations_file_of_entry`). It writes a catalog again when its
+  stamp changed: the relations entry and the catalog updates that finished. `dashql catalog` prints them, the route of
+  the files of the copy takes them, nothing new goes over the wire.
+- Not yet: scripts that the agent deletes or renames, the order of the workbook file of the copy, the attachments, the
+  functions of a connection in its catalog file.
 - When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
   next session faster.
 - **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
@@ -267,19 +278,27 @@ runs that it runs (`POST /v1/runs/<token>/<run id>`). The server stays the one p
 
 ### How the agent learns DashQL
 
-- **The output of the hook at the start** goes into the context of the agent with both harnesses. Built: the hook of
-  `dashql connect` says that DashQL shows the session, that the tab copies its workbook into `.dashql/workbooks/<id>/`
-  and to run `dashql describe` first. Nothing is installed.
-- **`dashql describe`** (built) prints the layout of a workbook folder, the commands, how the tab takes the changes of
-  the agent and the workbooks that the tabs copied into the folder, like `hyperdb-edge describe`
-  (`docs/wip/hyperdb_edge.md`). The text lives in the command, it fits the installed version. It reads the copies from
-  disk, it needs no server and no token.
+Which side does what is in [agent_integration.md](../design/agent_integration.md).
+
+- **The guide** is `DESCRIBE_TEXT` of `describe_command.ts`: the layout of a workbook folder with the connection of a
+  script in the workbook file, the commands, the rules of scripts (one statement each, reentrant DDL, `:name` of
+  scripts, the embedded Hyper over cheap remote results, `@param`, `@manual`, client functions), charts (the `@vis` tag
+  with an example, no sizes, `dashql vis` after every change) and how to work. The text lives in the command, it fits
+  the installed version.
+- **In context from the start.** Claude Code gets the guide with a preface (`CONNECTED_AGENT_GUIDE`) in its system
+  prompt (`--append-system-prompt`), which outranks the `CLAUDE.md` of a project. Codex gets the same text in the output
+  of the hook at the start. The hook tells both where the copies are and lists the workbooks and the connections of the
+  folder. `dashql describe` prints the guide again with them.
+- **Commands that check.** `dashql catalog` prints the tables of the connections from the catalog files of the copy,
+  `dashql vis` checks a chart against the result of its script and writes the PNG of it to look at, `dashql run`
+  prints the syntax errors of its scripts first. The checks are local, on files and the core. The tab renders the PNG
+  as it runs the query, an option of the run request and an event of the run (protocol 2, `tab_driven_runs.md`).
+- **Fewer approvals.** Claude Code may run `dashql` and edit the copies without asking. `dashql connect --workbook-only`
+  refuses edits of the file tools outside the copies in the hook of `PreToolUse`.
 - **`dashql` on the path.** The agent of a harness that `npx` launched has no `dashql`: `dashql connect` writes one
   into the folder of the session and puts it first on the `PATH` of the harness (built).
 - **A skill** only for the installed path without `dashql connect` (case B with hooks in the settings): a short
   `SKILL.md` in the package that says when to use DashQL and to run `dashql describe`, as the one of hyperdb-edge.
-  Whether `dashql connect` can hand a skill to a harness without installing it is to check in the vendored harnesses,
-  as the `-c` of the hooks of Codex was. With the output of the hook it doesn't need to.
 - **No MCP server for now.** The commands are the one interface for both cases and for the sessions without
   `dashql connect`, the agent runs them with its shell, `//tests/agents` covers that. MCP is the fallback for the runs in
   the process of `dashql connect` if a sandbox stands in the way: a tool of an MCP server runs in that process, outside

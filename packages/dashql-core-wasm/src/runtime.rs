@@ -37,6 +37,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dashql_core::error::Error;
+use dashql_core_runtime::catalog_loader::tables::relations_file_of_entry;
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
@@ -1201,6 +1202,18 @@ impl Runtime {
         let connection = registry.get(connection_id)?;
         let state = connection.state.try_borrow().ok()?;
         Some(self.connections.catalog_id(connection_id, state.catalog()) as f64)
+    }
+
+    /// The relations file of the catalog of a connection, the text of its `dashql-catalog-relations.sql`: the tables that
+    /// the connection reported as `CREATE TABLE` statements. The tab writes it into the copies of an agent session. None
+    /// for an unknown connection, while a task holds it, and after a reset of the catalog.
+    #[wasm_bindgen(js_name = catalogRelationsFile)]
+    pub fn catalog_relations_file(&self, connection_id: &str) -> Option<String> {
+        let registry = self.connections.registry.try_borrow().ok()?;
+        let connection = registry.get(connection_id)?;
+        let state = connection.state.try_borrow().ok()?;
+        let catalog = state.catalog().try_borrow().ok()?;
+        relations_file_of_entry(&catalog, state.relation_entry_id())
     }
 
     /// Tests that stand in for the catalog loader: the catalog of a connection as a handle that writes. Its writes

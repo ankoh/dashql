@@ -21,7 +21,7 @@ describe('dashql describe', () => {
         expect(output.stdout.startsWith(`${DESCRIBE_TEXT}\n\n`)).toBe(true);
         expect(output.stdout.endsWith([
             'Workbooks of DashQL in this folder, the tab shows them (work on these folders, not on copies of them):',
-            '  .dashql/workbooks/w1/  "Orders", 2 scripts, connections: Trino prod, hyper',
+            '  .dashql/workbooks/w1/  "Orders", 2 scripts, connections: Trino prod (c1), hyper',
             '  .dashql/workbooks/w2/  "w2", 0 scripts',
             '',
         ].join('\n'))).toBe(true);
