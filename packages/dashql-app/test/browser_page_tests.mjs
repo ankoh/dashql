@@ -318,11 +318,12 @@ async function testAppAgentSession(page, navigate) {
         await page.getByRole('note').getByText('There are 42 orders').waitFor();
         await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
 
-        // SQL opens the prompt, the bar keeps the session
+        // SQL opens the prompt, the empty workbook greets again although the tab keeps the session
         session.push({ ended: true });
         await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
         await page.getByTestId('composer-connect').waitFor({ state: 'detached' });
-        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
+        await page.getByTestId('feed-landing-question').waitFor();
+        await page.getByTestId('composer-agent-turn').waitFor({ state: 'detached' });
     } finally {
         await session.close();
     }

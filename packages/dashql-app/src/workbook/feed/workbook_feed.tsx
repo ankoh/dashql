@@ -76,6 +76,7 @@ import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.j
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
 import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
 import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
+import { ComposerMode } from '../../agent/agent_connect.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
@@ -775,8 +776,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         ?? composerCore?.connectorType ?? ConnectorType.HYPER;
 
     // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
-    // question. The composer stays at the same position in the tree so it keeps focus when the view docks it.
-    const agentTurns = session?.turns.length ?? 0;
+    // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
+    // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it.
+    const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
     const landing = entries.length === 0 && agentTurns === 0;
     // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {

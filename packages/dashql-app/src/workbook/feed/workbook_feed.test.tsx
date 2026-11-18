@@ -16,6 +16,8 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
+import { ComposerMode } from '../../agent/agent_connect.js';
+import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
 import { EntryStatusBar } from '../entry_status_bar.js';
@@ -480,6 +482,7 @@ describe('Workbook feed composer', () => {
         next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
         /// The session of an agent in the terminal that the feed gets, and what the feed gave it
         session: null as AgentSession | null,
+        connect: null as AgentConnect | null,
         sessionArgs: null as AgentSessionArgs | null,
         submit: vi.fn(),
         view: null as any,
@@ -506,7 +509,7 @@ describe('Workbook feed composer', () => {
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         useComposerCore: () => ({ instance: {} as any, catalog: {} as any, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }),
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
-        useAgentConnect: () => null,
+        useAgentConnect: () => feedState.connect,
         WorkbookComposer: (props: WorkbookComposerProps) => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;
@@ -581,6 +584,7 @@ describe('Workbook feed composer', () => {
         feedState.runScript.mockReset();
         feedState.submit.mockReset();
         feedState.session = null;
+        feedState.connect = null;
         feedState.sessionArgs = null;
         feedState.rowProps = null;
         feedState.rowLayouts.clear();
@@ -686,6 +690,21 @@ describe('Workbook feed composer', () => {
         expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
         expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
         expect(feedState.composerProps?.agentWorking).toBe(true);
+        expect(feedState.barProps?.session).toBe(feedState.session);
+    });
+
+    it('greets an empty workbook again once the prompt switches back to SQL', () => {
+        feedState.session = agentSession([question(1, null)]);
+        feedState.connect = { mode: ComposerMode.Ai } as AgentConnect;
+        render(workbook(), vi.fn());
+        expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
+        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
+
+        // The tab still follows the session with its questions
+        feedState.connect = { mode: ComposerMode.Sql } as AgentConnect;
+        render(workbook(), vi.fn());
+        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
+        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
         expect(feedState.barProps?.session).toBe(feedState.session);
     });
 
