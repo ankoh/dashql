@@ -1,9 +1,10 @@
 import { harnessLabel, isAgentWorking, type AgentSession } from './agent_session.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../workbook/status/workbook_status.js';
 
-/// The live statuses of the agent: what it works on, a session that the page lost
+/// The live statuses of the agent: what it works on, a session that the page lost. A session that ended has none, the
+/// composer shows the line for the next one.
 export function agentLiveStatuses(session: AgentSession | null, now: number): WorkbookStatus[] {
-    if (session == null) return [];
+    if (session == null || session.ended) return [];
     if (!session.connected) {
         return [{
             key: 'agent:session',
@@ -25,12 +26,13 @@ export function agentLiveStatuses(session: AgentSession | null, now: number): Wo
     }];
 }
 
-/// The lines of the log when questions of the agent finish
+/// The lines of the log when questions of the agent finish. The turns of a new session on the port are all new.
 export function diffAgentQuestions(prev: AgentSession | null, next: AgentSession | null, now: number): WorkbookStatus[] {
     if (prev == null || next == null) return [];
     const lines: WorkbookStatus[] = [];
+    const prevTurns = prev.id === next.id ? prev.turns : [];
     for (const turn of next.turns) {
-        const before = prev.turns.find(t => t.questionId === turn.questionId);
+        const before = prevTurns.find(t => t.questionId === turn.questionId);
         if (before == null) {
             lines.push({
                 key: `agent:${turn.questionId}:asked:${now}`,

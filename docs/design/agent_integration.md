@@ -138,8 +138,9 @@ sequenceDiagram
     Harness->>Connect: SessionStart, the hook prints the workbooks
 ```
 
-The tab keeps the port and the secret across the switch of the prompt and a reload; only the button of a new port
-changes them.
+The tab keeps the port and the secret across the switch of the prompt, a reload and the end of a session; only the
+button of a new port changes them. Once a harness ended its session, the same line starts the next one, with either
+harness: the tab keeps trying the port, tells the new session by the `id` of its state and copies its workbooks again.
 
 ### An edit of the agent
 

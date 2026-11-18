@@ -13,9 +13,11 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
     return {
+        id: 'demo',
         harness: 'claude',
         folder: '/agent',
         connected,
+        ended: false,
         turns,
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
@@ -141,10 +143,12 @@ describe('Workbook status bar', () => {
         expect(bubble()).not.toBeNull();
     });
 
-    it('tells that the page lost the session', () => {
+    it('tells that the page lost the session, and one that ended', () => {
         render({ variant: WorkbookStatusBarVariant.Standalone, session: agentSession([], false) });
         expect(container.querySelector<HTMLElement>('[data-testid="workbook-status-bar"]')!.dataset.variant).toBe('standalone');
         expect(agentState()!.dataset.state).toBe('lost');
+        render({ variant: WorkbookStatusBarVariant.Standalone, session: { ...agentSession([], false), ended: true } });
+        expect(agentState()!.dataset.state).toBe('ended');
     });
 
     it('leaves Wobble out on the landing view', () => {

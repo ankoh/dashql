@@ -172,10 +172,11 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
 }
 
 /// A server of a session like the one of dashql. It speaks protocol 1 (agent_session_protocol.ts), the page speaks
-/// with it until the page needs a newer server; `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 1 } = {}) {
+/// with it until the page needs a newer server; `protocol: null` is a server older than the protocol. An `id` is the
+/// id of the session of protocol 3, a server without one is older.
+async function startSessionServer({ port = 0, token = 'secret', protocol = 1, id = null } = {}) {
     const streams = new Set();
-    let state = { harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
+    let state = { ...(id != null ? { id } : {}), harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
     const writes = [];
     const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
@@ -349,7 +350,7 @@ async function testAppAgentSession(page, navigate) {
     } finally {
         await outdated.close();
     }
-    const connected = await startSessionServer({ port: Number(match[1]), token: match[2] });
+    const connected = await startSessionServer({ port: Number(match[1]), token: match[2], id: 'first' });
     try {
         connected.push({ harness: 'codex' });
         await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
@@ -443,8 +444,24 @@ async function testAppAgentSession(page, navigate) {
             return last.length === every.length - 1 && !last.some(connection => connection.connectionId === every[0].connectionId);
         });
         await picker.getByText(`${every.length - 1} / ${every.length} connections`).waitFor();
+
+        // The harness ends the session: the page offers the line again, nothing tells of a lost session
+        connected.push({ ended: true });
+        await page.getByTestId('composer-connect-status').getByText('Run the command in the folder of your project').waitFor();
+        assert.equal(await page.getByText('Lost the session of').count(), 0);
     } finally {
         await connected.close();
+    }
+    // The same line runs the next session on the same port, here with the other harness: the page follows it and copies
+    // the workbook again
+    const next = await startSessionServer({ port: Number(match[1]), token: match[2], id: 'second' });
+    try {
+        await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
+        await waitUntil(() => next.writes.some(write => write.path === 'dashql-workbook.json'));
+        assert.equal(next.writes[0].method, 'DELETE');
+        assert.ok(next.writes.some(write => write.path.startsWith('scripts/') && write.body.includes('from_agent')), JSON.stringify(next.writes.map(write => write.path)));
+    } finally {
+        await next.close();
     }
 }
 

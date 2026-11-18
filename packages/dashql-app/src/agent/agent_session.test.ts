@@ -36,6 +36,7 @@ describe('the session of an agent in the bar of a workbook', () => {
         const state = { ...createAgentSessionState('claude', '/w'), ended: true, turns: [{ turnId: 1, question: '', status: null, error: null, note: null, files: [], steps: [] }] };
         const session = agentSessionOf({ state, connected: true }, workbook, new Set(), vi.fn(), vi.fn());
         expect(session.connected).toBe(false);
+        expect(session.ended).toBe(true);
         expect(session.turns[0].question.question).toBe('A question in the terminal');
     });
 

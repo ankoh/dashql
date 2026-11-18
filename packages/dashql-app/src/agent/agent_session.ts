@@ -45,12 +45,16 @@ export interface AgentTurn {
 /// send its events to `dashql session serve`, the page reads them from there (docs/wip/agent_session.md). The
 /// questions come from the terminal, the prompt of the page is closed while the page reaches the session.
 export interface AgentSession {
+    /// The id of the session, a new one for every server on the port of the line; empty from an older server
+    id: string;
     /// The harness, e.g. claude or codex
     harness: string;
     /// The folder that the agent works in
     folder: string;
-    /// Does the page still reach the session?
+    /// Does the page still reach the session? Not once the session ended.
     connected: boolean;
+    /// Did the harness end the session? The page waits on the port for the next one.
+    ended: boolean;
     /// The questions of the session, oldest first
     turns: AgentTurn[];
     /// Dismiss the final message or the error of a question
@@ -142,9 +146,11 @@ export function agentSessionOf(
         };
     });
     return {
+        id: state.id ?? '',
         harness: state.harness,
         folder: state.folder,
         connected: followed.connected && !state.ended,
+        ended: state.ended,
         turns,
         onDismiss,
         onShowScript,

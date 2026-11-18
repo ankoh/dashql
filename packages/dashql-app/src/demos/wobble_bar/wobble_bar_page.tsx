@@ -19,9 +19,11 @@ const WORKBOOK_ID = 'demo';
 /// The session of Claude Code in the terminal as the feed hands it to the bar
 function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
     return {
+        id: 'demo',
         harness: 'claude',
         folder: '~/data/sales',
         connected,
+        ended: false,
         turns,
         onDismiss: () => { },
         onShowScript: () => { },

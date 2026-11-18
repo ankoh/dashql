@@ -419,7 +419,7 @@ describe('Workbook composer', () => {
         });
 
         it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {
-            const session = { harness: 'codex', folder: '/w', connected: true, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
+            const session = { id: 's1', harness: 'codex', folder: '/w', connected: true, ended: false, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
             const editor = await renderConnected(ComposerMode.Ai, session);
             expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Codex works on this workbook in the terminal, switch to SQL to edit the scripts yourself');
             act(() => mode('sql').click());

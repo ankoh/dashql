@@ -42,7 +42,7 @@ export interface WorkbookStatusBarProps {
 /// The agent at the right end of the bar: the harness of the session and the folder it works in
 function AgentState(props: { session: AgentSession; working: boolean }) {
     const { session } = props;
-    const dot = !session.connected ? 'lost' : props.working ? 'working' : 'connected';
+    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.working ? 'working' : 'connected';
     return (
         <span className={styles.agent} title={`${harnessLabel(session.harness)} in ${session.folder}`}
             data-testid="workbook-agent-state" data-state={dot}>

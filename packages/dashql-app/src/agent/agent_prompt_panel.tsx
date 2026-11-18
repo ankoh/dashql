@@ -181,7 +181,7 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
         const list = turnsRef.current;
         if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
     }, []);
-    const detail = !session.connected ? 'lost the session' : working ? 'working' : `in ${session.folder}`;
+    const detail = session.ended ? 'ended the session' : !session.connected ? 'lost the session' : working ? 'working' : `in ${session.folder}`;
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
             <div className={styles.header}>

@@ -28,6 +28,11 @@ and Codex follows the switch of SQL and AI while AI is on. The editor keeps its 
   and launches the harness with the hooks of the session in its arguments, nothing is installed
   (`packages/dashql-cli/README.md`). The session ends when the harness exits.
 - **The first state switches to AI**, the user can switch back to SQL, see [Who has the workbook](#who-has-the-workbook).
+- **The line runs again.** Once the harness ended its session, the tab keeps trying the port and the composer shows
+  the line again: it runs the next session on the same port and secret, with either harness. Every server names its
+  session with `id` in the state (protocol 3); a new id is a new session, the tab copies its workbooks into it again,
+  forgets the dismissed turns of the old one and switches to AI again. A server before protocol 3 names none, the tab
+  takes it for the session that it copied into before.
 - The page waits with requests that fail until the server is up; the browser logs them. Chrome asks once for the local
   network of a public page.
 
@@ -133,7 +138,8 @@ goes through a `dashql` command, so the commands tell what they changed.
   text of the assistant in the JSONL of Claude Code).
 - **The page** gets the link as an app event. `AgentSessionProvider` (`agent/agent_session_provider.tsx`) follows the
   server with `followAgentSession` of the runtime (`fetch`, in the browser and in Node), tries a lost server again every
-  2 s until it ended the session, and keeps the link in the storage of the tab for a reload. A session belongs to the
+  2 s, also once the session ended, for the next session on the port, and keeps the link in the storage of the tab
+  for a reload. A lost session shows as lost in the status of the bar, an ended one shows nothing there. A session belongs to the
   page: every workbook shows it. `agentSessionOf` (`agent/agent_session.ts`) maps it onto the model of the bar, the
   files that the agent touched are the scripts of the workbook with the same file name.
 
@@ -186,7 +192,8 @@ goes through a `dashql` command, so the commands tell what they changed.
   not again after a reload, that an edit reaches the copy, that the tab takes the text of the agent, that a run that
   the server asks for runs in the tab and posts its events, that the result of a connection that caches results comes
   with its Parquet file, which the tab writes into the cache of the session, and that the menu of the connections of
-  the agent sends the connections that stay ticked.
+  the agent sends the connections that stay ticked; that a session that ends leaves the line in the composer and no
+  lost session, and that the next server on the same port gets a new copy.
 
 ## Plan: the workbook, the connections and the runs of a session
 
@@ -226,8 +233,8 @@ every endpoint. Other workbook folders run in the process of `dashql run`.
   workbook file the server names the copy in the `workbooks` of its state, like a workbook folder of the journal with
   the path `.dashql/workbooks/<id>`, and hands out its files on the same route. A native workbook has its folder on disk
   already, the page copies nothing; the agent could work in that folder (not built). The page copies a workbook once
-  per target, also across a reload (the storage of the tab keeps the copied workbooks): a copy again would replace
-  what the agent did. After a reload the page adopts the copy, every script of it that differs from the page is a
+  per session (the target and the `id` of the state), also across a reload (the storage of the tab keeps the copied
+  workbooks): a copy again would replace what the agent did. After a reload the page adopts the copy, every script of it that differs from the page is a
   change of the agent.
 - **The changes of the agent come back** (`agent/agent_session_copy.ts`). The first state that names a copy is what the
   page wrote, later stamps of its scripts that differ are changes of the agent: the page fetches a changed script and

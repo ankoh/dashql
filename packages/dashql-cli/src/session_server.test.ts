@@ -94,6 +94,10 @@ describe('the session server', () => {
             expect(readFileSync(journal('51002'), 'utf8')).toBe('');
             expect(existsSync(path.join(folder, '.dashql', 'journal.jsonl'))).toBe(false);
             expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
+            // Every server names its session, a page tells the next session on a port by it
+            expect(first.state().id).toMatch(/^[0-9a-f-]{36}$/);
+            expect(second.state().id).toMatch(/^[0-9a-f-]{36}$/);
+            expect(second.state().id).not.toBe(first.state().id);
             appendFileSync(journal('51002'), `${JSON.stringify(record(JOURNAL_FILES, JOURNAL_TARGET, { [JOURNAL_KEYS.workbook]: '.', [JOURNAL_KEYS.workbookId]: 'w1', [JOURNAL_KEYS.files]: [] }))}\n`);
             await until(() => second.state().workbooks.length === 1);
             expect(first.state().workbooks).toEqual([]);

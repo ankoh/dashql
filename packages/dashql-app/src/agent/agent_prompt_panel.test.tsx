@@ -10,9 +10,11 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 function agentSession(overrides: Partial<AgentSession> = {}): AgentSession {
     return {
+        id: 's1',
         harness: 'claude',
         folder: '/agent',
         connected: true,
+        ended: false,
         turns: [],
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
@@ -35,7 +37,7 @@ describe('Agent prompt panel', () => {
 
     const detail = () => container.querySelector('[data-testid="composer-agent-detail"]')?.textContent;
 
-    it('names the harness, its folder and a lost session', () => {
+    it('names the harness, its folder, a lost and an ended session', () => {
         act(() => root.render(<AgentPromptPanel session={agentSession()} />));
         expect(container.textContent).toContain('Claude Code');
         expect(detail()).toBe('in /agent');
@@ -46,6 +48,9 @@ describe('Agent prompt panel', () => {
         act(() => root.render(<AgentPromptPanel session={agentSession({ connected: false })} />));
         expect(detail()).toBe('lost the session');
         expect(container.querySelector('[data-testid="composer-agent-turn"]')).toBeNull();
+
+        act(() => root.render(<AgentPromptPanel session={agentSession({ connected: false, ended: true })} />));
+        expect(detail()).toBe('ended the session');
     });
 
     it('shows what the agent does for a question, the terminal stops the agent', () => {

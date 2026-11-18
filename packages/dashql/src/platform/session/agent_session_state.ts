@@ -57,6 +57,9 @@ export interface AgentSessionTurn {
 
 /// The state of a session that the server keeps and the page follows
 export interface AgentSessionState {
+    /// A new one for every server, so that a page tells a new session on the same port from the one it followed.
+    /// Missing from servers before protocol 3.
+    id?: string;
     harness: string;
     folder: string;
     /// Did the harness end the session?
@@ -78,8 +81,8 @@ export const MAX_AGENT_SESSION_STEPS = 30;
 /// The log records of the commands that a session keeps, the oldest go first
 export const MAX_AGENT_SESSION_LOG = 100;
 
-export function createAgentSessionState(harness: string, folder: string): AgentSessionState {
-    return { harness, folder, ended: false, turns: [], workbooks: [], log: [], version: 0 };
+export function createAgentSessionState(harness: string, folder: string, id: string = globalThis.crypto.randomUUID()): AgentSessionState {
+    return { id, harness, folder, ended: false, turns: [], workbooks: [], log: [], version: 0 };
 }
 
 /// A turn of a question
