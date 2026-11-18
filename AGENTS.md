@@ -61,6 +61,8 @@ Please consult relevant docs in that directory before making changes.
 
 - Agent sessions (built: the hooks of Claude Code and Codex send the events of a session to `dashql session serve`,
   `dashql run` appends its log to the journal `.dashql/journal.jsonl` of the session, the page follows through a link)
+    - `docs/design/agent_integration.md` (start here: what happens in the tab and what in the terminal, what crosses
+      between them, the files, the flows, and how to decide the side of something new for the agent)
     - `docs/wip/agent_session.md`
     - `docs/wip/agent_integration_tests.md` (Claude Code and Codex with fake models in their sandboxes, `//tests/agents`)
     - `docs/wip/tab_driven_runs.md` (`dashql run` asks the tab to run a workbook it copied, the feed is the live
