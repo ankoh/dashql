@@ -28,9 +28,16 @@ async function waitForQuery(page) {
     if (await done.getAttribute('data-status') !== 'succeeded') throw new Error(`The query failed: ${await done.textContent()}`);
 }
 
+/// Wait until the send button of the composer runs the draft. Until the connection of the draft is online, the first one
+/// also waits for Hyper to boot, the button is the "Connect to run" button: a click only points at the connection and the
+/// draft stays.
+async function waitForComposerSend(page) {
+    await page.locator('[data-testid="composer-send"]:not([data-connect])').waitFor();
+}
+
 /// Run a query from the composer of the greeter, its first script creates the workbook
 async function sendFromComposer(page, text) {
-    await page.getByTestId('composer-send').waitFor();
+    await waitForComposerSend(page);
     await page.locator('.cm-content').first().click();
     await page.keyboard.insertText(text);
     await page.getByTestId('composer-send').click();
@@ -492,7 +499,7 @@ async function testAppChrome(page, navigate) {
 /// script dropped it, although the first script still declares it
 async function testAppCatalogFollowsStatements(page, navigate) {
     await navigate('/');
-    await page.getByTestId('composer-send').waitFor();
+    await waitForComposerSend(page);
     const send = async (text, label) => {
         await page.locator('.cm-content').last().click();
         await page.keyboard.type(text);
@@ -538,7 +545,7 @@ select k, k * ${i + 1}${Array.from({ length: 24 }, (_, c) => ` + k * ${c} - k * 
 /// A row that enters the viewport keeps its height, the editor of its script measures itself only inside of the window.
 async function testAppFeedScrollPosition(page, navigate) {
     await navigate('/');
-    await page.getByTestId('composer-send').waitFor();
+    await waitForComposerSend(page);
     await page.locator('.cm-content').first().click();
     await page.keyboard.insertText(scrollTestScript(0));
     await page.getByTestId('composer-send').click();
