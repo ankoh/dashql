@@ -1,18 +1,17 @@
 import type { TopLevelSpec } from 'vega-lite';
 
+import {
+    CHART_IMAGE_HEIGHT,
+    CHART_IMAGE_SCALE,
+    CHART_IMAGE_WIDTH,
+    chartImageConfig,
+    chartImageSpec,
+} from '@akohn/dashql/platform/workbook/chart_config';
+
 import { loadVega, type VegaModules } from './vegalite_loader.js';
-import { withViewEncodings } from './vegalite_spec.js';
 import { createVegaLiteConfig, resolveChartColors } from './vegalite_theme.js';
 
-/// The size of a chart image in CSS pixels, the image has `scale` times as many pixels
-export const CHART_IMAGE_WIDTH = 800;
-export const CHART_IMAGE_HEIGHT = 500;
-export const CHART_IMAGE_SCALE = 2;
-
-/// The background of chart images, the images take the light colors of the theme in both color schemes
-const CHART_IMAGE_BACKGROUND = '#ffffff';
-/// The margin of chart images in CSS pixels, the charts of the app have none and touch the edges of the image
-const CHART_IMAGE_PADDING = 16;
+export { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH };
 
 /// The Vega log level that only logs errors (vega.Error)
 const VEGA_LOG_LEVEL_ERROR = 1;
@@ -41,15 +40,8 @@ export interface ChartImage {
 /// The rows are the data of the spec, like the query result of a `@vis vegalite` tag.
 export async function renderVegaLitePng(spec: TopLevelSpec, rows: readonly object[], options: ChartImageOptions = {}): Promise<ChartImage> {
     const { vega, vegaLite, expressionInterpreter } = await (options.loader ?? loadVega)();
-    const sizedSpec = {
-        ...withViewEncodings(spec),
-        data: { values: rows },
-        width: options.width ?? CHART_IMAGE_WIDTH,
-        height: options.height ?? CHART_IMAGE_HEIGHT,
-        autosize: { type: 'fit', contains: 'padding' },
-    } as TopLevelSpec;
-    const config = { ...createVegaLiteConfig(resolveChartColors('light')), background: CHART_IMAGE_BACKGROUND, padding: CHART_IMAGE_PADDING };
-    const compiled = vegaLite.compile(sizedSpec, { config }).spec;
+    const sizedSpec = chartImageSpec(spec, rows, options.width ?? CHART_IMAGE_WIDTH, options.height ?? CHART_IMAGE_HEIGHT);
+    const compiled = vegaLite.compile(sizedSpec, { config: chartImageConfig(createVegaLiteConfig(resolveChartColors('light'))) }).spec;
     // The expression interpreter avoids the eval of Vega that CSP forbids, it needs the parsed ASTs
     const view = new vega.View(vega.parse(compiled, undefined, { ast: true }), {
         renderer: 'none',
