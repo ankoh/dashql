@@ -2,7 +2,7 @@
 // prints lines for agents and pipes
 import type * as arrow from 'apache-arrow';
 
-import { ReportColor, type ReportStyle } from '@akohn/dashql/platform/sql/sql_report';
+import { ReportColor, type ReportStyle } from './sql_report.js';
 
 import { summaryText, type RunEvent, type RunReporter } from './run_events.js';
 import { pathBelow, plural, seconds } from './term.js';

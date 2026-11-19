@@ -1,4 +1,4 @@
-import * as core from '../../core/index.js';
+import * as core from '@akohn/dashql';
 
 /// The line width of formatted scripts
 export const SQL_FORMAT_MAX_WIDTH = 120;

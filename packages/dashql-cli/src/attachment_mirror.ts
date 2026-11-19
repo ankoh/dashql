@@ -1,6 +1,6 @@
-import { getOPFSRoot } from '../opfs_root.js';
-import type { NativeStorageBackend } from '../storage/native_storage_backend.js';
-import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOKS_FOLDER, validateDataFileName } from '../storage/storage_backend.js';
+import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
+import type { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
+import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOKS_FOLDER, validateDataFileName } from '@akohn/dashql/platform/storage/storage_backend';
 
 /// Mirror the attachments of a workbook folder into the root of the app, `workbooks/<id>/attachments`, where the
 /// embedded Hyper reads them (`attachment_mounts.ts`). A file is copied unless the mirror has its size and is newer,

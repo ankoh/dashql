@@ -46,7 +46,7 @@ echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
 
 ### What it does
 
-Every script is scanned, parsed and analyzed by dashql-core (`sql/sql_lint.ts` of the platform of `@akohn/dashql`), and only the scripts with
+Every script is scanned, parsed and analyzed by dashql-core (`src/sql_lint.ts` over the bindings of `@akohn/dashql`), and only the scripts with
 diagnostics are printed. Scripts
 are not executed.
 
@@ -82,7 +82,7 @@ complete them. They are not reported.
 dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
 ```
 
-Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`sql/sql_format.ts` of the platform of `@akohn/dashql`) in the
+Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`src/sql_format.ts` over the bindings of `@akohn/dashql`) in the
 pretty mode with lowercase
 keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
 `--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where

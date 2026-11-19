@@ -1,12 +1,11 @@
-import * as core from '../../core/index.js';
+import * as core from '@akohn/dashql';
+import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
 
 import { formatSqlScript } from './sql_format.js';
 
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
 let dql: core.DashQL;
 beforeAll(async () => {
-    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    dql = await createDashQLCoreSetup()('sql_format.test');
 });
 
 const HYPER = core.buffers.formatting.FormattingDialect.HYPER;

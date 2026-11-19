@@ -24,7 +24,7 @@ root `tsconfig.json` and the Vite config of the app for editors and the dev serv
 |---|---|---|
 | `src/core` | `@akohn/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
 | `src/runtime` | `@akohn/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the SQL and session support of the command line tool |
+| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; storage backends and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the session support that the command line tool shares with the app |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@akohn/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
@@ -500,7 +500,8 @@ runtime: `dashql run` creates a runtime over `createNodePlatform` with a `Native
 the embedded Hyper as its compute database and result cache, and the catalog loader off; it restores the folder with
 `restoreWorkbook`, sets up its connections with `setupConnection` (the credentials of the environment as
 `channelParams`, never written), runs with `runWorkbook` and a listener of script events, and reads the progress from
-the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
+the `query` views. `lint` and `format` use the bindings and no runtime (`sql_lint.ts`, `sql_format.ts` and `sql_report.ts` of the command
+line tool), and `run` mirrors the attachments of a workbook folder into the root of Node (`attachment_mirror.ts`).
 
 - **The root of Node.** The CLI brings a folder with the layout of the origin private file system
   ([storage_layout.md](storage_layout.md)): `DASHQL_HOME`, else the `.dashql/` of the workspace, else `~/.dashql`.

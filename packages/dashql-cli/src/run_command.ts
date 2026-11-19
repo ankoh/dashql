@@ -19,9 +19,9 @@ import { isWorkbookCopyId, JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesM
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
-import { SqlLinter } from '@akohn/dashql/platform/sql/sql_lint';
-import { formatReportFile } from '@akohn/dashql/platform/sql/sql_report';
-import { mirrorWorkbookAttachments } from '@akohn/dashql/platform/workbook/attachment_mirror';
+import { SqlLinter } from './sql_lint.js';
+import { formatReportFile } from './sql_report.js';
+import { mirrorWorkbookAttachments } from './attachment_mirror.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
-import { ReportStyle } from '@akohn/dashql/platform/sql/sql_report';
+import { ReportStyle } from './sql_report.js';
 
 import type { CliProcess } from './cli_process.js';
 

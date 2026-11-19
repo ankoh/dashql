@@ -1,4 +1,4 @@
-import type * as core from '../../core/index.js';
+import type * as core from '@akohn/dashql';
 
 /// A script to check: its id names it in the report, e.g. its path
 export interface SqlInput {

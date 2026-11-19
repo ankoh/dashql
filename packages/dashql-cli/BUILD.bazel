@@ -23,7 +23,7 @@ _MODULES = glob(
 )
 
 # @akohn/dashql is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
-# bindings and the SQL support of the platform. The generated packages that it imports come with its source package,
+# bindings, with their SQL support in src/sql_*.ts. The generated packages that it imports come with its source package,
 # resolved through the aliases of vite.config.mjs and vitest.config.mjs and the paths of tsconfig.bazel.json.
 _DEPENDENCIES = [
     "//:node_modules/@akohn/dashql",
