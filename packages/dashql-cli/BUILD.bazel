@@ -1,5 +1,4 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
-load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
@@ -23,31 +22,10 @@ _MODULES = glob(
     exclude = ["src/**/*.test.ts"],
 )
 
-# The generated packages that @akohn/dashql imports, resolved through the aliases of vite.config.mjs and vitest.config.mjs
-# and the paths of tsconfig.bazel.json like in //packages/dashql. Those of the core module come with its source package.
-copy_to_directory(
-    name = "dep_protobuf",
-    srcs = ["//proto/pb:ts_gen"],
-    out = "./dependencies/dashql-protobuf",
-    replace_prefixes = {
-        "proto/pb/ts_gen": "",
-    },
-)
-
-copy_to_directory(
-    name = "dep_jsonschema",
-    srcs = ["//proto/json:ts_gen"],
-    out = "./dependencies/dashql-jsonschema",
-    replace_prefixes = {
-        "proto/json": "",
-    },
-)
-
 # @akohn/dashql is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
-# bindings and the SQL support of the platform.
+# bindings and the SQL support of the platform. The generated packages that it imports come with its source package,
+# resolved through the aliases of vite.config.mjs and vitest.config.mjs and the paths of tsconfig.bazel.json.
 _DEPENDENCIES = [
-    ":dep_jsonschema",
-    ":dep_protobuf",
     "//:node_modules/@akohn/dashql",
     "//:node_modules/@akohn/hyperdb-edge",
     "//:node_modules/@bufbuild/protobuf",

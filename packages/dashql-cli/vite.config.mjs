@@ -10,8 +10,8 @@ export default {
         alias: [
             { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-wasm/$1') },
             { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/$1') },
-            { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
-            { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
+            { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-protobuf/$1') },
+            { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, '../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema/$1') },
         ],
     },
     build: {

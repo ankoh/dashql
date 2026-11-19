@@ -29,8 +29,9 @@ root `tsconfig.json` and the Vite config of the app for editors and the dev serv
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@akohn/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
 the dataflow layout; every glue exports the URL of its Wasm as `wasmUrl`), `@akohn/dashql-flatbuffers`
-(`:dep_flatbuffers`), `@akohn/dashql-protobuf` and `@akohn/dashql-jsonschema`. A consumer maps them with paths of
-`tsconfig.json` and aliases of Vite or vitest.
+(`:dep_flatbuffers`), `@akohn/dashql-protobuf` (`:dep_protobuf`) and `@akohn/dashql-jsonschema` (`:dep_jsonschema`).
+They come with the source package, in `node_modules/@akohn/dashql/dependencies/`, and a consumer maps them there with
+paths of `tsconfig.json` and aliases of Vite or vitest.
 
 ### What goes where
 

@@ -8,25 +8,6 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load(":bazel/browser_test.bzl", "browser_test")
 
-copy_to_directory(
-    name = "dep_protobuf",
-    srcs = ["//proto/pb:ts_gen"],
-    out = "./dependencies/dashql-protobuf",
-    replace_prefixes = {
-        "proto/pb/ts_gen": ""
-    },
-    visibility = ["//visibility:private"],
-)
-copy_to_directory(
-    name = "dep_jsonschema",
-    srcs = ["//proto/json:ts_gen"],
-    out = "./dependencies/dashql-jsonschema",
-    replace_prefixes = {
-        "proto/json": ""
-    },
-    visibility = ["//visibility:private"],
-)
-
 # Stage the declared SQL snippets for the @dashql/snippets alias, the app bundles them as text.
 # A fresh output directory, so snippets deleted from examples/snippets don't linger in bazel-bin.
 copy_to_directory(
@@ -82,7 +63,6 @@ genrule(
         "vite.config.tpl.ts",
         "@dashql_app_version//:version.env",
         "//:package.json",
-        ":dep_protobuf",
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
@@ -95,8 +75,8 @@ genrule(
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
         if [ -z "$$NPM_VERSION" ]; then NPM_VERSION="$$VERSION"; fi
 
-        sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
-            -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
+        sed -e "s|__PROTOBUF_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-protobuf|g" \\
+            -e "s|__JSONSCHEMA_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema|g" \\
             -e "s|__DASHQL_PATH__|../../node_modules/@akohn/dashql|g" \\
             -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@akohn/dashql/dependencies|g" \\
             -e "s|__REACT_PATH__|../../node_modules/@akohn/dashql-react|g" \\
@@ -135,8 +115,8 @@ genrule(
             -e "s|__DASHQL_PATH__|../dashql|g" \
             -e "s|__DASHQL_GENERATED_PATH__|../../bazel-bin/packages/dashql/dependencies|g" \
             -e "s|__REACT_PATH__|../dashql-react|g" \
-            -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
-            -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
+            -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql/dependencies/dashql-protobuf|g" \
+            -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql/dependencies/dashql-jsonschema|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
             -e "s|__EXTENSIONS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/extensions|g" \
@@ -226,18 +206,6 @@ copy_to_bin(
     ]),
 )
 
-js_library(
-    name = "dep_protobuf_lib",
-    srcs = [":dep_protobuf"],
-    visibility = ["//visibility:private"],
-)
-
-js_library(
-    name = "dep_jsonschema_lib",
-    srcs = [":dep_jsonschema"],
-    visibility = ["//visibility:private"],
-)
-
 typescript_bin.tsc_binary(
     name = "_tsc_bin",
     visibility = ["//visibility:private"],
@@ -259,8 +227,6 @@ ts_project(
     validate = False,
     validator = ":_tsc_bin",
     deps = [
-        ":dep_protobuf_lib",
-        ":dep_jsonschema_lib",
         "//:node_modules",
         "//:node_modules/@akohn/dashql",
         "//:node_modules/@akohn/dashql-react",
@@ -279,8 +245,6 @@ _vite_web_deps = [
     ":vite_config",
     "//:node_modules/@akohn/dashql",
     "//:node_modules/@akohn/dashql-react",
-    ":dep_protobuf",
-    ":dep_jsonschema",
     ":dep_svg_symbols",
     "//:node_modules/@bufbuild/protobuf",
     "//:node_modules/@codemirror/commands",
@@ -457,8 +421,8 @@ sh_binary(
         "//packages/dashql:dep_flatbuffers",
         "//packages/dashql:dep_wasm",
         ":extensions",
-        ":dep_protobuf",
-        ":dep_jsonschema",
+        "//packages/dashql:dep_protobuf",
+        "//packages/dashql:dep_jsonschema",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],

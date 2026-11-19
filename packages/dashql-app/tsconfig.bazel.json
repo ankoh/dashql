@@ -12,10 +12,10 @@
         "jsx": "react-jsx",
         "baseUrl": ".",
         "paths": {
-            "@akohn/dashql-protobuf": ["./dependencies/dashql-protobuf"],
-            "@akohn/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
-            "@akohn/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
-            "@akohn/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
+            "@akohn/dashql-protobuf": ["../../node_modules/@akohn/dashql/dependencies/dashql-protobuf"],
+            "@akohn/dashql-protobuf/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-protobuf/*"],
+            "@akohn/dashql-jsonschema": ["../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema"],
+            "@akohn/dashql-jsonschema/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema/*"],
             "@akohn/dashql-wasm/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-wasm/*"],
             "@akohn/dashql-flatbuffers/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/*"]
         },
