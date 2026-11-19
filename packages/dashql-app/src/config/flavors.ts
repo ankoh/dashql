@@ -1,5 +1,5 @@
 import type { AppSettings } from './app_config.js';
-import type { BrandLogo } from '@akohn/dashql-react/brand/brand_logo';
+import type { BrandLogo } from '@akohn/dashql-react/brand/brand';
 
 /// The logo of a flavor, the components of @akohn/dashql-react show it
 export type AppFlavorLogo = BrandLogo;

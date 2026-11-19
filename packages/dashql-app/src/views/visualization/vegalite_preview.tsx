@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
 import * as styles from './visualization.module.css';
-import { createVegaLitePreviewConfig } from '../../ui/vegalite/vegalite_theme.js';
+import { createVegaLitePreviewConfig } from '@akohn/dashql-react/vegalite/vegalite_theme';
 import { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 

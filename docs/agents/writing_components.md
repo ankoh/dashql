@@ -7,7 +7,11 @@ components that other hosts share are the package `@akohn/dashql-react` (`packag
 largest is the data table (`components/data_table/data_table`, its entry module exports what a host uses): it shows a
 computation model, takes the column header as a prop and the detail of a cell as a slot; the app wraps it in
 `DataTableView` (`views/query_result/data_table_view.tsx`), which adds the column plots of the settings and its cell
-overlay. A component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
+overlay. The result of a query (`components/query_result`: header, panel, details, the card of the full table, the
+search), the progress panel, the query profile and history views and the Vega-Lite chart and view
+(`components/vegalite_view`, with the library in `vegalite/`) are there too; the app keeps containers of the same
+names that read the runtime and fill the slots. The theme of a component follows `useColorScheme` of
+`theme/color_scheme` and `useBrand` of `brand/brand`, which the host fills. A component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
 (`//packages/dashql-react:boundary_test`); it logs through `useLogger` of `@akohn/dashql-react/logger`, whose context
 the host provides. Their tests sit next to them (`button.test.tsx`) with the helpers of `src/testing` (`react_act`,
 `ResizeObserverMock`); the browser tests of the app run them as `dashql-react/src/<path>`

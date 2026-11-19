@@ -79,7 +79,7 @@ unresolved to that element. `src/styles/globals.css` sets the scheme of the root
 ```
 
 Without `data-color-scheme`, the app follows the OS. The setting `colorScheme` of the app settings pins it
-(`src/config/color_scheme.tsx`, applied by `AppSettingsSync`). The toggle in the top bar switches to the other scheme
+(`src/config/color_scheme.tsx` over `@akohn/dashql-react/theme/color_scheme`, applied by `AppSettingsSync`). The toggle in the top bar switches to the other scheme
 and pins it, the app settings offer to follow the OS again. The settings load asynchronously, until then the app
 follows the OS.
 
@@ -110,7 +110,8 @@ Cards, tables, editors, dialogs and menus are opaque and sit slightly lighter th
 - The editors use one CodeMirror theme whose colors are `var(--code_*)` and theme tokens
   (`src/workbook/editor/themes/xcode.ts`). They switch with the scheme without being reconfigured.
 - Vega draws on a canvas, which cannot resolve tokens. `resolveChartColors()` resolves them with a probe element, and
-  the charts embed again when `useColorScheme()` or the flavor changes. Chart images resolve the light scheme on a white
+  the charts embed again when `useColorScheme()` or the brand of the flavor changes (`BrandContext` of
+  `@akohn/dashql-react/brand/brand`, which the `FlavorProvider` of the app fills). Chart images resolve the light scheme on a white
   background in both schemes.
 - Colors that encode data, like the badges of the query profile, stay data colors.
 - The icons of connectors are their colored logos in the light scheme and their monochrome logos in the dark one,

@@ -2,7 +2,7 @@ import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './card_placeholder.module.css';
 
-import { useBrandLogo } from '../brand/brand_logo.js';
+import { useBrand } from '../brand/brand.js';
 import { classNames } from '../dom/classnames.js';
 import { QueryExecutionStatus, queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
@@ -21,7 +21,7 @@ function queryStatusMessage(query: QueryExecutionState | null): string | null {
 /// A card that has nothing to show yet: the logo of the flavor, faint, with the message below it.
 /// A hint is quieter than a status, it must not compete with the cards that show results.
 export function CardPlaceholder(props: { message: string; hint?: boolean }): React.ReactElement {
-    const logo = useBrandLogo();
+    const logo = useBrand().logo;
     return (
         <div className={styles.root} data-testid="card-placeholder">
             <svg

@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import type { View } from 'vega';
 import type { TopLevelSpec } from 'vega-lite';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { VegaLiteChart, type VegaDatasets } from './vegalite_chart.js';
-import { createVegaLiteConfig, resolveChartColors } from './vegalite_theme.js';
+import { createVegaLiteConfig, resolveChartColors } from '../vegalite/vegalite_theme.js';
 
 const SPEC: TopLevelSpec = {
     params: [{ name: 'windowEnd', value: 0 }],

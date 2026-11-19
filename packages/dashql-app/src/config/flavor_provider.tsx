@@ -1,6 +1,6 @@
 import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
-import { BrandLogoContext } from '@akohn/dashql-react/brand/brand_logo';
+import { BrandContext, type Brand } from '@akohn/dashql-react/brand/brand';
 import { useLocation } from 'react-router-dom';
 
 import { AppFlavor, DASHQL_FLAVOR } from './flavors.js';
@@ -36,9 +36,10 @@ export const FlavorProvider: React.FC<Props> = (props: Props) => {
         requested: props.requested,
         select: setSettingId,
     }), [flavor, props.requested]);
+    const brand = React.useMemo<Brand>(() => ({ id: flavor.id, logo: flavor.logo }), [flavor]);
     return (
         <FLAVOR_CTX.Provider value={state}>
-            <BrandLogoContext.Provider value={flavor.logo}>{props.children}</BrandLogoContext.Provider>
+            <BrandContext.Provider value={brand}>{props.children}</BrandContext.Provider>
         </FLAVOR_CTX.Provider>
     );
 };

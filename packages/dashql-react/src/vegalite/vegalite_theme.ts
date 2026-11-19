@@ -3,7 +3,7 @@ import type { EmbedOptions } from 'vega-embed';
 
 import { CHART_FALLBACK_FONT, createChartConfig, LIGHT_CHART_COLORS, type ChartColors } from '@akohn/dashql/platform/workbook/chart_config';
 
-import type { ColorScheme } from '../../config/color_scheme.js';
+import type { ColorScheme } from '../theme/color_scheme.js';
 
 import './vegalite_tooltip.css';
 

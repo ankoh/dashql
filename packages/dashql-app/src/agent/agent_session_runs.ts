@@ -8,8 +8,8 @@ import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/r
 import { describeRunError, runScriptsOf, runWorkbookReported } from '@akohn/dashql/runtime/workbook_run_report';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
-import { renderVegaLitePng } from '../ui/vegalite/vegalite_image.js';
-import { arrowTableToRows } from '../ui/vegalite/vegalite_rows.js';
+import { renderVegaLitePng } from '@akohn/dashql-react/vegalite/vegalite_image';
+import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
 
 const LOG_CTX = 'agent_session';
 

@@ -2,12 +2,12 @@ import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 import type { View } from 'vega';
 
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
-import { loadVega, type VegaModules } from './vegalite_loader.js';
-import { createEmbedOptions, resolveChartColors, type ChartColors } from './vegalite_theme.js';
-import { useColorScheme } from '../../config/color_scheme.js';
-import { useAppFlavor } from '../../config/flavor_provider.js';
-import { withViewEncodings } from './vegalite_spec.js';
+import { observeSize } from './size_observer.js';
+import { loadVega, type VegaModules } from '../vegalite/vegalite_loader.js';
+import { createEmbedOptions, resolveChartColors, type ChartColors } from '../vegalite/vegalite_theme.js';
+import { useColorScheme } from '../theme/color_scheme.js';
+import { useBrand } from '../brand/brand.js';
+import { withViewEncodings } from '../vegalite/vegalite_spec.js';
 import * as styles from './vegalite_chart.module.css';
 
 /// The items of the named datasets of a spec, by dataset name
@@ -102,7 +102,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
     const loader = props.loader ?? loadVega;
     // The canvas does not follow the color scheme or the flavor, the chart is embedded again with their new colors
     const colorScheme = useColorScheme();
-    const flavorId = useAppFlavor().id;
+    const flavorId = useBrand().id;
     // The sizes of the datasets as data-dataset-<name> attributes
     const datasetSizes = Object.fromEntries(
         Object.entries(props.datasets).map(([name, items]) => [`data-dataset-${name}`, items.length]),

@@ -6,7 +6,7 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { AlertIcon, BracesIcon, ScreenFullIcon, ScreenNormalIcon, ToolsIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { checkVegaLiteSpec } from '../../ui/vegalite/vegalite_check.js';
+import { checkVegaLiteSpec } from '@akohn/dashql-react/vegalite/vegalite_check';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { VegaLiteView } from '../../views/visualization/vegalite_view.js';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';

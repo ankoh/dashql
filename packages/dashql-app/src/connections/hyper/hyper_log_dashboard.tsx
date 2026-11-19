@@ -9,8 +9,8 @@ import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/compo
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { Tooltip } from '@akohn/dashql-react/components/tooltip';
-import { VegaLiteChart, type VegaSignals } from '../../ui/vegalite/vegalite_chart.js';
-import type { ChartColors } from '../../ui/vegalite/vegalite_theme.js';
+import { VegaLiteChart, type VegaSignals } from '@akohn/dashql-react/components/vegalite_chart';
+import type { ChartColors } from '@akohn/dashql-react/vegalite/vegalite_theme';
 import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
 import { overviewClientContext, queryEndsQuery } from './hyper_log_metrics.js';
 import { useHyperLogMetrics, useHyperLogRows, useHyperLogState } from './hyper_log_metrics_provider.js';

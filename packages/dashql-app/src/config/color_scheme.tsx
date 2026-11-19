@@ -1,51 +1,21 @@
 import * as React from 'react';
 
 import { useAppConfig, useAppReconfigure } from './app_config.js';
+import {
+    applyColorSchemeToDocument as applyThemeColorScheme,
+    resolveColorScheme,
+    useColorScheme,
+    type ColorScheme,
+} from '@akohn/dashql-react/theme/color_scheme';
 
-/// The color scheme of the app, see docs/design/app_theme.md
-export type ColorScheme = 'light' | 'dark';
-
-const DARK_QUERY = '(prefers-color-scheme: dark)';
-
-/// The color scheme of the app settings, null to follow the OS
-let currentSetting: ColorScheme | null = null;
-const listeners = new Set<() => void>();
+// The color scheme of the theme is @akohn/dashql-react's, the app pins it to its settings
+export { useColorScheme, type ColorScheme } from '@akohn/dashql-react/theme/color_scheme';
 
 /// Pin the document to the color scheme of the app settings, null follows the OS.
 /// Tells the native window of Electron too.
 export function applyColorSchemeToDocument(setting: ColorScheme | null, doc: Document = document) {
-    if (setting == null) {
-        delete doc.documentElement.dataset.colorScheme;
-    } else {
-        doc.documentElement.dataset.colorScheme = setting;
-    }
+    applyThemeColorScheme(setting, doc);
     globalThis.dashqlElectron?.setColorScheme?.(setting ?? 'system').catch(() => { });
-    if (setting !== currentSetting) {
-        currentSetting = setting;
-        for (const listener of listeners) {
-            listener();
-        }
-    }
-}
-
-function subscribe(listener: () => void): () => void {
-    listeners.add(listener);
-    const media = globalThis.matchMedia?.(DARK_QUERY);
-    media?.addEventListener('change', listener);
-    return () => {
-        listeners.delete(listener);
-        media?.removeEventListener('change', listener);
-    };
-}
-
-function resolveColorScheme(): ColorScheme {
-    return currentSetting ?? (globalThis.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light');
-}
-
-/// The color scheme the document shows: the one of the app settings, or the one of the OS.
-/// Renders again when it changes, for colors that are not CSS, like the colors of charts drawn on a canvas.
-export function useColorScheme(): ColorScheme {
-    return React.useSyncExternalStore(subscribe, resolveColorScheme, () => 'light');
 }
 
 /// Switch to the other color scheme and pin it in the app settings

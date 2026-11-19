@@ -1,4 +1,5 @@
 import type { TopLevelSpec } from 'vega-lite';
+import { describe, expect, it } from 'vitest';
 
 import { renderVegaLitePng } from './vegalite_image.js';
 

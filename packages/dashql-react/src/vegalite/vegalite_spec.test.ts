@@ -1,4 +1,5 @@
 import { loadVega } from './vegalite_loader.js';
+import { describe, expect, it } from 'vitest';
 import { withViewEncodings } from './vegalite_spec.js';
 
 describe('withViewEncodings', () => {
