@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
+import { AnchoredOverlay } from './anchored_overlay.js';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../dom/row_context_menu.js';
 
 const Menu: React.FC<{ name: string; contextMenu: RowContextMenu }> = (props) => {
     const [open, setOpen] = React.useState(false);

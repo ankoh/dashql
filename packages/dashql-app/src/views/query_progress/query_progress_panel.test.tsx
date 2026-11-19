@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@akohn/dashql';
-import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { replayProgressRecording } from '@akohn/dashql/platform/query/query_progress';
 import { ProfileProgressDetails } from './query_progress_panel.js';
 

@@ -66,6 +66,11 @@ export default vite.defineConfig(({ mode, command }) => {
         ? nodeFs.readFileSync(path.join(rootDir, 'dashql_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
             .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(DASHQL_PATH, 'src', file)).split(path.sep).join('/'))
         : null;
+    // The tests of the components of @akohn/dashql-react, the same way
+    const dashqlReactTestPatterns = includesBrowserTests && command === 'build'
+        ? nodeFs.readFileSync(path.join(rootDir, 'dashql_react_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
+            .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(REACT_PATH, 'src', file)).split(path.sep).join('/'))
+        : null;
     const browserTestStylesheets = declaredTestInputs('browser_test_stylesheets.txt');
 
     // The pages deployment ships WebAssembly pre-compressed with Brotli, like hyperdb-wasm does: the bytes we deploy are
@@ -227,7 +232,8 @@ export default vite.defineConfig(({ mode, command }) => {
                     if (!cleanId || !/\/src\/tests\/(test_modules|test_bundle)\.ts$/.test(cleanId)) return;
                     return code
                         .replace("'../**/*.test.{ts,tsx}'", browserTestPatterns.map(file => JSON.stringify(file)).join(',\n'))
-                        .replace("'../../../dashql/src/runtime/**/*.test.ts',\n    '../../../dashql/src/platform/**/*.test.ts'", (dashqlTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
+                        .replace("'../../../dashql/src/runtime/**/*.test.ts',\n    '../../../dashql/src/platform/**/*.test.ts'", (dashqlTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'))
+                        .replace("'../../../dashql-react/src/**/*.test.{ts,tsx}'", (dashqlReactTestPatterns ?? []).map(file => JSON.stringify(file)).join(',\n'));
                 },
             }, {
                 name: 'bazel-browser-test-stylesheets',
@@ -243,8 +249,9 @@ export default vite.defineConfig(({ mode, command }) => {
                 transform(code: string, id: string): string | undefined {
                     const cleanId = id.split('?', 1)[0]?.split(path.sep).join('/');
                     if (!cleanId || !/\.test\.(ts|tsx)$/.test(cleanId)) return;
-                    // The tests of @akohn/dashql are named dashql/src/<path>, see src/tests/test_modules.ts
-                    const dashqlIndex = cleanId.lastIndexOf('/dashql/src/');
+                    // The tests of @akohn/dashql are named dashql/src/<path>, those of @akohn/dashql-react
+                    // dashql-react/src/<path>, see src/tests/test_modules.ts
+                    const dashqlIndex = Math.max(cleanId.lastIndexOf('/dashql/src/'), cleanId.lastIndexOf('/dashql-react/src/'));
                     const sourceIndex = cleanId.lastIndexOf('/src/');
                     if (sourceIndex < 0) return;
                     const file = dashqlIndex >= 0 ? cleanId.slice(dashqlIndex + 1) : cleanId.slice(sourceIndex + 1);
@@ -355,10 +362,6 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /@akohn\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 { find: /^@dashql\/snippets/, replacement: SNIPPETS_PATH },
                 { find: /^@dashql\/extensions/, replacement: EXTENSIONS_PATH },
-                {
-                    find: /^@dashql\/browser-test-act$/,
-                    replacement: path.resolve(rootDir, "src/tests/react_act.ts"),
-                },
                 ...(includesBrowserTests ? [{
                     find: /^vitest$/,
                     replacement: path.resolve(rootDir, "src/tests/vitest_compat.ts"),

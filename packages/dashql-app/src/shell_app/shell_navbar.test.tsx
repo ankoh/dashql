@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { ResizeObserverMock } from '../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ShellNavBar } from './shell_navbar.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { applyFlavorToDocument } from '../config/flavor_resolution.js';

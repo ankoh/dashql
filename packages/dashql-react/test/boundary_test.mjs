@@ -15,7 +15,7 @@ const ALLOWED = /^(react|react-dom|apache-arrow|@akohn\/dashql|@akohn\/dashql-sv
 const SHOWS = /^(components|dom)\//;
 /// What a component may not import
 const RUNTIME = /^@akohn\/dashql\/runtime(\/|$)/;
-/// Only the helpers of tests import vitest
+/// Only the tests and their helpers import vitest
 const TESTING = /^vitest$/;
 
 function modules(dir) {
@@ -44,7 +44,7 @@ for (const module of modules(SRC)) {
             const target = normalize(join(dirname(module), path));
             if (relative(SRC, target).startsWith('..')) failures.push(`${name}: imports ${path}, which leaves src/`);
         } else if (TESTING.test(path)) {
-            if (!name.startsWith('testing/')) failures.push(`${name}: imports ${path}, only the helpers of tests may`);
+            if (!name.startsWith('testing/') && !/\.test\.tsx?$/.test(name)) failures.push(`${name}: imports ${path}, only the tests and their helpers may`);
         } else if (!ALLOWED.test(path)) {
             failures.push(`${name}: imports ${path}, the package reaches React, apache-arrow and @akohn/dashql only`);
         }

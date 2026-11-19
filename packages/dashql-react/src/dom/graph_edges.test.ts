@@ -11,7 +11,7 @@ import {
     selectEdgeType,
     selectHorizontalEdgeType,
     selectVerticalEdgeType,
-} from '@akohn/dashql-react/dom/graph_edges';
+} from './graph_edges.js';
 
 const WIDTH = 20;
 const HEIGHT = 10;

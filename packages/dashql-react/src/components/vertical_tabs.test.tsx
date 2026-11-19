@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { groupVerticalTabs, VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '@akohn/dashql-react/components/vertical_tabs';
+import { groupVerticalTabs, VerticalTabs, VerticalTabVariant, type VerticalTabProps } from './vertical_tabs.js';
 
 function tab(tabId: number, group?: string): VerticalTabProps {
     return { tabId, icon: '', labelShort: `Tab ${tabId}`, group };

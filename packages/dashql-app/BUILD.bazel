@@ -167,6 +167,18 @@ genrule(
     """,
 )
 
+# The tests of the components of @akohn/dashql-react that the browser tests run as well, relative to its src/
+genrule(
+    name = "dashql_react_browser_test_files",
+    srcs = ["//packages/dashql-react:browser_test_files"],
+    outs = ["dashql_react_browser_test_files.txt"],
+    cmd = """
+        for src in $(SRCS); do
+            printf '%s\\n' "$${src#packages/dashql-react/src/}"
+        done > $@
+    """,
+)
+
 genrule(
     name = "browser_test_stylesheets",
     srcs = glob(["src/**/*.css"]),
@@ -260,6 +272,7 @@ _vite_web_deps = [
     ":srcs",
     ":browser_test_files",
     ":dashql_browser_test_files",
+    ":dashql_react_browser_test_files",
     ":browser_test_stylesheets",
     ":example_snippets",
     ":extensions",

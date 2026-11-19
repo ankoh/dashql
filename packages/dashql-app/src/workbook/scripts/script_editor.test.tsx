@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, waitForRender } from '@dashql/browser-test-act';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorState } from '@codemirror/state';

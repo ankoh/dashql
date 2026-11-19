@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '../testing/resize_observer_mock.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
-import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
+import { VerticalSplit } from './vertical_split.js';
 
 function dispatchPointerEvent(target: EventTarget, type: string, init: PointerEventInit) {
     const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;

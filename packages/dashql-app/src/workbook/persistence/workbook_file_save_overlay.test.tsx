@@ -1,6 +1,6 @@
 import * as React from 'react';
 import JSZip from 'jszip';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';

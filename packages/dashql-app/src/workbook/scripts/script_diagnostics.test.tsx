@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '@akohn/dashql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createTestRoot } from '../../tests/react_root.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { collectScriptDiagnostics, ScriptDiagnosticsButton, SCRIPT_FORMATTING_WARNING } from './script_diagnostics.js';

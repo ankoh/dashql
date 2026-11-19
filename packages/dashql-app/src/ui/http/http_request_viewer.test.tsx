@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

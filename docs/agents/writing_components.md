@@ -6,8 +6,10 @@ components that other hosts share are the package `@akohn/dashql-react` (`packag
 `src/dom`, imported as `@akohn/dashql-react/components/button` and `@akohn/dashql-react/dom/anchored_position`. A
 component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
 (`//packages/dashql-react:boundary_test`); it logs through `useLogger` of `@akohn/dashql-react/logger`, whose context
-the host provides. Their tests run in the browser tests of the app for now (`dashql-app/src/ui/`), they use its test
-helpers. A component doesn't talk to the runtime: it knows no
+the host provides. Their tests sit next to them (`button.test.tsx`) with the helpers of `src/testing` (`react_act`,
+`ResizeObserverMock`); the browser tests of the app run them as `dashql-react/src/<path>`
+(`//packages/dashql-react:browser_test_files`, `//packages/dashql-app:test_chromium`). A component doesn't talk to the
+runtime: it knows no
 view kinds, slices, targets, actions, commands or handles, and it doesn't need to know when the store flushes. Those
 stay in the model hooks, one per thing that the app shows. The runtime itself is described in
 [dashql_runtime.md](../design/dashql_runtime.md), read it when you change the runtime or a model.

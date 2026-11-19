@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@akohn/dashql';
@@ -7,7 +7,7 @@ import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_r
 import type { ScriptCardProps } from './script_card.js';
 import { ScriptModelProvider } from '@akohn/dashql-react/models/script_model';
 import { fakeScript, fakeScriptModels } from '@akohn/dashql-react/testing/fake_models';
-import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';

@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
-import { getVerticalScrollOverflow, VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { ResizeObserverMock } from '../testing/resize_observer_mock.js';
+import { getVerticalScrollOverflow, VerticalScrollShadows } from './vertical_scroll_shadows.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

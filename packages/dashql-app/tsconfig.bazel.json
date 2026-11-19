@@ -17,8 +17,7 @@
             "@akohn/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
             "@akohn/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"],
             "@akohn/dashql-wasm/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-wasm/*"],
-            "@akohn/dashql-flatbuffers/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/*"],
-            "@dashql/browser-test-act": ["./src/tests/react_act.ts"]
+            "@akohn/dashql-flatbuffers/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/*"]
         },
         "types": ["node", "vitest/globals", "vite/client"],
         "lib": ["es6", "es2022", "dom"],

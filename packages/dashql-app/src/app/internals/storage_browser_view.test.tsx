@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StorageBrowserView } from './storage_browser_view.js';

@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { act } from '@dashql/browser-test-act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { Tooltip } from '@akohn/dashql-react/components/tooltip';
+import { Tooltip } from './tooltip.js';
 
 describe('Tooltip accessible naming', () => {
     let container: HTMLDivElement;

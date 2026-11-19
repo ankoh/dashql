@@ -23,9 +23,18 @@ const DASHQL_SOURCE_ROOT = '/dashql/src/';
 const DASHQL_TEST_KEYS = new Map(Object.keys(DASHQL_TEST_MODULES)
     .map(key => [`dashql/src/${key.slice(key.lastIndexOf(DASHQL_SOURCE_ROOT) + DASHQL_SOURCE_ROOT.length)}`, key]));
 
+/// The tests of the components of @akohn/dashql-react, named dashql-react/src/<path>
+export const DASHQL_REACT_TEST_MODULES = import.meta.glob([
+    '../../../dashql-react/src/**/*.test.{ts,tsx}',
+]);
+const DASHQL_REACT_SOURCE_ROOT = '/dashql-react/src/';
+const DASHQL_REACT_TEST_KEYS = new Map(Object.keys(DASHQL_REACT_TEST_MODULES)
+    .map(key => [`dashql-react/src/${key.slice(key.lastIndexOf(DASHQL_REACT_SOURCE_ROOT) + DASHQL_REACT_SOURCE_ROOT.length)}`, key]));
+
 export const BROWSER_TEST_FILES = [
     ...Object.keys(BROWSER_TEST_MODULES).map(normalizePath),
     ...DASHQL_TEST_KEYS.keys(),
+    ...DASHQL_REACT_TEST_KEYS.keys(),
 ].sort();
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
@@ -67,6 +76,10 @@ export function getBrowserTestShard(index: number, count: number): string[] {
 }
 
 export function getBrowserTestModule(file: string): (() => Promise<unknown>) | null {
+    if (file.startsWith('dashql-react/')) {
+        const key = DASHQL_REACT_TEST_KEYS.get(file);
+        return key == null ? null : DASHQL_REACT_TEST_MODULES[key] ?? null;
+    }
     if (file.startsWith('dashql/')) {
         const key = DASHQL_TEST_KEYS.get(file);
         return key == null ? null : DASHQL_TEST_MODULES[key] ?? null;

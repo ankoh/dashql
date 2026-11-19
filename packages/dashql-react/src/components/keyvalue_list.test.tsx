@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { KeyValueListBuilder } from '@akohn/dashql-react/components/keyvalue_list';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { KeyValueListBuilder } from './keyvalue_list.js';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { LoggerContext } from '../logger.js';
 
 describe('KeyValueListBuilder', () => {
     let container: HTMLDivElement;
@@ -59,7 +60,7 @@ describe('KeyValueListBuilder', () => {
 
     it('copies an optional formatted setting argument', async () => {
         await act(async () => root.render(
-            <LoggerProvider>
+            <LoggerContext.Provider value={new TestLogger()}>
                 <KeyValueListBuilder
                     title="Engine Settings"
                     caption="Embedded engine initialization settings"
@@ -74,7 +75,7 @@ describe('KeyValueListBuilder', () => {
                     copyValue={({ key, value }) => `--${key}=${value}`}
                     copyLogContext="test"
                 />
-            </LoggerProvider>,
+            </LoggerContext.Provider>,
         ));
 
         await act(async () => {

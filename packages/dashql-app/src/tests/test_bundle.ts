@@ -17,3 +17,7 @@ import.meta.glob([
     // The tests of Node
     '!../../../dashql/src/**/*.node.test.ts',
 ], { eager: true });
+// The tests of the components of @akohn/dashql-react, see test_modules.ts
+import.meta.glob([
+    '../../../dashql-react/src/**/*.test.{ts,tsx}',
+], { eager: true });

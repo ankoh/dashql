@@ -47,6 +47,12 @@ typescript_bin.tsc_test(
     ],
 )
 
+# The tests of the components and their helpers, the browser tests of the app run them (//packages/dashql-app:test_chromium)
+filegroup(
+    name = "browser_test_files",
+    srcs = glob(["src/**/*.test.ts", "src/**/*.test.tsx"]),
+)
+
 # The package reaches React, apache-arrow, @akohn/dashql and the libraries of the components only, nothing of an app; the
 # components reach neither the hooks nor the runtime
 js_test(

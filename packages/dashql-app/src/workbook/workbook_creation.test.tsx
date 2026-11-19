@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@akohn/dashql';

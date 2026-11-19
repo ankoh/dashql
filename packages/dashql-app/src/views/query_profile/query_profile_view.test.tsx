@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '@akohn/dashql';
-import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { estimateRelativeDifference, type ProfileScene, type ProfileSceneOperator } from './profile_scene.js';
 import { formatCpuShare, formatEstimateSymbol, formatFragmentMetrics, formatShortBytes, placeOperatorAnnotation, QueryProfileView, type QueryProfileViewDependencies } from './query_profile_view.js';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';

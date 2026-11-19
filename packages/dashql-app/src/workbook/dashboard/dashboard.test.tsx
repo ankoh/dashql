@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@dashql/browser-test-act';
+import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,7 +9,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { flushContinuousUpdates } from '../../tests/react_act.js';
+import { flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';

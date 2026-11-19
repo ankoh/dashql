@@ -1,9 +1,10 @@
 import * as React from 'react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { act } from '@dashql/browser-test-act';
+import { act } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { JsonView } from '@akohn/dashql-react/components/json/json_view';
+import { JsonView } from './json_view.js';
 
 describe('JsonView array pagination', () => {
     let container: HTMLDivElement;

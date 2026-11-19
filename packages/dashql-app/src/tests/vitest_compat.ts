@@ -20,7 +20,7 @@ import {
     spyOn,
 } from '@vitest/spy';
 import { getBrowserMocha } from './mocha_browser.js';
-import { act } from './react_act.js';
+import { act } from '@akohn/dashql-react/testing/react_act';
 
 getBrowserMocha();
 

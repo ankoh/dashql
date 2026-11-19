@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as d3 from 'd3';
-import { act, flushContinuousUpdates } from '@dashql/browser-test-act';
+import { act, flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
