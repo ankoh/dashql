@@ -1,4 +1,5 @@
 /dashql-logs-*.json
+/graphify-out
 
 /bazel-*
 /external
