@@ -97,11 +97,9 @@ describe('Workbook connections', () => {
         const session = dql.createScriptSession(catalog);
         try {
             session.replaceText(session.getTextVersion(), script.scriptSession.getText());
-            session.analyze();
-            return dql.planSession({
-                connections: [{ id: script.connectionId, local: false, catalog }],
-                scripts: [{ name: '', connection: 0, session }],
-            }).unpack().unresolvedReferences.length;
+            return session.analyze().semanticSpans.filter(span =>
+                span.kind === core.buffers.editor.EditorSemanticReferenceKind.TABLE &&
+                span.resolution === core.buffers.editor.EditorSemanticResolution.UNRESOLVED).length;
         } finally {
             session.destroy();
         }

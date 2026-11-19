@@ -1,4 +1,4 @@
-import { DashQL, buffers, type DashQLBindings, type DashQLModuleOptions, type VariantKind } from '@akohn/dashql';
+import { DashQL, buffers, type DashQLBindings, type DashQLModuleOptions } from '@akohn/dashql';
 import * as publicBuffers from '@akohn/dashql/buffers';
 import * as glue from '@akohn/dashql/wasm/glue';
 import {
@@ -22,7 +22,6 @@ const diagnostic: BatchDiagnostic = { stage: 'analyze', severity: 'warning', off
 const scriptResult: BatchScriptResult = { id: script.id, diagnostics: [diagnostic] };
 const result: BatchResult = { scripts: [scriptResult] };
 const response: BatchWorkerResponse = { requestId: message.requestId, result };
-const variant: VariantKind<'result', BatchResult> = { type: 'result', value: result };
 const options: DashQLModuleOptions = {
     wasmBinary: new Uint8Array(),
     module: new WebAssembly.Module(new Uint8Array()),
@@ -33,7 +32,7 @@ const core: DashQL = new DashQL(bindings);
 const parsed: publicBuffers.parser.ParsedScript = new buffers.parser.ParsedScript();
 const worker: DashQLBatchWorker = createBatchWorker();
 const pending: Promise<BatchResult> = worker.processBatch(request);
-void [response, variant, core, parsed, pending];
+void [response, core, parsed, pending];
 
 // The fixture must not accidentally acquire lib.dom through declarations.
 // @ts-expect-error Document is a DOM-only type, unavailable in this consumer.

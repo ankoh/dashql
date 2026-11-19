@@ -60,26 +60,9 @@ scripts of the same name, still stops it.
 Every run in the app executes a plan: a run of the session plans every script without a cached result, a run of one script plans
 that script as the target (`script_references.md`). Scripts without names can't be referenced, so a plan of
 scripts without names is a plan of their statement dependencies.
-The core-js API is:
-
-```typescript
-const buffer = dashql.planSession({
-    connections: [{ id: 'trino', local: false, catalog }],
-    scripts: [{ name: 'foo', connection: 0, session }],
-    targets: [0],
-    mountPrefix: '/mnt/external/cache',
-});
-try {
-    const graph = buffer.read().unpack();
-    if (!graph.valid) {
-        // Do not execute partial nodes from an invalid plan.
-        throw new Error(graph.diagnostics.map(d => d.message).join('\n'));
-    }
-    // The unpacked graph owns its SQL and metadata independently of Wasm memory.
-} finally {
-    buffer.destroy();
-}
-```
+The runtime plans the runs of a workbook (`Workbook::plan_run`); the module exports no planning call of its own,
+the derived view of a workbook carries what the editors need of the plan (`workbookDerived`, see
+[dashql_runtime.md](dashql_runtime.md#views-and-slices)).
 
 Planning captures executable SQL, script IDs, text versions, catalog revisions, catalog
 entities, unresolved references, accesses, edges, and diagnostics in

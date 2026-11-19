@@ -179,7 +179,7 @@ The editor checks, completes and renames script references while the scripts cha
 
 ### Checking
 
-`check_script_references` (`script_references.rs`, `DashQL.checkScriptReferences`) checks the references of every
+`check_script_references` (`script_references.rs`, the references of the `workbookDerived` view) checks the references of every
 script whose analysis is current with its text, like a plan of the workbook would: the name lookup, the connections,
 a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
 inlined query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a

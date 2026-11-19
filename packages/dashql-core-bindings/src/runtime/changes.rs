@@ -305,7 +305,7 @@ fn text(id: &str) -> SliceId {
 /// Derive the buffers of the derived view of a workbook with the names that they refer to, and their hash
 pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
     let buffers = workbook.with_planner(|request, sessions| {
-        [crate::pack_reference_check(request, sessions, true), crate::pack_dataflow(request, sessions, true), crate::pack_inputs(request)]
+        [crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request)]
     });
     let scripts = workbook.scripts();
     let hashes = buffers.each_ref().map(|buffer| {

@@ -19,11 +19,10 @@ try {
 }
 ```
 
-The generated bindings are also available directly:
+The generated FlatBuffers are also available directly:
 
 ```ts
 import * as buffers from '@akohn/dashql/buffers';
-import type { VariantKind } from '@akohn/dashql';
 ```
 
 Native objects (catalogs, scripts, sessions, ...) live in Wasm memory and

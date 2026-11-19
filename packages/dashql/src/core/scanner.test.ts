@@ -54,75 +54,20 @@ describe('DashQL Scanner', () => {
         add('1', [0, 7], [6, 1], [Token.KEYWORD, Token.LITERAL_INTEGER], [1]);
     });
 
-    describe(`Utils`, () => {
-        it(`Should resolve symbol spans independently of comments`, () => {
-            const catalog = dql!.createCatalog();
-            const script = dql!.createScript(catalog);
-            const text = '-- leading comment\nselect /* middle comment */ 1';
-            script.insertTextAt(0, text);
-            script.analyze();
+    it(`Should keep comments out of the tokens`, () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        const text = '-- leading comment\nselect /* middle comment */ 1';
+        script.insertTextAt(0, text);
+        script.analyze();
 
-            const parsed = script.getParsed().read();
-            const tokens = parsed.tokens()!;
-            const tokenOffsets = Array.from(tokens.tokenOffsetsArray()!);
-            expect(tokenOffsets).toEqual([text.indexOf('select'), text.lastIndexOf('1')]);
-            expect(parsed.commentsLength()).toBe(2);
-            const comment = new dashql.buffers.parser.TextSpan();
-            expect(parsed.comments(0, comment)?.offset()).toBe(0);
-            expect(parsed.comments(1, comment)?.offset()).toBe(text.indexOf('/*'));
-            const span = (offset: number, length: number) => ({
-                offset: () => offset,
-                length: () => length,
-            }) as dashql.buffers.parser.SymbolSpan;
-
-            expect(dashql.resolveSymbolSpan(tokens, span(0, 1)))
-                .toEqual({ offset: text.indexOf('select'), length: 'select'.length });
-            expect(dashql.resolveSymbolSpan(tokens, span(1, 1)))
-                .toEqual({ offset: text.lastIndexOf('1'), length: 1 });
-        });
-
-        it(`Should find tokens in range`, () => {
-            const test_tokens = (
-                text: string,
-                expectedOffsets: number[],
-                expectedLengths: number[],
-                expectedTypes: dashql.buffers.parser.ScannerTokenType[],
-                textRange: [number, number],
-                expectedFiltered: [number, number],
-            ) => {
-                const catalog = dql!.createCatalog();
-                const script = dql!.createScript(catalog);
-                script.insertTextAt(0, text);
-                script.analyze();
-                const parseResult = script.getParsed();
-                const parsedScript = parseResult.read();
-                expect(parsedScript.tokens()).toBeTruthy();
-
-                const hl = parsedScript.tokens();
-                expect(hl).toBeTruthy();
-                expect(hl!.tokenOffsetsArray()).toBeTruthy();
-                expect(hl!.tokenLengthsArray()).toBeTruthy();
-                expect(hl!.tokenTypesArray()).toBeTruthy();
-                expect(Array.from(hl!.tokenOffsetsArray()!)).toEqual(expectedOffsets);
-                expect(Array.from(hl!.tokenLengthsArray()!)).toEqual(expectedLengths);
-                expect(Array.from(hl!.tokenTypesArray()!)).toEqual(expectedTypes);
-
-                const [textBegin, textEnd] = textRange;
-                const [tokenBegin, tokenEnd] = dashql.findTokensInRange(hl!, textBegin, textEnd);
-
-                expect([tokenBegin, tokenEnd]).toEqual(expectedFiltered);
-            };
-
-            // Full text
-            test_tokens('select 1', [0, 7], [6, 1], [Token.KEYWORD, Token.LITERAL_INTEGER], [0, 8], [0, 2]);
-            // Expand left
-            test_tokens('select 1', [0, 7], [6, 1], [Token.KEYWORD, Token.LITERAL_INTEGER], [3, 8], [0, 2]);
-            // Not begin, not end
-            test_tokens('select 111111', [0, 7], [6, 6], [Token.KEYWORD, Token.LITERAL_INTEGER], [7, 9], [1, 2]);
-            // Begin, expand right
-            test_tokens('select 111111', [0, 7], [6, 6], [Token.KEYWORD, Token.LITERAL_INTEGER], [0, 9], [0, 2]);
-            // Begin, don't expand right
-            test_tokens('select 111111', [0, 7], [6, 6], [Token.KEYWORD, Token.LITERAL_INTEGER], [0, 3], [0, 1]);
-        });
+        const parsed = script.getParsed().read();
+        const tokens = parsed.tokens()!;
+        const tokenOffsets = Array.from(tokens.tokenOffsetsArray()!);
+        expect(tokenOffsets).toEqual([text.indexOf('select'), text.lastIndexOf('1')]);
+        expect(parsed.commentsLength()).toBe(2);
+        const comment = new dashql.buffers.parser.TextSpan();
+        expect(parsed.comments(0, comment)?.offset()).toBe(0);
+        expect(parsed.comments(1, comment)?.offset()).toBe(text.indexOf('/*'));
     });
 });

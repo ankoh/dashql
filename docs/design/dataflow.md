@@ -5,7 +5,7 @@ between the statements as edges, in the style of data pipeline tools.
 
 ## The dataflow of a session
 
-`dataflow::derive_session_dataflow` (core-js `deriveSessionDataflow`) takes a session plan request and returns
+`dataflow::derive_session_dataflow` (the dataflow of the `workbookDerived` view) takes a session plan request and returns
 the statements of every script and the edges between statements. It is a projection of a tolerant plan of the
 session (`PlanScope::Tolerant`, see [planner.md](planner.md)), so relations and script references resolve like
 in a run, from the analysis of every script:
@@ -104,10 +104,9 @@ share a channel spread `edge_gap` apart. The canvas uses it while a box is dragg
 The dataflow view is a view of a workbook (`?view=dataflow` in the URL), next to the feed and the dashboard in the view
 switch. `src/workbook/dataflow/` holds it:
 
-- `dataflow_graph.ts` derives the graph of a workbook with `deriveSessionDataflow`, memoized on the names,
-  connections and analyses of the scripts. A script whose analysis is behind its text keeps its last statements and
-  the edges that start or end at it until it is analyzed again, so the canvas does not flicker while a script is
-  edited.
+- `dataflow_graph.ts` reads the graph of a workbook from the dataflow of the derived view of the workbook. A script
+  whose analysis is behind its text keeps its last statements and the edges that start or end at it until it is
+  analyzed again, so the canvas does not flicker while a script is edited.
 - `dataflow_scene.ts` turns the graph and the layout into the scene: boxes, statement rows with their ports, charts,
   edge paths and badges. An edge between boxes runs from the output port on the right of its source row to the input
   port on the left of its target row, along the route of the layout with rounded corners. A step of 24 or less

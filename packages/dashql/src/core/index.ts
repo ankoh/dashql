@@ -7,8 +7,4 @@ export * from './runtime.js';
 export * from './flatbuffer_view.js';
 export * from './dataflow.js';
 export * from './batch.js';
-export * from './tokens.js';
-export * from './lookup.js';
-export * from './format.js';
-export type { VariantKind } from './variant.js';
 export * from './comment_tags.js';

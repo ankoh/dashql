@@ -1238,29 +1238,11 @@ fn with_session_plan_request<R>(
     f(&core, &sessions)
 }
 
-/// Plan the current analysis of the scripts of a session across connections, returns the packed `ExecutionGraph`
-#[wasm_bindgen(js_name = planSession)]
-pub fn plan_session(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, |core, _| finish!(dashql_core_runtime::planner::plan_session(core)))
-}
-
-/// Check the script references of the scripts of a session, returns the packed `ScriptReferenceCheck`. The text spans
-/// are in the offset unit of the session of each script. Ignores the targets, the materialized scripts and the mount
-/// prefix.
-#[wasm_bindgen(js_name = checkScriptReferences)]
-pub fn check_script_references(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, |core, sessions| pack_reference_check(core, sessions, false))
-}
-
-/// The packed `ScriptReferenceCheck` of a plan request, the text spans in the offset unit of the session of each
-/// script. For the derived view of a workbook (`for_view`) a script whose references have no errors carries neither
-/// its text version nor the spans of its references: the editors show only the errors of references, in the text that
-/// was checked, so typing in such a script leaves the buffer as it is.
-pub(crate) fn pack_reference_check(
-    core: &dashql_core_runtime::planner::SessionPlanRequest,
-    sessions: &[std::cell::Ref<CoreScriptSession>],
-    for_view: bool,
-) -> Vec<u8> {
+/// The packed `ScriptReferenceCheck` of the derived view of a workbook, the text spans in the offset unit of the
+/// session of each script. A script whose references have no errors carries neither its text version nor the spans of
+/// its references: the editors show only the errors of references, in the text that was checked, so typing in such a
+/// script leaves the buffer as it is.
+pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
     use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
     use dashql_core_runtime::planner::script_references::ReferenceKind;
     {
@@ -1299,7 +1281,7 @@ pub(crate) fn pack_reference_check(
                     })
                     .collect();
                 let mut references = references;
-                if for_view && references.iter().all(|r| r.errors.is_none()) {
+                if references.iter().all(|r| r.errors.is_none()) {
                     packed.text_version = 0;
                     for reference in &mut references {
                         reference.text_span = None;
@@ -1323,13 +1305,6 @@ pub(crate) fn pack_reference_check(
         out.collisions = (!collisions.is_empty()).then_some(collisions);
         finish!(out)
     }
-}
-
-/// Derive the dataflow of the scripts of a session (`dataflow::derive_session_dataflow`), returns the packed
-/// `SessionDataflow`. The text spans are in the offset unit of the session of each script.
-#[wasm_bindgen(js_name = deriveSessionDataflow)]
-pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Vec<u8> {
-    with_session_plan_request(request, |core, sessions| pack_dataflow(core, sessions, false))
 }
 
 /// The span of the label of a statement: its first line that is not blank, trimmed
@@ -1369,11 +1344,11 @@ mod label_tests {
     }
 }
 
-/// The packed `SessionDataflow` of a plan request, the text spans in the offset unit of the session of each script.
-/// For the derived view of a workbook (`for_view`) the scripts carry no text versions and a statement carries the span
-/// of its label instead of its own, none with a target: the dataflow shows the target or the first line of a statement,
-/// so typing within a statement after its first line leaves the buffer as it is.
-pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>], for_view: bool) -> Vec<u8> {
+/// The packed `SessionDataflow` of the derived view of a workbook, the text spans in the offset unit of the session of
+/// each script. The scripts carry no text versions and a statement carries the span of its label instead of its own,
+/// none with a target: the dataflow shows the target or the first line of a statement, so typing within a statement
+/// after its first line leaves the buffer as it is.
+pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
     use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
     use dashql_core_runtime::planner::dataflow::DataflowEdgeKind as Kind;
     {
@@ -1385,19 +1360,15 @@ pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequ
                 .into_iter()
                 .zip(sessions)
                 .map(|(script, session)| {
-                    let spans = if for_view {
-                        let text = session.text();
-                        let labels: Vec<Option<dashql_parser::span::TextSpan>> =
-                            script.statements.iter().map(|s| if s.target.is_some() { None } else { label_span(&text, s.text_span) }).collect();
-                        let projected = session.project_text_spans(labels.iter().flatten().copied());
-                        let mut projected = projected.into_iter();
-                        labels.iter().map(|label| label.and_then(|_| projected.next().flatten())).collect()
-                    } else {
-                        session.project_text_spans(script.statements.iter().map(|s| s.text_span))
-                    };
+                    let text = session.text();
+                    let labels: Vec<Option<dashql_parser::span::TextSpan>> =
+                        script.statements.iter().map(|s| if s.target.is_some() { None } else { label_span(&text, s.text_span) }).collect();
+                    let projected = session.project_text_spans(labels.iter().flatten().copied());
+                    let mut projected = projected.into_iter();
+                    let spans: Vec<_> = labels.iter().map(|label| label.and_then(|_| projected.next().flatten())).collect();
                     let mut packed = DataflowScriptT::default();
                     packed.analyzed = script.analyzed;
-                    packed.text_version = if for_view { 0 } else { script.text_version };
+                    packed.text_version = 0;
                     packed.manual = script.manual;
                     let statements: Vec<_> = script
                         .statements
@@ -1744,17 +1715,6 @@ impl QueryProfile {
         let updates = self
             .inner
             .apply_trino_statement_stats(stats, time.max(0.0) as u64)
-            .map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(self.inner.pack_events(&updates))
-    }
-
-    /// Apply a Trino QueryInfo (JSON, pruned or not) received at a time in milliseconds since epoch: the pipelines
-    /// and slot statistics of the stages. Returns the packed `QueryProfileEvents` of the effective state changes.
-    #[wasm_bindgen(js_name = applyTrinoQueryInfo)]
-    pub fn apply_trino_query_info(&mut self, info: &[u8], time: f64) -> Result<Vec<u8>, JsError> {
-        let updates = self
-            .inner
-            .apply_trino_query_info(info, time.max(0.0) as u64)
             .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(self.inner.pack_events(&updates))
     }

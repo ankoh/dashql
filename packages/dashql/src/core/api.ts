@@ -31,9 +31,6 @@ type DashQLCoreBindings = Pick<
     | 'QueryProfile'
     | 'SessionPlanRequest'
     | 'TableParameters'
-    | 'planSession'
-    | 'checkScriptReferences'
-    | 'deriveSessionDataflow'
     | 'collectSessionInputs'
     | 'inputLiteral'
     | 'textChange'
@@ -192,9 +189,6 @@ const WORKBOOK_SCRIPT_SESSION_TYPE = Symbol('WORKBOOK_SCRIPT_SESSION_TYPE');
 const EDITOR_UPDATE_TYPE = Symbol('EDITOR_UPDATE_TYPE');
 const SCRIPT_DIFF_TYPE = Symbol('SCRIPT_DIFF_TYPE');
 const SCRIPT_COMPILATION_TYPE = Symbol('SCRIPT_COMPILATION_TYPE');
-const EXECUTION_GRAPH_TYPE = Symbol('EXECUTION_GRAPH_TYPE');
-const SCRIPT_REFERENCE_CHECK_TYPE = Symbol('SCRIPT_REFERENCE_CHECK_TYPE');
-const SESSION_DATAFLOW_TYPE = Symbol('SESSION_DATAFLOW_TYPE');
 const SESSION_INPUTS_TYPE = Symbol('SESSION_INPUTS_TYPE');
 const TABLE_PARAMETERS_TYPE = Symbol('TABLE_PARAMETERS_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
@@ -390,42 +384,6 @@ export class DashQL {
         } catch (e) {
             native.free();
             throw e;
-        }
-    }
-
-    /// Plan the scripts of a session across connections. The scripts reference each other by name with table
-    /// parameters (`:foo`), see docs/design/planner.md. Without targets, the plan covers the whole session.
-    public planSession(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ExecutionGraph> {
-        const native = this.buildSessionPlanRequest(request);
-        try {
-            return new FlatBufferPtr(EXECUTION_GRAPH_TYPE, this, this.bindings.planSession(native), () => new buffers.execution.ExecutionGraph());
-        } finally {
-            native.free();
-        }
-    }
-
-    /// Check the script references of every script of a session whose analysis is current with its text, like a
-    /// plan of the session would, see docs/design/script_references.md. The text spans are in the offset unit of the
-    /// session of each script. Ignores the targets, the materialized scripts and the mount prefix.
-    public checkScriptReferences(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.ScriptReferenceCheck> {
-        const native = this.buildSessionPlanRequest(request);
-        try {
-            return new FlatBufferPtr(SCRIPT_REFERENCE_CHECK_TYPE, this, this.bindings.checkScriptReferences(native), () => new buffers.execution.ScriptReferenceCheck());
-        } finally {
-            native.free();
-        }
-    }
-
-    /// Derive the dataflow of the scripts of a session: the statements of the scripts and the edges between them,
-    /// see docs/design/dataflow.md. Takes every analysis that is current with the text of its script. The text spans
-    /// are in the offset unit of the session of each script. Ignores the targets, the materialized scripts and the
-    /// mount prefix.
-    public deriveSessionDataflow(request: SessionPlanRequest): FlatBufferPtr<buffers.execution.SessionDataflow> {
-        const native = this.buildSessionPlanRequest(request);
-        try {
-            return new FlatBufferPtr(SESSION_DATAFLOW_TYPE, this, this.bindings.deriveSessionDataflow(native), () => new buffers.execution.SessionDataflow());
-        } finally {
-            native.free();
         }
     }
 
@@ -1509,12 +1467,6 @@ export class DashQLQueryProfile {
     /// New stages register fragments, the structure is then repacked.
     public applyTrinoStatementStats(stats: string, time: number): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
         const bytes = this.ptr.assertNotNull().applyTrinoStatementStats(this.ptr.api.encoder.encode(stats), time);
-        return this.readEvents(bytes);
-    }
-    /// Apply a Trino QueryInfo (JSON, pruned or not) received at a time in milliseconds since epoch: the pipelines
-    /// and slot statistics of the stages. New pipelines are registered, the structure is then repacked.
-    public applyTrinoQueryInfo(info: string, time: number): FlatBufferPtr<buffers.profile.QueryProfileEvents> {
-        const bytes = this.ptr.assertNotNull().applyTrinoQueryInfo(this.ptr.api.encoder.encode(info), time);
         return this.readEvents(bytes);
     }
     /// Wrap packed events, repack the structure if the events belong to a newer one

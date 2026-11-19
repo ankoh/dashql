@@ -439,7 +439,7 @@ the connection, the statements it follows, the files on disk and when a full ref
 - All catalogs of a module share one `EntryIdSource`, so an entry id identifies a script across
   catalogs of the same module. The app runs three core modules (main thread, batch worker, shell),
   each with its own id space.
-- `SessionPlanRequest` + `planSession()` borrow every session and every catalog for one planning call.
+- `SessionPlanRequest` + `collectSessionInputs()` borrow every session and every catalog for one call.
 
 **JS caches** (`packages/dashql/src/core/api.ts`)
 - `DashQLCatalog.flatten()` returns a `DashQLFlatCatalog`, cached for the version of the catalog
