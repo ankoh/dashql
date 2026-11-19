@@ -3,7 +3,8 @@ import * as styles from '../query_result/query_result_header.module.css';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
-import { TabHeader, formatRowCountDetail, useResultRowCount } from '../../workbook/tab_header.js';
+import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/tab_header';
+import { useResultRowCount } from '../query_result/query_result_toolbar.js';
 import { QueryResultPanel } from '../query_result/query_result_header.js';
 import { ChartDownloadButton } from './chart_download_button.js';
 import { VisualizationDispatch } from './visualization_dispatch.js';

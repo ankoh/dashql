@@ -9,7 +9,7 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ScriptMentionTag } from './script_mention_tag.js';
-import { formatBytes } from '../../utils/format.js';
+import { formatBytes } from '@akohn/dashql-react/format/format';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 export interface WorkbookDataCardProps {

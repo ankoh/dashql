@@ -9,7 +9,7 @@ import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_e
 import { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
-import { formatBytes } from '../../utils/format.js';
+import { formatBytes } from '@akohn/dashql-react/format/format';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { IconButton } from '@akohn/dashql-react/components/button';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';

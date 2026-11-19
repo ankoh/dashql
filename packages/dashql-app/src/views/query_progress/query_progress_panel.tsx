@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import * as styles from './query_progress_panel.module.css';
 
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { TabHeader } from '../../workbook/tab_header.js';
+import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@akohn/dashql/platform/query/query_progress';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';

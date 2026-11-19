@@ -4,7 +4,7 @@ import * as styles from './trace_log_panel.module.css';
 import { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { useLogger } from '../platform/logger_provider.js';
 import { TraceLogViewer } from './trace_log_viewer.js';
-import { TabHeader } from './tab_header.js';
+import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 
 /// Track the number of log records on a trace, updating as records stream in. Returns 0 when the
 /// trace has no id. Drives the right-aligned "N of M rows" indicator.

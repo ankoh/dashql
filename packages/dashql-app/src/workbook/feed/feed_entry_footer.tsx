@@ -11,7 +11,8 @@ import { VisualizationDispatch } from '../../views/visualization/visualization_d
 import { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { TraceLogPanel } from '../trace_log_panel.js';
 import { hasQueryProgress, QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
-import { TabHeader, useResultRowCount, formatRowCountDetail } from '../tab_header.js';
+import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/tab_header';
+import { useResultRowCount } from '../../views/query_result/query_result_toolbar.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from '../../views/query_result/query_result_toolbar.js';
 import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
 import { QueryResultActionMenu } from '../../views/query_result/query_result_action_menu.js';

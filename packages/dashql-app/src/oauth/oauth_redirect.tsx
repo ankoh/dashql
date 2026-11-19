@@ -19,7 +19,7 @@ import { useLogger } from '../platform/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '@akohn/dashql-react/components/text_field';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
+import { formatHHMMSS, formatTimeDifference } from '@akohn/dashql-react/format/format';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 import { decodeOAuthState, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 

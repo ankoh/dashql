@@ -1,18 +1,16 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
-import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
-import { classNames } from '@akohn/dashql-react/dom/classnames';
+import { QueryResultDetails as QueryResultDetailsView } from '@akohn/dashql-react/components/query_result/query_result_details';
 import { useComputation, useComputationDispatch, useQueryResultTable } from '@akohn/dashql-react/hooks';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
-import * as styles from './query_result_details.module.css';
+import { QueryResultView } from './query_result_view.js';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
-import { formatResultDetail } from './query_result_header.js';
+
+// The full result of a query in the app (QueryResultDetails of @akohn/dashql-react): the computation of the runtime, the
+// search, the download and the actions of the app
 
 export interface QueryResultDetailsDependencies {
     QueryResultToolbar: typeof QueryResultToolbar;
@@ -44,58 +42,40 @@ interface Props {
     dependencies?: QueryResultDetailsDependencies;
 }
 
-const HEADER_HEIGHT = 32;
-const ClearFiltersIcon = SymbolIcon('filter_remove_24');
-
 export const QueryResultDetails: React.FC<Props> = ({ query, debugMode, actions, fitHeight, maxHeight, columnHeader, dependencies = DEFAULT_DEPENDENCIES }) => {
-    const searchRows = dependencies.useQueryResultRowCounts(query);
+    const counts = dependencies.useQueryResultRowCounts(query);
     const tableComputation = dependencies.useComputation(query.queryId);
     const computationDispatch = dependencies.useComputationDispatch(query.queryId);
-    const QueryResultToolbarComponent = dependencies.QueryResultToolbar;
-    const QueryResultViewComponent = dependencies.QueryResultView;
-    const QueryResultDownloadButtonComponent = dependencies.QueryResultDownloadButton;
-    const QueryResultActionMenuComponent = dependencies.QueryResultActionMenu;
-    const hasCrossFilters = tableComputation != null && tableComputation.crossFilters.length > 0;
     const clearCrossFilters = React.useCallback(() => {
         computationDispatch({ kind: 'clearCrossFilters' });
     }, [computationDispatch]);
     const resultTable = useQueryResultTable(query);
     return (
-        <div className={classNames(styles.root, { [styles.root_fit_height]: fitHeight })}>
-            <TabHeader
-                title="Query Results"
-                detail={formatResultDetail(searchRows.matchingRows == null
-                    ? formatRowCountDetail(searchRows.totalRows)
-                    : `${searchRows.matchingRows} of ${searchRows.currentRows ?? searchRows.totalRows ?? 0} rows`, resultTable)}
-                actions={(
-                    <>
-                        <QueryResultToolbarComponent query={query} />
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            size={ButtonSize.Small}
-                            aria-label="Clear all cross-filters"
-                            data-testid="clear-cross-filters"
-                            onClick={clearCrossFilters}
-                            disabled={!hasCrossFilters}
-                        >
-                            <ClearFiltersIcon size={16} />
-                        </IconButton>
-                        <QueryResultDownloadButtonComponent query={query} />
-                        <QueryResultActionMenuComponent query={query} />
-                        {actions}
-                    </>
-                )}
-            />
-            <div className={classNames(styles.body, { [styles.body_fit_height]: fitHeight })}>
-                <QueryResultViewComponent
+        <QueryResultDetailsView
+            counts={counts}
+            resultTable={resultTable}
+            toolbar={<dependencies.QueryResultToolbar query={query} />}
+            hasCrossFilters={tableComputation != null && tableComputation.crossFilters.length > 0}
+            onClearCrossFilters={clearCrossFilters}
+            actions={(
+                <>
+                    <dependencies.QueryResultDownloadButton query={query} />
+                    <dependencies.QueryResultActionMenu query={query} />
+                    {actions}
+                </>
+            )}
+            fitHeight={fitHeight}
+            maxHeight={maxHeight}
+            table={layout => (
+                <dependencies.QueryResultView
                     query={query}
                     debugMode={debugMode}
                     compact
-                    fitHeight={fitHeight}
-                    maxHeight={maxHeight == null ? undefined : Math.max(0, maxHeight - HEADER_HEIGHT)}
+                    fitHeight={layout.fitHeight}
+                    maxHeight={layout.maxHeight}
                     columnHeader={columnHeader}
                 />
-            </div>
-        </div>
+            )}
+        />
     );
 };

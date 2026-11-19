@@ -1,14 +1,8 @@
 import type { AppSettings } from './app_config.js';
+import type { BrandLogo } from '@akohn/dashql-react/brand/brand_logo';
 
-/// The logo of a flavor
-export interface AppFlavorLogo {
-    /// The id of the symbol in the svg sprite
-    symbol: string;
-    /// The width of the logo relative to its height, 1 for a square mark
-    aspectRatio: number;
-    /// Does the logo spell out the name? The name is then not repeated next to it
-    wordmark: boolean;
-}
+/// The logo of a flavor, the components of @akohn/dashql-react show it
+export type AppFlavorLogo = BrandLogo;
 
 /// The features of a flavor.
 /// Unlike the app settings, they are fixed by the flavor and can neither be changed by the user nor persisted.

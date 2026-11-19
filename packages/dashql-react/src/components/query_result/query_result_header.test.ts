@@ -1,4 +1,5 @@
 import * as arrow from 'apache-arrow';
+import { describe, expect, it } from 'vitest';
 
 import { formatResultDetail, formatResultRowCount, getResultTableBytes } from './query_result_header.js';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';

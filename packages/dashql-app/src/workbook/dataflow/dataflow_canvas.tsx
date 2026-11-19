@@ -43,7 +43,7 @@ import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scr
 import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { useDataflowModule } from './dataflow_module.js';
-import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
+import { QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
 import * as styles from './dataflow.module.css';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 

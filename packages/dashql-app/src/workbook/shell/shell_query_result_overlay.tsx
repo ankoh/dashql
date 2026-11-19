@@ -13,7 +13,7 @@ import { QueryResultDetails } from '../../views/query_result/query_result_detail
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { useQueryProfile } from '../../views/query_profile/engine_profile_view.js';
-import { TabHeader } from '../tab_header.js';
+import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 import { getPlanResultText } from '../../shell/shell_result.js';
 import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';

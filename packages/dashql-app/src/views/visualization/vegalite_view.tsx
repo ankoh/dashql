@@ -12,7 +12,7 @@ import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platfor
 import { useComputation, useQueryResultTable, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useComputationTables } from '@akohn/dashql-react/components/data_table/data_table';
 import type { ComputationTables } from '@akohn/dashql-react/components/data_table/data_table';
-import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
+import { CardPlaceholder, QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
 import {
     filterTableToVegaCrossFilterRows,
     injectVegaStableScaleDomains,

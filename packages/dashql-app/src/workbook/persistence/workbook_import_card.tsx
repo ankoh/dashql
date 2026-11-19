@@ -6,7 +6,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-rea
 import { ProgressBar } from '@akohn/dashql-react/components/progress_bar';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { AlertIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { formatBytes } from '../../utils/format.js';
+import { formatBytes } from '@akohn/dashql-react/format/format';
 import { CompactNavBar } from '../../app/navbar.js';
 import { SetupSteps } from '../../app/setup_steps.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';

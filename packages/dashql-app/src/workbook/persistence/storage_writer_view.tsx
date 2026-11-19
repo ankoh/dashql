@@ -12,7 +12,7 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 import { useRuntime, useView } from '@akohn/dashql-react/hooks';
 import type { StorageKeyStatistics } from '@akohn/dashql';
-import { formatBytes, formatMilliseconds } from '../../utils/format.js';
+import { formatBytes, formatMilliseconds } from '@akohn/dashql-react/format/format';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';

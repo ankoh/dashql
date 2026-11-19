@@ -1,0 +1,88 @@
+import * as React from 'react';
+import * as styles from './result_table_overlay.module.css';
+
+import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
+import { useFocusTrap } from '../../dom/focus.js';
+import { Overlay, OverlaySize } from '../overlay.js';
+import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../symbol_icon.js';
+import type { QueryResultDetailsLayout } from './query_result_details.js';
+
+export interface ResultTableOverlayProps {
+    scriptName: string;
+    onClose: () => void;
+    /// The details of the result in the layout of the card
+    children: (layout: QueryResultDetailsLayout) => React.ReactNode;
+}
+
+/// The height of the card before it is enlarged, the table grows up to it and scrolls then
+const MAX_CARD_HEIGHT = 600;
+const HEADER_HEIGHT = 44;
+// The table opens popups of its own (search, cell details), a click into them must not close the card
+const IGNORE_OUTSIDE_CLICK = () => {};
+const CloseIcon = SymbolIcon('x_16');
+
+/// The full result table of a feed entry or a dashboard card in a card over the page: the table with its column plots
+/// under a header with the name of the script, a button to enlarge the card to the window and a close button.
+export function ResultTableOverlay(props: ResultTableOverlayProps): React.ReactElement {
+    const dialogRef = React.useRef<HTMLElement | null>(null);
+    const [expanded, setExpanded] = React.useState(false);
+
+    // Focus the dialog, not its first button
+    useFocusTrap({
+        containerRef: dialogRef as React.RefObject<HTMLElement>,
+        initialFocusRef: dialogRef as React.RefObject<HTMLElement>,
+        restoreFocusOnCleanUp: true,
+    });
+
+    return (
+        <Overlay
+            centered
+            width={OverlaySize.XXL}
+            height={OverlaySize.AUTO}
+            maxHeight={OverlaySize.XL}
+            preventFocusOnOpen
+            expanded={expanded}
+            onEscape={props.onClose}
+            onClickOutside={IGNORE_OUTSIDE_CLICK}
+        >
+            <section
+                ref={dialogRef}
+                className={styles.dialog}
+                role="dialog"
+                aria-modal="true"
+                tabIndex={-1}
+                aria-label={`Query results of ${props.scriptName}`}
+                data-expanded={expanded || undefined}
+                data-testid="result-table-overlay"
+            >
+                <header className={styles.header}>
+                    <h2 className={styles.title}>{props.scriptName}</h2>
+                    <div className={styles.spacer} />
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label={expanded ? 'Restore size' : 'Enlarge'}
+                        aria-pressed={expanded}
+                        data-testid="result-table-overlay-resize"
+                        onClick={() => setExpanded(e => !e)}
+                    >
+                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                    </IconButton>
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label="Close query results"
+                        data-testid="result-table-overlay-close"
+                        onClick={props.onClose}
+                    >
+                        <CloseIcon size={16} />
+                    </IconButton>
+                </header>
+                <div className={styles.body}>
+                    {/* The enlarged card fills the window, the table fills the card */}
+                    {props.children({ fitHeight: !expanded, maxHeight: expanded ? undefined : MAX_CARD_HEIGHT - HEADER_HEIGHT })}
+                </div>
+            </section>
+        </Overlay>
+    );
+}

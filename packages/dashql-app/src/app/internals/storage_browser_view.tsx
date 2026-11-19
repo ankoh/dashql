@@ -17,7 +17,7 @@ import { TreeEntry, TreeEntryName } from '@akohn/dashql-react/components/tree_en
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { formatBytes } from '../../utils/format.js';
+import { formatBytes } from '@akohn/dashql-react/format/format';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';

@@ -9,7 +9,7 @@ import { ButtonVariant, ButtonSize, IconButton } from '@akohn/dashql-react/compo
 import type { QueryResultCacheEntry } from '@akohn/dashql/platform/query/query_result_cache';
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
-import { formatBytes } from '../../utils/format.js';
+import { formatBytes } from '@akohn/dashql-react/format/format';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { useLogger } from '../../platform/logger_provider.js';

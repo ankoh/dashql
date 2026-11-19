@@ -6,7 +6,7 @@ import { QueryExecutionStatus, queryIsDone } from '@akohn/dashql/platform/query/
 import type { WorkbookExecutionState } from '@akohn/dashql/platform/workbook/workbook_execution';
 import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
-import { formatMilliseconds } from '../../utils/format.js';
+import { formatMilliseconds } from '@akohn/dashql-react/format/format';
 import { getQueryStatusText } from '../entry_status_model.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';

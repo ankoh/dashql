@@ -1,11 +1,9 @@
 import * as React from 'react';
 import * as styles from './tab_header.module.css';
 
-import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { ScreenFullIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { useComputation } from '@akohn/dashql-react/hooks';
+import { ButtonSize, ButtonVariant, IconButton } from './button.js';
+import { ScreenFullIcon } from './symbol_icon.js';
+import { classNames } from '../dom/classnames.js';
 
 interface TabHeaderProps {
     title: string;
@@ -60,17 +58,6 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, detail, onClick, de
         </div>
     );
 };
-
-/// Whether the query produced a materialized result, and its total row count. Shared so the footer's
-/// preview and the Details tabs derive the "N rows" detail identically.
-export function useResultRowCount(queryState: QueryExecutionState | null): { hasResult: boolean; totalRows: number | null } {
-    const computation = useComputation(queryState?.queryId);
-    const hasResult = queryState != null
-        && queryState.status === QueryExecutionStatus.SUCCEEDED
-        && computation != null;
-    const totalRows = hasResult ? (computation?.dataTableRows ?? null) : null;
-    return { hasResult, totalRows };
-}
 
 /// Format a plain "N rows" / "N row" detail string from a total (null when the total is unknown).
 export function formatRowCountDetail(totalRows: number | null): string | null {

@@ -37,7 +37,7 @@ import {
 } from '@akohn/dashql-react/components/symbol_icon';
 import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { formatTimeDifference } from '../utils/format.js';
+import { formatTimeDifference } from '@akohn/dashql-react/format/format';
 import { startsRowDrag } from '../workbook/workbook_folder_row.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
