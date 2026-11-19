@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 
 const refreshCatalog = vi.fn();
 
@@ -20,13 +20,14 @@ const dependencies: ConnectionRefreshDependencies = {
     useRefreshCatalog: () => refreshCatalog,
 };
 
-function database(connector: symbol = HYPER_CONNECTOR): ConnectionState {
+function database(connectorType: ConnectorType = ConnectorType.HYPER): ConnectionState {
+    const trino = connectorType === ConnectorType.TRINO;
     return {
         connectionId: 'database-1',
         connectionHealth: ConnectionHealth.ONLINE,
-        connectorType: connector === TRINO_CONNECTOR ? ConnectorType.TRINO : ConnectorType.HYPER,
-        details: { setupParams: {}, channel: null, connector: { kind: connector === TRINO_CONNECTOR ? 'trino' : 'hyper' } },
-        params: connector === TRINO_CONNECTOR ? { trino: { endpoint: 'https://trino.example' } } : { hyper: {} },
+        connectorType,
+        details: { setupParams: {}, channel: null, connector: { kind: trino ? 'trino' : 'hyper' } },
+        params: trino ? { trino: { endpoint: 'https://trino.example' } } : { hyper: {} },
         catalogUpdates: {
             currentFullRefresh: null,
             tasksRunning: [],
@@ -103,7 +104,7 @@ describe('ConnectionRowMenu', () => {
     });
 
     it('opens the link of a connection from the intermediary menu', () => {
-        renderMenu(vi.fn(), undefined, database(TRINO_CONNECTOR));
+        renderMenu(vi.fn(), undefined, database(ConnectorType.TRINO));
         clickAction('share-url');
 
         expect(document.querySelector('[data-testid="connection-share-overlay"]')).not.toBeNull();

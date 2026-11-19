@@ -33,7 +33,7 @@ export async function createNodePlatform(options: NodePlatformOptions): Promise<
     return {
         logger: options.logger,
         storage: options.storage,
-        http: new WebHttpClient(options.logger),
+        http: new WebHttpClient(),
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: options.oauthFlow ?? NO_OAUTH_FLOW,
         core: options.core ?? await createDashQLCoreSetup()('runtime'),

@@ -21,7 +21,7 @@ import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } 
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';

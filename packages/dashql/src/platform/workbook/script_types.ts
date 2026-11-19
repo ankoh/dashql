@@ -96,17 +96,6 @@ export interface ScriptRef {
     fileName: string;
 }
 
-/// Helper to create empty annotations
-export function createEmptyAnnotations(): ScriptAnnotations {
-    return {
-        tableDefs: [],
-        visualizeQuery: null,
-        flowPosition: null,
-        boardPosition: null,
-        lastStatementIsQuery: false,
-    };
-}
-
 /// Trailing ".sql" extension, stripped for display.
 const SCRIPT_EXTENSION_RE = /\.sql$/i;
 

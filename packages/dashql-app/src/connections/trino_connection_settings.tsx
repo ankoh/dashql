@@ -18,8 +18,7 @@ import { useConnection } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
-import { requiresSwitchingToNative } from './connector_list.js';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { UpdateValueList, ValueListBuilder } from '@akohn/dashql-react/components/value_list';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
@@ -69,9 +68,7 @@ interface Props {
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
 
-    // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
-    const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
     const connectionState = useConnection(props.connectionId);
@@ -296,7 +293,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
-                wrongPlatform={wrongPlatform}
+                wrongPlatform={false}
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}

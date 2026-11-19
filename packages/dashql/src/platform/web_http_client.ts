@@ -1,16 +1,8 @@
-import { ClientOptions, HttpClient, HttpFetchResult } from './http_client.js';
-import { Logger } from './logger/logger.js';
+import type { ClientOptions, HttpClient, HttpFetchResult } from './http_client.js';
 
+/// The HTTP client of the browser and of Node: fetch, limited by CORS in the browser
 export class WebHttpClient implements HttpClient {
-    logger: Logger;
-
-    constructor(logger: Logger) {
-        this.logger = logger;
-    }
     public async fetch(input: URL | Request | string, init?: RequestInit & ClientOptions): Promise<HttpFetchResult> {
-        if (input instanceof Request) {
-            return await fetch(input, init);
-        }
         return await fetch(input, init);
     }
 }

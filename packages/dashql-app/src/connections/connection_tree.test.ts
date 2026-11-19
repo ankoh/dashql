@@ -1,4 +1,4 @@
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type * as core from '@akohn/dashql';
 import { connectionLabel, connectionLabelParts, connectionOrdinals } from './connection_label.js';

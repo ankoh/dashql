@@ -1,10 +1,5 @@
 import { ConnectorType } from '../../core/index.js';
 
-export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
-export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
-export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
-export const DBCOM_CONNECTOR = Symbol('DBCOM_CONNECTOR');
-
 /// The connectors, a numeric enum of the module
 export { ConnectorType };
 export const CONNECTOR_TYPES: ConnectorType[] = [
@@ -17,8 +12,6 @@ export const CONNECTOR_TYPES: ConnectorType[] = [
 export interface ConnectorInfo {
     /// The connector type
     connectorType: ConnectorType;
-    /// The query shown in the first script of a new workbook.
-    helloWorldScript: string;
     /// The connector name
     names: {
         displayLong: string;
@@ -31,21 +24,11 @@ export interface ConnectorInfo {
         uncolored: string,
         outlines: string,
     }
-    /// The connector platforms
-    platforms: ConnectorPlatforms;
-}
-
-export interface ConnectorPlatforms {
-    /// Supports the browser?
-    browser: boolean;
-    /// Supports the electron app?
-    native: boolean;
 }
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.HYPER,
-        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Hyper',
             displayLong: 'Hyper',
@@ -56,14 +39,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             uncolored: "hyper_nocolor",
             outlines: "hyper_outlines",
         },
-        platforms: {
-            browser: true,
-            native: true,
-        },
     },
     {
         connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
-        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Salesforce',
             displayLong: 'Salesforce Data Cloud',
@@ -74,14 +52,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             uncolored: "salesforce_notext_nocolor",
             outlines: "salesforce_outlines",
         },
-        platforms: {
-            browser: true,
-            native: true,
-        },
     },
     {
         connectorType: ConnectorType.TRINO,
-        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Trino',
             displayLong: 'Trino',
@@ -92,15 +65,10 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             uncolored: "trino_nocolor",
             outlines: "trino_outlines",
         },
-        platforms: {
-            browser: true,
-            native: true,
-        },
     },
     {
         // Database.com connections behave like Salesforce Data Cloud connections for now, but can write to their database
         connectorType: ConnectorType.DBCOM,
-        helloWorldScript: 'select version();',
         names: {
             displayShort: 'Database.com',
             displayLong: 'Database.com',
@@ -110,10 +78,6 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             colored: "hyper_nocolor",
             uncolored: "hyper_nocolor",
             outlines: "hyper_outlines",
-        },
-        platforms: {
-            browser: true,
-            native: true,
         },
     },
 ];

@@ -16,7 +16,6 @@ import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
-import { HYPER_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
@@ -41,7 +40,7 @@ const CONNECTION = {
     connectionId: TEST_CONNECTION_ID,
     name: 'Warehouse',
     params: { hyper: {} },
-    details: { type: HYPER_CONNECTOR, value: { proto: { setupParams: null } } },
+    details: { setupParams: {}, channel: null, connector: { kind: 'hyper' } },
 } as unknown as ConnectionState;
 
 describe('WorkbookURLShareOverlay', () => {

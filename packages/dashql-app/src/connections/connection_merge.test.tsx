@@ -7,7 +7,7 @@ import * as core from '@akohn/dashql';
 import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType, HYPER_CONNECTOR, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

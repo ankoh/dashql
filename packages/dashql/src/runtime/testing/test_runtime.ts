@@ -77,9 +77,9 @@ export function workbookScripts(runtime: Runtime, workbookId: string): ScriptDat
     return scripts;
 }
 
-/// The compute database of a test for the platform of a runtime, null without one
-export function computeDatabaseOf(database: EmbeddedComputeDatabase | null | undefined): (() => Promise<EmbeddedComputeDatabase>) | null {
-    return database == null ? null : async () => database;
+/// A runtime of a test without a platform beyond the core
+export function testRuntime(dql: dashql.DashQL): Runtime {
+    return createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql });
 }
 
 /// A runtime of the module of a test with the core of the tests and a storage in memory, its catalog loader stopped
@@ -92,7 +92,7 @@ export type StoredTestScript = [fileName: string, text: string, connectionId: st
 
 /// Write a workbook into a storage with scripts on connections of a runtime, the workbook file holds copies of their
 /// params. Returns the id of the workbook.
-export async function storeTestWorkbook(
+async function storeTestWorkbook(
     runtime: Runtime,
     storage: StorageBackend,
     scripts: readonly StoredTestScript[],
@@ -136,19 +136,6 @@ export async function restoreTestWorkbook(
     return workbook;
 }
 
-/// Create a workbook on a connection of a runtime with scripts of names and texts, see `TestRuntime.addWorkbook`
-export function addTestWorkbook(runtime: Runtime, connectionId: string, scripts: Array<[string, string]> = [], options: { name?: string; ephemeral?: boolean } = {}): WorkbookScripts {
-    const workbook = runtime.createWorkbook(connectionId, options.name ?? 'Test', options.ephemeral ?? false);
-    for (const [fileName, text] of scripts) {
-        const outcome = runtime.dispatch({ workbook: workbook.workbookId }, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
-        if (!outcome.ok) throw new Error(outcome.error ?? `the script ${fileName} was not created`);
-    }
-    analyzeWorkbook(runtime, workbook.workbookId);
-    const created = runtime.store.get('workbook', workbook.workbookId);
-    if (created == null) throw new Error('the workbook was not created');
-    return created;
-}
-
 export async function createTestRuntime(options: TestRuntimeOptions = {}): Promise<TestRuntime> {
     const offline = () => { throw new Error('the test has no network'); };
     const logger = new TestLogger();
@@ -160,7 +147,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: { authorizeWithRedirectPage: offline, authorizeWithLoopback: offline } as unknown as OAuthFlow,
         core: instance,
-        computeDatabase: computeDatabaseOf(options.computeDatabase),
+        computeDatabase: options.computeDatabase == null ? null : async () => options.computeDatabase!,
         resultCache: options.resultCache ?? null,
         archives: options.archiveDatabase == null ? undefined : handles => createRuntimeArchives(handles, options.archiveDatabase!),
         catalogLoader: options.catalogLoader === true,
@@ -177,8 +164,16 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
             if (connection == null) throw new Error(`the runtime has no connection ${connectionId}`);
             return connection;
         },
-        addWorkbook(connectionId: string, scripts?: Array<[string, string]>, options?: { name?: string; ephemeral?: boolean }) {
-            return addTestWorkbook(runtime, connectionId, scripts, options);
+        addWorkbook(connectionId: string, scripts: Array<[string, string]> = [], options: { name?: string; ephemeral?: boolean } = {}) {
+            const workbook = runtime.createWorkbook(connectionId, options.name ?? 'Test', options.ephemeral ?? false);
+            for (const [fileName, text] of scripts) {
+                const outcome = runtime.dispatch({ workbook: workbook.workbookId }, { kind: 'createScript', value: { text, base: fileName.replace(/\.sql$/i, '') } });
+                if (!outcome.ok) throw new Error(outcome.error ?? `the script ${fileName} was not created`);
+            }
+            analyzeWorkbook(runtime, workbook.workbookId);
+            const created = runtime.store.get('workbook', workbook.workbookId);
+            if (created == null) throw new Error('the workbook was not created');
+            return created;
         },
         scripts(workbookId: string) {
             return workbookScripts(runtime, workbookId);

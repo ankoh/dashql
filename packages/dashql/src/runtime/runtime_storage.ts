@@ -24,22 +24,11 @@ export type StorageWriteResult =
     /// Executing the task failed
     | { status: 'failed'; error: unknown };
 
-/// A workbook whose files are not available, e.g. a native folder that was moved or deleted
-export class WorkbookUnavailableError extends Error {
-    /// The workbook id
-    readonly workbookId: string;
-
-    constructor(workbookId: string, cause: unknown) {
-        super(`workbook ${workbookId} is not available: ${stringifyError(cause)}`);
-        this.name = 'WorkbookUnavailableError';
-        this.workbookId = workbookId;
-    }
-}
-
-/// The outcome of a write of the runtime as the callers know it
+/// The outcome of a write of the runtime as the callers know it. A workbook whose files are not available, e.g. a
+/// native folder that was moved or deleted, is named in the error.
 export function writeResultOf(outcome: core.StorageWriteOutcome): StorageWriteResult {
     if (outcome.status !== 'failed') return { status: outcome.status };
-    const error = outcome.unavailableWorkbook != null ? new WorkbookUnavailableError(outcome.unavailableWorkbook, outcome.error) : outcome.error;
+    const error = outcome.unavailableWorkbook != null ? new Error(`workbook ${outcome.unavailableWorkbook} is not available: ${stringifyError(outcome.error)}`) : outcome.error;
     return { status: 'failed', error };
 }
 

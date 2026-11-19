@@ -15,7 +15,7 @@ import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_exe
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { StandaloneRuntime } from '../../runtime/standalone_runtime.js';
-import { testRuntime } from '@akohn/dashql/runtime/testing/connector_state';
+import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { projectQueryProgress } from '@akohn/dashql/platform/query/query_progress';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 

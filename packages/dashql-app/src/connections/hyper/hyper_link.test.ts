@@ -4,7 +4,7 @@ import * as dashql from '@akohn/dashql';
 import type { ConnectionState, NewConnection } from '@akohn/dashql/platform/connections/connection_state';
 import { newConnectionFromParams, newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { testRuntime } from '@akohn/dashql/runtime/testing/connector_state';
+import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import {
     bindHyperLink,
     confirmHyperLink,

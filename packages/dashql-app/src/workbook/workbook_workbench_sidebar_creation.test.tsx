@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { connectionLabelParts } from '../connections/connection_label.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../app/router.js';
