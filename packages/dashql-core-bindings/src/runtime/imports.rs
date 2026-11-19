@@ -22,7 +22,6 @@ use dashql_core_storage::workbook_format::bundle::{
     prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData,
     WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
 };
-use dashql_core_storage::workbook_format::catalog::CoreCatalogSql;
 use dashql_core_storage::workbook_format::connection_import::{
     apply_connection_import_plan, connection_refs_changed, plan_connection_import, ConnectionImportChoice, ConnectionImportDecision,
     ConnectionImportPlanItem,
@@ -425,7 +424,7 @@ impl Imports {
                         }
                     }
                 }
-                read_table_archive(&tables, &CoreCatalogSql).map_err(format_error)
+                read_table_archive(&tables).map_err(format_error)
             }
             ArchivePlan::Folder(plan) => {
                 let mut read = FolderArchiveFiles { texts: Vec::new(), scripts: Vec::new(), data: Vec::new(), results: Vec::new() };
@@ -542,7 +541,7 @@ impl Imports {
                 tables.data.push((table_name, DataTableFile { bytes: files.keep(&file)?, crc32 }));
             }
         }
-        workbook_tables_to_bundle(&tables, &prefix, &CoreCatalogSql).map_err(format_error)
+        workbook_tables_to_bundle(&tables, &prefix).map_err(format_error)
     }
 
     /// The registered workbook with an id, ignoring the case of the id. A runtime without storage registers none, an

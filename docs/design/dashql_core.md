@@ -400,7 +400,7 @@ limit of the workbook format or a wait of a busy state is no setting). A service
 | `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
 | `workbook_run::RunHost` | Statements, the result keys, preparing connections, cached results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
-| `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost`, `CacheHost`, `CatalogSql` | Folders, the storage root, the files of the cache, catalog SQL |
+| `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost`, `CacheHost` | Folders, the storage root, the files of the cache |
 
 A host call that fails returns a `HostError`, the error of the task: it keeps what the host failed with and hands it
 back unchanged. A call that was cancelled fails with `HostError::cancelled()`, the code asks `is_cancelled()` and

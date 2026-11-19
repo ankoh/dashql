@@ -53,7 +53,8 @@ in NFC.
   the order of their declarations. A column names its table and a parameter its function by that id, so the overloads
   of a function stay apart. The ids aren't declared as keys, the tables have none. An empty database or schema name means the declaration
   names none. An export reads the SQL of the files with the core into a catalog descriptor
-  (`CoreCatalogSql` of `workbook_format/catalog.rs`), an import renders the files again from the rows. The files on disk stay SQL
+  (`parse_catalog_sql` of `catalog_loader/tables.rs`), an import renders the files again from the rows like the catalog
+  loader writes them. The files on disk stay SQL
   (`catalog_updates.md`). A rendered file reads back as the same rows, it isn't the text of the original file.
 - **Connections only.** Sharing a connection writes a workbook without scripts that holds the connection.
 

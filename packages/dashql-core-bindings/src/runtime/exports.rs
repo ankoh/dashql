@@ -13,7 +13,6 @@ use std::rc::Rc;
 
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::workbook_format::bundle::{WorkbookBundle, WorkbookBundleResult};
-use dashql_core_storage::workbook_format::catalog::CoreCatalogSql;
 use dashql_core_storage::workbook_format::export::{
     connection_link_workbook, exported_bundle, shared_export_head, shared_workbook_tables, workbook_archive_entries, workbook_link,
     ArchiveEntrySource, EntryCompression, SharedWorkbookExportOptions,
@@ -294,7 +293,7 @@ impl Exports {
         let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &params, &shared, &mut self.new_uuid(&failed));
         bundle.workbook = workbook;
         bundle.catalogs = catalogs;
-        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid(&failed)).map_err(format_error)?;
+        let tables = shared_workbook_tables(&bundle, &mut self.new_uuid(&failed)).map_err(format_error)?;
         if failed.get() {
             return Err(HostError::new("the platform made no fresh id for the export"));
         }
@@ -328,7 +327,7 @@ impl Exports {
         let failed = Cell::new(false);
         let workbook = connection_link_workbook(&params, name, options.with_login_hint.unwrap_or(true), &created_at, &mut self.new_uuid(&failed));
         let bundle: WorkbookBundle<HostFile> = WorkbookBundle { workbook, catalogs: Vec::new(), scripts: Vec::new(), data: Vec::new(), results: Vec::new() };
-        let tables = shared_workbook_tables(&bundle, &CoreCatalogSql, &mut self.new_uuid(&failed)).map_err(format_error)?;
+        let tables = shared_workbook_tables(&bundle, &mut self.new_uuid(&failed)).map_err(format_error)?;
         if failed.get() {
             return Err(HostError::new("the platform made no fresh id for the link"));
         }

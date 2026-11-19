@@ -9,7 +9,10 @@ use dashql_core::error::Result;
 use dashql_core_runtime::connections::ConnectorType;
 use dashql_core_storage::storage::workbook_file::{properties_patch, upsert_connection_entry};
 use dashql_core_storage::workbook_format::bundle::*;
-use dashql_core_storage::workbook_format::catalog::*;
+use dashql_core_runtime::catalog_loader::tables::{
+    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam, CatalogTable,
+    ColumnMetadata,
+};
 use dashql_core_storage::workbook_format::connection_import::*;
 use dashql_core_storage::workbook_format::data::*;
 use dashql_core_storage::workbook_format::export::*;
@@ -801,54 +804,11 @@ fn reads_the_results_of_an_archive_of_an_older_version() {
 
 // ---- workbook_tables.test.ts --------------------------------------------------------------------
 
-/// Catalog files as JSON, a stand-in for the SQL of the catalog of a connection
-struct JsonCatalogSql;
-
-impl CatalogSql for JsonCatalogSql {
-    fn parse(&self, sql: &str) -> Result<CatalogStructure> {
-        let value: Value = serde_json::from_str(sql).map_err(|e| dashql_core::error::Error::invalid_argument(e.to_string()))?;
-        let text = |v: &Value| v.as_str().map(str::to_string);
-        let tables = value["tables"].as_array().cloned().unwrap_or_default().iter().map(|t| CatalogTable {
-            database_name: t["db"].as_str().unwrap_or("").into(),
-            schema_name: t["schema"].as_str().unwrap_or("").into(),
-            table_name: t["name"].as_str().unwrap_or("").into(),
-            columns: t["columns"].as_array().cloned().unwrap_or_default().iter().enumerate().map(|(i, c)| CatalogColumn {
-                name: c["name"].as_str().unwrap_or("").into(),
-                ordinal_position: i as u32,
-                data_type: text(&c["type"]),
-            }).collect(),
-        }).collect();
-        let functions = value["functions"].as_array().cloned().unwrap_or_default().iter().map(|f| CatalogFunction {
-            database_name: f["db"].as_str().unwrap_or("").into(),
-            schema_name: f["schema"].as_str().unwrap_or("").into(),
-            function_name: f["name"].as_str().unwrap_or("").into(),
-            is_aggregate: f["aggregate"].as_bool().unwrap_or(false),
-            return_type: text(&f["returns"]),
-            params: f["params"].as_array().cloned().unwrap_or_default().iter().map(|p| CatalogFunctionParam { name: text(&p["name"]), param_type: text(&p["type"]) }).collect(),
-        }).collect();
-        Ok(CatalogStructure { tables, functions })
-    }
-
-    fn relations_sql(&self, tables: &[CatalogTable]) -> String {
-        json!({ "tables": tables.iter().map(|t| json!({
-            "db": t.database_name, "schema": t.schema_name, "name": t.table_name,
-            "columns": t.columns.iter().map(|c| json!({ "name": c.name, "type": c.data_type })).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>() }).to_string()
-    }
-
-    fn functions_sql(&self, functions: &[CatalogFunction]) -> String {
-        json!({ "functions": functions.iter().map(|f| json!({
-            "db": f.database_name, "schema": f.schema_name, "name": f.function_name, "aggregate": f.is_aggregate, "returns": f.return_type,
-            "params": f.params.iter().map(|p| json!({ "name": p.name, "type": p.param_type })).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>() }).to_string()
-    }
+fn column(name: &str, position: i64, data_type: &str) -> ColumnMetadata {
+    ColumnMetadata { name: name.into(), ordinal_position: position, data_type: Some(data_type.into()) }
 }
 
-fn column(name: &str, position: u32, data_type: &str) -> CatalogColumn {
-    CatalogColumn { name: name.into(), ordinal_position: position, data_type: Some(data_type.into()) }
-}
-
-fn table(db: &str, name: &str, columns: Vec<CatalogColumn>) -> CatalogTable {
+fn table(db: &str, name: &str, columns: Vec<ColumnMetadata>) -> CatalogTable {
     CatalogTable { database_name: db.into(), schema_name: "public".into(), table_name: name.into(), columns }
 }
 
@@ -864,14 +824,14 @@ fn function(schema: &str, name: &str, is_aggregate: bool, returns: &str, params:
 }
 
 fn relations() -> String {
-    JsonCatalogSql.relations_sql(&[
+    catalog_tables_sql(&[
         table("hyper", "orders", vec![column("id", 0, "integer"), column("note", 1, "text")]),
         table("hyper", "empty", vec![]),
     ])
 }
 
 fn functions() -> String {
-    JsonCatalogSql.functions_sql(&[
+    catalog_functions_sql(&[
         function("pg_catalog", "abs", false, "any", &[]),
         function("public", "scale", false, "bigint", &[("value", "integer"), ("factor", "integer")]),
         function("public", "scale", false, "bigint", &[("value", "bigint")]),
@@ -906,25 +866,25 @@ fn reads_and_renders_catalog_files_with_the_core() {
         table("hyper", "orders", vec![column("id", 0, "integer"), column("note", 1, "text")]),
         table("hyper", "items", vec![column("name", 0, "text")]),
     ];
-    let relations = CoreCatalogSql.relations_sql(&tables);
-    let parsed = CoreCatalogSql.parse(&relations).unwrap();
+    let relations = catalog_tables_sql(&tables);
+    let parsed = parse_catalog_sql(&relations).unwrap();
     assert_eq!(parsed.tables, tables);
     assert!(parsed.functions.is_empty());
     let functions = vec![
         function("public", "scale", false, "bigint", &[("value", "integer"), ("factor", "integer")]),
         function("public", "total", true, "bigint", &[("value", "bigint")]),
     ];
-    let text = CoreCatalogSql.functions_sql(&functions);
-    let parsed = CoreCatalogSql.parse(&text).unwrap();
-    assert_eq!(CoreCatalogSql.functions_sql(&parsed.functions), text);
+    let text = catalog_functions_sql(&functions);
+    let parsed = parse_catalog_sql(&text).unwrap();
+    assert_eq!(catalog_functions_sql(&parsed.functions), text);
     assert_eq!(parsed.functions.iter().map(|f| (f.function_name.as_str(), f.is_aggregate)).collect::<Vec<_>>(), [("scale", false), ("total", true)]);
-    assert!(CoreCatalogSql.parse("create tabel t;").is_err());
+    assert!(parse_catalog_sql("create tabel t;").is_err());
 }
 
 #[test]
 fn round_trips_a_bundle_through_the_rows() {
     let bundle = tables_bundle();
-    let tables = workbook_bundle_to_tables(&bundle, &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
     assert_eq!(
         tables.workbook,
         vec![WorkbookRow { workbook_id: TEST_WORKBOOK_ID.into(), format_version: 11, name: Some("Tables".into()), metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into() }]
@@ -951,23 +911,23 @@ fn round_trips_a_bundle_through_the_rows() {
     assert!(is_data_table_name(&tables.results[0].table_name));
     assert_eq!(tables.data.len(), 2);
 
-    let read = workbook_tables_to_bundle(&tables, "Invalid workbook tables", &JsonCatalogSql).unwrap();
+    let read = workbook_tables_to_bundle(&tables, "Invalid workbook tables").unwrap();
     assert_eq!(read, bundle);
 }
 
 #[test]
 fn round_trips_a_workbook_that_only_holds_a_connection() {
     let bundle: WorkbookBundle<Vec<u8>> = WorkbookBundle { workbook: test_workbook(json!({})), catalogs: vec![], scripts: vec![], data: vec![], results: vec![] };
-    let tables = workbook_bundle_to_tables(&bundle, &JsonCatalogSql, &mut uuids()).unwrap();
-    assert_eq!(workbook_tables_to_bundle(&tables, "Invalid", &JsonCatalogSql).unwrap(), bundle);
+    let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
+    assert_eq!(workbook_tables_to_bundle(&tables, "Invalid").unwrap(), bundle);
 }
 
 #[test]
 fn numbers_the_tables_and_functions_of_all_connections() {
     let mut bundle = tables_bundle();
-    let other = JsonCatalogSql.relations_sql(&[table("other", "events", vec![column("at", 0, "text")])]);
+    let other = catalog_tables_sql(&[table("other", "events", vec![column("at", 0, "text")])]);
     bundle.catalogs.push(WorkbookBundleCatalog { connection_id: TABLES_OTHER_CONNECTION_ID.into(), relations: Some(other), functions: Some(functions()) });
-    let tables = workbook_bundle_to_tables(&bundle, &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
     assert_eq!(
         tables.catalog_tables.iter().map(|r| (r.table_id, r.connection_id.as_str(), r.table_name.as_str())).collect::<Vec<_>>(),
         [(0, TEST_CONNECTION_ID, "orders"), (1, TEST_CONNECTION_ID, "empty"), (2, TABLES_OTHER_CONNECTION_ID, "events")]
@@ -979,28 +939,28 @@ fn numbers_the_tables_and_functions_of_all_connections() {
     shuffled.catalog_columns.reverse();
     shuffled.catalog_functions.reverse();
     shuffled.catalog_function_params.reverse();
-    assert_eq!(workbook_tables_to_bundle(&shuffled, "Invalid", &JsonCatalogSql).unwrap(), bundle);
+    assert_eq!(workbook_tables_to_bundle(&shuffled, "Invalid").unwrap(), bundle);
 }
 
 #[test]
 fn rejects_tables_without_exactly_one_workbook_and_invalid_json() {
-    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let mut none = tables.clone();
     none.workbook.clear();
-    assert!(workbook_tables_to_bundle(&none, "Invalid workbook tables", &JsonCatalogSql).unwrap_err().message.contains("expected one workbook, found 0"));
+    assert!(workbook_tables_to_bundle(&none, "Invalid workbook tables").unwrap_err().message.contains("expected one workbook, found 0"));
     let mut two = tables.clone();
     two.workbook.push(two.workbook[0].clone());
-    assert!(workbook_tables_to_bundle(&two, "Invalid workbook tables", &JsonCatalogSql).unwrap_err().message.contains("expected one workbook, found 2"));
+    assert!(workbook_tables_to_bundle(&two, "Invalid workbook tables").unwrap_err().message.contains("expected one workbook, found 2"));
     let mut broken = tables.clone();
     broken.connections[0].params = "{".into();
-    assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables", &JsonCatalogSql).unwrap_err().message.contains("invalid JSON in workbook_connections"));
+    assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables").unwrap_err().message.contains("invalid JSON in workbook_connections"));
 }
 
 #[test]
 fn leaves_out_attachments_whose_table_is_missing() {
-    let mut tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let mut tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     tables.data.clear();
-    let bundle = workbook_tables_to_bundle(&tables, "Invalid", &JsonCatalogSql).unwrap();
+    let bundle = workbook_tables_to_bundle(&tables, "Invalid").unwrap();
     assert!(bundle.data.is_empty());
     assert!(bundle.workbook.attachments.is_empty());
     assert!(bundle.results.is_empty());
@@ -1008,7 +968,7 @@ fn leaves_out_attachments_whose_table_is_missing() {
 
 #[test]
 fn rejects_file_names_of_the_rows_that_could_escape_their_folder_or_collide() {
-    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     for (first, second, message) in [
         ("../x.sql", "a.sql", "invalid script name ../x.sql"),
         ("a/b.sql", "a.sql", "invalid script name a/b.sql"),
@@ -1019,14 +979,14 @@ fn rejects_file_names_of_the_rows_that_could_escape_their_folder_or_collide() {
         let mut bad = tables.clone();
         bad.scripts[0].name = first.into();
         bad.scripts[1].name = second.into();
-        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables", &JsonCatalogSql).unwrap_err();
+        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables").unwrap_err();
         assert!(error.message.starts_with("Invalid workbook tables: "), "{first}: {}", error.message);
         assert!(error.message.contains(message), "{first}: {}", error.message);
     }
     for (name, message) in [("../d.parquet", "basename"), ("d.txt", "Only Parquet files")] {
         let mut bad = tables.clone();
         bad.attachments[0].name = name.into();
-        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables", &JsonCatalogSql).unwrap_err();
+        let error = workbook_tables_to_bundle(&bad, "Invalid workbook tables").unwrap_err();
         assert!(error.message.contains(message), "{name}: {}", error.message);
     }
     let mut twice = tables.clone();
@@ -1034,7 +994,7 @@ fn rejects_file_names_of_the_rows_that_could_escape_their_folder_or_collide() {
     copy.position = 1;
     copy.name = "D.parquet".into();
     twice.attachments.push(copy);
-    assert!(workbook_tables_to_bundle(&twice, "Invalid", &JsonCatalogSql).unwrap_err().message.contains("duplicate attachment"));
+    assert!(workbook_tables_to_bundle(&twice, "Invalid").unwrap_err().message.contains("duplicate attachment"));
 }
 
 #[test]
@@ -1057,7 +1017,7 @@ fn checks_the_file_names_of_a_bundle_before_it_is_written() {
 
 #[test]
 fn round_trips_the_rows_through_arrow_ipc() {
-    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let mut read: WorkbookTables<Vec<u8>> = WorkbookTables::default();
     for table in WorkbookTableName::ALL {
         let ipc = tables.encode_table(table).unwrap();
@@ -1095,7 +1055,7 @@ fn rejects_arrow_tables_that_miss_a_column_or_hold_a_null() {
 
 #[test]
 fn reads_an_archive_of_workbook_tables() {
-    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let written = workbook_archive_entries(&tables);
     // The host lists the archive it wrote and reads every entry of the plan
     let mut entries: Vec<ArchiveEntry> = written.iter().map(|entry| ArchiveEntry { filename: entry.file_name.clone(), directory: false }).collect();
@@ -1119,7 +1079,7 @@ fn reads_an_archive_of_workbook_tables() {
             other => panic!("unexpected entry {other:?}"),
         }
     }
-    assert_eq!(read_table_archive(&read, &JsonCatalogSql).unwrap(), tables_bundle());
+    assert_eq!(read_table_archive(&read).unwrap(), tables_bundle());
     let duplicate = vec![ArchiveEntry { filename: "workbook.parquet".into(), directory: false }, ArchiveEntry { filename: "WORKBOOK.parquet".into(), directory: false }];
     assert!(plan_archive(&duplicate).unwrap_err().message.contains("duplicate table"));
 }
@@ -1128,7 +1088,7 @@ fn reads_an_archive_of_workbook_tables() {
 
 #[test]
 fn writes_the_workbook_tables_and_the_data_tables_with_their_compression() {
-    let tables = workbook_bundle_to_tables(&tables_bundle(), &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let entries = workbook_archive_entries(&tables);
     let names: Vec<&str> = entries.iter().map(|e| e.file_name.as_str()).collect();
     assert_eq!(names[0], "workbook.parquet");
@@ -1150,7 +1110,7 @@ fn shares_a_workbook_without_secrets_drafts_and_the_draft_script() {
     bundle.workbook.connections[0].params_draft = Some(json!({ "hyper": { "endpoint": "draft" } }));
     bundle.workbook.metadata.cloud = Some(WorkbookCloudLink { workbook_id: "w".into(), version_id: "v".into(), preview: None, connection_id: "c".into() });
     bundle.scripts.push(ScriptData::new("dashql-draft.sql", "draft"));
-    let tables = shared_workbook_tables(&bundle, &JsonCatalogSql, &mut uuids()).unwrap();
+    let tables = shared_workbook_tables(&bundle, &mut uuids()).unwrap();
     assert!(!tables.connections[0].params.contains("secret"));
     assert!(!tables.connections[0].params.contains("token"));
     assert!(!tables.workbook[0].metadata.contains("cloud"));

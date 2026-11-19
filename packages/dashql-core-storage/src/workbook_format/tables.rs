@@ -18,9 +18,12 @@ use dashql_core_runtime::catalog_loader::tables::Groups;
 use crate::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
-use crate::workbook_format::catalog::{CatalogColumn, CatalogFunction, CatalogFunctionParam, CatalogSql, CatalogStructure, CatalogTable};
 use crate::workbook_format::files::nfc;
 use crate::workbook_format::json::{to_text, JsonObject};
+use dashql_core_runtime::catalog_loader::tables::{
+    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam, CatalogStructure,
+    CatalogTable, ColumnMetadata,
+};
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
 use crate::workbook_format::migration::MigrationFolder;
 
@@ -548,11 +551,10 @@ pub fn decode_table_ipc<R: WorkbookTableRow>(ipc: &[u8]) -> Result<Vec<R>> {
 }
 
 /// The rows of a bundle. The connection params are written as the bundle holds them, an export sanitizes them first.
-/// The catalog files are read into their tables and functions with `catalog_sql`, the data tables are named with
-/// fresh UUIDs of `new_uuid`.
+/// The catalog files are read into their tables and functions, the data tables are named with fresh UUIDs of
+/// `new_uuid`.
 pub fn workbook_bundle_to_tables<B: Clone>(
     bundle: &WorkbookBundle<B>,
-    catalog_sql: &dyn CatalogSql,
     new_uuid: &mut dyn FnMut() -> String,
 ) -> Result<WorkbookTables<B>> {
     let mut tables = WorkbookTables::default();
@@ -586,11 +588,11 @@ pub fn workbook_bundle_to_tables<B: Clone>(
     for catalog in &bundle.catalogs {
         let connection_id = &catalog.connection_id;
         let relations = match catalog.relations.as_deref().filter(|sql| !sql.trim().is_empty()) {
-            Some(sql) => catalog_sql.parse(sql)?.tables,
+            Some(sql) => parse_catalog_file(sql)?.tables,
             None => Vec::new(),
         };
         let functions = match catalog.functions.as_deref().filter(|sql| !sql.trim().is_empty()) {
-            Some(sql) => catalog_sql.parse(sql)?.functions,
+            Some(sql) => parse_catalog_file(sql)?.functions,
             None => Vec::new(),
         };
         for table in relations {
@@ -647,6 +649,11 @@ pub fn workbook_bundle_to_tables<B: Clone>(
     Ok(tables)
 }
 
+/// The tables and the functions of a catalog file, as the catalog of a connection reads it
+fn parse_catalog_file(sql: &str) -> Result<CatalogStructure> {
+    parse_catalog_sql(sql).map_err(|error| Error::invalid_argument(error.to_string()))
+}
+
 /// Parse a JSON text of a row
 fn parse_json(value: &str, error_prefix: &str, table: WorkbookTableName) -> Result<Value> {
     serde_json::from_str(value).map_err(|_| Error::invalid_argument(format!("{error_prefix}: invalid JSON in {}", table.name())))
@@ -657,7 +664,6 @@ fn parse_json(value: &str, error_prefix: &str, table: WorkbookTableName) -> Resu
 pub fn workbook_tables_to_bundle<B: Clone>(
     tables: &WorkbookTables<B>,
     error_prefix: &str,
-    catalog_sql: &dyn CatalogSql,
 ) -> Result<WorkbookBundle<B>> {
     let [row] = tables.workbook.as_slice() else {
         return Err(Error::invalid_argument(format!("{error_prefix}: expected one workbook, found {}", tables.workbook.len())));
@@ -700,10 +706,10 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     let mut folder = MigrationFolder::new([(STORAGE_WORKBOOK_FILE.to_string(), to_text(&Value::Object(workbook)))]);
     for (connection_id, catalog) in catalog_structures(tables) {
         if !catalog.tables.is_empty() {
-            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_RELATIONS), catalog_sql.relations_sql(&catalog.tables));
+            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_RELATIONS), catalog_tables_sql(&catalog.tables));
         }
         if !catalog.functions.is_empty() {
-            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_FUNCTIONS), catalog_sql.functions_sql(&catalog.functions));
+            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_FUNCTIONS), catalog_functions_sql(&catalog.functions));
         }
     }
     let head = read_workbook_bundle_head(&mut folder, error_prefix)?;
@@ -755,9 +761,9 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
             columns: columns
                 .into_iter()
                 .enumerate()
-                .map(|(ordinal_position, column)| CatalogColumn {
+                .map(|(ordinal_position, column)| ColumnMetadata {
                     name: column.column_name.clone(),
-                    ordinal_position: ordinal_position as u32,
+                    ordinal_position: ordinal_position as i64,
                     data_type: column.column_type.clone(),
                 })
                 .collect(),

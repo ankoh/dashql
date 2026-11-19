@@ -8,7 +8,6 @@
 //! (`storage_migration::StorageRootHost`) and the eviction of the query result cache (`eviction::CacheHost`).
 
 pub mod bundle;
-pub mod catalog;
 pub mod connection_import;
 pub mod data;
 pub mod eviction;

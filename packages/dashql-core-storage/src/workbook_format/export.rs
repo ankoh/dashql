@@ -11,7 +11,6 @@ use serde_json::Value;
 use dashql_core::error::Result;
 
 use crate::workbook_format::bundle::{prune_bundle_connections, regenerate_connection_ids, WorkbookBundle, WorkbookBundleCatalog, WorkbookBundleResult};
-use crate::workbook_format::catalog::CatalogSql;
 use crate::workbook_format::data::{WorkbookConnection, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE};
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
@@ -27,7 +26,6 @@ pub const DESKTOP_APP_LINK_BASE: &str = "dashql://localhost";
 /// link to a published workbook of a cloud.
 pub fn shared_workbook_tables<B: Clone>(
     bundle: &WorkbookBundle<B>,
-    catalog_sql: &dyn CatalogSql,
     new_uuid: &mut dyn FnMut() -> String,
 ) -> Result<WorkbookTables<B>> {
     let mut sanitized = bundle.clone();
@@ -45,7 +43,7 @@ pub fn shared_workbook_tables<B: Clone>(
     for file in &sanitized.data {
         validate_data_file_name(&file.name)?;
     }
-    workbook_bundle_to_tables(&sanitized, catalog_sql, new_uuid)
+    workbook_bundle_to_tables(&sanitized, new_uuid)
 }
 
 /// How the host compresses an entry of an archive

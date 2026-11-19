@@ -12,7 +12,6 @@ use dashql_core::error::{Error, Result};
 use crate::workbook_format::bundle::{
     assemble_workbook_bundle, check_workbook_bundle, is_bundle_catalog_path, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
-use crate::workbook_format::catalog::CatalogSql;
 use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE, STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER};
 use crate::workbook_format::migration::MigrationFolder;
 use dashql_core_runtime::natural::sort_naturally;
@@ -263,6 +262,6 @@ pub fn read_folder_archive<B>(plan: &FolderArchivePlan, files: FolderArchiveFile
 }
 
 /// The bundle of an archive of workbook tables that the host read
-pub fn read_table_archive<B: Clone>(tables: &WorkbookTables<B>, catalog_sql: &dyn CatalogSql) -> Result<WorkbookBundle<B>> {
-    crate::workbook_format::tables::workbook_tables_to_bundle(tables, ARCHIVE_ERROR_PREFIX, catalog_sql)
+pub fn read_table_archive<B: Clone>(tables: &WorkbookTables<B>) -> Result<WorkbookBundle<B>> {
+    crate::workbook_format::tables::workbook_tables_to_bundle(tables, ARCHIVE_ERROR_PREFIX)
 }
