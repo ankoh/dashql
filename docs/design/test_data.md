@@ -123,8 +123,8 @@ the R2 key and drives the upload `Content-Type`, but does not drive conversion (
 sources by content, not extension).
 
 A Hyper output is a directory artifact of its own. The rule runs
-`//packages/hyper-api:hyper_sql --hyperd <hyperd> --output <folder> --source <as> <path> --sql <sql>`
-with the `hyperd` of `//packages/hyper-api`, which starts a Hyper process in the output folder and
+`//tests/hyper:hyper_sql --hyperd <hyperd> --output <folder> --source <as> <path> --sql <sql>`
+with the `hyperd` of `//tests/hyper`, which starts a Hyper process in the output folder and
 executes the statement. Then `dashql-datasets folder-index --dir <folder>` writes the folder's own
 `index.json`, `{ files: [{path, bytes, sha256}] }`. That inventory is the folder's completion
 marker (see `sync`).

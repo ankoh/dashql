@@ -219,8 +219,8 @@ _hyper_folder_output = rule(
         "source_names": attr.string_list(),
         "sql": attr.string(mandatory = True),
         "out": attr.string(mandatory = True),
-        "_hyper_sql": attr.label(default = "//packages/hyper-api:hyper_sql", executable = True, cfg = "exec"),
-        "_hyperd": attr.label(default = "//packages/hyper-api:hyperd", allow_single_file = True, cfg = "exec"),
+        "_hyper_sql": attr.label(default = "//tests/hyper:hyper_sql", executable = True, cfg = "exec"),
+        "_hyperd": attr.label(default = "//tests/hyper:hyperd", allow_single_file = True, cfg = "exec"),
         "_folder_index": attr.label(default = "//packages/dashql-datasets:dashql-datasets", executable = True, cfg = "exec"),
     },
 )

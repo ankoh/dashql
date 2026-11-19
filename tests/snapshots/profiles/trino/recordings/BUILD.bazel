@@ -1,4 +1,4 @@
-# The Trino API responses recorded by //packages/trino-testing:trino_recorder, the fixtures of the Trino progress
+# The Trino API responses recorded by //tests/trino:trino_recorder, the fixtures of the Trino progress
 # and profile snapshots (snapshots/profiles/trino/progress/, snapshots/profiles/trino/plans/)
 filegroup(
     name = "files",

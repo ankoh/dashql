@@ -195,7 +195,7 @@ register_execution_platforms(
     "//bazel/platforms:wasm_tool_exec",
 )
 
-# Native Tableau Hyper API C++ distributions for //packages/hyper-api.
+# Native Tableau Hyper API C++ distributions for //tests/hyper.
 tableauhyperapi = use_extension("//bazel:external_tableauhyperapi.bzl", "tableauhyperapi_ext")
 use_repo(
     tableauhyperapi,
@@ -214,7 +214,7 @@ use_repo(
     "codex_macos_arm64",
 )
 
-# Trino server (core + tpch plugin) and a Java runtime for //packages/trino-testing.
+# Trino server (core + tpch plugin) and a Java runtime for //tests/trino.
 # Only the Trino integration tests depend on them, so they are fetched on first use.
 trino = use_extension("//bazel:external_trino.bzl", "trino_ext")
 use_repo(

@@ -50,6 +50,6 @@ rust_test(
     use_libtest_harness = False,
     deps = [
         ":dashql_core_profile",
-        "//packages/dashql-snapshots:dashql_snapshots",
+        "//tests/snapshots:dashql_snapshots",
     ],
 )

@@ -665,7 +665,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
-**Tests:** `packages/dashql-snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
+**Tests:** `tests/snapshots/src/clfn_fixture.rs` holds a made-up ticket service, and a snapshot case selects it with `client_functions: tickets`. The `call` files in `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner` cover the statement, every check, and every position.
 
 ## The runtime
 

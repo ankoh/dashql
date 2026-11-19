@@ -18,7 +18,7 @@ exports_files([
 alias(
     name = "trino",
     testonly = True,
-    actual = "//packages/trino-testing:trino_server",
+    actual = "//tests/trino:trino_server",
     tags = ["manual"],
 )
 

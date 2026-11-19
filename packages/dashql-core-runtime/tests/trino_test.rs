@@ -1066,7 +1066,7 @@ fn fails_a_page_whose_request_could_not_be_sent() {
     assert!(matches!(harness.end(), Some(StreamOutput::Failed(error)) if error.kind == TrinoErrorKind::Protocol));
 }
 
-/// The bodies of the statement responses of a recording of `//packages/trino-testing:trino_recorder`
+/// The bodies of the statement responses of a recording of `//tests/trino:trino_recorder`
 fn recorded_pages(recording: &str) -> Vec<Value> {
     let recording: Value = serde_json::from_str(recording).unwrap();
     recording["statementResponses"].as_array().unwrap().iter().map(|response| response["body"].clone()).collect()

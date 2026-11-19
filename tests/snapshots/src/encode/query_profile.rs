@@ -210,7 +210,7 @@ pub fn encode_profile_progress(plan: &str, events: &str) -> Result<Node, String>
 }
 
 /// Encode a Trino progress snapshot case: replay the `/v1/statement` responses of a recording
-/// (tests/snapshots/profiles/trino/recordings/, written by //packages/trino-testing:trino_recorder) through the statement
+/// (tests/snapshots/profiles/trino/recordings/, written by //tests/trino:trino_recorder) through the statement
 /// adapter. Returns the sections `fragments` (the registered stages) and `updates` (the output events of all
 /// polls, the time is the elapsed time of the poll).
 pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {

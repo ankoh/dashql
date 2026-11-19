@@ -1,5 +1,5 @@
 trino-progress-snapshots:
-  # The recordings are written by `bazel run //packages/trino-testing:trino_recorder`
+  # The recordings are written by `bazel run //tests/trino:trino_recorder`
   - name: select_one
     recording: select_one
   - name: aggregate_lineitem_sf1

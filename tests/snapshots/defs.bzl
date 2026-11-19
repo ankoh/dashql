@@ -21,8 +21,8 @@ def snapshot_library(filter, files_srcs = None):
         testonly = True,
         srcs = ["//tests/snapshots:run_snapshotter.sh"],
         args = [
-            "$(rootpath //packages/dashql-snapshots:snapshotter)",
+            "$(rootpath //tests/snapshots:snapshotter)",
             filter,
         ],
-        data = ["//packages/dashql-snapshots:snapshotter"],
+        data = ["//tests/snapshots:snapshotter"],
     )

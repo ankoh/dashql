@@ -115,7 +115,7 @@ bazel test //...
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
-| `//packages/dashql-snapshots:parser_snapshot_test` | Parser snapshot tests |
+| `//tests/snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
@@ -123,7 +123,7 @@ bazel test //...
 | `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
 | `//packages/dashql:all` | The tests of `@akohn/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
 | `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
-| `//packages/hyper-api:smoke_test` | Native Tableau Hyper API integration test |
+| `//tests/hyper:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` and `vis` against a fake Trino and the embedded Hyper, `catalog`, the session server and its journal |
 | `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
@@ -153,7 +153,7 @@ bazel test //...
 | `//packages/dashql-slack:all` | The Slack app (a Cloudflare Worker): type check against the WebWorker lib, and the events against a fake Slack API in Node. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-slack/README.md` |
 | `//packages/dashql-mcp:all` | The MCP server (a Cloudflare Worker with an MCP App that frames `/embed`): type check against the WebWorker lib, and the Worker in Node with the client of the MCP SDK. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-mcp/README.md` |
 | `//packages/dashql-org:check` | `astro check` of the website |
-| `//packages/trino-testing:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
+| `//tests/trino:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
 | `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, `dashql lint` in the sandbox, `dashql connect` with the guide in the system prompt and the tools it allows, see `docs/design/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
 | `//tests/agents:hyperdb_edge_claude_code_test` | hyperdb-edge in Claude Code with a fake model: `describe` and `run` in the sandbox, a database and files in the workspace, errors, rules by prefix, the skill, see `docs/wip/hyperdb_edge.md`. Needs what `claude_code_sandbox_test` needs |
 | `//tests/agents:hyperdb_edge_codex_test` | hyperdb-edge in Codex with a fake model: `describe` and `run` in `workspace-write` without network, `describe` in `read-only`, the skill, see `docs/wip/hyperdb_edge.md` |
@@ -163,17 +163,17 @@ bazel test //...
 
 ### Trino (manual, local only)
 
-`//packages/trino-testing` starts a single-node Trino 484 with only the tpch catalog. On first use Bazel
+`//tests/trino` starts a single-node Trino 484 with only the tpch catalog. On first use Bazel
 downloads the server, the tpch plugin and a Java 25 runtime, about 370 MB (`//bazel:external_trino.bzl`).
 Every target there is `manual`, so `bazel build //...`, `bazel test //...` and CI never fetch or start
 Trino. The regular tests read the checked-in recordings instead.
 
 ```bash
 # Check the assumptions of the query progress model against Trino
-bazel test //packages/trino-testing:trino_assumptions_test
+bazel test //tests/trino:trino_assumptions_test
 
 # Refresh tests/snapshots/profiles/trino/recordings/ (statement polls, the QueryInfos the app fetches, EXPLAIN plans)
-bazel run //packages/trino-testing:trino_recorder
+bazel run //tests/trino:trino_recorder
 
 # Serve Trino for the app at http://127.0.0.1:8080 (tpch catalog, behind a CORS proxy), Enter stops it
 bazel run //:trino [-- --port 8080]
@@ -240,7 +240,7 @@ bazel run //tests/snapshots:update
 ```
 
 These targets regenerate `tests/snapshots/<category>/<name>.yaml` from the templates `<name>.tpl.yaml` next to them with the Rust core
-(`//packages/dashql-snapshots:snapshotter`, flags `--source_dir=<repository> [--filter=<category>]`).
+(`//tests/snapshots:snapshotter`, flags `--source_dir=<repository> [--filter=<category>]`).
 
 - The snapshot tests compare YAML trees structurally, including the key order of every map; numbers
   compare by value.
@@ -327,7 +327,7 @@ A new crate of the module takes the lints with `lint_config = "//bazel:rust_safe
 
 ### C++
 
-The only C++ code is the Hyper API binding in `packages/hyper-api`. It is type-checked when it is compiled.
+The only C++ code is the Hyper API binding in `tests/hyper`. It is type-checked when it is compiled.
 
 ## Querying Targets
 
@@ -452,7 +452,7 @@ bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
     //packages/dashql-core-shell:all //packages/dashql-core-profile:all \
-    //packages/dashql-dataflow:all //packages/dashql-snapshots:all
+    //packages/dashql-dataflow:all //tests/snapshots:all
 ```
 
 ### The npm Package of DashQL
@@ -488,7 +488,7 @@ untrusted fastbuild CI run both test target sets of the package.
 ```bash
 # Rebuild the parser and update the snapshots
 bazel run //tests/snapshots/parser:update
-bazel test //packages/dashql-parser:all //packages/dashql-snapshots:parser_snapshot_test
+bazel test //packages/dashql-parser:all //tests/snapshots:parser_snapshot_test
 
 # Verify snapshot changes
 git diff tests/snapshots/parser/
@@ -534,7 +534,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-bindings`, `tests/snapshots` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

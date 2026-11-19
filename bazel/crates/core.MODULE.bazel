@@ -30,7 +30,7 @@ crate_core.spec(package = "arrow-data", default_features = False, version = "=60
 crate_core.spec(package = "arrow-ipc", default_features = False, version = "=60.1.0")
 crate_core.spec(package = "arrow-schema", default_features = False, version = "=60.1.0")
 
-# Snapshot test harness (//packages/dashql-snapshots)
+# Snapshot test harness (//tests/snapshots)
 crate_core.spec(package = "libtest-mimic", version = "=0.8.2")
 
 # The Eclipse Layout Kernel ported to Rust, the layered layout of the dataflow canvas (//packages/dashql-dataflow)

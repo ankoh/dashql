@@ -61,7 +61,7 @@ Target:
 Every case of every formatter snapshot file with a `dialects.hyper.validation` block runs
 in a fresh Hyper database. The test executes `validation.setup`, checks that the Rust formatter output equals each
 expectation of the `hyper` dialect, and executes it statement by statement. Hyper is reached through
-`//packages/hyper-api:hyper_ffi_rs`, the Rust side of the C ABI `//packages/hyper-api:hyper_ffi`.
+`//tests/hyper:hyper_ffi_rs`, the Rust side of the C ABI `//tests/hyper:hyper_ffi`.
 
 This ensures both textual snapshot checks and executable SQL validation are covered.
 

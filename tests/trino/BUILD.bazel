@@ -6,41 +6,17 @@ package(default_visibility = ["//visibility:private"])
 # plugin) and a Java runtime on first use (//bazel:external_trino.bzl). Every target here is manual, so
 # neither `bazel build //...` nor `bazel test //...` (and CI) fetches or starts Trino:
 #
-#   bazel test //packages/trino-testing:trino_assumptions_test   check the assumptions against Trino
-#   bazel run //packages/trino-testing:trino_recorder            refresh tests/snapshots/profiles/trino/recordings/
-#   bazel run //:trino                                           serve Trino for the app on port 8080 (CORS proxy)
-
-config_setting(
-    name = "linux_x86_64",
-    constraint_values = [
-        "@platforms//cpu:x86_64",
-        "@platforms//os:linux",
-    ],
-)
-
-config_setting(
-    name = "macos_x86_64",
-    constraint_values = [
-        "@platforms//cpu:x86_64",
-        "@platforms//os:macos",
-    ],
-)
-
-config_setting(
-    name = "macos_arm64",
-    constraint_values = [
-        "@platforms//cpu:arm64",
-        "@platforms//os:macos",
-    ],
-)
+#   bazel test //tests/trino:trino_assumptions_test   check the assumptions against Trino
+#   bazel run //tests/trino:trino_recorder            refresh tests/snapshots/profiles/trino/recordings/
+#   bazel run //:trino                                serve Trino for the app on port 8080 (CORS proxy)
 
 alias(
     name = "java",
     tags = ["manual"],
     actual = select({
-        ":linux_x86_64": "@temurin_jre_25_linux_x86_64//:bin/java",
-        ":macos_arm64": "@temurin_jre_25_macos_arm64//:bin/java",
-        ":macos_x86_64": "@temurin_jre_25_macos_x86_64//:bin/java",
+        "//bazel/platforms:linux_x86_64": "@temurin_jre_25_linux_x86_64//:bin/java",
+        "//bazel/platforms:macos_arm64": "@temurin_jre_25_macos_arm64//:bin/java",
+        "//bazel/platforms:macos_x86_64": "@temurin_jre_25_macos_x86_64//:bin/java",
     }),
 )
 
@@ -48,16 +24,16 @@ alias(
     name = "java_runtime",
     tags = ["manual"],
     actual = select({
-        ":linux_x86_64": "@temurin_jre_25_linux_x86_64//:runtime",
-        ":macos_arm64": "@temurin_jre_25_macos_arm64//:runtime",
-        ":macos_x86_64": "@temurin_jre_25_macos_x86_64//:runtime",
+        "//bazel/platforms:linux_x86_64": "@temurin_jre_25_linux_x86_64//:runtime",
+        "//bazel/platforms:macos_arm64": "@temurin_jre_25_macos_arm64//:runtime",
+        "//bazel/platforms:macos_x86_64": "@temurin_jre_25_macos_x86_64//:runtime",
     }),
 )
 
 _SUPPORTED_PLATFORMS = select({
-    ":linux_x86_64": [],
-    ":macos_arm64": [],
-    ":macos_x86_64": [],
+    "//bazel/platforms:linux_x86_64": [],
+    "//bazel/platforms:macos_arm64": [],
+    "//bazel/platforms:macos_x86_64": [],
     "//conditions:default": ["@platforms//:incompatible"],
 })
 

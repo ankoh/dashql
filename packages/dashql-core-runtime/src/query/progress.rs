@@ -338,7 +338,7 @@ impl ProfileRecording {
     }
 
     /// Read a recording: a recording of the app, or a recording of the Trino test harness
-    /// (`tests/snapshots/profiles/trino/recordings/`, written by `//packages/trino-testing:trino_recorder`)
+    /// (`tests/snapshots/profiles/trino/recordings/`, written by `//tests/trino:trino_recorder`)
     pub fn from_json(text: &str) -> Result<Self> {
         let document: Value = serde_json::from_str(text)
             .map_err(|e| Error::invalid_argument(format!("the file is no profile recording: {e}")))?;

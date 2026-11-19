@@ -22,7 +22,7 @@ build:linux --repo_env=CC=clang
 build:linux --host_linkopt=-fuse-ld=lld
 build:linux --linkopt=-fuse-ld=lld
 
-# macOS deployment target, set globally so all C/C++ deps (hyper-api, flatc, protoc) use the same target.
+# macOS deployment target, set globally so all C/C++ deps (the Hyper API of tests/hyper, flatc, protoc) use the same target.
 build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --macos_minimum_os=13.3

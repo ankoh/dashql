@@ -1,6 +1,6 @@
 //! Records the Trino API responses of the queries in `queries.rs` into `tests/snapshots/profiles/trino/recordings/`.
 //!
-//! `bazel run //packages/trino-testing:trino_recorder` starts a Trino server, runs every query and writes one
+//! `bazel run //tests/trino:trino_recorder` starts a Trino server, runs every query and writes one
 //! JSON file per query: the `/v1/statement` responses, the `/v1/query/{id}` responses that the app fetches (one
 //! whenever a stage finished, the final one), and the distributed plan. The task infos of the stages are left
 //! out, the progress model does not read them.

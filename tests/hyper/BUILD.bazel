@@ -3,63 +3,42 @@ load("@rules_rust//rust:defs.bzl", "rust_library")
 
 package(default_visibility = ["//visibility:public"])
 
-config_setting(
-    name = "linux_x86_64",
-    constraint_values = [
-        "@platforms//cpu:x86_64",
-        "@platforms//os:linux",
-    ],
-)
-
-config_setting(
-    name = "macos_x86_64",
-    constraint_values = [
-        "@platforms//cpu:x86_64",
-        "@platforms//os:macos",
-    ],
-)
-
-config_setting(
-    name = "macos_arm64",
-    constraint_values = [
-        "@platforms//cpu:arm64",
-        "@platforms//os:macos",
-    ],
-)
+# The Tableau Hyper API (C++) for the tests and the test data: the Hyper process, a C ABI for the Rust tests and
+# :hyper_sql, which the datasets of //packages/dashql-datasets use to write Hyper files.
 
 alias(
     name = "hyperapi",
     actual = select({
-        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperapi",
-        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperapi",
-        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperapi",
+        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperapi",
+        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperapi",
+        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperapi",
     }),
 )
 
 alias(
     name = "hyperd",
     actual = select({
-        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperd",
-        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperd",
-        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperd",
+        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:hyperd",
+        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:hyperd",
+        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:hyperd",
     }),
 )
 
 alias(
     name = "runtime_files",
     actual = select({
-        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:runtime_files",
-        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:runtime_files",
-        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:runtime_files",
+        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:runtime_files",
+        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:runtime_files",
+        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:runtime_files",
     }),
 )
 
 alias(
     name = "licenses",
     actual = select({
-        ":linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:licenses",
-        ":macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:licenses",
-        ":macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:licenses",
+        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:licenses",
+        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:licenses",
+        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:licenses",
     }),
 )
 

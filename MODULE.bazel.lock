@@ -526,7 +526,7 @@
     },
     "//packages/dashql-datasets:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "u7Yfq7rA8qWJ8ZQ8WAwSZhtpKb3SlrbiIiZgbgz6x6w=",
+        "bzlTransitiveDigest": "Sg+dhy3zpruMrIhBHTgBDUZBC7Ds64IZpnAJZ0rn02I=",
         "usagesDigest": "9CaQiSHsXruJokdO8YydY9q/SD/pqdC92pCiFtJCctc=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",

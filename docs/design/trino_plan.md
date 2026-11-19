@@ -119,5 +119,5 @@ The app reads the FlatBuffer into a `ProfileScene`:
 ## Tests
 
 - `packages/dashql-core-profile/src/tests_trino.rs`: parser unit tests.
-- `packages/dashql-snapshots/src/encode/query_profile.rs`: snapshot encoding of parsed and laid-out plans.
+- `tests/snapshots/src/encode/query_profile.rs`: snapshot encoding of parsed and laid-out plans.
 - `packages/dashql-react/src/components/query_profile/profile_scene.test.ts`: scene and contour building.

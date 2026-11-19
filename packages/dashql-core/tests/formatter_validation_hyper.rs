@@ -4,7 +4,7 @@
 //! first, then the formatted output of every expectation of the dialect, split into statements at
 //! top-level semicolons. The formatted output must equal the snapshot before it runs.
 //!
-//! Hyper ships only a C++ SDK, `//packages/hyper-api:hyper_ffi_rs` reaches it through a C ABI.
+//! Hyper ships only a C++ SDK, `//tests/hyper:hyper_ffi_rs` reaches it through a C ABI.
 
 use dashql_core::formatter::{formatting_mode_to_string, Formatter};
 use dashql_parser::parser::parse;

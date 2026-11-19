@@ -1,5 +1,5 @@
 //! The Hyper API for the Rust tests: a Hyper process, connections and temporary databases over the C ABI
-//! `//packages/hyper-api:hyper_ffi`. Hyper ships only a C++ SDK.
+//! `//tests/hyper:hyper_ffi`. Hyper ships only a C++ SDK.
 
 use std::ffi::{c_char, CStr, CString};
 use std::path::{Path, PathBuf};

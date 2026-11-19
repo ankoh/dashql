@@ -1,6 +1,6 @@
 trino-profile-snapshots:
   # The plan of a recording (EXPLAIN or the stage plans of the final QueryInfo) with the statement polls on top.
-  # The recordings are written by `bazel run //packages/trino-testing:trino_recorder`.
+  # The recordings are written by `bazel run //tests/trino:trino_recorder`.
   - name: select_one
     recording: select_one
     source: explain
