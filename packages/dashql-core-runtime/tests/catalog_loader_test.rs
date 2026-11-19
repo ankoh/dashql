@@ -30,6 +30,7 @@ use dashql_core_runtime::catalog_loader::{
     CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
+use dashql_core_runtime::http::HttpResponse;
 use dashql_core_runtime::query::QueryType;
 use serde_json::{json, Value};
 
@@ -167,7 +168,8 @@ impl<'a> Host<'a> {
                     self.queries.extend(queries);
                     update.answer_queries(answers);
                 }
-                CatalogStep::FetchSalesforceMetadata => update.answer_salesforce_metadata((self.metadata)()),
+                CatalogStep::FreshChannel => update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel())))),
+                CatalogStep::Fetch(requests) => update.answer_fetch(metadata_responses(requests.len(), (self.metadata)())),
                 CatalogStep::ProcessBatch(batch) => {
                     self.batches += 1;
                     update.answer_batch((self.batch)(&batch));
@@ -1152,6 +1154,58 @@ fn metadata(name: &str) -> Value {
     json!({ "metadata": [{ "name": name, "fields": [{ "name": "Id__c", "type": "Text" }] }] })
 }
 
+/// The responses of the metadata requests, one per entity type: the first carries the metadata, the others none
+fn metadata_responses(count: usize, metadata: Result<Value, String>) -> Vec<Result<HttpResponse, String>> {
+    let empty = json!({ "metadata": [] });
+    (0..count)
+        .map(|index| match &metadata {
+            Ok(metadata) => Ok(HttpResponse::new(200, if index == 0 { metadata } else { &empty }.to_string())),
+            Err(error) => Err(error.clone()),
+        })
+        .collect()
+}
+
+#[test]
+fn salesforce_sends_the_metadata_requests_with_the_tokens_of_the_fresh_channel_and_warns_of_the_ones_that_failed() {
+    let mut salesforce = salesforce();
+    let mut update = salesforce.start(None);
+    assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
+    update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
+    let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
+    assert!(requests.len() > 1);
+    assert!(requests.iter().all(|request| request.url.starts_with("https://example.my.salesforce.com/services/data/")));
+    assert!(requests.iter().all(|request| request.headers.get("authorization").is_some_and(|value| value.contains("core-token"))));
+    let mut responses = metadata_responses(requests.len(), Ok(metadata("Account__dlm")));
+    if let Some(last) = responses.last_mut() {
+        *last = Err("offline".to_string());
+    }
+    update.answer_fetch(responses);
+    let catalog = salesforce.connection.catalog().clone();
+    let outcome = Host::new(|_| unreachable!()).drive(&mut update, &mut catalog.borrow_mut(), &salesforce.generations);
+    assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
+    assert_eq!(outcome.warnings.len(), 1, "{:?}", outcome.warnings);
+    assert!(outcome.warnings[0].contains("offline"));
+    assert!(salesforce.relations_text().contains("Account__dlm"));
+}
+
+#[test]
+fn salesforce_fails_when_refreshing_the_channel_fails_or_every_metadata_request_failed() {
+    for failure in ["refresh", "requests"] {
+        let mut salesforce = salesforce();
+        let mut update = salesforce.start(None);
+        assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
+        if failure == "refresh" {
+            update.answer_channel(Err("token refresh failed".to_string()));
+        } else {
+            update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
+            let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
+            update.answer_fetch(metadata_responses(requests.len(), Err("offline".to_string())));
+        }
+        let CatalogStep::Finished(outcome) = update.next(&salesforce.generations) else { unreachable!("{failure}") };
+        assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed, "{failure}");
+    }
+}
+
 #[test]
 fn salesforce_loads_the_metadata_relations_and_the_bundled_functions() {
     let mut salesforce = salesforce();
@@ -1188,8 +1242,10 @@ fn salesforce_keeps_the_relations_whichever_step_fails() {
         let catalog = salesforce.connection.catalog().clone();
         if failure == "aborted" {
             host.batch = Box::new(|batch| batch.process().map_err(|e| e.to_string()));
-            assert_eq!(update.next(&salesforce.generations), CatalogStep::FetchSalesforceMetadata);
-            update.answer_salesforce_metadata(Ok(metadata("new_table")));
+            assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
+            update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
+            let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
+            update.answer_fetch(metadata_responses(requests.len(), Ok(metadata("new_table"))));
             assert!(matches!(update.next(&salesforce.generations), CatalogStep::ProcessBatch(_)));
             update.cancel("aborted");
         }

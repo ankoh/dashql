@@ -161,6 +161,15 @@ pub enum ConnectionChannel {
 }
 
 impl ConnectionChannel {
+    /// Refresh the credentials of the channel that are about to expire: the Data Cloud token of a Salesforce channel.
+    /// The other channels hold no credentials that expire, or refresh them as their queries need it (Trino).
+    pub async fn fresh<H: crate::http::HttpHost>(&self, host: &std::rc::Rc<H>) -> Result<(), String> {
+        match self {
+            ConnectionChannel::Salesforce(channel) => channel.fresh(host).await,
+            ConnectionChannel::Host(_) | ConnectionChannel::Trino(_) | ConnectionChannel::HyperHttp { .. } => Ok(()),
+        }
+    }
+
     /// The handle of a channel of the host, none for the channels that the connection speaks itself
     pub fn host_handle(&self) -> Option<ChannelId> {
         match self {

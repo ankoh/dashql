@@ -3,9 +3,12 @@
 
 use serde_json::{json, Value};
 
+use crate::catalog_loader::hyper::HyperCatalogUpdate;
+use crate::catalog_loader::salesforce::SalesforceCatalogUpdate;
+use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::{
-    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
+    Timestamp, RelationName, object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
     SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 
@@ -80,6 +83,23 @@ impl Connector for SalesforceConnector {
 
     fn catalog_name_defaults(&self, _setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
         CatalogNameDefaults { database_name: SALESFORCE_CATALOG_DATABASE.to_string(), schema_name: SALESFORCE_CATALOG_SCHEMA.to_string() }
+    }
+
+    /// Data Cloud reads its metadata over the API and refreshes in full, Database.com queries the Hyper of its Hyper
+    /// Cloud database
+    fn catalog_update(
+        &self,
+        details: &ConnectionDetails,
+        entries: CatalogEntries,
+        relations: Option<Vec<RelationName>>,
+        now: Timestamp,
+    ) -> Box<dyn ConnectorCatalogUpdate> {
+        if self.is_dbcom() {
+            let setup_params = details.setup_params.clone().unwrap_or_default();
+            Box::new(HyperCatalogUpdate::of_dbcom(&setup_params, entries, relations, now))
+        } else {
+            Box::new(SalesforceCatalogUpdate::new(details, entries))
+        }
     }
 
     fn cache_signature(&self, params: &JsonObject) -> Value {

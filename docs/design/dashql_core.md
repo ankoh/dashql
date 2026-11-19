@@ -162,6 +162,13 @@ marks are `runtime/changes.rs`.
 - **The connectors** (`ConnectorType` of `connections/params.rs`) are Hyper (the embedded Hyper, Hyper servers over
   HTTP or gRPC, the Hyper of a link), Salesforce Data Cloud, Trino and Database.com (`Dbcom`), which behaves like
   Salesforce Data Cloud.
+- **Generic code asks the connector** (`connections/connector.rs`) instead of matching on its type:
+  `ConnectorType::connector` hands out the implementation of the trait `Connector`, one per connector in the module
+  of the connector (`hyper::connector`, `trino::connector`, `salesforce::connector`). It holds the params key, the
+  display name, the features, the default params and their draft rows, the probe of the health check, the queries
+  that run at once, whether the catalog outlives the app, the params that sharing keeps, the login hint, the parts of
+  a label, the names of unqualified relations, the signature of cached results and the update of the catalog. A new
+  decision of a connector is a method of the trait, not another match.
 - **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,
@@ -273,7 +280,9 @@ from the data frame of the computation, bounded by a limit, for the tables of th
 The loader (`catalog_loader/service.rs`, scheduled by `CatalogLoader` of `scheduler.rs`) follows the connections of the
 runtime, schedules the updates of their catalogs and runs them as tasks: metadata queries on the executor, the batches
 parsed in the module (`CatalogBatch::process`), published into the catalog of the connection while the connection still
-runs the update. Salesforce metadata comes over fetch, client functions are registered on the catalogs of their
+runs the update. The connector makes the steps of an update (`ConnectorCatalogUpdate`), the loader knows no
+connector: it runs queries, refreshes the channel (`ConnectionChannel::fresh`) and sends the HTTP requests that an
+update asks for, e.g. the Data Cloud metadata of Salesforce. Client functions are registered on the catalogs of their
 connectors with specs that the platform loads (`extensions.loadSpec`). A busy connection keeps its requested refreshes
 and is looked at again after 10 ms, a connection that is not online keeps them until it comes online. `refreshCatalog(id, force)` requests a refresh, `runCatalogLoader(false)` stops the
 loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](catalog_batching.md).

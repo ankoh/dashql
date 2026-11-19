@@ -2,8 +2,9 @@
 //! `lakehouse.public` and the bundled function catalog of Hyper. A Salesforce catalog only refreshes in full, nothing
 //! that runs on it changes relations.
 //!
-//! The Salesforce client fetches the metadata, the update reads it. The relations stay as they were whichever step
-//! fails, the functions are published first.
+//! The update asks for a fresh channel, sends the metadata requests of its data space with the tokens of the channel
+//! and reads the responses, a request that failed is a warning as long as one succeeded. The relations stay as they
+//! were whichever step fails, the functions are published first.
 
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use serde_json::Value;
@@ -11,8 +12,11 @@ use serde_json::Value;
 use super::batch::{publish_prepared, CatalogBatch, CatalogBatchEntry, PreparedDescriptor};
 use super::prefetched_hyper_functions::PREFETCHED_HYPER_FUNCTIONS_SQL;
 use super::tables::{catalog_tables_of_schema, pack_catalog_descriptor_of_tables, CatalogTable, ColumnMetadata, Groups};
-use super::{CatalogEntries, CatalogLoadError, ConnectorStep, Publication};
+use super::{CatalogEntries, CatalogLoadError, ConnectorCatalogUpdate, ConnectorStep, Publication};
 use crate::connections::{ConnectionChannel, ConnectionDetails, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA};
+use crate::http::HttpResponse;
+use crate::salesforce::api::get_salesforce_data_space;
+use crate::salesforce::{SalesforceMetadataLoad, SharedSalesforceChannel};
 
 /// The relations of the Data Cloud metadata, `{"metadata": [{"name": ..., "fields": [{"name": ..., "type": ...}]}]}`, in
 /// `lakehouse.public`. A later entity of a name replaces an earlier one. Fails if the metadata names no column.
@@ -50,21 +54,27 @@ pub fn catalog_tables_from_salesforce_metadata(metadata: &Value) -> Result<Vec<C
 
 /// Check that a Salesforce connection has the tokens to read the metadata with, its channel holds them
 pub fn check_salesforce_tokens(details: &ConnectionDetails) -> Result<(), CatalogLoadError> {
-    let Some(channel) = details.channel.as_ref().and_then(ConnectionChannel::salesforce) else {
-        return Err(CatalogLoadError::failed("Salesforce core access token is missing"));
-    };
+    salesforce_channel(details.channel.as_ref()).map(|_| ())
+}
+
+/// The Salesforce channel with the tokens to read the metadata with
+fn salesforce_channel(channel: Option<&ConnectionChannel>) -> Result<&SharedSalesforceChannel, CatalogLoadError> {
+    let missing = || CatalogLoadError::failed("Salesforce core access token is missing");
+    let channel = channel.and_then(ConnectionChannel::salesforce).ok_or_else(missing)?;
     let core = channel.tokens().core;
     if core.access_token.is_empty() || core.instance_url.as_deref().is_none_or(str::is_empty) {
-        return Err(CatalogLoadError::failed("Salesforce core access token is missing"));
+        return Err(missing());
     }
-    Ok(())
+    Ok(channel)
 }
 
 /// How far a Salesforce update got
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 enum Phase {
+    /// Refreshing the channel
+    Channel,
     /// Fetching the metadata
-    Metadata,
+    Metadata(Box<SalesforceMetadataLoad>),
     /// Parsing the functions
     Batch(CatalogBatch),
     /// Publishing
@@ -84,29 +94,24 @@ pub struct SalesforceCatalogUpdate {
     tables: Vec<CatalogTable>,
     /// How far the update got
     phase: Phase,
+    /// The requests of the metadata that failed
+    warnings: Vec<String>,
 }
 
 impl SalesforceCatalogUpdate {
     pub(crate) fn new(details: &ConnectionDetails, entries: CatalogEntries) -> Self {
-        Self { token_error: check_salesforce_tokens(details).err(), entries, tables: Vec::new(), phase: Phase::Metadata }
-    }
-
-    pub(crate) fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
-        if let Some(error) = self.token_error.take() {
-            return Err(error);
-        }
-        match &self.phase {
-            Phase::Metadata => Ok(ConnectorStep::FetchSalesforceMetadata),
-            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
-            Phase::Publish(_) => Ok(ConnectorStep::Publish),
-            Phase::Done => Ok(ConnectorStep::Done { partial: None }),
+        Self {
+            token_error: check_salesforce_tokens(details).err(),
+            entries,
+            tables: Vec::new(),
+            phase: Phase::Channel,
+            warnings: Vec::new(),
         }
     }
 
-    pub(crate) fn answer_metadata(&mut self, metadata: &Value) -> Result<(), CatalogLoadError> {
-        if self.phase != Phase::Metadata {
-            return Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask for metadata"));
-        }
+
+    /// Read the metadata, `{"metadata": [...]}`, and parse the functions next
+    fn read_metadata(&mut self, metadata: &Value) -> Result<(), CatalogLoadError> {
         self.tables = catalog_tables_from_salesforce_metadata(metadata)?;
         let entry_id = self.entries.function_entry()?;
         self.phase = Phase::Batch(CatalogBatch::new(vec![CatalogBatchEntry {
@@ -116,8 +121,57 @@ impl SalesforceCatalogUpdate {
         }]));
         Ok(())
     }
+}
 
-    pub(crate) fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
+impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
+    fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
+        if let Some(error) = self.token_error.take() {
+            return Err(error);
+        }
+        match &self.phase {
+            Phase::Channel => Ok(ConnectorStep::FreshChannel),
+            Phase::Metadata(load) => Ok(ConnectorStep::Fetch(load.requests().to_vec())),
+            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
+            Phase::Publish(_) => Ok(ConnectorStep::Publish),
+            Phase::Done => Ok(ConnectorStep::Done { partial: None }),
+        }
+    }
+
+    /// The data space of the tokens of the channel, the requests of its metadata next
+    fn answer_channel(&mut self, channel: Option<&ConnectionChannel>) -> Result<(), CatalogLoadError> {
+        if !matches!(self.phase, Phase::Channel) {
+            return Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask for a channel"));
+        }
+        let tokens = salesforce_channel(channel)?.tokens();
+        let data_space = get_salesforce_data_space(&tokens.data_cloud);
+        let (load, _) = SalesforceMetadataLoad::new(&tokens.core, &data_space);
+        self.phase = Phase::Metadata(Box::new(load));
+        Ok(())
+    }
+
+    /// The metadata of the entities that arrived, a request that failed is a warning
+    fn answer_fetch(&mut self, responses: Vec<Result<HttpResponse, String>>) -> Result<(), CatalogLoadError> {
+        let Phase::Metadata(load) = &mut self.phase else {
+            return Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask for metadata"));
+        };
+        for (index, response) in responses.iter().enumerate() {
+            let failure = match response {
+                Ok(response) => load.on_response(index, response).and_then(|(_, failure)| failure),
+                Err(error) => load.on_failure(index, error).map(|(_, failure)| failure),
+            };
+            if let Some(failure) = failure {
+                self.warnings.push(format!(
+                    "Salesforce metadata request failed: {} of data space {}: {}",
+                    failure.entity_type, failure.data_space, failure.error
+                ));
+            }
+        }
+        let metadata = load.finish().map_err(|error| CatalogLoadError::Failed(error.message))?;
+        let metadata = serde_json::to_value(metadata).map_err(|error| CatalogLoadError::Failed(error.to_string()))?;
+        self.read_metadata(&metadata)
+    }
+
+    fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
         let Phase::Batch(batch) = &self.phase else {
             return Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask for a batch"));
         };
@@ -127,7 +181,7 @@ impl SalesforceCatalogUpdate {
         Ok(())
     }
 
-    pub(crate) fn publish(&mut self, catalog: &mut Catalog) -> Publication {
+    fn publish(&mut self, catalog: &mut Catalog) -> Publication {
         let Phase::Publish(prepared) = std::mem::replace(&mut self.phase, Phase::Done) else {
             return Publication::of(Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask to publish")));
         };
@@ -139,5 +193,9 @@ impl SalesforceCatalogUpdate {
             .map(|()| None)
             .map_err(CatalogLoadError::from);
         Publication { function_script_text: Some(PREFETCHED_HYPER_FUNCTIONS_SQL.to_string()), result }
+    }
+
+    fn take_warnings(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.warnings)
     }
 }

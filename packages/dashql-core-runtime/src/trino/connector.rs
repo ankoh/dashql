@@ -2,10 +2,12 @@
 
 use serde_json::{json, Value};
 
+use crate::catalog_loader::trino::TrinoCatalogUpdate;
+use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::sharing::{is_truthy, without};
 use crate::connections::{
-    object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject,
+    Timestamp, RelationName, object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject,
 };
 
 /// The Trino connector
@@ -71,6 +73,17 @@ impl Connector for TrinoConnector {
     fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
         let defaults = setup_params.map(trino_session_defaults).unwrap_or_default();
         CatalogNameDefaults { database_name: defaults.catalog.unwrap_or_default(), schema_name: defaults.schema.unwrap_or_default() }
+    }
+
+    fn catalog_update(
+        &self,
+        details: &ConnectionDetails,
+        entries: CatalogEntries,
+        relations: Option<Vec<RelationName>>,
+        _now: Timestamp,
+    ) -> Box<dyn ConnectorCatalogUpdate> {
+        let setup_params = details.setup_params.clone().unwrap_or_default();
+        Box::new(TrinoCatalogUpdate::new(&setup_params, entries, relations))
     }
 
     fn cache_signature(&self, params: &JsonObject) -> Value {

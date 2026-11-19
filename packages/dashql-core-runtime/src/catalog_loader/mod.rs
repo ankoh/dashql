@@ -2,8 +2,9 @@
 //! answers become, and when to update which catalog.
 //!
 //! Everything here is sans-IO. An update of a catalog is a state machine (`CatalogUpdate`) that the host drives: it
-//! asks for the queries to run, the Data Cloud metadata of a Salesforce connection, a catalog batch to parse in the
-//! batch worker and the moment to publish into the catalog, and it takes their answers. The scheduler
+//! asks for the queries to run, a fresh channel and the HTTP requests to send, a catalog batch to parse in the batch
+//! worker and the moment to publish into the catalog, and it takes their answers. The connector of the connection
+//! makes the steps (`Connector::catalog_update`, `ConnectorCatalogUpdate`), the driver knows no connector. The scheduler
 //! (`CatalogLoader`) decides when a catalog is described, refreshed or asked about the relations of executed
 //! statements and hands out the updates to start. The connection keeps the state of the updates
 //! (`connections::CatalogUpdates`), the host reports every step as a `ConnectionAction`.
@@ -28,12 +29,12 @@ use std::fmt;
 use arrow_array::RecordBatch;
 use arrow_schema::ArrowError;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogVersion};
-use serde_json::Value;
 
 use crate::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionState,
-    ConnectorType, DetailedError, RelationName, Timestamp,
+    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionChannel, ConnectionState,
+    DetailedError, RelationName, Timestamp,
 };
+use crate::http::{HttpRequest, HttpResponse};
 use crate::query::QueryType;
 
 pub use batch::{CatalogBatch, CatalogBatchEntry, CatalogGenerations, CatalogTicket};
@@ -115,9 +116,12 @@ pub type QueryAnswer = Result<Vec<RecordBatch>, String>;
 pub enum CatalogStep {
     /// Run the queries on the connection, at the same time, and answer with `answer_queries` in their order
     Query(Vec<CatalogQuery>),
-    /// Fetch the Data Cloud metadata of the Salesforce connection (`/ssot/metadata`) and answer with
-    /// `answer_salesforce_metadata`
-    FetchSalesforceMetadata,
+    /// Refresh the credentials of the channel of the connection that are about to expire
+    /// (`ConnectionChannel::fresh`) and answer with `answer_channel` and the channel
+    FreshChannel,
+    /// Send the requests over the HTTP client of the host, at the same time, and answer with `answer_fetch` in their
+    /// order
+    Fetch(Vec<HttpRequest>),
     /// Process the batch, e.g. in the batch worker (`CatalogBatch::request`), and answer with `answer_batch`
     ProcessBatch(CatalogBatch),
     /// Publish into the catalog of the connection with `publish`
@@ -168,20 +172,58 @@ impl CatalogUpdateOutcome {
     }
 }
 
-/// What the update of a connector asks for next
+/// What the update of a connector asks for next, see `CatalogStep`
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ConnectorStep {
+pub enum ConnectorStep {
     Query(Vec<CatalogQuery>),
-    FetchSalesforceMetadata,
+    FreshChannel,
+    Fetch(Vec<HttpRequest>),
     ProcessBatch(CatalogBatch),
     Publish,
     /// Finished without publishing, with the error of the databases that failed
     Done { partial: Option<String> },
 }
 
+/// The update of the catalog of a connection by its connector, created by `Connector::catalog_update`. The driver
+/// (`CatalogUpdate`) asks it for the next step and hands it the answer of the step, an answer that the update didn't
+/// ask for fails the update.
+pub trait ConnectorCatalogUpdate: fmt::Debug {
+    /// The next step
+    fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError>;
+
+    /// The answers of the queries of a `ConnectorStep::Query`, in their order
+    fn answer_queries(&mut self, _answers: Vec<QueryAnswer>) -> Result<(), CatalogLoadError> {
+        Err(CatalogLoadError::failed("the catalog update runs no queries"))
+    }
+
+    /// The fresh channel of a `ConnectorStep::FreshChannel`, none if the connection has none
+    fn answer_channel(&mut self, _channel: Option<&ConnectionChannel>) -> Result<(), CatalogLoadError> {
+        Err(CatalogLoadError::failed("the catalog update asks for no channel"))
+    }
+
+    /// The responses of the requests of a `ConnectorStep::Fetch`, in their order, or the error of a request that got
+    /// none
+    fn answer_fetch(&mut self, _responses: Vec<Result<HttpResponse, String>>) -> Result<(), CatalogLoadError> {
+        Err(CatalogLoadError::failed("the catalog update sends no requests"))
+    }
+
+    /// The `BatchResult` of the batch of a `ConnectorStep::ProcessBatch`
+    fn answer_batch(&mut self, _result: &[u8]) -> Result<(), CatalogLoadError> {
+        Err(CatalogLoadError::failed("the catalog update processes no batch"))
+    }
+
+    /// Publish into the catalog of the connection, for a `ConnectorStep::Publish`
+    fn publish(&mut self, catalog: &mut Catalog) -> Publication;
+
+    /// The warnings so far, for the log of the host
+    fn take_warnings(&mut self) -> Vec<String> {
+        Vec::new()
+    }
+}
+
 /// What a publication did
 #[derive(Debug)]
-pub(crate) struct Publication {
+pub struct Publication {
     /// The text of the function script, once its descriptor is published
     pub function_script_text: Option<String>,
     /// The error of the databases that failed if the publication succeeded, the error that stopped it otherwise
@@ -190,17 +232,9 @@ pub(crate) struct Publication {
 
 impl Publication {
     /// A publication without a function script
-    pub(crate) fn of(result: Result<Option<String>, CatalogLoadError>) -> Self {
+    pub fn of(result: Result<Option<String>, CatalogLoadError>) -> Self {
         Self { function_script_text: None, result }
     }
-}
-
-/// The update of a connector
-#[derive(Debug)]
-enum ConnectorUpdate {
-    Hyper(hyper::HyperCatalogUpdate),
-    Trino(trino::TrinoCatalogUpdate),
-    Salesforce(salesforce::SalesforceCatalogUpdate),
 }
 
 /// What an update waits for
@@ -208,7 +242,8 @@ enum ConnectorUpdate {
 enum Awaiting {
     Nothing,
     Queries(usize),
-    Metadata,
+    Channel,
+    Fetch(usize),
     Batch,
     Publish,
 }
@@ -225,7 +260,7 @@ pub struct CatalogUpdate {
     /// The version of the catalog when the update began
     version_before: CatalogVersion,
     /// The update of the connector
-    connector: ConnectorUpdate,
+    connector: Box<dyn ConnectorCatalogUpdate>,
     /// What the update waits for
     awaiting: Awaiting,
     /// The text of the function script once it is published
@@ -257,20 +292,7 @@ impl CatalogUpdate {
             relations: connection.relation_entry_id(),
             functions: connection.function_script().map(|script| script.catalog_entry_id()),
         };
-        let details = connection.details();
-        let setup_params = details.setup_params.clone().unwrap_or_default();
-        let connector = match connection.connector_type() {
-            ConnectorType::Hyper => {
-                ConnectorUpdate::Hyper(hyper::HyperCatalogUpdate::of_hyper(&setup_params, entries, relations, now))
-            }
-            ConnectorType::Dbcom => {
-                ConnectorUpdate::Hyper(hyper::HyperCatalogUpdate::of_dbcom(&setup_params, entries, relations, now))
-            }
-            ConnectorType::Trino => ConnectorUpdate::Trino(trino::TrinoCatalogUpdate::new(&setup_params, entries, relations)),
-            ConnectorType::SalesforceDataCloud => {
-                ConnectorUpdate::Salesforce(salesforce::SalesforceCatalogUpdate::new(details, entries))
-            }
-        };
+        let connector = connection.connector_type().connector().catalog_update(connection.details(), entries, relations, now);
         let update = Self {
             connection_id: connection.connection_id().to_string(),
             task_id,
@@ -299,11 +321,7 @@ impl CatalogUpdate {
 
     /// The warnings of the connector so far
     fn warnings(&mut self) -> Vec<String> {
-        match &mut self.connector {
-            ConnectorUpdate::Hyper(update) => std::mem::take(&mut update.warnings),
-            ConnectorUpdate::Trino(_) => Vec::new(),
-            ConnectorUpdate::Salesforce(_) => Vec::new(),
-        }
+        self.connector.take_warnings()
     }
 
     /// End the update
@@ -350,11 +368,7 @@ impl CatalogUpdate {
             self.fail(error);
             return self.next(generations);
         }
-        let step = match &mut self.connector {
-            ConnectorUpdate::Hyper(update) => update.step(),
-            ConnectorUpdate::Trino(update) => update.step(),
-            ConnectorUpdate::Salesforce(update) => update.step(),
-        };
+        let step = self.connector.step();
         match step {
             Err(error) => {
                 self.fail(error);
@@ -372,9 +386,13 @@ impl CatalogUpdate {
                 self.awaiting = Awaiting::Queries(queries.len());
                 CatalogStep::Query(queries)
             }
-            Ok(ConnectorStep::FetchSalesforceMetadata) => {
-                self.awaiting = Awaiting::Metadata;
-                CatalogStep::FetchSalesforceMetadata
+            Ok(ConnectorStep::FreshChannel) => {
+                self.awaiting = Awaiting::Channel;
+                CatalogStep::FreshChannel
+            }
+            Ok(ConnectorStep::Fetch(requests)) => {
+                self.awaiting = Awaiting::Fetch(requests.len());
+                CatalogStep::Fetch(requests)
             }
             Ok(ConnectorStep::ProcessBatch(batch)) => {
                 self.awaiting = Awaiting::Batch;
@@ -405,29 +423,32 @@ impl CatalogUpdate {
         if !self.awaited(Awaiting::Queries(answers.len())) {
             return;
         }
-        let result = match &mut self.connector {
-            ConnectorUpdate::Hyper(update) => update.answer_queries(answers),
-            ConnectorUpdate::Trino(update) => update.answer_queries(answers),
-            ConnectorUpdate::Salesforce(_) => Err(CatalogLoadError::failed("a Salesforce catalog update runs no queries")),
+        if let Err(error) = self.connector.answer_queries(answers) {
+            self.fail(error);
+        }
+    }
+
+    /// Answer the `CatalogStep::FreshChannel` with the channel of the connection, or the error that refreshing it ran
+    /// into
+    pub fn answer_channel(&mut self, channel: Result<Option<&ConnectionChannel>, String>) {
+        if !self.awaited(Awaiting::Channel) {
+            return;
+        }
+        let result = match channel {
+            Ok(channel) => self.connector.answer_channel(channel),
+            Err(error) => Err(CatalogLoadError::Failed(error)),
         };
         if let Err(error) = result {
             self.fail(error);
         }
     }
 
-    /// Answer the `CatalogStep::FetchSalesforceMetadata` with the JSON body of the metadata, `{"metadata": [...]}`
-    pub fn answer_salesforce_metadata(&mut self, metadata: Result<Value, String>) {
-        if !self.awaited(Awaiting::Metadata) {
+    /// Answer the `CatalogStep::Fetch` with the responses of its requests, in their order
+    pub fn answer_fetch(&mut self, responses: Vec<Result<HttpResponse, String>>) {
+        if !self.awaited(Awaiting::Fetch(responses.len())) {
             return;
         }
-        let result = match &mut self.connector {
-            ConnectorUpdate::Salesforce(update) => match metadata {
-                Ok(metadata) => update.answer_metadata(&metadata),
-                Err(error) => Err(CatalogLoadError::Failed(error)),
-            },
-            _ => Err(CatalogLoadError::failed("only a Salesforce catalog update reads metadata")),
-        };
-        if let Err(error) = result {
+        if let Err(error) = self.connector.answer_fetch(responses) {
             self.fail(error);
         }
     }
@@ -439,11 +460,7 @@ impl CatalogUpdate {
         }
         let result = match result {
             Err(error) => Err(CatalogLoadError::Failed(error)),
-            Ok(result) => match &mut self.connector {
-                ConnectorUpdate::Hyper(update) => update.answer_batch(&result),
-                ConnectorUpdate::Salesforce(update) => update.answer_batch(&result),
-                ConnectorUpdate::Trino(_) => Err(CatalogLoadError::failed("a Trino catalog update processes no batch")),
-            },
+            Ok(result) => self.connector.answer_batch(&result),
         };
         if let Err(error) = result {
             self.fail(error);
@@ -460,11 +477,7 @@ impl CatalogUpdate {
             self.fail(error);
             return;
         }
-        let publication = match &mut self.connector {
-            ConnectorUpdate::Hyper(update) => update.publish(catalog),
-            ConnectorUpdate::Trino(update) => update.publish(catalog),
-            ConnectorUpdate::Salesforce(update) => update.publish(catalog),
-        };
+        let publication = self.connector.publish(catalog);
         self.function_script_text = publication.function_script_text;
         let catalog_changed = catalog.version() != self.version_before;
         match publication.result {
@@ -489,7 +502,7 @@ impl CatalogUpdate {
 
 /// The catalog entries that an update publishes into
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct CatalogEntries {
+pub struct CatalogEntries {
     /// The descriptor of the relations
     pub relations: CatalogEntryId,
     /// The function script, none once the connection is deleted
@@ -498,7 +511,7 @@ pub(crate) struct CatalogEntries {
 
 impl CatalogEntries {
     /// The entry of the function script, an error without one
-    pub(crate) fn function_entry(&self) -> Result<CatalogEntryId, CatalogLoadError> {
+    pub fn function_entry(&self) -> Result<CatalogEntryId, CatalogLoadError> {
         self.functions.ok_or_else(|| CatalogLoadError::failed("the connection has no function script"))
     }
 }

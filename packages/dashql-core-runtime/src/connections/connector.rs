@@ -3,14 +3,16 @@
 //! `ConnectorType::connector` finds the implementation. Generic code asks the connector instead of matching on the
 //! connector type.
 //!
-//! The methods here are the decisions that need no host: names, params, features, probes and limits. The steps that
-//! talk to a backend (setups, queries, catalog updates) stay in the modules of the connectors behind their own host
-//! traits, see docs/design/dashql_core.md.
+//! The methods need no host. What talks to a backend is sans-IO: the update of a catalog asks the catalog loader for
+//! queries, a fresh channel and HTTP requests (`catalog_update`). The setups and the queries stay in the modules of the
+//! connectors behind their own host traits, see docs/design/dashql_core.md.
 
 use serde_json::Value;
 
-use super::details::{CatalogNameDefaults, ConnectionDetails};
+use super::details::{CatalogNameDefaults, ConnectionDetails, Timestamp};
 use super::params::{ConnectorFeatures, ConnectorType, JsonObject};
+use super::RelationName;
+use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 
 /// A connector of the runtime
 pub trait Connector: Sync {
@@ -72,6 +74,15 @@ pub trait Connector: Sync {
     /// The database and schema of the relations that unqualified statements create or drop, by the params of the
     /// setup. They match the names that the catalog loader gives the relations of the connection.
     fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults;
+
+    /// Start an update of the catalog of a connection: all of it, or the relations of executed statements
+    fn catalog_update(
+        &self,
+        details: &ConnectionDetails,
+        entries: CatalogEntries,
+        relations: Option<Vec<RelationName>>,
+        now: Timestamp,
+    ) -> Box<dyn ConnectorCatalogUpdate>;
 
     /// The params that identify the results of queries, the key of the query result cache depends on them
     fn cache_signature(&self, params: &JsonObject) -> Value;

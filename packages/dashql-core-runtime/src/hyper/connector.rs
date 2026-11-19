@@ -3,10 +3,12 @@
 
 use serde_json::{json, Value};
 
+use crate::catalog_loader::hyper::HyperCatalogUpdate;
+use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::sharing::without;
 use crate::connections::{
-    object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
+    Timestamp, RelationName, object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
     DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
 };
 use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
@@ -98,6 +100,17 @@ impl Connector for HyperConnector {
             None => DEFAULT_DATABASE_NAME,
         };
         CatalogNameDefaults { database_name: database_name.to_string(), schema_name: HYPER_DEFAULT_SCHEMA.to_string() }
+    }
+
+    fn catalog_update(
+        &self,
+        details: &ConnectionDetails,
+        entries: CatalogEntries,
+        relations: Option<Vec<RelationName>>,
+        now: Timestamp,
+    ) -> Box<dyn ConnectorCatalogUpdate> {
+        let setup_params = details.setup_params.clone().unwrap_or_default();
+        Box::new(HyperCatalogUpdate::of_hyper(&setup_params, entries, relations, now))
     }
 
     fn cache_signature(&self, params: &JsonObject) -> Value {

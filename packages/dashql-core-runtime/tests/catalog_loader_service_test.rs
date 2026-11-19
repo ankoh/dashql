@@ -747,7 +747,8 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
     assert_eq!(sent.len(), 3);
     assert!(sent[0].starts_with("https://example.my.salesforce.com/services/data/"), "{}", sent[0]);
     assert!(sent[0].contains("entityType=DataModelObject"));
-    assert!(host.logged("Salesforce metadata request failed"));
+    let logs = host.state.borrow().logs.clone();
+    assert!(logs.iter().any(|(_, logged)| logged.starts_with("Salesforce metadata request failed") && logged.contains("500")), "{logs:?}");
     assert!(relations_text(&host).contains("\"Account__dlm\""));
     assert_eq!(host.query_count(), 0);
 }

@@ -22,7 +22,7 @@ use super::tables::{
     catalog_tables_of_schema, pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable, ColumnMetadata,
     SchemaTables,
 };
-use super::{
+use super::{ConnectorCatalogUpdate, 
     CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer,
 };
 use crate::connections::{
@@ -244,7 +244,7 @@ pub struct HyperCatalogUpdate {
     /// How far the update got
     phase: Phase,
     /// The warnings for the host
-    pub(crate) warnings: Vec<String>,
+    warnings: Vec<String>,
 }
 
 impl HyperCatalogUpdate {
@@ -356,60 +356,6 @@ impl HyperCatalogUpdate {
             .collect()
     }
 
-    pub(crate) fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
-        match &self.phase {
-            Phase::Relations => {
-                let queries = self.target_queries();
-                if queries.is_empty() {
-                    // Nothing to ask, e.g. every database failed its checks
-                    self.resolve_targets()?;
-                    return self.step();
-                }
-                Ok(ConnectorStep::Query(queries))
-            }
-            Phase::Functions => Ok(ConnectorStep::Query(vec![pg_proc_query()])),
-            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
-            Phase::Publish(_) => Ok(ConnectorStep::Publish),
-            Phase::Done => Ok(ConnectorStep::Done { partial: self.partial_error() }),
-        }
-    }
-
-    pub(crate) fn answer_queries(&mut self, answers: Vec<QueryAnswer>) -> Result<(), CatalogLoadError> {
-        match self.phase {
-            Phase::Relations => {
-                let full = self.relations.is_none();
-                let mut answers = answers.into_iter();
-                let mut warnings = Vec::new();
-                for target in &mut self.targets {
-                    if !matches!(target.state, TargetState::Query(_)) {
-                        continue;
-                    }
-                    let answer = answers.next().unwrap_or_else(|| Err("the query was not answered".to_string()));
-                    target.state = match read_target(target, answer, full) {
-                        Ok((tables, warning)) => {
-                            warnings.extend(warning);
-                            TargetState::Tables(tables)
-                        }
-                        Err(error) => TargetState::Failed(error),
-                    };
-                }
-                self.warnings.extend(warnings);
-                self.resolve_targets()
-            }
-            Phase::Functions => {
-                let answer = answers.into_iter().next().unwrap_or_else(|| Err("the query was not answered".to_string()));
-                let batches = answer.map_err(CatalogLoadError::Failed)?;
-                let functions = catalog_sql_from_pg_proc(&batches, Some(DEFAULT_DATABASE_NAME))?;
-                for skipped in &functions.skipped {
-                    self.warnings.push(format!("Skipping unsupported PostgreSQL function signature: {skipped}"));
-                }
-                let text = format!("{}{}", function_script_header(HYPER_WASM_PG_PROC_SOURCE, self.updated_at), functions.sql);
-                self.batch_functions(text, false)
-            }
-            _ => Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for queries")),
-        }
-    }
-
     /// Settle the relations of the databases: fail if none answered, publish the relations or read the functions
     fn resolve_targets(&mut self) -> Result<(), CatalogLoadError> {
         let full = self.relations.is_none();
@@ -435,15 +381,6 @@ impl HyperCatalogUpdate {
         let entry_id = self.entries.function_entry()?;
         self.function_text = Some(text.clone());
         self.phase = Phase::Batch(CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text, require_functions }]));
-        Ok(())
-    }
-
-    pub(crate) fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
-        let Phase::Batch(batch) = &self.phase else {
-            return Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for a batch"));
-        };
-        let prepared = batch.prepare(result)?;
-        self.phase = Phase::Publish(prepared.into_iter().next());
         Ok(())
     }
 
@@ -488,7 +425,73 @@ impl HyperCatalogUpdate {
             .collect()
     }
 
-    pub(crate) fn publish(&mut self, catalog: &mut Catalog) -> Publication {
+}
+
+impl ConnectorCatalogUpdate for HyperCatalogUpdate {
+    fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
+        match &self.phase {
+            Phase::Relations => {
+                let queries = self.target_queries();
+                if queries.is_empty() {
+                    // Nothing to ask, e.g. every database failed its checks
+                    self.resolve_targets()?;
+                    return self.step();
+                }
+                Ok(ConnectorStep::Query(queries))
+            }
+            Phase::Functions => Ok(ConnectorStep::Query(vec![pg_proc_query()])),
+            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
+            Phase::Publish(_) => Ok(ConnectorStep::Publish),
+            Phase::Done => Ok(ConnectorStep::Done { partial: self.partial_error() }),
+        }
+    }
+
+    fn answer_queries(&mut self, answers: Vec<QueryAnswer>) -> Result<(), CatalogLoadError> {
+        match self.phase {
+            Phase::Relations => {
+                let full = self.relations.is_none();
+                let mut answers = answers.into_iter();
+                let mut warnings = Vec::new();
+                for target in &mut self.targets {
+                    if !matches!(target.state, TargetState::Query(_)) {
+                        continue;
+                    }
+                    let answer = answers.next().unwrap_or_else(|| Err("the query was not answered".to_string()));
+                    target.state = match read_target(target, answer, full) {
+                        Ok((tables, warning)) => {
+                            warnings.extend(warning);
+                            TargetState::Tables(tables)
+                        }
+                        Err(error) => TargetState::Failed(error),
+                    };
+                }
+                self.warnings.extend(warnings);
+                self.resolve_targets()
+            }
+            Phase::Functions => {
+                let answer = answers.into_iter().next().unwrap_or_else(|| Err("the query was not answered".to_string()));
+                let batches = answer.map_err(CatalogLoadError::Failed)?;
+                let functions = catalog_sql_from_pg_proc(&batches, Some(DEFAULT_DATABASE_NAME))?;
+                for skipped in &functions.skipped {
+                    self.warnings.push(format!("Skipping unsupported PostgreSQL function signature: {skipped}"));
+                }
+                let text = format!("{}{}", function_script_header(HYPER_WASM_PG_PROC_SOURCE, self.updated_at), functions.sql);
+                self.batch_functions(text, false)
+            }
+            _ => Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for queries")),
+        }
+    }
+
+    fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
+        let Phase::Batch(batch) = &self.phase else {
+            return Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for a batch"));
+        };
+        let prepared = batch.prepare(result)?;
+        self.phase = Phase::Publish(prepared.into_iter().next());
+        Ok(())
+    }
+
+    fn publish(&mut self, catalog: &mut Catalog) -> Publication {
         let Phase::Publish(prepared) = std::mem::replace(&mut self.phase, Phase::Done) else {
             return Publication::of(Err(CatalogLoadError::failed("the Hyper catalog update didn't ask to publish")));
         };
@@ -518,6 +521,10 @@ impl HyperCatalogUpdate {
             catalog.replace_tables(self.entries.relations, layer, &pack_catalog_table_update(&databases, &[], &tables))
         };
         Publication { function_script_text, result: result.map(|()| self.partial_error()).map_err(CatalogLoadError::from) }
+    }
+
+    fn take_warnings(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.warnings)
     }
 }
 

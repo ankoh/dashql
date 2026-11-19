@@ -9,7 +9,7 @@ use super::information_schema::{
     catalog_tables_from_information_schema, information_schema_query, relation_scopes, InformationSchemaScope,
 };
 use super::tables::{pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable, Groups};
-use super::{CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer};
+use super::{ConnectorCatalogUpdate, CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer};
 use crate::connections::{trino_session_defaults, JsonObject, RelationName};
 use crate::query::QueryType;
 
@@ -163,7 +163,10 @@ impl TrinoCatalogUpdate {
         Self { relations, entries, phase }
     }
 
-    pub(crate) fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
+}
+
+impl ConnectorCatalogUpdate for TrinoCatalogUpdate {
+    fn step(&mut self) -> Result<ConnectorStep, CatalogLoadError> {
         match &self.phase {
             Phase::Catalogs => Ok(ConnectorStep::Query(vec![trino_catalogs_query()])),
             Phase::Columns(scopes) => {
@@ -178,7 +181,7 @@ impl TrinoCatalogUpdate {
         }
     }
 
-    pub(crate) fn answer_queries(&mut self, answers: Vec<QueryAnswer>) -> Result<(), CatalogLoadError> {
+    fn answer_queries(&mut self, answers: Vec<QueryAnswer>) -> Result<(), CatalogLoadError> {
         let answer = answers.into_iter().next().unwrap_or_else(|| Err("the query was not answered".to_string()));
         let batches = answer.map_err(CatalogLoadError::Failed)?;
         match &self.phase {
@@ -202,7 +205,7 @@ impl TrinoCatalogUpdate {
         }
     }
 
-    pub(crate) fn publish(&mut self, catalog: &mut Catalog) -> Publication {
+    fn publish(&mut self, catalog: &mut Catalog) -> Publication {
         let Phase::Publish(tables) = std::mem::replace(&mut self.phase, Phase::Done) else {
             return Publication::of(Err(CatalogLoadError::failed("the Trino catalog update didn't ask to publish")));
         };

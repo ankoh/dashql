@@ -19,7 +19,6 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use arrow_array::RecordBatch;
-use serde_json::Value;
 
 use super::{
     CatalogGenerations, CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery,
@@ -27,19 +26,16 @@ use super::{
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
 use crate::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionChannel, ConnectionState, RelationName,
+    CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionState, RelationName,
 };
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::http::{CancellationToken, HttpHost, HttpResponse};
 use crate::query::QueryExecutionHistory;
-use crate::salesforce::api::get_salesforce_data_space;
-use crate::salesforce::{SalesforceMetadataLoad, SalesforceTokens};
 
 /// The target of the log messages of the loader
 pub const LOG_TARGET: &str = "catalog_loader";
 /// The target of the log messages about the metadata of Salesforce
-const SALESFORCE_LOG_TARGET: &str = "salesforce_catalog";
 /// The reason of an update that a forced refresh aborted
 pub const SUPERSEDED_MESSAGE: &str = "Superseded by forced catalog refresh";
 /// The reason of an update whose connection is gone or got another catalog
@@ -532,9 +528,34 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                         _ => update.cancel(&self.reason(task_id)),
                     }
                 }
-                CatalogStep::FetchSalesforceMetadata => {
-                    match token.run(self.salesforce_metadata(&connection, &token)).await {
-                        Some(metadata) if !token.is_cancelled() => update.answer_salesforce_metadata(metadata),
+                CatalogStep::FreshChannel => {
+                    let channel = connection.state.try_borrow().map(|state| state.details().channel.clone());
+                    let fresh = match &channel {
+                        Ok(Some(channel)) => token.run(channel.fresh(&self.host)).await,
+                        Ok(None) => Some(Ok(())),
+                        Err(_) => Some(Err("the connection is in use".to_string())),
+                    };
+                    match fresh {
+                        Some(Ok(())) if !token.is_cancelled() => update.answer_channel(Ok(channel.ok().flatten().as_ref())),
+                        Some(Err(error)) if !token.is_cancelled() => update.answer_channel(Err(error)),
+                        _ => update.cancel(&self.reason(task_id)),
+                    }
+                }
+                CatalogStep::Fetch(requests) => {
+                    let started_at = self.host.now();
+                    let fetches: Vec<LocalFuture<Result<HttpResponse, HostError>>> =
+                        requests.iter().map(|request| Box::pin(self.host.fetch(request.clone(), &token)) as LocalFuture<_>).collect();
+                    match token.run(join_all(fetches)).await {
+                        Some(responses) if !token.is_cancelled() => {
+                            let duration = format!("{:.2}", self.host.now() - started_at);
+                            let count = responses.len().to_string();
+                            self.log(
+                                LogLevel::Info,
+                                "Fetched catalog metadata",
+                                &[("connectionId", connection_id), ("requests", &count), ("durationMs", &duration)],
+                            );
+                            update.answer_fetch(responses.into_iter().map(|response| response.map_err(|error| error.message().to_string())).collect())
+                        }
                         _ => update.cancel(&self.reason(task_id)),
                     }
                 }
@@ -634,62 +655,5 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             "Finished catalog update",
             &[("connectionId", connection_id), ("updateId", &task_id.to_string()), ("durationMs", &duration)],
         );
-    }
-
-    /// The Data Cloud metadata of a Salesforce connection from the metadata API of the instance, one request per entity
-    /// type at the same time
-    async fn salesforce_metadata(
-        &self,
-        connection: &FollowedConnection,
-        token: &CancellationToken,
-    ) -> Result<Value, String> {
-        let channel = {
-            let state = connection.state.try_borrow().map_err(|_| "the connection is in use".to_string())?;
-            let channel = state.details().channel.as_ref().and_then(ConnectionChannel::salesforce).cloned();
-            channel.ok_or_else(|| "Salesforce core access token is missing".to_string())?
-        };
-        // A Data Cloud token about to expire is refreshed first, the channel keeps the new tokens
-        channel.fresh(&self.host).await?;
-        let tokens = channel.tokens();
-        let data_space = get_salesforce_data_space(&tokens.data_cloud);
-        self.host.log(LogLevel::Info, "Resolving Salesforce catalog metadata", &[("dataSpace", &data_space), ("target", SALESFORCE_LOG_TARGET)]);
-        let started_at = self.host.now();
-        let metadata = self.fetch_salesforce_metadata(&tokens, &data_space, token).await?;
-        let entities = metadata.get("metadata").and_then(Value::as_array).map_or(0, Vec::len).to_string();
-        let duration = format!("{:.2}", self.host.now() - started_at);
-        self.host.log(
-            LogLevel::Info,
-            "Received Salesforce catalog metadata",
-            &[("dataSpace", &data_space), ("entities", &entities), ("durationMs", &duration), ("target", SALESFORCE_LOG_TARGET)],
-        );
-        Ok(metadata)
-    }
-
-    /// Fetch the Data Cloud metadata of a data space over the HTTP client of the host
-    async fn fetch_salesforce_metadata(&self, tokens: &SalesforceTokens, data_space: &str, token: &CancellationToken) -> Result<Value, String> {
-        let (mut load, _) = SalesforceMetadataLoad::new(&tokens.core, data_space);
-        let requests: Vec<LocalFuture<Result<HttpResponse, HostError>>> =
-            load.requests().iter().map(|request| Box::pin(self.host.fetch(request.clone(), token)) as LocalFuture<_>).collect();
-        let responses = join_all(requests).await;
-        for (index, response) in responses.iter().enumerate() {
-            let failure = match response {
-                Ok(response) => load.on_response(index, response).and_then(|(_, failure)| failure),
-                Err(error) => load.on_failure(index, error.message()).map(|(_, failure)| failure),
-            };
-            if let Some(failure) = failure {
-                self.host.log(
-                    LogLevel::Warn,
-                    "Salesforce metadata request failed",
-                    &[
-                        ("dataSpace", &failure.data_space),
-                        ("entityType", &failure.entity_type),
-                        ("error", &failure.error),
-                        ("target", SALESFORCE_LOG_TARGET),
-                    ],
-                );
-            }
-        }
-        let metadata = load.finish().map_err(|error| error.message)?;
-        serde_json::to_value(metadata).map_err(|error| error.to_string())
     }
 }
