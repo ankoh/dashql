@@ -632,17 +632,6 @@ pub struct ConnectionListEntry {
     pub ordinal: Option<u32>,
 }
 
-impl From<&ListedConnection> for ConnectionListEntry {
-    fn from(connection: &ListedConnection) -> Self {
-        ConnectionListEntry {
-            connection_id: connection.connection_id.clone(),
-            connector_type: connection.connector_type.into(),
-            active: connection.active,
-            listed: connection.listed,
-            ordinal: connection.ordinal,
-        }
-    }
-}
 
 /// The connections of the runtime, the slice `connectionList`
 #[derive(Clone, Debug, Serialize, Tsify)]
@@ -656,12 +645,64 @@ pub struct ConnectionListView {
 }
 
 impl ConnectionListView {
+    /// The list as DashQL shows it: a connection is listed next to the workbooks when workbooks use it or it is
+    /// active, the listed connections of a connector are numbered when there are several
     pub fn of(listed: &[ListedConnection]) -> Self {
-        let connections: Vec<ConnectionListEntry> = listed.iter().map(Into::into).collect();
+        let mut connections: Vec<ConnectionListEntry> = listed
+            .iter()
+            .map(|connection| ConnectionListEntry {
+                connection_id: connection.connection_id.clone(),
+                connector_type: connection.connector_type.into(),
+                active: connection.active,
+                listed: connection.used || connection.active,
+                ordinal: None,
+            })
+            .collect();
+        for connector in rt::CONNECTOR_TYPES {
+            let of_connector = |entry: &ConnectionListEntry, listed: &ListedConnection| entry.listed && listed.connector_type == connector;
+            if connections.iter().zip(listed).filter(|(entry, listed)| of_connector(entry, listed)).count() < 2 {
+                continue;
+            }
+            let mut next = 0;
+            for (entry, listed) in connections.iter_mut().zip(listed) {
+                if of_connector(entry, listed) {
+                    next += 1;
+                    entry.ordinal = Some(next);
+                }
+            }
+        }
         let connections_by_type = rt::CONNECTOR_TYPES
             .iter()
             .map(|connector| listed.iter().filter(|c| c.connector_type == *connector).map(|c| c.connection_id.clone()).collect())
             .collect();
         ConnectionListView { connections, connections_by_type }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn listed(id: &str, connector_type: rt::ConnectorType, active: bool, used: bool) -> ListedConnection {
+        ListedConnection { connection_id: id.to_string(), connector_type, active, used }
+    }
+
+    #[test]
+    fn lists_what_workbooks_use_or_is_active_and_numbers_the_listed_connections_of_a_connector() {
+        let view = ConnectionListView::of(&[
+            listed("a", rt::ConnectorType::Trino, true, false),
+            listed("b", rt::ConnectorType::Hyper, false, false),
+            listed("c", rt::ConnectorType::Trino, false, false),
+        ]);
+        let shown: Vec<(bool, Option<u32>)> = view.connections.iter().map(|c| (c.listed, c.ordinal)).collect();
+        assert_eq!(shown, [(true, None), (false, None), (false, None)]);
+        // Once a workbook uses c, both Trino connections are listed and numbered
+        let view = ConnectionListView::of(&[
+            listed("a", rt::ConnectorType::Trino, true, false),
+            listed("b", rt::ConnectorType::Hyper, false, false),
+            listed("c", rt::ConnectorType::Trino, false, true),
+        ]);
+        let ordinals: Vec<Option<u32>> = view.connections.iter().map(|c| c.ordinal).collect();
+        assert_eq!(ordinals, [Some(1), None, Some(2)]);
     }
 }

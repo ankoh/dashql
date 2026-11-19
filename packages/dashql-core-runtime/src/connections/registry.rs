@@ -12,7 +12,7 @@ use std::rc::Rc;
 use dashql_core::error::{Error, Result};
 
 use super::label::is_hyper_wasm_connection;
-use super::{ConnectionAction, ConnectionEffect, ConnectionState, ConnectorType, Timestamp, CONNECTOR_TYPES};
+use super::{ConnectionAction, ConnectionEffect, ConnectionState, ConnectorType, Timestamp};
 use crate::catalog_loader::FollowedConnection;
 use crate::handles::Handle;
 use crate::query::{QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId, INTERNAL_QUERY_HISTORY_LIMIT};
@@ -67,16 +67,16 @@ impl RegistryOutcome {
     }
 }
 
-/// A connection of the list: what the pickers and the labels need
+/// A connection of the list: what the pickers and the labels need. How a host shows the list, e.g. which connections
+/// it lists next to the workbooks, is the host's.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ListedConnection {
     pub connection_id: String,
     pub connector_type: ConnectorType,
+    /// Does the connection belong to a committed workbook, or was it connected once?
     pub active: bool,
-    /// Is the connection listed next to the workbooks? Connections that workbooks use are, as are active ones.
-    pub listed: bool,
-    /// The number of the connection among the listed connections of its connector from 1, none if it is the only one
-    pub ordinal: Option<u32>,
+    /// Do workbooks use the connection?
+    pub used: bool,
 }
 
 /// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
@@ -162,32 +162,17 @@ impl ConnectionRegistry {
 
     /// The connections of the list, in the order of registration. None while the state of a connection is borrowed.
     pub fn list(&self) -> Option<Vec<ListedConnection>> {
-        let mut listed: Vec<ListedConnection> = self
-            .connections()
+        self.connections()
             .map(|(id, connection)| {
                 let state = connection.state.try_borrow().ok()?;
                 Some(ListedConnection {
                     connection_id: id.to_string(),
                     connector_type: state.connector_type(),
                     active: state.active(),
-                    listed: !self.workbooks_of(id).is_empty() || state.active(),
-                    ordinal: None,
+                    used: !self.workbooks_of(id).is_empty(),
                 })
             })
-            .collect::<Option<_>>()?;
-        for connector in CONNECTOR_TYPES {
-            let of_connector: Vec<usize> =
-                listed.iter().enumerate().filter(|(_, c)| c.listed && c.connector_type == connector).map(|(i, _)| i).collect();
-            if of_connector.len() < 2 {
-                continue;
-            }
-            for (ordinal, index) in of_connector.into_iter().enumerate() {
-                if let Some(connection) = listed.get_mut(index) {
-                    connection.ordinal = Some(ordinal as u32 + 1);
-                }
-            }
-        }
-        Some(listed)
+            .collect()
     }
 
     /// Apply an action to a connection. A connection that stops its queries clears its history, a deleted connection
@@ -296,20 +281,19 @@ mod tests {
     }
 
     #[test]
-    fn keeps_the_order_and_numbers_the_listed_connections() {
+    fn keeps_the_order_and_says_which_connections_workbooks_use() {
         let mut registry = ConnectionRegistry::new();
         registry.insert(connection("a", ConnectorType::Trino, true)).unwrap();
         registry.insert(connection("b", ConnectorType::Hyper, false)).unwrap();
         registry.insert(connection("c", ConnectorType::Trino, false)).unwrap();
         assert!(registry.insert(connection("a", ConnectorType::Trino, false)).is_err());
         assert_eq!(registry.ids(), ["a", "b", "c"]);
-        // c is listed once a workbook uses it, then both Trino connections are numbered
         let list = registry.list().unwrap();
-        assert_eq!(list.iter().map(|c| (c.listed, c.ordinal)).collect::<Vec<_>>(), [(true, None), (false, None), (false, None)]);
+        assert_eq!(list.iter().map(|c| (c.active, c.used)).collect::<Vec<_>>(), [(true, false), (false, false), (false, false)]);
         assert_eq!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]), ["c"]);
         assert!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]).is_empty());
         let list = registry.list().unwrap();
-        assert_eq!(list.iter().map(|c| c.ordinal).collect::<Vec<_>>(), [Some(1), None, Some(2)]);
+        assert_eq!(list.iter().map(|c| c.used).collect::<Vec<_>>(), [false, false, true]);
     }
 
     #[test]
