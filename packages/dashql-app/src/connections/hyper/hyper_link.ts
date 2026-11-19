@@ -1,8 +1,8 @@
-import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { KeyValueStorage } from '@akohn/dashql/platform/key_value_storage';
 
 // The Hyper links of a tab: the runtime reads the target of a link, asks for confirmation and binds it to a connection
-// (`Runtime.bindHyperLink`), the tab keeps the tokens of the links in its storage.
+// (`Runtime.bindHyperLink`), the tab keeps the tokens of the links in its storage. This is only the storage of the tab:
+// whether a connection speaks to the Hyper of a link is `hyperLink` of the connection view.
 
 /// The session storage key of the tokens of the Hyper links of a tab
 const HYPER_LINKS_STORAGE_KEY = 'dashql.hyper_links';
@@ -59,9 +59,4 @@ export class HyperLinkTabStore {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     };
-}
-
-/// Does a connection speak to the Hyper of a link?
-export function isHyperLinkParams(params: ConnectionParams): boolean {
-    return 'hyper' in params && params.hyper.protocol === 'V3_HTTP_LINK';
 }

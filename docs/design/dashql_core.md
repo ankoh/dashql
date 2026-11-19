@@ -178,7 +178,8 @@ that wants the composition would depend on that rather than copy it.
   connection carries its `label` and the list of the connections the label with the ordinal that tells the listed
   connections of a connector apart; an import names the params of its connections (`paramsLabel`). So are whether a
   connection is the embedded Hyper of the app (`embedded`), a local cloud (`localCloud`, `hyper/local_cloud.rs`) or
-  can be a cloud (`cloudCapable`), whether it has an overview (`supportsOverview`) and the databases of the clouds
+  can be a cloud (`cloudCapable`), whether it speaks to the Hyper of a link (`hyperLink`, its token stays in the
+  storage of the tab), whether it has an overview (`supportsOverview`) and the databases of the clouds
   folder that it attaches (`cloudDatabases`). Sharing params (`sanitizeConnectionParams`,
   `connectionParamsShareEqual`) is `connections/sharing.rs`.
 - **Tokens stay in the runtime and have one owner, the channel of their connection.** The Trino channel holds the

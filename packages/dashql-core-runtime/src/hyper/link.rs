@@ -4,15 +4,10 @@
 //! the storage of the tab and only the channel adds it. Reading and writing that storage, asking the user and
 //! allocating connections stay with the host.
 
-use std::collections::BTreeMap;
-
 use serde_json::{json, Value};
 
 use crate::http::Url;
 use crate::connections::{ConnectionParams, ConnectionState, ConnectorType, JsonObject};
-
-/// The session storage key of the tokens of the Hyper links of a tab
-pub const HYPER_LINKS_STORAGE_KEY: &str = "dashql.hyper_links";
 
 /// The hosts of this machine
 const LOOPBACK_HOSTS: [&str; 3] = ["127.0.0.1", "localhost", "[::1]"];
@@ -85,48 +80,6 @@ pub fn create_hyper_link_connection_params(endpoint: &str) -> ConnectionParams {
         "tls": { "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" },
     });
     ConnectionParams::new(ConnectorType::Hyper, params.as_object().cloned().unwrap_or_default())
-}
-
-/// The Hyper links of a tab
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct HyperLinkTabState {
-    /// The tokens of the connections to the Hyper of a link by connection id, never stored durably
-    pub tokens: BTreeMap<String, String>,
-    /// The connection of the latest link, new workbooks start on it
-    pub current: Option<String>,
-}
-
-impl HyperLinkTabState {
-    /// Read the links of a tab from the storage of the tab, none or broken JSON are no links
-    pub fn read(stored: Option<&str>) -> Self {
-        let Some(Value::Object(parsed)) = stored.and_then(|text| serde_json::from_str::<Value>(text).ok()) else {
-            return Self::default();
-        };
-        let tokens = parsed
-            .get("tokens")
-            .and_then(Value::as_object)
-            .map(|tokens| {
-                tokens
-                    .iter()
-                    .filter_map(|(id, token)| token.as_str().map(|token| (id.clone(), token.to_string())))
-                    .collect()
-            })
-            .unwrap_or_default();
-        let current = parsed.get("current").and_then(Value::as_str).map(str::to_string);
-        Self { tokens, current }
-    }
-
-    /// The links with the token of the connection that a link was bound to, new workbooks start on the connection
-    pub fn with_token(&self, connection_id: &str, token: &str) -> Self {
-        let mut tokens = self.tokens.clone();
-        tokens.insert(connection_id.to_string(), token.to_string());
-        Self { tokens, current: Some(connection_id.to_string()) }
-    }
-
-    /// The links as the JSON of the storage of the tab
-    pub fn to_json(&self) -> String {
-        json!({ "tokens": self.tokens, "current": self.current }).to_string()
-    }
 }
 
 /// The connection that a link is bound to

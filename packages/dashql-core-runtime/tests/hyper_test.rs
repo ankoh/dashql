@@ -1163,28 +1163,6 @@ fn stores_the_endpoint_but_not_the_token_the_channel_adds_the_token() {
     );
 }
 
-#[test]
-fn reads_the_links_of_the_tab_also_from_broken_storage() {
-    let stored = json!({ "tokens": { "a": "secret", "b": 1 }, "current": "a" }).to_string();
-    let state = HyperLinkTabState::read(Some(&stored));
-    assert_eq!(state.tokens.into_iter().collect::<Vec<_>>(), vec![("a".to_string(), "secret".to_string())]);
-    assert_eq!(state.current.as_deref(), Some("a"));
-    assert_eq!(HyperLinkTabState::read(Some("not json")), HyperLinkTabState::default());
-    assert_eq!(HyperLinkTabState::read(Some("null")), HyperLinkTabState::default());
-    assert_eq!(HyperLinkTabState::read(None), HyperLinkTabState::default());
-}
-
-#[test]
-fn keeps_the_token_of_a_link_and_reads_it_back() {
-    let state = HyperLinkTabState::default().with_token("a", "secret");
-    assert_eq!(state.current.as_deref(), Some("a"));
-    // A reload reads the links again
-    assert_eq!(HyperLinkTabState::read(Some(&state.to_json())), state);
-    let next = state.with_token("b", "other");
-    assert_eq!(next.tokens.len(), 2);
-    assert_eq!(next.current.as_deref(), Some("b"));
-}
-
 fn linked(connection_id: &str, endpoint: &str) -> ConnectionState {
     ConnectionState::from_params(connection_id, create_hyper_link_connection_params(endpoint), 0.0)
 }

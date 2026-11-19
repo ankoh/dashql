@@ -551,6 +551,8 @@ pub struct ConnectionView {
     pub cloud_capable: bool,
     /// Does the connection offer an operational overview?
     pub supports_overview: bool,
+    /// Does the connection speak to the Hyper of a link? Its token stays in the storage of the tab.
+    pub hyper_link: bool,
     /// The databases of the clouds folder that the params attach to the embedded Hyper, dropped with the connection
     pub cloud_databases: Vec<ConnectionCloudDatabase>,
     /// Does the connection cache query results? Null for the default of the connector.
@@ -622,6 +624,7 @@ impl ConnectionView {
             local_cloud: label::is_local_cloud(state.params()),
             cloud_capable: label::is_cloud_capable(state.params()),
             supports_overview: label::supports_connection_overview(state),
+            hyper_link: rt_link::is_hyper_link_params(state.params()),
             cloud_databases: match state.params().connector {
                 rt::ConnectorType::Hyper => embedded_cloud_databases(Some(&state.params().params))
                     .into_iter()

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
-import { isHyperLinkParams } from '../connections/hyper/hyper_link.js';
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
 import {
     EPHEMERAL_WORKBOOK_NAME,
@@ -36,10 +35,8 @@ export function useEphemeralWorkbook(): (database: ConnectionState) => WorkbookS
         const existing = [...runtime?.store.all('workbook').values() ?? []].find(workbook => workbook.ephemeral);
         if (existing == null) return allocate(database.connectionId, EPHEMERAL_WORKBOOK_NAME, true);
         const current = existing.nextScriptConnectionId ?? null;
-        const currentParams = current == null ? null : runtime?.connection(current)?.params;
-        if (current !== database.connectionId && (
-            getHyperLinkTabState().current === database.connectionId || (currentParams != null && isHyperLinkParams(currentParams))
-        )) {
+        const currentLinked = current == null ? false : runtime?.connection(current)?.hyperLink ?? false;
+        if (current !== database.connectionId && (getHyperLinkTabState().current === database.connectionId || currentLinked)) {
             runtime?.dispatch({ workbook: existing.workbookId }, { kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
         }
         return existing;
