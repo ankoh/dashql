@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { inputConsumerScripts, workbookInputLiteral, type SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
-import { useOptionalRuntime, useWorkbookDerived, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 
 const NO_INPUTS: ReadonlySet<string> = new Set();
 

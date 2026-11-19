@@ -26,7 +26,7 @@ import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_f
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akohn/dashql/platform/connections/query_execution_args';
-import { useQuery, useQueryProfileDetail, useRuntime } from './runtime_hooks.js';
+import { useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

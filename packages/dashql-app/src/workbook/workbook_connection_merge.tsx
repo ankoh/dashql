@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 
 /// Merge connections into a target connection

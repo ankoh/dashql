@@ -19,7 +19,7 @@ import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { useConnectionDraftForm } from './connection_draft.js';
-import { useConnection } from '../runtime/runtime_hooks.js';
+import { useConnection } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';

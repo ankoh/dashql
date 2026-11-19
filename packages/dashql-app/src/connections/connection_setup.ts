@@ -4,7 +4,7 @@ import type * as core from '@akohn/dashql';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useSaveBeforeConnect } from './connection_persistence.js';
 import { useAppConfig } from '../config/app_config.js';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 /// The setup of a connection from its settings. The runtime sets the connection up (`setupConnection`), also against
 /// the mock of Salesforce that the config chose, its view shows how far the setup got, how it ended and whether one

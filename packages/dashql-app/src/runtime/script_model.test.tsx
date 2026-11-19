@@ -9,11 +9,11 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 
-import { LoggerProvider } from '../../platform/logger_provider.js';
-import { StorageProvider } from '../../storage/storage_provider.js';
-import { useRuntime } from '../runtime_hooks.js';
-import { TestRuntime } from '../../tests/test_runtime.js';
-import { useScriptModel, type ScriptModel } from './script_model.js';
+import { LoggerProvider } from '../platform/logger_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
+import { TestRuntime } from '../tests/test_runtime.js';
+import { useScriptModel, type ScriptModel } from '@akohn/dashql-react/models/script_model';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

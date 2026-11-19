@@ -13,7 +13,7 @@ import { exportArrowTableAsParquet, supportsParquetExport } from '@akohn/dashql/
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 
 const enum DownloadFormat {
     Arrow = 'arrow',

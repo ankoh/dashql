@@ -22,7 +22,7 @@ import {
     workOf,
     type ProgressWork,
 } from './query_progress_format.js';
-import { useQueryProfileDetail, useQueryProgress } from '../../runtime/runtime_hooks.js';
+import { useQueryProfileDetail, useQueryProgress } from '@akohn/dashql-react/hooks';
 
 const view = dashql.buffers.profile;
 

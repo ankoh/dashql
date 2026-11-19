@@ -5,7 +5,7 @@ import { salesforceCatalogDatabase, type ConnectionParams } from '@akohn/dashql/
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { CLOUD_DATABASE, type CloudQuery } from './cloud_store_schema.js';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 /// The database of DashQL in a cloud connection, by the alias that its sessions attach it as. Database.com attaches the
 /// Hyper Cloud database of its settings as "lakehouse", a Hyper server and the local cloud attach it as "dashql".

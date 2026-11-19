@@ -6,7 +6,7 @@ import * as core from '@akohn/dashql';
 
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { useShellQueryResult } from './use_shell_query_result.js';
-import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
+import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { runTestQuery } from '../tests/test_connections.js';
 import { testShellHistory, type TestShellHistory } from '../tests/test_shell_history.js';
 

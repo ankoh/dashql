@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime, useQuery, useQueryProgress, useScript, useWorkbookDerived, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useQuery, useQueryProgress, useScript, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';

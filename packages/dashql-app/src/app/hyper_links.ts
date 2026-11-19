@@ -5,7 +5,7 @@ import { connectionLabel } from '../connections/connection_label.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';

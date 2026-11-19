@@ -13,7 +13,7 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { useDispatch, useRuntime, useScript, useWorkbook } from './runtime_hooks.js';
+import { useDispatch, useRuntime, useScript, useWorkbook } from '@akohn/dashql-react/hooks';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

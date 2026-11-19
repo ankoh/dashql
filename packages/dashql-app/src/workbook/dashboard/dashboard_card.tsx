@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
-import { useQuery, useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useQuery, useQueryResultTable } from '@akohn/dashql-react/hooks';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { ScriptEditor } from '../scripts/script_editor.js';

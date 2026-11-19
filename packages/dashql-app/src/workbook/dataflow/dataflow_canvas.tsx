@@ -41,7 +41,7 @@ import {
 import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
 import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
-import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '../../views/card_placeholder.js';
 import * as styles from './dataflow.module.css';

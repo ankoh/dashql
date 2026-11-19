@@ -10,8 +10,8 @@ import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_exe
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
-import { fakeScript, fakeScriptModel } from '../../tests/fake_models.js';
-import type { ScriptModel } from '../../runtime/models/script_model.js';
+import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
+import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ScriptCard, type ScriptCardDependencies, type ScriptCardProps, type ScriptFeedCommands } from './script_card.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

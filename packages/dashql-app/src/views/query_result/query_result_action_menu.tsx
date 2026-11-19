@@ -12,7 +12,7 @@ import { useAppConfig } from '../../config/app_config.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { useRuntime, useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useRuntime, useQueryResultTable } from '@akohn/dashql-react/hooks';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { addResultProjection, ResultProjectionError } from './result_projection.js';
 

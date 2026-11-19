@@ -10,7 +10,7 @@ import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../app/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { RuntimeContextProvider } from '../runtime/runtime_hooks.js';
+import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 

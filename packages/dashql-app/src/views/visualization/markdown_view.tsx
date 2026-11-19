@@ -7,7 +7,7 @@ import { useLogger } from '../../platform/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
-import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
 type MarkdownSpec = buffers.visualization.MarkdownSpecT;

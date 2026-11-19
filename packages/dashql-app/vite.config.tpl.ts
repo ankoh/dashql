@@ -42,6 +42,9 @@ export default vite.defineConfig(({ mode, command }) => {
     // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms. A source package
     // like @akohn/dashql-ui: the dev server reads packages/dashql.
     const DASHQL_PATH = path.resolve(rootDir, "__DASHQL_PATH__");
+    // The package root of @akohn/dashql-react, the hooks and the models of the runtime in React. A source package like
+    // @akohn/dashql: the dev server reads packages/dashql-react.
+    const REACT_PATH = path.resolve(rootDir, "__REACT_PATH__");
     // The generated packages of the core module that the bindings import, folders of Bazel: @akohn/dashql-wasm, the
     // glue and the Wasm of the core and of the dataflow layout, and @akohn/dashql-flatbuffers
     const DASHQL_GENERATED_PATH = path.resolve(rootDir, "__DASHQL_GENERATED_PATH__");
@@ -325,6 +328,7 @@ export default vite.defineConfig(({ mode, command }) => {
                 { find: /^@akohn\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },
                 { find: /^@akohn\/dashql-ui\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(UI_PATH, '$1') },
                 { find: /^@akohn\/dashql-ui\/(.+)$/, replacement: path.join(UI_PATH, 'src/$1.ts') },
+                { find: /^@akohn\/dashql-react\/(.+)$/, replacement: path.join(REACT_PATH, 'src/$1.ts') },
                 { find: /^@akohn\/dashql\/(runtime|platform)\/(.+)$/, replacement: path.join(DASHQL_PATH, 'src/$1/$2.ts') },
                 { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(DASHQL_WASM_PATH, '$1') },
                 { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(DASHQL_GENERATED_PATH, 'dashql-flatbuffers/$1') },
@@ -388,6 +392,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         DASHQL_PATH,
                         DASHQL_GENERATED_PATH,
                         UI_PATH,
+                        REACT_PATH,
                         PROTOBUF_PATH,
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,

@@ -8,7 +8,7 @@ import { WorkbookExportSettings, WorkbookExportSettingsView } from '../workbook/
 import { ShareURLField } from '../workbook/persistence/share_url_field.js';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 interface Props {
     /// The connection to share

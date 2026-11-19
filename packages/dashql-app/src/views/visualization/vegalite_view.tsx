@@ -9,7 +9,7 @@ import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { useColorScheme } from '../../config/color_scheme.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { useComputation, useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useComputation, useQueryResultTable } from '@akohn/dashql-react/hooks';
 import { useComputationTables } from '../query_result/computation_tables.js';
 import type { ComputationTables } from '../query_result/computation_tables.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';

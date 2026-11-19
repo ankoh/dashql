@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useConnections } from '../runtime/runtime_hooks.js';
+import { useConnections } from '@akohn/dashql-react/hooks';
 import { useAppConfig, useAppReconfigure, type AppSettings } from '../config/app_config.js';
 import { embeddedCloudDatabases, LOCAL_CLOUD_DATABASE } from '@akohn/dashql/platform/connections/hyper/local_cloud';
 

@@ -12,7 +12,7 @@ import { LoggerProvider } from '../platform/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@akohn/dashql/platform/query/query_execution_state';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
+import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import type { HyperLogMetrics } from '../connections/hyper/hyper_log_metrics.js';
 import { HyperLogMetricsProvider, useHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';

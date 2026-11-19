@@ -1,6 +1,8 @@
 # Writing a component
 
-A component of the app shows a model and the state of the user interface. It doesn't talk to the runtime: it knows no
+A component of the app shows a model and the state of the user interface. The hooks of the runtime and the models are
+the package `@akohn/dashql-react` (`packages/dashql-react`), shared with other hosts of the runtime; the components are
+the app's. It doesn't talk to the runtime: it knows no
 view kinds, slices, targets, actions, commands or handles, and it doesn't need to know when the store flushes. Those
 stay in the model hooks, one per thing that the app shows. The runtime itself is described in
 [dashql_runtime.md](../design/dashql_runtime.md), read it when you change the runtime or a model.
@@ -10,11 +12,11 @@ stay in the model hooks, one per thing that the app shows. The runtime itself is
 | Layer | Where | Knows |
 |---|---|---|
 | Components | the app, e.g. `workbook/feed/script_card.tsx` | A model, plain props, slots. No import of the runtime |
-| Models | `packages/dashql-app/src/runtime/models/` | The views, the actions of a target, the commands of the facade, `settled` |
+| Models | `@akohn/dashql-react/models/...` (`packages/dashql-react/src/models/`) | The views, the actions of a target, the commands of the facade, `settled` |
 | Runtime | `@akohn/dashql/runtime`, the core module | Everything else |
 
 A model is an interface with a hook that implements it over the runtime, e.g. `ScriptModel` and `useScriptModel` of
-`runtime/models/script_model.tsx`: the script, its latest query and whether its workbook runs, and the operations
+`@akohn/dashql-react/models/script_model`: the script, its latest query and whether its workbook runs, and the operations
 `run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec`. An operation that changes state resolves once the
 store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A model is
 the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the new one.
@@ -34,8 +36,9 @@ whether a cancel stops the run of the workbook or the query of a script, is a co
 3. **Add the module** to `COMPONENTS` of `packages/dashql-app/test/component_boundary_test.mjs`
    (`//packages/dashql-app:component_boundary_test`). It fails when the module imports the hooks of the runtime, the
    runtime package, or a model for more than its types.
-4. **Test the component** with a plain model, `fakeScriptModel` of `src/tests/fake_models.ts`: its operations are spies.
-   Test a new operation of a model on a runtime, e.g. `runtime/models/script_model.test.tsx` with `TestRuntime`.
+4. **Test the component** with a plain model, `fakeScriptModel` of `@akohn/dashql-react/testing/fake_models`: its
+   operations are spies. Test a new operation of a model on a runtime, e.g. `src/runtime/script_model.test.tsx` of the
+   app with `TestRuntime`.
 5. **Connect it** in the parent: the parent resolves the model with the hook and renders the slots, e.g.
    `ScriptFeedRow` of `workbook/feed/workbook_feed_row.tsx`. A test of the parent hands it other models with
    `ScriptModelProvider` and `fakeScriptModels`.

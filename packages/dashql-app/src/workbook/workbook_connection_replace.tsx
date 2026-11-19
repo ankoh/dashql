@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useLogger } from '../platform/logger_provider.js';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 const LOG_CTX = 'connection_replace';
 

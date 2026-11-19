@@ -5,7 +5,7 @@ import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
-import { useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';

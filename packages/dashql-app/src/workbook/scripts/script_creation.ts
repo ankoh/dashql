@@ -4,7 +4,7 @@ import { randomScriptName } from './script_name.js';
 import { scriptDisplayName, type ScriptRef } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptData, WorkbookAction, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
-import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { createdScriptRef, type ScriptSelection } from './script_selection.js';
 
 /// What a new script starts with

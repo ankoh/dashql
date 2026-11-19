@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 import type * as core from '@akohn/dashql';
 
-import { createRuntime, type ChannelConnector, type Runtime, type Settled } from '@akohn/dashql/runtime/runtime';
+import type { Runtime, Settled } from '@akohn/dashql/runtime/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
@@ -10,13 +10,7 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { workbookExecutionIsBusy } from '@akohn/dashql/platform/workbook/workbook_execution';
 
-import { useLogger } from '../platform/logger_provider.js';
-import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
-import { useHttpClient } from '../platform/http/http_client_provider.js';
-import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
-import { useDashQLCore } from './core_provider.js';
-
-// The hooks of the runtime (docs/design/dashql_runtime.md). A component reads the view of a slice, which renders it
+// The hooks of the runtime (docs/design/dashql_runtime.md), shared by the app and other hosts of the runtime. A component reads the view of a slice, which renders it
 // again when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by
 // their handles. The views come from the store of the runtime, never from the module. The commands are methods of the
 // runtime (`useRuntime()`), the hooks below that call them resolve the runtime when their function is called: a test
@@ -32,7 +26,7 @@ export const RuntimeContextProvider = RUNTIME_CTX.Provider;
 /// The runtime of the provider above: its commands, its store and its platform. Throws without one.
 export function useRuntime(): Runtime {
     const runtime = React.useContext(RUNTIME_CTX);
-    if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
+    if (runtime == null) throw new Error('the runtime needs a provider, e.g. RuntimeContextProvider');
     return runtime;
 }
 
@@ -47,9 +41,6 @@ export function useOptionalRuntime(): Runtime | null {
 /// which runs the cleanup and the effect once more, and Fast Refresh, which runs the effects again and keeps the refs,
 /// keep the same runtime instead of leaving the app on a destroyed one.
 export function useOwnedRuntime(create: () => Runtime): Runtime {
-    const logger = useLogger();
-    const latestLogger = React.useRef(logger);
-    latestLogger.current = logger;
     // The runtime of the component and the timer that destroys it after a cleanup
     const owned = React.useRef<{ runtime: Runtime; release: ReturnType<typeof setTimeout> | null } | null>(null);
     if (owned.current == null) owned.current = { runtime: create(), release: null };
@@ -64,7 +55,7 @@ export function useOwnedRuntime(create: () => Runtime): Runtime {
             held.release = setTimeout(() => {
                 if (owned.current === held) owned.current = null;
                 void held.runtime.destroy().catch(error => {
-                    latestLogger.current.error('Failed to stop the runtime', { error: stringifyError(error) }, LOG_CTX);
+                    held.runtime.logger.error('Failed to stop the runtime', { error: stringifyError(error) }, LOG_CTX);
                 });
             }, 0);
         };
@@ -108,7 +99,7 @@ export function useDispatch<T extends core.Target>(target: T | null): (action: c
     const runtime = React.useContext(RUNTIME_CTX);
     const key = target == null ? null : JSON.stringify(target);
     return React.useCallback((action: core.ActionOf<T>) => {
-        if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
+        if (runtime == null) throw new Error('the runtime needs a provider, e.g. RuntimeContextProvider');
         if (key == null) return { ok: false, changed: false, error: 'no target', id: null, settled: Promise.resolve() };
         return runtime.dispatch(JSON.parse(key) as T, action);
     }, [runtime, key]);
@@ -266,7 +257,6 @@ export function useComputeReady(): boolean {
 /// of the runtime is (`useComputeReady`).
 export function useWorkbookExecution(workbookId: string) {
     const runtime = React.useContext(RUNTIME_CTX);
-    const logger = useLogger();
     const run = useView('run', workbookId);
     const ready = useComputeReady();
     const state = run?.state ?? null;
@@ -281,7 +271,7 @@ export function useWorkbookExecution(workbookId: string) {
             start: (options?: WorkbookExecutionOptions) => {
                 if (runtime == null) return;
                 // A failed statement and a failed plan show on their scripts, a run that fails otherwise shows as an error
-                const failed = (error: unknown) => logger.error('The run of the workbook failed', { workbookId, error: stringifyError(error) }, 'workbook_execution');
+                const failed = (error: unknown) => runtime.logger.error('The run of the workbook failed', { workbookId, error: stringifyError(error) }, 'workbook_execution');
                 runtime.runWorkbook(workbookId, { inputs: options?.inputs == null ? undefined : [...options.inputs] }).then(result => {
                     const failure = result.outcome.failure;
                     if (failure != null && failure.kind === 'error' && failure.queryId == null) failed(result.error);
@@ -289,7 +279,7 @@ export function useWorkbookExecution(workbookId: string) {
             },
             stop: () => runtime?.stopRun(workbookId),
         };
-    }, [state, held, runtime, workbookId, ready, logger]);
+    }, [state, held, runtime, workbookId, ready]);
 }
 
 /// Run a script of a workbook with the scripts it references, a refresh reads no cached results. Resolves once the run
@@ -299,37 +289,11 @@ export type ScriptRun = (workbookId: string, scriptKey: number, options?: { refr
 /// The runs of single scripts of the runtime, null without a runtime
 export function useScriptRun(): ScriptRun | null {
     const runtime = React.useContext(RUNTIME_CTX);
-    const logger = useLogger();
     return React.useMemo(() => runtime == null ? null : async (workbookId, scriptKey, options = {}) => {
         try {
             await runtime.runScript(workbookId, scriptKey, { refresh: options.refresh });
         } catch (error) {
-            logger.warn('Workbook script run failed', { workbookId, scriptKey: scriptKey.toString(), error: stringifyError(error) }, 'workbook_execution');
+            runtime.logger.warn('Workbook script run failed', { workbookId, scriptKey: scriptKey.toString(), error: stringifyError(error) }, 'workbook_execution');
         }
-    }, [runtime, logger]);
-}
-
-/// A runtime without the storage of the app, e.g. of the shell of Hyper, on the embedded database and the HTTP client of
-/// the providers above it. It is created once the core of the provider above is there, without one the core that the
-/// package instantiated already, and it goes with the component. `channels` connects the channels of its connections,
-/// e.g. the embedded Hyper of the shell.
-export function StandaloneRuntime(props: { channels?: ChannelConnector; children?: React.ReactNode }) {
-    const core = useDashQLCore();
-    if (core == null) return null;
-    return <StandaloneRuntimeOf core={core} channels={props.channels}>{props.children}</StandaloneRuntimeOf>;
-}
-
-function StandaloneRuntimeOf(props: { core: core.DashQL; channels?: ChannelConnector; children?: React.ReactNode }) {
-    const logger = useLogger();
-    const http = useHttpClient();
-    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
-    const runtime = useOwnedRuntime(() => createRuntime({
-        logger,
-        scheduler: FRAME_UPDATE_SCHEDULER,
-        core: props.core,
-        http,
-        computeDatabase: setupEmbeddedDatabase == null ? null : () => setupEmbeddedDatabase('compute'),
-        channels: props.channels,
-    }));
-    return <RuntimeContextProvider value={runtime}>{props.children}</RuntimeContextProvider>;
+    }, [runtime]);
 }

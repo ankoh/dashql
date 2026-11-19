@@ -9,7 +9,7 @@ import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_da
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
+import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 
 import { WorkbookTestBackend, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';

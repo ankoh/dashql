@@ -11,7 +11,7 @@ import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
 import { ShellQueryHistoryProvider } from './shell_query_history.js';
 import { shellChannelConnector } from './shell_connection.js';
-import { StandaloneRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime } from '../runtime/standalone_runtime.js';
 import { DashQLCoreProvider } from '../runtime/core_provider.js';
 import { AppConfigProvider } from '../config/app_config.js';
 import { PlatformEventListenerProvider } from '../platform/events/event_listener_provider.js';

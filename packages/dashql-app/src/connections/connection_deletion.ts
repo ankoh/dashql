@@ -5,7 +5,7 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { embeddedCloudDatabases } from '@akohn/dashql/platform/connections/hyper/local_cloud';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import { dropsAttachedDatabases } from '@akohn/dashql/platform/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';

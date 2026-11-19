@@ -18,7 +18,7 @@ import { createTestRoot } from '../../tests/react_root.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '../../runtime/runtime_hooks.js';
+import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';
 
 type Registry = ReadonlyMap<string, ConnectionState>;

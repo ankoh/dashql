@@ -18,7 +18,7 @@ import { NativeWorkbookSync } from './native_workbook_sync_react.js';
 import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime, useWorkbooks } from '../../runtime/runtime_hooks.js';
+import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

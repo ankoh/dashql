@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@akohn/dashql';
 import { testRuntime } from '@akohn/dashql/runtime/testing/connector_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnection, useDispatch, useRuntime } from '../runtime/runtime_hooks.js';
+import { useConnection, useDispatch, useRuntime } from '@akohn/dashql-react/hooks';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useConnectionDraftForm } from './connection_draft.js';
 import { ConnectorType, CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';

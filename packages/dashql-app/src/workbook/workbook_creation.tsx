@@ -9,7 +9,7 @@ import {
     WorkbookScripts,
 } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useCreateWorkbook } from './workbook_lifecycle.js';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
 
 /// Create a workbook whose first script runs on a connection, a workbook without a name gets a free one

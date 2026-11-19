@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { QueryType, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '../views/query_history_viewer.js';
-import { useAllQueries, useConnection, useRuntime } from '../runtime/runtime_hooks.js';
+import { useAllQueries, useConnection, useRuntime } from '@akohn/dashql-react/hooks';
 
 /// The id under which the queries of the shell are listed
 export const SHELL_DATABASE_ID = 'shell';

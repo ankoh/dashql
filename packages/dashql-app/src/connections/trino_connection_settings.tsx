@@ -14,7 +14,7 @@ import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '..
 import { TextField, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
 import { classNames } from '../utils/classnames.js';
 import { useConnectionDraftForm } from './connection_draft.js';
-import { useConnection } from '../runtime/runtime_hooks.js';
+import { useConnection } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger_provider.js';

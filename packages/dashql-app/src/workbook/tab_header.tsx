@@ -5,7 +5,7 @@ import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platfor
 import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
 import { ScreenFullIcon } from '../ui/foundations/symbol_icon.js';
 import { classNames } from '../utils/classnames.js';
-import { useComputation } from '../runtime/runtime_hooks.js';
+import { useComputation } from '@akohn/dashql-react/hooks';
 
 interface TabHeaderProps {
     title: string;

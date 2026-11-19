@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useQuery } from '../../runtime/runtime_hooks.js';
+import { useQuery } from '@akohn/dashql-react/hooks';
 import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
 import { ButtonGroup } from '../../ui/foundations/button_group.js';
 import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';

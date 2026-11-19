@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import { useRuntime, useView, useWorkbooks } from '../../runtime/runtime_hooks.js';
+import { useRuntime, useView, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { isDesktopHost } from '../../platform/native_globals.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';

@@ -4,7 +4,7 @@ import * as styles from './query_result_view.module.css';
 import { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
-import { useComputation } from '../../runtime/runtime_hooks.js';
+import { useComputation } from '@akohn/dashql-react/hooks';
 import { classNames } from '../../utils/classnames.js';
 
 interface Props {

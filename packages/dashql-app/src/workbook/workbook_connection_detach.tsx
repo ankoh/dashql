@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useEmbeddedConnection } from '../connections/embedded_connection_hooks.js';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 /// Detach a connection from the workbooks
 export type ConnectionDetach = (connectionId: string) => Promise<void>;

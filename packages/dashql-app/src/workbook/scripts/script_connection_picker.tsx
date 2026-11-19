@@ -8,7 +8,7 @@ import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_posit
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
-import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '../../runtime/runtime_hooks.js';
+import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';

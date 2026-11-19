@@ -22,7 +22,7 @@ import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnections } from '../../tests/test_connections.js';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
 

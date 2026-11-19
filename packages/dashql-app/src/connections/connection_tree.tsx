@@ -46,7 +46,7 @@ import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');
 /// No clouds

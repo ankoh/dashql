@@ -9,7 +9,7 @@ import { classNames } from '../../utils/classnames.js';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useRouteContext } from '../../app/router.js';
 import { ShareURLField } from './share_url_field.js';
-import { useRuntime, useWorkbook, useConnectionViews } from '../../runtime/runtime_hooks.js';
+import { useRuntime, useWorkbook, useConnectionViews } from '@akohn/dashql-react/hooks';
 
 interface Props {
     className?: string;

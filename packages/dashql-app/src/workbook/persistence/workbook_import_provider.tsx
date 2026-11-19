@@ -11,7 +11,7 @@ import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';
 import { AppHost, getAppHost } from '../../platform/native_globals.js';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 
 // The imports of workbooks in the app. The runtime reads a source (a `.dashql` archive, a workbook folder or the
 // workbook tables of a cloud) into an import of its own, maps its connections to the connections of the app and writes

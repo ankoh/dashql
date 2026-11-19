@@ -4,7 +4,7 @@ import type { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 /// The log key of the workbook that a record is about
 export const WORKBOOK_LOG_KEY = 'workbookId';

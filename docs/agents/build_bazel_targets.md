@@ -65,6 +65,7 @@ bazel build //...
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
+| `//packages/dashql-react:npm_package` | `@akohn/dashql-react`, linked as `//:node_modules/@akohn/dashql-react`: the hooks of the runtime and the models that components show, a source package on `@akohn/dashql` shared by the app and other hosts, see `docs/design/dashql_runtime.md` |
 | `//packages/dashql:bundle` | `dist/` of `@akohn/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
@@ -133,6 +134,7 @@ bazel test //...
 | `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
 | `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@akohn/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
+| `//packages/dashql-react:all` | Type check of `@akohn/dashql-react` against the sources of `@akohn/dashql`, and the boundary test of its imports (React, apache-arrow, `@akohn/dashql`, vitest in `src/testing/`) |
 | `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql:tsc_typecheck_test` | Type check of `@akohn/dashql` against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |

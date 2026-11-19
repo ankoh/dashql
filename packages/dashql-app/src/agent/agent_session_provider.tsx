@@ -10,7 +10,7 @@ import {
 } from '@akohn/dashql/platform/session/agent_session_client';
 import { AgentSessionProtocolError, type AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';

@@ -3,7 +3,7 @@ import type * as arrow from 'apache-arrow';
 
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { RuntimeContextProvider, useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { RuntimeContextProvider, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 /// The Arrow tables of the results of the tests, by their handle
 const TABLES = new Map<number, arrow.Table>();

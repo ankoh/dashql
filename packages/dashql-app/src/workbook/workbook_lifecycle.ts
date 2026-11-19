@@ -4,7 +4,7 @@ import type * as core from '@akohn/dashql';
 import { CONNECTOR_INFOS, type ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
-import { useOptionalRuntime, useWorkbookList } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbookList } from '@akohn/dashql-react/hooks';
 import { useScriptSelection } from './scripts/script_selection.js';
 
 // Creating and deleting workbooks in the app: the commands of the runtime with what the app adds, the file name of a

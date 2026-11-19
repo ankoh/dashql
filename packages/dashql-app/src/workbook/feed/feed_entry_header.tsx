@@ -10,7 +10,7 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
-import { useOptionalRuntime, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { ScriptDiagnosticsButton } from '../scripts/script_diagnostics.js';

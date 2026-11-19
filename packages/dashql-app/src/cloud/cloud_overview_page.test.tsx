@@ -35,7 +35,7 @@ import { createTestRoot } from '../tests/react_root.js';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
+import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection } from '../tests/test_connections.js';
 
 // The overview of a local cloud on the embedded Hyper of the tests: the statements of the cloud state go through the

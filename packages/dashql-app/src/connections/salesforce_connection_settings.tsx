@@ -5,7 +5,7 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
 
 import { useConnectionDraftForm } from './connection_draft.js';
-import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useConnection, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth, ConnectionStatus } from '@akohn/dashql/platform/connections/connection_state';

@@ -5,14 +5,13 @@ import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_script
 import { workbookExecutionIsBusy } from '@akohn/dashql/platform/workbook/workbook_execution';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
-import { useLogger } from '../../platform/logger_provider.js';
-import { useDispatch, useOptionalRuntime, useQuery, useScript, useView } from '../runtime_hooks.js';
+import { useDispatch, useOptionalRuntime, useQuery, useScript, useView } from '../hooks.js';
 
 // The model of a script of a workbook (docs/agents/writing_components.md). A component that shows a script reads the
 // model and calls its operations; the kinds, targets, actions, commands and handles of the runtime stay in this module.
 // An operation that changes the state resolves once the store shows the change, the component renders with a new model
 // right after: a model is the state of one render, it doesn't change after an await.
-// Components take a model, so a test hands them a plain object (`fakeScriptModel` of `tests/fake_models.ts`) and
+// Components take a model, so a test hands them a plain object (`fakeScriptModel` of `testing/fake_models.ts`) and
 // another host may implement the interface over a state of its own.
 
 /// A script of a workbook as a component shows it, and what the component can do with it
@@ -50,7 +49,6 @@ export interface ScriptModelSource {
 /// The model of a script over the runtime of the provider above
 function useRuntimeScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
-    const logger = useLogger();
     const script = useScript(scriptKey);
     const query = useQuery(script?.latestQueryId ?? null);
     const run = useView('run', workbookId);
@@ -69,7 +67,7 @@ function useRuntimeScriptModel(workbookId: string, scriptKey: number | null | un
                 try {
                     await runtime.runScript(workbookId, key, { refresh: options?.refresh });
                 } catch (error) {
-                    logger.warn('Workbook script run failed', { workbookId, scriptKey: key.toString(), error: stringifyError(error) }, 'workbook_execution');
+                    runtime.logger.warn('Workbook script run failed', { workbookId, scriptKey: key.toString(), error: stringifyError(error) }, 'workbook_execution');
                 }
             },
             cancel: async () => await runtime?.cancelScript(workbookId, key),
@@ -78,7 +76,7 @@ function useRuntimeScriptModel(workbookId: string, scriptKey: number | null | un
             rejectDiff: () => dispatch({ kind: 'rejectPendingDiff', value: { scriptKey: key } }).settled,
             setVisSpec: spec => dispatch({ kind: 'setScriptVisSpec', value: { scriptKey: key, spec } }).settled,
         };
-    }, [runtime, logger, workbookId, script, query, runActive, dispatch]);
+    }, [runtime, workbookId, script, query, runActive, dispatch]);
 }
 
 /// The models of the runtime of the provider above

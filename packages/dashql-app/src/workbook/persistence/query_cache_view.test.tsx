@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryCacheView } from './query_cache_view.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';

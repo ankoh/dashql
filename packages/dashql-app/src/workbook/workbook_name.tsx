@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useView } from '../runtime/runtime_hooks.js';
+import { useView } from '@akohn/dashql-react/hooks';
 
 /// The name of a workbook, its id if it has none
 export function WorkbookName(props: { workbookId: string }): React.ReactElement {

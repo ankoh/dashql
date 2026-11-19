@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useOptionalRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectionParams, WorkbookCloudLink } from '@akohn/dashql/platform/storage/storage_backend';
 import { useStorageReader } from '../storage/storage_provider.js';

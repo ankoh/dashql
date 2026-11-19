@@ -52,6 +52,12 @@ npm_link_package(
     src = "//packages/hyperdb-edge:npm_package",
 )
 
+# The DashQL runtime in React: the hooks and the models that //packages/dashql-app and other hosts share.
+npm_link_package(
+    name = "node_modules/@akohn/dashql-react",
+    src = "//packages/dashql-react:npm_package",
+)
+
 # The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(
     name = "node_modules/@akohn/dashql-ui",

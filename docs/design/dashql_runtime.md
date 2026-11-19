@@ -269,7 +269,7 @@ A new view kind:
    `resync_slices`. Every change of the state marks the slice.
 4. Optionally a `ViewProjection` (`store/runtime_store.ts`: `project`, `known`, `release`) passed to `store.attach`
    in `runtime.ts`, with its type in `ProjectedViews`. Without one the store shares the view with the previous one.
-5. A hook in `runtime_hooks.tsx` of the app, a one-line alias of `useView(kind, id)`.
+5. A hook in `packages/dashql-react/src/hooks.ts`, a one-line alias of `useView(kind, id)`.
 6. The tests: the marks in the unit tests of the wasm crate, the views in `runtime_changes.test.ts`.
 
 ### Dispatch
@@ -432,9 +432,11 @@ it over, and only the latest lease resets the connection when it closes.
   compute database right away, and destroys the runtime with the component. `useOwnedRuntime` creates the runtime with
   the first render, keeps it in a ref and destroys it in a task after the cleanup of its effect unless the effect runs
   again: StrictMode and Fast Refresh keep the same runtime.
-- **`StandaloneRuntime`** (`runtime_hooks.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
+- **`StandaloneRuntime`** (`runtime/standalone_runtime.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.
-- **Hooks** (`packages/dashql-app/src/runtime/runtime_hooks.tsx`): `useRuntime`, `useOptionalRuntime`,
+- **Hooks** (`@akohn/dashql-react/hooks`, `packages/dashql-react/src/hooks.ts`, a source package shared with other hosts
+  of the runtime: it imports React, apache-arrow and `@akohn/dashql` only, `//packages/dashql-react:boundary_test`):
+  `RuntimeContextProvider`, `useOwnedRuntime`, `useRuntime`, `useOptionalRuntime`,
   `useView(kind, id)`, `useDispatch(target)` (typed by the target, see [Dispatch](#dispatch)), `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
   one-line aliases `useWorkbook`, `useScript`,
   `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`,
@@ -443,6 +445,9 @@ it over, and only the latest lease resets the connection when it closes.
   command (`useQueryProgress`, `useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`,
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
   changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
+- **Models** (`@akohn/dashql-react/models/...`): a model is what a component shows of the runtime with its operations,
+  e.g. `useScriptModel`; components take models as props and import nothing of the runtime, see
+  [writing_components.md](../agents/writing_components.md). Fakes for tests are in `@akohn/dashql-react/testing/...`.
 - **What the app keeps** is about the user interface: the script selection (`workbook/scripts/script_selection.ts`),
   the drafts of connection forms (`connections/connection_draft.ts`), the state of a save
   (`connections/connection_persistence.tsx`), creating and deleting workbooks with the selection

@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { useConnectionList, useConnections, useDispatch, useRuntime, useWorkbooks, useConnectionViews } from '../runtime/runtime_hooks.js';
+import { useConnectionList, useConnections, useDispatch, useRuntime, useWorkbooks, useConnectionViews } from '@akohn/dashql-react/hooks';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import * as ActionList from '../ui/foundations/action_list.js';

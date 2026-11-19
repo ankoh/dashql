@@ -3,7 +3,7 @@ export type StoreAction<T> = T | ((prev: T) => T);
 
 /// A container of state of the user interface outside of React, e.g. the selection of scripts, the metrics of a Hyper
 /// log or the state of an agent session. The state of DashQL is in the runtime, the app reads it from the store of
-/// its views (`useView` of `runtime/runtime_hooks.tsx`).
+/// its views (`useView` of `@akohn/dashql-react/hooks`).
 ///
 /// React may invoke the updater of a state hook more than once, e.g. when it rebases updates or double-invokes them in
 /// strict mode. A store applies every update exactly once, right away, synchronously and in call order, and notifies

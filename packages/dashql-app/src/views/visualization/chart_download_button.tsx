@@ -9,7 +9,7 @@ import { renderVegaLitePng } from '../../ui/vegalite/vegalite_image.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useQueryResultTable } from '../../runtime/runtime_hooks.js';
+import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 
 interface Props {
     query: QueryExecutionState;

@@ -30,15 +30,7 @@ import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
-import {
-    useCatalog,
-    useOptionalRuntime,
-    useRuntime,
-    useScriptRun,
-    useWorkbookDerived,
-    useWorkbookExecution,
-    useWorkbookScriptMap,
-} from '../../runtime/runtime_hooks.js';
+import { useCatalog, useOptionalRuntime, useRuntime, useScriptRun, useWorkbookDerived, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { renameAttachment } from '../attachment_rename.js';

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connection.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
 import { useLogger } from '../platform/logger_provider.js';

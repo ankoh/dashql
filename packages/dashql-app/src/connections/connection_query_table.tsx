@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { useComputation, useRuntime } from '../runtime/runtime_hooks.js';
+import { useComputation, useRuntime } from '@akohn/dashql-react/hooks';
 import { useComputeDatabase } from './compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';

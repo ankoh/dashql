@@ -12,7 +12,8 @@ import {
     shellQueryEntries,
     useShellQueries,
 } from './shell_query_history.js';
-import { StandaloneRuntime, useRuntime } from '../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
+import { StandaloneRuntime } from '../runtime/standalone_runtime.js';
 import { runTestQuery } from '../tests/test_connections.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

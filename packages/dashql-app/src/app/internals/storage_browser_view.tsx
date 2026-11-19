@@ -22,7 +22,7 @@ import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import {
     type OPFSCleanupCandidate,
     type OPFSCleanupResult,

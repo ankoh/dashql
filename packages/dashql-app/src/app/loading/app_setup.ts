@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router.js';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { embeddedConnection, newWorkbookConnection } from '../../connections/embedded_connection.js';
 import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';

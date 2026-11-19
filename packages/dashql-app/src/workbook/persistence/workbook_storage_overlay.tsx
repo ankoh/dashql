@@ -11,7 +11,7 @@ import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { useLogger } from '../../platform/logger_provider.js';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 

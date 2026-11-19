@@ -13,7 +13,7 @@ Please consult relevant docs in that directory before making changes.
     - `docs/agents/core_first.md`
 
 - Writing a component (read before writing a React component on the runtime: a component shows a model and plain
-  props and imports nothing of the runtime, the model hooks in `packages/dashql-app/src/runtime/models/` bind the
+  props and imports nothing of the runtime, the model hooks of `@akohn/dashql-react` (`packages/dashql-react`) bind the
   runtime, parts that read the runtime come in as slots; the recipe, the boundary test, fake models in tests)
     - `docs/agents/writing_components.md`
 
@@ -43,7 +43,7 @@ Please consult relevant docs in that directory before making changes.
   `src/core` (the bindings of the core module), `src/runtime` (`createRuntime(options)` with `RuntimeOptions`, the
   `Runtime` facade, the store of its views, the adapters of its platform) and `src/platform` (browser, desktop app and
   Node, storage, OAuth, connector clients); the folder rules and `//packages/dashql:boundary_test`; views, `takeChanges`,
-  `dispatch`, handles, the errors, `destroy`; how to add a view kind or an action; the hooks of the app in `packages/dashql-app/src/runtime/runtime_hooks.tsx`; Node, the package on npm; where tests go:
+  `dispatch`, handles, the errors, `destroy`; how to add a view kind or an action; the hooks in `@akohn/dashql-react/hooks` (`packages/dashql-react`); Node, the package on npm; where tests go:
   `*.node.test.ts`, `*.browser.test.ts`, a test that creates a runtime goes in `src/runtime`; the typing benchmark)
     - `docs/design/dashql_runtime.md`
 

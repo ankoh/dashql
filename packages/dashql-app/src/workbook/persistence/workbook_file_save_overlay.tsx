@@ -14,7 +14,7 @@ import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { IconButton } from '../../ui/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { useOptionalRuntime, useConnectionViews } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { ExportedResults } from '@akohn/dashql';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';

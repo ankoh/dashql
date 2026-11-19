@@ -8,7 +8,7 @@ import { XIcon, TrashIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js'
 import { ButtonVariant, ButtonSize, IconButton } from '../../ui/foundations/button.js';
 import type { QueryResultCacheEntry } from '@akohn/dashql/platform/query/query_result_cache';
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
-import { useOptionalRuntime } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { observeSize } from '../../ui/foundations/size_observer.js';

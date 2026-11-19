@@ -1,0 +1,9 @@
+// For editors: the paths of the root tsconfig.json. Bazel checks the package with tsconfig.bazel.json.
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -3,7 +3,7 @@ import * as React from 'react';
 import type * as core from '@akohn/dashql';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { writeResultOf, type StorageWriteResult } from '@akohn/dashql/runtime/runtime_storage';
-import { useConnection, useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useConnection, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 // Saving a connection is a command of the runtime (docs/design/dashql_runtime.md), the view of the connection shows the
 // save while it runs. This module turns the outcomes into what the settings show.

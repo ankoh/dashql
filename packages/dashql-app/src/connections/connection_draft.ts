@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
 import { connectionParamsKey, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
+import { useConnection, useDispatch } from '@akohn/dashql-react/hooks';
 
 /// The params and the draft of a connection with the actions that edit the draft. Editing dispatches immediately, the
 /// runtime debounces only the durable write of the app manifest.

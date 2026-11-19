@@ -6,7 +6,7 @@ import {
     type QueryEntry,
 } from '../views/query_history_viewer.js';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
-import { useAllQueries, useConnections } from '../runtime/runtime_hooks.js';
+import { useAllQueries, useConnections } from '@akohn/dashql-react/hooks';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 export function QueryViewer(props: {

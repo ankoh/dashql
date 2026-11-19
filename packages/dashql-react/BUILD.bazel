@@ -1,0 +1,58 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+
+# The DashQL runtime in React (docs/design/dashql_runtime.md): the hooks of the views, actions and commands of a runtime
+# and the models that components show, shared by the app (//packages/dashql-app) and other hosts of the runtime.
+# A source package, nothing is compiled: consumers bundle the TypeScript themselves. Linked as
+# //:node_modules/@akohn/dashql-react, the dev server of the app reads packages/dashql-react directly.
+
+package(default_visibility = ["//visibility:public"])
+
+_SOURCES = glob(["src/**/*.ts"])
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _SOURCES + ["package.json", "tsconfig.bazel.json"],
+)
+
+# Against the sources of @akohn/dashql and the DOM, the package runs in browsers
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.json"],
+    chdir = package_name(),
+    data = [
+        ":typecheck_inputs",
+        "//:node_modules/@akohn/dashql",
+        "//:node_modules/@types/react",
+        "//:node_modules/apache-arrow",
+        "//:node_modules/react",
+        "//:node_modules/vitest",
+        "//packages/dashql:dep_jsonschema",
+        "//packages/dashql:dep_protobuf",
+        "//:node_modules/@bufbuild/protobuf",
+        "//:node_modules/@zip.js/zip.js",
+        "//:node_modules/@akohn/hyperdb-edge",
+        "//:node_modules/flatbuffers",
+        "//:node_modules/hyperdb-wasm",
+        "//:node_modules/immutable",
+        "//:node_modules/vega-lite",
+    ],
+)
+
+# The package reaches React, apache-arrow and @akohn/dashql only, and nothing of an app
+js_test(
+    name = "boundary_test",
+    data = _SOURCES,
+    entry_point = "test/boundary_test.mjs",
+)
+
+npm_package(
+    name = "npm_package",
+    package = "@akohn/dashql-react",
+    srcs = ["package.json"] + _SOURCES,
+    include_transitive_sources = False,
+    include_transitive_types = False,
+)

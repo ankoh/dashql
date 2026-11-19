@@ -12,7 +12,7 @@ import { useConnectionLabeler } from '../connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { useQuery, useScript, useScriptRun, useWorkbookExecution } from '../../runtime/runtime_hooks.js';
+import { useQuery, useScript, useScriptRun, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '../scripts/script_format.js';
 import { formatScriptEditor } from '../editor/script_format_editor.js';

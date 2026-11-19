@@ -19,7 +19,7 @@ import { TestRuntime } from '../../tests/test_runtime.js';
 import { HYPER_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnections } from '../../tests/test_connections.js';
 
 let runtime: Runtime | null = null;

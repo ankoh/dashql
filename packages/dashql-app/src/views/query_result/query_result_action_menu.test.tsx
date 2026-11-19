@@ -15,7 +15,7 @@ import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createTestRoot } from '../../tests/react_root.js';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
-import { useRuntime } from '../../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

@@ -10,7 +10,7 @@ import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } fr
 import { LoggerProvider } from '../platform/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
-import { StandaloneRuntime } from '../runtime/runtime_hooks.js';
+import { StandaloneRuntime } from '../runtime/standalone_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

@@ -15,7 +15,7 @@ import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_f
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
-import { useRuntime, useWorkbookExecution } from './runtime_hooks.js';
+import { useRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

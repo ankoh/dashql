@@ -3,7 +3,7 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 
 import { useLogger } from '../../platform/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '../../runtime/runtime_hooks.js';
+import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';

@@ -54,6 +54,9 @@
             "@akohn/dashql-ui/*": [
                 "./packages/dashql-ui/src/*.ts"
             ],
+            "@akohn/dashql-react/*": [
+                "./packages/dashql-react/src/*.ts"
+            ],
             "@akohn/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
             ],

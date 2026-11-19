@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
-import type { ScriptModel, ScriptModelSource } from '../runtime/models/script_model.js';
+import type { ScriptModel, ScriptModelSource } from '../models/script_model.js';
 
 /// A script as the tests of components need it: its key, its file name, its text and nothing that runs
 export function fakeScript(scriptKey: number, fileName: string, text = 'SELECT 1', overrides: Partial<ScriptData> = {}): ScriptData {

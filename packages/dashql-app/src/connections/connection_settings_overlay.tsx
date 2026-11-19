@@ -8,7 +8,7 @@ import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useConnectionDraft } from './connection_draft.js';
-import { useConnection, useDispatch } from '../runtime/runtime_hooks.js';
+import { useConnection, useDispatch } from '@akohn/dashql-react/hooks';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';

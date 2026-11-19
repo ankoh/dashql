@@ -1,7 +1,7 @@
 import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { useConnection, useConnectionList } from '../runtime/runtime_hooks.js';
+import { useConnection, useConnectionList } from '@akohn/dashql-react/hooks';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';

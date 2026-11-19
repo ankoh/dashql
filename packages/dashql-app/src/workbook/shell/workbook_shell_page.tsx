@@ -25,7 +25,7 @@ import { createExamplesCommand } from '../../shell/shell_examples.js';
 import { splitShellScript } from '../../shell/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
-import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '../../runtime/runtime_hooks.js';
+import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
 
 const LOG_CTX = 'workbook_shell_page';
 

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './workbook_shells_page.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { useConnections } from '../../runtime/runtime_hooks.js';
+import { useConnections } from '@akohn/dashql-react/hooks';
 import { connectionLabelParts } from '../../connections/connection_label.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';

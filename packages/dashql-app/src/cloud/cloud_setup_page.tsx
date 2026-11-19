@@ -8,7 +8,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations
 import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
-import { useConnection, useConnections, useRuntime } from '../runtime/runtime_hooks.js';
+import { useConnection, useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useConnectionAttach } from '../connections/attached_connection.js';

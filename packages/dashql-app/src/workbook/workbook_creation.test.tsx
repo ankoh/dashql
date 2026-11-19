@@ -15,7 +15,7 @@ import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
-import { useRuntime, useWorkbooks } from '../runtime/runtime_hooks.js';
+import { useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -1,0 +1,29 @@
+// The package compiles against the sources of @akohn/dashql, linked as a package, with the generated packages that its
+// sources import. React and apache-arrow come from the root node_modules.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": false,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@akohn/dashql-wasm/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-wasm/*"],
+      "@akohn/dashql-flatbuffers/*": ["../../node_modules/@akohn/dashql/dependencies/dashql-flatbuffers/*"],
+      "@akohn/dashql-protobuf": ["../dashql/dependencies/dashql-protobuf"],
+      "@akohn/dashql-protobuf/*": ["../dashql/dependencies/dashql-protobuf/*"],
+      "@akohn/dashql-jsonschema": ["../dashql/dependencies/dashql-jsonschema"],
+      "@akohn/dashql-jsonschema/*": ["../dashql/dependencies/dashql-jsonschema/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

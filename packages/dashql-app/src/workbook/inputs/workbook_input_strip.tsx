@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { useWorkbookDerived } from '../../runtime/runtime_hooks.js';
+import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import { WorkbookInputCard } from './workbook_input_card.js';
 import { useApplyWorkbookInput } from './use_apply_workbook_input.js';
 import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';

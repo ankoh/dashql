@@ -7,7 +7,7 @@ import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
-import { RuntimeContextProvider, useOwnedRuntime } from './runtime_hooks.js';
+import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hooks';
 import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
@@ -45,7 +45,7 @@ interface Props {
 
 /// The runtime of DashQL (packages/dashql/src/runtime/runtime.ts). By default over the platform of the app: the
 /// storage, the http client, the core and the embedded database of the providers above it. The provider creates it once
-/// the core is there and shows `loading` until then. The hooks of `runtime_hooks.tsx` read from it.
+/// the core is there and shows `loading` until then. The hooks of `@akohn/dashql-react/hooks` read from it.
 export function RuntimeProvider(props: Props) {
     const provided = useDashQLCore();
     if (props.runtime != null) return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;

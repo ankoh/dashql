@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime } from '../runtime/runtime_hooks.js';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { createAttachedConnectionParamsForConnector, newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 

@@ -24,7 +24,7 @@ import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { createTestRoot } from '../tests/react_root.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '../runtime/runtime_hooks.js';
+import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, setTestConnectionHealth } from '../tests/test_connections.js';
 
 // The page of the cloud setup on the embedded Hyper of the tests: a Hyper server and a local cloud, each with a session

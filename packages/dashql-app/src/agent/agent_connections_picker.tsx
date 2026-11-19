@@ -5,7 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
 import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
 import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
 import { ConnectionMenu } from '../workbook/scripts/script_connection_picker.js';
-import { useConnectionList, useConnections } from '../runtime/runtime_hooks.js';
+import { useConnectionList, useConnections } from '@akohn/dashql-react/hooks';
 import { agentConnections } from './agent_connections.js';
 import type { AgentConnect } from './agent_session_provider.js';
 

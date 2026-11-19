@@ -14,7 +14,7 @@ import type { StorageReader } from '../../storage/storage_provider.js';
 import type { getScriptRefs } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
-import { useScriptModel } from '../../runtime/models/script_model.js';
+import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';

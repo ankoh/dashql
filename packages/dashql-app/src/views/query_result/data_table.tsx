@@ -6,7 +6,7 @@ import { Grid, useGridCallbackRef } from 'react-window';
 
 import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { resolveSummaries, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
-import { useComputationDispatch, useOptionalRuntime } from '../../runtime/runtime_hooks.js';
+import { useComputationDispatch, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';

@@ -8,7 +8,7 @@ import { useLogger } from '../platform/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
-import { useRuntime } from '../runtime/runtime_hooks.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { ShellQueryResultOverlay } from '../workbook/shell/shell_query_result_overlay.js';
 import { connectEmbeddedSession, type EmbeddedSession } from '@akohn/dashql/runtime/embedded_session';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';

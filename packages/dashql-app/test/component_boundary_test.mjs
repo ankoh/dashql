@@ -21,10 +21,10 @@ const DYNAMIC_IMPORT = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /// What a component may not import, a model only by type
 const RUNTIME = [
-    { test: path => /(^|\/)runtime\/runtime_(hooks|provider)(\.js)?$/.test(path), reason: 'the hooks of the runtime' },
+    { test: path => /^@akohn\/dashql-react\/hooks$/.test(path) || /(^|\/)runtime\/(runtime_provider|standalone_runtime)(\.js)?$/.test(path), reason: 'the hooks or a provider of the runtime' },
     { test: path => /^@akohn\/dashql\/runtime(\/|$)/.test(path), reason: 'the runtime package' },
 ];
-const MODEL = path => /(^|\/)runtime\/models\//.test(path);
+const MODEL = path => /^@akohn\/dashql-react\/models\//.test(path);
 
 const failures = [];
 for (const module of COMPONENTS) {

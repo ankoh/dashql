@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useConnection } from '../runtime/runtime_hooks.js';
+import { useConnection } from '@akohn/dashql-react/hooks';
 import { connectionParamsWithoutDraftRows } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { isLocalCloud } from '../connections/cloud_connection.js';

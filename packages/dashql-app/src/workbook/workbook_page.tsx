@@ -3,7 +3,7 @@ import * as styles from './workbook_page.module.css';
 
 import { useLocation } from 'react-router-dom';
 
-import { useConnections, useDispatch, useWorkbook } from '../runtime/runtime_hooks.js';
+import { useConnections, useDispatch, useWorkbook } from '@akohn/dashql-react/hooks';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useLogger } from '../platform/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';

@@ -21,7 +21,7 @@ import { memoryImportFolder } from './import_test_sources.js';
 import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
 import type { Runtime, ImportSource } from '@akohn/dashql/runtime/runtime';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
-import { useConnections, useRuntime, useWorkbooks } from '../../runtime/runtime_hooks.js';
+import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';
 import { setupTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 

@@ -22,7 +22,7 @@ import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { useWorkbookExecution } from '../../runtime/runtime_hooks.js';
+import { useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
 import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
