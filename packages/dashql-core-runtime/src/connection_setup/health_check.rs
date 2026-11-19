@@ -5,12 +5,25 @@
 use std::rc::Rc;
 
 use super::{cancellable, ProbeResult, SetupFailure, SetupHost};
-use crate::connections::health_check::{health_check_metadata, health_check_outcome, HealthCheckResult};
-use crate::connections::{ConnectionAction, ConnectorType};
+use crate::connections::{ConnectionAction, ConnectorType, DetailedError};
 use crate::http::CancellationToken;
+use crate::query::{QueryMetadata, QueryType};
+
+/// The message of a check whose query returned no table
+pub const HEALTH_CHECK_FAILED_MESSAGE: &str = "health check failed";
+
+/// The metadata of the probe query
+pub fn health_check_metadata() -> QueryMetadata {
+    QueryMetadata {
+        title: Some("Health Check".to_string()),
+        issuer: Some("Connection Setup".to_string()),
+        user_provided: false,
+        ..QueryMetadata::new(QueryType::HealthCheck)
+    }
+}
 
 /// Check the health of the channel of a connection of a connector. A failed probe fails the check with the error of the
-/// query, a probe without a table fails it as well, a cancellation cancels it.
+/// query, a probe without a table fails it as well, a cancellation cancels it whatever the probe did.
 pub async fn check_health<H: SetupHost>(
     host: Rc<H>,
     connector: ConnectorType,
@@ -25,24 +38,21 @@ pub async fn check_health<H: SetupHost>(
         let call = host.run_probe(connector.connector().health_probe(), &metadata, &cancellation);
         cancellable(&cancellation, call).await
     };
-    let (result, value) = match probe {
-        None => (HealthCheckResult::Finished { has_table: false }, None),
-        Some(Ok(ProbeResult::Finished { has_table })) => (HealthCheckResult::Finished { has_table }, None),
-        Some(Ok(ProbeResult::Failed(error))) => (HealthCheckResult::Failed(error), None),
-        Some(Err(error)) => {
-            let detailed = crate::connections::DetailedError::new(error.message());
-            (HealthCheckResult::Failed(detailed), error.value().cloned())
-        }
-    };
-    let action = health_check_outcome(result, cancellation.is_cancelled());
-    host.dispatch(&action);
-    match action {
-        ConnectionAction::HealthCheckSucceeded => Ok(()),
-        ConnectionAction::HealthCheckFailed(error) => {
-            let mut failure = SetupFailure::failed(error.message).with_value(value);
-            failure.data = error.data;
-            Err(failure)
-        }
-        _ => Err(SetupFailure::cancelled()),
+    if cancellation.is_cancelled() {
+        host.dispatch(&ConnectionAction::HealthCheckCancelled);
+        return Err(SetupFailure::cancelled());
     }
+    let (error, value) = match probe {
+        Some(Ok(ProbeResult::Finished { has_table: true })) => {
+            host.dispatch(&ConnectionAction::HealthCheckSucceeded);
+            return Ok(());
+        }
+        None | Some(Ok(ProbeResult::Finished { has_table: false })) => (DetailedError::new(HEALTH_CHECK_FAILED_MESSAGE), None),
+        Some(Ok(ProbeResult::Failed(error))) => (error, None),
+        Some(Err(error)) => (DetailedError::new(error.message()), error.value().cloned()),
+    };
+    host.dispatch(&ConnectionAction::HealthCheckFailed(error.clone()));
+    let mut failure = SetupFailure::failed(error.message).with_value(value);
+    failure.data = error.data;
+    Err(failure)
 }

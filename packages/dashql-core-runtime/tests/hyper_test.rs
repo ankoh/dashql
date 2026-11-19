@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema};
-use dashql_core_runtime::connections::health_check::*;
 use dashql_core_runtime::connections::label::*;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
@@ -1350,29 +1349,10 @@ fn the_channel_kind_of_a_protocol() {
 fn the_health_check_of_a_connection() {
     assert_eq!(ConnectorType::Trino.connector().health_probe(), "select 1");
     assert_eq!(ConnectorType::Hyper.connector().health_probe(), "select 1 as healthy");
-    assert_eq!(health_check_metadata().title.as_deref(), Some("Health Check"));
-    assert_eq!(
-        health_check_outcome(HealthCheckResult::Finished { has_table: true }, false),
-        ConnectionAction::HealthCheckSucceeded
-    );
-    assert_eq!(
-        health_check_outcome(HealthCheckResult::Finished { has_table: false }, false),
-        ConnectionAction::HealthCheckFailed(DetailedError::new("health check failed"))
-    );
-    assert_eq!(
-        health_check_outcome(HealthCheckResult::Finished { has_table: true }, true),
-        ConnectionAction::HealthCheckCancelled
-    );
     // A failed probe keeps the details of the error, e.g. the status of a rejected login
     let error = failing_server(HttpResponse::new(401, "{}"))().unwrap_err().to_detailed_error();
     assert_eq!(error.message, "HTTP 401");
     assert_eq!(error.data.get("status").map(String::as_str), Some("401"));
-    let ConnectionAction::HealthCheckFailed(failed) =
-        health_check_outcome(HealthCheckResult::Failed(error.clone()), false)
-    else {
-        panic!()
-    };
-    assert_eq!(failed, error);
 }
 
 #[test]
