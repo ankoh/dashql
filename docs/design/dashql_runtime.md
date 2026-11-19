@@ -459,8 +459,10 @@ it over, and only the latest lease resets the connection when it closes.
   (`connections/connection_persistence.tsx`), creating and deleting workbooks with the selection
   (`workbook/workbook_lifecycle.ts`), CodeMirror state, focus and view modes. Its own stores use `Store` of
   `utils/store.ts`.
-- **Tests of components** use `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`): a runtime with the
-  catalog loader stopped and `execute`, `cancel` and `watchProfile` of the test (`queryCommands`).
+- **Tests of components** of the app use `TestRuntime` (`packages/dashql-app/src/tests/test_runtime.tsx`): the
+  runtime of the app over its providers with the catalog loader stopped and `execute`, `cancel` and `watchProfile` of
+  the test (`queryCommands`). The tests of the hooks and models of `@akohn/dashql-react` hand a runtime of
+  `createTestRuntime` to `RuntimeContextProvider`.
 
 ## Per keystroke
 

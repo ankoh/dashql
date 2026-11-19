@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from './testing/react_act.js';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@akohn/dashql';
+import { describe, expect, it, vi } from 'vitest';
 
 import type * as dashql from '@akohn/dashql';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
@@ -11,17 +10,10 @@ import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_f
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { LoggerProvider } from '../platform/logger_provider.js';
-import { StorageProvider } from '../storage/storage_provider.js';
-import { useDispatch, useRuntime, useScript, useWorkbook } from '@akohn/dashql-react/hooks';
-import { TestRuntime } from '../tests/test_runtime.js';
+import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
+import { RuntimeContextProvider, useDispatch, useRuntime, useScript, useWorkbook } from './hooks.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// The params of the embedded Hyper of the tests
 const EMBEDDED = { hyper: { endpoint: '', protocol: 'WASM' } } as ConnectionParams;
@@ -58,13 +50,14 @@ function Consumer(props: { workbookId: string; scriptKey: number; capture: (scri
 }
 
 // The actions of the workbooks are tested in the runtime (`runtime_workbooks.test.ts` of `packages/dashql/src/core`), these are the
-// hooks of the app on it
+// hooks on it
 describe('the dispatch of a workbook', () => {
     it('keeps retained and current modifiers bound to their workbooks when a reused route dispatches', async () => {
         const backend = new WorkbookTestBackend();
         const container = document.createElement('div');
         document.body.appendChild(container);
         const root = createRoot(container);
+        const testRuntime = await createTestRuntime({ storage: backend });
         let runtime!: Runtime;
         let keys: number[] = [];
         let current!: ScriptsHook;
@@ -75,16 +68,12 @@ describe('the dispatch of a workbook', () => {
         };
         const render = async (workbookId: string, scriptKey: number) => {
             await act(async () => {
-                root.render(<LoggerProvider>
-                    <StorageProvider backend={backend}>
-                        <TestRuntime core={dql}>
-                            <Seed onRuntime={(rt, k) => { runtime = rt; keys = k; }}>
-                                {/* No key: changing the route id must reuse the hook */}
-                                <Consumer workbookId={workbookId} scriptKey={scriptKey} capture={capture} />
-                            </Seed>
-                        </TestRuntime>
-                    </StorageProvider>
-                </LoggerProvider>);
+                root.render(<RuntimeContextProvider value={testRuntime}>
+                    <Seed onRuntime={(rt, k) => { runtime = rt; keys = k; }}>
+                        {/* No key: changing the route id must reuse the hook */}
+                        <Consumer workbookId={workbookId} scriptKey={scriptKey} capture={capture} />
+                    </Seed>
+                </RuntimeContextProvider>);
             });
             await vi.waitFor(() => expect(current?.[0]?.workbookId).toBe(workbookId));
         };
@@ -114,6 +103,7 @@ describe('the dispatch of a workbook', () => {
         } finally {
             act(() => root.unmount());
             container.remove();
+            await testRuntime.destroy();
         }
     });
 });

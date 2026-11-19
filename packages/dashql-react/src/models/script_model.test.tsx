@@ -1,26 +1,17 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../testing/react_act.js';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
-import * as core from '@akohn/dashql';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
-import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
-import { LoggerProvider } from '../platform/logger_provider.js';
-import { StorageProvider } from '../storage/storage_provider.js';
-import { useRuntime } from '@akohn/dashql-react/hooks';
-import { TestRuntime } from '../tests/test_runtime.js';
-import { useScriptModel, type ScriptModel } from '@akohn/dashql-react/models/script_model';
+import { RuntimeContextProvider, useRuntime } from '../hooks.js';
+import { useScriptModel, type ScriptModel } from './script_model.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-
-declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 const EMBEDDED = { hyper: { endpoint: '', protocol: 'WASM' } } as ConnectionParams;
 const WORKBOOK = '33333333-3333-4333-8333-333333333333';
@@ -49,16 +40,12 @@ describe('the model of a script', () => {
         document.body.appendChild(container);
         const root = createRoot(container);
         let models: (ScriptModel | null)[] = [];
-        let runtime!: Runtime;
+        const runtime: Runtime = await createTestRuntime();
         try {
             await act(async () => {
-                root.render(<LoggerProvider>
-                    <StorageProvider backend={new WorkbookTestBackend()}>
-                        <TestRuntime core={dql}>
-                            <Models capture={(rt, current) => { runtime = rt; models = current; }} />
-                        </TestRuntime>
-                    </StorageProvider>
-                </LoggerProvider>);
+                root.render(<RuntimeContextProvider value={runtime}>
+                    <Models capture={(_, current) => { models = current; }} />
+                </RuntimeContextProvider>);
             });
             await vi.waitFor(() => expect(models.every(model => model != null)).toBe(true));
             const [text, blank] = models as ScriptModel[];
@@ -86,6 +73,7 @@ describe('the model of a script', () => {
         } finally {
             act(() => root.unmount());
             container.remove();
+            await runtime.destroy();
         }
     });
 });

@@ -4,10 +4,14 @@ import { createShellLastCommand, getPlanResultText } from './shell_result.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 const PLAN = '{"operator":"executiontarget","operatorId":1}';
+/// The output of a Trino `EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON)`
+const TRINO_PLAN = '{"0": {"id": "6", "name": "Output", "children": []}}';
 
 describe('shell plan results', () => {
     it('recognizes only a 1x1 string result containing a plan candidate', () => {
         expect(getPlanResultText(tableFromArrays({ value: [PLAN] }))).toBe(PLAN);
+        expect(getPlanResultText(tableFromArrays({ value: [TRINO_PLAN] }))).toBe(TRINO_PLAN);
+        expect(getPlanResultText(tableFromArrays({ value: ['{"0": {"id": "1"}}'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: ['{"key":1}'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: ['{"operator":'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: [42] }))).toBeNull();

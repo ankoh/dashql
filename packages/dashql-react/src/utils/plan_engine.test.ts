@@ -1,8 +1,7 @@
-import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
+import { describe, expect, it } from 'vitest';
 import * as dashql from '@akohn/dashql';
-import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
-import { peekFormat } from '@akohn/dashql-react/components/data_table/data_table';
-import { getPlanResultText } from '../../shell/shell_result.js';
+import { detectPlanEngine } from './plan_engine.js';
+import { peekFormat } from '../components/data_table/data_table.js';
 
 const Engine = dashql.buffers.profile.ProfileEngine;
 
@@ -29,13 +28,9 @@ describe('detectPlanEngine', () => {
         expect(detectPlanEngine(null)).toBeNull();
     });
 
-    it('marks both plans as plan format and as plan results of the shell', () => {
+    it('marks both plans as plan format', () => {
         expect(peekFormat(HYPER_PLAN)).toEqual('plan');
         expect(peekFormat(TRINO_PLAN)).toEqual('plan');
         expect(peekFormat('{"a": 1}')).toEqual('json');
-        for (const plan of [HYPER_PLAN, TRINO_PLAN]) {
-            expect(getPlanResultText(tableFromArrays({ value: [plan] }))).toEqual(plan);
-        }
-        expect(getPlanResultText(tableFromArrays({ value: ['{"0": {"id": "1"}}'] }))).toBeNull();
     });
 });

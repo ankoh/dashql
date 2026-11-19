@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBConnection, type HyperDBClient } from '../hyperdb_wasm.js';
+import { HyperDB, type HyperDBConnection, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 import {
     HyperDBIncrementalExtract,
@@ -54,10 +55,10 @@ async function readNumber(connection: HyperDBConnection, sql: string): Promise<n
 }
 
 /// Count the user errors in the log scope of the connection, since it was connected.
-async function countScopeUserErrors(connection: HyperDBConnection, currentWorkbook = false): Promise<number> {
+async function countScopeUserErrors(connection: HyperDBConnection, currentSession = false): Promise<number> {
     return await readNumber(connection, `
         SELECT count(*) AS n
-        FROM hyper_log(current_session := ${currentWorkbook}, last_log_scope := true)
+        FROM hyper_log(current_session := ${currentSession}, last_log_scope := true)
         WHERE k = 'query-end-user-error'
     `);
 }

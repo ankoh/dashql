@@ -63,8 +63,8 @@ whether a cancel stops the run of the workbook or the query of a script, is a co
    (`//packages/dashql-app:component_boundary_test`). It fails when the module imports the hooks of the runtime, the
    runtime package, or a model for more than its types.
 4. **Test the component** with a plain model, `fakeScriptModel` of `@akohn/dashql-react/testing/fake_models`: its
-   operations are spies. Test a new operation of a model on a runtime, e.g. `src/runtime/script_model.test.tsx` of the
-   app with `TestRuntime`.
+   operations are spies. Test a new operation of a model on a runtime, e.g. `models/script_model.test.tsx` of
+   `@akohn/dashql-react` with `createTestRuntime` of `@akohn/dashql/runtime/testing/test_runtime`.
 5. **Connect it** in the parent: the parent resolves the model with the hook and renders the slots, e.g.
    `ScriptFeedRow` of `workbook/feed/workbook_feed_row.tsx`.
 
