@@ -189,8 +189,8 @@ export class Runtime {
     readonly logger: Logger;
     /// The core of the runtime
     readonly core: core.DashQL;
-    /// The runtime of the module. The app reads its views through the store and calls it for the commands that need
-    /// nothing of this class, e.g. `dropImport` or `exportConnection`.
+    /// The runtime of the module. The app reads its views through the store and calls the commands of this class, the
+    /// command line tool and the tests reach the module for what the app doesn't need.
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
@@ -364,6 +364,29 @@ export class Runtime {
         if (this.freed) return null;
         const view = this.module.views('connection', [connectionId])[0] ?? null;
         return (view === 'busy' ? this.store.get('connection', connectionId) : view) as ConnectionState | null;
+    }
+
+    /// A new id from the counter of the queries, e.g. the first query that a view of a history shows. Throws once the
+    /// runtime was destroyed.
+    allocateId(): number {
+        return this.live().allocateId();
+    }
+
+    /// The SQL text of the relations of the catalog of a connection, null without one
+    catalogRelationsFile(connectionId: string): string | null {
+        if (this.stopping) return null;
+        return this.module.catalogRelationsFile(connectionId) ?? null;
+    }
+
+    /// The secrets of a connection that its settings show on request, null without a connection
+    revealConnectionSecrets(connectionId: string): core.ConnectionSecrets | null {
+        if (this.stopping) return null;
+        return this.module.revealConnectionSecrets(connectionId);
+    }
+
+    /// A link to a connection that opens it in the app at `linkBase`, its params without their secrets
+    async exportConnection(connectionId: string, options: core.ConnectionLinkOptions): Promise<string> {
+        return await this.live().exportConnection(connectionId, options);
     }
 
     /// The catalog of a connection, shared with the connection and the scripts that analyze with it. One handle per
@@ -612,7 +635,23 @@ export class Runtime {
         if (!this.stopping) this.module.stopRun(workbookId);
     }
 
+    /// Check the native folders of workbooks for changes outside the app, e.g. when the window gets the focus
+    checkWorkbookFolders(workbookIds: string[]): void {
+        if (!this.stopping) this.module.checkWorkbookFolders(workbookIds);
+    }
+
+    /// Answer the question about a workbook that changed outside the app: `true` reloads it from disk, `false` keeps the
+    /// version of the app and writes it over the disk, `null` gives no answer. The answer to an older question is ignored.
+    answerExternalChange(workbookId: string, prompt: number, reload: boolean | null): void {
+        if (!this.stopping) this.module.answerExternalChange(workbookId, prompt, reload);
+    }
+
     // The imports and exports of workbooks
+
+    /// The cached results that an export of a workbook would carry, e.g. to show their size before a save
+    async exportedResults(workbookId: string): Promise<core.ExportedResults> {
+        return await this.live().exportedResults(workbookId);
+    }
 
     /// Export a workbook as a `.dashql` archive: the workbook tables as Parquet, the attachments and, if asked for, the
     /// cached results of the scripts. The connection params are sanitized for sharing. Resolves with the archive and
@@ -650,7 +689,7 @@ export class Runtime {
         return outcome.results;
     }
 
-    /// Read a workbook to import: nothing is written until `commitImport`, `dropImport` of the module lets go of it.
+    /// Read a workbook to import: nothing is written until `commitImport`, `dropImport` lets go of it.
     /// Resolves with the workbook, the registered workbook with the same id and the questions about its connections.
     async readImport(source: ImportSource): Promise<core.ImportPreview> {
         const module = this.live();
@@ -667,6 +706,11 @@ export class Runtime {
     /// unless it replaced a workbook or registered a native folder, restored and in the store.
     async commitImport(importId: number, answers: core.ImportAnswers, onStep?: (step: core.ImportStep, results: core.ImportedResults | null) => void): Promise<core.ImportOutcome> {
         return await this.settled(this.live().commitImport(importId, answers, onStep ?? null));
+    }
+
+    /// Let go of a workbook that was read to import and is not imported
+    dropImport(importId: number): void {
+        if (!this.stopping) this.module.dropImport(importId);
     }
 
     /// Was the runtime destroyed, or is it being destroyed? The commands refuse then, and the views stay empty once the

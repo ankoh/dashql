@@ -189,7 +189,7 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     }, [backend, runtime]);
 
     const dropImport = React.useCallback((preview: core.ImportPreview) => {
-        runtime.module.dropImport(preview.importId);
+        runtime.dropImport(preview.importId);
     }, [runtime]);
 
     /// Map the connections of an imported workbook to the connections of the app. Connections that may consolidate

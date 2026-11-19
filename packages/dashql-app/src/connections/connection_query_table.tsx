@@ -54,7 +54,7 @@ function useQueryComputation(
         const current = state.current;
         current.next = async () => {
             const table = await runQuery(sql);
-            const id = runtime.module.allocateId();
+            const id = runtime.allocateId();
             try {
                 // The table has no connection, the client context attributes the queries of its computation. It is
                 // ordered like the previous one, an ordering of fields that the table doesn't have is skipped.

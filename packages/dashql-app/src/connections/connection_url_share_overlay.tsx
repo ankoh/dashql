@@ -36,7 +36,7 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
         if (!isOpen || runtime == null) return;
         let cancelled = false;
         setURL(null);
-        runtime.module.exportConnection(connectionId, { linkBase: process.env.DASHQL_APP_URL!, withLoginHint: settings.withLoginHint })
+        runtime.exportConnection(connectionId, { linkBase: process.env.DASHQL_APP_URL!, withLoginHint: settings.withLoginHint })
             .then(link => { if (!cancelled) setURL(link); })
             .catch(() => { if (!cancelled) setURL(null); });
         return () => {

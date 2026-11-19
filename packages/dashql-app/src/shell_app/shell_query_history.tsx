@@ -24,7 +24,7 @@ const SHELL_QUERY_HISTORY_CTX = React.createContext<ShellQueryHistory | null>(nu
 /// Provide the history of the queries that the shell executes on its connection, it starts with the component
 export const ShellQueryHistoryProvider: React.FC<{ children: React.ReactElement }> = props => {
     const runtime = useRuntime();
-    const [history] = React.useState<ShellQueryHistory>(() => ({ connectionId: SHELL_CONNECTION_ID, since: runtime.module.allocateId() }));
+    const [history] = React.useState<ShellQueryHistory>(() => ({ connectionId: SHELL_CONNECTION_ID, since: runtime.allocateId() }));
     return <SHELL_QUERY_HISTORY_CTX.Provider value={history}>{props.children}</SHELL_QUERY_HISTORY_CTX.Provider>;
 };
 

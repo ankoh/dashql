@@ -332,13 +332,17 @@ is a typed method with its contract rather than a generated table, the app reads
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript`, `stopRun`, `cancelScript`, `setUpOpenedWorkbook` | Runs; `cancelScript` stops the run of the workbook while one is busy, else cancels the latest query of the script; the setups of the connections of an opened workbook |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
+| `allocateId`, `catalogRelationsFile`, `revealConnectionSecrets`, `exportConnection`, `exportedResults`, `dropImport`, `checkWorkbookFolders`, `answerExternalChange` | Commands of the module that the app needs, passed on and refused once the runtime is destroyed |
 | `storage` | `StorageCommands`, the commands of the storage writer: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
 | `computeDatabase` | The compute database of the platform and whether it is ready |
 | `flush`, `destroy` | Take the changes now; shut the runtime down, see below |
 
-Everything else the app and the CLI call on the module directly (`runtime.module`): `runCatalogLoader`, `resultKeys`,
-`dropImport`, `exportConnection`, `exportedResults`, `migrateWorkbookFolder`, `checkWorkbookFolders`,
-`answerExternalChange`, `revealConnectionSecrets`, `queryProgressRecording`, `followQueryProgress`, and more.
+The app calls the module only through the facade, which also passes on the commands that need nothing of it:
+`allocateId`, `catalogRelationsFile`, `revealConnectionSecrets`, `exportConnection`, `exportedResults`, `dropImport`,
+`checkWorkbookFolders` and `answerExternalChange`; `//packages/dashql-app:component_boundary_test` fails on a
+`runtime.module` in a module of the app. The command line tool and the tests reach the module (`runtime.module`) for
+the rest, e.g. `runCatalogLoader`, `resultKeys`, `migrateWorkbookFolder`, `queryProgressRecording` and
+`followQueryProgress`.
 
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
 reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that

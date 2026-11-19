@@ -43,7 +43,7 @@ export const NativeWorkbookSync: React.FC = () => {
     changesRef.current = externalChanges;
 
     const check = React.useEffectEvent((workbookIds: string[]) => {
-        if (workbookIds.length > 0) runtime.module.checkWorkbookFolders(workbookIds);
+        if (workbookIds.length > 0) runtime.checkWorkbookFolders(workbookIds);
     });
 
     const ask = React.useEffectEvent(async (change: core.ExternalChangeView) => {
@@ -57,7 +57,7 @@ export const NativeWorkbookSync: React.FC = () => {
                 error: stringifyError(error),
             }, LOG_CTX);
         }
-        runtime.module.answerExternalChange(change.workbookId, change.prompt, reload);
+        runtime.answerExternalChange(change.workbookId, change.prompt, reload);
     });
 
     // Effect events must not be dependencies, they change with every render
@@ -105,7 +105,7 @@ export const NativeWorkbookSync: React.FC = () => {
     // A question that was never shown ends without an answer, the check lets the writes of its workbook go
     React.useEffect(() => () => {
         for (const change of changesRef.current ?? []) {
-            if (!askedRef.current.has(change.prompt)) runtime.module.answerExternalChange(change.workbookId, change.prompt, null);
+            if (!askedRef.current.has(change.prompt)) runtime.answerExternalChange(change.workbookId, change.prompt, null);
         }
     }, [runtime]);
 

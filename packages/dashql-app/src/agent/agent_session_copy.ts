@@ -161,7 +161,7 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
                 const connection = runtime.store.get('connection', connectionId) as ConnectionState | null;
                 if (connection == null) continue;
                 // The core renders the file, as it writes it into the storage of the connection
-                catalogs.set(connectionId, { stamp: catalogStamp(connection), text: () => runtime.module.catalogRelationsFile(connectionId) ?? '' });
+                catalogs.set(connectionId, { stamp: catalogStamp(connection), text: () => runtime.catalogRelationsFile(connectionId) ?? '' });
             }
             return catalogs;
         },
