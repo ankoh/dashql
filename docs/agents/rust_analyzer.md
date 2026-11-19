@@ -12,7 +12,7 @@ bazel run //scripts:rust_project
 ```
 
 This writes `rust-project.json` to the repository root. It covers every package with Rust targets. On Linux
-without the OpenSSL headers it skips `packages/dashql-native-proxy` with a warning, because `openssl-sys` cannot
+without the OpenSSL headers it skips `packages/dashql-native/proxy` with a warning, because `openssl-sys` cannot
 build there (`apt install libssl-dev pkg-config` fixes that). Pass target patterns to cover less, for example
 `bazel run //scripts:rust_project -- //packages/dashql-core/...`.
 

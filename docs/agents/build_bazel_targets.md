@@ -301,7 +301,7 @@ Rust type checking happens automatically during `bazel build` and `bazel test`. 
 
 ```bash
 # This type-checks as part of building
-bazel build //packages/dashql-native-proxy:addon
+bazel build //packages/dashql-native/proxy:addon
 ```
 
 ### Clippy
@@ -341,7 +341,7 @@ bazel query //packages/dashql-core:all
 bazel query 'kind(".*_test", //...)'
 
 # Find all Rust targets
-bazel query 'kind("rust_.*", //packages/dashql-native-proxy:all)'
+bazel query 'kind("rust_.*", //packages/dashql-native/proxy:all)'
 
 # Show dependencies of a target
 bazel query 'deps(//packages/dashql-app:pages)'
@@ -422,7 +422,7 @@ rm -rf bazel-bin/packages/bar/
 bazel build //packages/dashql-app:tsc --output_groups=typecheck
 
 # ✅ Bazel building
-bazel build //packages/dashql-native-proxy:addon
+bazel build //packages/dashql-native/proxy:addon
 
 # ✅ Bazel testing
 bazel test //packages/dashql-native:test
@@ -447,7 +447,7 @@ bazel test //packages/dashql:all //packages/dashql/test/browser:all
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test
+bazel test //packages/dashql-native/proxy:test //packages/dashql-pack:test
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
@@ -533,7 +533,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 
 | Universe | Specs | Used by |
 |---|---|---|
-| `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
+| `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native/proxy`, `dashql-pack`, `dashql-datasets` |
 | `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-bindings`, `tests/snapshots` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as

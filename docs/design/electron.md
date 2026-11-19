@@ -23,7 +23,7 @@ main.ts  (Electron main process)
 native_utility_worker.ts  (Electron utility process)
         │ Node-API with binary buffers
         ▼
-dashql_native_napi.node  (Rust addon, packages/dashql-native-proxy)
+dashql_native_napi.node  (Rust addon, packages/dashql-native/proxy)
         ├── streaming HTTP
         └── gRPC and TLS
 ```
@@ -94,7 +94,7 @@ build on it; there are no operation-specific typed APIs.
   rejection of pending calls when the process exits. Requests are bounded to 64 MiB bodies, 128 headers and
   8192-character header values; methods are DELETE, GET, PATCH and POST; routes are `health`, `grpc/` and
   `http/`. The renderer cannot call `health`.
-- The addon (`packages/dashql-native-proxy/src/napi.rs`) exports `health()` and an async `route()`. The router
+- The addon (`packages/dashql-native/proxy/src/napi.rs`) exports `health()` and an async `route()`. The router
   (`src/proxy_router.rs`) serves `/http/streams`, `/http/stream/{id}`, `/grpc/channels` and
   `/grpc/channel/{id}/{unary,streams,stream/{id}}`. Streams are polled in batches.
 - `//packages/dashql-native:native_addon_utility_test` runs HTTP streaming and unary and streaming gRPC
@@ -133,7 +133,7 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
   extra resources, the app uses the hardened runtime, and
   `Entitlements.plist` allows JIT, unsigned executable memory, disabled library validation, network client
   access and user-selected file access.
-- The addon is built per architecture (`//packages/dashql-native-proxy:addon_aarch64`, `:addon_x86_64`).
+- The addon is built per architecture (`//packages/dashql-native/proxy:addon_aarch64`, `:addon_x86_64`).
 - Only macOS is packaged.
 
 ## Signing and Notarization

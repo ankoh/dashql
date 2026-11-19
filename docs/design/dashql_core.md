@@ -24,7 +24,7 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_dataflow_bindings` | `packages/dashql-dataflow/bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
 
 All third-party crates of these come from the isolated `@core_crates` universe (`bazel/crates/core.MODULE.bazel`).
-`packages/dashql-native-proxy` (the gRPC proxy of the desktop app) is Rust as well but not part of the core.
+`packages/dashql-native/proxy` (the gRPC proxy of the desktop app) is Rust as well but not part of the core.
 
 The language is the contract of the core: integrations that use the core on its own get the classes of the core
 (`Catalog`, `Script`, `ScriptSession`, the shell, through `DashQL` of `packages/dashql/src/core/api.ts`) and the

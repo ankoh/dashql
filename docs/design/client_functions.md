@@ -625,7 +625,7 @@ A spec drives a client that holds credentials, so these hold for every spec:
 - The app ships no CORS proxy, so a service has to allow the app's origin.
 - A browser only shows a script `Link` and `Location` if the service lists them in `Access-Control-Expose-Headers`. Header paging and header polling need that checked per service, even where the request itself works.
 
-Electron has an HTTP proxy (`packages/dashql-native-proxy/src/http_proxy.rs`) that should avoid this, but that path hasn't been traced for these calls.
+Electron has an HTTP proxy (`packages/dashql-native/proxy/src/http_proxy.rs`) that should avoid this, but that path hasn't been traced for these calls.
 
 ## EXPLAIN
 
