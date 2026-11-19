@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { workbookInputControl, WorkbookInputControl, type SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import { workbookInputControl, WorkbookInputControl, type WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 
 import * as styles from './workbook_inputs.module.css';
 
@@ -9,9 +9,9 @@ import * as styles from './workbook_inputs.module.css';
 export type WorkbookInputCardVariant = 'chip' | 'block';
 
 interface Props {
-    input: SessionInput;
+    input: WorkbookInput;
     /// The literal of a value of the control in the Hyper dialect, or the problem with the value
-    literalOf: (input: SessionInput, value: string) => { literal: string } | { error: string };
+    literalOf: (input: WorkbookInput, value: string) => { literal: string } | { error: string };
     /// Write the literal and run the scripts that use the input
     onCommit: (name: string, literal: string) => void;
     /// Do the scripts of the input run?

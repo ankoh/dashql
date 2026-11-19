@@ -5,7 +5,7 @@ import type { DashQLPendingDiff } from './script_editor_state.js';
 import type { WorkbookCloudLink } from '../storage/storage_backend.js';
 import type { ScriptAnnotations, ScriptRef, WorkbookMetadata } from './script_types.js';
 import type { ScriptReferenceReport, ScriptTextChange } from './script_reference_check.js';
-import type { SessionInput } from './workbook_inputs.js';
+import type { WorkbookInput } from './workbook_inputs.js';
 
 /// The workbooks are a domain of the runtime of the module (`packages/dashql-core-bindings/src/runtime/workbooks.rs`,
 /// docs/design/dashql_runtime.md). The app reads them as views through the store: the workbook, a script, and what the
@@ -80,7 +80,7 @@ export interface WorkbookDerived {
     /// The dataflow of the scripts
     dataflow: core.buffers.execution.SessionDataflowT;
     /// The inputs of the workbook
-    inputs: SessionInput[];
+    inputs: WorkbookInput[];
 }
 
 /// The actions of a workbook

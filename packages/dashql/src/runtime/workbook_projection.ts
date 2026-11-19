@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { share } from './store/projection.js';
 import type { ViewProjection } from './store/runtime_store.js';
-import { readSessionInputs } from '../platform/workbook/workbook_inputs.js';
+import { readWorkbookInputs } from '../platform/workbook/workbook_inputs.js';
 import { resolveCompiledVisualization } from '../platform/workbook/script_compilation.js';
 import { readScriptReferenceReports } from '../platform/workbook/script_reference_check.js';
 import { createScriptRef, type ScriptAnnotations, type ScriptRef, type WorkbookMetadata } from '../platform/workbook/script_types.js';
@@ -196,7 +196,7 @@ export class WorkbookDerivedProjection implements ViewProjection<'workbookDerive
             : core.readFlatBuffer(view.dataflow, bb => core.buffers.execution.SessionDataflow.getRootAsSessionDataflow(bb)).unpack();
         const inputs = prev != null && before != null && sameScripts && inputs0 === inputsHash
             ? prev.inputs
-            : share(prev?.inputs, readSessionInputs(
+            : share(prev?.inputs, readWorkbookInputs(
                 core.readFlatBuffer(view.inputs, bb => core.buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack(), view.scriptKeys,
             ));
         if (prev != null && prev.scriptKeys === scriptKeys && prev.references === references && prev.dataflow === dataflow && prev.inputs === inputs) {

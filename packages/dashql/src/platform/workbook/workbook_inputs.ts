@@ -28,13 +28,13 @@ export interface WorkbookInputType {
 }
 
 /// A statement that uses an input
-export interface SessionInputConsumer {
+export interface WorkbookInputConsumer {
     scriptKey: number;
     statementId: number;
 }
 
 /// An input of a workbook: a named scalar parameter of its scripts, see docs/design/workbook_inputs.md
-export interface SessionInput {
+export interface WorkbookInput {
     name: string;
     type: WorkbookInputType;
     /// The value as a control shows it, null if no script has a value: the number, the content of a string, the text of
@@ -43,12 +43,12 @@ export interface SessionInput {
     /// The value as SQL literal in the Hyper dialect, the value of the `@param` tags
     literal: string | null;
     /// The statements that use the input, in workbook order
-    consumers: SessionInputConsumer[];
+    consumers: WorkbookInputConsumer[];
     /// The problems of the input, e.g. casts to different types
     warnings: string[];
 }
 
-const NO_INPUTS: SessionInput[] = [];
+const NO_INPUTS: WorkbookInput[] = [];
 
 /// The type of an input of the core
 export function readWorkbookInputType(type: core.buffers.analyzer.SqlTypeT | null, source: core.buffers.execution.SessionInputTypeSource): WorkbookInputType {
@@ -64,7 +64,7 @@ export function readWorkbookInputType(type: core.buffers.analyzer.SqlTypeT | nul
 
 /// The inputs that the runtime collected from the scripts of a workbook, the consumers by the keys of the scripts in
 /// the order of the request
-export function readSessionInputs(collected: core.buffers.execution.SessionInputsT, scriptKeys: readonly number[]): SessionInput[] {
+export function readWorkbookInputs(collected: core.buffers.execution.SessionInputsT, scriptKeys: readonly number[]): WorkbookInput[] {
     return collected.inputs.map(input => ({
         name: String(input.name ?? ''),
         type: readWorkbookInputType(input.sqlType, input.typeSource),
@@ -79,13 +79,13 @@ export function readSessionInputs(collected: core.buffers.execution.SessionInput
 }
 
 /// The inputs of the draft of a composer, a script session that is no workbook script: nothing consumes them yet
-export function collectDraftInputs(instance: core.DashQL, draft: core.DashQLScriptSession, catalog: core.DashQLCatalog): SessionInput[] {
+export function collectDraftInputs(instance: core.DashQL, draft: core.DashQLScriptSession, catalog: core.DashQLCatalog): WorkbookInput[] {
     try {
         const request = {
             connections: [{ id: 'draft', local: false, catalog }],
             scripts: [{ name: 'draft', connection: 0, session: draft }],
         };
-        return readSessionInputs(instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT, []);
+        return readWorkbookInputs(instance.collectSessionInputs(request).unpack() as core.buffers.execution.SessionInputsT, []);
     } catch (e) {
         console.warn('cannot collect the inputs of the draft', e);
         return NO_INPUTS;
@@ -93,11 +93,11 @@ export function collectDraftInputs(instance: core.DashQL, draft: core.DashQLScri
 }
 
 /// The scripts that use an input, without duplicates
-export function inputConsumerScripts(input: SessionInput): number[] {
+export function inputConsumerScripts(input: WorkbookInput): number[] {
     return [...new Set(input.consumers.map(c => c.scriptKey))];
 }
 
-export function sameInputs(l: SessionInput[], r: SessionInput[]): boolean {
+export function sameInputs(l: WorkbookInput[], r: WorkbookInput[]): boolean {
     return JSON.stringify(l) === JSON.stringify(r);
 }
 

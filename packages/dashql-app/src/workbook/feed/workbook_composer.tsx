@@ -20,7 +20,7 @@ import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
-import { collectDraftInputs, sameInputs, workbookInputLiteral, type SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import { collectDraftInputs, sameInputs, workbookInputLiteral, type WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
@@ -35,7 +35,7 @@ export interface WorkbookTableParameters {
 const NO_SCRIPT_NAMES: readonly string[] = [];
 
 /// A draft without inputs
-const NO_INPUTS: SessionInput[] = [];
+const NO_INPUTS: WorkbookInput[] = [];
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
@@ -176,7 +176,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     }, [props.instance, props.catalog, scriptSession]);
     // The value of an input of the draft is a `@param` tag of the draft like in a script, it goes along when the draft
     // is sent. Nothing runs before that.
-    const literalOfDraftInput = React.useCallback((draftInput: SessionInput, value: string) => workbookInputLiteral(props.instance, draftInput.type, value), [props.instance]);
+    const literalOfDraftInput = React.useCallback((draftInput: WorkbookInput, value: string) => workbookInputLiteral(props.instance, draftInput.type, value), [props.instance]);
     const commitDraftInput = React.useCallback((name: string, literal: string) => {
         if (view == null) return;
         const from = view.state.doc.toString();

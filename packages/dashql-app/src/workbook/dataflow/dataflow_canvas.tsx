@@ -17,7 +17,7 @@ import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowGraph, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
-import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import {
     buildDataflowScene,
     dataflowRouteKey,
@@ -79,7 +79,7 @@ const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
 };
 
 const NO_REFERENCES: ReadonlyMap<number, ScriptReferenceReport> = new Map();
-const NO_INPUTS: SessionInput[] = [];
+const NO_INPUTS: WorkbookInput[] = [];
 
 const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
 
@@ -968,7 +968,7 @@ interface InputBoxProps {
     box: DataflowSceneInput;
     config: core.DataflowLayoutConfig;
     /// The input of the workbook, null while the inputs follow the graph
-    input: SessionInput | null;
+    input: WorkbookInput | null;
     selected: boolean;
     dragging: boolean;
     busy: boolean;
@@ -976,7 +976,7 @@ interface InputBoxProps {
     onSelect: (selection: DataflowSelection) => void;
     /// The pointer enters a box with its selection or leaves it with null
     onHover: (selection: DataflowSelection | null) => void;
-    literalOf: (input: SessionInput, value: string) => { literal: string } | { error: string };
+    literalOf: (input: WorkbookInput, value: string) => { literal: string } | { error: string };
     onCommit: (name: string, literal: string) => void;
 }
 

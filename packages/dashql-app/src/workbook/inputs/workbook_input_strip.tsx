@@ -5,7 +5,7 @@ import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/work
 import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import { WorkbookInputCard } from './workbook_input_card.js';
 import { useApplyWorkbookInput } from './use_apply_workbook_input.js';
-import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 
 import * as styles from './workbook_inputs.module.css';
 
@@ -19,7 +19,7 @@ interface Props {
     className?: string;
 }
 
-const NO_INPUTS: SessionInput[] = [];
+const NO_INPUTS: WorkbookInput[] = [];
 
 /// The inputs of a workbook as chips on a bar at the top of a view. Renders nothing
 /// without inputs and leading chips.

@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { WORKBOOK_INPUT_COMMIT_DELAY_MS, WorkbookInputCard } from './workbook_input_card.js';
-import type { SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
+import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 
 function setInputValue(input: HTMLInputElement, value: string) {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
@@ -19,7 +19,7 @@ function setSelectValue(select: HTMLSelectElement, value: string) {
     select.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-function intervalInput(value: string | null): SessionInput {
+function intervalInput(value: string | null): WorkbookInput {
     return {
         name: 'span',
         type: { kind: core.buffers.analyzer.SqlTypeKind.INTERVAL, sql: 'interval', arrayDimensions: 0, withTimeZone: false, cast: false, known: true },
@@ -31,7 +31,7 @@ function intervalInput(value: string | null): SessionInput {
 }
 
 /// The literal of a draft like the core makes it, a number and a unit
-function literalOf(_input: SessionInput, value: string): { literal: string } | { error: string } {
+function literalOf(_input: WorkbookInput, value: string): { literal: string } | { error: string } {
     const match = /^(-?\d+) (year|month|day|hour|minute|second)$/.exec(value);
     return match == null ? { error: `no interval: ${value}` } : { literal: `interval '${match[1]}' ${match[2]}` };
 }
@@ -53,7 +53,7 @@ describe('WorkbookInputCard', () => {
         container.remove();
     });
 
-    const render = (input: SessionInput) => act(() => root.render(<WorkbookInputCard input={input} literalOf={literalOf} onCommit={onCommit} />));
+    const render = (input: WorkbookInput) => act(() => root.render(<WorkbookInputCard input={input} literalOf={literalOf} onCommit={onCommit} />));
     const amount = () => container.querySelector<HTMLInputElement>('input[aria-label="Value of :span"]')!;
     const unit = () => container.querySelector<HTMLSelectElement>('select[aria-label="Unit of :span"]')!;
 
