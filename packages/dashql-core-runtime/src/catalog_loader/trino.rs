@@ -22,7 +22,7 @@ pub fn trino_catalogs_query() -> CatalogQuery {
         sql: TRINO_CATALOGS_QUERY.to_string(),
         query_type: QueryType::CatalogQueryInformationSchema,
         title: "Catalogs".to_string(),
-        read_timeout_ms: None,
+        read_timeout: false,
     }
 }
 

@@ -23,7 +23,7 @@ use super::tables::{
     SchemaTables,
 };
 use super::{
-    CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer, CATALOG_QUERY_READ_TIMEOUT_MS,
+    CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer,
 };
 use crate::connections::{
     JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE,
@@ -109,7 +109,7 @@ pub fn hyper_cloud_catalog_query(database_alias: &str, relations: Option<&[Relat
         sql: hyper_cloud_catalog_query_sql(database_alias, relations),
         query_type: QueryType::CatalogQueryHyperCloud,
         title: format!("Query Hyper Cloud Catalog ({database_alias})"),
-        read_timeout_ms: Some(CATALOG_QUERY_READ_TIMEOUT_MS),
+        read_timeout: true,
     }
 }
 

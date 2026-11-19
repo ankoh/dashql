@@ -160,6 +160,16 @@ fn finished_queries_keep_a_bounded_history_of_internal_queries() {
     assert!(history.finished(last).is_some());
 }
 
+#[test]
+fn a_history_keeps_the_internal_queries_of_its_limit() {
+    let mut history = QueryExecutionHistory::with_internal_limit(2);
+    succeed(&mut history, 0, metadata(QueryType::UserProvided, None));
+    for query_id in 1..=5 {
+        succeed(&mut history, query_id, metadata(QueryType::InternalSqlframe, None));
+    }
+    assert_eq!(history.finished_ids(), &[0, 4, 5]);
+}
+
 // Query cache bookkeeping
 
 #[test]

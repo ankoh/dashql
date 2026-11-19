@@ -4,7 +4,7 @@ use arrow_array::RecordBatch;
 
 use super::columns::{batches_with_rows, Booleans, StringLists, Strings};
 use super::sql::{functions_sql, quote_identifier, FunctionMetadata};
-use super::{CatalogLoadError, CatalogQuery, CATALOG_QUERY_READ_TIMEOUT_MS};
+use super::{CatalogLoadError, CatalogQuery};
 use crate::query::QueryType;
 
 /// The query of the functions of `pg_proc`. Their parameters come as structured columns: types, names and modes.
@@ -39,7 +39,7 @@ pub fn pg_proc_query() -> CatalogQuery {
         sql: PG_PROC_QUERY.to_string(),
         query_type: QueryType::CatalogQueryPgProc,
         title: "Query Postgres Functions".to_string(),
-        read_timeout_ms: Some(CATALOG_QUERY_READ_TIMEOUT_MS),
+        read_timeout: true,
     }
 }
 

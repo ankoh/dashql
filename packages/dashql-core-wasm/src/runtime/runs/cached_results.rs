@@ -9,7 +9,7 @@
 //! analyses are outdated keeps what it shows until they are current again.
 //!
 //! The checks wait until the changes pause like the analyses of the scripts that the editors show
-//! (`BACKGROUND_ANALYSIS_DELAY_MS`), typing looks the workbook up once. A check compares the stamp of what the keys
+//! (`background_analysis_delay_ms` of the settings), typing looks the workbook up once. A check compares the stamp of what the keys
 //! depend on and looks up only a workbook whose stamp moved: one lookup per workbook at a time, it plans the keys of the
 //! scripts once and looks each key up in the query result cache.
 
@@ -20,7 +20,6 @@ use std::rc::Rc;
 
 use dashql_core_runtime::executor::QueryId;
 use dashql_core_runtime::host::{Host, LogLevel};
-use dashql_core_runtime::visible_scripts::BACKGROUND_ANALYSIS_DELAY_MS;
 use dashql_core_runtime::workbook::{ScriptCachedResult, Workbook, WorkbookAction, WorkbookScript};
 
 use super::Runs;
@@ -56,7 +55,7 @@ impl Runs {
         }
         let generation = self.cached.generation.get() + 1;
         self.cached.generation.set(generation);
-        let sleep = self.platform.sleep(BACKGROUND_ANALYSIS_DELAY_MS);
+        let sleep = self.platform.sleep(self.platform.settings().background_analysis_delay_ms);
         let runs = Rc::downgrade(self);
         self.platform.spawn(Box::pin(async move {
             sleep.await;

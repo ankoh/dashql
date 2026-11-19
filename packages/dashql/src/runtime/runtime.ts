@@ -75,6 +75,8 @@ export interface RuntimeOptions {
     /// Stand in for the query commands of the runtime (`execute`, `cancel`, `watchProfile`), e.g. in a test of
     /// components. The services of the runtime keep the query executor of the module.
     queryCommands?: Partial<QueryCommands> | null;
+    /// The timings and limits of the runtime, the defaults of DashQL for what it leaves out
+    settings?: core.RuntimeSettings | null;
 }
 
 /// Creates the `.dashql` archives of a platform over the handle table of the runtime
@@ -281,6 +283,7 @@ export class Runtime {
             storage: platform.storage == null ? null : createRuntimeStorage(platform.storage),
             archives: platform.archives?.(this.handles) ?? null,
             changed: urgent => this.store.changed(urgent),
+            settings: platform.settings ?? undefined,
         };
     }
 

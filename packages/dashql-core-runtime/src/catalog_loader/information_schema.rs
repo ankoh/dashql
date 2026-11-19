@@ -67,7 +67,7 @@ pub fn information_schema_query(scopes: &[InformationSchemaScope]) -> CatalogQue
         sql: information_schema_columns_query(scopes),
         query_type: QueryType::CatalogQueryInformationSchema,
         title: "Information Schema".to_string(),
-        read_timeout_ms: None,
+        read_timeout: false,
     }
 }
 

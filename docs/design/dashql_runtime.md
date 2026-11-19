@@ -121,6 +121,7 @@ of the module that the runtime builds from it):
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
 | `catalogLoader` | no | Run the catalog loader, true by default. `dashql run` and most tests turn it off |
 | `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
+| `settings` | no | The timings and limits that a host may choose (`RuntimeSettings`): the pause before the background analyses, the heartbeat and the query timeout of the catalog loader, the internal queries a history keeps. The defaults are those of DashQL, read once when the runtime is created |
 
 The parts that a platform sets up late are providers or read on call: the compute database is a provider, the
 `ChannelConnector` of the app reads its clients when a setup connects, and the archives ask for their database when an
@@ -147,6 +148,7 @@ declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in 
 | `storage` | The workbook files, scripts, attachments, the app manifest, connection files, native folders | `runtime_storage.ts` |
 | `archives` | The ZIP container and the Parquet files of the workbook tables | the factory of the platform |
 | `changed` | The state changed, `urgent` or not | the store |
+| `settings` | The settings of the runtime, read once | `RuntimeOptions.settings` |
 
 Every call into it catches: a member that throws or is missing fails the call of the service with a `HostError`, it
 never unwinds through the module (see [Errors](#errors)). Once the module shut down (`shutdown`, below), it calls the

@@ -118,7 +118,7 @@ impl Connections {
     pub fn new(platform: JsPlatform, computations: ComputeService<ComputeTracker>) -> Rc<Self> {
         let connections = Rc::new(Connections {
             platform: platform.clone(),
-            registry: RefCell::new(ConnectionRegistry::new()),
+            registry: RefCell::new(ConnectionRegistry::with_history_limit(platform.settings().internal_query_history_limit)),
             computations,
             writer: RefCell::new(None),
             saves: RefCell::new(Vec::new()),

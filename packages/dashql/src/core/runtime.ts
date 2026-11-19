@@ -9,6 +9,7 @@
 export type {
     Runtime,
     RuntimePlatform,
+    RuntimeSettings,
     RuntimeHandles,
     RuntimeTables,
     RuntimeHttp,

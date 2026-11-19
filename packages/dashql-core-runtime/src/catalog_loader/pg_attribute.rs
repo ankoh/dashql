@@ -5,7 +5,7 @@ use arrow_array::RecordBatch;
 use super::columns::{batches_with_rows, Integers, Strings};
 use super::sql::{quote_identifier, relation_filter};
 use super::tables::{catalog_tables_of_schema, CatalogTable, ColumnMetadata, Groups, SchemaTables};
-use super::{CatalogLoadError, CatalogQuery, CATALOG_QUERY_READ_TIMEOUT_MS};
+use super::{CatalogLoadError, CatalogQuery};
 use crate::connections::RelationName;
 use crate::query::QueryType;
 
@@ -60,7 +60,7 @@ pub fn pg_attribute_query(scope: &PgAttributeScope) -> CatalogQuery {
         sql: pg_attribute_query_sql(scope),
         query_type: QueryType::CatalogQueryPgAttribute,
         title: "Query Postgres Schema Columns".to_string(),
-        read_timeout_ms: Some(CATALOG_QUERY_READ_TIMEOUT_MS),
+        read_timeout: true,
     }
 }
 

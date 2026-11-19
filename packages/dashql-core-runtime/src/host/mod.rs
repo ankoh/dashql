@@ -17,6 +17,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
+use crate::settings::RuntimeSettings;
+
 /// A task of the host
 pub type LocalTask = Pin<Box<dyn Future<Output = ()>>>;
 
@@ -50,6 +52,10 @@ pub trait Host: 'static {
     fn spawn(&self, task: LocalTask);
     /// Log a message with its details
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]);
+    /// The settings of the runtime, the defaults of DashQL unless the host chose others
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
+    }
 }
 
 /// A script file that changed outside the app since the storage last wrote or read it

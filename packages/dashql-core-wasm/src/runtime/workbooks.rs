@@ -21,7 +21,7 @@ use dashql_core_runtime::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
 use dashql_core_runtime::storage::keys::workbook_connection_copy_key;
 use dashql_core_runtime::storage::{WriteResult, WriteTask};
-use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts, BACKGROUND_ANALYSIS_DELAY_MS};
+use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
 use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
     next_revision, CloudLink, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
@@ -145,7 +145,7 @@ pub(crate) struct Workbooks {
 impl Workbooks {
     pub fn new(platform: JsPlatform, connections: Rc<Connections>, writer: RuntimeWriter) -> Rc<Self> {
         let workbooks = Rc::new(Workbooks {
-            visible: VisibleScripts::new(platform.clone(), BACKGROUND_ANALYSIS_DELAY_MS),
+            visible: VisibleScripts::new(platform.clone(), platform.settings().background_analysis_delay_ms),
             pending_derives: Rc::new(RefCell::new(PendingDerives { platform: platform.clone(), workbooks: BTreeSet::new(), generation: 0 })),
             platform,
             connections: connections.clone(),
@@ -405,7 +405,7 @@ impl Workbooks {
             pending.generation += 1;
             pending.generation
         };
-        let sleep = self.platform.sleep(BACKGROUND_ANALYSIS_DELAY_MS);
+        let sleep = self.platform.sleep(self.platform.settings().background_analysis_delay_ms);
         let pending: Weak<RefCell<PendingDerives>> = Rc::downgrade(&self.pending_derives);
         self.platform.spawn(Box::pin(async move {
             sleep.await;

@@ -44,8 +44,6 @@ const SALESFORCE_LOG_TARGET: &str = "salesforce_catalog";
 pub const SUPERSEDED_MESSAGE: &str = "Superseded by forced catalog refresh";
 /// The reason of an update whose connection is gone or got another catalog
 pub const STALE_MESSAGE: &str = "Catalog refresh was cancelled or superseded";
-/// How often a running update logs that it still runs
-const HEARTBEAT_MS: f64 = 5000.0;
 
 /// The batches of the result of a metadata query
 pub type QueryBatches = Vec<RecordBatch>;
@@ -585,7 +583,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         let connection_id = connection_id.to_string();
         self.host.spawn(Box::pin(async move {
             loop {
-                if stop.run(service.host.sleep(HEARTBEAT_MS)).await.is_none() {
+                if stop.run(service.host.sleep(service.host.settings().catalog_heartbeat_ms)).await.is_none() {
                     return;
                 }
                 let elapsed = format!("{:.0}", service.host.now() - started_at);

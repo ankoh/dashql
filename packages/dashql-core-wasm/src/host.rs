@@ -24,6 +24,7 @@ use dashql_core_runtime::connections::registry::RegistryEffect;
 use dashql_core_runtime::executor::HostTable;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost};
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
@@ -70,6 +71,20 @@ export interface RuntimePlatform {
     readonly archives: RuntimeArchives | null;
     /** The state of the runtime changed, the host takes the changes. Urgent changes are taken at the end of the task, the others before the next frame. */
     changed(urgent: boolean): void;
+    /** The settings of the runtime, the defaults of DashQL for what it leaves out. Read once when the runtime is created. */
+    readonly settings?: RuntimeSettings;
+}
+
+/** The timings and limits of a runtime that a host may choose, see `settings.rs` of the core runtime */
+export interface RuntimeSettings {
+    /** The pause after the last change before the shown scripts that are not selected are analyzed, 150 by default */
+    backgroundAnalysisDelayMs?: number;
+    /** How often the catalog loader looks at the connections without being asked, 5000 by default */
+    catalogHeartbeatMs?: number;
+    /** The read timeout of the metadata queries of the catalog loader that have one, 60000 by default */
+    catalogQueryTimeoutMs?: number;
+    /** The finished internal queries that the history of a connection keeps, 100 by default */
+    internalQueryHistoryLimit?: number;
 }
 
 /** The storage of the platform: the workbook files, scripts and attachments of the workbooks, the app manifest and the files of the connections. Workbook files and connection entries cross as plain JSON values. */
@@ -479,6 +494,8 @@ struct Inner {
     cache_evicted: RefCell<Option<Rc<dyn Fn()>>>,
     /// Did the runtime shut down? The platform is called no more then.
     fenced: Cell<bool>,
+    /// The settings of the platform object, read once
+    settings: RuntimeSettings,
 }
 
 /// The error of a call of the platform after the runtime shut down
@@ -590,6 +607,24 @@ pub(crate) fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpR
     Ok(response)
 }
 
+/// The settings of the platform object, the defaults for what it leaves out. A value that is no number of at least zero
+/// is left out.
+fn settings_of(object: &JsValue) -> RuntimeSettings {
+    let defaults = RuntimeSettings::default();
+    let Some(settings) = field(object, "settings") else { return defaults };
+    let number = |name: &str| field(&settings, name).and_then(|value| value.as_f64()).filter(|value| value.is_finite() && *value >= 0.0);
+    RuntimeSettings {
+        background_analysis_delay_ms: number("backgroundAnalysisDelayMs").unwrap_or(defaults.background_analysis_delay_ms),
+        catalog_heartbeat_ms: number("catalogHeartbeatMs").unwrap_or(defaults.catalog_heartbeat_ms),
+        catalog_query_timeout_ms: number("catalogQueryTimeoutMs")
+            .map(|ms| ms.min(f64::from(u32::MAX)) as u32)
+            .unwrap_or(defaults.catalog_query_timeout_ms),
+        internal_query_history_limit: number("internalQueryHistoryLimit")
+            .map(|limit| limit.min(f64::from(u32::MAX)) as usize)
+            .unwrap_or(defaults.internal_query_history_limit),
+    }
+}
+
 /// A count of a JS object
 fn count_of(value: &JsValue, key: &str) -> u64 {
     field(value, key).and_then(|n| n.as_f64()).unwrap_or_default().max(0.0) as u64
@@ -607,8 +642,10 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
 
 impl JsPlatform {
     pub fn new(object: JsRuntimePlatform) -> Self {
+        let settings = settings_of(&object);
         Self {
             inner: Rc::new(Inner {
+                settings,
                 object,
                 pending: RefCell::new(Pending::default()),
                 last_request: Cell::new(0.0),
@@ -1308,6 +1345,10 @@ fn context_js(context: &ComputeContext) -> Result<JsValue, HostError> {
 }
 
 impl Host for JsPlatform {
+    fn settings(&self) -> RuntimeSettings {
+        self.inner.settings
+    }
+
     fn now(&self) -> f64 {
         self.member("clock")
             .and_then(|clock| call(&clock, "now", &[]))

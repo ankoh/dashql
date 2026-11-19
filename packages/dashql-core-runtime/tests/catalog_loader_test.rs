@@ -27,7 +27,7 @@ use dashql_core_runtime::catalog_loader::trino::{
 };
 use dashql_core_runtime::catalog_loader::{
     catalog_is_durable, CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
-    CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer, CATALOG_QUERY_READ_TIMEOUT_MS,
+    CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::query::QueryType;
@@ -922,7 +922,7 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
     assert!(host.queries[0].sql.contains("FROM \"lake db\".\"pg_catalog\".pg_class c"));
     assert!(host.queries[1].sql.contains("FROM \"cloud\".\"_hyper_catalog\".\"databases\" d"));
     assert_eq!(host.queries[1].title, "Query Hyper Cloud Catalog (cloud)");
-    assert!(host.queries.iter().all(|query| query.read_timeout_ms == Some(CATALOG_QUERY_READ_TIMEOUT_MS)));
+    assert!(host.queries.iter().all(|query| query.read_timeout));
     let text = hyper.relations_text();
     assert!(text.contains("CREATE TABLE \"lake db\".\"public\".\"lake_table\""));
     assert!(text.contains("CREATE TABLE \"cloud\".\"sales\".\"orders\""));
@@ -943,7 +943,7 @@ fn hyper_wasm_reads_the_default_database_and_the_live_function_catalog() {
     assert!(host.queries[0].sql.contains("FROM pg_catalog.pg_class c"));
     assert!(!host.queries[0].sql.contains("\"hyper\".\"pg_catalog\""));
     assert_eq!(host.queries[1].query_type, QueryType::CatalogQueryPgProc);
-    assert_eq!(host.queries[1].read_timeout_ms, Some(CATALOG_QUERY_READ_TIMEOUT_MS));
+    assert!(host.queries[1].read_timeout);
     assert!(hyper.relations_text().contains("CREATE TABLE \"hyper\".\"public\".\"default_table\""));
     let functions = functions.unwrap();
     assert!(functions.contains("-- Catalog Source: HyperDB WASM pg_proc"));

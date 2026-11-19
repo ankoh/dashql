@@ -436,7 +436,7 @@ pub struct QueryExecutionOutcome {
 }
 
 /// The active and the finished queries of a connection
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct QueryExecutionHistory {
     /// The active queries
     queries_active: HashMap<QueryId, QueryExecutionState>,
@@ -452,12 +452,34 @@ pub struct QueryExecutionHistory {
     metrics: ConnectionMetrics,
     /// The revision of the history, it changes with every change
     revision: u64,
+    /// The finished internal queries that the history keeps
+    internal_limit: usize,
+}
+
+impl Default for QueryExecutionHistory {
+    fn default() -> Self {
+        Self::with_internal_limit(INTERNAL_QUERY_HISTORY_LIMIT)
+    }
 }
 
 impl QueryExecutionHistory {
     /// An empty history
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// An empty history that keeps a number of finished internal queries
+    pub fn with_internal_limit(internal_limit: usize) -> Self {
+        Self {
+            queries_active: HashMap::new(),
+            queries_active_ordered: Vec::new(),
+            queries_finished: HashMap::new(),
+            queries_finished_ordered: Vec::new(),
+            snapshot_queries_active_finished: 0,
+            metrics: ConnectionMetrics::default(),
+            revision: 0,
+            internal_limit,
+        }
     }
 
     /// The active query with an id
@@ -759,7 +781,7 @@ impl QueryExecutionHistory {
             query.is_none_or(|query| query.query_metadata.query_type != QueryType::UserProvided)
         };
         let internal = self.queries_finished_ordered.iter().filter(|id| is_internal(self.queries_finished.get(id))).count();
-        let mut excess = internal.saturating_sub(INTERNAL_QUERY_HISTORY_LIMIT);
+        let mut excess = internal.saturating_sub(self.internal_limit);
         let finished = &mut self.queries_finished;
         self.queries_finished_ordered.retain(|id| {
             if excess == 0 || !is_internal(finished.get(id)) {

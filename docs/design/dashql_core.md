@@ -344,7 +344,9 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 ## The host
 
 `dashql_core_runtime::host::Host` is what every service needs: the clock (`now`), timers (`sleep`, a future that clears
-its timer when dropped), tasks (`spawn`) and the log. A service adds a trait for its I/O:
+its timer when dropped), tasks (`spawn`), the log and the settings (`settings`, `RuntimeSettings` of `settings.rs`: the
+timings and limits that another product may want different, the defaults of DashQL unless the host chose others; a
+limit of the workbook format or a wait of a busy state is no setting). A service adds a trait for its I/O:
 
 | Trait | Adds |
 |---|---|

@@ -106,7 +106,10 @@ impl CatalogLoaderHost for LoaderHost {
             ..QueryMetadata::new(query.query_type)
         };
         let started = self.connections().map(|connections| {
-            let (query_id, done) = connections.run_internal(connection_id, &query.sql, metadata, query.read_timeout_ms, true, cancellation);
+            let (query_id, done) = {
+                let read_timeout_ms = query.read_timeout.then(|| self.platform.settings().catalog_query_timeout_ms);
+                connections.run_internal(connection_id, &query.sql, metadata, read_timeout_ms, true, cancellation)
+            };
             let registered = u32::try_from(query_id).ok().map(|query_id| ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id });
             if let Some(registered) = registered {
                 self.apply(connection_id, registered, None);

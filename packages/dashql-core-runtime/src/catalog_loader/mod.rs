@@ -99,8 +99,9 @@ pub struct CatalogQuery {
     pub query_type: QueryType,
     /// The title of the query
     pub title: String,
-    /// The read timeout, none for the default of the connection
-    pub read_timeout_ms: Option<u32>,
+    /// Does the query have a read timeout? Its length is the setting `catalog_query_timeout_ms` of the host, without
+    /// one the default of the connection applies.
+    pub read_timeout: bool,
 }
 
 /// The issuer of the metadata queries

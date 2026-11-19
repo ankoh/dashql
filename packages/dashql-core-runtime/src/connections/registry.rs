@@ -15,7 +15,7 @@ use super::label::is_hyper_wasm_connection;
 use super::{ConnectionAction, ConnectionEffect, ConnectionState, ConnectorType, Timestamp, CONNECTOR_TYPES};
 use crate::catalog_loader::FollowedConnection;
 use crate::handles::Handle;
-use crate::query::{QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId};
+use crate::query::{QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId, INTERNAL_QUERY_HISTORY_LIMIT};
 
 /// What the host does after an action of the registry, in order
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,7 +81,6 @@ pub struct ListedConnection {
 
 /// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
 /// own code.
-#[derive(Default)]
 pub struct ConnectionRegistry {
     /// The connections in the order of registration
     connections: Vec<(String, FollowedConnection)>,
@@ -89,11 +88,24 @@ pub struct ConnectionRegistry {
     last_query_id: QueryId,
     /// The workbooks that use a connection, in the order of the host
     references: Vec<(String, Vec<String>)>,
+    /// The finished internal queries that the history of a connection keeps
+    history_limit: usize,
+}
+
+impl Default for ConnectionRegistry {
+    fn default() -> Self {
+        Self::with_history_limit(INTERNAL_QUERY_HISTORY_LIMIT)
+    }
 }
 
 impl ConnectionRegistry {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// The connections of a runtime whose histories keep a number of finished internal queries
+    pub fn with_history_limit(history_limit: usize) -> Self {
+        Self { connections: Vec::new(), last_query_id: 0, references: Vec::new(), history_limit }
     }
 
     /// Register a connection under its id
@@ -104,7 +116,7 @@ impl ConnectionRegistry {
         }
         let connection = FollowedConnection {
             state: Rc::new(RefCell::new(state)),
-            queries: Rc::new(RefCell::new(QueryExecutionHistory::new())),
+            queries: Rc::new(RefCell::new(QueryExecutionHistory::with_internal_limit(self.history_limit))),
         };
         self.connections.push((connection_id, connection.clone()));
         Ok(connection)

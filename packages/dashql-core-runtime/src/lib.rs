@@ -37,6 +37,7 @@ pub mod names;
 pub mod planner;
 pub mod query;
 pub mod restore;
+pub mod settings;
 pub mod salesforce;
 pub mod storage;
 pub mod trino;
