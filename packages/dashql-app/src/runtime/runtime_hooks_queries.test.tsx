@@ -27,6 +27,7 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akohn/dashql/platform/connections/query_execution_args';
 import { useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
+import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 import { TestRuntime } from '../tests/test_runtime.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -195,6 +196,89 @@ describe('the queries of the app', () => {
             await render(queryId + 1000);
             expect(statusOf()).toBe('none');
         });
+    });
+});
+
+/// Run a query to its end with the executor of a test
+async function run(api: Api, args: QueryExecutionArgs): Promise<{ queryId: number }> {
+    let queryId = 0;
+    await act(async () => {
+        const [id, execution] = api.execute(CONNECTION_ID, args);
+        queryId = id;
+        await execution;
+    });
+    return { queryId };
+}
+
+describe('the model of a query', () => {
+    let container: HTMLDivElement;
+    let root: Root;
+    let api: Api | null;
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+        api = null;
+    });
+    afterEach(() => {
+        act(() => root.unmount());
+        container.remove();
+    });
+
+    function QueryView(props: { queryId: number | null; capture: (model: QueryModel | null) => void }) {
+        const model = useQueryModel(props.queryId);
+        React.useLayoutEffect(() => props.capture(model));
+        return null;
+    }
+
+    it('shows the status and the result of a query and cancels a running one', async () => {
+        const held = new TestStream([batchOf([1, 2, 3])], true);
+        const streams = [new TestStream([batchOf([1, 2])]), held];
+        const database = createDatabase(vi.fn(async () => streams.shift()!));
+        let model: QueryModel | null = null;
+        const render = async (queryId: number | null) => {
+            const setupDatabase = async () => ({ terminate: vi.fn() }) as unknown as EmbeddedComputeDatabase;
+            await act(async () => {
+                root.render(<LoggerProvider>
+                    <StorageProvider backend={new WorkbookTestBackend()}>
+                        <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
+                            <ComputeConnectionProvider>
+                                <TestRuntime>
+                                    <HyperLogMetricsProvider>
+                                        <>
+                                            <Capture database={database} capture={next => { api = next; }} />
+                                            <QueryView queryId={queryId} capture={next => { model = next; }} />
+                                        </>
+                                    </HyperLogMetricsProvider>
+                                </TestRuntime>
+                            </ComputeConnectionProvider>
+                        </EmbeddedDatabaseProvider>
+                    </StorageProvider>
+                </LoggerProvider>);
+            });
+            await vi.waitFor(() => expect(api).not.toBeNull());
+        };
+        await render(null);
+        expect(model).toBeNull();
+        const { queryId } = await run(api!, argsOf());
+        await render(queryId);
+        await vi.waitFor(() => expect(model?.query.status).toBe(QueryExecutionStatus.SUCCEEDED));
+        expect(model!.result?.numRows).toBe(2);
+
+        // A running query is cancelled through its model
+        let running = 0;
+        let ended: Promise<unknown> = Promise.resolve();
+        await act(async () => {
+            const [id, execution] = api!.execute(CONNECTION_ID, argsOf());
+            running = id;
+            ended = execution.catch(() => null);
+        });
+        await render(running);
+        await vi.waitFor(() => expect(model?.queryId).toBe(running));
+        await act(async () => await model!.cancel());
+        await act(async () => { await ended; });
+        expect(held.cancel).toHaveBeenCalled();
+        await vi.waitFor(() => expect(model?.query.status).toBe(QueryExecutionStatus.CANCELLED));
     });
 });
 

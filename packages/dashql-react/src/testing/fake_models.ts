@@ -3,6 +3,10 @@ import { vi } from 'vitest';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 import type { ScriptModel, ScriptModelSource } from '../models/script_model.js';
+import type { ConnectionModel } from '../models/connection_model.js';
+import type { QueryModel } from '../models/query_model.js';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// A script as the tests of components need it: its key, its file name, its text and nothing that runs
 export function fakeScript(scriptKey: number, fileName: string, text = 'SELECT 1', overrides: Partial<ScriptData> = {}): ScriptData {
@@ -44,5 +48,37 @@ export function fakeScriptModels(models: Map<number, ScriptModel>, scripts: { [s
             models.set(scriptKey, created);
             return created;
         },
+    };
+}
+
+/// A model of a connection without a runtime, of a connection that the test describes: its operations are spies that
+/// resolve at once
+export function fakeConnectionModel(connection: Partial<ConnectionState> & { connectionId: string }, overrides: Partial<ConnectionModel> = {}): ConnectionModel {
+    return {
+        connectionId: connection.connectionId,
+        connection: connection as ConnectionState,
+        catalog: null,
+        setUp: vi.fn(async () => ({}) as never),
+        save: vi.fn(async () => ({}) as never),
+        setDraft: vi.fn(async () => { }),
+        discardDraft: vi.fn(async () => { }),
+        rename: vi.fn(async () => { }),
+        setQueryResultCaching: vi.fn(async () => { }),
+        refreshCatalog: vi.fn(),
+        reset: vi.fn(async () => { }),
+        remove: vi.fn(async () => true),
+        ...overrides,
+    };
+}
+
+/// A model of a query without a runtime, of a query that the test describes: `cancel` is a spy
+export function fakeQueryModel(query: Partial<QueryExecutionState> & { queryId: number }, overrides: Partial<QueryModel> = {}): QueryModel {
+    return {
+        queryId: query.queryId,
+        query: query as QueryExecutionState,
+        progress: query.progress ?? null,
+        result: null,
+        cancel: vi.fn(async () => { }),
+        ...overrides,
     };
 }

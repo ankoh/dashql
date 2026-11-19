@@ -15,9 +15,16 @@ stay in the model hooks, one per thing that the app shows. The runtime itself is
 | Models | `@akohn/dashql-react/models/...` (`packages/dashql-react/src/models/`) | The views, the actions of a target, the commands of the facade, `settled` |
 | Runtime | `@akohn/dashql/runtime`, the core module | Everything else |
 
-A model is an interface with a hook that implements it over the runtime, e.g. `ScriptModel` and `useScriptModel` of
-`@akohn/dashql-react/models/script_model`: the script, its latest query and whether its workbook runs, and the operations
-`run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec`. An operation that changes state resolves once the
+A model is an interface with a hook that implements it over the runtime:
+
+| Model | Shows | Operations |
+|---|---|---|
+| `useScriptModel` (`models/script_model`) | the script, its latest query, whether its workbook runs | `run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec` |
+| `useConnectionModel` (`models/connection_model`) | the connection and its catalog | `setUp`, `save`, `setDraft`, `discardDraft`, `rename`, `setQueryResultCaching`, `refreshCatalog`, `reset`, `remove` |
+| `useQueryModel` (`models/query_model`) | the query, its progress, its result as an Arrow table; the profile while asked for | `cancel` |
+
+Each has a provider for other sources of models (`ScriptModelProvider`, ...) and a fake in
+`@akohn/dashql-react/testing/fake_models`. An operation that changes state resolves once the
 store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A model is
 the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the new one.
 
