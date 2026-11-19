@@ -15,8 +15,8 @@ const ALLOWED = /^(react|react-dom|apache-arrow|@akohn\/dashql|@akohn\/dashql-sv
 const SHOWS = /^(components|dom)\//;
 /// What a component may not import
 const RUNTIME = /^@akohn\/dashql\/runtime(\/|$)/;
-/// Only the tests and their helpers import vitest
-const TESTING = /^vitest$/;
+/// Only the tests and their helpers import vitest, and flatbuffers to build buffers of the core
+const TESTING = /^(vitest|flatbuffers)$/;
 
 function modules(dir) {
     return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {

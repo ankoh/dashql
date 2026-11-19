@@ -4,14 +4,14 @@ import * as styles from './query_progress_panel.module.css';
 
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader } from '../../workbook/tab_header.js';
-import { QueryProfileView } from '../query_profile/query_profile_view.js';
+import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress } from '@akohn/dashql/platform/query/query_progress';
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { DownloadIcon, ScreenFullIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { QueryProfileOverlay } from './query_profile_overlay.js';
+import { QueryProfileOverlay } from '@akohn/dashql-react/components/query_progress/query_profile_overlay';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -21,7 +21,7 @@ import {
     stat,
     workOf,
     type ProgressWork,
-} from './query_progress_format.js';
+} from '@akohn/dashql-react/format/query_progress_format';
 import { useQueryProfileDetail, useQueryProgress } from '@akohn/dashql-react/hooks';
 
 const view = dashql.buffers.profile;

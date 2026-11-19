@@ -1,4 +1,5 @@
 import { computeProfileFitTransform, PROFILE_FIT_PADDING, PROFILE_FIT_PADDING_BOTTOM } from './profile_fit.js';
+import { describe, expect, it } from 'vitest';
 
 describe('computeProfileFitTransform', () => {
     const availableHeight = 600 - PROFILE_FIT_PADDING - PROFILE_FIT_PADDING_BOTTOM;

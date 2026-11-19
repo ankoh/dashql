@@ -1,28 +1,38 @@
 import * as React from 'react';
-import { ZoomInIcon, ZoomOutIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ZoomInIcon, ZoomOutIcon } from '../symbol_icon.js';
 import { color as parseColor, interpolateBrBG, interpolateOrRd, interpolatePuOr, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '@akohn/dashql';
-import { JsonView } from '@akohn/dashql-react/components/json/json_view';
-import { IconButton, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
-import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { OverlaySize } from '@akohn/dashql-react/components/overlay';
-import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { JsonView } from '../json/json_view.js';
+import { IconButton, ButtonSize, ButtonVariant } from '../button.js';
+import { ButtonGroup } from '../button_group.js';
+import { SegmentedControl, SegmentedControlSize } from '../segmented_control.js';
+import { AnchoredOverlay } from '../anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../../dom/anchored_position.js';
+import { OverlaySize } from '../overlay.js';
+import { SymbolIcon } from '../symbol_icon.js';
 import { computeProfileFitTransform, ProfileFitBounds } from './profile_fit.js';
 import { createProfileLayoutConfig, PROFILE_OPERATOR_ANNOTATION_WIDTH } from '@akohn/dashql/platform/query/profile_layout_config';
 import { ProfileExecutionController } from './profile_execution_controller.js';
 import { isStatReported, ProfileExecutionState, type ProfileEntityState } from '@akohn/dashql/platform/query/profile_execution_state';
-import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../query_progress/query_progress_format.js';
+import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../../format/query_progress_format.js';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileNavigationDirection } from './profile_navigation.js';
 import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from '@akohn/dashql/platform/query/profile_operator_symbol';
 import { estimateRelativeDifference, materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT, ProfileScene, ProfileSceneEdge, ProfileSceneOperator } from './profile_scene.js';
 import * as styles from './query_profile_view.module.css';
-import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
-import { GraphPort } from '@akohn/dashql-react/components/graph_port';
+import * as graphStyles from '../graph.module.css';
+import { GraphPort } from '../graph_port.js';
+
+// The scene and the fit of the view, for the hosts that lay out a profile themselves
+export {
+    materializeProfileScene,
+    PROFILE_OPERATOR_PORT_INPUT,
+    PROFILE_OPERATOR_PORT_OUTPUT,
+    type ProfileScene,
+    type ProfileSceneOperator,
+} from './profile_scene.js';
+export { computeProfileFitTransform } from './profile_fit.js';
 
 /** The default zoom limits of the plan, a fit of a large plan lowers the minimum */
 const PROFILE_MIN_ZOOM = 0.1;

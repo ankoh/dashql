@@ -4,7 +4,7 @@ import {
     getQueryTarget,
     QueryHistoryViewer,
     type QueryEntry,
-} from '../views/query_history_viewer.js';
+} from '@akohn/dashql-react/components/query_history_viewer';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { useAllQueries, useConnections } from '@akohn/dashql-react/hooks';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';

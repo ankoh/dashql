@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { createResultSearchState } from '@akohn/dashql-react/testing/computation_mocks';
+import { createResultSearchState } from '../../testing/computation_mocks.js';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 
 describe('QueryResultSearchControls', () => {

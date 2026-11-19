@@ -1,4 +1,5 @@
 import * as dashql from '@akohn/dashql';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT } from './profile_scene.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

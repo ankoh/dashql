@@ -1,11 +1,13 @@
 import * as React from 'react';
 
-import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { SearchIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { TextInput } from '@akohn/dashql-react/components/text_input';
-import { TextInputAction } from '@akohn/dashql-react/components/text_input_action';
+import { Button, ButtonSize, ButtonVariant } from '../button.js';
+import { SearchIcon, XIcon } from '../symbol_icon.js';
+import { TextInput } from '../text_input.js';
+import { TextInputAction } from '../text_input_action.js';
 import type { ResultSearchState } from '@akohn/dashql/platform/compute/computation_types';
 import * as styles from './query_result_search_controls.module.css';
+
+export { useQueryResultSearch } from './use_query_result_search.js';
 
 /// Data searches run SQL over the whole result, so they only start once typing pauses
 const DATA_SEARCH_DEBOUNCE_MS = 200;

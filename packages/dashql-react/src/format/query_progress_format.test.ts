@@ -1,4 +1,5 @@
 import * as dashql from '@akohn/dashql';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { readProgressRecording, replayProgressRecording, type QueryProfileProgress } from '@akohn/dashql/platform/query/query_progress';
 import {
     formatCompactBytes,

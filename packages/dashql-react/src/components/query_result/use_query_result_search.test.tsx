@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
-import { mockTableComputation, recordingDispatch, valueColumn } from '@akohn/dashql-react/testing/computation_mocks';
-import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
+import { mockTableComputation, recordingDispatch, valueColumn } from '../../testing/computation_mocks.js';
+import { createTestRoot } from '../../testing/react_root.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
-import type { ComputationDispatch } from '@akohn/dashql-react/components/data_table/data_table';
+import type { ComputationDispatch } from '../data_table/data_table.js';
 
 const ROWNUM: ColumnGroup = { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } };
 const NAME: ColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') };

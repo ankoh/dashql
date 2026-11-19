@@ -1,4 +1,5 @@
 import { buildCrossEdgePath, buildFragmentPath, buildPipelinePath, estimateRelativeDifference, truncateProfileLabel } from './profile_scene.js';
+import { describe, expect, it } from 'vitest';
 
 function pathContainsPoint(path: string, x: number, y: number): boolean {
     const contours = path.split('M ').filter(Boolean).map(contour => {

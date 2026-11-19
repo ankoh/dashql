@@ -1,4 +1,5 @@
 import * as dashql from '@akohn/dashql';
+import { describe, expect, it } from 'vitest';
 import * as flatbuffers from 'flatbuffers';
 import { ProfileExecutionController } from './profile_execution_controller.js';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';

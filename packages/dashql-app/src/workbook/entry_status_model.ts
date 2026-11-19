@@ -1,6 +1,6 @@
 import { QueryExecutionState, QueryExecutionStatus, queryErrorDetails, queryIsDone, type QueryExecutionProgress } from '@akohn/dashql/platform/query/query_execution_state';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
-import { summarizeQueryProgress } from '../views/query_progress/query_progress_format.js';
+import { summarizeQueryProgress } from '@akohn/dashql-react/format/query_progress_format';
 
 /// Which source produced the status shown in the bar.
 export const enum EntryStatusKind {

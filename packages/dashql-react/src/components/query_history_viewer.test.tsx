@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
-import { fakeReactWindowModule } from '../tests/mocks/view_mocks.js';
+import { ResizeObserverMock } from '../testing/resize_observer_mock.js';
+import { fakeReactWindowModule } from '../testing/react_window_mock.js';
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 

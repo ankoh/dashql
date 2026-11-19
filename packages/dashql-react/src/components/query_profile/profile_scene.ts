@@ -1,6 +1,6 @@
 import * as dashql from '@akohn/dashql';
 import { U32_MAX } from './numeric_limits.js';
-import { buildEdgePathBetweenRectangles, PathBuilder, selectHorizontalEdgeType, selectVerticalEdgeType } from '@akohn/dashql-react/dom/graph_edges';
+import { buildEdgePathBetweenRectangles, PathBuilder, selectHorizontalEdgeType, selectVerticalEdgeType } from '../../dom/graph_edges.js';
 
 export interface ProfileSceneRect {
     x: number;

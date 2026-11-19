@@ -1,4 +1,5 @@
 import * as dashql from '@akohn/dashql';
+import { describe, expect, it } from 'vitest';
 import { findProfileOperatorInDirection } from './profile_navigation.js';
 import type { ProfileSceneOperator } from './profile_scene.js';
 

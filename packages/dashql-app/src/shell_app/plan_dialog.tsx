@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '../views/query_profile/query_profile_view.js';
+import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';

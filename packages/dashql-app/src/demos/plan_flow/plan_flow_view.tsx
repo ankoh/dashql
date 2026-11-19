@@ -4,13 +4,13 @@ import { select, zoom, zoomIdentity, type ZoomBehavior } from 'd3';
 
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderProfileOperatorSymbol } from '@akohn/dashql/platform/query/profile_operator_symbol';
-import { materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT, type ProfileScene, type ProfileSceneOperator } from '../../views/query_profile/profile_scene.js';
-import { computeProfileFitTransform } from '../../views/query_profile/profile_fit.js';
-import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../../views/query_progress/query_progress_format.js';
+import { materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT, type ProfileScene, type ProfileSceneOperator } from '@akohn/dashql-react/components/query_profile/query_profile_view';
+import { computeProfileFitTransform } from '@akohn/dashql-react/components/query_profile/query_profile_view';
+import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '@akohn/dashql-react/format/query_progress_format';
 import { GraphPort } from '@akohn/dashql-react/components/graph_port';
 import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
-import * as profileStyles from '../../views/query_profile/query_profile_view.module.css';
+import * as profileStyles from '@akohn/dashql-react/components/query_profile/query_profile_view.module.css';
 import * as styles from './plan_flow_view.module.css';
 
 const FIELD = dashql.buffers.profile.ProfileStatsField;

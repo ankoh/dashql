@@ -11,7 +11,7 @@ import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '@akohn/dashql-reac
 import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
-import { QueryProfileView } from '../../views/query_profile/query_profile_view.js';
+import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { useQueryProfile } from '../../views/query_profile/engine_profile_view.js';
 import { TabHeader } from '../tab_header.js';
 import { getPlanResultText } from '../../shell/shell_result.js';
