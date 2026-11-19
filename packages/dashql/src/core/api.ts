@@ -885,6 +885,26 @@ export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | 
         return this.ptr.assertNotNull().removeParamTag(name, parseIfOutdated);
     }
 
+    /// Select the columns of the result of the terminal query below it, `with base as (<query>) select a, b from base`,
+    /// the new statement formatted with the config. Returns the new text, the script is not changed. Throws with the
+    /// reason when the script cannot get the projection: it does not parse, its last statement is no query, the result
+    /// has no columns or two with the same name.
+    public rewriteResultProjection(
+        columns: string[],
+        config: buffers.formatting.FormattingConfigT,
+        parseIfOutdated: boolean = true,
+    ): string {
+        return this.ptr.assertNotNull().rewriteResultProjection(
+            columns,
+            config.dialect,
+            config.mode,
+            config.maxWidth,
+            config.indentationWidth,
+            config.keywordCase,
+            parseIfOutdated,
+        );
+    }
+
     /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.
     /// A null kind removes it. Returns the new text, the script is not changed.
     public rewriteVisRenderer(

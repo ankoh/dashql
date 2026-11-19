@@ -789,6 +789,24 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
     }
 
+    /// Select the columns of the result of the terminal query below it, the new statement formatted with the
+    /// config. Returns the new text, the error says why the script cannot get the projection.
+    #[allow(clippy::too_many_arguments)]
+    #[wasm_bindgen(js_name = rewriteResultProjection)]
+    pub fn rewrite_result_projection(
+        &self,
+        columns: Vec<String>,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        keyword_case: u8,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let config = formatting_config(dialect, mode, max_width, indentation_width, false, keyword_case);
+        self.inner.borrow_mut().rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
+    }
+
     /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or
     /// `table`), an empty kind removes it. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisRenderer)]
@@ -1027,6 +1045,23 @@ impl WorkbookScriptSession {
     #[wasm_bindgen(js_name = removeParamTag)]
     pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
         self.parsed()?.rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
+    }
+
+    /// Select the columns of the result of the terminal query below it. Returns the new text, the session stays.
+    #[allow(clippy::too_many_arguments)]
+    #[wasm_bindgen(js_name = rewriteResultProjection)]
+    pub fn rewrite_result_projection(
+        &self,
+        columns: Vec<String>,
+        dialect: u8,
+        mode: u8,
+        max_width: u32,
+        indentation_width: u32,
+        keyword_case: u8,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
+        let config = formatting_config(dialect, mode, max_width, indentation_width, false, keyword_case);
+        self.parsed()?.rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the renderer tag of a query, an empty kind removes it. Returns the new text, the session stays.

@@ -1175,6 +1175,11 @@ impl ScriptSession {
         self.script.rewrite_param_tag(name, value, parse_if_outdated)
     }
 
+    /// Select the columns of the result of the terminal query below it, returns the new text
+    pub fn rewrite_result_projection(&mut self, columns: &[String], config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
+        self.script.rewrite_result_projection(columns, config, parse_if_outdated)
+    }
+
     /// Can formatting represent every node?
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
         self.script.is_fully_formattable(config, parse_if_outdated)

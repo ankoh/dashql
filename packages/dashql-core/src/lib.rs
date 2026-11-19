@@ -15,6 +15,7 @@ pub mod formatter;
 pub mod hash;
 pub mod param_rewrite;
 pub mod pack;
+pub mod result_projection;
 pub mod script;
 pub mod script_diff;
 pub mod table_parameters;

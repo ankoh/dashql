@@ -407,6 +407,14 @@ impl Script {
         crate::param_rewrite::rewrite_param_tag(&self.text.to_string(), &parsed, name, value, first_use)
     }
 
+    /// Select the columns of the result of the terminal query below it, `with base as (<query>) select a, b from
+    /// base`, the new statement formatted with the config (see `result_projection`). Returns the new text like
+    /// `rewrite_vis_renderer`, or an error that says why the script cannot get the projection.
+    pub fn rewrite_result_projection(&mut self, columns: &[String], config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
+        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        crate::result_projection::rewrite_result_projection(&self.text.to_string(), &parsed, columns, config)
+    }
+
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
     /// `markdown` or `table`) by `@vis vegalite <spec>`, or add one. The annotation of the query is
     /// consolidated into one comment (see `vis_rewrite`).

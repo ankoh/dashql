@@ -207,6 +207,21 @@ describe('DashQL planner', () => {
         }
     });
 
+    it('projects the columns of the result of a session', () => {
+        const catalog = dql!.createCatalog();
+        try {
+            const formatting = dashql.buffers.formatting;
+            const config = new formatting.FormattingConfigT(formatting.FormattingDialect.HYPER, formatting.FormattingMode.PRETTY, 80, 4, false, formatting.KeywordCase.UPPER);
+            const projected = prepare(catalog, 'select 1 as a, 2 as "user";').rewriteResultProjection(['a', 'user'], config);
+            expect(projected).toMatch(/^WITH base AS \(\n/);
+            expect(projected).toContain('"user"');
+            expect(projected).toMatch(/FROM base;$/);
+            expect(() => prepare(catalog, 'select 1 as a; drop table t').rewriteResultProjection(['a'], config)).toThrow('The last statement is no query');
+        } finally {
+            catalog.destroy();
+        }
+    });
+
     it('collects the inputs of a session and writes their values', () => {
         const catalog = dql!.createCatalog();
         try {
