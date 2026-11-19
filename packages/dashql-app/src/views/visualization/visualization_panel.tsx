@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from '../query_result/query_result_header.module.css';
+import * as styles from './visualization_panel.module.css';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
@@ -8,7 +8,6 @@ import { useResultRowCount } from '../query_result/query_result_toolbar.js';
 import { QueryResultPanel } from '../query_result/query_result_header.js';
 import { ChartDownloadButton } from './chart_download_button.js';
 import { VisualizationDispatch } from './visualization_dispatch.js';
-import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 /// The height of the header bar over the visualization, see `tab_header.module.css`
 const HEADER_HEIGHT = 32;
@@ -36,7 +35,7 @@ export function VisualizationPanel(props: Props): React.ReactElement {
     }
     const showHeader = hasResult && props.query != null;
     return (
-        <div className={classNames(styles.panel, styles.chart_panel)}>
+        <div className={styles.panel}>
             {showHeader && (
                 <TabHeader
                     title="Visualization"
