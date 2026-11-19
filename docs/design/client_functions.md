@@ -472,7 +472,7 @@ Agents run no calls: `dashql run` reaches Trino and the embedded Hyper only, a c
 - **No script reads its result,** see [Running calls](#running-calls).
 - **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.
 - **The statements before it have run** when a write fails, and there is no rollback: a script is a sequence of requests.
-- **Credentials are literals.** A `:param` value is in the script's `@param` tag and the request. The [secret store](../wip/secret_store.md) is deferred.
+- **Credentials are literals.** A `:param` value is in the script's `@param` tag and the request.
 
 ## Paging
 
@@ -709,7 +709,7 @@ Each phase lands separately.
 2. **Runtime:** calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
 3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
 4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
-5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). An approval step for agents is still to come. Done, apart from the [secret store](../wip/secret_store.md), which is deferred.
+5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). Done, an approval step for agents is still to come.
 6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
 
 ## Open questions

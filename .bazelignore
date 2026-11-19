@@ -7,7 +7,6 @@ packages/dashql-org/.astro
 packages/dashql-org/dist
 packages/dashql-react/node_modules
 packages/hyperdb-edge/node_modules
-packages/vite-example/node_modules
 node_modules
 # Claude Code worktrees of this repository
 .claude

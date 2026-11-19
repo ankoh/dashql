@@ -15,24 +15,6 @@ exports_files([
     "salesforce/hyperdb/grpc/v1/error_details.proto",
 ])
 
-# Proto sources for native Rust consumers.
-# Note: the native proxy only forwards the opaque `grpc-status-details-bin`
-# bytes, it never parses google.rpc.Status / ErrorInfo, so those protos are
-# intentionally NOT compiled into Rust.
-filegroup(
-    name = "native_proto_srcs",
-    srcs = [
-        "salesforce/hyperdb/grpc/v1/hyper_service.proto",
-        "dashql/test/test_service.proto",
-    ],
-)
-
-# All protos for TypeScript / dashql-protobuf.
-filegroup(
-    name = "all_proto_srcs",
-    srcs = glob(["**/*.proto"]),
-)
-
 # --- proto_library + protoc_typescript_compile (protoc + protoc-gen-es) ---
 # Single proto_library so import paths (dashql/..., google/protobuf/...) resolve.
 proto_library(

@@ -4,7 +4,6 @@
 /bazel-*
 /external
 
-/cmake-build-debug
 .idea
 .DS_Store
 node_modules
@@ -21,14 +20,6 @@ yarn-error.log
 *.cer
 *.keychain-db
 /.bazelrc.user
-
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
 
 /todo.txt
 /todo.md
