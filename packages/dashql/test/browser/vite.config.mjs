@@ -13,6 +13,9 @@ const packageAliases = Object.entries(metadata.exports).filter(([entry]) => !ent
 export default defineConfig({
     root,
     publicDir: false,
+    // The tests of the bindings run on dep_wasm, the core module with all features (see features.test.ts and the
+    // core project of vitest.config.mjs)
+    define: { 'process.env.DASHQL_CORE_FEATURES': JSON.stringify('shell') },
     plugins: [{
         name: 'bazel-preserve-html-entry-symlinks',
         enforce: 'pre',
