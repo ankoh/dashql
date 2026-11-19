@@ -17,7 +17,7 @@ import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 import { memoryQueryResultCache } from '../platform/testing/memory_query_result_cache.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import { createTestRuntime, restoreTestWorkbook, type TestRuntime } from './testing/test_runtime.js';
-import { workbookExecutionIsBusy, type ScriptRunEvent, type WorkbookExecutionState } from '../platform/workbook/workbook_execution.js';
+import type { ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
 
 function deferred() {
     let resolve!: () => void;
@@ -100,7 +100,7 @@ type Fixture = ReturnType<typeof fixture>;
 
 /// The runs of a workbook as the hook of the app reads them
 interface Execution {
-    readonly state: WorkbookExecutionState | null;
+    readonly state: core.WorkbookRunState | null;
     readonly busy: boolean;
     /// Does a run hold the workbook?
     readonly held: boolean;
@@ -140,7 +140,7 @@ describe('the runs of workbooks of the runtime', () => {
         const core = rt;
         return {
             get state() { return core.store.get('run', workbookId)?.state ?? null; },
-            get busy() { return workbookExecutionIsBusy(core.store.get('run', workbookId)?.state); },
+            get busy() { return core.store.get('run', workbookId)?.state?.busy ?? false; },
             get held() { return core.store.get('run', workbookId)?.held != null; },
             start: options => core.runWorkbook(workbookId, { inputs: options?.inputs }),
             stop: () => core.module.stopRun(workbookId),
@@ -406,13 +406,6 @@ describe('the runs of workbooks of the runtime', () => {
         expect(f.executeQuery).not.toHaveBeenCalled();
         void current.start();
         await vi.waitFor(() => expect(f.executeQuery).toHaveBeenCalledTimes(1));
-    });
-
-    it.each(['planning', 'running', 'stopping', 'succeeded', 'failed', 'cancelled'] as const)('classifies the %s phase', phase => {
-        expect(workbookExecutionIsBusy({ phase } as WorkbookExecutionState))
-            .toBe(phase === 'planning' || phase === 'running' || phase === 'stopping');
-        expect(workbookExecutionIsBusy(null)).toBe(false);
-        expect(workbookExecutionIsBusy(undefined)).toBe(false);
     });
 });
 
@@ -680,7 +673,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(run.outcome.failure).toBeNull();
         expect(f.statements).toEqual(['create table items (id int)', 'insert into items values (7)', 'select id from items']);
         expect(f.core.store.get('run', f.workbookId)?.state).toEqual({
-            phase: 'succeeded', totalScripts: 3, completedScripts: 3, totalStatements: 3, completedStatements: 3,
+            phase: 'succeeded', busy: false, totalScripts: 3, completedScripts: 3, totalStatements: 3, completedStatements: 3,
             activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts: 0, skippedFiles: [],
         });
         // Every script shows the query of its statement, the output is the result of the last one

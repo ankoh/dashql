@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { mockTableComputation, recordingDispatch } from '../../testing/computation_mocks.js';
 import { createTestRoot } from '../../testing/react_root.js';
@@ -44,10 +44,10 @@ describe('useDataTableOrdering', () => {
     });
     const DATA_TABLE = tableFromArrays({ rownum: Int32Array.from([0, 1, 2]) });
 
-    function renderOrdering(table: TableComputationState) {
+    function renderOrdering(table: ComputationView) {
         const recorded = recordingDispatch();
         const current = { ordering: null as ReturnType<typeof useDataTableOrdering> | null };
-        function Probe(props: { table: TableComputationState }) {
+        function Probe(props: { table: ComputationView }) {
             current.ordering = useDataTableOrdering(props.table, DATA_TABLE, recorded.dispatch);
             return null;
         }

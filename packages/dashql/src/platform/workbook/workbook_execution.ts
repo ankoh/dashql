@@ -6,14 +6,6 @@ import { LoggableException } from '../logger/logger.js';
 // `packages/dashql-core-runtime/src/workbook_run`): `Runtime.runWorkbook`, `runScript` and `stopRun`, the `run`
 // slice of a workbook. These are the types that the listeners of runs read.
 
-/// The state of a run as the runtime reports it
-export type WorkbookExecutionState = core.WorkbookRunState;
-
-/// Is the run of a workbook planning, running or stopping?
-export function workbookExecutionIsBusy(state: WorkbookExecutionState | null | undefined): boolean {
-    return state?.phase === 'planning' || state?.phase === 'running' || state?.phase === 'stopping';
-}
-
 /// What happens to a script in a run. A script of the plan is `planned`, or `cached`, or `skipped`. A planned script
 /// may still be skipped if its connection can't be set up. A planned script that starts is then `done`, `failed` or
 /// `cancelled`. A planned script that never starts, e.g. because the run stopped first, gets no further event.

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import { ORDINAL_COLUMN, STRING_COLUMN, type OrdinalColumnAggregation, type StringColumnAggregation, type TableAggregation, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
+import { ORDINAL_COLUMN, STRING_COLUMN, type OrdinalColumnAggregation, type StringColumnAggregation, type TableAggregation } from '@akohn/dashql/platform/compute/computation_types';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
@@ -27,7 +28,7 @@ export interface CrossFilterController {
 /// The runtime filters the rows, orders them again and summarizes the columns over the selected rows; a request that
 /// the computation already answers or that a running task answers runs nothing, consumers may ask at the same time.
 export function useCrossFilters(
-    computationState: TableComputationState | null,
+    computationState: ComputationView | null,
     dispatchComputation: ComputationDispatch,
     gridLayout: DataTableLayout,
 ): CrossFilterController {
@@ -75,4 +76,4 @@ export function crossFilterOf(crossFilters: core.ComputationCrossFilter[], colum
 }
 
 const EMPTY_CROSS_FILTERS: core.ComputationCrossFilter[] = [];
-const EMPTY_COLUMN_GROUPS: TableComputationState['columnGroups'] = [];
+const EMPTY_COLUMN_GROUPS: ComputationView['columnGroups'] = [];

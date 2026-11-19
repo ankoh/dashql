@@ -1,7 +1,8 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { resolveMatchingRows, type SummaryTables, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
+import { resolveMatchingRows, type SummaryTables } from '@akohn/dashql/platform/compute/computation_types';
 
 /// The Arrow tables of the view of a computation, resolved by their handles
 export interface ComputationTables {
@@ -18,7 +19,7 @@ export interface ComputationTables {
 }
 
 /// The tables of a view
-export function resolveComputationTables(view: TableComputationState | null, tables: SummaryTables | null): ComputationTables {
+export function resolveComputationTables(view: ComputationView | null, tables: SummaryTables | null): ComputationTables {
     const table = (handle: number | null | undefined) => tables?.table(handle) ?? null;
     return {
         dataTable: table(view?.dataTable),
@@ -30,7 +31,7 @@ export function resolveComputationTables(view: TableComputationState | null, tab
 }
 
 /// The tables of a view, the same object while the tables are the same
-export function useComputationTables(view: TableComputationState | null, tables: SummaryTables | null): ComputationTables {
+export function useComputationTables(view: ComputationView | null, tables: SummaryTables | null): ComputationTables {
     return React.useMemo(
         () => resolveComputationTables(view, tables),
         [tables, view?.dataTable, view?.filterTable, view?.orderingTable, view?.dataSearchTable, view?.dataSearch.hasMatchingRows],

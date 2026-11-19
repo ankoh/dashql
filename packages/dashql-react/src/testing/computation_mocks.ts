@@ -1,10 +1,10 @@
 import { vi } from 'vitest';
 import type * as core from '@akohn/dashql';
 
-import type { ColumnGroup, ResultSearchState, TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup, ComputationSearch, ComputationView } from '@akohn/dashql';
 
 /// A search without a pattern
-export function createResultSearchState(): ResultSearchState {
+export function createResultSearchState(): ComputationSearch {
     return {
         requestedPattern: '',
         appliedPattern: '',
@@ -33,7 +33,7 @@ export function valueColumn(name: string, inputFieldType: string, fields: Partia
 
 /// The view of the computation of table 1 before its tasks ran: the table by the handle 1, the data frame 1 and the
 /// row number column `rownum`
-export function mockTableComputation(columnGroups: ColumnGroup[], fields: Partial<TableComputationState> = {}): TableComputationState {
+export function mockTableComputation(columnGroups: ComputationColumnGroup[], fields: Partial<ComputationView> = {}): ComputationView {
     return {
         tableId: 1,
         revision: 1,

@@ -6,20 +6,6 @@ import type { QueryExecutionProgress } from './query_execution_state.js';
 /// executor applies the progress payloads of the engines and reports the structured progress with every progress
 /// update, the query history of the core keeps the latest one. The app reads it from the view of the query.
 
-/// The raw progress payload of an engine that a channel of the host reports, the progress model of the query in the
-/// query executor of the core turns it into the structured progress
-export type EngineProgressPayload =
-    /// The status of a Hyper query (web HTTP API): the progress and the processed rows of the whole query
-    { kind: 'hyper_query_status'; status: HyperQueryStatus; receivedAt: number };
-
-/// The status of a Hyper query, the fields of the Hyper HTTP API that describe its progress
-export interface HyperQueryStatus {
-    completionStatus: string;
-    rowCount: number | null;
-    progress: number | null;
-    executionStats: { wallClockTime: number; rowsProcessed: number } | null;
-}
-
 /// The query and the runtime that hold a progress, its recording and its followers read it there
 export interface QueryProgressSource {
     readonly runtime: dashql.Runtime;

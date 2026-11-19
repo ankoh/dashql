@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
+import type * as core from '../../core/index.js';
 
 import { ArrowTableFormatter } from '../compute/arrow_formatter.js';
 import type {
     ColumnAggregationVariant,
-    ComputationStateVersion,
     OrdinalColumnAggregation,
     StringColumnAggregation,
     SummaryColumn,
@@ -112,6 +112,6 @@ export function stringAggregate(table: TableAggregation, column: SummaryColumn, 
 }
 
 /// A summary among the selected rows, computed for a version of the filters
-export function filteredAggregate(aggregate: ColumnAggregationVariant, filterVersion: ComputationStateVersion = { data: 1, filter: 1 }, dataSearchRequestId: number | null = null): WithFilterEpoch<ColumnAggregationVariant> {
+export function filteredAggregate(aggregate: ColumnAggregationVariant, filterVersion: core.ComputationVersionValue = { data: 1, filter: 1 }, dataSearchRequestId: number | null = null): WithFilterEpoch<ColumnAggregationVariant> {
     return { ...aggregate, filterVersion, dataSearchRequestId };
 }

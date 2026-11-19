@@ -1,6 +1,5 @@
 import type * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import type { QueryMetadata } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { createTestConnection, setupTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
@@ -48,9 +47,9 @@ export async function setTestConnectionHealth(runtime: Runtime, connectionId: st
 /// Run a query of a test on a connection with the query executor of the module, past the query commands that a test
 /// replaces. A finished query fails before it runs, like a statement whose plan failed; an active one runs on the
 /// channel of the connection until it is cancelled, e.g. on a `pendingTestChannel`. Returns its id.
-export function runTestQuery(runtime: Runtime, connectionId: string, text: string, metadata: QueryMetadata, finished: boolean): number {
+export function runTestQuery(runtime: Runtime, connectionId: string, text: string, metadata: core.QueryMetadataView, finished: boolean): number {
     const failure = finished ? new Error('the query of the test ended') : undefined;
-    const ticket = runtime.module.executeQuery(connectionId, { text, metadata: metadata as core.QueryMetadataView, traceId: 1 }, failure, null);
+    const ticket = runtime.module.executeQuery(connectionId, { text, metadata, traceId: 1 }, failure, null);
     void ticket.done.catch(() => { });
     runtime.flush();
     return ticket.queryId;

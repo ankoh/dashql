@@ -1,15 +1,15 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import type { OrderByConstraint, TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationOrderBy, ComputationView } from '@akohn/dashql';
 import type { ComputationDispatch } from './use_cross_filters.js';
 
-export function getColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {
+export function getColumnSortDirection(field: string, ordering: ComputationOrderBy[]): boolean | null {
     if (ordering.length !== 1 || ordering[0].field !== field) return null;
     return ordering[0].ascending ?? true;
 }
 
-export function getNextColumnSortDirection(field: string, ordering: OrderByConstraint[]): boolean | null {
+export function getNextColumnSortDirection(field: string, ordering: ComputationOrderBy[]): boolean | null {
     const currentDirection = getColumnSortDirection(field, ordering);
     if (currentDirection == null) return true;
     return currentDirection ? false : null;
@@ -18,11 +18,11 @@ export function getNextColumnSortDirection(field: string, ordering: OrderByConst
 /// The ordering of a table: a click on a column orders by it ascending, then descending, then not. The runtime orders
 /// the rows, and orders them again when the filter or the data search changes.
 export function useDataTableOrdering(
-    table: TableComputationState,
+    table: ComputationView,
     dataTable: arrow.Table,
     dispatchComputation: ComputationDispatch,
 ) {
-    const activeOrderingConstraints = React.useMemo<OrderByConstraint[]>(() => {
+    const activeOrderingConstraints = React.useMemo<ComputationOrderBy[]>(() => {
         const taskOrdering = table.tasks.orderingTask?.orderingConstraints;
         return taskOrdering != null && taskOrdering.length > 0 ? taskOrdering : table.dataTableOrdering;
     }, [table.dataTableOrdering, table.tasks.orderingTask?.orderingConstraints]);

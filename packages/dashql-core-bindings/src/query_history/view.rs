@@ -10,7 +10,7 @@
 //! from the one the host holds.
 
 use dashql_buffers::profile as fb;
-use dashql_core_runtime::query::progress::{EngineProgressPayload, QueryProfileProgress};
+use dashql_core_runtime::query::progress::QueryProfileProgress;
 use dashql_core_runtime::query::{
     self as rt, ConnectionQueryMetrics, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState,
     QueryMetadata,
@@ -102,9 +102,7 @@ impl From<QueryStreamMetrics> for QueryExecutionMetrics {
     }
 }
 
-/// A progress update of a channel of the host: the plain fields and the raw progress payload of the engine, e.g.
-/// `{ kind: 'hyper_query_status', status, receivedAt }`. The progress model of the query in the executor turns the
-/// payload into the structured progress.
+/// A progress update of a channel of the host, the plain fields
 #[derive(Clone, Debug, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -119,10 +117,6 @@ pub struct QueryProgressView {
     pub metrics: Option<QueryStreamMetrics>,
     #[tsify(optional, type = "string | null")]
     pub phase: Option<String>,
-    /// The raw progress payload of the engine, a payload of an unknown kind is dropped
-    #[serde(default)]
-    #[tsify(optional, type = "unknown")]
-    pub engine_progress: Option<serde_json::Value>,
 }
 
 impl From<QueryProgressView> for QueryExecutionProgress {
@@ -135,7 +129,7 @@ impl From<QueryProgressView> for QueryExecutionProgress {
             execution_time_ms: p.execution_time_ms.map(|ms| ms as i64),
             metrics: p.metrics.map(Into::into).unwrap_or_default(),
             phase: p.phase,
-            engine_progress: p.engine_progress.as_ref().and_then(|payload| EngineProgressPayload::from_json(payload).ok()),
+            engine_progress: None,
             profile_progress: None,
         }
     }
@@ -256,8 +250,7 @@ impl QueryLatestProgressView {
     }
 }
 
-/// What a query is and who issued it. A planned statement of a run of a workbook is opaque JSON
-/// (`PlannedStatement` of the app).
+/// What a query is and who issued it. A planned statement of a run of a workbook is opaque JSON.
 #[derive(Clone, Debug, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]

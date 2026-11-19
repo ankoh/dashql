@@ -4,7 +4,7 @@ import type * as core from '../../core/index.js';
 import { QueryExecutionStatus, QueryType } from '../../core/index.js';
 
 import { AsyncConsumer } from '../utils/async_consumer.js';
-import type { EngineProgressPayload, QueryProfileProgress } from './query_progress.js';
+import type { QueryProfileProgress } from './query_progress.js';
 
 /// The status of the execution of a query, a numeric enum of the module
 export { QueryExecutionStatus };
@@ -40,9 +40,6 @@ export interface QueryExecutionProgress {
     metrics: QueryExecutionMetrics;
     /// The phase the engine reports, e.g. the Trino query state (QUEUED, PLANNING, RUNNING, FINISHING)
     phase?: string | null;
-    /// The raw progress payload of the engine that a channel of the host reports, the query executor of the runtime
-    /// feeds it into the progress model of the query
-    engineProgress?: EngineProgressPayload | null;
     /// The structured progress (stages, pipelines, the plan) of the progress model of the query
     profileProgress?: QueryProfileProgress | null;
 }
@@ -63,62 +60,9 @@ export interface QueryExecutionResponseStream {
 /// The kind of a query, a numeric enum of the module
 export { QueryType };
 
-export interface QueryMetadata {
-    /// The query type
-    queryType: QueryType;
-    /// The title of the query (if any)
-    title: string | null;
-    /// The description
-    description: string | null;
-    /// The issuer
-    issuer: string | null;
-    /// Authored by the user or the app?
-    userProvided: boolean;
-    /// The workbook that issued the query, if any.
-    /// Several workbooks may share a connection, the workbook scopes the query result cache and the
-    /// cleanup of the workbook's queries.
-    workbookId?: string;
-    /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result table of the
-    /// earlier queries of its owner, the owner shows only its latest result.
-    resultOwner?: string;
-    /// Where a statement of a plan of workbook scripts comes from
-    planned?: PlannedStatement;
-}
-
-/// A statement of a plan of workbook scripts (docs/design/planner_dependencies.md)
-export interface PlannedStatement {
-    /// A run of the whole workbook or of a script
-    run: 'workbook' | 'script';
-    /// The script that a run of a script runs
-    target: string | null;
-    /// The node of the plan
-    node: number;
-    /// The script of the statement
-    script: string;
-    /// The statement within the statements of the script in the plan, from 1
-    statement: number;
-    statements: number;
-    /// The type of the statement, e.g. SELECT
-    statementType: string;
-    /// Is the statement the result of its script?
-    result: boolean;
-    /// Is the statement the cached result of its script? The executor reads the file instead of running it.
-    cached: boolean;
-    /// The scripts whose queries the statement inlines as common table expressions
-    inlined: string[];
-    /// The materialized results of the scripts of other connections that the statement scans, cached if the host
-    /// provides the file of an earlier run
-    scans: Array<{ script: string; path: string; cached: boolean }>;
-    /// The file that the result of the statement is written to, for statements of other connections
-    materializes: string | null;
-    /// The nodes the statement runs after and why
-    after: Array<{ node: number; reason: string }>;
-}
-
 /// A query, the view of the slice `query` of the runtime (docs/design/dashql_runtime.md). The points in time are
 /// milliseconds since epoch, the result table is a handle of the handle table of the runtime (`useTable`).
-export type QueryExecutionState = Omit<core.QueryView, 'queryMetadata'> & {
-    queryMetadata: QueryMetadata;
+export type QueryExecutionState = core.QueryView & {
     /// The progress of the latest progress update with its structured progress, the store of the runtime projects it
     /// once per change of the view (`runtime/query/query_projection.ts`), null without an update
     progress?: QueryExecutionProgress | null;

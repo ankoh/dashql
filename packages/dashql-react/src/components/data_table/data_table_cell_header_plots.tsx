@@ -4,7 +4,8 @@ import symbols from '@akohn/dashql-svg-symbols';
 
 import { classNames } from '../../dom/classnames.js';
 import type * as core from '@akohn/dashql';
-import { ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, TrackedTask, WithFilterEpoch, ComputationStateVersion } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup, ComputationTrackedTask, ComputationVersionValue } from '@akohn/dashql';
+import { ColumnAggregationVariant, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { RectangleWaveSpinner } from '../spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -20,14 +21,14 @@ export interface HeaderPlotsCellProps {
     columnIndex: number;
     style: React.CSSProperties;
     gridLayout: DataTableLayout;
-    columnGroups: ColumnGroup[];
+    columnGroups: ComputationColumnGroup[];
     columnAggregations: (ColumnAggregationVariant | null)[];
-    columnAggregationTasks: (TrackedTask | null)[];
+    columnAggregationTasks: (ComputationTrackedTask | null)[];
     filteredColumnAggregations: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
-    filteredColumnAggregationTasks: (TrackedTask | null)[];
+    filteredColumnAggregationTasks: (ComputationTrackedTask | null)[];
     filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
-    selectionEpoch: ComputationStateVersion;
+    selectionEpoch: ComputationVersionValue;
     dataSearchRequestId: number | null;
     crossFilters: core.ComputationCrossFilter[];
     isVisible: boolean;
@@ -45,9 +46,9 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
 
     // Resolve the column summary
     let columnAggregate: ColumnAggregationVariant | null = null;
-    let columnAggregationTask: TrackedTask | null = null;
+    let columnAggregationTask: ComputationTrackedTask | null = null;
     let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
-    let filteredColumnAggregationTask: TrackedTask | null = null;
+    let filteredColumnAggregationTask: ComputationTrackedTask | null = null;
     let filteredColumnAggregationOutdated = false;
     const columnAggregateId = props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
     if (columnAggregateId != -1) {
@@ -85,7 +86,7 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     // very expensive and not rendered. Show a "no summary" indicator on the primary
     // value column of such groups (meta/system columns stay blank).
     const columnGroupId = props.gridLayout.columnGroupByColumnIndex[props.columnIndex];
-    const columnGroup = props.columnGroups[columnGroupId] as ColumnGroup | undefined;
+    const columnGroup = props.columnGroups[columnGroupId] as ComputationColumnGroup | undefined;
     const crossFilter = crossFilterOf(props.crossFilters, columnGroupId);
     const histogramSelection = crossFilter?.kind === 'histogram'
         ? crossFilter.selection

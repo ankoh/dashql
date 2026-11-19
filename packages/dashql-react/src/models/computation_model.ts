@@ -1,7 +1,8 @@
 import * as React from 'react';
 
 import type * as core from '@akohn/dashql';
-import type { SummaryTables, TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
+import type { SummaryTables } from '@akohn/dashql/platform/compute/computation_types';
 
 import { useComputationDispatch, useOptionalRuntime } from '../hooks.js';
 
@@ -12,7 +13,7 @@ import { useComputationDispatch, useOptionalRuntime } from '../hooks.js';
 /// The computation of a result table as a component shows it, and what the component can do with it
 export interface ComputationModel {
     /// The computation: its columns, summaries, filters, ordering and searches, with the handles of their tables
-    readonly computation: TableComputationState;
+    readonly computation: ComputationView;
     /// The Arrow tables of the handles of the computation
     readonly tables: SummaryTables;
 
@@ -24,7 +25,7 @@ export interface ComputationModel {
 const NO_TABLES: SummaryTables = { table: () => undefined };
 
 /// The model of a computation, null without one. It renders again when the computation changes and no other.
-export function useComputationModel(computation: TableComputationState | null | undefined): ComputationModel | null {
+export function useComputationModel(computation: ComputationView | null | undefined): ComputationModel | null {
     const runtime = useOptionalRuntime();
     const dispatch = useComputationDispatch(computation?.tableId);
     return React.useMemo(() => {

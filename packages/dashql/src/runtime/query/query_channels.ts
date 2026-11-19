@@ -204,7 +204,7 @@ export class QueryChannels {
             connectionId,
             {
                 text: args.query,
-                metadata: args.metadata as core.QueryMetadataView,
+                metadata: args.metadata,
                 traceId: trace.traceId,
                 spanId: trace.spanId,
                 options: {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import type { WorkbookExecutionState } from '@akohn/dashql/platform/workbook/workbook_execution';
+import type { WorkbookRunState } from '@akohn/dashql';
 import { diffConnections, diffExecution, diffPublish, diffScriptQueries, liveWorkbookStatuses, type ScriptQuery, type WorkbookConnectionStatus } from './use_workbook_status_sources.js';
 import { pickWorkbookStatus, WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 
@@ -15,9 +15,9 @@ function query(scriptKey: number, queryId: number, status: QueryExecutionStatus,
     };
 }
 
-function execution(phase: WorkbookExecutionState['phase'], extra: Partial<WorkbookExecutionState> = {}): WorkbookExecutionState {
+function execution(phase: WorkbookRunState['phase'], extra: Partial<WorkbookRunState> = {}): WorkbookRunState {
     return {
-        phase, totalScripts: 3, completedScripts: 1, totalStatements: 3, completedStatements: 1,
+        phase, busy: phase === 'planning' || phase === 'running' || phase === 'stopping', totalScripts: 3, completedScripts: 1, totalStatements: 3, completedStatements: 1,
         activeFileName: '2_revenue.sql', activeStatementIndex: 0, activeStatementCount: 1,
         error: null, skippedScripts: 0, skippedFiles: [], ...extra,
     };

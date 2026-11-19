@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
 import type { ComputationTables } from './computation_tables.js';
 
 /// Visit the values of an integer column as numbers, like `Number(column.get(i))` (nulls become 0).
@@ -65,7 +65,7 @@ export function resolveVisibleRowIndices(tables: Pick<ComputationTables, 'orderi
 
 /// Intersect the current cross-filtered/ordered rows with the active Data search.
 /// Search result keys are stable 1-based row numbers from the analyzed data frame.
-export function resolveSearchedRowIndices(computation: TableComputationState | null, tables: ComputationTables): Int32Array | null {
+export function resolveSearchedRowIndices(computation: ComputationView | null, tables: ComputationTables): Int32Array | null {
     if (computation == null) {
         return null;
     }

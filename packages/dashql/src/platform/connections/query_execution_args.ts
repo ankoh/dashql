@@ -1,4 +1,4 @@
-import { QueryMetadata } from "../query/query_execution_state.js";
+import type * as core from '../../core/index.js';
 import type * as arrow from 'apache-arrow';
 import type { ClientFunctionCallDescription } from "./clfn_spec.js";
 
@@ -24,7 +24,7 @@ export interface QueryExecutionArgs {
     /// Called once after the backend result is fully consumed, but before optional result analysis.
     /// The normal execution promise still resolves only after postprocessing completes.
     onResultsReady?: () => void;
-    metadata: QueryMetadata;
+    metadata: core.QueryMetadataView;
     /// Record the query as failed with this error instead of executing it, e.g. a script whose plan failed. The result
     /// of the owner of the query then shows the error like the error of a failed statement.
     failure?: Error;

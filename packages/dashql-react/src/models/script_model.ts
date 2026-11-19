@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { workbookExecutionIsBusy } from '@akohn/dashql/platform/workbook/workbook_execution';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 import { useDispatch, useOptionalRuntime, useQuery, useScript, useView } from '../hooks.js';
@@ -48,7 +47,7 @@ export function useScriptModel(workbookId: string, scriptKey: number | null | un
     const query = useQuery(script?.latestQueryId ?? null);
     const run = useView('run', workbookId);
     const dispatch = useDispatch({ workbook: workbookId });
-    const runActive = workbookExecutionIsBusy(run?.state) || run?.held != null;
+    const runActive = run?.state?.busy === true || run?.held != null;
     return React.useMemo(() => {
         if (script == null) return null;
         const key = script.scriptKey;

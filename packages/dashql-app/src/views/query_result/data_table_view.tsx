@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
 import { DataTable, TableColumnHeader, type DataTableProps } from '@akohn/dashql-react/components/data_table/data_table';
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 
@@ -9,7 +9,7 @@ import { CellDetailOverlay } from './cell_detail_overlay.js';
 
 type Props = Omit<DataTableProps, 'model' | 'cellDetail'> & {
     /// The computation of the table in the runtime
-    table: TableComputationState;
+    table: ComputationView;
 };
 
 /// The data table of a computation of the runtime (`DataTable` of @akohn/dashql-react): its model, the column plots

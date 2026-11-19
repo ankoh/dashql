@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
 import type { ComputationDispatch } from '../data_table/data_table.js';
 
 /// The column and the data search of a table. The runtime runs the searches: a search that the user types starts once
 /// the data frame of the table is there, a newer one supersedes it, an empty pattern ends it.
 export function useQueryResultSearch(
-    table: TableComputationState | null,
+    table: ComputationView | null,
     dispatch: ComputationDispatch,
 ) {
     const setColumnPattern = React.useCallback((pattern: string) => {

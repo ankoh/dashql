@@ -80,6 +80,8 @@ impl From<RunPhase> for WorkbookRunPhase {
 #[tsify(missing_as_null)]
 pub struct WorkbookRunState {
     pub phase: WorkbookRunPhase,
+    /// Does the run plan, run or stop?
+    pub busy: bool,
     pub total_scripts: usize,
     pub completed_scripts: usize,
     /// The planned statements that run
@@ -100,6 +102,7 @@ impl From<&RunState> for WorkbookRunState {
     fn from(state: &RunState) -> Self {
         WorkbookRunState {
             phase: state.phase.into(),
+            busy: matches!(state.phase, RunPhase::Planning | RunPhase::Running | RunPhase::Stopping),
             total_scripts: state.total_scripts,
             completed_scripts: state.completed_scripts,
             total_statements: state.total_statements,

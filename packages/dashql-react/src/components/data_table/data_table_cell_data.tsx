@@ -5,7 +5,7 @@ import * as styles from './data_table.module.css';
 import type { CellComponentProps } from 'react-window';
 
 import { ArrowTableFormatter, isArrowListType } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { ColumnGroup } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup } from '@akohn/dashql';
 import { DataTableLayout } from './data_table_layout.js';
 import { Tag } from '../tag.js';
 import { peekFormat } from './format_peek.js';
@@ -24,7 +24,7 @@ function truncateCellText(text: string): string {
 }
 
 export interface DataCellData {
-    columnGroups: ColumnGroup[];
+    columnGroups: ComputationColumnGroup[];
     visibleRowIndices: Int32Array | null;
     focus: DataTableFocusStore;
     gridLayout: DataTableLayout;

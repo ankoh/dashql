@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup } from '@akohn/dashql';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 
@@ -24,7 +25,7 @@ function nameTable() {
         id: numbers.getChild('id')!,
         name: vectorFromArray(['alpha', 'beta', 'gamma'], new arrow.Utf8()),
     });
-    const columnGroups: ColumnGroup[] = [
+    const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
         { type: ORDINAL_COLUMN, value: valueColumn('id', 'Int32', { inputFieldNullable: false }) },
         { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') },

@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { valueColumn } from '../../testing/computation_mocks.js';
-import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup } from '@akohn/dashql';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
@@ -14,11 +15,11 @@ function createTableState() {
         a: Int32Array.from([1, 2]),
         b: Int32Array.from([3, 4]),
     });
-    const ordinal = (name: string): ColumnGroup => ({
+    const ordinal = (name: string): ComputationColumnGroup => ({
         type: ORDINAL_COLUMN,
         value: valueColumn(name, 'Int32', { inputFieldNullable: false }),
     });
-    const columnGroups: ColumnGroup[] = [
+    const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
         ordinal('a'),
         ordinal('b'),
@@ -42,7 +43,7 @@ function createTableStateWithSystemColumns() {
         s: vectorFromArray(['x', 'y'], new arrow.Utf8()),
         s_id: ints(0, 1),
     });
-    const columnGroups: ColumnGroup[] = [
+    const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
         { type: ORDINAL_COLUMN, value: valueColumn('a', 'Int32', { inputFieldNullable: false, binFieldName: 'a_bin', binCount: 2 }) },
         { type: STRING_COLUMN, value: valueColumn('s', 'Utf8', { inputFieldNullable: false, valueIdFieldName: 's_id' }) },

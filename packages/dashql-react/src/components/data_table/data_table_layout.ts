@@ -1,7 +1,8 @@
 import * as arrow from 'apache-arrow';
 
 import { ArrowTableFormatter } from "@akohn/dashql/platform/compute/arrow_formatter";
-import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@akohn/dashql/platform/compute/computation_types";
+import type { ComputationColumnGroup } from '@akohn/dashql';
+import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@akohn/dashql/platform/compute/computation_types";
 
 export interface DataTableLayout {
     columnCount: number;
@@ -20,7 +21,7 @@ const COLUMN_HEADER_ACTION_WIDTH = 24;
 const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
-function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolean, visibleColumnGroups?: ReadonlySet<number> | null): number {
+function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColumns: boolean, visibleColumnGroups?: ReadonlySet<number> | null): number {
     let columnCount = 0;
     for (let groupIndex = 0; groupIndex < columnGroups.length; ++groupIndex) {
         const columnGroup = columnGroups[groupIndex];
@@ -53,7 +54,7 @@ function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolea
 
 /// What the layout of a table reads: its column groups and the table with the system columns
 export interface DataTableLayoutInput {
-    columnGroups: ColumnGroup[];
+    columnGroups: ComputationColumnGroup[];
     dataTable: arrow.Table;
 }
 

@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type * as core from '@akohn/dashql';
 
-import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableAggregation, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup, ComputationView } from '@akohn/dashql';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, type TableAggregation } from '@akohn/dashql/platform/compute/computation_types';
 import { mockTableComputation, recordingDispatch, valueColumn } from '../../testing/computation_mocks.js';
 import { createTestRoot } from '../../testing/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { type ComputationDispatch, type CrossFilterController, crossFilterOf, useCrossFilters } from './use_cross_filters.js';
 
-const COLUMNS: ColumnGroup[] = [
+const COLUMNS: ComputationColumnGroup[] = [
     { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
     { type: ORDINAL_COLUMN, value: valueColumn('score', 'Float64', { binFieldName: 'score_bin', binCount: 8 }) },
     { type: STRING_COLUMN, value: valueColumn('name', 'Utf8', { valueIdFieldName: 'name_id' }) },
@@ -28,14 +29,14 @@ describe('useCrossFilters', () => {
     /// Render the hook for a table state and return its latest controller
     function renderCrossFilters(dispatch: ComputationDispatch) {
         const current = { controller: null as CrossFilterController | null };
-        function Probe(props: { state: TableComputationState | null }) {
+        function Probe(props: { state: ComputationView | null }) {
             current.controller = useCrossFilters(props.state, dispatch, LAYOUT);
             return null;
         }
         root = createTestRoot();
         return {
             current,
-            render: (state: TableComputationState | null) => root!.render(<Probe state={state} />),
+            render: (state: ComputationView | null) => root!.render(<Probe state={state} />),
         };
     }
 

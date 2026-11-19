@@ -19,23 +19,8 @@ export const ROWNUMBER_COLUMN = 'ROWNUMBER';
 /// The status of a task, the numeric enum of the runtime
 export { TaskStatus } from '../../core/index.js';
 
-/// The view of the computation of a result table
-export type TableComputationState = core.ComputationView;
-/// A column group of the grid
-export type ColumnGroup = core.ComputationColumnGroup;
-/// The value column of an ordinal, a string or a list column group
-export type GridValueColumn = core.ComputationValueColumn;
-/// A key of an ordering
-export type OrderByConstraint = core.ComputationOrderBy;
-/// The version of the data and the filter of a computation
-export type ComputationStateVersion = core.ComputationVersionValue;
-/// The search of the columns or of the data
-export type ResultSearchState = core.ComputationSearch;
-/// A task that a computation tracks with its progress
-export type TrackedTask = core.ComputationTrackedTask;
-
 /// The value column of a column group with the Arrow type of its field
-export interface SummaryColumn extends Omit<GridValueColumn, 'inputFieldType'> {
+export interface SummaryColumn extends Omit<core.ComputationValueColumn, 'inputFieldType'> {
     inputFieldType: arrow.DataType;
 }
 
@@ -111,7 +96,7 @@ export type ColumnAggregationVariant =
 
 export type WithFilterEpoch<T> = T & {
     /// The filter version when this aggregate was computed
-    filterVersion: ComputationStateVersion;
+    filterVersion: core.ComputationVersionValue;
     /// The Data-search request when this aggregate was computed
     dataSearchRequestId: number | null;
 };
@@ -155,7 +140,7 @@ function once<T>(table: arrow.Table, build: () => T): T {
 }
 
 /// The statistics of a computation
-export function resolveTableAggregation(view: TableComputationState, tables: SummaryTables, logger: LoggerLike): TableAggregation | null {
+export function resolveTableAggregation(view: core.ComputationView, tables: SummaryTables, logger: LoggerLike): TableAggregation | null {
     const aggregation = view.tableAggregation;
     const table = aggregation == null ? undefined : tables.table(aggregation.table);
     if (aggregation == null || table == null) return null;
@@ -168,7 +153,7 @@ export function resolveTableAggregation(view: TableComputationState, tables: Sum
 }
 
 /// The column of a column group with the Arrow type of its field in the table
-function summaryColumn(group: ColumnGroup | undefined, dataTable: arrow.Table | undefined): SummaryColumn | null {
+function summaryColumn(group: core.ComputationColumnGroup | undefined, dataTable: arrow.Table | undefined): SummaryColumn | null {
     if (group == null || (group.type !== ORDINAL_COLUMN && group.type !== STRING_COLUMN && group.type !== LIST_COLUMN)) return null;
     const field = dataTable?.schema.fields.find(field => field.name === group.value.inputFieldName);
     return { ...group.value, inputFieldType: field?.type ?? new arrow.Null() };
@@ -177,7 +162,7 @@ function summaryColumn(group: ColumnGroup | undefined, dataTable: arrow.Table | 
 /// The summary of a column of the view with its analysis and the formatted values
 function resolveAggregate(
     aggregate: core.ComputationColumnAggregate | null | undefined,
-    group: ColumnGroup | undefined,
+    group: core.ComputationColumnGroup | undefined,
     stats: TableAggregation | null,
     dataTable: arrow.Table | undefined,
     tables: SummaryTables,
@@ -225,7 +210,7 @@ const SKIPPED_AGGREGATE: ColumnAggregationVariant = { type: SKIPPED_COLUMN, valu
 const epochs = new WeakMap<object, WithFilterEpoch<ColumnAggregationVariant>>();
 
 /// The summaries of a computation for the plots. A summary keeps its object while its table is the same.
-export function resolveSummaries(view: TableComputationState, tables: SummaryTables, logger: LoggerLike): ComputationSummaries {
+export function resolveSummaries(view: core.ComputationView, tables: SummaryTables, logger: LoggerLike): ComputationSummaries {
     const dataTable = tables.table(view.dataTable);
     const tableAggregation = resolveTableAggregation(view, tables, logger);
     const columnAggregates = view.columnAggregates.map((aggregate, i) =>
@@ -246,7 +231,7 @@ export function resolveSummaries(view: TableComputationState, tables: SummaryTab
 }
 
 /// The matching columns of the rows of the applied data search by row number from 1, null without a data search
-export function resolveMatchingRows(view: TableComputationState | null, tables: SummaryTables): Map<number, number[]> | null {
+export function resolveMatchingRows(view: core.ComputationView | null, tables: SummaryTables): Map<number, number[]> | null {
     if (view == null || !view.dataSearch.hasMatchingRows) return null;
     const table = tables.table(view.dataSearchTable?.dataTable);
     if (table == null) return EMPTY_MATCHES;

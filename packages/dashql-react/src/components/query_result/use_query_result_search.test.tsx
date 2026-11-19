@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ROWNUMBER_COLUMN, STRING_COLUMN, type ColumnGroup, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationColumnGroup, ComputationView } from '@akohn/dashql';
+import { ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 import { mockTableComputation, recordingDispatch, valueColumn } from '../../testing/computation_mocks.js';
 import { createTestRoot } from '../../testing/react_root.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
 import type { ComputationDispatch } from '../data_table/data_table.js';
 
-const ROWNUM: ColumnGroup = { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } };
-const NAME: ColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') };
+const ROWNUM: ComputationColumnGroup = { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } };
+const NAME: ComputationColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') };
 
 describe('useQueryResultSearch', () => {
     let root: ReturnType<typeof createTestRoot> | null = null;
@@ -16,7 +17,7 @@ describe('useQueryResultSearch', () => {
         root = null;
     });
 
-    function renderSearch(state: TableComputationState | null, dispatch: ComputationDispatch) {
+    function renderSearch(state: ComputationView | null, dispatch: ComputationDispatch) {
         const current = { search: null as ReturnType<typeof useQueryResultSearch> | null };
         function Probe() {
             current.search = useQueryResultSearch(state, dispatch);

@@ -7,17 +7,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as styles from './data_table.module.css';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
+import type { ComputationColumnGroup, ComputationTrackedTask, ComputationVersionValue } from '@akohn/dashql';
 import {
     type ColumnAggregationVariant,
-    type ColumnGroup,
-    type ComputationStateVersion,
     LIST_COLUMN,
     ORDINAL_COLUMN,
     ROWNUMBER_COLUMN,
     STRING_COLUMN,
     type TableAggregation,
     TaskStatus,
-    type TrackedTask,
 } from '@akohn/dashql/platform/compute/computation_types';
 import { ordinalAggregate, stringAggregate, summaryColumn } from '@akohn/dashql/platform/testing/column_aggregates';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
@@ -30,11 +28,11 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const NAME_STATS = { countFieldName: '_0_count', distinctCountFieldName: '_0_distinct', minAggregateFieldName: null, maxAggregateFieldName: null };
 const SCORE_STATS = { countFieldName: '_1_count', distinctCountFieldName: null, minAggregateFieldName: '_1_min', maxAggregateFieldName: '_1_max' };
-const NAME: ColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8', { statsFields: NAME_STATS, valueIdFieldName: 'name_id' }) };
-const SCORE: ColumnGroup = { type: ORDINAL_COLUMN, value: valueColumn('score', 'Float64', { inputFieldNullable: false, statsFields: SCORE_STATS, binFieldName: 'score_bin', binCount: 4 }) };
-const EMBEDDING: ColumnGroup = { type: LIST_COLUMN, value: valueColumn('embedding', 'List(Float32)') };
+const NAME: ComputationColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8', { statsFields: NAME_STATS, valueIdFieldName: 'name_id' }) };
+const SCORE: ComputationColumnGroup = { type: ORDINAL_COLUMN, value: valueColumn('score', 'Float64', { inputFieldNullable: false, statsFields: SCORE_STATS, binFieldName: 'score_bin', binCount: 4 }) };
+const EMBEDDING: ComputationColumnGroup = { type: LIST_COLUMN, value: valueColumn('embedding', 'List(Float32)') };
 /// The row numbers, name, score, the value ids of name (a system column), the embedding and a column without aggregate
-const COLUMN_GROUPS: ColumnGroup[] = [{ type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } }, NAME, SCORE, EMBEDDING];
+const COLUMN_GROUPS: ComputationColumnGroup[] = [{ type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } }, NAME, SCORE, EMBEDDING];
 const LAYOUT: DataTableLayout = {
     columnCount: 6,
     arrowFieldByColumnIndex: Uint32Array.from([0, 1, 2, 3, 4, 5]),
@@ -85,7 +83,7 @@ async function scoreAggregate(): Promise<ColumnAggregationVariant> {
 }
 
 /// A task of a column with its status
-function tracked(status: TaskStatus, version: ComputationStateVersion = { data: 1, filter: 1 }): TrackedTask {
+function tracked(status: TaskStatus, version: ComputationVersionValue = { data: 1, filter: 1 }): ComputationTrackedTask {
     return { taskId: 1, tableVersion: version, progress: { status, startedAt: 0, completedAt: null, failedAt: null, failedWithError: null } };
 }
 

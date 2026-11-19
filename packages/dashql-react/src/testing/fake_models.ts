@@ -6,7 +6,7 @@ import type { ScriptModel } from '../models/script_model.js';
 import type { QueryModel } from '../models/query_model.js';
 import type { ComputationModel } from '../models/computation_model.js';
 import type * as arrow from 'apache-arrow';
-import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationView } from '@akohn/dashql';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// A script as the tests of components need it: its key, its file name, its text and nothing that runs
@@ -49,7 +49,7 @@ export function fakeQueryModel(query: Partial<QueryExecutionState> & { queryId: 
 
 /// The model of a computation: its view and the Arrow tables of its handles, an action is recorded and changes nothing
 export function fakeComputationModel(
-    computation: TableComputationState,
+    computation: ComputationView,
     tables: ReadonlyMap<number, arrow.Table> = new Map(),
     overrides: Partial<ComputationModel> = {},
 ): ComputationModel {

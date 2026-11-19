@@ -6,7 +6,7 @@ Brushable column summaries of a query result filter the Vega-Lite visualizations
 same result. `VegaLiteView` renders every Vega-Lite chart of the app: through
 `visualization_dispatch.tsx` in the feed, the dashboard cards, the dataflow canvas and the
 script output details, and directly in the chart builder preview. DashQL owns cross-filter
-evaluation: histogram brushes update `TableComputationState.crossFilters`, and the compute
+evaluation: histogram brushes update `ComputationView.crossFilters`, and the compute
 layer produces a `filterTable` containing the stable row numbers that satisfy all active
 filters.
 
@@ -27,7 +27,7 @@ The implementation lives in:
 Histogram brush
       |
       v
-TableComputationState.crossFilters
+ComputationView.crossFilters
       |
       v
 DashQL SQL filter task

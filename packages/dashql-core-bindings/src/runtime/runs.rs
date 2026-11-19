@@ -47,7 +47,7 @@ use super::persistence::attachments_value;
 use super::workbooks::Workbooks;
 use crate::host::{host_error, JsPlatform};
 use view::{
-    RunOutcome, RunScriptOptions, RunWorkbookOptions, StatementError, WorkbookRunKind, WorkbookRunPhase, WorkbookRunState, WorkbookRunView,
+    RunOutcome, RunScriptOptions, RunWorkbookOptions, StatementError, WorkbookRunKind, WorkbookRunState, WorkbookRunView,
     WorkbookScriptRunEvent,
 };
 
@@ -611,7 +611,7 @@ impl Runs {
     pub fn busy(&self, workbook_id: &str) -> bool {
         let Ok(entries) = self.entries.try_borrow() else { return false };
         let state = entries.iter().find(|entry| entry.workbook_id == workbook_id).and_then(|entry| entry.state.as_ref());
-        state.is_some_and(|state| matches!(state.phase, WorkbookRunPhase::Planning | WorkbookRunPhase::Running | WorkbookRunPhase::Stopping))
+        state.is_some_and(|state| state.busy)
     }
 
     /// Stop every run, e.g. when the runtime is destroyed. The changes of inputs that wait are dropped.

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectionLabelParts } from '../../connections/connection_label.js';
 import { QueryExecutionStatus, queryIsDone } from '@akohn/dashql/platform/query/query_execution_state';
-import type { WorkbookExecutionState } from '@akohn/dashql/platform/workbook/workbook_execution';
+import type { WorkbookRunState } from '@akohn/dashql';
 import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { formatMilliseconds } from '@akohn/dashql-react/format/format';
@@ -79,13 +79,11 @@ function useStable<T>(value: T): T {
     return React.useMemo(() => value, [json]);
 }
 
-const RUNNING_PHASES = new Set<WorkbookExecutionState['phase']>(['planning', 'running', 'stopping']);
-
 /// What runs: the queries of single scripts, all scripts, connections that connect and refresh their catalog, a
 /// publish. What needs the user: connections that are not connected.
 export function liveWorkbookStatuses(args: {
     queries: readonly ScriptQuery[];
-    execution: WorkbookExecutionState | null;
+    execution: WorkbookRunState | null;
     connections: readonly WorkbookConnectionStatus[];
     publish: CloudPublishStatus | null;
     now: number;
@@ -93,7 +91,7 @@ export function liveWorkbookStatuses(args: {
     const { now } = args;
     const live: WorkbookStatus[] = [];
     const execution = args.execution;
-    const executing = execution != null && RUNNING_PHASES.has(execution.phase);
+    const executing = execution?.busy === true;
     if (executing) {
         const active = execution.activeFileName != null ? ` · ${scriptDisplayName(execution.activeFileName)}` : '';
         live.push({
@@ -182,8 +180,8 @@ export function diffScriptQueries(prev: readonly ScriptQuery[], next: readonly S
 }
 
 /// The line of the log when a run of all scripts finishes
-export function diffExecution(prev: WorkbookExecutionState | null, next: WorkbookExecutionState | null, now: number): WorkbookStatus[] {
-    if (prev == null || next == null || !RUNNING_PHASES.has(prev.phase) || RUNNING_PHASES.has(next.phase)) return [];
+export function diffExecution(prev: WorkbookRunState | null, next: WorkbookRunState | null, now: number): WorkbookStatus[] {
+    if (prev == null || next == null || !prev.busy || next.busy) return [];
     const key = `execute_all:${now}`;
     const skipped = next.skippedScripts > 0 ? ` · ${next.skippedScripts} skipped, they need a connection` : '';
     switch (next.phase) {
@@ -234,7 +232,7 @@ export function useWorkbookStatusSources(args: {
     scripts: ScriptDataMap;
     connections: ReadonlyMap<string, ConnectionState>;
     label: (connection: ConnectionState) => ConnectionLabelParts;
-    execution: WorkbookExecutionState | null;
+    execution: WorkbookRunState | null;
     publish: CloudPublishStatus | null;
 }): void {
     const workbookId = args.workbookScripts.workbookId;
@@ -243,7 +241,7 @@ export function useWorkbookStatusSources(args: {
     const queries = useStable(scriptQueries(args.workbookScripts, args.scripts, args.connections, readQuery));
     const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
     const execution = args.execution;
-    const executing = execution != null && RUNNING_PHASES.has(execution.phase);
+    const executing = execution?.busy === true;
     const live = React.useMemo(
         () => liveWorkbookStatuses({ queries, execution, connections, publish: args.publish, now: Date.now() }),
         [queries, execution, connections, args.publish],

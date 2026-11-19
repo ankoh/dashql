@@ -8,7 +8,6 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { workbookExecutionIsBusy } from '@akohn/dashql/platform/workbook/workbook_execution';
 
 // The hooks of the runtime (docs/design/dashql_runtime.md), shared by the app and other hosts of the runtime. A component reads the view of a slice, which renders it
 // again when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by
@@ -262,7 +261,7 @@ export function useWorkbookExecution(workbookId: string) {
     const state = run?.state ?? null;
     const held = run?.held != null;
     return React.useMemo(() => {
-        const busy = workbookExecutionIsBusy(state);
+        const busy = state?.busy ?? false;
         return {
             state,
             busy,
