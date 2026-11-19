@@ -1,10 +1,13 @@
 //! The Salesforce connectors, see `connections::connector`: Salesforce Data Cloud, and Database.com, which logs in like
 //! Salesforce and queries the Hyper of a Hyper Cloud database.
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::connections::connector::Connector;
-use crate::connections::{object, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME};
+use crate::connections::{
+    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
+    SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+};
 
 /// A Salesforce connector
 pub struct SalesforceConnector {
@@ -55,5 +58,38 @@ impl Connector for SalesforceConnector {
             params.insert("databaseName".to_string(), json!(HYPER_CLOUD_DEFAULT_DATABASE_NAME));
         }
         params
+    }
+
+    /// The secret of the connected app goes, the login is the login hint
+    fn shared_params(&self, params: &JsonObject, with_login_hint: bool) -> JsonObject {
+        let mut salesforce = params.clone();
+        salesforce.insert("appConsumerSecret".into(), json!(""));
+        if !with_login_hint {
+            salesforce.insert("login".into(), json!(""));
+        }
+        salesforce
+    }
+
+    fn login_hint(&self, params: &JsonObject) -> Option<String> {
+        crate::salesforce::login_hint(params).map(str::to_string)
+    }
+
+    fn label_location(&self, params: &JsonObject) -> Option<String> {
+        Some(params.get("instanceUrl").and_then(Value::as_str).unwrap_or("").to_string())
+    }
+
+    fn catalog_name_defaults(&self, _setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
+        CatalogNameDefaults { database_name: SALESFORCE_CATALOG_DATABASE.to_string(), schema_name: SALESFORCE_CATALOG_SCHEMA.to_string() }
+    }
+
+    fn cache_signature(&self, params: &JsonObject) -> Value {
+        crate::salesforce::cache_signature(self.connector_type, params)
+    }
+
+    /// A login keys its results by the account of its user info, never by a hint that the user typed
+    fn sign_login(&self, signature: &mut Value, _setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
+        let principal = details.salesforce().and_then(|salesforce| salesforce.principal.clone())?;
+        signature.as_object_mut()?.insert("login".to_string(), Value::String(principal));
+        Some(())
     }
 }

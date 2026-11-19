@@ -1425,18 +1425,11 @@ impl Runtime {
     pub fn connection_params_login_hint(
         #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] params: JsValue,
     ) -> Result<Option<String>, JsError> {
-        use dashql_core_runtime::connections::ConnectorType as Connector;
         let serde_json::Value::Object(fields) = JsonValue::of(&params).0 else {
             return Err(JsError::new("connection params must be an object"));
         };
         let params = ConnectionParams::from_object(fields).map_err(js_error)?;
-        Ok(match params.connector {
-            Connector::Hyper => None,
-            Connector::Trino => dashql_core_runtime::trino::descriptor::login_hint(&params.params),
-            Connector::SalesforceDataCloud | Connector::Dbcom => {
-                dashql_core_runtime::salesforce::login_hint(&params.params).map(str::to_string)
-            }
-        })
+        Ok(params.connector.connector().login_hint(&params.params))
     }
 
     /// The database that the catalog of a Salesforce connection names its relations with, also the alias of the Hyper

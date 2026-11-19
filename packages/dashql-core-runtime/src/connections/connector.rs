@@ -7,6 +7,9 @@
 //! talk to a backend (setups, queries, catalog updates) stay in the modules of the connectors behind their own host
 //! traits, see docs/design/dashql_core.md.
 
+use serde_json::Value;
+
+use super::details::{CatalogNameDefaults, ConnectionDetails};
 use super::params::{ConnectorFeatures, ConnectorType, JsonObject};
 
 /// A connector of the runtime
@@ -46,6 +49,37 @@ pub trait Connector: Sync {
     /// Does the catalog of a connection outlive the app? Then it is written and restored with the connection.
     fn catalog_is_durable(&self, _params: &JsonObject) -> bool {
         true
+    }
+
+    /// The params as a link or a file shares them: without the secrets, the login hint only `with_login_hint`, and
+    /// without the rows of a draft. The identity of the database (endpoints, instance URLs, consumer keys) stays.
+    fn shared_params(&self, params: &JsonObject, with_login_hint: bool) -> JsonObject;
+
+    /// The login hint of the params, e.g. the user that logs in, none if there is none
+    fn login_hint(&self, _params: &JsonObject) -> Option<String> {
+        None
+    }
+
+    /// The protocol that the label of a connection shows, by the params of its setup, e.g. `Http`
+    fn label_detail(&self, _setup_params: Option<&JsonObject>) -> &'static str {
+        "Http"
+    }
+
+    /// Where the database of params is as a label shows it after the name of the connector, e.g. an endpoint. None
+    /// for a database that the protocol names, e.g. the embedded Hyper: the label shows the protocol then.
+    fn label_location(&self, params: &JsonObject) -> Option<String>;
+
+    /// The database and schema of the relations that unqualified statements create or drop, by the params of the
+    /// setup. They match the names that the catalog loader gives the relations of the connection.
+    fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults;
+
+    /// The params that identify the results of queries, the key of the query result cache depends on them
+    fn cache_signature(&self, params: &JsonObject) -> Value;
+
+    /// Add what the results of a connection depend on beyond its params, e.g. the account of a login, to the signature
+    /// of its params. None while that is unknown: the results get no reusable key then.
+    fn sign_login(&self, _signature: &mut Value, _setup_params: &JsonObject, _details: &ConnectionDetails) -> Option<()> {
+        Some(())
     }
 }
 

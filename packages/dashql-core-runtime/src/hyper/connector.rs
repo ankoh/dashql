@@ -4,7 +4,12 @@
 use serde_json::{json, Value};
 
 use crate::connections::connector::Connector;
-use crate::connections::{object, ConnectorFeatures, ConnectorType, JsonObject};
+use crate::connections::sharing::without;
+use crate::connections::{
+    object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
+    DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
+};
+use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
 
 /// The protocol of the embedded Hyper
 pub const EMBEDDED_PROTOCOL: &str = "WASM";
@@ -61,5 +66,52 @@ impl Connector for HyperConnector {
     /// The embedded Hyper starts with a new database, its catalog is neither written nor restored
     fn catalog_is_durable(&self, params: &JsonObject) -> bool {
         params.get("protocol").and_then(Value::as_str) != Some(EMBEDDED_PROTOCOL)
+    }
+
+    /// Arbitrary headers and query parameters may carry credentials under any name, they go with the paths of TLS
+    fn shared_params(&self, params: &JsonObject, _with_login_hint: bool) -> JsonObject {
+        let mut hyper = without(params, &["draftRows", "metadata", "queryParameters"]);
+        hyper.insert("tls".into(), json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
+        hyper
+    }
+
+    fn label_detail(&self, setup_params: Option<&JsonObject>) -> &'static str {
+        match setup_params.and_then(|params| params.get("protocol")).and_then(Value::as_str).unwrap_or(EMBEDDED_PROTOCOL) {
+            "V3_GRPC" => "gRPC",
+            "V3_HTTP" => "Http",
+            "V3_HTTP_LINK" => "Link",
+            _ => "Wasm",
+        }
+    }
+
+    /// The endpoint of a server, none for the embedded Hyper
+    fn label_location(&self, params: &JsonObject) -> Option<String> {
+        is_server(Some(params)).then(|| params.get("endpoint").and_then(Value::as_str).unwrap_or("").to_string())
+    }
+
+    /// Unqualified names resolve against the first attached database
+    fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
+        let attached = setup_params.and_then(|params| params.get("attachedDatabases"));
+        let first = attached.and_then(Value::as_array).and_then(|attached| attached.first());
+        let database_name = match first {
+            Some(first) => first.get("alias").and_then(Value::as_str).unwrap_or(""),
+            None => DEFAULT_DATABASE_NAME,
+        };
+        CatalogNameDefaults { database_name: database_name.to_string(), schema_name: HYPER_DEFAULT_SCHEMA.to_string() }
+    }
+
+    fn cache_signature(&self, params: &JsonObject) -> Value {
+        crate::hyper::descriptor::cache_signature(params)
+    }
+
+    /// The results of the Hyper of a link are keyed by the fingerprint of the token of the link, another Hyper on the
+    /// same port never serves them
+    fn sign_login(&self, signature: &mut Value, setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
+        if is_hyper_link_params(&ConnectionParams::new(ConnectorType::Hyper, setup_params.clone())) {
+            let ConnectionChannel::HyperHttp { auth, .. } = details.channel.as_ref()? else { return None };
+            let token = auth.get("authorization")?;
+            signature.as_object_mut()?.insert("link".to_string(), Value::String(hyper_link_token_fingerprint(token)));
+        }
+        Some(())
     }
 }

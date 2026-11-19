@@ -1,9 +1,12 @@
 //! The Trino connector, see `connections::connector`.
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::connections::connector::Connector;
-use crate::connections::{object, ConnectorFeatures, ConnectorType, JsonObject};
+use crate::connections::sharing::{is_truthy, without};
+use crate::connections::{
+    object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject,
+};
 
 /// The Trino connector
 pub struct TrinoConnector;
@@ -38,5 +41,51 @@ impl Connector for TrinoConnector {
 
     fn health_probe(&self) -> &'static str {
         "select 1"
+    }
+
+    /// The basic-auth secret goes, the user name is the login hint. Request headers may carry credentials.
+    fn shared_params(&self, params: &JsonObject, with_login_hint: bool) -> JsonObject {
+        let mut trino = without(params, &["draftRows", "metadata"]);
+        let mut auth = params.get("auth").and_then(Value::as_object).cloned().unwrap_or_default();
+        if let Some(basic) = auth.get("basic").filter(|basic| is_truthy(basic)) {
+            let mut basic = basic.as_object().cloned().unwrap_or_default();
+            basic.insert("secret".into(), json!(""));
+            if !with_login_hint {
+                basic.insert("username".into(), json!(""));
+            }
+            auth.insert("basic".into(), Value::Object(basic));
+        }
+        trino.insert("auth".into(), Value::Object(auth));
+        trino
+    }
+
+    fn login_hint(&self, params: &JsonObject) -> Option<String> {
+        crate::trino::descriptor::login_hint(params)
+    }
+
+    fn label_location(&self, params: &JsonObject) -> Option<String> {
+        Some(params.get("endpoint").and_then(Value::as_str).unwrap_or("").to_string())
+    }
+
+    /// The relations of statements get the defaults of the requests
+    fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
+        let defaults = setup_params.map(trino_session_defaults).unwrap_or_default();
+        CatalogNameDefaults { database_name: defaults.catalog.unwrap_or_default(), schema_name: defaults.schema.unwrap_or_default() }
+    }
+
+    fn cache_signature(&self, params: &JsonObject) -> Value {
+        crate::trino::descriptor::cache_signature(params)
+    }
+
+    /// A login with OAuth keys its results by the account of its token
+    fn sign_login(&self, signature: &mut Value, setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
+        let oauth = setup_params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str) == Some("AUTH_OAUTH");
+        if oauth {
+            let token = details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
+            let principal = token.and_then(|token| token.principal)?;
+            let auth = signature.get_mut("auth").and_then(Value::as_object_mut)?;
+            auth.insert("principal".to_string(), Value::String(principal));
+        }
+        Some(())
     }
 }

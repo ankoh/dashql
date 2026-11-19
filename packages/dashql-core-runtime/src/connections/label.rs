@@ -40,23 +40,10 @@ impl ConnectionLabelParts {
     }
 }
 
-/// The protocol of a Hyper connection as the label shows it
-fn protocol_label(protocol: &str) -> &'static str {
-    match protocol {
-        "V3_GRPC" => "gRPC",
-        "V3_HTTP" => "Http",
-        "V3_HTTP_LINK" => "Link",
-        _ => "Wasm",
-    }
-}
-
 /// The parts of the label of a connection. A connection is called by the name the user gave it, otherwise after its
 /// connector, the ordinal tells it apart from other connections of the same connector.
 pub fn connection_label_parts(connection: &ConnectionState, ordinal: Option<u32>) -> ConnectionLabelParts {
-    let detail = match connection.connector_type() {
-        ConnectorType::Hyper => protocol_label(hyper_protocol(connection)),
-        _ => "Http",
-    };
+    let detail = connection.connector_type().connector().label_detail(connection.details().setup_params.as_ref());
     let connector = connection.connector_type().connector().display_name();
     let name = match (connection.name(), ordinal) {
         (Some(name), _) => name.to_string(),
@@ -74,15 +61,11 @@ pub fn connection_label(connection: &ConnectionState, ordinal: Option<u32>) -> S
 /// A label for connection params, e.g. while the connection isn't restored. It names the connector and the location
 /// of the database that the params describe.
 pub fn connection_params_label(params: &ConnectionParams) -> String {
-    let name = params.connector.connector().display_name();
-    let field = |key: &str| string_field(&params.params, key).unwrap_or("");
-    match params.connector {
-        ConnectorType::Hyper => match string_field(&params.params, "protocol").unwrap_or("WASM") {
-            "WASM" => format!("{name} Wasm"),
-            _ => format!("{name} / {}", field("endpoint")),
-        },
-        ConnectorType::Trino => format!("{name} / {}", field("endpoint")),
-        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => format!("{name} / {}", field("instanceUrl")),
+    let connector = params.connector.connector();
+    let name = connector.display_name();
+    match connector.label_location(&params.params) {
+        Some(location) => format!("{name} / {location}"),
+        None => format!("{name} {}", connector.label_detail(Some(&params.params))),
     }
 }
 

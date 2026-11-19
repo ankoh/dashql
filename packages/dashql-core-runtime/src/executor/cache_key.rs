@@ -7,17 +7,12 @@
 
 use serde_json::{Map, Value};
 
-use crate::connections::{ConnectionChannel, ConnectionParams, ConnectionState, ConnectorType, JsonObject};
-use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
+use crate::connections::{ConnectionState, ConnectorType, JsonObject};
 
 /// The params of a connection that identify the results of its queries, the params of the connector without the field
 /// around them
 pub fn params_cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
-    match connector {
-        ConnectorType::Hyper => crate::hyper::descriptor::cache_signature(params),
-        ConnectorType::Trino => crate::trino::descriptor::cache_signature(params),
-        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => crate::salesforce::cache_signature(connector, params),
-    }
+    connector.connector().cache_signature(params)
 }
 
 /// What the cached results of a connection depend on, none if its results get no reusable key: before the connection
@@ -30,28 +25,7 @@ pub fn connection_cache_signature(connection: &ConnectionState) -> Option<Value>
     let details = connection.details();
     let params = details.setup_params.as_ref()?;
     let mut signature = params_cache_signature(connector, params);
-    match connector {
-        ConnectorType::Hyper => {
-            if is_hyper_link_params(&ConnectionParams::new(connector, params.clone())) {
-                let ConnectionChannel::HyperHttp { auth, .. } = details.channel.as_ref()? else { return None };
-                let token = auth.get("authorization")?;
-                signature.as_object_mut()?.insert("link".to_string(), Value::String(hyper_link_token_fingerprint(token)));
-            }
-        }
-        ConnectorType::Trino => {
-            let oauth = params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str) == Some("AUTH_OAUTH");
-            if oauth {
-                let token = details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
-                let principal = token.and_then(|token| token.principal)?;
-                let auth = signature.get_mut("auth").and_then(Value::as_object_mut)?;
-                auth.insert("principal".to_string(), Value::String(principal));
-            }
-        }
-        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
-            let principal = details.salesforce().and_then(|salesforce| salesforce.principal.clone())?;
-            signature.as_object_mut()?.insert("login".to_string(), Value::String(principal));
-        }
-    }
+    connector.connector().sign_login(&mut signature, params, details)?;
     Some(signature)
 }
 

@@ -6,12 +6,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use serde_json::Value;
-
-use super::params::{
-    string_field, trino_session_defaults, ConnectionParams, ConnectorType, JsonObject, DEFAULT_DATABASE_NAME,
-    HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
-};
+use super::params::{ConnectionParams, ConnectorType, JsonObject};
 use super::ConnectionEffect;
 use crate::http::Headers;
 use crate::hyper::HyperHttpChannel;
@@ -312,30 +307,7 @@ impl ConnectionDetails {
     /// The database and schema of the relations that unqualified statements create or drop. They match the names that
     /// the catalog loader gives the relations of the connection.
     pub fn catalog_name_defaults(&self) -> CatalogNameDefaults {
-        match self.connector_type() {
-            ConnectorType::Hyper => {
-                // Unqualified names resolve against the first attached database
-                let attached = self.setup_params.as_ref().and_then(|params| params.get("attachedDatabases"));
-                let first = attached.and_then(Value::as_array).and_then(|attached| attached.first());
-                let database_name = match first {
-                    Some(first) => first.as_object().and_then(|first| string_field(first, "alias")).unwrap_or(""),
-                    None => DEFAULT_DATABASE_NAME,
-                };
-                CatalogNameDefaults { database_name: database_name.to_string(), schema_name: HYPER_DEFAULT_SCHEMA.to_string() }
-            }
-            ConnectorType::Trino => {
-                // The relations of statements get the defaults of the requests
-                let defaults = self.setup_params.as_ref().map(trino_session_defaults).unwrap_or_default();
-                CatalogNameDefaults {
-                    database_name: defaults.catalog.unwrap_or_default(),
-                    schema_name: defaults.schema.unwrap_or_default(),
-                }
-            }
-            ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => CatalogNameDefaults {
-                database_name: SALESFORCE_CATALOG_DATABASE.to_string(),
-                schema_name: SALESFORCE_CATALOG_SCHEMA.to_string(),
-            },
-        }
+        self.connector_type().connector().catalog_name_defaults(self.setup_params.as_ref())
     }
 
     /// Clear the errors of the setup, false if there were none

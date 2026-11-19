@@ -3,7 +3,7 @@
 //!
 //! The params are JSON in the shape of the workbook file, e.g. `{"trino": {...}}`.
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::connections::{ConnectorType, JsonObject, CONNECTOR_TYPES};
 
@@ -15,7 +15,7 @@ pub fn descriptor_of_params(params: &Value) -> Option<ConnectorType> {
 }
 
 /// An object without some keys, the other keys keep their order
-fn without(object: &JsonObject, keys: &[&str]) -> JsonObject {
+pub(crate) fn without(object: &JsonObject, keys: &[&str]) -> JsonObject {
     object.iter().filter(|(key, _)| !keys.contains(&key.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
@@ -28,45 +28,14 @@ pub fn sanitize_connection_params_for_sharing(params: &Value, with_login_hint: b
     };
     let key = connector.connector().params_key();
     let inner = params.get(key).and_then(Value::as_object).cloned().unwrap_or_default();
-    let sanitized = match connector {
-        ConnectorType::Hyper => {
-            // Arbitrary headers and query parameters may carry credentials under any name
-            let mut hyper = without(&inner, &["draftRows", "metadata", "queryParameters"]);
-            hyper.insert("tls".into(), json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
-            hyper
-        }
-        ConnectorType::Trino => {
-            // The basic-auth secret goes, the user name is the login hint. Request headers may carry credentials.
-            let mut trino = without(&inner, &["draftRows", "metadata"]);
-            let mut auth = inner.get("auth").and_then(Value::as_object).cloned().unwrap_or_default();
-            if let Some(basic) = auth.get("basic").filter(|basic| is_truthy(basic)) {
-                let mut basic = basic.as_object().cloned().unwrap_or_default();
-                basic.insert("secret".into(), json!(""));
-                if !with_login_hint {
-                    basic.insert("username".into(), json!(""));
-                }
-                auth.insert("basic".into(), Value::Object(basic));
-            }
-            trino.insert("auth".into(), Value::Object(auth));
-            trino
-        }
-        ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
-            // The secret of the connected app goes, the login is the login hint
-            let mut salesforce = inner.clone();
-            salesforce.insert("appConsumerSecret".into(), json!(""));
-            if !with_login_hint {
-                salesforce.insert("login".into(), json!(""));
-            }
-            salesforce
-        }
-    };
+    let sanitized = connector.connector().shared_params(&inner, with_login_hint);
     let mut out = JsonObject::new();
     out.insert(key.to_string(), Value::Object(sanitized));
     Value::Object(out)
 }
 
 /// Is a value truthy like in JavaScript?
-fn is_truthy(value: &Value) -> bool {
+pub(crate) fn is_truthy(value: &Value) -> bool {
     match value {
         Value::Null => false,
         Value::Bool(b) => *b,
@@ -114,6 +83,7 @@ pub fn connection_params_share_equal(left: &Value, right: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn strips_secrets() {
