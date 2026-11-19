@@ -7,12 +7,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
-import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+/// The model of the latest query of the script
+const SEVEN = queryModelOf({ queryId: 7 } as never);
+
 const dependencies = {
-    useQuery: () => ({ queryId: 7 }),
+    useQueryModel: () => SEVEN,
     QueryResultPanel: (props: { onShowTable?: () => void }) => <div data-testid="output" onClick={props.onShowTable}>output</div>,
     VisualizationDispatch: () => <div data-testid="visualization">visualization</div>,
     ScriptEditor: () => <div data-testid="content">content</div>,
@@ -186,7 +189,7 @@ describe('DashboardCard', () => {
                     runnable
                     onRun={vi.fn()}
                     onStop={vi.fn()}
-                    dependencies={{ ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies}
+                    dependencies={{ ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies}
                 /></WithResultTables>
             </DndContext>,
         ));
@@ -285,7 +288,7 @@ describe('DashboardCard', () => {
                     runnable={runnable}
                     onRun={onRun}
                     onStop={onStop}
-                    dependencies={{ ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies}
+                    dependencies={{ ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies}
                 /></WithResultTables>
             </DndContext>,
         ));
@@ -359,7 +362,7 @@ describe('DashboardCard', () => {
         const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onRemoveVisualization: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), onRun: vi.fn(), onStop: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
 
         function renderCollapsed(card: ScriptData, queryState: unknown) {
-            const collapsedDependencies = { ...dependencies, useQuery: () => queryState } as unknown as DashboardCardDependencies;
+            const collapsedDependencies = { ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies;
             act(() => root.render(
                 <DndContext>
                     <WithResultTables><DashboardCard

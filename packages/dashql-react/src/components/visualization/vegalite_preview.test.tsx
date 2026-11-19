@@ -9,6 +9,7 @@ import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/pl
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
 import type { VegaLiteViewDependencies } from '../vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
+import { fakeQueryModel } from '../../testing/fake_models.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
@@ -38,9 +39,7 @@ describe('VegaLitePreview', () => {
         await act(async () => {
             root.render(
                 <VegaLitePreview
-                    query={query}
-                    resultTable={resultTable}
-                    resultComputation={null}
+                    model={fakeQueryModel(query, { result: resultTable })}
                     vegaLiteSpec={{
                         data: { values: [] },
                         mark: 'bar',

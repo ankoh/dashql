@@ -3,7 +3,8 @@ import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
-import { useOptionalRuntime, useQuery, useQueryProfileDetail, useTable } from '../hooks.js';
+import { useComputation, useOptionalRuntime, useQuery, useQueryProfileDetail, useTable } from '../hooks.js';
+import { useComputationModel, type ComputationModel } from './computation_model.js';
 
 // The model of a query (docs/agents/writing_components.md): what a component shows of a query of a connection and what
 // it can do with it. The views, the handles of the result and the commands of the runtime stay in this module.
@@ -17,6 +18,9 @@ export interface QueryModel {
     readonly progress: QueryExecutionProgress | null;
     /// The result as an Arrow table, null before the query succeeded or without a result
     readonly result: arrow.Table | null;
+    /// The computation of the result: its filters, ordering, searches and summaries, null before the result is
+    /// analyzed
+    readonly computation: ComputationModel | null;
 
     /// Cancel the query, resolves once it ended
     cancel(): Promise<void>;
@@ -29,6 +33,7 @@ export function useQueryModel(queryId: number | null | undefined, options: { pro
     const runtime = useOptionalRuntime();
     const query = useQuery(queryId);
     const result = useTable(query?.resultTable?.id ?? null);
+    const computation = useComputationModel(useComputation(queryId));
     useQueryProfileDetail(queryId ?? null, options.profile === true);
     return React.useMemo(() => {
         if (query == null || queryId == null) return null;
@@ -37,7 +42,8 @@ export function useQueryModel(queryId: number | null | undefined, options: { pro
             query,
             progress: query.progress ?? null,
             result,
+            computation,
             cancel: async () => await runtime?.cancel(queryId),
         };
-    }, [runtime, queryId, query, result]);
+    }, [runtime, queryId, query, result, computation]);
 }

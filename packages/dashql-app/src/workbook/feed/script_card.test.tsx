@@ -10,7 +10,7 @@ import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_exe
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
-import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
+import { fakeQueryModel, fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ScriptCard, type ScriptCardDependencies, type ScriptCardProps, type ScriptFeedCommands } from './script_card.js';
 
@@ -114,7 +114,7 @@ describe('the card of a script', () => {
 
     it('marks a result that was loaded from the cache as cached in the status bar', async () => {
         const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42, analysisOutdated: false, cachedResult: { key: 'key', cachedAt: Date.now() - 8 * 60_000 } } as never);
-        const { props } = cardProps(fakeScriptModel({ script, query: succeeded(42, { servedFromCache: true } as never) }));
+        const { props } = cardProps(fakeScriptModel({ script, query: fakeQueryModel(succeeded(42, { servedFromCache: true } as never)) }));
         render({ ...props, connection: connection() });
         expect(container.textContent).toContain('Result loaded from cache');
         await vi.waitFor(() => expect(container.querySelector('[data-testid="cached-result"]')).not.toBeNull());
@@ -126,7 +126,7 @@ describe('the card of a script', () => {
 
     it('focuses on pointer entry, shows the result and its table, formats, accepts and rejects a rewrite, moves and deletes', () => {
         const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42 } as never);
-        const model = fakeScriptModel({ script, query: succeeded(42) });
+        const model = fakeScriptModel({ script, query: fakeQueryModel(succeeded(42)) });
         const { props, feed } = cardProps(model);
         render({ ...props, connection: connection() });
         const article = container.querySelector('[data-testid="script-cell"]')!;
@@ -166,7 +166,7 @@ describe('the card of a script', () => {
 
     it('folds the result with the status bar and folds a result without rows by itself', () => {
         const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42 } as never);
-        const { props, result } = cardProps(fakeScriptModel({ script, query: succeeded(42, { resultTable: null } as never) }));
+        const { props, result } = cardProps(fakeScriptModel({ script, query: fakeQueryModel(succeeded(42, { resultTable: null } as never)) }));
         render({ ...props, connection: connection() });
         expect(result.autoCollapse).toHaveBeenCalledWith(1, 42);
         render({ ...props, connection: connection(), result: { ...result, expanded: false } });

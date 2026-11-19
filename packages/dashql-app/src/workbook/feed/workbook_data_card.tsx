@@ -3,7 +3,7 @@ import * as styles from './workbook_feed.module.css';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type * as dashql from '@akohn/dashql';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
+import { useHost } from '@akohn/dashql-react/host';
 import { useLogger } from '../../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
@@ -28,7 +28,7 @@ export interface WorkbookDataCardProps {
 }
 
 export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
-    const downloader = useFileDownloader();
+    const host = useHost();
     const logger = useLogger();
     const [busy, setBusy] = React.useState(false);
     // A read-only workbook keeps its attachments
@@ -47,7 +47,7 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
         setError(null);
         try {
             const bytes = await props.storageReader.backend.loadDataFile(props.workbookId, fileName);
-            await downloader.downloadBufferAsFile(bytes, fileName);
+            await host.downloadFile(bytes, fileName);
         } catch (e) {
             setError('Downloading data file failed');
             logger.error('Downloading data file failed', { error: stringifyError(e) }, 'workbook_data_card');

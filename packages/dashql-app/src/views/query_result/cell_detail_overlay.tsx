@@ -11,7 +11,7 @@ import { ReadonlySqlView, useProjectedSqlText } from '../../workbook/editor/read
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../workbook/scripts/script_format.js';
-import { EngineProfileView } from '../query_profile/engine_profile_view.js';
+import { EngineProfileView } from '@akohn/dashql-react/components/query_profile/engine_profile_view';
 
 // The detail of a cell in the app (CellDetailOverlay of @akohn/dashql-react): the core of the app reads a value as
 // SQL, the editor of the app shows the texts, the core lays out plans

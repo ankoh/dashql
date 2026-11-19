@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
-import { useQuery, useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { ScriptEditor } from '../scripts/script_editor.js';
@@ -30,14 +30,14 @@ const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
 
 export interface DashboardCardDependencies {
-    useQuery: typeof useQuery;
+    useQueryModel: typeof useQueryModel;
     QueryResultPanel: typeof QueryResultPanel;
     VisualizationDispatch: typeof VisualizationDispatch;
     ScriptEditor: typeof ScriptEditor;
 }
 
 const DEFAULT_DEPENDENCIES: DashboardCardDependencies = {
-    useQuery,
+    useQueryModel,
     QueryResultPanel,
     VisualizationDispatch,
     ScriptEditor,
@@ -81,7 +81,8 @@ interface Props {
 /// A script without a visualization is a collapsed card: a header of one row with the renderers and an editor.
 export const DashboardCard = React.memo(function DashboardCard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const query = dependencies.useQuery(props.script.latestQueryId);
+    const model = dependencies.useQueryModel(props.script.latestQueryId);
+    const query = model?.query ?? null;
     const visualizeQuery: ResolvedVisualizeQuery | null = props.script.annotations.visualizeQuery;
     const collapsed = visualizeQuery == null;
     // A staged rewrite, e.g. of the renderer, shows on the card and waits to be accepted or rejected like in the feed
@@ -163,7 +164,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     }, [props.placement, props.onResize, props.script.scriptKey, collapsed]);
 
     // The Markdown template starts with the columns of the latest result
-    const queryResult = useQueryResultTable(query);
+    const queryResult = model?.result ?? null;
     const resultColumns = query?.status === QueryExecutionStatus.SUCCEEDED
         ? queryResult?.schema.fields.map(field => field.name) ?? []
         : [];
@@ -362,10 +363,10 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
             {!collapsed && <div className={styles.card_body}>
                 {visualizeQuery.renderer === 'table' ? (
                     // A table shows the header of the result over the rows that fit, a chart only the chart
-                    <dependencies.QueryResultPanel query={query} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
+                    <dependencies.QueryResultPanel model={model} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
                 ) : (
                     <dependencies.VisualizationDispatch
-                        query={query}
+                        model={model}
                         visualizeQuery={visualizeQuery}
                         hideLegend={props.placement.width < 5}
                     />

@@ -10,7 +10,7 @@ import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akoh
 import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { DownloadIcon, ScreenFullIcon } from '../symbol_icon.js';
 import { QueryProfileOverlay } from './query_profile_overlay.js';
-import type { CoreSetup, DownloadFile } from '../../host.js';
+import { useHost, type CoreSetup, type DownloadFile } from '../../host.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -97,10 +97,6 @@ export interface QueryProgressPanelProps {
     showProfile?: boolean;
     /// The height of the profile in pixels, 360 by default
     profileHeight?: number;
-    /// The core of the host, without one the plan keeps its orientation
-    setupCore?: CoreSetup | null;
-    /// Save the recording of the progress, without it the panel offers no download
-    downloadFile?: DownloadFile | null;
 }
 
 
@@ -161,9 +157,9 @@ function useRotatedProgress(progress: QueryProfileProgress, rotated: boolean, co
 }
 
 /// The profile of a query with the progress of its stages on their contours, once the plan is known
-export function ProfileProgressDetails(props: { progress: QueryProfileProgress; height?: number | string; setupCore?: CoreSetup | null }) {
+export function ProfileProgressDetails(props: { progress: QueryProfileProgress; height?: number | string }) {
     const [rotated, setRotated] = React.useState(false);
-    const progress = useRotatedProgress(props.progress, rotated, props.setupCore ?? null);
+    const progress = useRotatedProgress(props.progress, rotated, useHost().setupCore);
     const rotate = React.useCallback(() => setRotated(value => !value), []);
     const hasOperators = React.useMemo(() => progress.structure.read().operatorsLength() > 0, [progress.structure]);
     if (!hasOperators) return null;
@@ -177,6 +173,7 @@ export function ProfileProgressDetails(props: { progress: QueryProfileProgress; 
 /// The progress of a query: its phase, a progress bar, throughput and the profile with the progress of its stages
 export function QueryProgressPanel(props: QueryProgressPanelProps) {
     const { query } = props;
+    const { downloadFile } = useHost();
     const progress = query.progress ?? null;
     const profileProgress = progress?.profileProgress ?? null;
     const queryState = profileProgress?.execution.query ?? null;
@@ -208,7 +205,7 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                 actions={showsProfile
                     ? (
                         <>
-                            {props.downloadFile != null && <DownloadRecordingButton queryId={query.queryId} progress={profileProgress} downloadFile={props.downloadFile} />}
+                            <DownloadRecordingButton queryId={query.queryId} progress={profileProgress} downloadFile={downloadFile} />
                             {hasOperators && <IconButton
                                 variant={ButtonVariant.Invisible}
                                 size={ButtonSize.Small}
@@ -239,11 +236,11 @@ export function QueryProgressPanel(props: QueryProgressPanelProps) {
                     <Figure label="Spilled" value={spilled == null || spilled === 0 ? null : formatCompactBytes(spilled)} />
                 </div>
             </div>
-            {showsProfile && <ProfileProgressDetails progress={profileProgress} height={props.profileHeight} setupCore={props.setupCore} />}
+            {showsProfile && <ProfileProgressDetails progress={profileProgress} height={props.profileHeight} />}
             {/* The card follows the progress of the query while it runs */}
             {showsProfile && profileOpen && (
                 <QueryProfileOverlay onClose={() => setProfileOpen(false)}>
-                    <ProfileProgressDetails progress={profileProgress} height="100%" setupCore={props.setupCore} />
+                    <ProfileProgressDetails progress={profileProgress} height="100%" />
                 </QueryProfileOverlay>
             )}
         </div>

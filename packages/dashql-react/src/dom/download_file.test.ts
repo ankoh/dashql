@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { WebFileDownloader } from './web_file_downloader.js';
+import { downloadFile } from './download_file.js';
 
-describe('WebFileDownloader', () => {
+describe('downloadFile', () => {
     afterEach(() => {
         vi.restoreAllMocks();
     });
@@ -19,7 +19,7 @@ describe('WebFileDownloader', () => {
             clicked.push({ href: this.href, download: this.download, attached: this.isConnected });
         });
 
-        await new WebFileDownloader().downloadBufferAsFile(new Uint8Array([1, 2, 3]), 'workbook.dashql');
+        await downloadFile(new Uint8Array([1, 2, 3]), 'workbook.dashql');
 
         expect(clicked).toEqual([{ href: 'blob:download', download: 'workbook.dashql', attached: true }]);
         expect(blobs.length).toBe(1);

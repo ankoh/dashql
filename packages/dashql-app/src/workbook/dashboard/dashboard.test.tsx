@@ -14,7 +14,7 @@ import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
-import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -23,7 +23,7 @@ const state = {
 };
 
 const cardDependencies = {
-    useQuery: (queryId: number | null) => queryId == null ? null : state.queries.get(queryId) ?? null,
+    useQueryModel: (queryId: number | null) => queryId == null ? null : queryModelOf(state.queries.get(queryId) as never),
     QueryResultPanel: (props: { onShowTable?: () => void }) => <button data-testid="card-table" onClick={props.onShowTable}>table</button>,
     VisualizationDispatch: () => <div data-testid="card-visualization" />,
     ScriptEditor: () => <div data-testid="card-editor" />,

@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_download_button.module.css';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '../../models/query_model.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import * as ActionList from '../action_list.js';
@@ -10,7 +11,7 @@ import { AnchorAlignment, AnchorSide } from '../../dom/anchored_position.js';
 import { AnchoredOverlay } from '../anchored_overlay.js';
 import { DownloadIcon } from '../symbol_icon.js';
 import { useLogger } from '../../logger.js';
-import type { DownloadFile } from '../../host.js';
+import { useHost } from '../../host.js';
 
 const enum DownloadFormat {
     Arrow = 'arrow',
@@ -21,17 +22,16 @@ const enum DownloadFormat {
 export type ExportParquet = (table: arrow.Table) => Promise<Uint8Array>;
 
 export interface QueryResultDownloadButtonProps {
-    query: QueryExecutionState;
-    /// The result table of the query, the download writes all of it
-    resultTable: arrow.Table | null;
-    /// Save the file of the result
-    downloadFile: DownloadFile;
+    /// The query, the download writes all of its result
+    model: QueryModel;
     /// Write the result as Parquet, without it the menu offers Parquet disabled
     exportParquet: ExportParquet | null;
 }
 
 /// Download the result of a query as an Arrow IPC file or, with a database that exports it, as Parquet
-export function QueryResultDownloadButton({ query, resultTable, downloadFile, exportParquet }: QueryResultDownloadButtonProps) {
+export function QueryResultDownloadButton({ model, exportParquet }: QueryResultDownloadButtonProps) {
+    const { query, result: resultTable } = model;
+    const { downloadFile } = useHost();
     const logger = useLogger();
     const [open, setOpen] = React.useState(false);
     const [downloading, setDownloading] = React.useState(false);

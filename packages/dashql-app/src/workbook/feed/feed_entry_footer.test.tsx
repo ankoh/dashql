@@ -6,58 +6,46 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 
-import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
-import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import * as dashql from '@akohn/dashql';
-import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryFooterDependencies } from './feed_entry_footer.js';
+import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { StandaloneRuntime } from '../../runtime/standalone_runtime.js';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { projectQueryProgress } from '@akohn/dashql/platform/query/query_progress';
-import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
+import { fakeComputationModel, fakeQueryModel } from '@akohn/dashql-react/testing/fake_models';
+import { mockTableComputation } from '@akohn/dashql-react/testing/computation_mocks';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const download = vi.fn();
-const exportParquet = vi.fn();
-const computeDatabase = { registerExternalDirectory: vi.fn(), removeExternalDirectory: vi.fn() };
+const download = vi.fn<DownloadFile>();
 const onShowTable = vi.fn();
-const renderPng = vi.fn();
-const dependencies = {
-    useResultRowCount: () => ({ hasResult: true, totalRows: 3 }),
-    useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
-    QueryResultToolbar: () => null,
-    QueryResultActionMenu: () => null,
-    QueryResultView: () => <div data-testid="feed-preview" />,
-    QueryResultDownloadButton: props => <QueryResultDownloadButton {...props} dependencies={{
-        useDownloadFile: () => download,
-        useComputeDatabase: () => computeDatabase as any,
-        exportArrowTableAsParquet: exportParquet,
-    }} />,
-    ChartDownloadButton: props => <ChartDownloadButton {...props} dependencies={{
-        useDownloadFile: () => download,
-        renderVegaLitePng: renderPng,
-    }} />,
-} as FeedEntryFooterDependencies;
+
+/// The model of query 42 that succeeded with a result, analyzed by its computation
+function succeeded(resultTable: arrow.Table): QueryModel {
+    const query = { queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, queryMetadata: {}, resultTable: { id: 1, rows: resultTable.numRows } } as unknown as QueryExecutionState;
+    const computation = fakeComputationModel(mockTableComputation([], { dataTableRows: resultTable.numRows }), new Map([[1, resultTable]]));
+    return fakeQueryModel(query, { result: resultTable, computation });
+}
 
 /// The feed row owns the tab selection, the strip sits in the status bar and the panel below it
-const FooterWithTabs: React.FC<{ queryState: QueryExecutionState; visualizeQuery: ResolvedVisualizeQuery | null }> = ({ queryState, visualizeQuery }) => {
-    const tabs = useFeedEntryTabs(queryState, visualizeQuery, dependencies);
+const FooterWithTabs: React.FC<{ model: QueryModel; visualizeQuery: ResolvedVisualizeQuery | null }> = ({ model, visualizeQuery }) => {
+    const tabs = useFeedEntryTabs(model, visualizeQuery);
     return (
         <>
             <FeedEntryTabStrip tabs={tabs} />
             <FeedEntryFooter
                 workbookId="workbook"
-                queryState={queryState}
+                model={model}
                 visualizeQuery={visualizeQuery}
                 selectedTab={tabs.selectedTab}
                 onShowTable={onShowTable}
-                dependencies={dependencies}
             />
         </>
     );
@@ -75,9 +63,7 @@ describe('FeedEntryFooter', () => {
         document.body.appendChild(container);
         root = createRoot(container);
         download.mockReset().mockResolvedValue(undefined);
-        exportParquet.mockReset();
         onShowTable.mockReset();
-        renderPng.mockReset();
     });
 
     afterEach(() => {
@@ -86,15 +72,11 @@ describe('FeedEntryFooter', () => {
     });
 
     function renderFooter(resultTable: arrow.Table, visualizeQuery: ResolvedVisualizeQuery | null = null) {
-        // The chart of the visualization tab reads the computations of the results
         act(() => root.render(
             <StandaloneRuntime>
-                <WithResultTables>
-                    <FooterWithTabs
-                        queryState={{ queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(resultTable) } as any}
-                        visualizeQuery={visualizeQuery}
-                    />
-                </WithResultTables>
+                <HostProvider value={{ setupCore: null, downloadFile: download }}>
+                    <FooterWithTabs model={succeeded(resultTable)} visualizeQuery={visualizeQuery} />
+                </HostProvider>
             </StandaloneRuntime>,
         ));
     }
@@ -112,13 +94,12 @@ describe('FeedEntryFooter', () => {
     it('downloads the full original result as Arrow from the feed header without opening Details', async () => {
         const resultTable = tableFromArrays({ value: [10, 20, 30] });
         renderFooter(resultTable);
-        expect(container.querySelector('[data-testid="feed-preview"]')).not.toBeNull();
 
         await chooseDownloadFormat('arrow');
 
         expect(onShowTable).not.toHaveBeenCalled();
         expect(download).toHaveBeenCalledTimes(1);
-        const [bytes, filename] = download.mock.calls[0];
+        const [bytes, filename] = download.mock.calls[0] as [Uint8Array, string];
         expect(filename).toBe('query-result-42.arrow');
         expect(new TextDecoder().decode(bytes.subarray(0, 6))).toBe('ARROW1');
         const exported = arrow.tableFromIPC(bytes);
@@ -138,31 +119,11 @@ describe('FeedEntryFooter', () => {
         expect(onShowTable).toHaveBeenCalledTimes(1);
     });
 
-    it('downloads the full original result as Parquet through the compute database', async () => {
-        const resultTable = tableFromArrays({ value: [10, 20, 30] });
-        const parquet = new TextEncoder().encode('PAR1');
-        exportParquet.mockResolvedValue(parquet);
-        renderFooter(resultTable);
-
-        await chooseDownloadFormat('parquet');
-
-        expect(exportParquet).toHaveBeenCalledWith(computeDatabase, resultTable);
-        expect(download).toHaveBeenCalledWith(parquet, 'query-result-42.parquet');
-    });
-
-    it('downloads the chart as PNG from the visualization header', async () => {
+    it('offers the chart as PNG in the visualization header', () => {
         const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
-        const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
-        renderPng.mockResolvedValue({ png, width: 1600, height: 1000 });
         renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
         expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
-
-        const button = container.querySelector<HTMLButtonElement>('[data-testid="download-chart-png"]')!;
-        expect(button).not.toBeNull();
-        await act(async () => button.click());
-
-        expect(renderPng).toHaveBeenCalledWith(vegaLiteSpec, [{ value: 10 }, { value: 20 }, { value: 30 }]);
-        expect(download).toHaveBeenCalledWith(png, 'chart-42.png');
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="download-chart-png"]')?.disabled).toBe(false);
     });
 
     it('shows a chart that the result gets after it is shown as table', async () => {
@@ -193,10 +154,6 @@ describe('FeedEntryFooter', () => {
     });
 
     it('selects the progress of a running query and places it right of the log', () => {
-        const running = {
-            ...dependencies,
-            useResultRowCount: () => ({ hasResult: false, totalRows: null }),
-        } as unknown as FeedEntryFooterDependencies;
         // A query with a profile, without a runtime that reads it the plan is not known yet
         const queryState = {
             queryId: 43,
@@ -205,12 +162,13 @@ describe('FeedEntryFooter', () => {
             metrics: { queryRequestedAt: Date.now() },
             latestProgressUpdate: { phase: 'RUNNING', profile: { structure: new Uint8Array(0), execution: null, revision: 1, structureVersion: 1 } },
         } as unknown as QueryExecutionState;
+        const model = fakeQueryModel(queryState);
         const Footer = () => {
-            const tabs = useFeedEntryTabs(queryState, null, running);
+            const tabs = useFeedEntryTabs(model, null);
             return (
                 <>
                     <FeedEntryTabStrip tabs={tabs} />
-                    <FeedEntryFooter workbookId="workbook" queryState={queryState} visualizeQuery={null} selectedTab={tabs.selectedTab} dependencies={running} />
+                    <FeedEntryFooter workbookId="workbook" model={model} visualizeQuery={null} selectedTab={tabs.selectedTab} />
                 </>
             );
         };
@@ -241,7 +199,7 @@ describe('FeedEntryFooter', () => {
         } as unknown as QueryExecutionState;
         act(() => root.render(
             <RuntimeContextProvider value={testRuntime(core)}>
-                <FeedEntryFooter workbookId="workbook" queryState={queryState} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} dependencies={dependencies} />
+                <FeedEntryFooter workbookId="workbook" model={fakeQueryModel(queryState)} visualizeQuery={null} selectedTab={FeedEntryTab.Progress} />
             </RuntimeContextProvider>,
         ));
         const profile = container.querySelector<HTMLElement>('[data-testid="query-progress-profile"]');

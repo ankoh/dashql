@@ -28,6 +28,7 @@ import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from 
 import { resolveClientFunctionCall } from './workbook_shell_environment.js';
 import { WorkbookShellPage, type WorkbookShellPageDependencies } from './workbook_shell_page.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
+import { queryModelOf } from '../../tests/result_tables.js';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import * as completionListStyles from '../../views/completion_list/completion_list.module.css';
 
@@ -150,6 +151,7 @@ const dependencies: WorkbookShellPageDependencies = {
                 QueryResultDetails: () => { throw new Error('boom'); },
                 QueryProfileView: () => <></>,
                 useQueryProfile: () => ({ plan: null, execution: ProfileExecutionState.EMPTY, rejected: false }),
+                useResultModel: queryModelOf,
             }}
         />
     ) : (

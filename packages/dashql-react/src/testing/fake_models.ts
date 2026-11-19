@@ -42,6 +42,7 @@ export function fakeQueryModel(query: Partial<QueryExecutionState> & { queryId: 
         query: query as QueryExecutionState,
         progress: query.progress ?? null,
         result: null,
+        computation: null,
         cancel: vi.fn(async () => { }),
         ...overrides,
     };

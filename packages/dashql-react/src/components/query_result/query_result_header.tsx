@@ -7,7 +7,8 @@ import { TabHeader } from '../tab_header.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
 import { fittingRowCount } from '../data_table/data_table.js';
 import { formatBytes } from '../../format/format.js';
-import type { ResultRowCounts } from './query_result_toolbar.js';
+import { useResultRowCounts, type ResultRowCounts } from './query_result_toolbar.js';
+import type { QueryModel } from '../../models/query_model.js';
 
 /// The row count of a result table: "3 rows", "2 of 3 rows" while searching, "6 of 1000 rows" for a
 /// preview that shows at most `maxRows` rows. Null while the total is unknown.
@@ -57,10 +58,8 @@ export function formatResultDetail(rowCount: string | null, resultTable: arrow.T
 }
 
 export interface QueryResultHeaderProps {
-    /// The rows of the result
-    counts: ResultRowCounts;
-    /// The result table, for its size
-    resultTable: arrow.Table | null;
+    /// The query of the result: its rows, its size and its searches
+    model: QueryModel;
     /// The rows the table below shows at most, a preview of more rows counts as "6 of 1000 rows"
     maxRows?: number;
     /// Open the full result table, makes the header clickable
@@ -73,11 +72,12 @@ export interface QueryResultHeaderProps {
 /// The feed entries, the dashboard cards and the dataflow boxes show the same header.
 export function QueryResultHeader(props: QueryResultHeaderProps): React.ReactElement {
     const maxRows = props.maxRows ?? Infinity;
-    const displayedRows = props.counts.matchingRows ?? props.counts.totalRows;
+    const counts = useResultRowCounts(props.model.computation);
+    const displayedRows = counts.matchingRows ?? counts.totalRows;
     return (
         <TabHeader
             title="Query Results"
-            detail={formatResultDetail(formatResultRowCount(props.counts, maxRows), props.resultTable)}
+            detail={formatResultDetail(formatResultRowCount(counts, maxRows), props.model.result)}
             onClick={props.onShowTable}
             detailIsLink={displayedRows != null && displayedRows > maxRows}
             actions={props.actions}

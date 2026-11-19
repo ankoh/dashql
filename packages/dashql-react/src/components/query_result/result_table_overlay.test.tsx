@@ -1,22 +1,26 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
-import { ResultTableOverlay, type ResultTableOverlayDependencies } from './result_table_overlay.js';
+import { ResultTableOverlay } from './result_table_overlay.js';
+import type { QueryResultDetailsLayout } from './query_result_details.js';
 
-const detailsProps: any[] = [];
-const dependencies: ResultTableOverlayDependencies = {
-    QueryResultDetails: (props: any) => {
-        detailsProps.push(props);
-        return <div data-testid="mock-query-results">Query results</div>;
-    },
-};
-const query = { queryId: 42 } as unknown as QueryExecutionState;
+const detailsProps: QueryResultDetailsLayout[] = [];
+
+/// The overlay with the details of a result that record their layout
+function Overlay(props: { onClose: () => void }) {
+    return (
+        <ResultTableOverlay scriptName="01_alpha" onClose={props.onClose}>
+            {layout => {
+                detailsProps.push(layout);
+                return <div data-testid="mock-query-results">Query results</div>;
+            }}
+        </ResultTableOverlay>
+    );
+}
 
 function dialog(): HTMLElement | null {
     return document.querySelector<HTMLElement>('[data-testid="result-table-overlay"]');
@@ -38,19 +42,16 @@ describe('ResultTableOverlay', () => {
     });
 
     it('shows the result table with its column plots under a header with the script name', () => {
-        act(() => root.render(<ResultTableOverlay scriptName="01_alpha" query={query} onClose={vi.fn()} dependencies={dependencies} />));
+        act(() => root.render(<Overlay onClose={vi.fn()} />));
         expect(dialog()?.getAttribute('role')).toBe('dialog');
         expect(dialog()?.getAttribute('aria-modal')).toBe('true');
         expect(dialog()?.querySelector('h2')?.textContent).toBe('01_alpha');
         expect(dialog()?.querySelector('[data-testid="mock-query-results"]')).not.toBeNull();
-        const props = detailsProps[detailsProps.length - 1];
-        expect(props.query).toBe(query);
-        expect(props.columnHeader).toBe(TableColumnHeader.WithColumnPlots);
-        expect(props.fitHeight).toBe(true);
+        expect(detailsProps[detailsProps.length - 1].fitHeight).toBe(true);
     });
 
     it('enlarges the card to the window and restores it', () => {
-        act(() => root.render(<ResultTableOverlay scriptName="01_alpha" query={query} onClose={vi.fn()} dependencies={dependencies} />));
+        act(() => root.render(<Overlay onClose={vi.fn()} />));
         const resize = document.querySelector<HTMLButtonElement>('[data-testid="result-table-overlay-resize"]')!;
         expect(resize.getAttribute('aria-pressed')).toBe('false');
         expect(dialog()?.hasAttribute('data-expanded')).toBe(false);
@@ -69,7 +70,7 @@ describe('ResultTableOverlay', () => {
 
     it('closes with the close button and with Escape', () => {
         const onClose = vi.fn();
-        act(() => root.render(<ResultTableOverlay scriptName="01_alpha" query={query} onClose={onClose} dependencies={dependencies} />));
+        act(() => root.render(<Overlay onClose={onClose} />));
         act(() => document.querySelector<HTMLButtonElement>('[data-testid="result-table-overlay-close"]')!.click());
         expect(onClose).toHaveBeenCalledTimes(1);
         act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });

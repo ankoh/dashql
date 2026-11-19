@@ -4,6 +4,8 @@ import type * as arrow from 'apache-arrow';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { RuntimeContextProvider, useOptionalRuntime } from '@akohn/dashql-react/hooks';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
+import { fakeQueryModel } from '@akohn/dashql-react/testing/fake_models';
 
 /// The Arrow tables of the results of the tests, by their handle
 const TABLES = new Map<number, arrow.Table>();
@@ -50,4 +52,19 @@ export function WithResultTables(props: { children: React.ReactNode }) {
         });
     }, [above]);
     return <RuntimeContextProvider value={runtime}>{props.children}</RuntimeContextProvider>;
+}
+
+/// The models of the queries of the tests, one per query
+const MODELS = new WeakMap<object, QueryModel>();
+
+/// The model of a query of a test without a runtime: its result is the table of `resultTableOf`, it has no computation
+export function queryModelOf(query: QueryExecutionState | null | undefined): QueryModel | null {
+    if (query == null) return null;
+    let model = MODELS.get(query);
+    if (model == null) {
+        const result = query.resultTable == null ? null : TABLES.get(query.resultTable.id) ?? null;
+        model = fakeQueryModel(query, { result });
+        MODELS.set(query, model);
+    }
+    return model;
 }

@@ -4,15 +4,13 @@ import * as dashql from '@akohn/dashql';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { createProfileLayoutConfig, QueryProfileView } from './query_profile_view.js';
 import { rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
-import type { CoreSetup } from '../../host.js';
+import { useHost } from '../../host.js';
 
 type ProfileEngine = dashql.buffers.profile.ProfileEngine;
 
 export interface EngineProfileViewProps {
     engine: ProfileEngine;
     planText: string;
-    /// The core of the host, it loads the plan
-    setupCore: CoreSetup | null;
     className?: string;
     fallback?: React.ReactNode;
 }
@@ -40,8 +38,9 @@ function loadPlan(viewModel: dashql.DashQLQueryProfile, engine: ProfileEngine, p
     }
 }
 
-/// The plan of an engine as a query profile of the core, laid out again when it rotates
-export function useQueryProfile(engine: ProfileEngine, planText: string | null, coreSetup: CoreSetup | null): QueryProfileState {
+/// The plan of an engine as a query profile of the core of the host, laid out again when it rotates
+export function useQueryProfile(engine: ProfileEngine, planText: string | null): QueryProfileState {
+    const coreSetup = useHost().setupCore;
     const layoutConfig = React.useMemo(() => createProfileLayoutConfig(), []);
     const viewModelRef = React.useRef<dashql.DashQLQueryProfile | null>(null);
     const [state, setState] = React.useState<QueryProfileState>({ plan: null, execution: ProfileExecutionState.EMPTY, rejected: false });
@@ -92,7 +91,7 @@ export function useQueryProfile(engine: ProfileEngine, planText: string | null, 
 
 /// The plan text of an engine as a query profile, the fallback when the text is no plan of the engine
 export function EngineProfileView(props: EngineProfileViewProps) {
-    const { plan, execution, rejected, rotate } = useQueryProfile(props.engine, props.planText, props.setupCore);
+    const { plan, execution, rejected, rotate } = useQueryProfile(props.engine, props.planText);
 
     if (rejected) return props.fallback ?? null;
     return <div className={props.className}>{plan != null && <QueryProfileView plan={plan} execution={execution} onRotate={rotate} />}</div>;

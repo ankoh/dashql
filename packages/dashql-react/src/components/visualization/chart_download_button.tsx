@@ -1,24 +1,21 @@
 import * as React from 'react';
-import type * as arrow from 'apache-arrow';
 import type { TopLevelSpec } from 'vega-lite';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '../../models/query_model.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { DownloadIcon } from '../symbol_icon.js';
 import { arrowTableToRows } from '../../vegalite/vegalite_rows.js';
 import { renderVegaLitePng } from '../../vegalite/vegalite_image.js';
 import { useLogger } from '../../logger.js';
-import type { DownloadFile } from '../../host.js';
+import { useHost } from '../../host.js';
 
 export interface ChartDownloadButtonProps {
-    query: QueryExecutionState;
-    /// The result table of the query, the data of the chart
-    resultTable: arrow.Table | null;
+    /// The query, its result is the data of the chart
+    model: QueryModel;
     /// The Vega-Lite spec of the chart
     spec: TopLevelSpec;
-    /// Save the image of the chart
-    downloadFile: DownloadFile;
     dependencies?: {
         renderVegaLitePng: typeof renderVegaLitePng;
     };
@@ -29,7 +26,9 @@ const DEFAULT_DEPENDENCIES: NonNullable<ChartDownloadButtonProps['dependencies']
 };
 
 /// Download the chart of a query result as PNG
-export function ChartDownloadButton({ query, resultTable, spec, downloadFile, dependencies = DEFAULT_DEPENDENCIES }: ChartDownloadButtonProps) {
+export function ChartDownloadButton({ model, spec, dependencies = DEFAULT_DEPENDENCIES }: ChartDownloadButtonProps) {
+    const { query, result: resultTable } = model;
+    const { downloadFile } = useHost();
     const logger = useLogger();
     const [downloading, setDownloading] = React.useState(false);
     const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;

@@ -41,7 +41,8 @@ import {
 import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
 import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
-import { useOptionalRuntime, useQuery, useQueryResultTable, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
 import * as styles from './dataflow.module.css';
@@ -60,7 +61,7 @@ const RESIZE_KEY_STEP = 16;
 const NEVER_COLLAPSED = () => false;
 
 export interface DataflowCanvasDependencies {
-    useQuery: typeof useQuery;
+    useQueryModel: typeof useQueryModel;
     VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
     ScriptEntryHeader: typeof ScriptEntryHeader;
@@ -69,7 +70,7 @@ export interface DataflowCanvasDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
-    useQuery,
+    useQueryModel,
     VisualizationPanel,
     useDataflowModule,
     ScriptEntryHeader,
@@ -796,11 +797,12 @@ function onHeaderItself(event: React.SyntheticEvent): boolean {
 function DataflowBox(props: BoxProps): React.ReactElement {
     const { box, script } = props;
     const config = props.config;
-    const query = props.dependencies.useQuery(script?.latestQueryId ?? null);
+    const model = props.dependencies.useQueryModel(script?.latestQueryId ?? null);
+    const query = model?.query ?? null;
     const name = scriptDisplayName(box.script.fileName);
     const scriptKey = box.script.scriptKey;
     const terminal = box.rows.length - 1;
-    const result = useQueryResultTable(query);
+    const result = model?.result ?? null;
     // A new script reads the whole script, so the add button sits at the vertical middle of the box
     const addY = box.y + box.height / 2;
     const labelChars = (badgeWidth: number) => Math.max(4, Math.floor((box.width - 2 * config.rowPadding - 16 - badgeWidth - 8) / LABEL_CHAR_WIDTH));
@@ -906,7 +908,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                     <div className={styles.chart_body}>
                         {query?.resultTable != null
                             ? <props.dependencies.VisualizationPanel
-                                query={query}
+                                model={model}
                                 visualizeQuery={script.annotations.visualizeQuery}
                                 width={box.chart.width - 2 * CHART_BORDER}
                                 height={box.chart.height - 2 * CHART_BORDER}

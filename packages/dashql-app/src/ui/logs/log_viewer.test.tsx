@@ -9,7 +9,7 @@ import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
-import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
+import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { LogViewer } from './log_viewer.js';
 import * as styles from './log_viewer.module.css';
 
@@ -50,12 +50,17 @@ describe('LogViewer', () => {
         }));
     }
 
+    // The downloads of the viewer
+    const download = vi.fn<DownloadFile>();
+
     function render(traceId?: number, before: () => void = () => { }) {
         act(() => root.render(
             <LoggerProvider>
-                <CaptureLogger />
-                <Setup before={before} />
-                <LogViewer onClose={onClose} traceId={traceId} />
+                <HostProvider value={{ setupCore: null, downloadFile: download }}>
+                    <CaptureLogger />
+                    <Setup before={before} />
+                    <LogViewer onClose={onClose} traceId={traceId} />
+                </HostProvider>
             </LoggerProvider>,
         ));
     }
@@ -136,7 +141,7 @@ describe('LogViewer', () => {
     });
 
     it('downloads all records as JSON', async () => {
-        const download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
+        download.mockReset().mockResolvedValue();
         render(undefined, () => {
             log('first');
             log('second', 3);
@@ -150,7 +155,7 @@ describe('LogViewer', () => {
 
     it('reports a failed download', async () => {
         const failure = new Error('no downloads');
-        vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockRejectedValue(failure);
+        download.mockReset().mockRejectedValue(failure);
         const error = vi.spyOn(console, 'error').mockImplementation(() => { });
         render();
         await act(async () => button('Download Logs as JSON')!.click());
@@ -158,7 +163,7 @@ describe('LogViewer', () => {
     });
 
     it('shows and downloads only the records of a trace', async () => {
-        const download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
+        download.mockReset().mockResolvedValue();
         render(7, () => {
             log('before', 7);
             log('other', 8);

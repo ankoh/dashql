@@ -14,7 +14,7 @@ import { WorkbookConnectionAttentionContext } from '../workbook_connection_atten
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
 import { LoggerProvider } from '../../platform/logger_provider.js';
-import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
+import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
@@ -137,12 +137,14 @@ describe('V2 workbook feed rows', () => {
         const bytes = new Uint8Array([0, 255, 13]);
         await backend.saveDataFile('workbook', 'sales.parquet', bytes);
         const onRemoved = vi.fn();
-        const download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
+        const download = vi.fn<DownloadFile>().mockResolvedValue();
         try {
             act(() => root.render(<LoggerProvider>
-                <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }}
-                    conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
-                    storageReader={{ backend } as any} onRemoved={onRemoved} />
+                <HostProvider value={{ setupCore: null, downloadFile: download }}>
+                    <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }}
+                        conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
+                        storageReader={{ backend } as any} onRemoved={onRemoved} />
+                </HostProvider>
             </LoggerProvider>));
             const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');
             expect(downloadButton).not.toBeNull();

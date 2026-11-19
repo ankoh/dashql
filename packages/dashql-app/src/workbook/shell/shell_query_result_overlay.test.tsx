@@ -13,7 +13,7 @@ import {
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
@@ -25,6 +25,7 @@ const dependencies: ShellQueryResultOverlayDependencies = {
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
     QueryProfileView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
+    useResultModel: queryModelOf,
 };
 
 // Tab ids of the vertical tabs in the overlay

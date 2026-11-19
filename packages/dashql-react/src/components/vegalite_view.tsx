@@ -1,5 +1,4 @@
 import * as React from 'react';
-import type * as arrow from 'apache-arrow';
 import type { Config, TopLevelSpec } from 'vega-lite';
 
 import * as styles from './vegalite_view.module.css';
@@ -9,8 +8,9 @@ import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChar
 import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
-import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import type { ComputationTables } from './data_table/data_table.js';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '../models/query_model.js';
+import { useComputationTables, type ComputationTables } from './data_table/computation_tables.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from './card_placeholder.js';
 import {
     filterTableToVegaCrossFilterRows,
@@ -61,17 +61,26 @@ export interface ResultComputation {
     tables: ComputationTables;
 }
 
+/// The computation of the result of a query with its tables, null without one
+export function useResultComputation(model: QueryModel | null): ResultComputation | null {
+    const computation = model?.computation?.computation ?? null;
+    const tables = useComputationTables(computation, model?.computation?.tables ?? null);
+    const rowNumberColumnName = computation?.rowNumberColumnName ?? null;
+    return React.useMemo(
+        () => computation == null ? null : { rowNumberColumnName, tables },
+        [rowNumberColumnName, computation == null, tables],
+    );
+}
+
 const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
     loadVega,
     useNearViewport,
 };
 
 export interface VegaLiteViewProps {
-    query: QueryExecutionState | null;
-    /// The result table of the query, the chart shows it while the result has no computation
-    resultTable: arrow.Table | null;
-    /// The computation of the result, the chart shows its table and follows its cross filters
-    resultComputation: ResultComputation | null;
+    /// The query of the chart: the chart shows the table of the computation of its result and follows its cross filters,
+    /// the result table while the result has no computation
+    model: QueryModel | null;
     vegaLiteSpec: TopLevelSpec | null;
     /// Optional exact width/height in px for the whole chart. The view is sized to `fit`, so the
     /// entire plot (marks, axes, legend) fits the available box. An unset dimension falls back to
@@ -150,7 +159,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     const colorScheme = useColorScheme();
     const flavorId = useBrand().id;
 
-    const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
+    const succeeded = props.model?.query.status === QueryExecutionStatus.SUCCEEDED;
     // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
     // Keep the previous identity when the authored spec is structurally unchanged so Vega's
     // effect does not finalize and rebuild the canvas while the user types or moves the cursor.
@@ -160,8 +169,8 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back
     // to the raw result table when there is no computation registered. The analyzed table is a
     // superset of the result columns (system columns are ignored by the spec).
-    const tableComputation = props.resultComputation;
-    const queryResult = props.resultTable;
+    const tableComputation = useResultComputation(props.model);
+    const queryResult = props.model?.result ?? null;
     const dataTable = tableComputation?.tables.dataTable ?? (succeeded ? queryResult : null);
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
@@ -280,7 +289,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         return <CardPlaceholder message="No visualization available" />;
     }
     if (!succeeded) {
-        return <QueryStatusPlaceholder query={props.query} />;
+        return <QueryStatusPlaceholder query={props.model?.query ?? null} />;
     }
     if (!dataTable) {
         return <CardPlaceholder message="Result is empty" />;

@@ -3,7 +3,7 @@ import * as styles from './feed_entry_footer.module.css';
 
 import icons from '@akohn/dashql-svg-symbols';
 
-import { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
 import { QueryResultView } from '../../views/query_result/query_result_view.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
@@ -13,12 +13,9 @@ import { TraceLogPanel } from '../trace_log_panel.js';
 import { QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
 import { hasQueryProgress } from '@akohn/dashql-react/components/query_progress/query_progress_panel';
 import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/tab_header';
-import { useResultRowCount } from '../../views/query_result/query_result_toolbar.js';
-import { QueryResultToolbar, useQueryResultRowCounts } from '../../views/query_result/query_result_toolbar.js';
-import { QueryResultDownloadButton } from '../../views/query_result/query_result_download_button.js';
-import { QueryResultActionMenu } from '../../views/query_result/query_result_action_menu.js';
+import { resultRowCount } from '@akohn/dashql-react/components/query_result/query_result_toolbar';
 import { QueryResultHeader } from '../../views/query_result/query_result_header.js';
-import { ChartDownloadButton } from '../../views/visualization/chart_download_button.js';
+import { ChartDownloadButton } from '@akohn/dashql-react/components/visualization/chart_download_button';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -79,12 +76,12 @@ export interface FeedEntryTabs {
 /// when the script visualizes it), a result that goes away falls back to the progress or the log. The
 /// Details view passes the tab it was opened on as `initialTab`.
 export function useFeedEntryTabs(
-    queryState: QueryExecutionState | null,
+    model: QueryModel | null,
     visualizeQuery: ResolvedVisualizeQuery | null,
-    dependencies: Pick<FeedEntryFooterDependencies, 'useResultRowCount'> = DEFAULT_DEPENDENCIES,
     initialTab?: FeedEntryTab,
 ): FeedEntryTabs {
-    const { hasResult } = dependencies.useResultRowCount(queryState);
+    const queryState = model?.query ?? null;
+    const { hasResult } = resultRowCount(model);
     const hasVisualization = hasResult && visualizeQuery != null && visualizeQuery.renderer !== 'table';
     const hasLog = queryState?.traceId != null;
     const hasProgress = hasQueryProgress(queryState);
@@ -177,50 +174,29 @@ export const FeedEntryTabStrip: React.FC<FeedEntryTabStripProps> = ({ tabs, expa
     );
 };
 
-export interface FeedEntryFooterDependencies {
-    useResultRowCount: typeof useResultRowCount;
-    useQueryResultRowCounts: typeof useQueryResultRowCounts;
-    QueryResultToolbar: typeof QueryResultToolbar;
-    QueryResultDownloadButton: typeof QueryResultDownloadButton;
-    QueryResultActionMenu: typeof QueryResultActionMenu;
-    ChartDownloadButton: typeof ChartDownloadButton;
-    QueryResultView: typeof QueryResultView;
-}
-
-const DEFAULT_DEPENDENCIES: FeedEntryFooterDependencies = {
-    useResultRowCount,
-    useQueryResultRowCounts,
-    QueryResultToolbar,
-    QueryResultDownloadButton,
-    QueryResultActionMenu,
-    ChartDownloadButton,
-    QueryResultView,
-};
-
 interface FeedEntryFooterProps {
     workbookId: string;
-    /// The latest query execution for this script.
-    queryState: QueryExecutionState | null;
+    /// The latest query of the script
+    model: QueryModel | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
     /// The tab to show, picked in the tab strip of the entry status bar
     selectedTab: FeedEntryTab;
     /// Open the full result table, makes the header and the column names of the preview clickable
     onShowTable?: () => void;
-    dependencies?: FeedEntryFooterDependencies;
 }
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
-    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const { totalRows } = dependencies.useResultRowCount(props.queryState);
-    const queryTraceId = props.queryState?.traceId ?? null;
+    const model = props.model;
+    const { totalRows } = resultRowCount(model);
+    const queryTraceId = model?.query.traceId ?? null;
 
     // The visualization renders the full cloud (no feed row cap), so the header just shows the
     // total row count.
     const pointCountDetail = formatRowCountDetail(totalRows);
 
     switch (props.selectedTab) {
-        case FeedEntryTab.Progress: return props.queryState == null ? null : (
-            <QueryProgressPanel query={props.queryState} showProfile profileHeight={FEED_PROFILE_HEIGHT} />
+        case FeedEntryTab.Progress: return model == null ? null : (
+            <QueryProgressPanel query={model.query} showProfile profileHeight={FEED_PROFILE_HEIGHT} />
         );
         case FeedEntryTab.ExecutionLog: return (
             <TraceLogPanel
@@ -229,16 +205,15 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 maxRows={FEED_LIMIT_LOG_ROWS}
             />
         );
-        case FeedEntryTab.Table: return props.queryState == null ? null : (
+        case FeedEntryTab.Table: return model == null ? null : (
             <>
                 <QueryResultHeader
-                    query={props.queryState}
+                    model={model}
                     maxRows={FEED_LIMIT_RESULT_ROWS}
                     onShowTable={props.onShowTable}
-                    dependencies={dependencies}
                 />
-                <dependencies.QueryResultView
-                    query={props.queryState}
+                <QueryResultView
+                    query={model.query}
                     debugMode={false}
                     maxRows={FEED_LIMIT_RESULT_ROWS}
                     columnHeader={TableColumnHeader.OnlyColumnName}
@@ -252,14 +227,14 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 <TabHeader
                     title="Visualization"
                     detail={pointCountDetail}
-                    actions={props.queryState != null && props.visualizeQuery?.renderer === 'vegalite' ? (
-                        <dependencies.ChartDownloadButton query={props.queryState} spec={props.visualizeQuery.vegaLiteSpec} />
+                    actions={model != null && props.visualizeQuery?.renderer === 'vegalite' ? (
+                        <ChartDownloadButton model={model} spec={props.visualizeQuery.vegaLiteSpec} />
                     ) : undefined}
                 />
-                {props.queryState != null && (
+                {model != null && (
                     <div className={styles.visualization_body}>
                         <VisualizationDispatch
-                            query={props.queryState}
+                            model={model}
                             visualizeQuery={props.visualizeQuery}
                             height={FEED_VISUALIZATION_HEIGHT}
                         />

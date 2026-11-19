@@ -23,6 +23,7 @@ import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
+import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 
 const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
 const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -95,6 +96,8 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     const runtime = useOptionalRuntime();
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const queryState = props.queryState;
+    // The chart builder previews the result of the query
+    const queryModel = useQueryModel(queryState?.queryId);
     const queryActive = queryState != null && !queryIsDone(queryState.status);
     const hasPendingDiff = props.scriptData?.pendingDiff != null;
     const connectionId = props.connection?.connectionId ?? props.scriptData?.connectionId ?? null;
@@ -206,7 +209,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 <dependencies.ChartBuilderOverlay
                     scriptName={displayName}
                     visualizeQuery={props.scriptData.annotations.visualizeQuery}
-                    queryState={queryState}
+                    model={queryModel}
                     onChange={props.onSetVisSpec}
                     onClose={closeChartBuilder}
                 />

@@ -12,24 +12,27 @@ import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '@akohn/dashq
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
-import { useQueryProfile } from '../../views/query_profile/engine_profile_view.js';
+import { useQueryProfile } from '@akohn/dashql-react/components/query_profile/engine_profile_view';
 import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 import { getPlanResultText } from '../../shell/shell_result.js';
 import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import * as styles from './shell_query_result_overlay.module.css';
-import { useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
     QueryProfileView: typeof QueryProfileView;
     useQueryProfile: typeof useQueryProfile;
+    /// The model of the query of the overlay
+    useResultModel: (query: QueryExecutionState) => QueryModel | null;
 }
 
 const DEFAULT_DEPENDENCIES: ShellQueryResultOverlayDependencies = {
     QueryResultDetails,
     QueryProfileView,
     useQueryProfile,
+    useResultModel: query => useQueryModel(query.queryId),
 };
 
 interface Props {
@@ -77,7 +80,8 @@ const ResultOverlay: React.FC<Props> = ({
     const dialogRef = React.useRef<HTMLElement>(null);
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
-    const resultTable = useQueryResultTable(query);
+    const model = dependencies.useResultModel(query);
+    const resultTable = model?.result ?? null;
     const planText = React.useMemo(() => getPlanResultText(resultTable), [resultTable]);
     const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
     const { plan, execution, rotate } = dependencies.useQueryProfile(planEngine, planText);
@@ -145,9 +149,9 @@ const ResultOverlay: React.FC<Props> = ({
     }), [hasPlan]);
     const tabKeys = React.useMemo(() => hasPlan ? [ResultTab.Data, ResultTab.Plan] : [ResultTab.Data], [hasPlan]);
     const tabRenderers = React.useMemo(() => ({
-        [ResultTab.Data]: () => (
+        [ResultTab.Data]: () => model == null ? <></> : (
             <ResultDetails
-                query={query}
+                model={model}
                 debugMode={false}
                 fitHeight
                 maxHeight={MAX_OVERLAY_HEIGHT}
@@ -161,7 +165,7 @@ const ResultOverlay: React.FC<Props> = ({
                 <div className={styles.plan_body}>{plan != null && <ProfileViewComponent plan={plan} execution={execution} onRotate={rotate} />}</div>
             </div>
         ),
-    }), [closeButton, planActions, plan, execution, rotate, ProfileViewComponent, query, ResultDetails]);
+    }), [closeButton, planActions, plan, execution, rotate, ProfileViewComponent, model, ResultDetails]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: dialogRef as React.RefObject<HTMLElement>,

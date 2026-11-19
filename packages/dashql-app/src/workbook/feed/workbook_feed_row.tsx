@@ -154,14 +154,14 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const resultPanel = React.useCallback((slot: ScriptResultSlot) => query == null ? null : (
         <FeedEntryFooter
             workbookId={props.workbookId}
-            queryState={query}
+            model={query}
             visualizeQuery={visualizeQuery}
             selectedTab={slot.selectedTab}
             onShowTable={slot.onShowTable}
         />
     ), [props.workbookId, query, visualizeQuery]);
     const resultTable = React.useCallback((slot: ScriptResultTableSlot) => query == null ? null : (
-        <ResultTableOverlay scriptName={slot.scriptName} query={query} onClose={slot.onClose} />
+        <ResultTableOverlay scriptName={slot.scriptName} model={query} onClose={slot.onClose} />
     ), [query]);
 
     // The row holds the card and the space below it, the first row also the space above the feed.

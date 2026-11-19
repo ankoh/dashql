@@ -10,7 +10,7 @@ import { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_script
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
 import { formatBytes } from '@akohn/dashql-react/format/format';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
+import { useHost } from '@akohn/dashql-react/host';
 import { IconButton } from '@akohn/dashql-react/components/button';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
@@ -68,7 +68,7 @@ interface Props {
 export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
-    const fileDownloader = useFileDownloader();
+    const host = useHost();
     const fileName = `${props.fileName ?? props.workbookScripts?.workbookMetadata.originalFileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
@@ -144,7 +144,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         const workbookScripts = props.workbookScripts;
         if (file == null || workbookScripts == null || runtime == null || saveRun.current != null) return;
         if (!withQueryResults || cache == null) {
-            await fileDownloader.downloadBufferAsFile(file, fileName);
+            await host.downloadFile(file, fileName);
             return;
         }
         const run = { cancelled: false };
@@ -157,7 +157,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                 logger?.info('Dropped a workbook file with query results, the overlay was closed', { workbookId: workbookScripts.workbookId }, LOG_CTX);
                 return;
             }
-            await fileDownloader.downloadBufferAsFile(packed, fileName);
+            await host.downloadFile(packed, fileName);
         } catch (error) {
             logger?.warn('Saving a workbook file with query results failed', { workbookId: workbookScripts.workbookId, error: stringifyError(error) }, LOG_CTX);
             if (!run.cancelled) setPackError(`The export failed: ${stringifyError(error)}`);
@@ -165,7 +165,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
             saveRun.current = null;
             setSaving(false);
         }
-    }, [file, fileName, withQueryResults, cache, runtime, settings, props.workbookScripts, logger]);
+    }, [file, fileName, withQueryResults, cache, runtime, settings, props.workbookScripts, logger, host]);
     // The results are stored as they are, the archive grows by about their size
     const fileSize = file == null ? 0 : file.size + (withQueryResults ? resultCounts?.bytes ?? 0 : 0);
 

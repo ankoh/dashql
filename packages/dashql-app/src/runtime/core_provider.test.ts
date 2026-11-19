@@ -3,7 +3,8 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DashQLCoreProvider, useDashQLCoreSetup, type DashQLSetupFn } from './core_provider.js';
+import { DashQLCoreProvider, useDashQLCoreSetup } from './core_provider.js';
+import type { CoreSetup } from '@akohn/dashql-react/host';
 import { DashQL } from '@akohn/dashql';
 import { LoggerProvider } from '../platform/logger_provider.js';
 
@@ -11,7 +12,7 @@ describe('DashQLCoreProvider setup', () => {
     let container: HTMLDivElement;
     let root: Root | null;
     let core: DashQL;
-    let setup: DashQLSetupFn;
+    let setup: CoreSetup;
 
     function CaptureSetup() {
         setup = useDashQLCoreSetup();

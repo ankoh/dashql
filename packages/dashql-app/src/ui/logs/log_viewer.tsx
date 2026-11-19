@@ -12,7 +12,7 @@ import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { LogJsonModal } from './log_json_modal.js';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
+import { useHost } from '@akohn/dashql-react/host';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 
 export const ROW_HEIGHT = 32;
@@ -86,7 +86,7 @@ interface LogViewerProps {
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const logger = useLogger();
     const logVersion = pollLogVersion(100);
-    const fileDownloader = useFileDownloader();
+    const host = useHost();
 
     // Maintain filtered log records for trace-specific viewing.
     // We append to a mutable array and bump a version, copying the array per record is quadratic.
@@ -136,11 +136,11 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 : `dashql-logs-${timestamp}.json`;
 
             // Download the file
-            await fileDownloader.downloadBufferAsFile(uint8Array, filename);
+            await host.downloadFile(uint8Array, filename);
         } catch (error) {
             console.error('Failed to download logs:', error);
         }
-    }, [logger, fileDownloader, props.traceId, filteredLogs, filteredLogsVersion]);
+    }, [logger, host, props.traceId, filteredLogs, filteredLogsVersion]);
 
     // Subscribe to trace-specific logs if traceId is provided
     React.useEffect(() => {

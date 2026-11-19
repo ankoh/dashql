@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
-import { useDispatch, useOptionalRuntime, useQuery, useScript, useView } from '../hooks.js';
+import { useDispatch, useOptionalRuntime, useScript, useView } from '../hooks.js';
+import { useQueryModel, type QueryModel } from './query_model.js';
 
 // The model of a script of a workbook (docs/agents/writing_components.md). A component that shows a script reads the
 // model and calls its operations; the kinds, targets, actions, commands and handles of the runtime stay in this module.
@@ -19,8 +19,8 @@ export interface ScriptModel {
     readonly workbookId: string;
     /// The script: its text session, its staged diff, its annotations, its cached result
     readonly script: ScriptData;
-    /// The latest query of the script, null before its first run
-    readonly query: QueryExecutionState | null;
+    /// The model of the latest query of the script: its state, result and computation, null before its first run
+    readonly query: QueryModel | null;
     /// Does a run of the workbook plan, run or stop, or hold the workbook? A script then starts no run of its own.
     readonly runActive: boolean;
 
@@ -44,7 +44,7 @@ export interface ScriptModel {
 export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
     const script = useScript(scriptKey);
-    const query = useQuery(script?.latestQueryId ?? null);
+    const query = useQueryModel(script?.latestQueryId ?? null);
     const run = useView('run', workbookId);
     const dispatch = useDispatch({ workbook: workbookId });
     const runActive = run?.state?.busy === true || run?.held != null;

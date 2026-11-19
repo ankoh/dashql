@@ -142,7 +142,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const script = model.script;
     const scriptKey = script.scriptKey;
     const fileName = script.fileName;
-    const query = model.query;
+    const query = model.query?.query ?? null;
     const connectorType = connection?.connectorInfo.connectorType ?? ConnectorType.HYPER;
     const online = connection?.connectionHealth === ConnectionHealth.ONLINE;
 
@@ -153,7 +153,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const cachedAtMs = script.cachedResult?.cachedAt ?? null;
     const entryStatus = deriveEntryStatus(query, query?.progress ?? null);
     // The result tabs live in the status bar, their panel below it
-    const resultTabs = useFeedEntryTabs(query, script.annotations.visualizeQuery ?? null);
+    const resultTabs = useFeedEntryTabs(model.query, script.annotations.visualizeQuery ?? null);
     // Picking a tab of a folded result shows it
     const expandResult = React.useCallback(() => {
         if (!result.expanded) result.toggle(scriptKey);

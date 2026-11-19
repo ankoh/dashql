@@ -7,15 +7,15 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { AlertIcon, BracesIcon, ScreenFullIcon, ScreenNormalIcon, ToolsIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { checkVegaLiteSpec } from '@akohn/dashql-react/vegalite/vegalite_check';
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { VegaLiteView } from '../../views/visualization/vegalite_view.js';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
+import { VegaLiteView } from '@akohn/dashql-react/components/vegalite_view';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { chartColumns } from './chart_columns.js';
 import { ChartSpecBuilder } from './chart_spec_builder.js';
 import { ChartSpecJsonEditor } from './chart_spec_json_editor.js';
 import { encodedFields, inlineSharedEncoding, NEW_CHART_SPEC, type ChartSpec } from './chart_spec_paths.js';
 import * as styles from './chart_builder.module.css';
-import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 const VEGA_LITE_SCHEMA = 'https://vega.github.io/schema/vega-lite/v6.json';
@@ -42,7 +42,7 @@ export interface ChartBuilderOverlayProps {
     /// The chart of the script when the overlay opens
     visualizeQuery: ResolvedVisualizeQuery | null;
     /// The latest query of the script, the preview shows its result
-    queryState: QueryExecutionState | null;
+    model: QueryModel | null;
     /// Stage the spec for the `@vis vegalite` tag of the script as a diff to accept or reject
     onChange: (spec: string) => void;
     onClose: () => void;
@@ -95,9 +95,8 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
         };
     }, [spec]);
 
-    const query = props.queryState;
-    const queryResult = useQueryResultTable(query);
-    const resultTable = query?.status === QueryExecutionStatus.SUCCEEDED ? queryResult : null;
+    const model = props.model;
+    const resultTable = model?.query.status === QueryExecutionStatus.SUCCEEDED ? model.result : null;
     const columns = React.useMemo(() => chartColumns(resultTable?.schema ?? null, encodedFields(spec)), [resultTable, spec]);
     const previewSpec = React.useMemo(() => ({ $schema: VEGA_LITE_SCHEMA, ...spec }) as unknown as TopLevelSpec, [spec]);
 
@@ -195,7 +194,7 @@ export function ChartBuilderOverlay(props: ChartBuilderOverlayProps): React.Reac
                     </header>
                     <div className={styles.preview_content} data-testid="chart-preview">
                         {resultTable != null ? (
-                            <dependencies.VegaLiteView query={query} vegaLiteSpec={previewSpec} />
+                            <dependencies.VegaLiteView model={model} vegaLiteSpec={previewSpec} />
                         ) : (
                             <p className={styles.preview_empty}>Run the query to preview the chart.</p>
                         )}

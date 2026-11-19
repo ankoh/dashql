@@ -1,4 +1,3 @@
-import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_details.module.css';
 
@@ -7,7 +6,8 @@ import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { SymbolIcon } from '../symbol_icon.js';
 import { classNames } from '../../dom/classnames.js';
 import { formatResultDetail } from './query_result_header.js';
-import type { ResultRowCounts } from './query_result_toolbar.js';
+import { TableSearchToolbar, useResultRowCounts } from './query_result_toolbar.js';
+import type { QueryModel } from '../../models/query_model.js';
 
 /// The height of the header of the details
 const HEADER_HEIGHT = 32;
@@ -22,16 +22,9 @@ export interface QueryResultDetailsLayout {
 }
 
 export interface QueryResultDetailsProps {
-    /// The rows of the result
-    counts: ResultRowCounts;
-    /// The result table, for its size
-    resultTable: arrow.Table | null;
-    /// The search of the header, before the button that clears the cross filters
-    toolbar?: React.ReactNode;
-    /// Do the rows pass cross filters? The button that clears them is enabled then
-    hasCrossFilters: boolean;
-    onClearCrossFilters: () => void;
-    /// The controls after it: the download and the actions of the host
+    /// The query of the result: its rows, its size, its search and its cross filters
+    model: QueryModel;
+    /// The controls after the search and the button that clears the cross filters: the download and the actions of the host
     actions?: React.ReactNode;
     fitHeight?: boolean;
     maxHeight?: number;
@@ -42,24 +35,29 @@ export interface QueryResultDetailsProps {
 /// The full result of a query: a header with the row count, the search, the button that clears the cross filters and the
 /// controls of the host, over the table
 export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactElement {
-    const counts = props.counts;
+    const computation = props.model.computation;
+    const counts = useResultRowCounts(computation);
+    const hasCrossFilters = (computation?.computation.crossFilters.length ?? 0) > 0;
+    const clearCrossFilters = React.useCallback(() => {
+        computation?.dispatch({ kind: 'clearCrossFilters' });
+    }, [computation]);
     return (
         <div className={classNames(styles.root, { [styles.root_fit_height]: props.fitHeight })}>
             <TabHeader
                 title="Query Results"
                 detail={formatResultDetail(counts.matchingRows == null
                     ? formatRowCountDetail(counts.totalRows)
-                    : `${counts.matchingRows} of ${counts.currentRows ?? counts.totalRows ?? 0} rows`, props.resultTable)}
+                    : `${counts.matchingRows} of ${counts.currentRows ?? counts.totalRows ?? 0} rows`, props.model.result)}
                 actions={(
                     <>
-                        {props.toolbar}
+                        <TableSearchToolbar computation={computation} />
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="Clear all cross-filters"
                             data-testid="clear-cross-filters"
-                            onClick={props.onClearCrossFilters}
-                            disabled={!props.hasCrossFilters}
+                            onClick={clearCrossFilters}
+                            disabled={!hasCrossFilters}
                         >
                             <ClearFiltersIcon size={16} />
                         </IconButton>

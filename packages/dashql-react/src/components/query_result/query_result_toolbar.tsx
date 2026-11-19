@@ -1,6 +1,8 @@
 import * as React from 'react';
 
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ComputationModel } from '../../models/computation_model.js';
+import type { QueryModel } from '../../models/query_model.js';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
 import { forEachIntegerValue, useComputationTables, type ComputationDispatch, type ComputationTables } from '../data_table/data_table.js';
@@ -51,6 +53,14 @@ export function useResultRowCounts(computation: ComputationModel | null): Result
     const matchingRows = getMatchingRowCount(tables);
     const currentRows = matchingRows ?? table?.filterTable?.rows ?? totalRows;
     return { totalRows, currentRows, matchingRows };
+}
+
+/// Did the query produce a result that is analyzed, and how many rows has it? The tabs of a result and the headers of
+/// a chart and of the details count the same rows.
+export function resultRowCount(model: QueryModel | null): { hasResult: boolean; totalRows: number | null } {
+    const computation = model?.computation?.computation ?? null;
+    if (model == null || computation == null || model.query.status !== QueryExecutionStatus.SUCCEEDED) return { hasResult: false, totalRows: null };
+    return { hasResult: true, totalRows: computation.dataTableRows ?? null };
 }
 
 /// Matching row counts per filter table and data search matches.

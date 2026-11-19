@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useQuery } from '@akohn/dashql-react/hooks';
+import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
@@ -94,12 +94,12 @@ interface ChartProps {
 
 /// The chart builder of a script, the preview shows its latest result
 export function DashboardChartOverlay(props: ChartProps): React.ReactElement {
-    const queryState = useQuery(props.script.latestQueryId);
+    const model = useQueryModel(props.script.latestQueryId);
     return (
         <ChartBuilderOverlay
             scriptName={scriptDisplayName(props.script.fileName)}
             visualizeQuery={props.script.annotations.visualizeQuery}
-            queryState={queryState}
+            model={model}
             onChange={props.onChange}
             onClose={props.onClose}
         />
@@ -114,7 +114,7 @@ interface TableProps {
 
 /// The full result table of a script, the card shows the rows that fit into it
 export function DashboardTableOverlay(props: TableProps): React.ReactElement | null {
-    const queryState = useQuery(props.script.latestQueryId);
-    if (queryState == null) return null;
-    return <ResultTableOverlay scriptName={scriptDisplayName(props.script.fileName)} query={queryState} onClose={props.onClose} />;
+    const model = useQueryModel(props.script.latestQueryId);
+    if (model == null) return null;
+    return <ResultTableOverlay scriptName={scriptDisplayName(props.script.fileName)} model={model} onClose={props.onClose} />;
 }

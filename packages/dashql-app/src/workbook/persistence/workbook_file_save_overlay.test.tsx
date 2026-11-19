@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
 import { LoggerProvider } from '../../platform/logger_provider.js';
-import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
+import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
@@ -60,7 +60,9 @@ const WORKBOOK = {
 describe('WorkbookFileSaveOverlay', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
-    let download: ReturnType<typeof vi.spyOn>;
+    const download = vi.fn<DownloadFile>();
+    // The host of the overlay saves into the spy, the core provider keeps it
+    const withHost = (children: React.ReactElement) => <HostProvider value={{ setupCore: null, downloadFile: download }}>{children}</HostProvider>;
 
     function Capture() {
         runtime = useRuntime();
@@ -70,7 +72,7 @@ describe('WorkbookFileSaveOverlay', () => {
     /// Render the overlay over a runtime that holds the workbook on its connection
     async function render(props: Partial<React.ComponentProps<typeof WorkbookFileSaveOverlay>>, cache?: QueryResultCache) {
         const withCache = (children: React.ReactElement) => cache != null ? <QueryResultCacheProvider cache={cache}>{children}</QueryResultCacheProvider> : children;
-        const tree = (overlay: boolean) => withCache(
+        const tree = (overlay: boolean) => withHost(withCache(
             <LoggerProvider>
                 <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
 <DashQLCoreProvider>
@@ -83,7 +85,7 @@ describe('WorkbookFileSaveOverlay', () => {
                 </DashQLCoreProvider>
 </EmbeddedDatabaseProvider>
             </LoggerProvider>,
-        );
+        ));
         await root.render(tree(false));
         await act(async () => {
             await addTestConnections(runtime!, [CONNECTION]);
@@ -96,7 +98,7 @@ describe('WorkbookFileSaveOverlay', () => {
         root = createTestRoot();
         backend = new WorkbookTestBackend();
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({ name: 'Orders' }));
-        download = vi.spyOn(WebFileDownloader.prototype, 'downloadBufferAsFile').mockResolvedValue();
+        download.mockReset().mockResolvedValue();
     });
     afterEach(() => {
         root.unmount();
@@ -174,7 +176,7 @@ describe('WorkbookFileSaveOverlay', () => {
         expect(key).not.toBeNull();
         cache.put(key!, null, bytes);
         const workbook = runtime!.store.get('workbook', TEST_WORKBOOK_ID)!;
-        await root.render(
+        await root.render(withHost(
             <QueryResultCacheProvider cache={cache}>
                 <LoggerProvider>
                     <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
@@ -189,7 +191,7 @@ describe('WorkbookFileSaveOverlay', () => {
                     </EmbeddedDatabaseProvider>
                 </LoggerProvider>
             </QueryResultCacheProvider>,
-        );
+        ));
         await waitForFile();
         expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
         await act(async () => {
