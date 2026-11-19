@@ -2,11 +2,11 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 
-import { LoggerProvider } from '../platform/logger_provider.js';
-import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
-import { HttpClientProvider } from '../platform/http/http_client_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
+import { EmbeddedDatabaseProvider } from '../host/embedded_database_provider.js';
+import { HttpClientProvider } from '../host/http/http_client_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
-import { LoggerToast } from '../ui/logger/logger_toast.js';
+import { LoggerToast } from '../diagnostics/logger_toast.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { FLAVOR_QUERY_PARAMETER, getRequestedFlavor, resolveFlavor } from '../config/flavor_resolution.js';
 import { DASHQL_FLAVOR, type AppFlavor } from '../config/flavors.js';

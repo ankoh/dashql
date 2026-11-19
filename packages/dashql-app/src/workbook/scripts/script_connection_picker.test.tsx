@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 

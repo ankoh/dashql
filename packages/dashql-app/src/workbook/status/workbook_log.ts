@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
+import { pollLogVersion, useLogger } from '../../host/logger_provider.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';

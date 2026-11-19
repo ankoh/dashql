@@ -4,7 +4,7 @@ import { createTestHyperDBClient, getTestHyperDBClient, testDatabasePath } from 
 import { HyperDB, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import type { HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 import {
     connectionClientContext,

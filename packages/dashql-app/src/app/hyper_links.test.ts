@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { workbookOnConnection } from './hyper_links.js';
-import { WebPlatformEventListener } from '../platform/events/web_event_listener.js';
+import { WebPlatformEventListener } from '../host/events/web_event_listener.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 

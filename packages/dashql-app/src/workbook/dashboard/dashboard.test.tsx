@@ -7,7 +7,7 @@ import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/c
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';

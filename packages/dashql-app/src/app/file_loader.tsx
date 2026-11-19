@@ -2,12 +2,12 @@ import * as React from 'react';
 
 import type * as core from '@akohn/dashql';
 
-import { PlatformFile } from '../platform/file/file.js';
+import { PlatformFile } from '../host/file.js';
 import { importedWorkbook, useWorkbookImport, type ConflictChoice, type PreparedImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 
 /// The stages of a file before the user decides

@@ -9,10 +9,10 @@ import { useHyperLinks } from './hyper_links.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 
 import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
-import { PlatformEventListenerProvider, usePlatformEventListener } from '../platform/events/event_listener_provider.js';
-import type { PlatformEventListener } from '../platform/events/event_listener.js';
-import { LoggerProvider } from '../platform/logger_provider.js';
-import { DashQLCoreProvider } from '../runtime/core_provider.js';
+import { PlatformEventListenerProvider, usePlatformEventListener } from '../host/events/event_listener_provider.js';
+import type { PlatformEventListener } from '../host/events/event_listener.js';
+import { LoggerProvider } from '../host/logger_provider.js';
+import { DashQLCoreProvider } from '../host/core_provider.js';
 import { useConnections, useWorkbooks } from '@akohn/dashql-react/hooks';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { StorageProvider } from '../storage/storage_provider.js';

@@ -4,7 +4,7 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import type * as dashql from '@akohn/dashql';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import { useHost } from '@akohn/dashql-react/host';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { DownloadIcon, FileIcon, PencilIcon, TrashIcon } from '@akohn/dashql-react/components/symbol_icon';

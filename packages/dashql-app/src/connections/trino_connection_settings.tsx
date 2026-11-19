@@ -17,7 +17,7 @@ import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { UpdateValueList, ValueListBuilder } from '@akohn/dashql-react/components/value_list';
 import { ConnectionInlineHeader } from './connection_inline_header.js';

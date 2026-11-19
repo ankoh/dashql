@@ -1,5 +1,5 @@
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
-import type { SetupProgress } from '../platform/embedded_database_provider.js';
+import type { SetupProgress } from '../host/embedded_database_provider.js';
 import { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { testDatabasePath } from './hyperdb_test_client.js';

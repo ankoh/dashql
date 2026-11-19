@@ -10,7 +10,7 @@ import {
 } from '@akohn/dashql/platform/storage/storage_backend';
 import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from './opfs_storage_backend.js';
 import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
-import { SHELL_FILES_DIRECTORY } from '../platform/hyperdb/hyperdb_opfs.js';
+import { SHELL_FILES_DIRECTORY } from '../host/hyperdb/hyperdb_opfs.js';
 import {
     HYPER_INSTANCE_LOCK_PREFIX,
     HYPER_INSTANCES_DIRECTORY,

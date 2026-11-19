@@ -64,7 +64,7 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   (`HYPERDB_WASM_ENGINE_SETTINGS`): Hyper logs every commit to `<file>.dblog` and replays it on the next attach, the log
   empties once the session detaches the database and goes away when the database is dropped. It costs about 15% of the
   written data and well under a millisecond per small write. The setting applies to the engine, so the databases of
-  the instance folder keep a log as well. `platform/hyperdb/integration/redo_log.test.ts` and `cloud/local_cloud.test.ts` cover the reload.
+  the instance folder keep a log as well. `host/hyperdb/integration/redo_log.test.ts` and `cloud/local_cloud.test.ts` cover the reload.
 - **Deleting a local cloud.** A local cloud exists only to be one, so its menus delete it rather than stop using it:
   Delete Local Cloud in its row of Clouds, its overview and the setup page (`useCloudRemoval`). After a confirmation
   the workbooks that would only start new scripts on it fall back to the embedded Hyper, it leaves the list of clouds,

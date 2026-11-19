@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
-import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 const COMPUTE_DB_CTX = React.createContext<EmbeddedComputeDatabase | null>(null);

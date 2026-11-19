@@ -9,7 +9,7 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@akohn/dashql/platform/connections/connector_descriptor';
 import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
-import { PlatformType } from '../../platform/platform_type.js';
+import { PlatformType } from '../../host/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';

@@ -4,7 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { OAuthState } from '@akohn/dashql/platform/oauth_types';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { PlatformType } from '../../platform/platform_type.js';
+import { PlatformType } from '../../host/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';

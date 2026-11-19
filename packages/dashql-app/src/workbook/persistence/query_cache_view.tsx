@@ -13,7 +13,7 @@ import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { formatBytes } from '@akohn/dashql-react/format/format';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 

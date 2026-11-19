@@ -8,7 +8,7 @@ import {
     type SqlText,
 } from '@akohn/dashql-react/components/query_result/cell_detail_overlay';
 import { ReadonlySqlView, useProjectedSqlText } from '../../workbook/editor/readonly_sql_view.js';
-import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
+import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { EngineProfileView } from '@akohn/dashql-react/components/query_profile/engine_profile_view';

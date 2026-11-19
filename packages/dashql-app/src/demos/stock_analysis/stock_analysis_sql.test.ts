@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@akohn/dashql/platform/embedded_database';
-import { setupWebHyperDB } from '../../platform/hyperdb/hyperdb_provider_web.js';
+import { setupWebHyperDB } from '../../host/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { bindSqlTemplate } from '../shared/sql_template.js';
 import { readBoardRows } from './live_board.js';

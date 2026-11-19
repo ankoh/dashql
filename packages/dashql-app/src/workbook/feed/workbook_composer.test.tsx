@@ -8,7 +8,7 @@ import type { EditorView } from '@codemirror/view';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';

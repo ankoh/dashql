@@ -3,7 +3,7 @@ import * as buf from '@bufbuild/protobuf';
 import * as pb from '@akohn/dashql/platform/proto';
 
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
-import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../platform/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
 import { consumeQueryResponseStream } from '@akohn/dashql/platform/connections/query_execution';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 

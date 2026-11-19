@@ -42,7 +42,7 @@ import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
 import type { ScriptFeedCommands } from './script_card.js';

@@ -1,4 +1,4 @@
-import { isMacDesktopHost } from '../platform/platform_type.js';
+import { isMacDesktopHost } from '../host/platform_type.js';
 import { useAppConfig } from '../config/app_config.js';
 
 /// Is the app laid out like the desktop app on macOS, with the traffic lights in the top left corner of the window?

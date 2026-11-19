@@ -14,7 +14,7 @@ import {
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
 } from '@akohn/dashql-react/components/text_field';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';

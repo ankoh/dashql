@@ -3,7 +3,7 @@ import type {
     EmbeddedExternalFileDatabase,
     ExternalDirectoryMode,
 } from '@akohn/dashql/platform/embedded_database';
-import type { PlatformFile } from '../platform/file/file.js';
+import type { PlatformFile } from '../host/file.js';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import type { DashQLShellCommand, DashQLShellCommandContext } from './api.js';
 
@@ -253,7 +253,7 @@ function logDetails(
 }
 
 export async function selectPlatformFiles(signal?: AbortSignal): Promise<readonly PlatformFile[]> {
-    const { WebFile } = await import('../platform/file/web_file.js');
+    const { WebFile } = await import('../host/web_file.js');
     return await new Promise((resolve, reject) => {
         const input = document.createElement('input');
         input.type = 'file';

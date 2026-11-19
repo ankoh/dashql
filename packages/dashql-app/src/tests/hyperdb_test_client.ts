@@ -2,11 +2,11 @@ import { createBrowserClient } from 'hyperdb-wasm/raw';
 
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
 import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
-import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
+import { createWebHyperDBClientOptions } from '../host/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { HyperDB, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
-import type { SetupProgress } from '../platform/embedded_database_provider.js';
+import type { SetupProgress } from '../host/embedded_database_provider.js';
 import { openTestHyperDB } from '@akohn/dashql/platform/testing/test_hyperdb';
 
 /// Start an engine worker with the settings of the app, overridden by the given startup settings.

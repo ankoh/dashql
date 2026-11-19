@@ -12,7 +12,7 @@ import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } fr
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
-import { StandaloneRuntime } from '../../runtime/standalone_runtime.js';
+import { StandaloneRuntime } from '../../host/standalone_runtime.js';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { projectQueryProgress } from '@akohn/dashql/platform/query/query_progress';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';

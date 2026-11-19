@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 
 /// The version of the embedded Hyper, null until it is read or for a remote Hyper

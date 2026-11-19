@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from './file_dropzone.module.css';
 
-import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../platform/events/event.js';
-import { PlatformFile } from '../platform/file/file.js';
-import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
+import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../host/events/event.js';
+import { PlatformFile } from '../host/file.js';
+import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
 import { FileLoader } from './file_loader.js';
 import { FlavorLogo } from '../config/flavor_provider.js';
 

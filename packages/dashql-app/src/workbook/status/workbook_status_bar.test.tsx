@@ -7,7 +7,7 @@ import { WorkbookStatusBar, WorkbookStatusBarVariant } from './workbook_status_b
 import { WorkbookStatusContext, WorkbookStatusStore } from './workbook_status_store.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';
-import { getGlobalLogger, LoggerProvider } from '../../platform/logger_provider.js';
+import { getGlobalLogger, LoggerProvider } from '../../host/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

@@ -4,10 +4,10 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.js';
 import { HyperDB, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from './snippet_registry.js';

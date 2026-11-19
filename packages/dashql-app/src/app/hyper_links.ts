@@ -7,11 +7,11 @@ import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_s
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useEphemeralWorkbook } from '../workbook/workbook_creation.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import type { HyperLinkEvent } from '../platform/events/event_listener.js';
+import type { HyperLinkEvent } from '../host/events/event_listener.js';
 import { getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 
 const LOG_CTX = 'hyper_link';

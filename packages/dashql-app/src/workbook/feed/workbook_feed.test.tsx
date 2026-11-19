@@ -13,7 +13,7 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';

@@ -1,8 +1,8 @@
 import type { OAuthFlow, OAuthFlowEvent, OAuthLoopbackCallback } from '@akohn/dashql/platform/oauth_flow';
 import type { OAuthRedirectData } from '@akohn/dashql/platform/oauth_types';
 import { isDebugBuild } from '../globals.js';
-import type { PlatformEventListener } from '../platform/events/event_listener.js';
-import { PlatformType } from '../platform/platform_type.js';
+import type { PlatformEventListener } from '../host/events/event_listener.js';
+import { PlatformType } from '../host/platform_type.js';
 
 const OAUTH_POPUP_NAME = 'DashQL OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';

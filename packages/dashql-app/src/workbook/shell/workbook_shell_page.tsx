@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './workbook_shell_page.module.css';
 
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import {
     DashQLShell,

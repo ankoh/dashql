@@ -12,7 +12,7 @@ import { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
 const LOG_CTX = "conn_inline_header";

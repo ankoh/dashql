@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@akohn/dashql/platform/storage/storage_backend';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import {
     CLOSED_LOG_STATE,

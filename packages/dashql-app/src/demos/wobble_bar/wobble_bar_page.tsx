@@ -3,7 +3,7 @@ import * as React from 'react';
 import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../../workbook/status/workbook_status_bar.js';
 import { WORKBOOK_STATUS_LOG_TARGET, WorkbookStatusContext, WorkbookStatusStore } from '../../workbook/status/workbook_status_store.js';
 import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
 import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';

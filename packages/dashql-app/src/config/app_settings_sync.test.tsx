@@ -6,7 +6,7 @@ import { AppSettingsSync, useAppSettingsReady } from './app_settings_sync.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from './app_config.js';
 import { FlavorProvider, useAppFlavor } from './flavor_provider.js';
 import { DASHQL_FLAVOR, DBCOM_FLAVOR, type AppFlavor } from './flavors.js';
-import { LoggerProvider, useLogger } from '../platform/logger_provider.js';
+import { LoggerProvider, useLogger } from '../host/logger_provider.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';

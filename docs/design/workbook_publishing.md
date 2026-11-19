@@ -86,7 +86,7 @@ https://dashql.app/?workbook=https%3A%2F%2Fowner.github.io%2Frepository%2Fexampl
 
 The `workbook` parameter (or the legacy `session` and `notebook`) is consumed with `history.replaceState` before any
 asynchronous work, so a refresh does not repeat the import
-(`packages/dashql-app/src/platform/events/event_listener_provider.tsx`). Pasting a DashQL link and opening
+(`packages/dashql-app/src/host/events/event_listener_provider.tsx`). Pasting a DashQL link and opening
 an example raise the same `SETUP_WORKBOOK_URL` event.
 
 ```mermaid

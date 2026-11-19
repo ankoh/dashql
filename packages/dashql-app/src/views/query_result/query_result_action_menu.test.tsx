@@ -4,7 +4,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { scriptResultOwner } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';

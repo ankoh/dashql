@@ -13,14 +13,14 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-rea
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { DASHQL_VERSION } from '../globals.js';
 import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
-import { LogsOverlay } from '../ui/logs/logs_overlay.js';
+import { LogsOverlay } from '../diagnostics/logs/logs_overlay.js';
 import { Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '@akohn/dashql-react/components/text_field';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatHHMMSS, formatTimeDifference } from '@akohn/dashql-react/format/format';
-import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
+import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../host/events/event.js';
 import { decodeOAuthState, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 
 const AUTO_TRIGGER_DELAY = 2000;

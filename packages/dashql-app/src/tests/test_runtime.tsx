@@ -3,7 +3,7 @@ import * as core from '@akohn/dashql';
 
 import type { QueryCommands } from '@akohn/dashql/runtime/runtime';
 
-import { RuntimeProvider } from '../runtime/runtime_provider.js';
+import { RuntimeProvider } from '../host/runtime_provider.js';
 
 /// The query commands of the runtime that a test replaces
 export type TestQueryExecutorFunctions = Partial<QueryCommands>;

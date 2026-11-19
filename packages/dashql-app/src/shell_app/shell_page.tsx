@@ -2,10 +2,10 @@ import * as React from 'react';
 
 import * as connectionTypes from '@akohn/dashql-jsonschema/connection.js';
 
-import { useEmbeddedDatabaseSetup } from '../platform/embedded_database_provider.js';
+import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import { LoggableException, stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../platform/logger_provider.js';
-import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../runtime/core_provider.js';
+import { useLogger } from '../host/logger_provider.js';
+import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../host/core_provider.js';
 import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../shell/api.js';
 import type { BrowserShellController } from '../shell/browser_shell.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
@@ -24,9 +24,9 @@ import { createPlanCommand } from './commands/plan.js';
 import { createShareCommand } from './commands/share.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
-import { useHttpClient } from '../platform/http/http_client_provider.js';
-import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
-import { PlatformType, usePlatformType } from '../platform/platform_type.js';
+import { useHttpClient } from '../host/http/http_client_provider.js';
+import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
+import { PlatformType, usePlatformType } from '../host/platform_type.js';
 import { useAppConfig } from '../config/app_config.js';
 import { getKeywordCase } from '../workbook/scripts/script_format.js';
 import { useShellQueryResult } from './use_shell_query_result.js';
@@ -37,7 +37,7 @@ import { useSnippetsDialog } from '../workbook/snippets/snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
 import { splitShellScript } from '../shell/shell_script.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { getHyperDBWebSupportError } from '../platform/hyperdb/hyperdb_web_support.js';
+import { getHyperDBWebSupportError } from '../host/hyperdb/hyperdb_web_support.js';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';

@@ -4,8 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../platform/logger_provider.js';
-import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
+import { LoggerProvider } from '../host/logger_provider.js';
+import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../host/events/event.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { RedirectPage } from './oauth_redirect.js';
 import type { AppEventData, OAuthState } from '@akohn/dashql/platform/oauth_types';

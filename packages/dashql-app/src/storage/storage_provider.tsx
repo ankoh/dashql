@@ -4,13 +4,13 @@ import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { CompositeStorageBackend } from './composite_storage_backend.js';
 import { type WorkbookLocation } from './workbook_locator.js';
 import { type WorkbookTreeFolder, emptyWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { migrateStorage } from './storage_migration.js';
-import { useAppHandOver } from '../platform/app_hand_over.js';
+import { useAppHandOver } from '../host/app_hand_over.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import { useDashQLCoreSetup } from '../host/core_provider.js';
 
 // Storage context for reading
 export interface StorageReader {

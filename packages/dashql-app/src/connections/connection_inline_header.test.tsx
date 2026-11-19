@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import { LoggerProvider } from '../platform/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth, ConnectionStatus, connectorInfoOf, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectionInlineHeader } from './connection_inline_header.js';

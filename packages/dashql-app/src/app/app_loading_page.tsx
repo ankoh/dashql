@@ -6,7 +6,7 @@ import { AppLoadingStatus } from './loading/app_loading_status.js';
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { getStatusFromProgressCounter, IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import { useDashQLCoreSetup } from '../host/core_provider.js';
 import { AppLoadingProgress } from './loading/app_loading_progress.js';
 import { useStorageMigrationStatus } from '../storage/storage_provider.js';
 import { AppSetupPage } from './app_setup_page.js';

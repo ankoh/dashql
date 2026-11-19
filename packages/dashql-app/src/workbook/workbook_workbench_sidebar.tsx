@@ -113,9 +113,9 @@ import { WorkbookFileSaveOverlay } from './persistence/workbook_file_save_overla
 import * as styles from './workbook_workbench_sidebar.module.css';
 import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../connections/connection_tree.js';
 import * as actionMenuStyles from '../app/action_menu.module.css';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
-import { PlatformType, usePlatformType } from '../platform/platform_type.js';
+import { useDashQLCoreSetup } from '../host/core_provider.js';
+import { useLogger } from '../host/logger_provider.js';
+import { PlatformType, usePlatformType } from '../host/platform_type.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 
 interface WorkbookItem {

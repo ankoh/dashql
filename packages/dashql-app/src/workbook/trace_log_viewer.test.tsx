@@ -7,9 +7,9 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
-import { LoggerProvider, useLogger } from '../platform/logger_provider.js';
+import { LoggerProvider, useLogger } from '../host/logger_provider.js';
 import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
-import { ROW_HEIGHT } from '../ui/logs/log_viewer.js';
+import { ROW_HEIGHT } from '../diagnostics/logs/log_viewer.js';
 import { TraceLogViewer } from './trace_log_viewer.js';
 
 describe('TraceLogViewer', () => {

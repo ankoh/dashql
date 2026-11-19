@@ -39,7 +39,7 @@ import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatTimeDifference } from '@akohn/dashql-react/format/format';
 import { startsRowDrag } from '../workbook/workbook_folder_row.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';

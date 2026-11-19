@@ -4,9 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
-import { EmbeddedDatabaseProvider } from '../platform/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider } from '../host/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
-import { LoggerProvider } from '../platform/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';

@@ -5,7 +5,7 @@ import { EditorView } from '@codemirror/view';
 import type { TopLevelSpec } from 'vega-lite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { authoredChartSpec, ChartBuilderOverlay, type ChartBuilderOverlayDependencies } from './chart_builder_overlay.js';

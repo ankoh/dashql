@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_WORKBOOK_ID } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';

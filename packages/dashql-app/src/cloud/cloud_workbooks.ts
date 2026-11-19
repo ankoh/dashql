@@ -23,7 +23,7 @@ import {
     type WorkbookImportConnectionMapping,
     type WorkbookImportProgressConsumer,
 } from '../workbook/persistence/workbook_import_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';

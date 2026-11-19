@@ -1,19 +1,19 @@
 import * as React from 'react';
-import * as styles from '../ui/logs/log_viewer.module.css';
+import * as styles from '../diagnostics/logs/log_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 
 import { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../platform/logger_provider.js';
+import { pollLogVersion, useLogger } from '../host/logger_provider.js';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
-import { LogJsonModal } from '../ui/logs/log_json_modal.js';
+import { LogJsonModal } from '../diagnostics/logs/log_json_modal.js';
 import {
     LogRow,
     LogRowProps,
     ROW_HEIGHT,
-} from '../ui/logs/log_viewer.js';
+} from '../diagnostics/logs/log_viewer.js';
 
 interface TraceLogViewerProps {
     traceId?: number;

@@ -5,8 +5,8 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from '@akohn/dashql-react/components/query_result/cell_detail_overlay.module.css';
-import { DashQLCoreProvider } from '../../runtime/core_provider.js';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { DashQLCoreProvider } from '../../host/core_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { CellDetailOverlay, type CellDetailOverlayProps } from './cell_detail_overlay.js';
 

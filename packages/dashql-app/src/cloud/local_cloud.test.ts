@@ -68,7 +68,7 @@ describe('local cloud', () => {
     }, 60_000);
 
     // The settings of the app keep a redo log, its replay keeps the NULLs of `deleted_at` and the folders and workbooks
-    // stay alive, see platform/hyperdb/integration/redo_log.test.ts
+    // stay alive, see host/hyperdb/integration/redo_log.test.ts
     it('keeps the published workbooks across a reload', async () => {
         const attachedDatabases = [{ path: await testDatabasePath(`dashql-local-cloud-${crypto.randomUUID()}.hyper`), alias: 'dashql' }];
         const first = await openTestHyperDBWindow(attachedDatabases);

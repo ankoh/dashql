@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as core from '@akohn/dashql';
 
-import type { PlatformFile } from '../platform/file/file.js';
+import type { PlatformFile } from '../host/file.js';
 import type { PreparedImport, WorkbookCommitOptions } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {

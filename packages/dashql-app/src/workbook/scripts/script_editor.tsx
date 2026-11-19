@@ -12,7 +12,7 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
 import { useAgentHasControl } from '../../agent/agent_session_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { getKeywordCase } from './script_format.js';

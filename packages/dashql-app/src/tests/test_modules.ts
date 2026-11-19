@@ -43,22 +43,22 @@ export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
 /// balance the shards, so a stale number just makes a run a bit slower.
 const SLOW_TEST_FILE_SECONDS = new Map([
     ['src/connections/hyper/hyper_log_metrics.test.ts', 15],
-    ['src/platform/hyperdb/integration/hyper_log_extract.test.ts', 13],
-    ['src/platform/hyperdb/integration/hyper_resource_metrics.test.ts', 5],
-    ['src/platform/hyperdb/integration/redo_log.test.ts', 5],
+    ['src/host/hyperdb/integration/hyper_log_extract.test.ts', 13],
+    ['src/host/hyperdb/integration/hyper_resource_metrics.test.ts', 5],
+    ['src/host/hyperdb/integration/redo_log.test.ts', 5],
     ['src/workbook/snippets/snippet_execution.test.ts', 4.5],
-    ['src/platform/hyperdb/hyperdb_wasm.integration.test.ts', 3.5],
+    ['src/host/hyperdb/hyperdb_wasm.integration.test.ts', 3.5],
     ['src/cloud/local_cloud.test.ts', 3.5],
-    ['src/ui/http/http_request_viewer.test.tsx', 2],
+    ['src/diagnostics/http_request_viewer.test.tsx', 2],
     ['src/workbook/shell/workbook_shell_page.test.tsx', 2],
-    ['src/platform/hyperdb/integration/experimental_wasm_backend.test.ts', 1.5],
+    ['src/host/hyperdb/integration/experimental_wasm_backend.test.ts', 1.5],
 ]);
 const SHORT_TEST_FILE_SECONDS = 0.1;
 
 /// The engine restart tests register first in a shard, like in test_bundle.ts
 const FIRST_TEST_FILES = [
-    'src/platform/hyperdb/hyperdb_wasm.integration.test.ts',
-    'src/platform/hyperdb/integration/iceberg.test.ts',
+    'src/host/hyperdb/hyperdb_wasm.integration.test.ts',
+    'src/host/hyperdb/integration/iceberg.test.ts',
 ];
 
 /// The test files of one of several browser pages that run the suite at the same time.

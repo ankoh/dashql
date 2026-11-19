@@ -2,14 +2,14 @@ import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
 import { OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
-import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useDashQLCoreSetup } from '../../host/core_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
-import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
+import { usePlatformEventListener } from '../../host/events/event_listener_provider.js';
+import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../host/events/event.js';
 import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
-import { useHttpClient } from '../../platform/http/http_client_provider.js';
+import { useHttpClient } from '../../host/http/http_client_provider.js';
 import { importConflictOf, importedWorkbook, useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
 import {
     readWorkbookFromHttp,

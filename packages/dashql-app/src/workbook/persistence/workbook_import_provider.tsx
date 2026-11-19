@@ -6,7 +6,7 @@ import { StorageBackendType, type WorkbookData, type WorkbookEntry } from '@akoh
 import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { displayPath, locationFromEntry } from '../../storage/workbook_locator.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';

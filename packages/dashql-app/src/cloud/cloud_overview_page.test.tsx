@@ -25,7 +25,7 @@ import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connectio
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
-import { LoggerProvider } from '../platform/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';

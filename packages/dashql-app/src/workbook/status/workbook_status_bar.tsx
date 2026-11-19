@@ -10,8 +10,8 @@ import { IndicatorStatus, StatusDot } from '@akohn/dashql-react/components/statu
 import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
 import { useWorkbookLog } from './workbook_log.js';
 import { getLogLevelName, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { formatLogTimestamp } from '../../ui/logs/log_viewer.js';
-import { LogJsonModal } from '../../ui/logs/log_json_modal.js';
+import { formatLogTimestamp } from '../../diagnostics/logs/log_viewer.js';
+import { LogJsonModal } from '../../diagnostics/logs/log_json_modal.js';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useWorkbookStatus } from './workbook_status_store.js';
 

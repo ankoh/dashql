@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
-import { LoggerProvider } from '../platform/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import { getOAuthStateFlavor } from './oauth_redirect_utils.js';
 import { getRequestedFlavor } from '../config/flavor_resolution.js';
 import { RedirectPage } from './oauth_redirect.js';

@@ -13,8 +13,8 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { agentSessionOf, DASHQL_RUN, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';

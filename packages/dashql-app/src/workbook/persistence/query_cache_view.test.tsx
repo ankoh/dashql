@@ -6,7 +6,7 @@ import { QueryCacheView } from './query_cache_view.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
-import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
+import { LoggerProvider, useLogger } from '../../host/logger_provider.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';

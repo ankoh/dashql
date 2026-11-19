@@ -10,7 +10,7 @@ import { createProfileLayoutConfig, QueryProfileView, type QueryProfileViewProps
 import { rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';
-import type { PlatformEventListener } from '../platform/events/event_listener.js';
+import type { PlatformEventListener } from '../host/events/event_listener.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';

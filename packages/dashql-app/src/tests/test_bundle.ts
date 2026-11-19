@@ -1,14 +1,14 @@
 // This module is imported only after Mocha and the Vitest compatibility globals are installed.
 // Eager imports let Vite combine the full suite instead of creating a serial request waterfall.
 // Register the only engine-restart coverage first, before other tests retain Wasm runtimes.
-import '../platform/hyperdb/hyperdb_wasm.integration.test.js';
-import '../platform/hyperdb/integration/iceberg.test.js';
+import '../host/hyperdb/hyperdb_wasm.integration.test.js';
+import '../host/hyperdb/integration/iceberg.test.js';
 import.meta.glob([
     '../**/*.test.{ts,tsx}',
     // Core tests now belong to the independent package, including stale Bazel outputs.
     '!../core/**',
-    '!../platform/hyperdb/hyperdb_wasm.integration.test.ts',
-    '!../platform/hyperdb/integration/iceberg.test.ts',
+    '!../host/hyperdb/hyperdb_wasm.integration.test.ts',
+    '!../host/hyperdb/integration/iceberg.test.ts',
 ], { eager: true });
 // The tests of the runtime and of the platform of @akohn/dashql, see test_modules.ts
 import.meta.glob([

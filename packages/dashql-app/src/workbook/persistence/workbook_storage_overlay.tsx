@@ -8,12 +8,12 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { OverlaySize } from '@akohn/dashql-react/components/overlay';
-import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
+import { PlatformType, usePlatformType } from '../../host/platform_type.js';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 
 /// The shared header for the storage view: title on the left, actions + close button on the right.

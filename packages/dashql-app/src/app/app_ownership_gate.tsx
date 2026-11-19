@@ -3,11 +3,11 @@ import * as React from 'react';
 import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './app_ownership_gate.module.css';
 
-import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../platform/app_ownership.js';
-import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../platform/app_hand_over.js';
+import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../host/app_ownership.js';
+import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../host/app_hand_over.js';
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CompactNavBar } from './navbar.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 const LOG_CTX = 'app_ownership';

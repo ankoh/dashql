@@ -18,7 +18,7 @@ import { useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hook
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { ExportedResults } from '@akohn/dashql';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 
 const LOG_CTX = 'workbook_export';
 

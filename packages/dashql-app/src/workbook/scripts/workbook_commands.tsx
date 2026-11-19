@@ -5,7 +5,7 @@ import { KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_event
 import { type ScriptData, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
 import type { ScriptRef } from '@akohn/dashql/platform/workbook/script_types';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { useRouteContext } from '../../app/router.js';
 import { useConnectionViews, useOptionalRuntime, useScriptRun, useWorkbook } from '@akohn/dashql-react/hooks';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';

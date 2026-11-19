@@ -6,7 +6,7 @@ import {
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_SCRIPTS_FOLDER,
 } from '@akohn/dashql/platform/storage/storage_backend';
-import { LEGACY_WORKBOOK_FILES } from '../../platform/events/legacy_links.js';
+import { LEGACY_WORKBOOK_FILES } from '../../host/events/legacy_links.js';
 
 // A workbook that a web server hosts as the files of a workbook folder: the runtime reads it like any workbook folder
 // (`RuntimeImportFolder`), the files are fetched when it asks for them. Workbooks published by older versions are

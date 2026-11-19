@@ -426,14 +426,14 @@ it over, and only the latest lease resets the connection when it closes.
 
 ## The app
 
-- **`RuntimeProvider`** (`packages/dashql-app/src/runtime/runtime_provider.tsx`) creates the runtime over the
+- **`RuntimeProvider`** (`packages/dashql-app/src/host/runtime_provider.tsx`) creates the runtime over the
   providers of the app once the core is there and shows the loading page until then. It flushes the storage writer when
   the page hides and when Electron closes a window (a page that goes away flushes with `closing`), hands over to another
   tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any more), asks for the
   compute database right away, and destroys the runtime with the component. `useOwnedRuntime` creates the runtime with
   the first render, keeps it in a ref and destroys it in a task after the cleanup of its effect unless the effect runs
   again: StrictMode and Fast Refresh keep the same runtime.
-- **`StandaloneRuntime`** (`runtime/standalone_runtime.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
+- **`StandaloneRuntime`** (`host/standalone_runtime.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.
 - **Hooks** (`@akohn/dashql-react/hooks`, `packages/dashql-react/src/hooks.ts`, a source package shared with other hosts
   of the runtime: it imports React, apache-arrow, `@akohn/dashql` and the libraries of its components only,

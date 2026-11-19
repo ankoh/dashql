@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@akohn/dashql';
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { LoggerProvider } from '../platform/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@akohn/dashql/platform/testing/workbook_test_backend';

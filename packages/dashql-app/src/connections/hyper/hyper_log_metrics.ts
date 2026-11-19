@@ -7,14 +7,14 @@ import {
     type HyperDBExtractTable,
     type HyperDBExtractTransfer,
     type HyperDBSourceDatabase,
-} from '../../platform/hyperdb/hyperdb_incremental_extract.js';
+} from '../../host/hyperdb/hyperdb_incremental_extract.js';
 import {
     HYPER_LOG_RESOURCE_METRICS_TABLE,
     HyperDBLogSource,
     HyperLogUnreadableError,
     hyperLogQueryEndsTable,
     isHyperLogFlushTimeout,
-} from '../../platform/hyperdb/hyperdb_log_extract.js';
+} from '../../host/hyperdb/hyperdb_log_extract.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { Store } from '../../utils/store.js';

@@ -4,7 +4,7 @@ import * as dashql from '@akohn/dashql';
 import { replayProgressRecording } from '@akohn/dashql/platform/query/query_progress';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { createProfileLayoutConfig } from '@akohn/dashql/platform/query/profile_layout_config';
-import { DashQLCoreProvider, useDashQLCore } from '../../runtime/core_provider.js';
+import { DashQLCoreProvider, useDashQLCore } from '../../host/core_provider.js';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { PlanFlowView } from './plan_flow_view.js';

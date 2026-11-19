@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
-import { LoggerProvider } from '../../platform/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
@@ -17,8 +17,8 @@ import type { QueryResultCache } from '@akohn/dashql/platform/query/query_result
 import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
-import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
-import { DashQLCoreProvider } from '../../runtime/core_provider.js';
+import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.js';
+import { DashQLCoreProvider } from '../../host/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';

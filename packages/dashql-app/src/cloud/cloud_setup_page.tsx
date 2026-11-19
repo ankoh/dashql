@@ -7,7 +7,7 @@ import symbols from '@akohn/dashql-svg-symbols';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { PencilIcon, PlusIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CompactNavBar } from '../app/navbar.js';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
+import { useDashQLCoreSetup } from '../host/core_provider.js';
 import { useConnection, useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';

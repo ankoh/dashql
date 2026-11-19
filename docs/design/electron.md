@@ -85,7 +85,7 @@ WasmFS with OPFS. Capabilities are tested, not inferred from the Electron versio
 
 Remote connections that browsers cannot reach directly (gRPC, streaming HTTP without CORS) go through the
 Rust addon. The renderer keeps an HTTP-shaped contract: `nativeProxyFetch`
-(`packages/dashql-app/src/platform/electron_native_fetch.ts`) turns a `Request` for
+(`packages/dashql-app/src/host/electron_native_fetch.ts`) turns a `Request` for
 `dashql-native://localhost/...` into a proxy request. `native_http_client.ts` and `native_grpc_client.ts`
 build on it; there are no operation-specific typed APIs.
 

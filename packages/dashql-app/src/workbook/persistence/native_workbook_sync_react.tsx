@@ -3,7 +3,7 @@ import type * as core from '@akohn/dashql';
 
 import { useRuntime, useView, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 
