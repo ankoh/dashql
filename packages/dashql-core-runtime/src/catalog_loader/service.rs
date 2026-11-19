@@ -22,24 +22,21 @@ use arrow_array::RecordBatch;
 
 use super::{
     CatalogGenerations, CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery,
-    CatalogStep, CatalogUpdate, CatalogUpdateOutcome,
+    CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer, STALE_MESSAGE,
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
-use crate::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction, ConnectionState, RelationName,
-};
+use crate::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionChannel, ConnectionState, RelationName};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
-use crate::http::{CancellationToken, HttpHost, HttpResponse};
+use crate::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use crate::query::QueryExecutionHistory;
+use crate::workbook::CatalogHandle;
 
 /// The target of the log messages of the loader
 pub const LOG_TARGET: &str = "catalog_loader";
 /// The target of the log messages about the metadata of Salesforce
 /// The reason of an update that a forced refresh aborted
 pub const SUPERSEDED_MESSAGE: &str = "Superseded by forced catalog refresh";
-/// The reason of an update whose connection is gone or got another catalog
-pub const STALE_MESSAGE: &str = "Catalog refresh was cancelled or superseded";
 
 /// The batches of the result of a metadata query
 pub type QueryBatches = Vec<RecordBatch>;
@@ -483,7 +480,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         self.log(LogLevel::Info, "Starting catalog update", &[("connectionId", connection_id), ("relations", &what)]);
         // The clock of the host is read before anything is borrowed
         let now = self.host.now();
-        let started = {
+        let update = {
             let connection_state = connection
                 .state
                 .try_borrow()
@@ -491,8 +488,8 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             let mut state = self.state.borrow_mut();
             CatalogUpdate::start(&connection_state, task_id, relations, &mut state.generations, now)
         };
-        let (mut update, action) = match started {
-            Ok(started) => started,
+        let update = match update {
+            Ok(update) => update,
             Err(error) => {
                 self.log(LogLevel::Warn, "Catalog update failed", &[("connectionId", connection_id), ("error", error.message())]);
                 return Err(error);
@@ -500,96 +497,11 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         };
         let token = CancellationToken::new();
         self.state.borrow_mut().tasks.insert(task_id, Task { token: token.clone(), reason: None });
-        if let ConnectionAction::UpdateCatalog(task) = &action {
-            self.host.update_started(connection_id, task);
-        }
+        self.host.update_started(connection_id, &update.task);
         let started_at = self.host.now();
         let done = self.heartbeat(connection_id, task_id, started_at);
-
-        let outcome = loop {
-            let step = {
-                if token.is_cancelled() {
-                    update.cancel(&self.reason(task_id));
-                }
-                let state = self.state.borrow();
-                update.next(&state.generations)
-            };
-            match step {
-                CatalogStep::Finished(outcome) => break outcome,
-                CatalogStep::Query(queries) => {
-                    let runs: Vec<LocalFuture<Result<Vec<RecordBatch>, HostError>>> = queries
-                        .iter()
-                        .map(|query| Box::pin(self.host.run_query(connection_id, task_id, query, &token)) as LocalFuture<_>)
-                        .collect();
-                    match token.run(join_all(runs)).await {
-                        Some(results) if !token.is_cancelled() => update.answer_queries(
-                            results.into_iter().map(|result| result.map_err(|error| error.message().to_string())).collect(),
-                        ),
-                        _ => update.cancel(&self.reason(task_id)),
-                    }
-                }
-                CatalogStep::FreshChannel => {
-                    let channel = connection.state.try_borrow().map(|state| state.details().channel.clone());
-                    let fresh = match &channel {
-                        Ok(Some(channel)) => token.run(channel.fresh(&self.host)).await,
-                        Ok(None) => Some(Ok(())),
-                        Err(_) => Some(Err("the connection is in use".to_string())),
-                    };
-                    match fresh {
-                        Some(Ok(())) if !token.is_cancelled() => update.answer_channel(Ok(channel.ok().flatten().as_ref())),
-                        Some(Err(error)) if !token.is_cancelled() => update.answer_channel(Err(error)),
-                        _ => update.cancel(&self.reason(task_id)),
-                    }
-                }
-                CatalogStep::Fetch(requests) => {
-                    let started_at = self.host.now();
-                    let fetches: Vec<LocalFuture<Result<HttpResponse, HostError>>> =
-                        requests.iter().map(|request| Box::pin(self.host.fetch(request.clone(), &token)) as LocalFuture<_>).collect();
-                    match token.run(join_all(fetches)).await {
-                        Some(responses) if !token.is_cancelled() => {
-                            let duration = format!("{:.2}", self.host.now() - started_at);
-                            let count = responses.len().to_string();
-                            self.log(
-                                LogLevel::Info,
-                                "Fetched catalog metadata",
-                                &[("connectionId", connection_id), ("requests", &count), ("durationMs", &duration)],
-                            );
-                            update.answer_fetch(responses.into_iter().map(|response| response.map_err(|error| error.message().to_string())).collect())
-                        }
-                        _ => update.cancel(&self.reason(task_id)),
-                    }
-                }
-                // The batches parse here, the restore parses the catalog files the same way
-                CatalogStep::ProcessBatch(batch) => update.answer_batch(batch.process().map_err(|error| error.message().to_string())),
-                CatalogStep::Publish => {
-                    if token.is_cancelled() {
-                        update.cancel(&self.reason(task_id));
-                        continue;
-                    }
-                    // The connection is gone, got another catalog or dropped the update, e.g. it was reset
-                    if !self.is_current(connection_id, &connection, task_id) {
-                        update.cancel(STALE_MESSAGE);
-                        continue;
-                    }
-                    let catalog = match connection.state.try_borrow() {
-                        Ok(state) => state.catalog().clone(),
-                        Err(_) => {
-                            update.abort(CatalogLoadError::failed("the connection is in use"));
-                            continue;
-                        }
-                    };
-                    let mut catalog = match catalog.try_borrow_mut() {
-                        Ok(catalog) => catalog,
-                        Err(_) => {
-                            update.abort(CatalogLoadError::failed("the catalog is in use"));
-                            continue;
-                        }
-                    };
-                    let state = self.state.borrow();
-                    update.publish(&mut catalog, &state.generations);
-                }
-            }
-        };
+        let running = RunningUpdate { service: self, connection_id, task_id, connection: &connection, token };
+        let outcome = update.run(&running).await;
         done.cancel();
         self.state.borrow_mut().tasks.remove(&task_id);
         self.finish(connection_id, task_id, &connection, &outcome, started_at);
@@ -655,5 +567,71 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             "Finished catalog update",
             &[("connectionId", connection_id), ("updateId", &task_id.to_string()), ("durationMs", &duration)],
         );
+    }
+}
+
+/// An update that the loader runs: its steps run over the host of the loader, its token stops them
+struct RunningUpdate<'a, H: CatalogLoaderHost> {
+    service: &'a CatalogLoaderService<H>,
+    connection_id: &'a str,
+    task_id: u32,
+    connection: &'a FollowedConnection,
+    token: CancellationToken,
+}
+
+impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
+    fn stopped(&self, ticket: CatalogTicket) -> Option<CatalogLoadError> {
+        if self.token.is_cancelled() {
+            return Some(CatalogLoadError::cancelled(self.service.reason(self.task_id)));
+        }
+        self.service.state.borrow().generations.check(ticket).err()
+    }
+
+    async fn run_queries(&self, queries: &[CatalogQuery]) -> Option<Vec<QueryAnswer>> {
+        let host = &self.service.host;
+        let runs: Vec<LocalFuture<Result<Vec<RecordBatch>, HostError>>> = queries
+            .iter()
+            .map(|query| Box::pin(host.run_query(self.connection_id, self.task_id, query, &self.token)) as LocalFuture<_>)
+            .collect();
+        let results = self.token.run(join_all(runs)).await.filter(|_| !self.token.is_cancelled())?;
+        Some(results.into_iter().map(|result| result.map_err(|error| error.message().to_string())).collect())
+    }
+
+    async fn fresh_channel(&self) -> Option<Result<Option<ConnectionChannel>, String>> {
+        let Ok(channel) = self.connection.state.try_borrow().map(|state| state.details().channel.clone()) else {
+            return Some(Err("the connection is in use".to_string()));
+        };
+        if let Some(channel) = &channel {
+            let fresh = self.token.run(channel.fresh(&self.service.host)).await.filter(|_| !self.token.is_cancelled())?;
+            if let Err(error) = fresh {
+                return Some(Err(error));
+            }
+        }
+        Some(Ok(channel))
+    }
+
+    async fn fetch(&self, requests: &[HttpRequest]) -> Option<Vec<Result<HttpResponse, String>>> {
+        let host = &self.service.host;
+        let started_at = host.now();
+        let fetches: Vec<LocalFuture<Result<HttpResponse, HostError>>> =
+            requests.iter().map(|request| Box::pin(host.fetch(request.clone(), &self.token)) as LocalFuture<_>).collect();
+        let responses = self.token.run(join_all(fetches)).await.filter(|_| !self.token.is_cancelled())?;
+        let duration = format!("{:.2}", host.now() - started_at);
+        let count = responses.len().to_string();
+        self.service.log(
+            LogLevel::Info,
+            "Fetched catalog metadata",
+            &[("connectionId", self.connection_id), ("requests", &count), ("durationMs", &duration)],
+        );
+        Some(responses.into_iter().map(|response| response.map_err(|error| error.message().to_string())).collect())
+    }
+
+    fn catalog(&self) -> Result<CatalogHandle, CatalogLoadError> {
+        // The connection is gone, got another catalog or dropped the update, e.g. it was reset
+        if !self.service.is_current(self.connection_id, self.connection, self.task_id) {
+            return Err(CatalogLoadError::cancelled(STALE_MESSAGE));
+        }
+        let state = self.connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
+        Ok(state.catalog().clone())
     }
 }

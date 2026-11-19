@@ -1,24 +1,19 @@
-//! Catalog batches: SQL of the catalog of a connection that the core parses into descriptors, in the batch worker,
-//! before they are published into the connection layer of the catalog.
+//! Catalog batches: SQL of the catalog of a connection that the core parses into descriptors before they are published
+//! into the connection layer of the catalog.
 //!
-//! A batch never parses on the catalog it publishes into, the worker runs `process_batch` on a catalog of its own. A
+//! A batch never parses on the catalog it publishes into, it analyzes its scripts on an empty catalog of its own. A
 //! batch publishes only while it is current: a newer batch of the same catalog or a reset of the connection
 //! (`ConnectionEffect::InvalidateCatalogBatch`) supersedes it.
-//!
-//! The worker, its lifetime and the abort signals stay with the host.
 
 use std::collections::HashMap;
 
-use dashql_buffers::batch::{BatchRequestT, BatchResult, BatchScriptInputT, DiagnosticSeverity};
+use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
 use dashql_buffers::catalog::CatalogDescriptor;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
-use dashql_core_script::batch::process_batch;
+use dashql_core::pack::pack_catalog_descriptor;
+use dashql_core_script::batch::check_script;
 
-use super::tables::pack_bytes;
-use super::CatalogLoadError;
-
-/// The output mask of a batch script that asks for the catalog descriptor
-const BATCH_OUTPUT_CATALOG_DESCRIPTOR: u32 = 8;
+use super::{CatalogLoadError, STALE_MESSAGE};
 
 /// The generations of the catalog batches of the catalogs, by the id of the catalog
 #[derive(Debug, Clone, Default)]
@@ -59,7 +54,7 @@ impl CatalogGenerations {
         if self.is_current(ticket) {
             Ok(())
         } else {
-            Err(CatalogLoadError::cancelled("Catalog refresh was cancelled or superseded"))
+            Err(CatalogLoadError::cancelled(STALE_MESSAGE))
         }
     }
 
@@ -111,62 +106,27 @@ impl CatalogBatch {
         Self { entries }
     }
 
-    /// The `BatchRequest` for the batch worker
-    pub fn request(&self) -> Vec<u8> {
-        let mut request = BatchRequestT::default();
-        request.scripts = Some(
-            self.entries
-                .iter()
-                .map(|entry| {
-                    let mut input = BatchScriptInputT::default();
-                    input.id = Some(entry.entry_id.to_string());
-                    input.text = Some(entry.text.clone());
-                    input.outputs = BATCH_OUTPUT_CATALOG_DESCRIPTOR;
-                    input
-                })
-                .collect(),
-        );
-        pack_bytes!(request)
-    }
-
-    /// Process the batch here instead of in the worker, the `BatchResult`
-    pub fn process(&self) -> Result<Vec<u8>, CatalogLoadError> {
-        process_batch(&self.request()).map_err(|error| CatalogLoadError::failed(error.message))
-    }
-
-    /// Check the `BatchResult` of the batch: a descriptor for every entry, no errors in the SQL
-    pub fn prepare(&self, result: &[u8]) -> Result<Vec<PreparedDescriptor>, CatalogLoadError> {
-        let result = flatbuffers::root::<BatchResult>(result)
-            .map_err(|_| CatalogLoadError::failed("Catalog batch returned an invalid result"))?
-            .unpack();
-        let scripts = result.scripts.unwrap_or_default();
-        if scripts.len() != self.entries.len() {
-            return Err(CatalogLoadError::failed("Catalog batch returned an unexpected script count"));
-        }
+    /// Parse the entries into checked descriptors: every entry analyzes without an error into a descriptor
+    pub fn prepare(&self) -> Result<Vec<PreparedDescriptor>, CatalogLoadError> {
+        let missing = || CatalogLoadError::failed("Catalog batch did not return a descriptor");
+        // The entries share an empty catalog, they never publish declarations to each other
+        let catalog = Catalog::new();
         self.entries
             .iter()
             .map(|entry| {
-                let id = entry.entry_id.to_string();
-                let matches: Vec<_> = scripts.iter().filter(|script| script.id.as_deref() == Some(id.as_str())).collect();
-                let output = match matches.as_slice() {
-                    [output] if output.failure.is_none() => *output,
-                    [output, ..] => {
-                        let failure = output.failure.clone();
-                        return Err(CatalogLoadError::failed(
-                            failure.unwrap_or_else(|| "Catalog batch did not return a descriptor".to_string()),
-                        ));
-                    }
-                    [] => return Err(CatalogLoadError::failed("Catalog batch did not return a descriptor")),
-                };
-                let error = output.diagnostics.iter().flatten().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR);
-                if let Some(error) = error {
-                    return Err(CatalogLoadError::failed(format!(
-                        "Catalog contains invalid SQL: {}",
-                        error.message.as_deref().unwrap_or("")
-                    )));
+                let checked = check_script(&catalog, &entry.text, ProcessingStage::ANALYZE);
+                if let Some(failure) = checked.failure {
+                    return Err(CatalogLoadError::failed(failure));
                 }
-                let descriptor = output.catalog_descriptor.clone().filter(|descriptor| !descriptor.is_empty());
-                let descriptor = descriptor.ok_or_else(|| CatalogLoadError::failed("Catalog batch did not return a descriptor"))?;
+                let error = checked.diagnostics.iter().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR);
+                if let Some(error) = error {
+                    return Err(CatalogLoadError::failed(format!("Catalog contains invalid SQL: {}", error.message)));
+                }
+                let analyzed = checked.script.analyzed.as_deref().ok_or_else(missing)?;
+                let descriptor = pack_catalog_descriptor(&analyzed.entry).map_err(|error| CatalogLoadError::failed(error.message))?;
+                if descriptor.is_empty() {
+                    return Err(missing());
+                }
                 let read = flatbuffers::root::<CatalogDescriptor>(&descriptor)
                     .map_err(|_| CatalogLoadError::failed("Catalog batch returned an invalid descriptor"))?;
                 let counts = CatalogBatchCounts {
@@ -203,7 +163,7 @@ pub fn publish_catalog_batch_sync(
     if batch.entries.is_empty() {
         return Ok(Vec::new());
     }
-    let prepared = batch.prepare(&batch.process()?)?;
+    let prepared = batch.prepare()?;
     publish_prepared(catalog, &prepared)?;
     Ok(prepared.iter().map(|prepared| prepared.counts).collect())
 }

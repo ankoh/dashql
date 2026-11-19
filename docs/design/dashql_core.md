@@ -283,10 +283,11 @@ from the data frame of the computation, bounded by a limit, for the tables of th
 
 The loader (`catalog_loader/service.rs`, scheduled by `CatalogLoader` of `scheduler.rs`) follows the connections of the
 runtime, schedules the updates of their catalogs and runs them as tasks: metadata queries on the executor, the batches
-parsed in the module (`CatalogBatch::process`), published into the catalog of the connection while the connection still
-runs the update. The connector makes the steps of an update (`ConnectorCatalogUpdate`), the loader knows no
-connector: it runs queries, refreshes the channel (`ConnectionChannel::fresh`) and sends the HTTP requests that an
-update asks for, e.g. the Data Cloud metadata of Salesforce. Client functions are registered on the catalogs of their
+parsed in the module (`CatalogBatch::prepare`), published into the catalog of the connection while the connection still
+runs the update. The connector makes the steps of an update (`ConnectorCatalogUpdate`) and parses its batches,
+`CatalogUpdate::run` runs them over a `CatalogUpdateHost` and knows no connector: the loader answers it with queries,
+a refreshed channel (`ConnectionChannel::fresh`) and the HTTP requests that an update asks for, e.g. the Data Cloud
+metadata of Salesforce, the tests of the loader with a fake. Client functions are registered on the catalogs of their
 connectors with specs that the platform loads (`extensions.loadSpec`). A busy connection keeps its requested refreshes
 and is looked at again after 10 ms, a connection that is not online keeps them until it comes online. `refreshCatalog(id, force)` requests a refresh, `runCatalogLoader(false)` stops the
 loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](catalog_batching.md).

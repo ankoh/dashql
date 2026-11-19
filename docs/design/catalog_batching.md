@@ -80,12 +80,12 @@ The catalog loader of the runtime publishes the batches of an update (`catalog_l
 
 - An update begins a generation of the catalog (`CatalogGenerations::begin`) before it fetches metadata, a newer update
   of the catalog supersedes it.
-- The batch of an update parses in the module (`CatalogBatch::process`), on a catalog of its own, between two steps of
-  the update.
+- The connector parses the batch of an update in the module as soon as it has its SQL (`CatalogBatch::prepare`), on an
+  empty catalog of its own.
 - Immediately before publication the update checks its generation and its cancellation, and the loader checks that the
-  connection still runs the update. A reset or a delete of the connection aborts its updates. Then every result is
-  prechecked: count, matching ids, failures, error diagnostics, descriptor presence, and `require_functions` (a
-  non-empty function catalog).
+  connection still runs the update. A reset or a delete of the connection aborts its updates. Every entry was checked
+  when it was parsed: failures, error diagnostics, descriptor presence, and `require_functions` (a non-empty function
+  catalog).
 - Entries are then published in order without an asynchronous gap (`publish_prepared`). A failure stops the
   publication, earlier entries stay published and later ones are not attempted, so a refresh is atomic per descriptor
   but not across descriptors. The text of the function script is replaced once its descriptor is published.

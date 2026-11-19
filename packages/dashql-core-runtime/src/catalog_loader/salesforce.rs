@@ -75,8 +75,6 @@ enum Phase {
     Channel,
     /// Fetching the metadata
     Metadata(Box<SalesforceMetadataLoad>),
-    /// Parsing the functions
-    Batch(CatalogBatch),
     /// Publishing
     Publish(PreparedDescriptor),
     /// Published
@@ -114,11 +112,13 @@ impl SalesforceCatalogUpdate {
     fn read_metadata(&mut self, metadata: &Value) -> Result<(), CatalogLoadError> {
         self.tables = catalog_tables_from_salesforce_metadata(metadata)?;
         let entry_id = self.entries.function_entry()?;
-        self.phase = Phase::Batch(CatalogBatch::new(vec![CatalogBatchEntry {
+        let batch = CatalogBatch::new(vec![CatalogBatchEntry {
             entry_id,
             text: PREFETCHED_HYPER_FUNCTIONS_SQL.to_string(),
             require_functions: true,
-        }]));
+        }]);
+        let prepared = batch.prepare()?.into_iter().next().ok_or_else(|| CatalogLoadError::failed("Catalog batch did not return a descriptor"))?;
+        self.phase = Phase::Publish(prepared);
         Ok(())
     }
 }
@@ -131,7 +131,6 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
         match &self.phase {
             Phase::Channel => Ok(ConnectorStep::FreshChannel),
             Phase::Metadata(load) => Ok(ConnectorStep::Fetch(load.requests().to_vec())),
-            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
             Phase::Publish(_) => Ok(ConnectorStep::Publish),
             Phase::Done => Ok(ConnectorStep::Done { partial: None }),
         }
@@ -169,16 +168,6 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
         let metadata = load.finish().map_err(|error| CatalogLoadError::Failed(error.message))?;
         let metadata = serde_json::to_value(metadata).map_err(|error| CatalogLoadError::Failed(error.to_string()))?;
         self.read_metadata(&metadata)
-    }
-
-    fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
-        let Phase::Batch(batch) = &self.phase else {
-            return Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask for a batch"));
-        };
-        let prepared = batch.prepare(result)?;
-        let prepared = prepared.into_iter().next().ok_or_else(|| CatalogLoadError::failed("Catalog batch did not return a descriptor"))?;
-        self.phase = Phase::Publish(prepared);
-        Ok(())
     }
 
     fn publish(&mut self, catalog: &mut Catalog) -> Publication {

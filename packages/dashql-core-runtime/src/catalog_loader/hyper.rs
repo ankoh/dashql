@@ -216,8 +216,6 @@ enum Phase {
     Relations,
     /// Reading the functions of `pg_proc`
     Functions,
-    /// Parsing the functions
-    Batch(CatalogBatch),
     /// Publishing
     Publish(Option<PreparedDescriptor>),
     /// Published
@@ -380,7 +378,8 @@ impl HyperCatalogUpdate {
     fn batch_functions(&mut self, text: String, require_functions: bool) -> Result<(), CatalogLoadError> {
         let entry_id = self.entries.function_entry()?;
         self.function_text = Some(text.clone());
-        self.phase = Phase::Batch(CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text, require_functions }]));
+        let batch = CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text, require_functions }]);
+        self.phase = Phase::Publish(batch.prepare()?.into_iter().next());
         Ok(())
     }
 
@@ -431,7 +430,6 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
                 Ok(ConnectorStep::Query(queries))
             }
             Phase::Functions => Ok(ConnectorStep::Query(vec![pg_proc_query()])),
-            Phase::Batch(batch) => Ok(ConnectorStep::ProcessBatch(batch.clone())),
             Phase::Publish(_) => Ok(ConnectorStep::Publish),
             Phase::Done => Ok(ConnectorStep::Done { partial: self.partial_error() }),
         }
@@ -471,15 +469,6 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
             }
             _ => Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for queries")),
         }
-    }
-
-    fn answer_batch(&mut self, result: &[u8]) -> Result<(), CatalogLoadError> {
-        let Phase::Batch(batch) = &self.phase else {
-            return Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for a batch"));
-        };
-        let prepared = batch.prepare(result)?;
-        self.phase = Phase::Publish(prepared.into_iter().next());
-        Ok(())
     }
 
     fn publish(&mut self, catalog: &mut Catalog) -> Publication {

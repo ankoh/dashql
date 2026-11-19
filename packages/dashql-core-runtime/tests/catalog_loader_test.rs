@@ -1,6 +1,11 @@
 //! The catalog loader.
 
+use std::cell::RefCell;
+use std::future::Future;
+use std::pin::pin;
+use std::rc::Rc;
 use std::sync::Arc;
+use std::task::{Context, Poll, Wake, Waker};
 
 use arrow_array::builder::{ListBuilder, StringBuilder};
 use arrow_array::{ArrayRef, BooleanArray, Int32Array, Int64Array, RecordBatch, StringArray};
@@ -8,6 +13,7 @@ use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
+use dashql_core_runtime::workbook::CatalogHandle;
 use dashql_core_runtime::catalog_loader::hyper::{catalog_tables_from_hyper_cloud, hyper_cloud_catalog_query_sql};
 use dashql_core_runtime::catalog_loader::information_schema::{information_schema_columns_query, InformationSchemaScope};
 use dashql_core_runtime::catalog_loader::pg_attribute::{catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope};
@@ -27,10 +33,10 @@ use dashql_core_runtime::catalog_loader::trino::{
 };
 use dashql_core_runtime::catalog_loader::{
     CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
-    CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer,
+    CatalogQuery, CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
-use dashql_core_runtime::http::HttpResponse;
+use dashql_core_runtime::http::{HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryType;
 use serde_json::{json, Value};
 
@@ -134,64 +140,121 @@ fn no_rows() -> Vec<RecordBatch> {
 // ---------------------------------------------------------------------------------------------------------------------
 // Driving an update
 
+/// The steps of an update answer at once, polling until done is enough
+struct NoopWaker;
+impl Wake for NoopWaker {
+    fn wake(self: Arc<Self>) {}
+}
+
+fn block_on<F: Future>(future: F) -> F::Output {
+    let waker = Waker::from(Arc::new(NoopWaker));
+    let mut context = Context::from_waker(&waker);
+    let mut future = pin!(future);
+    loop {
+        if let Poll::Ready(output) = future.as_mut().poll(&mut context) {
+            return output;
+        }
+    }
+}
+
+/// The answers of the fetches of an update
+type FetchAnswer<'a> = Box<dyn FnMut(&[HttpRequest]) -> Vec<Result<HttpResponse, String>> + 'a>;
+
 /// How a test answers an update
 struct Host<'a> {
     /// Answer a query
-    query: Box<dyn FnMut(&CatalogQuery) -> QueryAnswer + 'a>,
+    query: RefCell<Box<dyn FnMut(&CatalogQuery) -> QueryAnswer + 'a>>,
     /// Answer the metadata of Salesforce
-    metadata: Box<dyn FnMut() -> Result<Value, String> + 'a>,
-    /// Answer a batch, by processing it here by default
-    batch: Box<dyn FnMut(&CatalogBatch) -> Result<Vec<u8>, String> + 'a>,
+    metadata: RefCell<Box<dyn FnMut() -> Result<Value, String> + 'a>>,
+    /// Answer the requests, by default with the metadata in the first response
+    fetch: RefCell<Option<FetchAnswer<'a>>>,
+    /// The error of the refresh of the channel
+    channel_error: Option<String>,
+    /// Why the update was cancelled, a step of the test may set it
+    cancel: Rc<RefCell<Option<String>>>,
     /// The queries the update ran
-    queries: Vec<CatalogQuery>,
-    /// The batches the update processed
-    batches: usize,
+    queries: RefCell<Vec<CatalogQuery>>,
+    /// The requests the update sent
+    requests: RefCell<Vec<HttpRequest>>,
 }
 
 impl<'a> Host<'a> {
     fn new(query: impl FnMut(&CatalogQuery) -> QueryAnswer + 'a) -> Self {
         Self {
-            query: Box::new(query),
-            metadata: Box::new(|| Err("no metadata".to_string())),
-            batch: Box::new(|batch| batch.process().map_err(|error| error.to_string())),
-            queries: Vec::new(),
-            batches: 0,
+            query: RefCell::new(Box::new(query)),
+            metadata: RefCell::new(Box::new(|| Err("no metadata".to_string()))),
+            fetch: RefCell::new(None),
+            channel_error: None,
+            cancel: Rc::default(),
+            queries: RefCell::default(),
+            requests: RefCell::default(),
         }
     }
 
-    /// Run an update to its end
-    fn drive(&mut self, update: &mut CatalogUpdate, catalog: &mut Catalog, generations: &CatalogGenerations) -> CatalogUpdateOutcome {
-        loop {
-            match update.next(generations) {
-                CatalogStep::Query(queries) => {
-                    let answers = queries.iter().map(|query| (self.query)(query)).collect();
-                    self.queries.extend(queries);
-                    update.answer_queries(answers);
-                }
-                CatalogStep::FreshChannel => update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel())))),
-                CatalogStep::Fetch(requests) => update.answer_fetch(metadata_responses(requests.len(), (self.metadata)())),
-                CatalogStep::ProcessBatch(batch) => {
-                    self.batches += 1;
-                    update.answer_batch((self.batch)(&batch));
-                }
-                CatalogStep::Publish => update.publish(catalog, generations),
-                CatalogStep::Finished(outcome) => return outcome,
-            }
+    fn with_metadata(mut self, metadata: impl FnMut() -> Result<Value, String> + 'a) -> Self {
+        self.metadata = RefCell::new(Box::new(metadata));
+        self
+    }
+
+    /// Run an update to its end, publishing into a catalog while the batch of the update is current
+    fn drive(&self, update: CatalogUpdate, catalog: &CatalogHandle, generations: &RefCell<CatalogGenerations>) -> CatalogUpdateOutcome {
+        block_on(update.run(&Steps { host: self, catalog, generations }))
+    }
+}
+
+/// The answers of a test host to the steps of an update
+struct Steps<'h, 'a> {
+    host: &'h Host<'a>,
+    catalog: &'h CatalogHandle,
+    generations: &'h RefCell<CatalogGenerations>,
+}
+
+impl CatalogUpdateHost for Steps<'_, '_> {
+    fn stopped(&self, ticket: CatalogTicket) -> Option<CatalogLoadError> {
+        if let Some(reason) = self.host.cancel.borrow().clone() {
+            return Some(CatalogLoadError::cancelled(reason));
         }
+        self.generations.borrow().check(ticket).err()
+    }
+
+    async fn run_queries(&self, queries: &[CatalogQuery]) -> Option<Vec<QueryAnswer>> {
+        let answers = queries.iter().map(|query| (self.host.query.borrow_mut())(query)).collect();
+        self.host.queries.borrow_mut().extend(queries.iter().cloned());
+        Some(answers)
+    }
+
+    async fn fresh_channel(&self) -> Option<Result<Option<ConnectionChannel>, String>> {
+        Some(match &self.host.channel_error {
+            Some(error) => Err(error.clone()),
+            None => Ok(Some(ConnectionChannel::Salesforce(salesforce_channel()))),
+        })
+    }
+
+    async fn fetch(&self, requests: &[HttpRequest]) -> Option<Vec<Result<HttpResponse, String>>> {
+        self.host.requests.borrow_mut().extend(requests.iter().cloned());
+        let mut fetch = self.host.fetch.borrow_mut();
+        Some(match fetch.as_mut() {
+            Some(fetch) => fetch(requests),
+            None => metadata_responses(requests.len(), (self.host.metadata.borrow_mut())()),
+        })
+    }
+
+    fn catalog(&self) -> Result<CatalogHandle, CatalogLoadError> {
+        Ok(self.catalog.clone())
     }
 }
 
 /// A connection and the generations of the catalog batches
 struct Fixture {
     connection: ConnectionState,
-    generations: CatalogGenerations,
+    generations: RefCell<CatalogGenerations>,
     task_id: u32,
 }
 
 impl Fixture {
     fn new(connector: ConnectorType, params: Value) -> Self {
         let connection = ConnectionState::from_params("connection", ConnectionParams::new(connector, object(params)), NOW);
-        Self { connection, generations: CatalogGenerations::default(), task_id: 0 }
+        Self { connection, generations: RefCell::default(), task_id: 0 }
     }
 
     fn hyper(params: Value) -> Self {
@@ -201,17 +264,22 @@ impl Fixture {
     /// Start an update and register it with the connection
     fn start(&mut self, relations: Option<Vec<RelationName>>) -> CatalogUpdate {
         self.task_id += 1;
-        let (update, action) = CatalogUpdate::start(&self.connection, self.task_id, relations, &mut self.generations, NOW).unwrap();
-        self.connection.apply(action, NOW).unwrap();
+        let update = CatalogUpdate::start(&self.connection, self.task_id, relations, &mut self.generations.borrow_mut(), NOW).unwrap();
+        self.connection.apply(ConnectionAction::UpdateCatalog(update.task.clone()), NOW).unwrap();
         update
     }
 
+    /// Start an update of a connection without registering it
+    fn start_of(connection: &ConnectionState, task_id: u32, generations: &RefCell<CatalogGenerations>) -> CatalogUpdate {
+        CatalogUpdate::start(connection, task_id, None, &mut generations.borrow_mut(), NOW).unwrap()
+    }
+
     /// Run an update and finish it on the connection, setting the text of the function script
-    fn run(&mut self, relations: Option<Vec<RelationName>>, host: &mut Host) -> (CatalogUpdateOutcome, Option<String>) {
-        let mut update = self.start(relations);
+    fn run(&mut self, relations: Option<Vec<RelationName>>, host: &Host) -> (CatalogUpdateOutcome, Option<String>) {
+        let update = self.start(relations);
         let catalog = self.connection.catalog().clone();
-        let outcome = host.drive(&mut update, &mut catalog.borrow_mut(), &self.generations);
-        self.connection.apply(outcome.connection_action(update.task_id()), NOW).unwrap();
+        let outcome = host.drive(update, &catalog, &self.generations);
+        self.connection.apply(outcome.connection_action(self.task_id), NOW).unwrap();
         (outcome.clone(), outcome.function_script_text)
     }
 
@@ -538,28 +606,28 @@ fn information_schema_rows(rows: &[(&str, &str, &str, &str, i64, &str)]) -> Reco
 #[test]
 fn a_trino_refresh_without_catalogs_reads_the_catalogs_of_the_server() {
     let mut trino = trino(json!({ "catalogs": [] }));
-    let mut host = Host::new(|query| {
+    let host = Host::new(|query| {
         assert_eq!(query.sql, TRINO_CATALOGS_QUERY);
         Ok(vec![batch(vec![("catalog_name", strings(&[]))])])
     });
-    let (outcome, _) = trino.run(None, &mut host);
+    let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed);
     assert_eq!(outcome.error.as_deref(), Some("no catalogs to read the information_schema of"));
-    assert_eq!(host.queries.len(), 1);
+    assert_eq!(host.queries.borrow().len(), 1);
 
     // The catalogs of the server, all schemas of each
-    let mut host = Host::new(|query| {
+    let host = Host::new(|query| {
         if query.sql == TRINO_CATALOGS_QUERY {
             return Ok(vec![batch(vec![("catalog_name", strings(&["hive", "system"]))])]);
         }
         Ok(vec![information_schema_rows(&[("hive", "public", "items", "id", 1, "bigint")])])
     });
-    let (outcome, _) = trino.run(None, &mut host);
+    let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
-    assert_eq!(host.queries[0].title, "Catalogs");
-    assert_eq!(host.queries[0].query_type, QueryType::CatalogQueryInformationSchema);
-    assert!(host.queries[1].sql.contains("FROM \"hive\".information_schema.columns\nUNION ALL"));
-    assert!(host.queries[1].sql.contains("FROM \"system\".information_schema.columns"));
+    assert_eq!(host.queries.borrow()[0].title, "Catalogs");
+    assert_eq!(host.queries.borrow()[0].query_type, QueryType::CatalogQueryInformationSchema);
+    assert!(host.queries.borrow()[1].sql.contains("FROM \"hive\".information_schema.columns\nUNION ALL"));
+    assert!(host.queries.borrow()[1].sql.contains("FROM \"system\".information_schema.columns"));
     assert!(trino.connection.catalog_updates().described);
 }
 
@@ -575,31 +643,32 @@ fn a_trino_refresh_rejects_an_empty_metadata_result() {
 #[test]
 fn a_trino_refresh_orders_the_columns_by_bigint_ordinal_positions() {
     let mut trino = trino(json!({ "defaultCatalog": "db" }));
-    let mut host = Host::new(|_| {
+    let host = Host::new(|_| {
         Ok(vec![information_schema_rows(&[("db", "public", "items", "name", 2, "varchar"), ("db", "public", "items", "id", 1, "bigint")])])
     });
-    let (outcome, _) = trino.run(None, &mut host);
+    let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(outcome.catalog_changed);
-    assert!(host.queries[0].sql.contains("FROM \"db\".information_schema.columns"));
+    assert!(host.queries.borrow()[0].sql.contains("FROM \"db\".information_schema.columns"));
     assert!(trino.relations_text().contains("CREATE TABLE \"db\".\"public\".\"items\" (\n    \"id\" \"bigint\",\n    \"name\" \"varchar\"\n);"));
 }
 
 #[test]
 fn an_update_publishes_only_while_it_is_current() {
     for superseded in [false, true] {
-        let mut trino = trino(json!({ "defaultCatalog": "db" }));
-        let mut update = trino.start(None);
-        let catalog = trino.connection.catalog().clone();
-        let catalog_id = catalog.borrow().id();
-        let CatalogStep::Query(queries) = update.next(&trino.generations) else { panic!("expected a query") };
-        assert_eq!(queries.len(), 1);
-        // A reset of the connection or a newer refresh supersedes the batch while the query runs
-        if superseded {
-            trino.generations.invalidate(catalog_id);
-        }
-        update.answer_queries(vec![Ok(vec![information_schema_rows(&[("db", "public", "items", "id", 1, "bigint")])])]);
-        let outcome = Host::new(|_| unreachable!()).drive(&mut update, &mut catalog.borrow_mut(), &trino.generations);
+        let trino = trino(json!({ "defaultCatalog": "db" }));
+        let catalog_id = trino.connection.catalog().borrow().id();
+        let generations = &trino.generations;
+        let host = Host::new(|_| {
+            // A reset of the connection or a newer refresh supersedes the batch while the query runs
+            if superseded {
+                generations.borrow_mut().invalidate(catalog_id);
+            }
+            Ok(vec![information_schema_rows(&[("db", "public", "items", "id", 1, "bigint")])])
+        });
+        let update = Fixture::start_of(&trino.connection, 1, &trino.generations);
+        let outcome = host.drive(update, &trino.connection.catalog().clone(), &trino.generations);
+        assert_eq!(host.queries.borrow().len(), 1);
         if superseded {
             assert_eq!(outcome.status, CatalogUpdateTaskStatus::Cancelled);
             assert!(trino.relations_text().is_empty());
@@ -613,27 +682,31 @@ fn an_update_publishes_only_while_it_is_current() {
 #[test]
 fn a_cancelled_update_publishes_nothing() {
     let mut trino = trino(json!({ "defaultCatalog": "db" }));
-    let mut update = trino.start(None);
-    let catalog = trino.connection.catalog().clone();
-    assert!(matches!(update.next(&trino.generations), CatalogStep::Query(_)));
-    update.cancel("Superseded by forced catalog refresh");
-    update.answer_queries(vec![Ok(vec![information_schema_rows(&[("db", "public", "items", "id", 1, "bigint")])])]);
-    let outcome = Host::new(|_| unreachable!()).drive(&mut update, &mut catalog.borrow_mut(), &trino.generations);
+    let cancel = Rc::new(RefCell::new(None));
+    let mut host = Host::new({
+        let cancel = cancel.clone();
+        move |_| {
+            *cancel.borrow_mut() = Some("Superseded by forced catalog refresh".to_string());
+            Ok(vec![information_schema_rows(&[("db", "public", "items", "id", 1, "bigint")])])
+        }
+    });
+    host.cancel = cancel;
+    let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Cancelled);
     assert_eq!(outcome.error.as_deref(), Some("Superseded by forced catalog refresh"));
-    assert!(matches!(outcome.connection_action(update.task_id()), ConnectionAction::CatalogUpdateCancelled { .. }));
+    assert!(matches!(outcome.connection_action(trino.task_id), ConnectionAction::CatalogUpdateCancelled { .. }));
     assert!(trino.relations_text().is_empty());
 }
 
 #[test]
 fn a_trino_lookup_asks_the_catalogs_of_the_relations_in_lower_case_and_updates_only_them() {
     let mut trino = trino(json!({ "defaultCatalog": "hive" }));
-    let mut host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "other", "id", 1, "bigint")])]));
-    trino.run(None, &mut host);
-    let mut host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "orders", "id", 1, "bigint")])]));
-    let (outcome, _) = trino.run(Some(vec![relation("Hive", "Sales", "Orders"), relation("hive", "sales", "gone")]), &mut host);
+    let host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "other", "id", 1, "bigint")])]));
+    trino.run(None, &host);
+    let host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "orders", "id", 1, "bigint")])]));
+    let (outcome, _) = trino.run(Some(vec![relation("Hive", "Sales", "Orders"), relation("hive", "sales", "gone")]), &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
-    assert!(host.queries[0].sql.contains(
+    assert!(host.queries.borrow()[0].sql.contains(
         "FROM \"hive\".information_schema.columns
 WHERE table_schema <> 'information_schema' AND ((table_schema = 'sales' AND table_name = 'orders') OR (table_schema = 'sales' AND table_name = 'gone'))"
     ));
@@ -855,17 +928,14 @@ fn rejects_invalid_or_empty_function_sql_without_publishing() {
 }
 
 #[test]
-fn a_batch_checks_the_count_and_the_ids_of_its_result() {
+fn a_batch_publishes_a_descriptor_per_entry_and_refuses_invalid_sql() {
     let mut catalog = Catalog::new();
     let mut generations = CatalogGenerations::default();
     let (a, b) = (catalog.allocate_entry_id(), catalog.allocate_entry_id());
     let entry = |entry_id, text: &str| CatalogBatchEntry { entry_id, text: text.to_string(), require_functions: false };
     let both = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create table b(y int);")]);
-    let only_a = CatalogBatch::new(vec![entry(a, "create table a(x int);")]);
-    assert_eq!(
-        both.prepare(&only_a.process().unwrap()).unwrap_err(),
-        CatalogLoadError::failed("Catalog batch returned an unexpected script count")
-    );
+    let broken = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create tabel b(y int);")]);
+    assert!(broken.prepare().unwrap_err().message().starts_with("Catalog contains invalid SQL"));
     let counts = publish_catalog_batch_sync(&mut catalog, &mut generations, &both).unwrap();
     assert_eq!(counts.iter().map(|c| c.tables).collect::<Vec<_>>(), [1, 1]);
     assert!(catalog.descriptor_bytes(a).is_some() && catalog.descriptor_bytes(b).is_some());
@@ -915,16 +985,16 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
             { "path": "hyper.cloud/catalog", "alias": "cloud" },
         ],
     }));
-    let mut host = Host::new(|query| {
+    let host = Host::new(|query| {
         Ok(vec![if query.sql.contains("\"_hyper_catalog\".\"databases\"") { cloud_rows() } else { pg_rows("lake_table", &["id"]) }])
     });
-    let (outcome, functions) = hyper.run(None, &mut host);
+    let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
-    assert_eq!(host.queries.len(), 2);
-    assert!(host.queries[0].sql.contains("FROM \"lake db\".\"pg_catalog\".pg_class c"));
-    assert!(host.queries[1].sql.contains("FROM \"cloud\".\"_hyper_catalog\".\"databases\" d"));
-    assert_eq!(host.queries[1].title, "Query Hyper Cloud Catalog (cloud)");
-    assert!(host.queries.iter().all(|query| query.read_timeout));
+    assert_eq!(host.queries.borrow().len(), 2);
+    assert!(host.queries.borrow()[0].sql.contains("FROM \"lake db\".\"pg_catalog\".pg_class c"));
+    assert!(host.queries.borrow()[1].sql.contains("FROM \"cloud\".\"_hyper_catalog\".\"databases\" d"));
+    assert_eq!(host.queries.borrow()[1].title, "Query Hyper Cloud Catalog (cloud)");
+    assert!(host.queries.borrow().iter().all(|query| query.read_timeout));
     let text = hyper.relations_text();
     assert!(text.contains("CREATE TABLE \"lake db\".\"public\".\"lake_table\""));
     assert!(text.contains("CREATE TABLE \"cloud\".\"sales\".\"orders\""));
@@ -937,15 +1007,15 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
 #[test]
 fn hyper_wasm_reads_the_default_database_and_the_live_function_catalog() {
     let mut hyper = Fixture::hyper(json!({ "protocol": "WASM" }));
-    let mut host = Host::new(|query| {
+    let host = Host::new(|query| {
         Ok(vec![if query.sql.contains("FROM pg_proc p") { function_rows() } else { pg_rows("default_table", &["id"]) }])
     });
-    let (outcome, functions) = hyper.run(None, &mut host);
+    let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
-    assert!(host.queries[0].sql.contains("FROM pg_catalog.pg_class c"));
-    assert!(!host.queries[0].sql.contains("\"hyper\".\"pg_catalog\""));
-    assert_eq!(host.queries[1].query_type, QueryType::CatalogQueryPgProc);
-    assert!(host.queries[1].read_timeout);
+    assert!(host.queries.borrow()[0].sql.contains("FROM pg_catalog.pg_class c"));
+    assert!(!host.queries.borrow()[0].sql.contains("\"hyper\".\"pg_catalog\""));
+    assert_eq!(host.queries.borrow()[1].query_type, QueryType::CatalogQueryPgProc);
+    assert!(host.queries.borrow()[1].read_timeout);
     assert!(hyper.relations_text().contains("CREATE TABLE \"hyper\".\"public\".\"default_table\""));
     let functions = functions.unwrap();
     assert!(functions.contains("-- Catalog Source: HyperDB WASM pg_proc"));
@@ -960,13 +1030,13 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
         "attachedDatabases": [{ "path": "lakehouse:first", "alias": "first" }, { "path": "lakehouse:second", "alias": "second" }],
     }));
     let alias = |query: &CatalogQuery| if query.sql.contains("\"first\".\"pg_catalog\"") { "first" } else { "second" };
-    let mut host = Host::new(|query| Ok(vec![pg_rows(&format!("{}_v1", alias(query)), &["id"])]));
-    hyper.run(None, &mut host);
-    let mut host = Host::new(|query| match alias(query) {
+    let host = Host::new(|query| Ok(vec![pg_rows(&format!("{}_v1", alias(query)), &["id"])]));
+    hyper.run(None, &host);
+    let host = Host::new(|query| match alias(query) {
         "second" => Err("second unavailable".to_string()),
         alias => Ok(vec![pg_rows(&format!("{alias}_v2"), &["id"])]),
     });
-    let (outcome, _) = hyper.run(None, &mut host);
+    let (outcome, _) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::PartiallySucceeded);
     assert_eq!(outcome.error.as_deref(), Some("second: second unavailable"));
     assert!(matches!(outcome.connection_action(2), ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 2, .. }));
@@ -981,8 +1051,8 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
 fn hyper_leaves_the_catalog_untouched_when_every_attachment_fails_its_checks() {
     for attached in [json!([{ "path": "lakehouse:first", "alias": "" }]), json!([{ "path": "a", "alias": "x" }, { "path": "b", "alias": "x" }])] {
         let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP", "attachedDatabases": attached }));
-        let mut host = Host::new(|_| unreachable!("no query runs"));
-        let (outcome, functions) = hyper.run(None, &mut host);
+        let host = Host::new(|_| unreachable!("no query runs"));
+        let (outcome, functions) = hyper.run(None, &host);
         assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed);
         let error = outcome.error.unwrap();
         assert!(error.starts_with("Failed to refresh every attached database"), "{error}");
@@ -994,34 +1064,34 @@ fn hyper_leaves_the_catalog_untouched_when_every_attachment_fails_its_checks() {
 
 #[test]
 fn hyper_keeps_the_relations_after_a_failure_of_a_later_step() {
-    for failure in ["processing", "function publication", "relation publication", "aborted"] {
+    for failure in ["function publication", "relation publication", "aborted"] {
         let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP" }));
         let revision = std::cell::Cell::new(1);
-        let mut host = Host::new(|_| Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])]));
-        hyper.run(None, &mut host);
+        let host = Host::new(|_| Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])]));
+        hyper.run(None, &host);
         let previous = hyper.relations_text();
         assert!(previous.contains("table_v1"));
         revision.set(2);
 
-        let mut host = Host::new(|_| Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])]));
+        let cancel = Rc::new(RefCell::new(None));
+        let mut host = Host::new({
+            let cancel = cancel.clone();
+            let revision = &revision;
+            move |_| {
+                // The update is aborted once its query answered
+                if failure == "aborted" {
+                    *cancel.borrow_mut() = Some("aborted".to_string());
+                }
+                Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])])
+            }
+        });
+        host.cancel = cancel;
         match failure {
-            "processing" => host.batch = Box::new(|_| Err("function processing failed".to_string())),
             "function publication" => hyper.block_entry(hyper.function_entry()),
             "relation publication" => hyper.block_entry(hyper.connection.relation_entry_id()),
             _ => {}
         }
-        let mut update = hyper.start(None);
-        let catalog = hyper.connection.catalog().clone();
-        let outcome = if failure == "aborted" {
-            let CatalogStep::Query(_) = update.next(&hyper.generations) else { panic!() };
-            update.answer_queries(vec![Ok(vec![pg_rows("table_v2", &["id"])])]);
-            let CatalogStep::ProcessBatch(batch) = update.next(&hyper.generations) else { panic!() };
-            update.cancel("aborted");
-            update.answer_batch(batch.process().map_err(|e| e.to_string()));
-            host.drive(&mut update, &mut catalog.borrow_mut(), &hyper.generations)
-        } else {
-            host.drive(&mut update, &mut catalog.borrow_mut(), &hyper.generations)
-        };
+        let (outcome, _) = hyper.run(None, &host);
         assert_ne!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{failure}");
         if failure != "relation publication" {
             assert_eq!(hyper.relations_text(), previous, "{failure}");
@@ -1037,17 +1107,17 @@ fn hyper_keeps_the_relations_after_a_failure_of_a_later_step() {
 fn hyper_publishes_an_empty_function_catalog_to_clear_stale_functions() {
     let mut hyper = Fixture::hyper(json!({ "protocol": "WASM" }));
     let empty = std::cell::Cell::new(false);
-    let mut host = Host::new(|query| {
+    let host = Host::new(|query| {
         if query.sql.contains("FROM pg_proc p") {
             return Ok(if empty.get() { no_rows() } else { vec![function_rows()] });
         }
         Ok(vec![pg_rows("items", &["id"])])
     });
-    let (_, functions) = hyper.run(None, &mut host);
+    let (_, functions) = hyper.run(None, &host);
     assert!(functions.unwrap().contains("wasm_catalog_function"));
     assert_eq!(hyper.function_count(), 1);
     empty.set(true);
-    let (outcome, functions) = hyper.run(None, &mut host);
+    let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(!functions.unwrap().contains("wasm_catalog_function"));
     assert_eq!(hyper.function_count(), 0);
@@ -1059,16 +1129,15 @@ fn hyper_answers_about_relations_without_parsing_and_leaves_the_functions_alone(
     let mut hyper = Fixture::hyper(json!({ "protocol": "WASM" }));
     let orders = || Some(vec![relation("hyper", "public", "orders")]);
     let columns = std::cell::RefCell::new(vec!["a", "b"]);
-    let mut host = Host::new(|_| {
+    let host = Host::new(|_| {
         let columns = columns.borrow();
         Ok(vec![pg_rows("orders", &columns)])
     });
-    let (outcome, functions) = hyper.run(orders(), &mut host);
+    let (outcome, functions) = hyper.run(orders(), &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(functions.is_none());
-    assert_eq!(host.queries.len(), 1);
-    assert_eq!(host.batches, 0);
-    assert!(host.queries[0].sql.contains("n.nspname = 'public' AND c.relname = 'orders'"));
+    assert_eq!(host.queries.borrow().len(), 1);
+    assert!(host.queries.borrow()[0].sql.contains("n.nspname = 'public' AND c.relname = 'orders'"));
     assert!(hyper.relations_text().contains("CREATE TABLE \"hyper\".\"public\".\"orders\""));
     assert!(hyper.relations_text().contains("\"b\" \"int8\""));
     assert_eq!(hyper.function_count(), 0);
@@ -1077,18 +1146,18 @@ fn hyper_answers_about_relations_without_parsing_and_leaves_the_functions_alone(
 
     // The next answer replaces the table
     *columns.borrow_mut() = vec!["c"];
-    hyper.run(orders(), &mut host);
+    hyper.run(orders(), &host);
     let text = hyper.relations_text();
     assert!(text.contains("\"c\" \"int8\"") && !text.contains("\"b\" \"int8\""));
     assert_eq!(text.matches("CREATE TABLE").count(), 1);
 
     // No rows: the relation is gone, an unchanged answer keeps the version
     *columns.borrow_mut() = vec![];
-    let (outcome, _) = hyper.run(orders(), &mut host);
+    let (outcome, _) = hyper.run(orders(), &host);
     assert!(outcome.catalog_changed);
     assert!(!hyper.relations_text().contains("CREATE TABLE"));
     let version = hyper.version();
-    let (outcome, _) = hyper.run(orders(), &mut host);
+    let (outcome, _) = hyper.run(orders(), &host);
     assert!(!outcome.catalog_changed);
     assert_eq!(hyper.version(), version);
 }
@@ -1099,14 +1168,14 @@ fn hyper_asks_only_the_databases_of_the_relations() {
         "protocol": "V3_HTTP",
         "attachedDatabases": [{ "path": "a", "alias": "first" }, { "path": "b", "alias": "second" }],
     }));
-    let mut host = Host::new(|_| Ok(vec![pg_rows("t", &["id"])]));
-    let (outcome, _) = hyper.run(Some(vec![relation("second", "", "t")]), &mut host);
+    let host = Host::new(|_| Ok(vec![pg_rows("t", &["id"])]));
+    let (outcome, _) = hyper.run(Some(vec![relation("second", "", "t")]), &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
-    assert_eq!(host.queries.len(), 1);
-    assert!(host.queries[0].sql.contains("FROM \"second\".\"pg_catalog\".pg_class c"));
+    assert_eq!(host.queries.borrow().len(), 1);
+    assert!(host.queries.borrow()[0].sql.contains("FROM \"second\".\"pg_catalog\".pg_class c"));
     // Relations of no database of the connection ask nothing
-    let mut host = Host::new(|_| unreachable!());
-    let (outcome, _) = hyper.run(Some(vec![relation("other", "", "t")]), &mut host);
+    let host = Host::new(|_| unreachable!());
+    let (outcome, _) = hyper.run(Some(vec![relation("other", "", "t")]), &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(!outcome.catalog_changed);
 }
@@ -1114,11 +1183,11 @@ fn hyper_asks_only_the_databases_of_the_relations() {
 #[test]
 fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
     let mut dbcom = Fixture::new(ConnectorType::Dbcom, json!({ "instanceUrl": "", "databaseName": "sales" }));
-    let mut host = Host::new(|_| Ok(vec![cloud_rows()]));
-    let (outcome, functions) = dbcom.run(None, &mut host);
+    let host = Host::new(|_| Ok(vec![cloud_rows()]));
+    let (outcome, functions) = dbcom.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
-    assert_eq!(host.queries.len(), 1);
-    assert!(host.queries[0].sql.contains("FROM \"lakehouse\".\"_hyper_catalog\".\"databases\" d"));
+    assert_eq!(host.queries.borrow().len(), 1);
+    assert!(host.queries.borrow()[0].sql.contains("FROM \"lakehouse\".\"_hyper_catalog\".\"databases\" d"));
     assert!(dbcom.relations_text().contains("CREATE TABLE \"lakehouse\".\"sales\".\"orders\""));
     // The bundled functions, not those of the engine
     assert!(functions.unwrap().contains("-- Catalog Source: Bundled Hyper function catalog"));
@@ -1168,20 +1237,19 @@ fn metadata_responses(count: usize, metadata: Result<Value, String>) -> Vec<Resu
 #[test]
 fn salesforce_sends_the_metadata_requests_with_the_tokens_of_the_fresh_channel_and_warns_of_the_ones_that_failed() {
     let mut salesforce = salesforce();
-    let mut update = salesforce.start(None);
-    assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
-    update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
-    let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
+    let host = Host::new(|_| unreachable!());
+    *host.fetch.borrow_mut() = Some(Box::new(|requests| {
+        let mut responses = metadata_responses(requests.len(), Ok(metadata("Account__dlm")));
+        if let Some(last) = responses.last_mut() {
+            *last = Err("offline".to_string());
+        }
+        responses
+    }));
+    let (outcome, _) = salesforce.run(None, &host);
+    let requests = host.requests.borrow();
     assert!(requests.len() > 1);
     assert!(requests.iter().all(|request| request.url.starts_with("https://example.my.salesforce.com/services/data/")));
     assert!(requests.iter().all(|request| request.headers.get("authorization").is_some_and(|value| value.contains("core-token"))));
-    let mut responses = metadata_responses(requests.len(), Ok(metadata("Account__dlm")));
-    if let Some(last) = responses.last_mut() {
-        *last = Err("offline".to_string());
-    }
-    update.answer_fetch(responses);
-    let catalog = salesforce.connection.catalog().clone();
-    let outcome = Host::new(|_| unreachable!()).drive(&mut update, &mut catalog.borrow_mut(), &salesforce.generations);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
     assert_eq!(outcome.warnings.len(), 1, "{:?}", outcome.warnings);
     assert!(outcome.warnings[0].contains("offline"));
@@ -1192,26 +1260,21 @@ fn salesforce_sends_the_metadata_requests_with_the_tokens_of_the_fresh_channel_a
 fn salesforce_fails_when_refreshing_the_channel_fails_or_every_metadata_request_failed() {
     for failure in ["refresh", "requests"] {
         let mut salesforce = salesforce();
-        let mut update = salesforce.start(None);
-        assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
+        let mut host = Host::new(|_| unreachable!()).with_metadata(|| Err("offline".to_string()));
         if failure == "refresh" {
-            update.answer_channel(Err("token refresh failed".to_string()));
-        } else {
-            update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
-            let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
-            update.answer_fetch(metadata_responses(requests.len(), Err("offline".to_string())));
+            host.channel_error = Some("token refresh failed".to_string());
         }
-        let CatalogStep::Finished(outcome) = update.next(&salesforce.generations) else { unreachable!("{failure}") };
+        let (outcome, _) = salesforce.run(None, &host);
         assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed, "{failure}");
+        assert_eq!(host.requests.borrow().is_empty(), failure == "refresh", "{failure}");
     }
 }
 
 #[test]
 fn salesforce_loads_the_metadata_relations_and_the_bundled_functions() {
     let mut salesforce = salesforce();
-    let mut host = Host::new(|_| unreachable!("Salesforce runs no queries"));
-    host.metadata = Box::new(|| Ok(metadata("Account__dlm")));
-    let (outcome, functions) = salesforce.run(None, &mut host);
+    let host = Host::new(|_| unreachable!("Salesforce runs no queries")).with_metadata(|| Ok(metadata("Account__dlm")));
+    let (outcome, functions) = salesforce.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
     assert!(salesforce.relations_text().contains("CREATE TABLE \"lakehouse\".\"public\".\"Account__dlm\""));
     assert_eq!(functions.as_deref(), Some(PREFETCHED_HYPER_FUNCTIONS_SQL));
@@ -1223,41 +1286,34 @@ fn salesforce_loads_the_metadata_relations_and_the_bundled_functions() {
 
 #[test]
 fn salesforce_keeps_the_relations_whichever_step_fails() {
-    for failure in ["processing", "publication", "later publication", "aborted"] {
+    for failure in ["publication", "later publication", "aborted"] {
         let mut salesforce = salesforce();
-        let mut host = Host::new(|_| unreachable!());
-        host.metadata = Box::new(|| Ok(metadata("old_table")));
-        salesforce.run(None, &mut host);
+        salesforce.run(None, &Host::new(|_| unreachable!()).with_metadata(|| Ok(metadata("old_table"))));
         let old = salesforce.relations_text();
         let version = salesforce.version();
 
-        host.metadata = Box::new(|| Ok(metadata("new_table")));
+        let mut host = Host::new(|_| unreachable!()).with_metadata(|| Ok(metadata("new_table")));
         match failure {
-            "processing" => host.batch = Box::new(|_| Err("functions failed".to_string())),
             "publication" => salesforce.block_entry(salesforce.function_entry()),
             "later publication" => salesforce.block_entry(salesforce.connection.relation_entry_id()),
-            _ => {}
-        }
-        let mut update = salesforce.start(None);
-        let catalog = salesforce.connection.catalog().clone();
-        if failure == "aborted" {
-            host.batch = Box::new(|batch| batch.process().map_err(|e| e.to_string()));
-            assert_eq!(update.next(&salesforce.generations), CatalogStep::FreshChannel);
-            update.answer_channel(Ok(Some(&ConnectionChannel::Salesforce(salesforce_channel()))));
-            let CatalogStep::Fetch(requests) = update.next(&salesforce.generations) else { unreachable!("the metadata requests") };
-            update.answer_fetch(metadata_responses(requests.len(), Ok(metadata("new_table"))));
-            assert!(matches!(update.next(&salesforce.generations), CatalogStep::ProcessBatch(_)));
-            update.cancel("aborted");
+            _ => {
+                // The update is aborted once its metadata arrived
+                let cancel = host.cancel.clone();
+                host.fetch = RefCell::new(Some(Box::new(move |requests| {
+                    *cancel.borrow_mut() = Some("aborted".to_string());
+                    metadata_responses(requests.len(), Ok(metadata("new_table")))
+                })));
+            }
         }
         let blocked_version = salesforce.version();
-        let outcome = host.drive(&mut update, &mut catalog.borrow_mut(), &salesforce.generations);
+        let (outcome, _) = salesforce.run(None, &host);
         assert_ne!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{failure}");
         if failure != "later publication" {
             assert_eq!(salesforce.relations_text(), old, "{failure}");
             assert!(outcome.function_script_text.is_none(), "{failure}");
             assert_eq!(salesforce.version(), blocked_version, "{failure}");
         }
-        if failure == "processing" || failure == "aborted" {
+        if failure == "aborted" {
             assert_eq!(salesforce.version(), version, "{failure}");
         }
     }
@@ -1267,18 +1323,13 @@ fn salesforce_keeps_the_relations_whichever_step_fails() {
 fn salesforce_preserves_the_catalog_when_the_metadata_has_no_usable_relations() {
     for empty in [json!({ "metadata": [] }), json!({ "metadata": [{ "name": "empty", "fields": [] }] })] {
         let mut salesforce = salesforce();
-        let mut host = Host::new(|_| unreachable!());
-        host.metadata = Box::new(|| Ok(metadata("old")));
-        salesforce.run(None, &mut host);
+        salesforce.run(None, &Host::new(|_| unreachable!()).with_metadata(|| Ok(metadata("old"))));
         let old = salesforce.relations_text();
         let version = salesforce.version();
-        let mut host = Host::new(|_| unreachable!());
         let empty = empty.clone();
-        host.metadata = Box::new(move || Ok(empty.clone()));
-        let (outcome, _) = salesforce.run(None, &mut host);
+        let (outcome, _) = salesforce.run(None, &Host::new(|_| unreachable!()).with_metadata(move || Ok(empty.clone())));
         assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed);
         assert!(outcome.error.unwrap().contains("no usable catalog relations"));
-        assert_eq!(host.batches, 0);
         assert_eq!(salesforce.relations_text(), old);
         assert_eq!(salesforce.version(), version);
     }
@@ -1373,9 +1424,9 @@ struct Registry {
     loader: CatalogLoader,
     connection: ConnectionState,
     active_queries: usize,
-    generations: CatalogGenerations,
-    /// The running updates
-    running: Vec<CatalogUpdate>,
+    generations: RefCell<CatalogGenerations>,
+    /// The running updates, with the reason of their cancellation
+    running: Vec<(CatalogUpdate, Option<String>)>,
     /// The aborted task ids
     aborted: Vec<u32>,
     /// The relations of the updates that started, none for a refresh
@@ -1390,7 +1441,7 @@ impl Registry {
             loader: CatalogLoader::new(),
             connection,
             active_queries: 0,
-            generations: CatalogGenerations::default(),
+            generations: RefCell::default(),
             running: Vec::new(),
             aborted: Vec::new(),
             started: Vec::new(),
@@ -1436,16 +1487,16 @@ impl Registry {
             match command {
                 CatalogLoaderCommand::Abort { task_id } => {
                     self.aborted.push(task_id);
-                    if let Some(update) = self.running.iter_mut().find(|update| update.task_id() == task_id) {
-                        update.cancel("Superseded by forced catalog refresh");
+                    if let Some((_, cancel)) = self.running.iter_mut().find(|(update, _)| update.task.task_id == task_id) {
+                        *cancel = Some("Superseded by forced catalog refresh".to_string());
                     }
                 }
                 CatalogLoaderCommand::Start { task_id, relations, .. } => {
-                    let (update, action) =
-                        CatalogUpdate::start(&self.connection, task_id, relations.clone(), &mut self.generations, self.now).unwrap();
-                    self.apply(action);
+                    let update =
+                        CatalogUpdate::start(&self.connection, task_id, relations.clone(), &mut self.generations.borrow_mut(), self.now).unwrap();
+                    self.apply(ConnectionAction::UpdateCatalog(update.task.clone()));
                     self.started.push(relations);
-                    self.running.push(update);
+                    self.running.push((update, None));
                 }
             }
         }
@@ -1459,11 +1510,13 @@ impl Registry {
 
     /// Settle the oldest running update: it succeeds unless it was cancelled, or fails
     fn settle(&mut self, succeed: bool) -> CatalogUpdateOutcome {
-        let mut update = self.running.remove(0);
+        let (update, cancel) = self.running.remove(0);
+        let task_id = update.task.task_id;
         let catalog = self.connection.catalog().clone();
-        let mut host = Host::new(|_| if succeed { Ok(vec![pg_rows("orders", &["id"])]) } else { Err("down".to_string()) });
-        let outcome = host.drive(&mut update, &mut catalog.borrow_mut(), &self.generations);
-        self.apply(outcome.connection_action(update.task_id()));
+        let host = Host::new(|_| if succeed { Ok(vec![pg_rows("orders", &["id"])]) } else { Err("down".to_string()) });
+        *host.cancel.borrow_mut() = cancel;
+        let outcome = host.drive(update, &catalog, &self.generations);
+        self.apply(outcome.connection_action(task_id));
         self.loader.finished("database", self.now);
         self.schedule();
         outcome
@@ -1486,7 +1539,7 @@ fn a_forced_refresh_aborts_a_running_one_once_and_starts_after_it_settled() {
     registry.online();
     registry.enqueue(false);
     assert_eq!(registry.started.len(), 1);
-    let first = registry.running[0].task_id();
+    let first = registry.running[0].0.task.task_id;
 
     registry.enqueue(true);
     assert_eq!(registry.aborted, [first]);

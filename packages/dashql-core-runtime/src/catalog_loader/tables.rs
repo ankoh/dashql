@@ -145,7 +145,6 @@ macro_rules! pack_bytes {
         builder.finished_data().to_vec()
     }};
 }
-pub(crate) use pack_bytes;
 
 /// A catalog descriptor of tables
 pub fn pack_catalog_descriptor_of_tables(tables: &[CatalogTable]) -> Vec<u8> {

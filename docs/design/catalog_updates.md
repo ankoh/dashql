@@ -112,7 +112,7 @@ must not take them for one.
 Relations are SQL only in `dashql-catalog-relations.sql`: readable, and what workbook bundles carry. The descriptor is
 rendered when the write runs, about 100 ms after an update that changed the catalog, so a run of statements saves it once
 and a lookup that changed nothing writes nothing. Functions are only written by a full refresh, the only update that reads
-them. Temporary relations stay out of the file, they don't outlive their database session. Restoring a connection parses the file once in the batch worker,
+them. Temporary relations stay out of the file, they don't outlive their database session. Restoring a connection parses the file once in the module,
 publishes the descriptor and drops the text. The parser normalizes the spelling of types (`int8` is `bigint` after a
 restore), the file doesn't change after that.
 
