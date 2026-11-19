@@ -10,6 +10,7 @@ import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akoh
 import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { DownloadIcon, ScreenFullIcon } from '../symbol_icon.js';
 import { QueryProfileOverlay } from './query_profile_overlay.js';
+import type { CoreSetup, DownloadFile } from '../../host.js';
 import {
     formatCompactBytes,
     formatCompactCount,
@@ -88,10 +89,6 @@ function Figure(props: { label: string; value: string | null }) {
     );
 }
 
-/// Set up the core module of the host, the profile lays out a rotated plan with it
-export type CoreSetup = (context: string) => Promise<dashql.DashQL>;
-/// Save bytes as a file of the user
-export type DownloadFile = (bytes: Uint8Array, fileName: string) => void;
 
 export interface QueryProgressPanelProps {
     query: QueryExecutionState;
@@ -114,7 +111,7 @@ function DownloadRecordingButton(props: { queryId: number; progress: QueryProfil
         // The query history of the core holds the recording
         const text = readProgressRecording(props.progress);
         if (text == null) return;
-        downloadFile(new TextEncoder().encode(text), `query-${props.queryId}-profile.json`);
+        void downloadFile(new TextEncoder().encode(text), `query-${props.queryId}-profile.json`);
     }, [downloadFile, props.progress, props.queryId]);
     return (
         <IconButton

@@ -1,10 +1,11 @@
 import * as React from 'react';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { QueryProgressPanel as QueryProgressPanelView, type CoreSetup } from '@akohn/dashql-react/components/query_progress/query_progress_panel';
+import { QueryProgressPanel as QueryProgressPanelView } from '@akohn/dashql-react/components/query_progress/query_progress_panel';
+import type { CoreSetup } from '@akohn/dashql-react/host';
 import { useQueryProfileDetail } from '@akohn/dashql-react/hooks';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
+import { useDownloadFile } from '../../platform/file/file_downloader_hook.js';
 
 interface Props {
     query: QueryExecutionState;
@@ -19,9 +20,6 @@ interface Props {
 export function QueryProgressPanel(props: Props) {
     useQueryProfileDetail(props.query.queryId, props.showProfile === true);
     const setupCore = useDashQLCoreSetup() as CoreSetup | null;
-    const fileDownloader = useFileDownloader();
-    const downloadFile = React.useCallback((bytes: Uint8Array, fileName: string) => {
-        void fileDownloader.downloadBufferAsFile(bytes, fileName);
-    }, [fileDownloader]);
+    const downloadFile = useDownloadFile();
     return <QueryProgressPanelView {...props} setupCore={setupCore} downloadFile={downloadFile} />;
 }

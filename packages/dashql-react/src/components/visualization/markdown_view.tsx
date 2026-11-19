@@ -1,26 +1,22 @@
 import * as React from 'react';
 
+import type * as arrow from 'apache-arrow';
 import { buffers } from '@akohn/dashql';
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
-import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../../platform/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import * as styles from './markdown_view.module.css';
-import { CardPlaceholder, QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
-import { useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
+import { useLogger } from '../../logger.js';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
 type MarkdownSpec = buffers.visualization.MarkdownSpecT;
 const NodeType = buffers.visualization.MarkdownNodeType;
 
-export interface MarkdownViewDependencies {
-    logger: LoggerLike;
-}
-
-interface Props {
+export interface MarkdownViewProps {
     query: QueryExecutionState | null;
+    /// The result table of the query, the view renders the document once per row
+    resultTable: arrow.Table | null;
     spec: MarkdownSpec | null;
-    dependencies?: MarkdownViewDependencies;
 }
 
 function renderChildren(node: { children: MarkdownNode[] }, fields: Map<string, string | null>, key: string) {
@@ -103,12 +99,11 @@ function renderNode(node: MarkdownNode, fields: Map<string, string | null>, key:
     }
 }
 
-export function MarkdownView(props: Props): React.ReactElement {
-    const contextLogger = useLogger();
-    const logger = props.dependencies?.logger ?? contextLogger;
+/// The Markdown document of a visualization, rendered once per row of the result with the formatted values of its fields
+export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
+    const logger = useLogger();
     const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
-    const queryResult = useQueryResultTable(props.query);
-    const table = succeeded ? queryResult : null;
+    const table = succeeded ? props.resultTable : null;
 
     const renderedRows = React.useMemo(() => {
         if (props.spec == null || table == null) return null;

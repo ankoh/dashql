@@ -35,14 +35,12 @@ const dependencies = {
     QueryResultActionMenu: () => null,
     QueryResultView: () => <div data-testid="feed-preview" />,
     QueryResultDownloadButton: props => <QueryResultDownloadButton {...props} dependencies={{
-        useFileDownloader: () => ({ downloadBufferAsFile: download }),
-        useLogger: () => ({ error: vi.fn() }),
+        useDownloadFile: () => download,
         useComputeDatabase: () => computeDatabase as any,
         exportArrowTableAsParquet: exportParquet,
     }} />,
     ChartDownloadButton: props => <ChartDownloadButton {...props} dependencies={{
-        useFileDownloader: () => ({ downloadBufferAsFile: download }),
-        useLogger: () => ({ error: vi.fn() }),
+        useDownloadFile: () => download,
         renderVegaLitePng: renderPng,
     }} />,
 } as FeedEntryFooterDependencies;

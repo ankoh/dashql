@@ -1,64 +1,37 @@
 import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { DownloadIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import {
+    ChartDownloadButton as ChartDownloadButtonView,
+    type ChartDownloadButtonProps,
+} from '@akohn/dashql-react/components/visualization/chart_download_button';
 import { renderVegaLitePng } from '@akohn/dashql-react/vegalite/vegalite_image';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { useDownloadFile } from '../../platform/file/file_downloader_hook.js';
+
+// The chart download of the app (ChartDownloadButton of @akohn/dashql-react): the result table of the runtime and the
+// file downloader of the app
+
+export interface ChartDownloadButtonDependencies extends NonNullable<ChartDownloadButtonProps['dependencies']> {
+    useDownloadFile: typeof useDownloadFile;
+}
 
 interface Props {
     query: QueryExecutionState;
     /// The Vega-Lite spec of the chart, the query result is its data
     spec: TopLevelSpec;
-    dependencies?: {
-        useFileDownloader: () => Pick<ReturnType<typeof useFileDownloader>, 'downloadBufferAsFile'>;
-        useLogger: () => Pick<ReturnType<typeof useLogger>, 'error'>;
-        renderVegaLitePng: typeof renderVegaLitePng;
-    };
+    dependencies?: ChartDownloadButtonDependencies;
 }
 
-const DEFAULT_DEPENDENCIES: NonNullable<Props['dependencies']> = {
-    useFileDownloader,
-    useLogger,
+const DEFAULT_DEPENDENCIES: ChartDownloadButtonDependencies = {
+    useDownloadFile,
     renderVegaLitePng,
 };
 
 /// Download the chart of a query result as PNG
 export function ChartDownloadButton({ query, spec, dependencies = DEFAULT_DEPENDENCIES }: Props) {
-    const fileDownloader = dependencies.useFileDownloader();
-    const logger = dependencies.useLogger();
-    const [downloading, setDownloading] = React.useState(false);
+    const downloadFile = dependencies.useDownloadFile();
     const resultTable = useQueryResultTable(query);
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
-
-    const download = async () => {
-        if (!hasResult || downloading) return;
-        setDownloading(true);
-        try {
-            const image = await dependencies.renderVegaLitePng(spec, arrowTableToRows(resultTable!));
-            await fileDownloader.downloadBufferAsFile(image.png, `chart-${query.queryId}.png`);
-        } catch (error) {
-            logger.error('Failed to download chart', { error: stringifyError(error) }, 'chart_download');
-        } finally {
-            setDownloading(false);
-        }
-    };
-
-    return (
-        <IconButton
-            variant={ButtonVariant.Invisible}
-            size={ButtonSize.Small}
-            aria-label="Download chart as PNG"
-            data-testid="download-chart-png"
-            disabled={!hasResult || downloading}
-            onClick={download}
-        >
-            <DownloadIcon size={16} />
-        </IconButton>
-    );
+    return <ChartDownloadButtonView query={query} resultTable={resultTable} spec={spec} downloadFile={downloadFile} dependencies={dependencies} />;
 }

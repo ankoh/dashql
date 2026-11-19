@@ -1,34 +1,18 @@
 import * as React from 'react';
 import * as dashql from '@akohn/dashql';
-import * as styles from '../../app/action_menu.module.css';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import * as ActionList from '@akohn/dashql-react/components/action_list';
-import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { QueryResultActionMenu as QueryResultActionMenuView } from '@akohn/dashql-react/components/query_result/query_result_action_menu';
 import { useAppConfig } from '../../config/app_config.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useRuntime, useQueryResultTable } from '@akohn/dashql-react/hooks';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
-import { addResultProjection, ResultProjectionError } from './result_projection.js';
 
-const MoreIcon = SymbolIcon('kebab_horizontal');
-const ProjectionIcon = SymbolIcon('columns_16');
-
-const PROJECTION_ERRORS: Record<ResultProjectionError, string> = {
-    [ResultProjectionError.NotParsed]: 'The script does not parse',
-    [ResultProjectionError.NoQuery]: 'The last statement is no query',
-    [ResultProjectionError.NoColumns]: 'The result has no columns',
-    [ResultProjectionError.DuplicateColumns]: 'Two columns have the same name',
-};
-
-function isProjectionError(text: string | ResultProjectionError): text is ResultProjectionError {
-    return Object.prototype.hasOwnProperty.call(PROJECTION_ERRORS, text);
-}
+// The actions of a query result in the app (QueryResultActionMenu of @akohn/dashql-react): the script of the result in
+// the runtime, rewritten by the core with the formatting of the app
 
 /// The script of a workbook that owns a query result, as the store of the runtime holds it
 function findResultScript(runtime: Runtime, workbookId: string, owner: string): ScriptData | null {
@@ -60,20 +44,15 @@ interface ScriptResultProps extends Props {
 function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps): React.ReactElement {
     const runtime = useRuntime();
     const config = useAppConfig();
-    const [open, setOpen] = React.useState(false);
-    // The rewrite is computed when the menu opens, the item says why a script cannot get it
-    const [projection, setProjection] = React.useState<{ scriptKey: number; text: string } | ResultProjectionError | null>(null);
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
-
     const resultTable = useQueryResultTable(query);
     const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
+    // The script that the projection rewrites, kept until it is applied
+    const scriptKey = React.useRef<number | null>(null);
 
-    const openMenu = () => {
-        setProjection(null);
-        setOpen(true);
+    const projectColumns = () => {
+        scriptKey.current = null;
         const script = findResultScript(runtime, workbookId, owner);
-        const instance = runtime.core;
-        if (instance == null || script == null || resultTable == null) return;
+        if (script == null || resultTable == null) return null;
         const formatConfig = createScriptFormatConfig(
             dashql.buffers.formatting.FormattingMode.PRETTY,
             false,
@@ -82,60 +61,22 @@ function ScriptResultActionMenu({ query, workbookId, owner }: ScriptResultProps)
             formattingDialectForConnector(runtime.connection(script.connectionId)?.connectorType as ConnectorType | undefined),
         );
         const columnNames = resultTable.schema.fields.map(field => field.name);
-        const text = addResultProjection(instance, script.scriptSession.getText(), columnNames, formatConfig);
-        // The errors are strings as well
-        setProjection(isProjectionError(text) ? text : { scriptKey: script.scriptKey, text });
+        try {
+            const text = script.scriptSession.rewriteResultProjection(columnNames, formatConfig);
+            scriptKey.current = script.scriptKey;
+            return { text };
+        } catch (error) {
+            // The errors of the core are no instances of Error of this realm, their message says why
+            return { error: stringifyError(error) };
+        }
     };
-    const applyProjection = () => {
-        setOpen(false);
-        if (projection == null || typeof projection !== 'object') return;
+    const applyProjection = (text: string) => {
+        if (scriptKey.current == null) return;
         // Staged as a diff like the formatting, the user accepts or rejects it in the editor
         runtime.dispatch({ workbook: workbookId }, {
             kind: 'setScriptText',
-            value: { scriptKey: projection.scriptKey, text: projection.text, withDiff: true },
+            value: { scriptKey: scriptKey.current, text, withDiff: true },
         });
     };
-    const projectionError = projection != null && typeof projection !== 'object' ? PROJECTION_ERRORS[projection] : null;
-
-    return (
-        <AnchoredOverlay
-            open={open}
-            onOpen={openMenu}
-            onClose={() => setOpen(false)}
-            side={AnchorSide.OutsideBottom}
-            align={AnchorAlignment.End}
-            anchorOffset={4}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    variant={ButtonVariant.Invisible}
-                    size={ButtonSize.Small}
-                    aria-label="More actions for the query result"
-                    data-testid="query-result-more-actions"
-                    disabled={!hasResult}
-                >
-                    <MoreIcon size={16} />
-                </IconButton>
-            )}
-        >
-            <div className={styles.menu} role="dialog" aria-label="Query result actions">
-                <ActionList.List aria-label="Query result actions">
-                    <ActionList.ListItem
-                        data-testid="query-result-project-columns"
-                        disabled={projection == null || typeof projection !== 'object'}
-                        onClick={applyProjection}
-                    >
-                        <ActionList.Leading><ProjectionIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>
-                            <ActionList.ItemTextTitle>Project Columns</ActionList.ItemTextTitle>
-                            {projectionError != null ? <ActionList.ItemTextDescription>{projectionError}</ActionList.ItemTextDescription> : undefined}
-                        </ActionList.ItemText>
-                    </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
-    );
+    return <QueryResultActionMenuView hasResult={hasResult} projectColumns={projectColumns} applyProjection={applyProjection} />;
 }

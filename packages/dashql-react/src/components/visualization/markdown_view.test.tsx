@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { buffers } from '@akohn/dashql';
-import { MarkdownView, type MarkdownViewDependencies } from './markdown_view.js';
+import type * as arrow from 'apache-arrow';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { MarkdownView, type MarkdownViewProps } from './markdown_view.js';
+import { LoggerContext } from '../../logger.js';
 
 const Node = buffers.visualization.MarkdownNodeT;
 const NodeType = buffers.visualization.MarkdownNodeType;
@@ -18,9 +21,16 @@ function node(nodeType: buffers.visualization.MarkdownNodeType, options: Partial
     return Object.assign(new Node(nodeType), options);
 }
 
-const dependencies: MarkdownViewDependencies = {
-    logger: { warn: vi.fn() } as any,
-};
+const SUCCEEDED = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState;
+
+/// The view of a succeeded query with a result table
+function View(props: Omit<MarkdownViewProps, 'query' | 'resultTable'> & { table: arrow.Table }) {
+    return (
+        <LoggerContext.Provider value={new TestLogger()}>
+            <MarkdownView query={SUCCEEDED} resultTable={props.table} spec={props.spec} />
+        </LoggerContext.Provider>
+    );
+}
 
 describe('MarkdownView', () => {
     let container: HTMLDivElement;
@@ -44,8 +54,8 @@ describe('MarkdownView', () => {
         });
 
         act(() => root.render(
-            <WithResultTables><MarkdownView
-                query={succeededQuery(table)}
+            <View
+                table={table}
                 spec={new Spec('', ['product', 'revenue'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.HEADING, { level: 2, children: [node(NodeType.FIELD, { value: 'product' })] }),
                     node(NodeType.PARAGRAPH, { children: [
@@ -53,8 +63,7 @@ describe('MarkdownView', () => {
                         node(NodeType.STRONG, { children: [node(NodeType.FIELD, { value: 'revenue' })] }),
                     ] }),
                 ] }))}
-                dependencies={dependencies}
-            /></WithResultTables>,
+            />,
         ));
 
         expect(container.querySelectorAll('[data-markdown-row]')).toHaveLength(2);
@@ -67,16 +76,15 @@ describe('MarkdownView', () => {
         const table = tableFromArrays({ value: ['**owned** [click](javascript:alert(1))\n# heading'] });
 
         act(() => root.render(
-            <WithResultTables><MarkdownView
-                query={succeededQuery(table)}
+            <View
+                table={table}
                 spec={new Spec('', ['value'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.PARAGRAPH, { children: [
                         node(NodeType.TEXT, { value: 'Value: ' }),
                         node(NodeType.FIELD, { value: 'value' }),
                     ] }),
                 ] }))}
-                dependencies={dependencies}
-            /></WithResultTables>,
+            />,
         ));
 
         expect(container.querySelector('script')).toBeNull();
@@ -90,16 +98,15 @@ describe('MarkdownView', () => {
         const table = tableFromArrays({ product: ['Alpha'] });
 
         act(() => root.render(
-            <WithResultTables><MarkdownView
-                query={succeededQuery(table)}
+            <View
+                table={table}
                 spec={new Spec('', ['product'], node(NodeType.DOCUMENT, { children: [
                     node(NodeType.PARAGRAPH, { children: [
                         node(NodeType.LINK, { url: 'https://example.com', children: [node(NodeType.TEXT, { value: 'Details' })] }),
                         node(NodeType.IMAGE, { url: '#', children: [node(NodeType.FIELD, { value: 'product' })] }),
                     ] }),
                 ] }))}
-                dependencies={dependencies}
-            /></WithResultTables>,
+            />,
         ));
 
         expect(container.querySelector('a')).toMatchObject({ target: '_blank', rel: 'noopener noreferrer' });

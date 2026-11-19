@@ -1,46 +1,36 @@
 import * as React from 'react';
 
-import { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
-import { VegaLiteView } from './vegalite_view.js';
-import { VegaLitePreview } from './vegalite_preview.js';
-import { MarkdownView } from './markdown_view.js';
-import { QueryResultView } from '../query_result/query_result_view.js';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
+import { VisualizationDispatch as VisualizationDispatchView } from '@akohn/dashql-react/components/visualization/visualization_dispatch';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
+import { useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { useResultComputation } from './vegalite_view.js';
+import { QueryResultView } from '../query_result/query_result_view.js';
+
+// The visualization of a query in the app (VisualizationDispatch of @akohn/dashql-react): the result table and the
+// computation of the runtime, the result table of the app for the table renderer
 
 interface Props {
     query: QueryExecutionState | null;
     visualizeQuery: ResolvedVisualizeQuery | null;
-    /// Optional exact chart width/height in px. Currently honored by the Vega-Lite renderer (sizes
-    /// the whole plot to `fit`).
     width?: number;
     height?: number;
-    /// Optional uniform scale (<1 shrinks fonts/marks/axes). Honored by the Vega-Lite renderer.
     scale?: number;
-    /// Suppress legends (they crowd out a cramped host like a grid card). Honored by the Vega-Lite
-    /// renderer.
     hideLegend?: boolean;
-    /// Render a Vega-Lite chart as a preview into the width×height box, see `VegaLitePreview`
     preview?: boolean;
 }
 
-/// Renders the visualization of a query with `@vis` tags, dispatching on the
-/// renderer named by the tag. Vega-Lite goes to the vega-embed VegaLiteView.
-export function VisualizationDispatch(props: Props): React.ReactElement | null {
-    const vq = props.visualizeQuery;
-    if (vq == null) {
-        return <VegaLiteView query={props.query} vegaLiteSpec={null} />;
-    }
-    switch (vq.renderer) {
-        case 'vegalite':
-            if (props.preview && props.width != null && props.height != null) {
-                return <VegaLitePreview query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} />;
-            }
-            return <VegaLiteView query={props.query} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} scale={props.scale} hideLegend={props.hideLegend} />;
-        case 'markdown':
-            return <MarkdownView query={props.query} spec={vq.markdownSpec} />;
-        case 'table':
-            return (
+/// Renders the visualization of a query with `@vis` tags, dispatching on the renderer named by the tag
+export function VisualizationDispatch(props: Props): React.ReactElement {
+    const resultTable = useQueryResultTable(props.query);
+    const resultComputation = useResultComputation(props.query?.queryId ?? null);
+    return (
+        <VisualizationDispatchView
+            {...props}
+            resultTable={resultTable}
+            resultComputation={resultComputation}
+            table={() => (
                 <QueryResultView
                     query={props.query}
                     debugMode={false}
@@ -48,6 +38,7 @@ export function VisualizationDispatch(props: Props): React.ReactElement | null {
                     fitHeight={false}
                     compact
                 />
-            );
-    }
+            )}
+        />
+    );
 }

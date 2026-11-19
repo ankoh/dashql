@@ -1,16 +1,16 @@
 import * as React from 'react';
-import * as styles from './visualization_panel.module.css';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
-import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/tab_header';
+import { VisualizationPanel as VisualizationPanelView } from '@akohn/dashql-react/components/visualization/visualization_panel';
+import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 import { useResultRowCount } from '../query_result/query_result_toolbar.js';
 import { QueryResultPanel } from '../query_result/query_result_header.js';
-import { ChartDownloadButton } from './chart_download_button.js';
-import { VisualizationDispatch } from './visualization_dispatch.js';
+import { useResultComputation } from './vegalite_view.js';
+import { useDownloadFile } from '../../platform/file/file_downloader_hook.js';
 
-/// The height of the header bar over the visualization, see `tab_header.module.css`
-const HEADER_HEIGHT = 32;
+// The visualization panel of the app (VisualizationPanel of @akohn/dashql-react): the result, its computation and its
+// rows from the runtime, the result panel of the app for the table renderer
 
 interface Props {
     query: QueryExecutionState | null;
@@ -24,35 +24,20 @@ interface Props {
     cellBackground?: string;
 }
 
-/// The visualization of a script with the header bar of the feed above it: a table gets the header of a
-/// query result, a chart the visualization header with the row count and the chart download.
-/// The dataflow boxes show their visualizations in it.
-export function VisualizationPanel(props: Props): React.ReactElement {
-    const { hasResult, totalRows } = useResultRowCount(props.query);
-    const vq = props.visualizeQuery;
-    if (vq.renderer === 'table') {
-        return <QueryResultPanel query={props.query} cellBackground={props.cellBackground} />;
-    }
-    const showHeader = hasResult && props.query != null;
+/// The visualization of a script with the header bar of the feed above it, for the dataflow boxes
+export function VisualizationPanel({ cellBackground, ...props }: Props): React.ReactElement {
+    const rowCount = useResultRowCount(props.query);
+    const resultTable = useQueryResultTable(props.query);
+    const resultComputation = useResultComputation(props.query?.queryId ?? null);
+    const downloadFile = useDownloadFile();
     return (
-        <div className={styles.panel}>
-            {showHeader && (
-                <TabHeader
-                    title="Visualization"
-                    detail={formatRowCountDetail(totalRows)}
-                    actions={vq.renderer === 'vegalite' ? <ChartDownloadButton query={props.query!} spec={vq.vegaLiteSpec} /> : undefined}
-                />
-            )}
-            <div className={styles.panel_body}>
-                <VisualizationDispatch
-                    query={props.query}
-                    visualizeQuery={vq}
-                    width={props.width}
-                    height={props.height == null ? undefined : Math.max(0, props.height - (showHeader ? HEADER_HEIGHT : 0))}
-                    hideLegend={props.hideLegend}
-                    preview={props.preview}
-                />
-            </div>
-        </div>
+        <VisualizationPanelView
+            {...props}
+            rowCount={rowCount}
+            resultTable={resultTable}
+            resultComputation={resultComputation}
+            downloadFile={downloadFile}
+            table={() => <QueryResultPanel query={props.query} cellBackground={cellBackground} />}
+        />
     );
 }

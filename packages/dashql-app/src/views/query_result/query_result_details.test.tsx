@@ -18,6 +18,8 @@ const mockState = {
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { QueryResultDetails, type QueryResultDetailsDependencies } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
+import { LoggerContext } from '@akohn/dashql-react/logger';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
@@ -29,8 +31,7 @@ const dependencies = {
     useComputationDispatch: (() => mockState.dispatch) as never,
     useQueryResultRowCounts: () => ({ totalRows: 3, currentRows: 3, matchingRows: null }),
     QueryResultDownloadButton: props => <QueryResultDownloadButton {...props} dependencies={{
-        useFileDownloader: () => ({ downloadBufferAsFile: mockState.download }),
-        useLogger: () => ({ error: mockState.logError }),
+        useDownloadFile: () => mockState.download,
         useComputeDatabase: () => null,
         exportArrowTableAsParquet: vi.fn(),
     }} />,
@@ -192,11 +193,13 @@ describe('QueryResultDetails', () => {
         mockState.computationState = { tableComputations: {} };
         mockState.download.mockRejectedValueOnce(new Error('Disk full'));
         act(() => root.render(
-            <WithResultTables><QueryResultDetails
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(tableFromArrays({ value: [1] })) } as any}
-                debugMode={false}
-                dependencies={dependencies}
-            /></WithResultTables>,
+            <LoggerContext.Provider value={{ error: mockState.logError } as unknown as Logger}>
+                <WithResultTables><QueryResultDetails
+                    query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(tableFromArrays({ value: [1] })) } as any}
+                    debugMode={false}
+                    dependencies={dependencies}
+                /></WithResultTables>
+            </LoggerContext.Provider>,
         ));
 
         const button = downloadButton(container);

@@ -1,228 +1,84 @@
 import * as React from 'react';
-import * as styles from './cell_detail_overlay.module.css';
-import type { CellDetailProps } from '@akohn/dashql-react/components/data_table/data_table';
 import * as dashql from '@akohn/dashql';
 
-import { XIcon, ChevronUpIcon, ChevronDownIcon, ScreenFullIcon, ScreenNormalIcon } from '@akohn/dashql-react/components/symbol_icon';
-
-import { ButtonSize, IconButton, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
-import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { JsonView } from '@akohn/dashql-react/components/json/json_view';
-import { projectSqlText, ReadonlySqlView } from '../../workbook/editor/readonly_sql_view.js';
-import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import type { CellDetailProps } from '@akohn/dashql-react/components/data_table/data_table';
+import {
+    CellDetailOverlay as CellDetailOverlayView,
+    type DetectSql,
+    type SqlText,
+} from '@akohn/dashql-react/components/query_result/cell_detail_overlay';
+import { ReadonlySqlView, useProjectedSqlText } from '../../workbook/editor/readonly_sql_view.js';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
-import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
-import { peekFormat } from '@akohn/dashql-react/components/data_table/data_table';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { EngineProfileView } from '../query_profile/engine_profile_view.js';
-import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 
-const LOG_CTX = 'cell_detail_overlay';
+// The detail of a cell in the app (CellDetailOverlay of @akohn/dashql-react): the core of the app reads a value as
+// SQL, the editor of the app shows the texts, the core lays out plans
 
-enum FormatMode {
-    Raw = 0,
-    Structured = 1,
-    SQL = 2,
-    Plan = 3,
-}
-
-const FORMAT_LABELS: Record<FormatMode, string> = {
-    [FormatMode.Raw]: 'Raw',
-    [FormatMode.Structured]: 'Structured',
-    [FormatMode.SQL]: 'SQL',
-    [FormatMode.Plan]: 'Plan',
-};
-
-interface DetectedFormats {
-    json: object | null;
-    sql: {
-        originalText: string;
-        originalUpdate: dashql.buffers.editor.EditorUpdateT;
-        formattedText: string | null;
-        formattedUpdate: dashql.buffers.editor.EditorUpdateT | null;
-        hasErrors: boolean;
-    } | null;
-    plan: string | null;
-}
-
-export function detectFormats(core: dashql.DashQL | null, value: string | null, keywordCase = dashql.buffers.formatting.KeywordCase.LOWER): DetectedFormats {
-    const result: DetectedFormats = { json: null, sql: null, plan: null };
-    if (value == null) return result;
-
-    const peeked = peekFormat(value);
-    if (peeked === 'plan') {
-        result.plan = value;
-    }
-
-    if (peeked === 'plan' || peeked === 'json') {
+/// Read a cell value as SQL: scan and parse it, and format it in the Hyper dialect with the keyword case of the
+/// settings. Null if the core cannot read it.
+export function detectSqlText(
+    core: dashql.DashQL,
+    value: string,
+    keywordCase = dashql.buffers.formatting.KeywordCase.LOWER,
+): SqlText | null {
+    let catalog: dashql.DashQLCatalog | null = null;
+    let script: dashql.DashQLScript | null = null;
+    let formattedScript: dashql.DashQLScript | null = null;
+    try {
+        catalog = core.createCatalog();
+        script = core.createScript(catalog);
+        script.insertTextAt(0, value);
+        script.parse();
+        const parsed = script.getParsed();
+        const hasErrors = parsed != null && (parsed.read().scannerErrorsLength() > 0 || parsed.read().parserErrorsLength() > 0);
+        let formattedText: string | null = null;
         try {
-            const parsed = JSON.parse(value);
-            if (typeof parsed === 'object' && parsed !== null) {
-                result.json = parsed;
-            }
+            const config = new dashql.buffers.formatting.FormattingConfigT(
+                dashql.buffers.formatting.FormattingDialect.HYPER,
+                dashql.buffers.formatting.FormattingMode.PRETTY,
+                80,
+                4,
+                false,
+                keywordCase,
+            );
+            formattedScript = script.format(config, null);
+            formattedText = formattedScript.toString();
         } catch {
-            // Not JSON
+            // Format failed, but parse succeeded
         }
+        return { hasErrors, formattedText };
+    } catch {
+        // Not valid SQL
+        return null;
+    } finally {
+        formattedScript?.ptr.destroy();
+        script?.ptr.destroy();
+        catalog?.ptr.destroy();
     }
-
-    // JSON is never meaningful SQL, skip scanning, parsing, analyzing and formatting large documents
-    if (core != null && result.json == null) {
-        let catalog: dashql.DashQLCatalog | null = null;
-        let script: dashql.DashQLScript | null = null;
-        let formattedScript: dashql.DashQLScript | null = null;
-        try {
-            catalog = core.createCatalog();
-            script = core.createScript(catalog);
-            script.insertTextAt(0, value);
-            script.parse();
-            const parsed = script.getParsed();
-            const hasErrors = parsed != null && (parsed.read().scannerErrorsLength() > 0 || parsed.read().parserErrorsLength() > 0);
-            const originalUpdate = projectSqlText(core, catalog, value);
-            let formattedText: string | null = null;
-            let formattedUpdate: dashql.buffers.editor.EditorUpdateT | null = null;
-            try {
-                const config = new dashql.buffers.formatting.FormattingConfigT(
-                    dashql.buffers.formatting.FormattingDialect.HYPER,
-                    dashql.buffers.formatting.FormattingMode.PRETTY,
-                    80,
-                    4,
-                    false,
-                    keywordCase,
-                );
-                formattedScript = script.format(config, null);
-                const text = formattedScript.toString();
-                formattedUpdate = projectSqlText(core, catalog, text);
-                formattedText = text;
-            } catch {
-                // Format failed, but parse succeeded
-            }
-            result.sql = { originalText: value, originalUpdate, formattedText, formattedUpdate, hasErrors };
-            formattedScript?.ptr.destroy();
-            script.ptr.destroy();
-            catalog.ptr.destroy();
-            return result;
-        } catch {
-            // Not valid SQL — destroy everything
-            formattedScript?.ptr.destroy();
-            script?.ptr.destroy();
-            catalog?.ptr.destroy();
-        }
-    }
-
-    return result;
 }
 
-export function detectStructuredFormats(value: object): DetectedFormats {
-    return { json: value, sql: null, plan: null };
+/// A SQL text highlighted by the core
+function HighlightedSqlView(props: { text: string }) {
+    const projected = useProjectedSqlText(props.text, 'cell_detail');
+    return <ReadonlySqlView text={projected.text} editorUpdate={projected.editorUpdate} />;
 }
-
-export const STRUCTURED_ARRAY_PAGE_SIZE = 100;
-
-export function structuredValueToText(value: object): string {
-    return JSON.stringify(value, (_key, item) => typeof item === 'bigint' ? `${item}n` : item, 2);
-}
-
-function pickDefaultMode(formats: DetectedFormats): FormatMode {
-    if (formats.plan != null) return FormatMode.Plan;
-    if (formats.sql != null && !formats.sql.hasErrors) return FormatMode.SQL;
-    if (formats.json != null) return FormatMode.Structured;
-    return FormatMode.Raw;
-}
-
-function getAvailableModes(formats: DetectedFormats): FormatMode[] {
-    const modes: FormatMode[] = [FormatMode.Raw];
-    if (formats.json != null) modes.push(FormatMode.Structured);
-    if (formats.sql != null) modes.push(FormatMode.SQL);
-    if (formats.plan != null) modes.push(FormatMode.Plan);
-    return modes;
-}
-
-/// Read-only CodeMirror sub-view (no syntax highlighting)
-function ReadonlyTextView(props: { text: string }) {
-    return (
-        <div className={styles.codemirror_container}>
-            <ReadonlySqlView text={props.text} editorUpdate={null} lineWrapping autoHeight />
-        </div>
-    );
-}
-
-const PencilAIIcon = SymbolIcon('pencil_ai_16');
-
-interface SqlTextViewProps {
-    originalText: string;
-    originalUpdate: dashql.buffers.editor.EditorUpdateT;
-    formattedText: string | null;
-    formattedUpdate: dashql.buffers.editor.EditorUpdateT | null;
-}
-
-// SQL CodeMirror sub-view (with DashQL syntax highlighting)
-function SqlTextView(props: SqlTextViewProps) {
-    const [pretty, setPretty] = React.useState(false);
-
-    const activeText = pretty && props.formattedText != null ? props.formattedText : props.originalText;
-    const activeUpdate = pretty && props.formattedUpdate != null ? props.formattedUpdate : props.originalUpdate;
-
-    return (
-        <div className={styles.codemirror_container}>
-            <ReadonlySqlView text={activeText} editorUpdate={activeUpdate} />
-            {props.formattedText != null && (
-                <div className={styles.pretty_toggle}>
-                    <IconButton
-                        className={styles.pretty_toggle_button}
-                        variant={ButtonVariant.Default}
-                        aria-label="Pretty format"
-                        aria-pressed={pretty}
-                        onClick={() => setPretty(p => !p)}
-                    >
-                        <PencilAIIcon />
-                    </IconButton>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function StructuredValueView(props: { value: object }) {
-    return (
-        <JsonView
-            className={styles.structured_view}
-            value={props.value}
-            collapsed={2}
-            shortenTextAfterLength={100}
-            arrayPageSize={STRUCTURED_ARRAY_PAGE_SIZE}
-        />
-    );
-}
-
 
 /// The overlay is the detail of a cell of the data table
 export type CellDetailOverlayProps = CellDetailProps;
 
-/// Public interface
+/// The detail of a cell of a result table
 export function CellDetailOverlay(props: CellDetailOverlayProps) {
     if (!props.isOpen) return null;
-    return <CellDetailOverlayInner {...props} />;
+    return <OpenCellDetailOverlay {...props} />;
 }
 
-
-const EMPTY_FORMATS: DetectedFormats = { json: null, sql: null, plan: null };
-
-/// Inner component — only mounted when overlay is open
-function CellDetailOverlayInner(props: CellDetailOverlayProps) {
+/// The overlay while it is open, it sets up the core
+function OpenCellDetailOverlay(props: CellDetailOverlayProps) {
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
     const coreSetup = useDashQLCoreSetup();
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
-    const [formats, setFormats] = React.useState<DetectedFormats>(EMPTY_FORMATS);
-    const [selectedFormat, setSelectedFormat] = React.useState<FormatMode>(FormatMode.Raw);
-    const [expanded, setExpanded] = React.useState(false);
-    const value = props.structuredValue ?? props.formattedValue;
-    // The value that the user picked a format for. A value starts with its default format, but the formats are detected
-    // again when the core arrives, which must not undo a pick.
-    const pickedValue = React.useRef<typeof value | undefined>(undefined);
-
     React.useEffect(() => {
         let cancelled = false;
         coreSetup('cell_detail').then(c => {
@@ -230,159 +86,17 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
         });
         return () => { cancelled = true; };
     }, [coreSetup]);
-
-    React.useEffect(() => {
-        const f = props.structuredValue == null
-            ? detectFormats(core, props.formattedValue, keywordCase)
-            : detectStructuredFormats(props.structuredValue);
-        setFormats(f);
-        setSelectedFormat(selected => pickedValue.current === value && getAvailableModes(f).includes(selected)
-            ? selected
-            : pickDefaultMode(f));
-    }, [props.formattedValue, props.structuredValue, core, keywordCase]);
-
-    const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
-
-    const onSegmentChange = React.useCallback((index: number) => {
-        pickedValue.current = value;
-        setSelectedFormat(availableModes[index]);
-    }, [availableModes, value]);
-
-    useKeyEvents(React.useMemo(() => [
-        {
-            key: 'ArrowUp',
-            callback: (e: KeyboardEvent) => {
-                e.preventDefault();
-                if (props.dataRow > 0) {
-                    props.onNavigate(-1);
-                }
-            },
-        },
-        {
-            key: 'ArrowDown',
-            callback: (e: KeyboardEvent) => {
-                e.preventDefault();
-                if (props.dataRow < props.maxRow) {
-                    props.onNavigate(1);
-                }
-            },
-        },
-    ], [props.dataRow, props.maxRow, props.onNavigate]));
-
-    const rawText = React.useMemo(() => props.structuredValue == null
-        ? (props.formattedValue ?? 'NULL')
-        : structuredValueToText(props.structuredValue), [props.structuredValue, props.formattedValue]);
-
+    const detectSql = React.useMemo<DetectSql | null>(
+        () => core == null ? null : value => detectSqlText(core, value, keywordCase),
+        [core, keywordCase],
+    );
     return (
-        <Overlay
-            centered
-            onEscape={props.onClose}
-            onClickOutside={props.onClose}
-            preventFocusOnOpen
-            width={OverlaySize.XL}
-            maxHeight={OverlaySize.XL}
-            expanded={expanded}
-        >
-            <div className={styles.modal} data-expanded={expanded || undefined}>
-                <div className={styles.main}>
-                    <div className={styles.header}>
-                        <span className={styles.header_title}>
-                            <span className={styles.header_title_label}>row</span>
-                            <span className={styles.header_title_equal}>=</span>
-                            <span className={styles.header_title_index}>{props.dataRow}</span>
-                            <span className={styles.header_title_label}>field</span>
-                            <span className={styles.header_title_equal}>=</span>
-                            <span className={styles.header_title_field}>{props.columnName ?? 'value'}</span>
-                        </span>
-                        <div className={styles.header_spacer} />
-                        <CopyToClipboardButton
-                            variant={ButtonVariant.Invisible}
-                            size={ButtonSize.Small}
-                            value={rawText}
-                            logContext={LOG_CTX}
-                            aria-label="Copy raw output"
-                            aria-labelledby=""
-                        />
-                        {availableModes.length > 1 && (
-                            <SegmentedControl
-                                aria-label="Format mode"
-                                size={SegmentedControlSize.Small}
-                                onChange={onSegmentChange}
-                            >
-                                {availableModes.map(mode => (
-                                    <SegmentedControl.Button
-                                        key={mode}
-                                        selected={mode === selectedFormat}
-                                    >
-                                        {FORMAT_LABELS[mode]}
-                                    </SegmentedControl.Button>
-                                ))}
-                            </SegmentedControl>
-                        )}
-                    </div>
-                    <div className={`${styles.body} ${selectedFormat === FormatMode.Structured ? styles.body_padded : ''}`}>
-                        {selectedFormat === FormatMode.Raw && (
-                            <ReadonlyTextView text={rawText} />
-                        )}
-                        {selectedFormat === FormatMode.Structured && formats.json != null && (
-                            <StructuredValueView value={formats.json} />
-                        )}
-                        {selectedFormat === FormatMode.SQL && formats.sql != null && (
-                            <SqlTextView
-                                originalText={formats.sql.originalText}
-                                originalUpdate={formats.sql.originalUpdate}
-                                formattedText={formats.sql.formattedText}
-                                formattedUpdate={formats.sql.formattedUpdate}
-                            />
-                        )}
-                        {selectedFormat === FormatMode.Plan && formats.plan != null && (
-                            <EngineProfileView
-                                engine={detectPlanEngine(formats.plan) ?? dashql.buffers.profile.ProfileEngine.HYPER}
-                                planText={formats.plan}
-                                className={styles.plan_container}
-                                fallback={<div className={styles.plan_error}>Could not render plan</div>}
-                            />
-                        )}
-                    </div>
-                </div>
-                <div className={styles.sidebar}>
-                    <div className={styles.sidebar_top}>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Close"
-                            onClick={props.onClose}
-                        >
-                            <XIcon />
-                        </IconButton>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label={expanded ? 'Restore size' : 'Expand'}
-                            aria-pressed={expanded}
-                            onClick={() => setExpanded(e => !e)}
-                        >
-                            {expanded ? <ScreenNormalIcon /> : <ScreenFullIcon />}
-                        </IconButton>
-                    </div>
-                    <div className={styles.sidebar_bottom}>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Previous row"
-                            onClick={() => props.onNavigate(-1)}
-                            disabled={props.dataRow <= 0}
-                        >
-                            <ChevronUpIcon />
-                        </IconButton>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Next row"
-                            onClick={() => props.onNavigate(1)}
-                            disabled={props.dataRow >= props.maxRow}
-                        >
-                            <ChevronDownIcon />
-                        </IconButton>
-                    </div>
-                </div>
-            </div>
-        </Overlay>
+        <CellDetailOverlayView
+            {...props}
+            detectSql={detectSql}
+            rawView={text => <ReadonlySqlView text={text} editorUpdate={null} lineWrapping autoHeight />}
+            sqlView={text => <HighlightedSqlView text={text} />}
+            planView={plan => <EngineProfileView {...plan} />}
+        />
     );
 }

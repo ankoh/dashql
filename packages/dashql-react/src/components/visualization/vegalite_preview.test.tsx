@@ -1,19 +1,18 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
-import type { VegaLiteViewDependencies } from './vegalite_view.js';
+import type { VegaLiteViewDependencies } from '../vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { succeededQuery, WithResultTables } from '../../tests/result_tables.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
     loadVega: async () => ({ embed: vegaEmbed, expressionInterpreter: {} as typeof import('vega-interpreter').expressionInterpreter }),
-    useResultComputation: () => null,
     useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 
@@ -34,11 +33,14 @@ describe('VegaLitePreview', () => {
     });
 
     it('fits the chart into its box with smaller text and without legends', async () => {
-        const query = succeededQuery(tableFromArrays({ region: ['EU'], amount: [1] }));
+        const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState;
+        const resultTable = tableFromArrays({ region: ['EU'], amount: [1] });
         await act(async () => {
             root.render(
-                <WithResultTables><VegaLitePreview
+                <VegaLitePreview
                     query={query}
+                    resultTable={resultTable}
+                    resultComputation={null}
                     vegaLiteSpec={{
                         data: { values: [] },
                         mark: 'bar',
@@ -47,7 +49,7 @@ describe('VegaLitePreview', () => {
                     width={262}
                     height={198}
                     dependencies={dependencies}
-                /></WithResultTables>,
+                />,
             );
             await Promise.resolve();
         });

@@ -21,7 +21,7 @@ export interface VegaLiteViewDependencies extends VegaLiteChartDependencies {
 }
 
 /// The computation of the result of a query with its tables, null without one
-function useResultComputation(queryId: number | null): ResultComputation | null {
+export function useResultComputation(queryId: number | null): ResultComputation | null {
     const computation = useComputation(queryId);
     const tables = useComputationTables(computation, useOptionalRuntime());
     return React.useMemo(

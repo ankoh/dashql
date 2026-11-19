@@ -1,116 +1,42 @@
-import * as arrow from 'apache-arrow';
 import * as React from 'react';
-import * as styles from './query_result_download_button.module.css';
+import type * as arrow from 'apache-arrow';
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import * as ActionList from '@akohn/dashql-react/components/action_list';
-import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { DownloadIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { exportArrowTableAsParquet, supportsParquetExport } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
-import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { useLogger } from '../../platform/logger_provider.js';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { QueryResultDownloadButton as QueryResultDownloadButtonView } from '@akohn/dashql-react/components/query_result/query_result_download_button';
 import { useQueryResultTable } from '@akohn/dashql-react/hooks';
+import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
+import { useDownloadFile } from '../../platform/file/file_downloader_hook.js';
 
-const enum DownloadFormat {
-    Arrow = 'arrow',
-    Parquet = 'parquet',
+// The download of a query result in the app (QueryResultDownloadButton of @akohn/dashql-react): the result table of
+// the runtime, the file downloader of the app and the compute database that writes Parquet
+
+export interface QueryResultDownloadButtonDependencies {
+    useDownloadFile: typeof useDownloadFile;
+    useComputeDatabase: typeof useComputeDatabase;
+    exportArrowTableAsParquet: typeof exportArrowTableAsParquet;
 }
 
-interface Props {
-    query: QueryExecutionState;
-    dependencies?: {
-        useFileDownloader: () => Pick<ReturnType<typeof useFileDownloader>, 'downloadBufferAsFile'>;
-        useLogger: () => Pick<ReturnType<typeof useLogger>, 'error'>;
-        useComputeDatabase: typeof useComputeDatabase;
-        exportArrowTableAsParquet: typeof exportArrowTableAsParquet;
-    };
-}
-
-const DEFAULT_DEPENDENCIES: NonNullable<Props['dependencies']> = {
-    useFileDownloader,
-    useLogger,
+const DEFAULT_DEPENDENCIES: QueryResultDownloadButtonDependencies = {
+    useDownloadFile,
     useComputeDatabase,
     exportArrowTableAsParquet,
 };
 
+interface Props {
+    query: QueryExecutionState;
+    dependencies?: QueryResultDownloadButtonDependencies;
+}
+
+/// Download the result of a query as Arrow or Parquet
 export function QueryResultDownloadButton({ query, dependencies = DEFAULT_DEPENDENCIES }: Props) {
-    const fileDownloader = dependencies.useFileDownloader();
-    const logger = dependencies.useLogger();
+    const downloadFile = dependencies.useDownloadFile();
     const computeDatabase = dependencies.useComputeDatabase();
-    const parquetDatabase = supportsParquetExport(computeDatabase) ? computeDatabase : null;
-    const [open, setOpen] = React.useState(false);
-    const [downloading, setDownloading] = React.useState(false);
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
     const resultTable = useQueryResultTable(query);
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
-
-    const downloadResult = async (format: DownloadFormat) => {
-        setOpen(false);
-        if (!hasResult || downloading) return;
-        setDownloading(true);
-        try {
-            switch (format) {
-                case DownloadFormat.Arrow: {
-                    const bytes = arrow.tableToIPC(resultTable!, 'file');
-                    await fileDownloader.downloadBufferAsFile(bytes, `query-result-${query.queryId}.arrow`);
-                    break;
-                }
-                case DownloadFormat.Parquet: {
-                    if (parquetDatabase == null) throw new Error('compute database cannot export Parquet');
-                    const bytes = await dependencies.exportArrowTableAsParquet(parquetDatabase, resultTable!);
-                    await fileDownloader.downloadBufferAsFile(bytes, `query-result-${query.queryId}.parquet`);
-                    break;
-                }
-            }
-        } catch (error) {
-            logger.error('Failed to download query result', { format, error: stringifyError(error) }, 'query_result_download');
-        } finally {
-            setDownloading(false);
-        }
-    };
-
-    return (
-        <AnchoredOverlay
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={() => setOpen(false)}
-            side={AnchorSide.OutsideBottom}
-            align={AnchorAlignment.End}
-            anchorOffset={4}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    variant={ButtonVariant.Invisible}
-                    size={ButtonSize.Small}
-                    aria-label="Download query result"
-                    data-testid="download-query-result"
-                    disabled={!hasResult || downloading}
-                >
-                    <DownloadIcon size={16} />
-                </IconButton>
-            )}
-        >
-            <div className={styles.menu} role="dialog" aria-label="Download query result">
-                <ActionList.List aria-label="Download formats">
-                    <ActionList.ListItem data-testid="download-format-arrow" onClick={() => downloadResult(DownloadFormat.Arrow)}>
-                        <ActionList.ItemText>Download as Arrow</ActionList.ItemText>
-                    </ActionList.ListItem>
-                    <ActionList.ListItem
-                        data-testid="download-format-parquet"
-                        disabled={parquetDatabase == null}
-                        onClick={() => downloadResult(DownloadFormat.Parquet)}
-                    >
-                        <ActionList.ItemText>Download as Parquet</ActionList.ItemText>
-                    </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
-    );
+    const { exportArrowTableAsParquet: exportTable } = dependencies;
+    const exportParquet = React.useMemo(() => {
+        if (!supportsParquetExport(computeDatabase)) return null;
+        return (table: arrow.Table) => exportTable(computeDatabase, table);
+    }, [computeDatabase, exportTable]);
+    return <QueryResultDownloadButtonView query={query} resultTable={resultTable} downloadFile={downloadFile} exportParquet={exportParquet} />;
 }
