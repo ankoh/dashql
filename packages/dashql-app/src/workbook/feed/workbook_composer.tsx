@@ -298,10 +298,11 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const handleHarnessChange = React.useCallback((index: number) => {
         connect?.setHarness(CONNECT_HARNESSES[index]);
     }, [connect]);
-    // Shown with every option on an indented line of its own, copied as one line
+    // Shown with every option on an indented line of its own, continued with backslashes so that a selection pastes
+    // into a POSIX shell, the copy button copies one line
     const commandLines = ai && connect?.target != null ? agentConnectCommandLines(connect.harness, connect.target) : null;
     const command = commandLines?.join(' ') ?? null;
-    const commandText = commandLines?.map((line, i) => i == 0 ? line : `  ${line}`).join('\n') ?? '';
+    const commandText = commandLines?.map((line, i) => i == 0 ? line : `  ${line}`).join(' \\\n') ?? '';
     const statusId = React.useId();
     return (
         <div

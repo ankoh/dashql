@@ -365,8 +365,8 @@ describe('Workbook composer', () => {
         }
         const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
         const commandField = () => container.querySelector<HTMLTextAreaElement>('[data-testid="composer-connect-command"]');
-        // The field shows an option on every indented line, the command is the lines joined with spaces
-        const command = () => commandField()?.value.split('\n').map(line => line.trim()).join(' ') ?? null;
+        // The field shows an option on every indented line continued with a backslash, the command is the lines joined
+        const command = () => commandField()?.value.split(' \\\n').map(line => line.trim()).join(' ') ?? null;
 
         it('disables Run and the snippets and shows the line that launches a harness', async () => {
             const editor = await renderConnected(ComposerMode.Sql);
@@ -384,12 +384,12 @@ describe('Workbook composer', () => {
             expect(container.querySelector('[data-testid="composer-connect-harness"]')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
             expect(command()).toBe(`${DASHQL_CLI_COMMAND} connect --launch claude --port 51234 --secret k3x9`);
             expect(commandField()!.value.split('\n')).toEqual([
-                'npx -y',
-                '  --registry=https://registry.npmjs.org/',
-                '  --min-release-age=0',
-                `  @akohn/dashql-cli@${DASHQL_CLI_VERSION} connect`,
-                '  --launch claude',
-                '  --port 51234',
+                'npx -y \\',
+                '  --registry=https://registry.npmjs.org/ \\',
+                '  --min-release-age=0 \\',
+                `  @akohn/dashql-cli@${DASHQL_CLI_VERSION} connect \\`,
+                '  --launch claude \\',
+                '  --port 51234 \\',
                 '  --secret k3x9',
             ]);
             expect(commandField()!.rows).toBe(7);
