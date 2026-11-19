@@ -33,7 +33,7 @@ use std::task::{Context, Poll};
 
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
-use dashql_core_runtime::clfn::{ClientFunctionBinding, ClientFunctionCallDescription};
+use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
@@ -893,17 +893,15 @@ impl Connections {
             return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
         };
         run.channel_epoch.set(Some(epoch));
-        // A Data Cloud token about to expire is refreshed before the query uses the tokens, the channel keeps the new
-        // ones. A failed refresh fails the connection.
-        let salesforce = channel.as_ref().and_then(ConnectionChannel::salesforce).cloned();
-        if let Some(salesforce) = &salesforce {
-            if let Err(message) = salesforce.fresh(&Rc::new(self.platform.clone())).await {
-                self.platform.log_on(LogLevel::Warn, "Failed to refresh the Salesforce tokens", &[("connectionId", connection_id), ("error", &message)], LOG_TARGET);
+        // Credentials about to expire, e.g. a Data Cloud token, are refreshed before the query uses them, the channel
+        // keeps the new ones. A failed refresh fails the connection.
+        if let Some(channel) = &channel {
+            if let Err(message) = channel.fresh(&Rc::new(self.platform.clone())).await {
+                self.platform.log_on(LogLevel::Warn, "Failed to refresh the credentials of the connection", &[("connectionId", connection_id), ("error", &message)], LOG_TARGET);
                 self.token_refresh_ended(connection_id, epoch, Err(DetailedError::new(message.clone())));
                 return Err(QueryFailure::new(FailureKind::Error, message));
             }
         }
-        let tokens = salesforce.as_ref().map(SharedSalesforceChannel::tokens);
         let options = &description.options;
         // The executor reads and writes the files of the cache with the compute database, through the mounts
         let cache = match &options.cache {
@@ -922,11 +920,11 @@ impl Connections {
         };
         let target = match (&options.client_function_call, channel) {
             // The call runs with the spec that the catalog of the connection registered (`load_spec`) and sends its
-            // requests with the tokens of the connection
-            (Some(call), _) => {
+            // requests with the credentials of the channel of the connection
+            (Some(call), channel) => {
                 let description = ClientFunctionCallDescription::from_value(call.0.clone())
                     .map_err(|error| QueryFailure::new(FailureKind::Error, error.message))?;
-                QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, tokens })
+                QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, channel })
             }
             // The queries of a connection share its channel
             (None, Some(ConnectionChannel::Trino(trino))) => QueryTarget::Trino(trino),
@@ -1023,7 +1021,7 @@ impl Connections {
     /// the call names it.
     async fn load_spec(&self, request: &mut QueryRequest) -> Result<(), String> {
         let QueryTarget::ClientFunction(target) = &mut request.target else { return Ok(()) };
-        if target.spec.is_some() || ClientFunctionBinding::of_connector(target.connector).is_none() {
+        if target.spec.is_some() || client_function_binding(target.connector).is_none() {
             return Ok(());
         }
         // A spec that the registration still loads is awaited

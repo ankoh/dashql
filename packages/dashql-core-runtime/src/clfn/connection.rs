@@ -18,75 +18,44 @@ use super::request::{http_request, ClientFunctionHostTarget, ClientFunctionReque
 use super::result::ClientFunctionResult;
 use super::runtime::{explain_client_function_call, CallStep, ClientFunctionCallRun};
 use super::spec::{ClientFunctionCallDescription, ClientFunctionSpec};
-use crate::http::HttpRequest;
+use std::fmt;
+
 use super::ClientFunctionError;
-use crate::connections::{ConnectionState, ConnectorType};
-use crate::salesforce::client_functions::{
-    resolve_salesforce_client_function_host, salesforce_client_function_variables, DATA_360_EXTENSION,
-};
-use crate::salesforce::SalesforceTokens;
+use crate::connections::{ConnectionChannel, ConnectionState, ConnectorType};
+use crate::http::HttpRequest;
 
-/// The client functions of a connector: where its spec is, the variables of its base paths and how its hosts resolve
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ClientFunctionBinding {
-    /// The Data 360 API on Salesforce Data Cloud connections
-    Salesforce,
-}
-
-/// What a connection holds that its hosts need, such as tokens
-#[derive(Debug, Clone, Copy)]
-pub enum ConnectionCredentials<'a> {
-    /// The tokens of the channel of a Salesforce connection, none without a channel
-    Salesforce(Option<&'a SalesforceTokens>),
-}
-
-impl ClientFunctionBinding {
-    /// The binding of a connector, none if its connections have no client functions. It isn't known whether
-    /// Database.com has the Data 360 API.
-    pub fn of_connector(connector: ConnectorType) -> Option<Self> {
-        match connector {
-            ConnectorType::SalesforceDataCloud => Some(ClientFunctionBinding::Salesforce),
-            _ => None,
-        }
-    }
-
+/// The client functions of a connector: where its spec is, the variables of its base paths and how its hosts resolve.
+/// A connector with client functions hands out its binding (`Connector::client_functions`).
+pub trait ClientFunctionBinding: Sync + fmt::Debug {
     /// The folder of the extension of the spec in `extensions/`
-    pub fn extension(self) -> &'static str {
-        match self {
-            ClientFunctionBinding::Salesforce => DATA_360_EXTENSION,
-        }
-    }
+    fn extension(&self) -> &'static str;
 
     /// The values of the variables in the base paths of the spec. They need no login, `EXPLAIN` prints them.
-    pub fn variables(self) -> ClientFunctionVariables {
-        match self {
-            ClientFunctionBinding::Salesforce => salesforce_client_function_variables(),
-        }
-    }
+    fn variables(&self) -> ClientFunctionVariables;
 
-    /// Where a host that the spec names is on a connection, and the credentials for it
-    pub fn resolve_host(
-        self,
-        credentials: ConnectionCredentials<'_>,
-        host: &str,
-        now: f64,
-    ) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
-        match (self, credentials) {
-            (ClientFunctionBinding::Salesforce, ConnectionCredentials::Salesforce(tokens)) => {
-                resolve_salesforce_client_function_host(tokens, host, now)
-            }
-        }
-    }
+    /// Where a host that the spec names is on a connection, and the credentials for it, which the channel of the
+    /// connection holds
+    fn resolve_host(&self, channel: Option<&ConnectionChannel>, host: &str, now: f64) -> Result<ClientFunctionHostTarget, ClientFunctionError>;
 
     /// The HTTP request of a request of a call on a connection
-    pub fn http_request(
-        self,
-        credentials: ConnectionCredentials<'_>,
+    fn http_request(
+        &self,
+        channel: Option<&ConnectionChannel>,
         request: &ClientFunctionRequest,
         now: f64,
     ) -> Result<HttpRequest, ClientFunctionError> {
-        http_request(request, &self.resolve_host(credentials, &request.host, now)?)
+        http_request(request, &self.resolve_host(channel, &request.host, now)?)
     }
+}
+
+/// The binding of the client functions of a connector, none if its connections have none
+pub fn client_function_binding(connector: ConnectorType) -> Option<&'static dyn ClientFunctionBinding> {
+    connector.connector().client_functions()
+}
+
+/// The extension of a binding, which tells bindings apart
+fn extension_of(binding: Option<&'static dyn ClientFunctionBinding>) -> Option<&'static str> {
+    binding.map(|binding| binding.extension())
 }
 
 /// What the host does for the client functions of connections
@@ -104,7 +73,7 @@ struct Registration {
     /// The catalog of the connection
     catalog: Weak<RefCell<Catalog>>,
     /// The binding
-    binding: ClientFunctionBinding,
+    binding: &'static dyn ClientFunctionBinding,
     /// The namespace, none while the spec loads
     namespace: Option<Arc<str>>,
     /// The spec as the runtime reads it, once it's registered
@@ -139,9 +108,9 @@ impl ClientFunctionRegistrations {
     pub fn ensure_of(&mut self, connection_id: &str, connection: Option<&ConnectionState>) -> Vec<ClientFunctionRegistryEffect> {
         let Some(connection) = connection else { return Vec::new() };
         let connection_id = connection_id.to_string();
-        let binding = ClientFunctionBinding::of_connector(connection.connector_type());
+        let binding = client_function_binding(connection.connector_type());
         let registered = self.registration(&connection_id, connection).map(|r| (r.binding, r.namespace.clone()));
-        if registered.as_ref().map(|(binding, _)| *binding) == binding {
+        if registered.as_ref().map(|(binding, _)| binding.extension()) == extension_of(binding) {
             return Vec::new();
         }
         let mut effects = Vec::new();
@@ -240,7 +209,7 @@ pub enum ConnectionCallStart {
     /// `EXPLAIN` finished, it sends nothing
     Explained(ClientFunctionResult),
     /// The call runs, the step says what the host does first
-    Running { binding: ClientFunctionBinding, run: ClientFunctionCallRun, step: CallStep },
+    Running { binding: &'static dyn ClientFunctionBinding, run: ClientFunctionCallRun, step: CallStep },
 }
 
 /// Start a client function call of a connection with the spec of its connector. A run hands its rows over page by page,
@@ -252,7 +221,7 @@ pub fn start_connection_client_function(
     now: f64,
 ) -> Result<ConnectionCallStart, ClientFunctionError> {
     let name = connector.connector().display_name();
-    let Some(binding) = ClientFunctionBinding::of_connector(connector) else {
+    let Some(binding) = client_function_binding(connector) else {
         return Err(ClientFunctionError::new(format!("{name} connections have no client functions")));
     };
     if spec.namespace != description.namespace {

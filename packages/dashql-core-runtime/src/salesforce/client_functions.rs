@@ -5,6 +5,8 @@
 //! until a check on an org settles it.
 
 use crate::clfn::request::{ClientFunctionHostTarget, ClientFunctionVariables};
+use crate::clfn::ClientFunctionBinding;
+use crate::connections::ConnectionChannel;
 use crate::clfn::time::parse_iso_ms;
 use crate::http::Url;
 use crate::clfn::ClientFunctionError;
@@ -56,5 +58,28 @@ pub fn resolve_salesforce_client_function_host(
             target(Some(&data_cloud.instance_url), Some(&data_cloud.jwt.raw), host)
         }
         _ => Err(ClientFunctionError::new(format!("Salesforce connections have no host {host}"))),
+    }
+}
+
+/// The client functions of Salesforce Data Cloud: the Data 360 API
+#[derive(Debug)]
+pub struct Data360Binding;
+
+/// The Data 360 binding
+pub static DATA_360: Data360Binding = Data360Binding;
+
+impl ClientFunctionBinding for Data360Binding {
+    fn extension(&self) -> &'static str {
+        DATA_360_EXTENSION
+    }
+
+    fn variables(&self) -> ClientFunctionVariables {
+        salesforce_client_function_variables()
+    }
+
+    /// The tokens of the Salesforce channel, none without a channel
+    fn resolve_host(&self, channel: Option<&ConnectionChannel>, host: &str, now: f64) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
+        let tokens = channel.and_then(ConnectionChannel::salesforce).map(|channel| channel.tokens());
+        resolve_salesforce_client_function_host(tokens.as_ref(), host, now)
     }
 }

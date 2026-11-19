@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use crate::catalog_loader::hyper::HyperCatalogUpdate;
 use crate::catalog_loader::salesforce::SalesforceCatalogUpdate;
 use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
+use crate::clfn::ClientFunctionBinding;
 use crate::connections::connector::Connector;
 use crate::connections::{
     Timestamp, RelationName, object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
@@ -100,6 +101,11 @@ impl Connector for SalesforceConnector {
         } else {
             Box::new(SalesforceCatalogUpdate::new(details, entries))
         }
+    }
+
+    /// Data Cloud has the Data 360 API. It isn't known whether Database.com has it.
+    fn client_functions(&self) -> Option<&'static dyn ClientFunctionBinding> {
+        (!self.is_dbcom()).then_some(&crate::salesforce::client_functions::DATA_360 as &'static dyn ClientFunctionBinding)
     }
 
     fn cache_signature(&self, params: &JsonObject) -> Value {

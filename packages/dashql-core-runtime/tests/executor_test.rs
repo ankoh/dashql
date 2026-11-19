@@ -1525,6 +1525,13 @@ fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
 
 // Client functions
 
+/// The channel of a Salesforce connection with the tokens
+fn salesforce_channel() -> dashql_core_runtime::connections::ConnectionChannel {
+    let params = dashql_core_runtime::salesforce::SalesforceConnectionParams::default();
+    let channel = dashql_core_runtime::salesforce::SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, salesforce_tokens());
+    dashql_core_runtime::connections::ConnectionChannel::Salesforce(channel.unwrap())
+}
+
 fn salesforce_tokens() -> SalesforceTokens {
     SalesforceTokens {
         core: serde_json::from_value(json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" })).unwrap(),
@@ -1564,7 +1571,7 @@ fn a_client_function_call_asks_the_service() {
         connector: ConnectorType::SalesforceDataCloud,
         spec: Some(segment_spec()),
         description: segment_call(),
-        tokens: Some(salesforce_tokens()),
+        channel: Some(salesforce_channel()),
     };
     let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
     assert_eq!(resolved(&outcome), Some(true));
@@ -1595,7 +1602,7 @@ fn a_client_function_call_hands_over_a_page_at_a_time() {
         connector: ConnectorType::SalesforceDataCloud,
         spec: Some(Rc::new(ClientFunctionSpec::from_value(spec).unwrap())),
         description,
-        tokens: Some(salesforce_tokens()),
+        channel: Some(salesforce_channel()),
     };
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
@@ -1614,7 +1621,7 @@ fn a_client_function_call_fails_with_the_service_or_without_a_binding() {
         connector: ConnectorType::SalesforceDataCloud,
         spec: Some(segment_spec()),
         description: segment_call(),
-        tokens: Some(salesforce_tokens()),
+        channel: Some(salesforce_channel()),
     };
     let mut query = request(1, QueryTarget::ClientFunction(target.clone()));
     query.throw_on_error = true;
@@ -1637,7 +1644,7 @@ fn a_client_function_call_stops_its_request_when_cancelled() {
         connector: ConnectorType::SalesforceDataCloud,
         spec: Some(segment_spec()),
         description: segment_call(),
-        tokens: Some(salesforce_tokens()),
+        channel: Some(salesforce_channel()),
     };
     let query = request(1, QueryTarget::ClientFunction(target));
     let run = query.run.clone();

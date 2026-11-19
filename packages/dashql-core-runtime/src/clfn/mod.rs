@@ -19,7 +19,7 @@ use std::fmt;
 
 pub use connection::{
     start_connection_client_function, ClientFunctionBinding, ClientFunctionRegistrations, ClientFunctionRegistryEffect,
-    ConnectionCallStart, ConnectionCredentials,
+    ConnectionCallStart, client_function_binding,
 };
 pub use crate::http::{HttpRequest, HttpResponse};
 pub use request::{

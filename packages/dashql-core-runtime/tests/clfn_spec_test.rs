@@ -243,6 +243,11 @@ fn d360(name: &str, options: Value, explain: bool) -> ClientFunctionCallDescript
 /// Run a call of a Salesforce connection whose service answers with a body
 fn execute(description: &ClientFunctionCallDescription, tokens: Option<&SalesforceTokens>, body: Value) -> Result<(ClientFunctionResult, Vec<HttpRequest>), ClientFunctionError> {
     let mut sent = Vec::new();
+    let channel = tokens.map(|tokens| {
+        let params = dashql_core_runtime::salesforce::SalesforceConnectionParams::default();
+        let channel = dashql_core_runtime::salesforce::SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, tokens.clone());
+        dashql_core_runtime::connections::ConnectionChannel::Salesforce(channel.expect("a channel"))
+    });
     match start_connection_client_function(ConnectorType::SalesforceDataCloud, spec(), description, NOW)? {
         ConnectionCallStart::Explained(result) => Ok((result, sent)),
         ConnectionCallStart::Running { binding, mut run, mut step } => {
@@ -253,7 +258,7 @@ fn execute(description: &ClientFunctionCallDescription, tokens: Option<&Salesfor
                 }
                 step = match step {
                     CallStep::Send(request) => {
-                        sent.push(binding.http_request(ConnectionCredentials::Salesforce(tokens), &request, NOW)?);
+                        sent.push(binding.http_request(channel.as_ref(), &request, NOW)?);
                         run.on_response(HttpResponse::new(200, body.to_string()), NOW)?
                     }
                     CallStep::Sleep { .. } => panic!("no wait"),

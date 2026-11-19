@@ -167,8 +167,11 @@ marks are `runtime/changes.rs`.
   of the connector (`hyper::connector`, `trino::connector`, `salesforce::connector`). It holds the params key, the
   display name, the features, the default params and their draft rows, the probe of the health check, the queries
   that run at once, whether the catalog outlives the app, the params that sharing keeps, the login hint, the parts of
-  a label, the names of unqualified relations, the signature of cached results and the update of the catalog. A new
-  decision of a connector is a method of the trait, not another match.
+  a label, the names of unqualified relations, the signature of cached results, the update of the catalog and the
+  binding of its client functions (`ClientFunctionBinding`, Data 360 on Salesforce Data Cloud). A call hands the
+  binding the channel of its connection, which holds the credentials. A new decision of a connector is a method of
+  the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
+  return `impl Future` and are no trait objects, and the bindings pick the connectors of a module.
 - **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,

@@ -42,13 +42,12 @@ use std::rc::Rc;
 use dashql_buffers::profile::ProfileLayoutConfig;
 
 use crate::clfn::{ClientFunctionCallDescription, ClientFunctionError, ClientFunctionSpec};
-use crate::connections::{ConnectorType, DetailedError};
+use crate::connections::{ConnectionChannel, ConnectorType, DetailedError};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{HostError, LogLevel};
 use crate::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
 use crate::hyper::{HyperError, HyperHttpChannel};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
-use crate::salesforce::SalesforceTokens;
 use crate::trino::{NoTimeZones, SharedTrinoChannel, TimeZoneOffsets, TrinoError};
 pub use wait::QueryControls;
 
@@ -79,8 +78,8 @@ pub struct ClientFunctionTarget {
     pub spec: Option<Rc<ClientFunctionSpec>>,
     /// The call as the core describes it
     pub description: ClientFunctionCallDescription,
-    /// The tokens of a Salesforce connection, none without a channel
-    pub tokens: Option<SalesforceTokens>,
+    /// The channel of the connection that holds the credentials of the calls, none without one
+    pub channel: Option<ConnectionChannel>,
 }
 
 /// Where a query runs

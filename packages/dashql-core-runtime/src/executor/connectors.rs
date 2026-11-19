@@ -21,7 +21,7 @@ use super::{
     QueryTarget, LOG_TARGET,
 };
 use crate::clfn::{
-    start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart, ConnectionCredentials,
+    start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart,
 };
 use crate::connections::DetailedError;
 use crate::host::signal::Receiver;
@@ -571,8 +571,7 @@ async fn run_client_function<H: ExecutorHost>(
             }
             step = match step {
                 CallStep::Send(request) => {
-                    let credentials = ConnectionCredentials::Salesforce(target.tokens.as_ref());
-                    let http = binding.http_request(credentials, &request, host.now())?;
+                    let http = binding.http_request(target.channel.as_ref(), &request, host.now())?;
                     context.metrics.total_query_requests_started += 1;
                     let started_at = host.now();
                     let response = match context.token.run(host.fetch(http, &context.token)).await {

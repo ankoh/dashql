@@ -13,6 +13,7 @@ use super::details::{CatalogNameDefaults, ConnectionDetails, Timestamp};
 use super::params::{ConnectorFeatures, ConnectorType, JsonObject};
 use super::RelationName;
 use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
+use crate::clfn::ClientFunctionBinding;
 
 /// A connector of the runtime
 pub trait Connector: Sync {
@@ -83,6 +84,11 @@ pub trait Connector: Sync {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Box<dyn ConnectorCatalogUpdate>;
+
+    /// The client functions of the connections, none if they have none
+    fn client_functions(&self) -> Option<&'static dyn ClientFunctionBinding> {
+        None
+    }
 
     /// The params that identify the results of queries, the key of the query result cache depends on them
     fn cache_signature(&self, params: &JsonObject) -> Value;
