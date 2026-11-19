@@ -1,9 +1,9 @@
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLProcessorPlugin } from '../dashql_processor.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
-import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, type Position } from '../../views/completion_list/completion_list_view.js';
+import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, type Position } from './completion_list_view.js';
 
 
 // This file contains a CodeMirror plugin for showing the completion list of completion_list_view.ts.

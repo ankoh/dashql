@@ -3,10 +3,10 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { completionAtEnd, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
+import { completionAtEnd, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../../tests/mocks/editor_completion.js';
 import { DashQLCompletionListPlugin } from './dashql_completion_list.js';
-import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
-import * as styles from '../../views/completion_list/completion_list.module.css';
+import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from '../dashql_processor.js';
+import * as styles from './completion_list.module.css';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

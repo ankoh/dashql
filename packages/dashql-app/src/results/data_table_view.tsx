@@ -4,7 +4,7 @@ import type { ComputationView } from '@akohn/dashql';
 import { DataTable, TableColumnHeader, type DataTableProps } from '@akohn/dashql-react/components/data_table/data_table';
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 
-import { useAppConfig } from '../../config/app_config.js';
+import { useAppConfig } from '../config/app_config.js';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 
 type Props = Omit<DataTableProps, 'model' | 'cellDetail'> & {

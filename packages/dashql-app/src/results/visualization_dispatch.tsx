@@ -4,7 +4,7 @@ import type { QueryModel } from '@akohn/dashql-react/models/query_model';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { VisualizationDispatch as VisualizationDispatchView } from '@akohn/dashql-react/components/visualization/visualization_dispatch';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
-import { QueryResultView } from '../query_result/query_result_view.js';
+import { QueryResultView } from './query_result_view.js';
 
 // The visualization of a query in the app (VisualizationDispatch of @akohn/dashql-react): the result table of the app
 // for the table renderer

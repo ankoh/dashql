@@ -6,7 +6,7 @@ import { useComputeDatabase } from './compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../host/logger_provider.js';
-import { DataTableView } from '../views/query_result/data_table_view.js';
+import { DataTableView } from '../results/data_table_view.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 
 const LOG_CTX = 'connection_overview';

@@ -6,7 +6,7 @@ import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
+import { VisualizationPanel } from '../../results/visualization_panel.js';
 import { GraphPort } from '@akohn/dashql-react/components/graph_port';
 import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';

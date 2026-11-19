@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { acceptPendingDiff, DashQLDiffHintPlugin, rejectPendingDiff } from './dashql_diff_hint.js';
 import { DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
-import { type DashQLProcessorUpdateOut } from './dashql_completion_state.js';
+import { type DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

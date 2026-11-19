@@ -17,7 +17,7 @@ import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/scri
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
-import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
+import { ResultTableOverlay } from '../../results/result_table_overlay.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import {
     ScriptCard, type ScriptCardDisplay, type ScriptCardPosition, type ScriptEditorSlot, type ScriptFeedCommands,

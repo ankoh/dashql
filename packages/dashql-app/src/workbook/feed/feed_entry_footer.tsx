@@ -4,17 +4,17 @@ import * as styles from './feed_entry_footer.module.css';
 import icons from '@akohn/dashql-svg-symbols';
 
 import type { QueryModel } from '@akohn/dashql-react/models/query_model';
-import { QueryResultView } from '../../views/query_result/query_result_view.js';
+import { QueryResultView } from '../../results/query_result_view.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
+import { VisualizationDispatch } from '../../results/visualization_dispatch.js';
 import { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { TraceLogPanel } from '../trace_log_panel.js';
-import { QueryProgressPanel } from '../../views/query_progress/query_progress_panel.js';
+import { QueryProgressPanel } from '../../results/query_progress_panel.js';
 import { hasQueryProgress } from '@akohn/dashql-react/components/query_progress/query_progress_panel';
 import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/tab_header';
 import { resultRowCount } from '@akohn/dashql-react/components/query_result/query_result_toolbar';
-import { QueryResultHeader } from '../../views/query_result/query_result_header.js';
+import { QueryResultHeader } from '../../results/query_result_header.js';
 import { ChartDownloadButton } from '@akohn/dashql-react/components/visualization/chart_download_button';
 
 const FEED_LIMIT_RESULT_ROWS = 6;

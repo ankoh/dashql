@@ -2,7 +2,7 @@ import * as dashql from '@akohn/dashql';
 
 import { detectFormats } from '@akohn/dashql-react/components/query_result/cell_detail_overlay';
 import { detectSqlText } from './cell_detail_overlay.js';
-import { projectSqlText } from '../../workbook/editor/readonly_sql_view.js';
+import { projectSqlText } from '../workbook/editor/readonly_sql_view.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

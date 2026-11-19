@@ -3,8 +3,8 @@ import * as dashql from '@akohn/dashql';
 import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
-import { computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './dashql_completion_state.js';
+import { computePatches, UpdatePatchStartingFrom } from './completion/dashql_completion_patches.js';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './completion/dashql_completion_state.js';
 import type { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;

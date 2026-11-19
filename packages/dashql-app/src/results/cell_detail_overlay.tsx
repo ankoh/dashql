@@ -7,10 +7,10 @@ import {
     type DetectSql,
     type SqlText,
 } from '@akohn/dashql-react/components/query_result/cell_detail_overlay';
-import { ReadonlySqlView, useProjectedSqlText } from '../../workbook/editor/readonly_sql_view.js';
-import { useDashQLCoreSetup } from '../../host/core_provider.js';
-import { useAppConfig } from '../../config/app_config.js';
-import { getKeywordCase } from '../../workbook/scripts/script_format.js';
+import { ReadonlySqlView, useProjectedSqlText } from '../workbook/editor/readonly_sql_view.js';
+import { useDashQLCoreSetup } from '../host/core_provider.js';
+import { useAppConfig } from '../config/app_config.js';
+import { getKeywordCase } from '../workbook/scripts/script_format.js';
 import { EngineProfileView } from '@akohn/dashql-react/components/query_profile/engine_profile_view';
 
 // The detail of a cell in the app (CellDetailOverlay of @akohn/dashql-react): the core of the app reads a value as

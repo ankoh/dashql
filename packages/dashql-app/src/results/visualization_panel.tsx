@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { QueryModel } from '@akohn/dashql-react/models/query_model';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { VisualizationPanel as VisualizationPanelView } from '@akohn/dashql-react/components/visualization/visualization_panel';
-import { QueryResultPanel } from '../query_result/query_result_header.js';
+import { QueryResultPanel } from './query_result_header.js';
 
 // The visualization panel of the app (VisualizationPanel of @akohn/dashql-react): the result panel of the app for the
 // table renderer

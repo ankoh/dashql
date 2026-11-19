@@ -1,7 +1,7 @@
 import * as dashql from '@akohn/dashql';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import { DashQLCompletionStatus, type DashQLCompletionState } from './dashql_completion_state.js';
+import { DashQLCompletionStatus, type DashQLCompletionState } from './completion/dashql_completion_state.js';
 import { QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID } from '../scripts/catalog_object_id.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, FOCUSED_COMPLETION, FOCUSED_EXPRESSION_ID, FOCUSED_TABLE_REF_ID, FocusType } from './semantic_focus.js';
 

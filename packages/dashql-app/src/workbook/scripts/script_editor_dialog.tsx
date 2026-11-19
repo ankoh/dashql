@@ -10,7 +10,7 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
-import { DashQLCompletionStatus } from '../editor/dashql_completion_state.js';
+import { DashQLCompletionStatus } from '../editor/completion/dashql_completion_state.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';

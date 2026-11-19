@@ -361,7 +361,7 @@ A description is rendered through text nodes, with `code` and `strong` elements 
 
 The list is as wide as its content. If that doesn't fit the window, the pane goes first, then the list moves left from the cursor.
 
-The view lives in `views/completion_list/completion_list_view.ts` and knows nothing about its host. The editor and the shell both show it.
+The view lives in `workbook/editor/completion/completion_list_view.ts` and knows nothing about its host. The editor and the shell both show it.
 
 ### The list in the shell
 

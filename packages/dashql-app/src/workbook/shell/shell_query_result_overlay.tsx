@@ -9,7 +9,7 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
-import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
+import { QueryResultDetails } from '../../results/query_result_details.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { useQueryProfile } from '@akohn/dashql-react/components/query_profile/engine_profile_view';

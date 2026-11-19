@@ -2,9 +2,9 @@ import type * as dashql from '@akohn/dashql';
 import { EditorState } from '@codemirror/state';
 import { expect } from 'vitest';
 
-import { computePatches } from '../../workbook/editor/dashql_completion_patches.js';
+import { computePatches } from '../../workbook/editor/completion/dashql_completion_patches.js';
 import { type DashQLProcessorUpdateIn } from '../../workbook/editor/dashql_processor.js';
-import { DashQLCompletionStatus } from '../../workbook/editor/dashql_completion_state.js';
+import { DashQLCompletionStatus } from '../../workbook/editor/completion/dashql_completion_state.js';
 
 /// The editor text of the completion of the tables `orders` of two databases
 export const ORDERS_COMPLETION_TEXT = 'select * from ord';

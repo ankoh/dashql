@@ -35,7 +35,7 @@ the core in about 0.16 s, Hyper with its startup in about 0.8 s.
 | Links use | `https://dashql.app/embed?…` | `https://hyperdb.sh/embed#…` |
 | For | anyone who wants to look at data: a schema, rows, a chart | people who write SQL: a script, its results, the plan |
 | Modes | data file, workbook | script |
-| Built from | `packages/dashql`, `views/query_result`, `views/visualization` (Vega-Lite) | the shell (`src/shell`, `src/shell_app`): terminal, file mounts, `#script=` sharing, plan and format dialogs |
+| Built from | `packages/dashql`, `results` (with Vega-Lite) | the shell (`src/shell`, `src/shell_app`): terminal, file mounts, `#script=` sharing, plan and format dialogs |
 
 Both domains serve the same Pages deployment, so `/embed` exists on both. The domain only tells people which product
 a link belongs to, the parameters pick the mode: `#script=` is the Hyper mode, anything else the DashQL mode.

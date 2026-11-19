@@ -4,19 +4,19 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import { LoggerProvider } from '../../host/logger_provider.js';
+import { LoggerProvider } from '../host/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { scriptResultOwner } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { StorageProvider } from '../../storage/storage_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
-import { TestRuntime } from '../../tests/test_runtime.js';
+import { TestRuntime } from '../tests/test_runtime.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
-import { resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { resultTableOf, WithResultTables } from '../tests/result_tables.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

@@ -2,8 +2,8 @@ import * as React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-import { QueryResultPanel } from '../../views/query_result/query_result_header.js';
-import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
+import { QueryResultPanel } from '../../results/query_result_header.js';
+import { VisualizationDispatch } from '../../results/visualization_dispatch.js';
 import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';

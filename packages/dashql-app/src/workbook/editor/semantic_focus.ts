@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import type { ScriptKey } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { VariantKind } from '@akohn/dashql/platform/utils/variant';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../scripts/catalog_object_id.js';
-import type { DashQLCompletionState } from './dashql_completion_state.js';
+import type { DashQLCompletionState } from './completion/dashql_completion_state.js';
 
 /// The semantic focus of an editor: the reference under its cursor or the object of its completion candidate, and the
 /// references of the script to the same catalog object. The editor of the selected script derives it.

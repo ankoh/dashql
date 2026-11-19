@@ -30,7 +30,7 @@ import { WorkbookShellPage, type WorkbookShellPageDependencies } from './workboo
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { queryModelOf } from '../../tests/result_tables.js';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
-import * as completionListStyles from '../../views/completion_list/completion_list.module.css';
+import * as completionListStyles from '../editor/completion/completion_list.module.css';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

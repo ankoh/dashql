@@ -3,13 +3,13 @@ import * as dashql from '@akohn/dashql';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { QueryResultActionMenu as QueryResultActionMenuView } from '@akohn/dashql-react/components/query_result/query_result_action_menu';
-import { useAppConfig } from '../../config/app_config.js';
+import { useAppConfig } from '../config/app_config.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useRuntime, useQueryResultTable } from '@akohn/dashql-react/hooks';
-import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../../workbook/scripts/script_format.js';
+import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../workbook/scripts/script_format.js';
 
 // The actions of a query result in the app (QueryResultActionMenu of @akohn/dashql-react): the script of the result in
 // the runtime, rewritten by the core with the formatting of the app

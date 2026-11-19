@@ -4,7 +4,7 @@ import { Tooltip, showTooltip } from '@codemirror/view';
 import { Transaction, StateField } from '@codemirror/state';
 
 import { DashQLProcessorPlugin } from './dashql_processor.js';
-import { DashQLCompletionStatus } from './dashql_completion_state.js';
+import { DashQLCompletionStatus } from './completion/dashql_completion_state.js';
 import { editorDiagnostics } from './dashql_script_references.js';
 
 interface CursorError {

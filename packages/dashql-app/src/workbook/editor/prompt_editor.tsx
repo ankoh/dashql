@@ -9,7 +9,7 @@ import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@
 import { CodeMirrorSearchExtensions } from './codemirror.js';
 import { DashQLExtensions, DashQLFocusCompletionEffect } from './dashql_extension.js';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
-import { DashQLProcessorUpdateOut } from './dashql_completion_state.js';
+import { DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 
 /// Callbacks of the prompt editor, read through a ref so the editor extensions are built only once.
 interface PromptEditorCallbacks {

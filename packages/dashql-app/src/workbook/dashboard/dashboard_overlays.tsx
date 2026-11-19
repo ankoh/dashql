@@ -6,7 +6,7 @@ import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
-import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
+import { ResultTableOverlay } from '../../results/result_table_overlay.js';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
