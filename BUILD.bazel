@@ -59,7 +59,3 @@ npm_link_package(
 )
 
 # The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
-npm_link_package(
-    name = "node_modules/@akohn/dashql-ui",
-    src = "//packages/dashql-ui:npm_package",
-)

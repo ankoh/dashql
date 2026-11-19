@@ -47,7 +47,6 @@ bazel build //...
 | `//packages/dashql-app:pages` | Web app bundle for Cloudflare Pages |
 | `//packages/dashql-app:reloc` | Web app bundle for native apps |
 | `//packages/dashql-org:pages_deploy` | Website and blog (dashql.org, Astro) for Cloudflare Pages |
-| `//packages/dashql-ui:npm_package` | `@akohn/dashql-ui`: tokens, fonts and the landing backdrop shared by the app and the website, a source package with nothing compiled |
 | `//packages/dashql:source_package` | `@akohn/dashql`, linked as `//:node_modules/@akohn/dashql`: the bindings of the core module (`src/core`), the `Runtime` facade over the runtime of the core module with its store and the adapters of its platform (`src/runtime`), and the platforms, storage, connector clients and channels, OAuth and the support of the command line tool (`src/platform`), shared by the app and the command line tool, a source package with nothing compiled and the generated Wasm, see `docs/design/dashql_runtime.md` |
 | `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@akohn/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@akohn/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
@@ -65,7 +64,7 @@ bazel build //...
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
-| `//packages/dashql-react:npm_package` | `@akohn/dashql-react`, linked as `//:node_modules/@akohn/dashql-react`: the hooks of the runtime and the models that components show, a source package on `@akohn/dashql` shared by the app and other hosts, see `docs/design/dashql_runtime.md` |
+| `//packages/dashql-react:npm_package` | `@akohn/dashql-react`, linked as `//:node_modules/@akohn/dashql-react`: the hooks of the runtime, the models that components show, the components, and the tokens, fonts and brand code shared with the website; a source package on `@akohn/dashql` with nothing compiled, see `docs/design/dashql_runtime.md` |
 | `//packages/dashql:bundle` | `dist/` of `@akohn/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
@@ -135,7 +134,6 @@ bazel test //...
 | `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
 | `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@akohn/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
 | `//packages/dashql-react:all` | Type check of `@akohn/dashql-react` against the sources of `@akohn/dashql`, and the boundary test of its imports (React, apache-arrow, `@akohn/dashql`, vitest in `src/testing/`) |
-| `//packages/dashql-ui:tsc_typecheck_test` | Type check of the shared UI package |
 | `//packages/dashql:tsc_typecheck_test` | Type check of `@akohn/dashql` against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
 | `//packages/dashql:tsc_typecheck_node_test` | Type check of the modules of Node in `src/runtime/node` and `src/platform/node` and their tests, with the types of Node |
@@ -294,7 +292,7 @@ bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql:tsc_typecheck_test //packages/dashql:tsc_typecheck_tests_test //packages/dashql:tsc_typecheck_node_test
 ```
 
-**Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@akohn/dashql-ui` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
+**Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@akohn/dashql-react` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
 
 ### Rust
 
@@ -368,7 +366,7 @@ bazel run //packages/dashql-native:dev
 
 Run the last two commands in separate terminals for Electron development.
 
-The dev servers of the app and the website read `packages/dashql-ui` from its sources, the dev server of the app reads
+The dev servers of the app and the website read `packages/dashql-react` from its sources, the dev server of the app reads
 `packages/dashql` from its sources too; an edit reaches the page without a build or a restart. The generated packages
 of the core module come from `bazel-bin/packages/dashql/dependencies`, which `bazel run //packages/dashql-app:dev`
 builds; the page reloads when a build replaces the Wasm.
@@ -383,8 +381,8 @@ bazel run //packages/dashql-org:dev
 Without a terminal, for example when an agent starts it, Astro runs the dev server in the background. Stop it with
 `node_modules/.bin/astro dev stop` in `packages/dashql-org`.
 
-Code and styles used by both the app and the website live in `packages/dashql-ui` and are imported as
-`@akohn/dashql-ui/...`. Move code there instead of copying it between the two.
+Code and styles used by both the app and the website live in `packages/dashql-react` and are imported as
+`@akohn/dashql-react/...`. Move code there instead of copying it between the two.
 
 `//packages/dashql-native:dev` defaults to `http://localhost:9002`; set
 `DASHQL_ELECTRON_RENDERER_URL` to use another loopback HTTP origin.

@@ -6,9 +6,9 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 // Bazel fills in the paths, they differ between the build in bazel-bin and the dev server in the source tree.
-// The package root of @akohn/dashql-ui, the code, tokens and fonts shared with the app. A source package: the dev server
-// reads packages/dashql-ui, Vite watches it and updates the page in place.
-const uiPath = resolve(process.cwd(), '__UI_PATH__');
+// The package root of @akohn/dashql-react, the tokens, fonts and brand code shared with the app. A source package: the
+// dev server reads packages/dashql-react, Vite watches it and updates the page in place.
+const reactPath = resolve(process.cwd(), '__REACT_PATH__');
 // The SVG symbols of the brand logos, generated from //packages/dashql-app:svg_logo_files
 const svgSymbolsPath = resolve(process.cwd(), '__SVG_SYMBOLS_PATH__');
 // The favicons of the app, //packages/dashql-app:favicons
@@ -22,9 +22,9 @@ function realpath(path: string): string {
     }
 }
 
-// The code blocks use the Xcode light theme of the app editor, the colors come from @akohn/dashql-ui.
+// The code blocks use the Xcode light theme of the app editor, the colors come from @akohn/dashql-react.
 // Node reads the palette when it evaluates the config, Vite has nothing to bundle there.
-const xcode = JSON.parse(readFileSync(join(uiPath, 'src/xcode_palettes.json'), 'utf8')).light;
+const xcode = JSON.parse(readFileSync(join(reactPath, 'src/theme/xcode_palettes.json'), 'utf8')).light;
 const xcodeLightTheme = {
     name: 'dashql-xcode-light',
     type: 'light',
@@ -59,7 +59,7 @@ export default defineConfig({
         server: {
             strictPort: true,
             fs: {
-                allow: [resolve(process.cwd(), '../..'), realpath(uiPath), realpath(dirname(svgSymbolsPath)), realpath(faviconsPath)],
+                allow: [resolve(process.cwd(), '../..'), realpath(reactPath), realpath(dirname(svgSymbolsPath)), realpath(faviconsPath)],
             },
         },
         build: {
@@ -72,8 +72,8 @@ export default defineConfig({
         },
         resolve: {
             alias: [
-                { find: /^@akohn\/dashql-ui\/((fonts|styles)\/.*\.css)$/, replacement: join(uiPath, '$1') },
-                { find: /^@akohn\/dashql-ui\/(.+)$/, replacement: join(uiPath, 'src/$1.ts') },
+                { find: /^@akohn\/dashql-react\/((fonts|styles)\/.*\.css)$/, replacement: join(reactPath, '$1') },
+                { find: /^@akohn\/dashql-react\/(.+)$/, replacement: join(reactPath, 'src/$1.ts') },
                 { find: /^@dashql\/svg-symbols$/, replacement: `${svgSymbolsPath}?url` },
                 { find: /^@dashql\/favicons\/(.*)$/, replacement: join(faviconsPath, '$1') },
             ],

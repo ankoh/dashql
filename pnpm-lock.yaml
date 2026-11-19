@@ -406,8 +406,6 @@ importers:
 
   packages/dashql-react: {}
 
-  packages/dashql-ui: {}
-
   packages/hyperdb-edge:
     devDependencies:
       '@anthropic-ai/claude-agent-sdk':

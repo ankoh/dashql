@@ -3,14 +3,15 @@ load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 
-# The DashQL runtime in React (docs/design/dashql_runtime.md): the hooks of the views, actions and commands of a runtime
-# and the models that components show, shared by the app (//packages/dashql-app) and other hosts of the runtime.
-# A source package, nothing is compiled: consumers bundle the TypeScript themselves. Linked as
-# //:node_modules/@akohn/dashql-react, the dev server of the app reads packages/dashql-react directly.
+# DashQL in React (docs/design/dashql_runtime.md): the hooks of the views, actions and commands of a runtime, the models
+# that components show, and the design tokens, fonts and brand code (styles/, fonts/, src/brand, src/theme) shared by the
+# app (//packages/dashql-app), the website (//packages/dashql-org) and other hosts of the runtime. A source package,
+# nothing is compiled: consumers bundle the TypeScript and the stylesheets themselves. Linked as
+# //:node_modules/@akohn/dashql-react, the dev servers read packages/dashql-react directly.
 
 package(default_visibility = ["//visibility:public"])
 
-_SOURCES = glob(["src/**/*.ts"])
+_SOURCES = glob(["src/**/*.json", "src/**/*.ts"])
 
 copy_to_bin(
     name = "typecheck_inputs",
@@ -52,7 +53,13 @@ js_test(
 npm_package(
     name = "npm_package",
     package = "@akohn/dashql-react",
-    srcs = ["package.json"] + _SOURCES,
+    srcs = ["package.json"] + _SOURCES + glob([
+        "fonts/*.css",
+        "fonts/*.ttf",
+        "fonts/*.txt",
+        "styles/*.css",
+        "styles/flavors/*.css",
+    ]),
     include_transitive_sources = False,
     include_transitive_types = False,
 )

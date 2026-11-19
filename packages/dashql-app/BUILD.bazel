@@ -99,7 +99,6 @@ genrule(
             -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__DASHQL_PATH__|../../node_modules/@akohn/dashql|g" \\
             -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@akohn/dashql/dependencies|g" \\
-            -e "s|__UI_PATH__|../../node_modules/@akohn/dashql-ui|g" \\
             -e "s|__REACT_PATH__|../../node_modules/@akohn/dashql-react|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
@@ -135,7 +134,6 @@ genrule(
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
             -e "s|__DASHQL_PATH__|../dashql|g" \
             -e "s|__DASHQL_GENERATED_PATH__|../../bazel-bin/packages/dashql/dependencies|g" \
-            -e "s|__UI_PATH__|../dashql-ui|g" \
             -e "s|__REACT_PATH__|../dashql-react|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
@@ -254,7 +252,6 @@ ts_project(
         "//:node_modules",
         "//:node_modules/@akohn/dashql",
         "//:node_modules/@akohn/dashql-react",
-        "//:node_modules/@akohn/dashql-ui",
     ],
     visibility = ["//visibility:public"],
 )
@@ -269,7 +266,6 @@ _vite_web_deps = [
     ":vite_config",
     "//:node_modules/@akohn/dashql",
     "//:node_modules/@akohn/dashql-react",
-    "//:node_modules/@akohn/dashql-ui",
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_svg_symbols",

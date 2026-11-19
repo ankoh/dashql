@@ -10,7 +10,7 @@ import './vegalite_tooltip.css';
 export type { ChartColors };
 
 /// The categorical colors of series in the order they are assigned, as chart color tokens of the app.
-/// The tokens default to the base colors in @akohn/dashql-ui/styles/tokens.css, flavors override them.
+/// The tokens default to the base colors in @akohn/dashql-react/styles/tokens.css, flavors override them.
 /// The default order is validated: adjacent colors stay apart for color-blind readers (CVD ΔE >= 16).
 export const CATEGORICAL_COLOR_TOKENS = [
     '--chart_color_1',

@@ -24,7 +24,7 @@ export interface ChartColors {
     surface: string;
 }
 
-/// The light colors of the theme, the base colors of @akohn/dashql-ui/styles/tokens.css. The app resolves the tokens
+/// The light colors of the theme, the base colors of @akohn/dashql-react/styles/tokens.css. The app resolves the tokens
 /// of its flavor and falls back to these, images of charts take them in both color schemes.
 /// The order of the categorical colors is validated: adjacent colors stay apart for color-blind readers (CVD ΔE >= 16).
 export const LIGHT_CHART_COLORS: ChartColors = {

@@ -1,4 +1,4 @@
-/* Theme tokens of the Database.com flavor ("Petrol"), overriding the semantic tokens of @akohn/dashql-ui/styles/tokens.css.
+/* Theme tokens of the Database.com flavor ("Petrol"), overriding the semantic tokens of @akohn/dashql-react/styles/tokens.css.
    The backdrop is a dark Petrol, the greys of the pages carry a faint Petrol tint and the paper is Salt.
    Verdigris is the accent on light surfaces, Lagoon the accent on dark ones. */
 :root[data-flavor="dbcom"] {

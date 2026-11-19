@@ -1,11 +1,13 @@
 {
   "name": "@akohn/dashql-react",
   "version": "0.0.0",
-  "description": "The DashQL runtime in React: the hooks of its views, actions and commands, and the models that components show. A source package on @akohn/dashql, React comes from the host",
+  "description": "DashQL in React: the hooks of the runtime, the models that components show, the components, and the design tokens, fonts and brand code shared by the app and the website. A source package on @akohn/dashql, React comes from the host",
   "private": true,
   "type": "module",
   "license": "MPL-2.0",
   "exports": {
+    "./fonts/*.css": "./fonts/*.css",
+    "./styles/*.css": "./styles/*.css",
     "./*": "./src/*.ts"
   }
 }

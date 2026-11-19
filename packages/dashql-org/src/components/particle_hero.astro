@@ -12,8 +12,8 @@ import styles from './particle_hero.module.css';
 </section>
 
 <script>
-    import { DASHQL_BRAND, OMEN_BRAND } from '@akohn/dashql-ui/wobble_morph';
-    import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@akohn/dashql-ui/landing_backdrop';
+    import { DASHQL_BRAND, OMEN_BRAND } from '@akohn/dashql-react/brand/wobble_morph';
+    import { DEFAULT_LANDING_BACKDROP, attachLandingBackdrop, type LandingBackdrop } from '@akohn/dashql-react/brand/landing_backdrop';
 
     // `?morsmordre=true` shows the omen mark instead of the brand mark
     const brand = new URLSearchParams(window.location.search).get('morsmordre') === 'true' ? OMEN_BRAND : DASHQL_BRAND;

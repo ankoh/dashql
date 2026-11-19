@@ -1,8 +1,8 @@
 import coreWasmUrl from '@akohn/dashql/wasm?url';
 // Tests that measure text need the fonts and the tokens of the app, the default font of the browser has other widths
-import '@akohn/dashql-ui/fonts/fonts.css';
-import '@akohn/dashql-ui/styles/colors.css';
-import '@akohn/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-react/fonts/fonts.css';
+import '@akohn/dashql-react/styles/colors.css';
+import '@akohn/dashql-react/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
 import '../connections/bundled_clfn_specs.js';
 import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@akohn/dashql/platform/opfs_root';

@@ -23,9 +23,9 @@ import hyperWorkerUrl from '@dashql/hyperdb-wasm-worker?url';
 // eslint-disable-next-line import/no-unresolved -- package asset resolved by Bazel/Vite alias
 import hyperWasmUrl from '@dashql/hyperdb-wasm?url';
 
-import '@akohn/dashql-ui/fonts/fonts.css';
-import '@akohn/dashql-ui/styles/colors.css';
-import '@akohn/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-react/fonts/fonts.css';
+import '@akohn/dashql-react/styles/colors.css';
+import '@akohn/dashql-react/styles/tokens.css';
 import './embed.css';
 
 const QUERY = 'select count(*) as n, sum(v) as total from generate_series(1, 5000000) as s(v)';

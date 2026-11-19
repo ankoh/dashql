@@ -39,11 +39,11 @@ import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../platf
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
 
-import '@akohn/dashql-ui/fonts/fonts.css';
-import '@akohn/dashql-ui/styles/colors.css';
-import '@akohn/dashql-ui/styles/tokens.css';
+import '@akohn/dashql-react/fonts/fonts.css';
+import '@akohn/dashql-react/styles/colors.css';
+import '@akohn/dashql-react/styles/tokens.css';
 import '../styles/globals.css';
-import '@akohn/dashql-ui/styles/flavors/dbcom.css';
+import '@akohn/dashql-react/styles/flavors/dbcom.css';
 import '../connections/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';

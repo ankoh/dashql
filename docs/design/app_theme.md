@@ -7,21 +7,21 @@ scheme without reloading, and no component knows which one is shown.
 ## Layers
 
 ```text
-packages/dashql-ui/styles/colors.css     palette: neutral_0..9 and neutral_dark_0..3, blue/green/yellow/orange/red/purple/pink/coral _0.._9
+packages/dashql-react/styles/colors.css     palette: neutral_0..9 and neutral_dark_0..3, blue/green/yellow/orange/red/purple/pink/coral _0.._9
         │ only the theme and the flavors pick from it
         ▼
-packages/dashql-ui/styles/tokens.css     theme: --color_*, --chrome_*, --shadow_*, --stage_*, --chart_color_*, --code_*,
+packages/dashql-react/styles/tokens.css     theme: --color_*, --chrome_*, --shadow_*, --stage_*, --chart_color_*, --code_*,
         │                                       --agent_*, each light-dark(<light>, <dark>)
         │ flavors override theme tokens, never the palette
         ▼
-packages/dashql-ui/styles/flavors/<id>.css
+packages/dashql-react/styles/flavors/<id>.css
                                          :root[data-flavor="<id>"] { --color_...: light-dark(...) }
         │
         ▼
 *.module.css, editor themes, charts      use theme tokens only
 ```
 
-Every color value of the app lives in `packages/dashql-ui/styles`: the palette, the theme and the flavors. The app only
+Every color value of the app lives in `packages/dashql-react/styles`: the palette, the theme and the flavors. The app only
 uses tokens. A flavor's identity (name, logos, settings) stays in the app (`src/config/flavors.ts`), which sets
 `data-flavor` on the root and imports the stylesheets of the flavors.
 
@@ -52,7 +52,7 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Stage | `--stage_background` and its parts | The backdrop of pages with a lot of empty space |
 | Shell | `--shell_bg`, `--shell_header_bg`, `--shell_divider`, `--shell_edge`, `--shell_hover`, `--shell_focus`, `--shell_fg`, `--shell_fg_muted`, `--shell_fg_subtle` | The terminal on the dark backdrop, the same in both schemes |
 | Charts | `--chart_color_1..8` | Categorical series, the first one is a single series |
-| Code | `--code_*` | The editors and code views, the Xcode palettes of `@akohn/dashql-ui/xcode_palette` |
+| Code | `--code_*` | The editors and code views, the Xcode palettes of `@akohn/dashql-react/theme/xcode_palette` |
 | Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text`, `--agent_fg` | The agent, Wobble and its question |
 
 Translucent derivations of a token are fine where no token fits, e.g. `color-mix(in srgb, var(--color_success_fg) 18%,
