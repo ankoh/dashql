@@ -84,7 +84,7 @@ describe('HttpRequestViewer', () => {
 
     const rows = () => [...container.querySelectorAll<HTMLElement>('[data-testid="http-request-row"]')];
     const cells = (row: HTMLElement) => [...row.firstElementChild!.children].slice(0, 5).map(cell => cell.textContent);
-    const selected = () => rows().findIndex(row => row.classList.contains(styles.request_row_selected));
+    const selected = () => rows().findIndex(row => row.hasAttribute('data-selected'));
     const button = (label: string) => document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
     const key = (k: string) => act(() => {
         document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));

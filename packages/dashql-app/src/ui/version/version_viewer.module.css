@@ -24,40 +24,6 @@
     color: var(--color_fg_muted);
 }
 
-.header_container {
-    grid-row: 1;
-    width: 100%;
-
-    display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: max-content auto max-content;
-
-    border-bottom: 1px solid var(--color_border);
-    border-top-right-radius: var(--border_radius);
-    border-top-left-radius: var(--border_radius);
-}
-
-.header_left_container {
-    grid-column: 1;
-    margin-left: 16px;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 8px;
-}
-
-.header_right_container {
-    grid-column: 3;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 8px;
-    padding: 0px 8px;
-    overflow: hidden;
-}
-
 .title {
     font-size: 0.95rem;
 }
@@ -77,6 +43,7 @@
     justify-content: start;
     align-items: center;
 }
+
 .version_info_value {
     grid-column: 2;
     display: flex;
@@ -84,6 +51,7 @@
     align-items: center;
     column-gap: 8px;
 }
+
 .version_info_up_to_date {
     font-size: 0.7rem;
     padding: 1px 6px;
@@ -91,7 +59,6 @@
     color: var(--color_fg_muted);
     background-color: var(--color_bg_subtle);
 }
-
 
 .update_channels_container {
     border-top: 1px solid var(--color_border);
@@ -101,9 +68,11 @@
     flex-direction: column;
     row-gap: 8px;
 }
+
 .update_channels_title {
     font-weight: 500;
 }
+
 .update_channel_list {
     display: grid;
     grid-template-rows: 32px 32px;
@@ -113,6 +82,7 @@
     row-gap: 8px;
     margin-left: 8px;
 }
+
 .update_channel_version {
     grid-column: 1;
     justify-self: start;
@@ -122,14 +92,18 @@
     align-items: center;
     justify-content: center;
 }
+
 .update_channel_version_name {
 }
+
 .update_channel_version_icon {
 }
+
 .update_channel_name {
     grid-column: 2;
     justify-self: start;
 }
+
 .update_channel_action {
     grid-column: 3;
     justify-self: end;
@@ -140,11 +114,10 @@
     align-items: center;
     justify-content: center;
 }
+
 .update_channel_action_status {
 }
-.update_channel_action_status_disabled {
-    margin-right: 2px;
-}
+
 .update_channel_action_progress {
     width: 64px;
 }
@@ -159,6 +132,7 @@
     display: inline-flex;
     flex-direction: row;
 }
+
 .version_check_container_with_indicator {
     position: relative;
     display: inline-flex;

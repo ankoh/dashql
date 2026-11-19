@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './log_viewer.module.css';
+import { InspectorDetail } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 
@@ -43,23 +43,18 @@ export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
             align={props.align ?? AnchorAlignment.End}
             side={props.side ?? AnchorSide.OutsideLeft}
         >
-            <div className={styles.json_modal}>
-                <div className={styles.json_modal_main}>
-                    <div className={styles.json_modal_content}>
-                        {props.record && <JsonView value={props.record as object} variant="explorer" beforeCopy={beforeCopy} />}
-                    </div>
-                </div>
-                <div className={styles.json_modal_sidebar}>
-                    <div className={styles.json_modal_sidebar_top}>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Close"
-                            onClick={props.onClose}
-                        >
-                            <XIcon />
-                        </IconButton>
-                    </div>
-                    <div className={styles.json_modal_sidebar_bottom}>
+            <InspectorDetail
+                sidebarTop={(
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        aria-label="Close"
+                        onClick={props.onClose}
+                    >
+                        <XIcon />
+                    </IconButton>
+                )}
+                sidebarBottom={(
+                    <>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Previous log"
@@ -76,9 +71,11 @@ export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
                         >
                             <ChevronDownIcon />
                         </IconButton>
-                    </div>
-                </div>
-            </div>
+                    </>
+                )}
+            >
+                {props.record && <JsonView value={props.record as object} variant="explorer" beforeCopy={beforeCopy} />}
+            </InspectorDetail>
         </AnchoredOverlay>
     );
 };

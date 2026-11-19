@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './query_cache_view.module.css';
+import { InspectorEmpty, InspectorOverlay, inspectorRowClassName } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
@@ -36,7 +37,7 @@ export const QueryCacheRow = (props: RowComponentProps<QueryCacheRowProps>) => {
 
     const hash = entry.key;
     return (
-        <div className={styles.stat_row} style={props.style}>
+        <div className={inspectorRowClassName(false)} style={props.style}>
             <div className={styles.stat_row_main}>
                 <div className={styles.stat_cell_hash} title={hash}>
                     {hash}
@@ -145,17 +146,19 @@ export function QueryCacheView(props: { onClose: () => void; }) {
     }), [entries, deleteEntry]);
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.header_container}>
-                <div className={styles.header_left_container}>
-                    <div className={styles.title}>Cache</div>
+        <InspectorOverlay
+            title="Cache"
+            status={(
+                <>
                     {entries.length > 0 && (
                         <div className={styles.summary}>
                             {entries.length} {entries.length === 1 ? 'entry' : 'entries'} · {formatBytes(totalBytes)}
                         </div>
                     )}
-                </div>
-                <div className={styles.header_right_container}>
+                </>
+            )}
+            actions={(
+                <>
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         aria-label="Refresh cache listing"
@@ -178,9 +181,9 @@ export function QueryCacheView(props: { onClose: () => void; }) {
                     >
                         <XIcon />
                     </IconButton>
-                </div>
-            </div>
-            <div className={styles.stat_header_row}>
+                </>
+            )}
+            columns={(
                 <div className={styles.stat_header_main}>
                     <div className={styles.stat_cell_hash}>Key</div>
                     <div className={styles.stat_cell_size}>Size</div>
@@ -188,27 +191,29 @@ export function QueryCacheView(props: { onClose: () => void; }) {
                     <div className={styles.stat_cell_accessed}>Accessed</div>
                     <div className={styles.stat_cell_actions} />
                 </div>
-            </div>
-            <div className={styles.stat_grid_container} ref={containerRef}>
-                {entries.length === 0 ? (
-                    <div className={styles.empty_state}>
-                        Nothing to see here
-                    </div>
-                ) : (
-                    <List
-                        listRef={setListApi}
-                        style={{ width: containerWidth, height: containerHeight }}
-                        rowCount={entries.length}
-                        rowHeight={ROW_HEIGHT}
-                        rowComponent={QueryCacheRow}
-                        rowProps={rowProps}
-                    />
-                )}
-                <VerticalScrollShadows
-                    getScrollElement={getScrollElement}
-                    refreshKey={entries.length}
+            )}
+            columnsClassName={styles.stat_list}
+            bodyClassName={styles.stat_list}
+            bodyRef={containerRef}
+        >
+            {entries.length === 0 ? (
+                <InspectorEmpty>
+                    Nothing to see here
+                </InspectorEmpty>
+            ) : (
+                <List
+                    listRef={setListApi}
+                    style={{ width: containerWidth, height: containerHeight }}
+                    rowCount={entries.length}
+                    rowHeight={ROW_HEIGHT}
+                    rowComponent={QueryCacheRow}
+                    rowProps={rowProps}
                 />
-            </div>
-        </div>
+            )}
+            <VerticalScrollShadows
+                getScrollElement={getScrollElement}
+                refreshKey={entries.length}
+            />
+        </InspectorOverlay>
     );
 }

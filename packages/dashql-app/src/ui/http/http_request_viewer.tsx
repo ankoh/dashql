@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './http_request_viewer.module.css';
+import { InspectorDetail, InspectorEmpty, InspectorOverlay, inspectorRowClassName } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { ListImperativeAPI, RowComponentProps } from 'react-window';
@@ -123,7 +124,8 @@ const RequestRow = (props: RowComponentProps<RequestRowProps>) => {
     const failed = entry.error != null || (entry.status != null && entry.status >= 400);
     return (
         <div
-            className={`${styles.request_row} ${props.index === selectedIndex ? styles.request_row_selected : ''}`}
+            className={inspectorRowClassName(props.index === selectedIndex)}
+            data-selected={props.index === selectedIndex || undefined}
             style={props.style}
             onClick={() => showDetail(props.index)}
             data-testid="http-request-row"
@@ -234,12 +236,10 @@ export function HttpRequestViewer(props: {
 
     return (
         <>
-            <div className={styles.overlay}>
-                <div className={styles.header_container}>
-                    <div className={styles.header_left_container}>
-                        <div className={styles.title}>Requests</div>
-                    </div>
-                    <div className={styles.header_right_container}>
+            <InspectorOverlay
+                title="Requests"
+                actions={(
+                    <>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Clear requests"
@@ -256,9 +256,9 @@ export function HttpRequestViewer(props: {
                         >
                             <XIcon />
                         </IconButton>
-                    </div>
-                </div>
-                <div className={styles.request_header_row}>
+                    </>
+                )}
+                columns={(
                     <div className={styles.request_row_main}>
                         <div className={styles.cell}>Time</div>
                         <div className={styles.cell}>Method</div>
@@ -266,26 +266,28 @@ export function HttpRequestViewer(props: {
                         <div className={`${styles.cell} ${styles.cell_duration}`}>Duration</div>
                         <div className={styles.cell}>URL</div>
                     </div>
-                </div>
-                <div className={styles.request_grid_container} ref={containerRef}>
-                    {entries.length === 0 ? (
-                        <div className={styles.empty_state}>Nothing to see here</div>
-                    ) : (
-                        <ListComponent
-                            listRef={setListApi}
-                            style={{ width: containerWidth, height: containerHeight }}
-                            rowCount={entries.length}
-                            rowHeight={ROW_HEIGHT}
-                            rowComponent={RequestRow}
-                            rowProps={rowProps}
-                        />
-                    )}
-                    <VerticalScrollShadows
-                        getScrollElement={getScrollElement}
-                        refreshKey={entries.length}
+                )}
+                columnsClassName={styles.request_list}
+                bodyClassName={styles.request_list}
+                bodyRef={containerRef}
+            >
+                {entries.length === 0 ? (
+                    <InspectorEmpty>Nothing to see here</InspectorEmpty>
+                ) : (
+                    <ListComponent
+                        listRef={setListApi}
+                        style={{ width: containerWidth, height: containerHeight }}
+                        rowCount={entries.length}
+                        rowHeight={ROW_HEIGHT}
+                        rowComponent={RequestRow}
+                        rowProps={rowProps}
                     />
-                </div>
-            </div>
+                )}
+                <VerticalScrollShadows
+                    getScrollElement={getScrollElement}
+                    refreshKey={entries.length}
+                />
+            </InspectorOverlay>
             <AnchoredOverlay
                 renderAnchor={null}
                 anchorRef={containerRef}
@@ -296,14 +298,9 @@ export function HttpRequestViewer(props: {
                 align={AnchorAlignment.Start}
                 side={AnchorSide.OutsideLeft}
             >
-                <div className={styles.detail_modal}>
-                    <div className={styles.detail_modal_main}>
-                        <div className={styles.detail_modal_content}>
-                            {detailObject && <JsonView value={detailObject} />}
-                        </div>
-                    </div>
-                    <div className={styles.detail_modal_sidebar}>
-                        <div className={styles.detail_modal_sidebar_top}>
+                <InspectorDetail
+                    sidebarTop={(
+                        <>
                             <IconButton
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Close"
@@ -312,8 +309,10 @@ export function HttpRequestViewer(props: {
                                 <XIcon />
                             </IconButton>
                             {selectedEntry && <CopyCurlButton entry={selectedEntry} />}
-                        </div>
-                        <div className={styles.detail_modal_sidebar_bottom}>
+                        </>
+                    )}
+                    sidebarBottom={(
+                        <>
                             <IconButton
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Previous entry"
@@ -330,9 +329,11 @@ export function HttpRequestViewer(props: {
                             >
                                 <ChevronDownIcon />
                             </IconButton>
-                        </div>
-                    </div>
-                </div>
+                        </>
+                    )}
+                >
+                    {detailObject && <JsonView value={detailObject} />}
+                </InspectorDetail>
             </AnchoredOverlay>
         </>
     );

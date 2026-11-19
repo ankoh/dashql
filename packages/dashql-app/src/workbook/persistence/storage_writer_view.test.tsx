@@ -24,7 +24,6 @@ function ofWorkbook(workbookId: string, statistics: StorageWriteStatisticsMap): 
         .filter(([key]) => key.startsWith(`${workbookId}/`))
         .map(([key, statistics]) => ({ key, label: key.slice(workbookId.length + 1), statistics }));
 }
-import * as styles from './storage_writer_view.module.css';
 
 const OTHER_WORKBOOK_ID = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb';
 
@@ -74,7 +73,7 @@ describe('StorageWriterView', () => {
 
     const rows = () => [...container.querySelectorAll<HTMLElement>('[title]')].map(cell => cell.parentElement!.parentElement!);
     const keys = () => [...container.querySelectorAll('[title]')].map(cell => [cell.getAttribute('title'), cell.textContent]);
-    const selected = () => rows().findIndex(row => row.classList.contains(styles.stat_row_selected));
+    const selected = () => rows().findIndex(row => row.hasAttribute('data-selected'));
     const overlayButton = (label: string) => document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
     const key = (k: string) => act(() => {
         document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));

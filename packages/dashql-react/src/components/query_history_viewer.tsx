@@ -14,6 +14,7 @@ import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platfor
 import { observeSize } from './size_observer.js';
 import { useKeyEvents } from '../dom/key_events.js';
 import { VerticalScrollShadows } from './vertical_scroll_shadows.js';
+import { InspectorDetail, InspectorEmpty, InspectorOverlay, inspectorRowClassName } from './inspector_overlay.js';
 
 export const ROW_HEIGHT = 32;
 
@@ -106,15 +107,15 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
 
     return (
         <div
-            className={`${styles.query_row} ${isSelected ? styles.query_row_selected : ''}`}
+            className={inspectorRowClassName(isSelected)}
             style={props.style}
             onClick={() => showDetail(rowIndex)}
             data-testid="query-history-row"
         >
             <div className={styles.query_row_main}>
-                <div className={styles.query_cell_time}>{time}</div>
-                <div className={styles.query_cell_source}>{entry.sourceName}</div>
-                <div className={styles.query_cell_target}>{entry.target}</div>
+                <div className={styles.query_cell}>{time}</div>
+                <div className={styles.query_cell}>{entry.sourceName}</div>
+                <div className={styles.query_cell}>{entry.target}</div>
                 <div className={styles.query_cell_status}>{getStatusLabel(entry.query.status)}</div>
                 <div className={styles.query_cell_title} title={entry.query.queryMetadata.title ?? ''}>
                     {entry.query.queryMetadata.title ?? '—'}
@@ -211,34 +212,33 @@ export function QueryHistoryViewer(props: {
 
     return (
         <>
-            <div className={styles.overlay}>
-                <div className={styles.header_container}>
-                    <div className={styles.header_left_container}>
-                        <div className={styles.title}>Queries</div>
-                    </div>
-                    <div className={styles.header_right_container}>
-                        <IconButton
-                            ref={closeRef}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="close-overlay"
-                            onClick={props.onClose}
-                        >
-                            <XIcon />
-                        </IconButton>
-                    </div>
-                </div>
-                <div className={styles.query_header_row}>
+            <InspectorOverlay
+                title="Queries"
+                actions={(
+                    <IconButton
+                        ref={closeRef}
+                        variant={ButtonVariant.Invisible}
+                        aria-label="close-overlay"
+                        onClick={props.onClose}
+                    >
+                        <XIcon />
+                    </IconButton>
+                )}
+                columns={(
                     <div className={styles.query_header_main}>
-                        <div className={styles.query_header_time}>Time</div>
-                        <div className={styles.query_header_source}>Source</div>
-                        <div className={styles.query_header_target}>Target</div>
-                        <div className={styles.query_header_status}>Status</div>
-                        <div className={styles.query_header_title}>Title</div>
+                        <div className={styles.query_cell}>Time</div>
+                        <div className={styles.query_cell}>Source</div>
+                        <div className={styles.query_cell}>Target</div>
+                        <div className={styles.query_cell}>Status</div>
+                        <div className={styles.query_cell}>Title</div>
                     </div>
-                </div>
-                <div className={styles.query_grid_container} ref={containerRef}>
+                )}
+                columnsClassName={styles.query_list}
+                bodyClassName={styles.query_list}
+                bodyRef={containerRef}
+            >
                     {entries.length === 0 ? (
-                        <div className={styles.empty_state}>Nothing to see here</div>
+                        <InspectorEmpty>Nothing to see here</InspectorEmpty>
                     ) : (
                         <ListComponent
                             listRef={setListApi}
@@ -253,8 +253,7 @@ export function QueryHistoryViewer(props: {
                         getScrollElement={getScrollElement}
                         refreshKey={entries.length}
                     />
-                </div>
-            </div>
+            </InspectorOverlay>
             <AnchoredOverlay
                 renderAnchor={null}
                 anchorRef={containerRef}
@@ -265,23 +264,18 @@ export function QueryHistoryViewer(props: {
                 align={AnchorAlignment.Start}
                 side={AnchorSide.OutsideLeft}
             >
-                <div className={styles.detail_modal}>
-                    <div className={styles.detail_modal_main}>
-                        <div className={styles.detail_modal_content}>
-                            {modalObject && <JsonView value={modalObject} />}
-                        </div>
-                    </div>
-                    <div className={styles.detail_modal_sidebar}>
-                        <div className={styles.detail_modal_sidebar_top}>
-                            <IconButton
-                                variant={ButtonVariant.Invisible}
-                                aria-label="Close"
-                                onClick={closeModal}
-                            >
-                                <XIcon />
-                            </IconButton>
-                        </div>
-                        <div className={styles.detail_modal_sidebar_bottom}>
+                <InspectorDetail
+                    sidebarTop={(
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Close"
+                            onClick={closeModal}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    )}
+                    sidebarBottom={(
+                        <>
                             <IconButton
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Previous entry"
@@ -298,9 +292,11 @@ export function QueryHistoryViewer(props: {
                             >
                                 <ChevronDownIcon />
                             </IconButton>
-                        </div>
-                    </div>
-                </div>
+                        </>
+                    )}
+                >
+                    {modalObject && <JsonView value={modalObject} />}
+                </InspectorDetail>
             </AnchoredOverlay>
         </>
     );

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
+import { InspectorHeader } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { SyncIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
@@ -175,20 +176,21 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     if (versionCheck == VersionCheckStatusCode.RestartPending) {
         return (
             <div className={styles.restart_overlay}>
-                <div className={styles.header_container}>
-                    <div className={styles.header_left_container}>
-                        <div className={styles.title}>Update ready</div>
-                    </div>
-                    <div className={styles.header_right_container}>
-                        <IconButton
-                            variant={ButtonVariant.Invisible}
-                            aria-label="Close"
-                            onClick={props.onClose}
-                        >
-                            <XIcon />
-                        </IconButton>
-                    </div>
-                </div>
+                <InspectorHeader
+                    title="Update ready"
+                    titleClassName={styles.title}
+                    actions={(
+                        <>
+                            <IconButton
+                                variant={ButtonVariant.Invisible}
+                                aria-label="Close"
+                                onClick={props.onClose}
+                            >
+                                <XIcon />
+                            </IconButton>
+                        </>
+                    )}
+                />
                 <div className={styles.restart_body}>
                     <div className={styles.restart_text}>
                         A new version has been installed. Relaunch to apply the update.
@@ -208,21 +210,22 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
 
     return (
         <div className={styles.overlay}>
-            <div className={styles.header_container}>
-                <div className={styles.header_left_container}>
-                    <div className={styles.title}>Version</div>
-                </div>
-                <div className={styles.header_right_container}>
-                    <VersionRefreshButton onRefresh={props.onRefresh} />
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        aria-label="Close"
-                        onClick={props.onClose}
-                    >
-                        <XIcon />
-                    </IconButton>
-                </div>
-            </div>
+            <InspectorHeader
+                title="Version"
+                titleClassName={styles.title}
+                actions={(
+                    <>
+                        <VersionRefreshButton onRefresh={props.onRefresh} />
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Close"
+                            onClick={props.onClose}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    </>
+                )}
+            />
             <div className={styles.version_info_container}>
                 <div className={styles.version_info_key}>
                     Current Version

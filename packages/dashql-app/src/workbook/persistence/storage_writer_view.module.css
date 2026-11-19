@@ -2,49 +2,9 @@
     --stat_cell_height: 32px;
 }
 
-.overlay {
-    height: 100%;
-    display: grid;
-    grid-template-rows: 40px 32px 1fr;
-    position: relative;
-}
-
-.header_container {
-    grid-row: 1;
-    width: 100%;
-
-    display: grid;
-    grid-template-rows: 100%;
-    grid-template-columns: max-content auto max-content;
-
-    border-bottom: 1px solid var(--color_border);
-    border-top-right-radius: var(--border_radius);
-    border-top-left-radius: var(--border_radius);
-}
-
-.header_left_container {
-    grid-column: 1;
-    margin-left: 16px;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 8px;
-}
-
-.header_right_container {
-    grid-column: 3;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 8px;
-    padding: 0px 4px;
-    overflow: hidden;
-}
-
-.title {
-    font-size: var(--font_size_subtitle);
+/* The header row of the columns and the list, see inspector_overlay.module.css of @akohn/dashql-react */
+.stat_list {
+    font-size: var(--font_size_caption);
 }
 
 /* What holds the writes and the writes that failed, the writer retries them */
@@ -79,54 +39,6 @@
     column-gap: 8px;
 }
 
-/* Column header row */
-.stat_header_row {
-    grid-row: 2;
-    border-bottom: 1px solid var(--color_border);
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_caption);
-    font-weight: 500;
-    color: var(--color_fg_muted);
-}
-
-/* Virtual list container */
-.stat_grid_container {
-    grid-row: 3;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    border-radius: 0 0 var(--border_radius) var(--border_radius);
-    position: relative;
-
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_caption);
-}
-
-.empty_state {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color_fg_muted);
-    font-size: var(--font_size_body);
-}
-
-/* Row */
-.stat_row {
-    width: 100%;
-    cursor: pointer;
-    border-top: 1px solid var(--color_border);
-}
-
-.stat_row:first-child {
-    border-top: none;
-}
-
-.stat_row_selected {
-    background-color: var(--color_bg_selected);
-}
-
 /* Cells */
 .stat_cell_key {
     white-space: nowrap;
@@ -141,49 +53,4 @@
 .stat_cell_bytes {
     text-align: right;
     white-space: nowrap;
-}
-
-/* Detail modal — mirrors log_viewer.module.css .json_modal */
-.detail_modal {
-    display: grid;
-    grid-template-columns: 1fr max-content;
-}
-
-.detail_modal_main {
-    grid-column: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.detail_modal_sidebar {
-    grid-column: 2;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 40px;
-    border-left: 1px solid var(--color_border);
-    flex-shrink: 0;
-}
-
-.detail_modal_sidebar_top {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 4px;
-}
-
-.detail_modal_sidebar_bottom {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 4px;
-    gap: 4px;
-}
-
-.detail_modal_content {
-    padding: 0;
-    overflow: auto;
-    min-height: 0;
-    max-height: 400px;
 }

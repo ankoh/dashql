@@ -1,0 +1,137 @@
+/* The frame of an inspector: a header with the title and the controls, the header row of the columns, the list */
+.overlay {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 40px 1fr;
+    position: relative;
+}
+
+.overlay_with_columns {
+    grid-template-rows: 40px 32px 1fr;
+}
+
+.header {
+    width: 100%;
+
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: max-content auto max-content;
+
+    border-bottom: 1px solid var(--color_border);
+    border-top-right-radius: var(--border_radius);
+    border-top-left-radius: var(--border_radius);
+}
+
+.header_left {
+    grid-column: 1;
+    margin-left: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+}
+
+.header_right {
+    grid-column: 3;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+    padding: 0px 4px;
+    overflow: hidden;
+}
+
+.title {
+    font-size: var(--font_size_subtitle);
+}
+
+/* The header row of the columns, the font size is the one of the list */
+.columns {
+    border-bottom: 1px solid var(--color_border);
+    font-family: var(--font_family_mono);
+    font-weight: 500;
+    color: var(--color_fg_muted);
+}
+
+/* The list below, a virtual list fills it */
+.body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0 0 var(--border_radius) var(--border_radius);
+    position: relative;
+    font-family: var(--font_family_mono);
+}
+
+/* A row of the list, a click inspects it */
+.row {
+    width: 100%;
+    cursor: pointer;
+    border-top: 1px solid var(--color_border);
+}
+
+.row:first-child {
+    border-top: none;
+}
+
+.row_selected {
+    background-color: var(--color_bg_hover);
+}
+
+/* The list without rows */
+.empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_body);
+}
+
+/* The detail of a row: the content with a sidebar of controls on its right */
+.detail {
+    display: grid;
+    grid-template-columns: 1fr max-content;
+}
+
+.detail_main {
+    grid-column: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail_content {
+    padding: 0;
+    overflow: auto;
+    min-height: 0;
+    max-height: 400px;
+}
+
+.detail_sidebar {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 40px;
+    border-left: 1px solid var(--color_border);
+    flex-shrink: 0;
+}
+
+.detail_sidebar_top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+}
+
+.detail_sidebar_bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    gap: 4px;
+}

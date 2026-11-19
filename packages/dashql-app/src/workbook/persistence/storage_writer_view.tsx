@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './storage_writer_view.module.css';
+import { InspectorDetail, InspectorEmpty, InspectorOverlay, inspectorRowClassName } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
@@ -49,7 +50,8 @@ export const StorageWriterRow = (props: RowComponentProps<StorageWriterRowProps>
     const isSelected = rowIndex === selectedIndex;
     return (
         <div
-            className={`${styles.stat_row} ${isSelected ? styles.stat_row_selected : ''}`}
+            className={inspectorRowClassName(isSelected)}
+            data-selected={isSelected || undefined}
             style={props.style}
             onClick={() => showDetail(rowIndex)}
         >
@@ -197,10 +199,10 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
 
     return (
         <>
-            <div className={styles.overlay}>
-                <div className={styles.header_container}>
-                    <div className={styles.header_left_container}>
-                        <div className={styles.title}>Storage Writer</div>
+            <InspectorOverlay
+                title="Storage Writer"
+                status={(
+                    <>
                         {holds.length > 0 && <div className={styles.status_held}>Held: {holds.join(', ')}</div>}
                         {failed.length > 0 && (
                             <div className={styles.status_failed}>
@@ -217,8 +219,10 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                                 Discard
                             </Button>
                         )}
-                    </div>
-                    <div className={styles.header_right_container}>
+                    </>
+                )}
+                actions={(
+                    <>
                         <IconButton
                             ref={closeRef}
                             variant={ButtonVariant.Invisible}
@@ -227,9 +231,9 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                         >
                             <XIcon />
                         </IconButton>
-                    </div>
-                </div>
-                <div className={styles.stat_header_row}>
+                    </>
+                )}
+                columns={(
                     <div className={styles.stat_header_main}>
                         <div className={styles.stat_cell_key}>Key</div>
                         <div className={styles.stat_cell_tasks}>Tasks</div>
@@ -237,28 +241,30 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                         <div className={styles.stat_cell_time}>Time</div>
                         <div className={styles.stat_cell_bytes}>Bytes</div>
                     </div>
-                </div>
-                <div className={styles.stat_grid_container} ref={containerRef}>
-                    {entries.length === 0 ? (
-                        <div className={styles.empty_state}>
-                            {workbookId == null ? 'Select a workbook to see its storage writes' : 'Nothing to see here'}
-                        </div>
-                    ) : (
-                        <List
-                            listRef={setListApi}
-                            style={{ width: containerWidth, height: containerHeight }}
-                            rowCount={entries.length}
-                            rowHeight={ROW_HEIGHT}
-                            rowComponent={StorageWriterRow}
-                            rowProps={rowProps}
-                        />
-                    )}
-                    <VerticalScrollShadows
-                        getScrollElement={getScrollElement}
-                        refreshKey={entries.length}
+                )}
+                columnsClassName={styles.stat_list}
+                bodyClassName={styles.stat_list}
+                bodyRef={containerRef}
+            >
+                {entries.length === 0 ? (
+                    <InspectorEmpty>
+                        {workbookId == null ? 'Select a workbook to see its storage writes' : 'Nothing to see here'}
+                    </InspectorEmpty>
+                ) : (
+                    <List
+                        listRef={setListApi}
+                        style={{ width: containerWidth, height: containerHeight }}
+                        rowCount={entries.length}
+                        rowHeight={ROW_HEIGHT}
+                        rowComponent={StorageWriterRow}
+                        rowProps={rowProps}
                     />
-                </div>
-            </div>
+                )}
+                <VerticalScrollShadows
+                    getScrollElement={getScrollElement}
+                    refreshKey={entries.length}
+                />
+            </InspectorOverlay>
             <AnchoredOverlay
                 renderAnchor={null}
                 anchorRef={containerRef}
@@ -269,14 +275,9 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                 align={AnchorAlignment.Start}
                 side={AnchorSide.OutsideLeft}
             >
-                <div className={styles.detail_modal}>
-                    <div className={styles.detail_modal_main}>
-                        <div className={styles.detail_modal_content}>
-                            {modalObject && <JsonView value={modalObject} />}
-                        </div>
-                    </div>
-                    <div className={styles.detail_modal_sidebar}>
-                        <div className={styles.detail_modal_sidebar_top}>
+                <InspectorDetail
+                    sidebarTop={(
+                        <>
                             <IconButton
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Close"
@@ -284,8 +285,10 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                             >
                                 <XIcon />
                             </IconButton>
-                        </div>
-                        <div className={styles.detail_modal_sidebar_bottom}>
+                        </>
+                    )}
+                    sidebarBottom={(
+                        <>
                             <IconButton
                                 variant={ButtonVariant.Invisible}
                                 aria-label="Previous entry"
@@ -302,9 +305,11 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
                             >
                                 <ChevronDownIcon />
                             </IconButton>
-                        </div>
-                    </div>
-                </div>
+                        </>
+                    )}
+                >
+                    {modalObject && <JsonView value={modalObject} />}
+                </InspectorDetail>
             </AnchoredOverlay>
         </>
     );

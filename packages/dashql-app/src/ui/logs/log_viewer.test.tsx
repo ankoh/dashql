@@ -11,7 +11,6 @@ import { LoggerProvider, useLogger } from '../../platform/logger_provider.js';
 import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { LogViewer } from './log_viewer.js';
-import * as styles from './log_viewer.module.css';
 
 describe('LogViewer', () => {
     let container: HTMLDivElement;
@@ -112,7 +111,7 @@ describe('LogViewer', () => {
         act(() => rows()[1].click());
         expect(document.body.textContent).toContain('second');
         expect(overlayButton('Previous log')!.disabled).toBe(false);
-        const selected = () => rows().findIndex(row => row.classList.contains(styles.log_row_selected));
+        const selected = () => rows().findIndex(row => row.hasAttribute('data-selected'));
         expect(selected()).toBe(1);
 
         key('ArrowDown');
@@ -182,9 +181,9 @@ describe('LogViewer', () => {
         const rows = () => [...container.querySelectorAll<HTMLElement>('[title]')].map(element => element.parentElement!.parentElement!);
         act(() => rows()[0].click());
         key('ArrowDown');
-        expect(rows().findIndex(row => row.classList.contains(styles.log_row_selected))).toBe(1);
+        expect(rows().findIndex(row => row.hasAttribute('data-selected'))).toBe(1);
         key('ArrowDown');
-        expect(rows().findIndex(row => row.classList.contains(styles.log_row_selected))).toBe(1);
+        expect(rows().findIndex(row => row.hasAttribute('data-selected'))).toBe(1);
 
         await act(async () => button('Download Logs as JSON')!.click());
         const [buffer, filename] = download.mock.calls[0];

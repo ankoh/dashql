@@ -14,6 +14,7 @@ import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { LogJsonModal } from './log_json_modal.js';
 import { useHost } from '@akohn/dashql-react/host';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { InspectorOverlay, inspectorRowClassName } from '@akohn/dashql-react/components/inspector_overlay';
 
 export const ROW_HEIGHT = 32;
 
@@ -58,7 +59,8 @@ export const LogRow = (props: RowComponentProps<LogRowProps>) => {
     const isSelected = rowIndex === selectedRecordIndex;
     return (
         <div
-            className={`${styles.log_row} ${isSelected ? styles.log_row_selected : ''}`}
+            className={inspectorRowClassName(isSelected)}
+            data-selected={isSelected || undefined}
             style={props.style}
             onClick={() => showJsonRecord(rowIndex)}
         >
@@ -279,14 +281,10 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     return (
         <>
-            <div className={styles.overlay} data-electron-drag-region="false">
-                <div className={styles.header_container}>
-                    <div className={styles.header_left_container}>
-                        <div className={styles.title}>
-                            {props.traceId !== undefined ? `Logs (Trace ${props.traceId})` : 'Logs'}
-                        </div>
-                    </div>
-                    <div className={styles.header_right_container}>
+            <InspectorOverlay
+                title={props.traceId !== undefined ? `Logs (Trace ${props.traceId})` : 'Logs'}
+                actions={(
+                    <>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             aria-label="Download Logs as JSON"
@@ -302,16 +300,19 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                         >
                             <XIcon />
                         </IconButton>
-                    </div>
-                </div>
-                <div className={styles.log_header_row}>
+                    </>
+                )}
+                columns={(
                     <div className={styles.log_header_main}>
                         <div className={styles.log_header_timestamp}>Time</div>
                         <div className={styles.log_header_level}>Level</div>
                         <div className={styles.log_header_message}>Message</div>
                     </div>
-                </div>
-                <div className={styles.log_grid_container} ref={containerRef}>
+                )}
+                columnsClassName={styles.log_list}
+                bodyClassName={styles.log_list}
+                bodyRef={containerRef}
+            >
                     <List
                         listRef={setListApi}
                         style={{ width: containerWidth, height: containerHeight }}
@@ -324,8 +325,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                         getScrollElement={getScrollElement}
                         refreshKey={rowCount}
                     />
-                </div>
-            </div>
+            </InspectorOverlay>
             <LogJsonModal
                 record={jsonModalRecord}
                 recordIndex={jsonModalRecordIndex}

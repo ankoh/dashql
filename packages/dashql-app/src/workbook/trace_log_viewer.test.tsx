@@ -10,7 +10,6 @@ import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../platform/logger_provider.js';
 import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
 import { ROW_HEIGHT } from '../ui/logs/log_viewer.js';
-import * as styles from '../ui/logs/log_viewer.module.css';
 import { TraceLogViewer } from './trace_log_viewer.js';
 
 describe('TraceLogViewer', () => {
@@ -67,7 +66,7 @@ describe('TraceLogViewer', () => {
 
     const rowMessages = () => [...container.querySelectorAll('[title]')].map(element => element.getAttribute('title'));
     const rows = () => [...container.querySelectorAll<HTMLElement>('[title]')].map(element => element.parentElement!.parentElement!);
-    const selected = () => rows().findIndex(row => row.classList.contains(styles.log_row_selected));
+    const selected = () => rows().findIndex(row => row.hasAttribute('data-selected'));
     const overlayButton = (label: string) => [...document.querySelectorAll<HTMLButtonElement>(`button[aria-label="${label}"]`)]
         .find(element => !container.contains(element)) ?? null;
     const key = (k: string) => act(() => {

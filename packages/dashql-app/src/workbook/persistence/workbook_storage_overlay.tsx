@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './workbook_storage_overlay.module.css';
+import { InspectorHeader } from '@akohn/dashql-react/components/inspector_overlay';
 
 import { XIcon, FileDirectoryIcon } from '@akohn/dashql-react/components/symbol_icon';
 
@@ -23,30 +24,31 @@ function StorageViewHeader(props: {
     onRelocate?: () => void;
 }) {
     return (
-        <div className={styles.header_container}>
-            <div className={styles.header_left_container}>
-                <div className={styles.title}>Workbook Storage</div>
-            </div>
-            <div className={styles.header_right_container}>
-                {props.canRelocate && (
+        <InspectorHeader
+            title="Workbook Storage"
+            titleClassName={styles.title}
+            actions={(
+                <>
+                    {props.canRelocate && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Store locally"
+                            disabled={props.migrating}
+                            onClick={props.onRelocate}
+                        >
+                            <FileDirectoryIcon />
+                        </IconButton>
+                    )}
                     <IconButton
                         variant={ButtonVariant.Invisible}
-                        aria-label="Store locally"
-                        disabled={props.migrating}
-                        onClick={props.onRelocate}
+                        aria-label="close-overlay"
+                        onClick={props.onClose}
                     >
-                        <FileDirectoryIcon />
+                        <XIcon />
                     </IconButton>
-                )}
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    aria-label="close-overlay"
-                    onClick={props.onClose}
-                >
-                    <XIcon />
-                </IconButton>
-            </div>
-        </div>
+                </>
+            )}
+        />
     );
 }
 
