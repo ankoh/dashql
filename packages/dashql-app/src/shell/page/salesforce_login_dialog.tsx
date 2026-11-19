@@ -6,7 +6,7 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_UNKNOWN } from '@akohn/dashql-react/components/text_field';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { SalesforceConnectionSettingsPage } from '../connections/salesforce_connection_settings.js';
+import { SalesforceConnectionSettingsPage } from '../../connections/salesforce_connection_settings.js';
 import { collectSalesforceAuthInfo } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client';
 import type { SalesforceLoginHistoryEntry } from './salesforce_login_history.js';
 import * as styles from './salesforce_login_dialog.module.css';

@@ -13,7 +13,7 @@ ownership in Rust.
 The wasm-bindgen API is the `Shell` class of the core module (`//packages/dashql-core-bindings:core_wasm`), and a shell runs on a
 `Catalog` of that module. The app shell shares the catalog of its connection. Shell instances are independent.
 
-The TypeScript binding lives in `packages/dashql-app/src/shell`. Its root entrypoint exports
+The TypeScript binding lives in `packages/dashql-app/src/shell/terminal`. Its root entrypoint exports
 `createDashQLShell({ core, catalog, environment, ... })`. The shell owns effect dispatch, cancellation, coroutine resumption,
 input handling, and ANSI terminal rendering. The browser controller creates and disposes xterm, forwards terminal dimensions
 and raw input events, executes requested host effects, and writes the bytes returned by Wasm. Terminal rendering logic must

@@ -2,9 +2,9 @@ import type * as dashql from '@akohn/dashql';
 import type { Terminal } from '@xterm/xterm';
 
 import type { DashQLShell } from './api.js';
-import { CandidateListRenderer, collectCandidates, placeBelowOrAbove } from '../workbook/editor/completion/completion_list_view.js';
+import { CandidateListRenderer, collectCandidates, placeBelowOrAbove } from '../../workbook/editor/completion/completion_list_view.js';
 
-import * as styles from '../workbook/editor/completion/completion_list.module.css';
+import * as styles from '../../workbook/editor/completion/completion_list.module.css';
 
 /// The completion list of a shell, over the terminal.
 /// The shell owns the candidates, the selection and the keys, this only shows what the shell says.

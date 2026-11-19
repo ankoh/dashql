@@ -1,6 +1,6 @@
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
-import { DashQLShellEnvironment } from '../shell/api.js';
-import { reportShellTiming, SHELL_QUERY_METADATA } from '../shell/shell_result.js';
+import { DashQLShellEnvironment } from '../terminal/api.js';
+import { reportShellTiming, SHELL_QUERY_METADATA } from '../terminal/shell_result.js';
 
 interface EmbeddedDatabaseShellEnvironmentOptions {
     /// Called after a statement ran or failed, before its result shows and the prompt returns, e.g. to wait for the

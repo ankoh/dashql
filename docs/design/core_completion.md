@@ -365,7 +365,7 @@ The view lives in `workbook/editor/completion/completion_list_view.ts` and knows
 
 ### The list in the shell
 
-The shell shows the same list over the terminal (`shell/completion_overlay.ts`). The Rust shell keeps the candidates, the selection and the keys, and the host reads what to show after every input, see `packages/dashql-core-shell/SHELL.md`. The differences to the editor come from the terminal:
+The shell shows the same list over the terminal (`shell/terminal/completion_overlay.ts`). The Rust shell keeps the candidates, the selection and the keys, and the host reads what to show after every input, see `packages/dashql-core-shell/SHELL.md`. The differences to the editor come from the terminal:
 
 - **Position:** the anchor is a terminal cell, the column of the replaced text in the row of the cursor. The list follows it when the terminal scrolls or resizes, and hides while that row is scrolled out of view.
 - **Mount:** the list sits in the terminal container and not on `body`, so it hides with a page that goes to the background. It's dark in both schemes, like the terminal.

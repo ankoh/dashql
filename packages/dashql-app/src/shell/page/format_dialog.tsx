@@ -1,19 +1,19 @@
 import * as React from 'react';
 import * as dashql from '@akohn/dashql';
-import * as themes from '../workbook/editor/themes/index.js';
+import * as themes from '../../workbook/editor/themes/index.js';
 
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, keymap, lineNumbers } from '@codemirror/view';
 
-import { createScriptFormatConfig, getKeywordCase } from '../workbook/scripts/script_format.js';
-import { measureScriptFormatWidth } from '../workbook/editor/script_format_editor.js';
-import { useAppConfig } from '../config/app_config.js';
-import { CodeMirror } from '../workbook/editor/codemirror.js';
+import { createScriptFormatConfig, getKeywordCase } from '../../workbook/scripts/script_format.js';
+import { measureScriptFormatWidth } from '../../workbook/editor/script_format_editor.js';
+import { useAppConfig } from '../../config/app_config.js';
+import { CodeMirror } from '../../workbook/editor/codemirror.js';
 import {
     DashQLScannerDecorationUpdateEffect,
     DashQLStandaloneScannerDecorationPlugin,
-} from '../workbook/editor/dashql_decorations_standalone.js';
+} from '../../workbook/editor/dashql_decorations_standalone.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';

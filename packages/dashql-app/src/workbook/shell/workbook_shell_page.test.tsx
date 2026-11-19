@@ -19,8 +19,8 @@ import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_da
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { DashQLCoreProvider } from '../../host/core_provider.js';
-import { DashQLShell, type DashQLShellOptions } from '../../shell/api.js';
-import { ShellFileRegistry } from '../../shell/shell_files.js';
+import { DashQLShell, type DashQLShellOptions } from '../../shell/terminal/api.js';
+import { ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';

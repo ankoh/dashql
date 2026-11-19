@@ -1,4 +1,4 @@
-import type { DashQLShellCommand } from '../../shell/api.js';
+import type { DashQLShellCommand } from '../../terminal/api.js';
 
 export interface ShareCommandDependencies {
     requestDialog(signal?: AbortSignal): Promise<void>;

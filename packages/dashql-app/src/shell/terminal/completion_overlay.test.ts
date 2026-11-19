@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashQLShell, DashQLShellPromptInput } from './api.js';
 import { embedDashQLShell, type BrowserShellController } from './browser_shell.js';
 import { TerminalCompletionOverlay } from './completion_overlay.js';
-import * as styles from '../workbook/editor/completion/completion_list.module.css';
+import * as styles from '../../workbook/editor/completion/completion_list.module.css';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

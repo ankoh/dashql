@@ -6,23 +6,23 @@ import { useLogger } from '../../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import {
     DashQLShell,
-} from '../../shell/api.js';
-import type { BrowserShellController } from '../../shell/browser_shell.js';
+} from '../../shell/terminal/api.js';
+import type { BrowserShellController } from '../../shell/terminal/browser_shell.js';
 import {
     createWorkbookShellEnvironment,
     resolveClientFunctionCall,
 } from './workbook_shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
-import { createShellLastCommand } from '../../shell/shell_result.js';
+import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
 import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
-import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/shell_files.js';
-import { useShellFiles } from '../../shell/filesystem_dialog.js';
-import { createExamplesCommand } from '../../shell/shell_examples.js';
-import { splitShellScript } from '../../shell/shell_script.js';
+import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/terminal/shell_files.js';
+import { useShellFiles } from '../../shell/terminal/filesystem_dialog.js';
+import { createExamplesCommand } from '../../shell/terminal/shell_examples.js';
+import { splitShellScript } from '../../shell/terminal/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
@@ -172,7 +172,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                 return;
             }
             if (controllerRef.current == null) {
-                const { embedDashQLShell } = await import('../../shell/browser_shell.js');
+                const { embedDashQLShell } = await import('../../shell/terminal/browser_shell.js');
                 if (cancelled || generation !== generationRef.current || containerRef.current == null) {
                     nextShell.destroy();
                     return;

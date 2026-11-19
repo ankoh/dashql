@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../host/logger_provider.js';
-import { GitHubTheme } from '../styles/github_theme.js';
+import { useLogger } from '../../host/logger_provider.js';
+import { GitHubTheme } from '../../styles/github_theme.js';
 import { Button } from '@akohn/dashql-react/components/button';
 import { ErrorBoundary } from '@akohn/dashql-react/components/error_boundary';
 import * as styles from './shell_error_boundary.module.css';

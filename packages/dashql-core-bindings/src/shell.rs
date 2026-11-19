@@ -5,7 +5,7 @@
 //! Nothing here reaches a database: a query leaves as an effect, and the host decides where it runs.
 //!
 //! Keys, completion statuses and statuses are the numbers of the TypeScript enums in
-//! `packages/dashql-app/src/shell/api.ts` (`DashQLShellPromptInput`, `DashQLShellEffectCompletionStatus`,
+//! `packages/dashql-app/src/shell/terminal/api.ts` (`DashQLShellPromptInput`, `DashQLShellEffectCompletionStatus`,
 //! `DashQLShellStatus`). Results carry the status instead of throwing, except `completePrompt`, which throws when
 //! the completion fails.
 

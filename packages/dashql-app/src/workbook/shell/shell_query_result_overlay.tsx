@@ -14,7 +14,7 @@ import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/dat
 import { QueryProfileView } from '@akohn/dashql-react/components/query_profile/query_profile_view';
 import { useQueryProfile } from '@akohn/dashql-react/components/query_profile/engine_profile_view';
 import { TabHeader } from '@akohn/dashql-react/components/tab_header';
-import { getPlanResultText } from '../../shell/shell_result.js';
+import { getPlanResultText } from '../../shell/terminal/shell_result.js';
 import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import * as styles from './shell_query_result_overlay.module.css';

@@ -4,9 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ShellNavBar } from './shell_navbar.js';
-import { FlavorProvider } from '../config/flavor_provider.js';
-import { applyFlavorToDocument } from '../config/flavor_resolution.js';
-import { DASHQL_FLAVOR, DBCOM_FLAVOR } from '../config/flavors.js';
+import { FlavorProvider } from '../../config/flavor_provider.js';
+import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
+import { DASHQL_FLAVOR, DBCOM_FLAVOR } from '../../config/flavors.js';
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 

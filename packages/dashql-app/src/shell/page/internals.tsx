@@ -5,9 +5,9 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { VerticalTabs, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
-import { LogViewer } from '../diagnostics/logs/log_viewer.js';
+import { LogViewer } from '../../diagnostics/logs/log_viewer.js';
 import { ShellQueryViewer } from './shell_query_history.js';
-import { HttpRequestViewer } from '../diagnostics/http_request_viewer.js';
+import { HttpRequestViewer } from '../../diagnostics/http_request_viewer.js';
 import * as styles from './shell_navbar.module.css';
 
 enum TabKey {

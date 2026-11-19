@@ -2,8 +2,8 @@ import * as dashql from '@akohn/dashql';
 
 import type { ClientFunctionCallDescription } from '@akohn/dashql/platform/connections/clfn_spec';
 import type { CancelQuery, QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
-import type { DashQLShellEnvironment } from '../../shell/api.js';
-import { reportShellTiming, SHELL_QUERY_METADATA } from '../../shell/shell_result.js';
+import type { DashQLShellEnvironment } from '../../shell/terminal/api.js';
+import { reportShellTiming, SHELL_QUERY_METADATA } from '../../shell/terminal/shell_result.js';
 
 /// The client function call of a shell statement, null if the statement goes to the backend. A spec shadows its
 /// namespace and no backend judges a call in it, so a call that can't run fails here, like it fails a workbook plan.

@@ -2,31 +2,31 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
-import { LoggerProvider } from '../host/logger_provider.js';
-import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
-import { GitHubTheme } from '../styles/github_theme.js';
-import { LoggerToast } from '../diagnostics/logger_toast.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
+import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
+import { GitHubTheme } from '../../styles/github_theme.js';
+import { LoggerToast } from '../../diagnostics/logger_toast.js';
 import { ShellErrorBoundary } from './shell_error_boundary.js';
 import { ShellNavBar } from './shell_navbar.js';
 import { ShellPage } from './shell_page.js';
 import { ShellQueryHistoryProvider } from './shell_query_history.js';
 import { shellChannelConnector } from './shell_connection.js';
-import { StandaloneRuntime } from '../host/standalone_runtime.js';
-import { DashQLCoreProvider } from '../host/core_provider.js';
-import { AppConfigProvider } from '../config/app_config.js';
-import { PlatformEventListenerProvider } from '../host/events/event_listener_provider.js';
-import { HttpClientProvider } from '../host/http/http_client_provider.js';
-import { FlavorProvider } from '../config/flavor_provider.js';
-import { getRequestedFlavor } from '../config/flavor_resolution.js';
-import { DASHQL_FLAVOR } from '../config/flavors.js';
+import { StandaloneRuntime } from '../../host/standalone_runtime.js';
+import { DashQLCoreProvider } from '../../host/core_provider.js';
+import { AppConfigProvider } from '../../config/app_config.js';
+import { PlatformEventListenerProvider } from '../../host/events/event_listener_provider.js';
+import { HttpClientProvider } from '../../host/http/http_client_provider.js';
+import { FlavorProvider } from '../../config/flavor_provider.js';
+import { getRequestedFlavor } from '../../config/flavor_resolution.js';
+import { DASHQL_FLAVOR } from '../../config/flavors.js';
 import * as styles from './shell.module.css';
 
 import '@akohn/dashql-react/fonts/fonts.css';
 import '@akohn/dashql-react/styles/colors.css';
 import '@akohn/dashql-react/styles/tokens.css';
-import '../styles/globals.css';
+import '../../styles/globals.css';
 import '@akohn/dashql-react/styles/flavors/dbcom.css';
-import '../connections/bundled_clfn_specs.js';
+import '../../connections/bundled_clfn_specs.js';
 
 /// The runtime of the shell, its connection to the embedded Hyper of the page follows the statements of the shell
 const ShellRuntime = (props: { children?: React.ReactNode }) => {

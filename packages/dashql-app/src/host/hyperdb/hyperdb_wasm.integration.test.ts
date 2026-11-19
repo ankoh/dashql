@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { WebFile } from '../web_file.js';
-import { ShellFileRegistry } from '../../shell/shell_files.js';
+import { ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HYPER_INSTANCE_LOGS_DIRECTORY, HYPER_INSTANCES_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';

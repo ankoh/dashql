@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../host/logger_provider.js';
+import { LoggerProvider } from '../../host/logger_provider.js';
 import { ShellErrorBoundary } from './shell_error_boundary.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

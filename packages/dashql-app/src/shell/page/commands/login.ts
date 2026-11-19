@@ -1,6 +1,6 @@
 import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
-import type { DashQLShellCommand, DashQLShellCommandContext } from '../../shell/api.js';
+import type { DashQLShellCommand, DashQLShellCommandContext } from '../../terminal/api.js';
 import type { SalesforceLoginFormValues } from '../salesforce_login_dialog.js';
 
 export type SalesforceLoginForm = SalesforceLoginFormValues;
