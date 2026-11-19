@@ -34,9 +34,8 @@ function aliases(wasm) {
     ];
 }
 
-/// The tests of the bindings on a core module, `features` are the features that the module was built with
-/// (DASHQL_CORE_FEATURES of the tests, see features.test.ts)
-function coreProject(name, wasm, features) {
+/// The tests of the bindings of the core module
+function coreProject(name, wasm) {
     return {
         resolve: { alias: aliases(wasm) },
         test: {
@@ -44,7 +43,6 @@ function coreProject(name, wasm, features) {
             environment: 'node',
             globals: true,
             include: ['src/core/**/*.test.ts'],
-            env: { DASHQL_CORE_FEATURES: features.join(',') },
             hookTimeout: 30000,
             testTimeout: 30000,
         },
@@ -59,9 +57,7 @@ export default {
         environment: 'node',
         globals: true,
         projects: [
-            // The bindings of the core module with all features, and of the module without features
-            coreProject('core', 'dashql-wasm', ['shell']),
-            coreProject('core_minimal', 'dashql-wasm-minimal', []),
+            coreProject('core', 'dashql-wasm'),
             runtimeProject('runtime'),
             runtimeProject('platform'),
         ],

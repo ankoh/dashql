@@ -1,8 +1,7 @@
 """@akohn/dashql-wasm of a core module: the wasm-bindgen glue of the core and of the dataflow layout, with their Wasm.
 
 The glue loads `<name>_bg.wasm` by default, the package ships the modules as `dashql_core.wasm` and `dashql_dataflow.wasm`,
-and every glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset. A product that
-builds a core module of its own (`dashql_core_module` of //packages/dashql-core-bindings:module.bzl) passes its targets.
+and every glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset.
 """
 
 _DATAFLOW_BINDGEN = "//packages/dashql-dataflow-bindings:dashql_dataflow_bindgen"

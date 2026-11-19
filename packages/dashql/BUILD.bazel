@@ -73,14 +73,6 @@ dashql_wasm_glue(
     out_dir = "dependencies/dashql-wasm",
 )
 
-# The same of the core module without features, the tests of the bindings run on it as well (:test_core_minimal_node)
-dashql_wasm_glue(
-    name = "dep_wasm_minimal",
-    core_bindgen = "//packages/dashql-core-bindings:core_minimal_bindgen",
-    core_wasm = "//packages/dashql-core-bindings:core_minimal",
-    out_dir = "dependencies/dashql-wasm-minimal",
-)
-
 # @akohn/dashql-flatbuffers: the FlatBuffers of the core module in TypeScript, the bindings export them as `buffers`
 copy_to_directory(
     name = "dep_flatbuffers",
@@ -222,22 +214,6 @@ vitest_bin.vitest_test(
     ],
     chdir = package_name(),
     data = _VITEST_DATA,
-)
-
-# The tests of the bindings on the core module without features: a module that leaves a feature out keeps the rest
-vitest_bin.vitest_test(
-    name = "test_core_minimal_node",
-    size = "medium",
-    args = [
-        "run",
-        "--config",
-        "vitest.config.mjs",
-        "--project",
-        "core_minimal",
-        "--maxWorkers=1",
-    ],
-    chdir = package_name(),
-    data = _VITEST_DATA + [":dep_wasm_minimal"],
 )
 
 # The tests of the runtime in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker

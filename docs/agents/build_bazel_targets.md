@@ -54,7 +54,6 @@ bazel build //...
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
-| `//packages/dashql-core-bindings:core_minimal` | The core module without features (`dashql_core_module` of `packages/dashql-core-bindings/module.bzl`), built so that every feature can be left out; another product builds its own module the same way |
 | `//packages/dashql-dataflow-bindings:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
@@ -113,7 +112,7 @@ bazel test //...
 | `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests without the storage, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-storage:all` | The storage writer, the restore, the workbook format and the migrations of the storage on fake hosts, Clippy with the safety lints |
-| `//packages/dashql-core-bindings:all` | The bindings of the core module on the host, with all features and without (`:clippy_minimal_test`): the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
+| `//packages/dashql-core-bindings:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
 | `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
@@ -138,7 +137,6 @@ bazel test //...
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
 | `//packages/dashql:tsc_typecheck_node_test` | Type check of the modules of Node in `src/runtime/node` and `src/platform/node` and their tests, with the types of Node |
 | `//packages/dashql:test_core_node` | The tests of the bindings in Node (vitest) |
-| `//packages/dashql:test_core_minimal_node` | The tests of the bindings in Node on the core module without features (`:core_minimal`) |
 | `//packages/dashql:test_runtime_node` | The tests of the runtime in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/dashql:test_platform_node` | The tests of the platform in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/dashql:node_smoke_test` | The package on npm in Node: the bindings with their Wasm, and a runtime over the platform of Node |
