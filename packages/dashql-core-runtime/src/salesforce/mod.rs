@@ -7,6 +7,7 @@
 pub mod api;
 pub mod auth;
 pub mod client_functions;
+pub mod connector;
 pub mod setup;
 pub mod shared;
 pub mod types;

@@ -1,18 +1,9 @@
-//! What the Trino connector says about its params and queries: the login hint, the signature of
-//! cached results and the limits of the executor.
-//!
-//! The default params, the draft rows and the catalog name defaults are in `connections`.
+//! What the Trino connector says about its params and queries: the login hint and the signature of cached results.
+//! The default params, the draft rows and the limits are the connector's (`trino::connector`).
 
 use serde_json::{json, Value};
 
 use crate::connections::{trino_session_defaults, JsonObject};
-
-/// The queries that run on a Trino connection at the same time
-pub const MAX_CONCURRENT_QUERIES: usize = 1;
-/// Does the catalog of a Trino connection outlive the app? It is saved and restored.
-pub const CATALOG_IS_DURABLE: bool = true;
-/// Does a Trino connection read the attachments of a workbook? It doesn't.
-pub const READS_ATTACHMENTS: bool = false;
 
 /// The login hint of the params: the user of basic auth, none if it is empty
 pub fn login_hint(params: &JsonObject) -> Option<String> {

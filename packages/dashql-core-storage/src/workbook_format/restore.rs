@@ -243,7 +243,8 @@ impl RestorePlanner {
             Some(copy) => copy.clone(),
             None => {
                 let mut params = Map::new();
-                params.insert(ConnectorType::Hyper.params_key().into(), Value::Object(ConnectorType::Hyper.default_params()));
+                let hyper = ConnectorType::Hyper.connector();
+                params.insert(hyper.params_key().into(), Value::Object(hyper.default_params()));
                 // A connection without an id would be no connection, the restore of the workbook fails instead
                 let id = (self.new_uuid)().ok_or_else(|| Error::invalid_argument("no fresh id for the embedded database"))?;
                 WorkbookConnection::new(id, Value::Object(params))

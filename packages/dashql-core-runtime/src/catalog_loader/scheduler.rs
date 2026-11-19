@@ -20,7 +20,6 @@ use crate::connections::{
     MAX_TOUCHED_ATTEMPTS,
 };
 
-use super::{catalog_is_durable, max_concurrent_queries};
 
 /// The wait before asking a connection again about the relations of executed statements, per failed attempt
 pub const TOUCHED_RETRY_DELAY_MS: f64 = 2000.0;
@@ -52,7 +51,7 @@ impl<'a> CatalogLoaderConnection<'a> {
 
     /// Does the connection have room for another query?
     fn has_room(&self) -> bool {
-        self.active_queries < max_concurrent_queries(self.details.connector_type(), self.details.setup_params.as_ref())
+        self.active_queries < self.details.connector_type().connector().max_concurrent_queries(self.details.setup_params.as_ref())
     }
 }
 
@@ -138,7 +137,7 @@ impl CatalogLoader {
             if connection.health != ConnectionHealth::Online {
                 self.online.remove(id);
             } else if self.online.insert(id.to_string()) {
-                if !catalog_is_durable(connection.params) {
+                if !connection.params.connector.connector().catalog_is_durable(&connection.params.params) {
                     self.enqueue(id, true);
                 } else if !connection.catalog_updates.described {
                     self.enqueue(id, false);

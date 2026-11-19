@@ -7,7 +7,6 @@
 
 use serde_json::{json, Map, Value};
 
-use dashql_core_runtime::catalog_loader::catalog_is_durable;
 use dashql_core_runtime::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
 use dashql_core_runtime::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
 use crate::restore::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE, CATALOG_STATE_FILE};
@@ -177,7 +176,7 @@ pub fn connection_writes(
     if !next.active() {
         return out;
     }
-    let durable = catalog_is_durable(next.params());
+    let durable = next.params().connector.connector().catalog_is_durable(&next.params().params);
     let file = |file_name: &str, text: TextSource| ConnectionWrite {
         key: connection_file_key(id, file_name),
         task: WriteTask::WriteConnectionFile { connection_id: id.to_string(), file_name: file_name.to_string(), text },

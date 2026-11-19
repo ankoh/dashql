@@ -1377,8 +1377,8 @@ fn the_channel_kind_of_a_protocol() {
 
 #[test]
 fn the_health_check_of_a_connection() {
-    assert_eq!(health_check_query(ConnectorType::Trino), "select 1");
-    assert_eq!(health_check_query(ConnectorType::Hyper), "select 1 as healthy");
+    assert_eq!(ConnectorType::Trino.connector().health_probe(), "select 1");
+    assert_eq!(ConnectorType::Hyper.connector().health_probe(), "select 1 as healthy");
     assert_eq!(health_check_metadata().title.as_deref(), Some("Health Check"));
     assert_eq!(
         health_check_outcome(HealthCheckResult::Finished { has_table: true }, false),

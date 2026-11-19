@@ -368,7 +368,7 @@ impl SetupHost for RuntimeSetupHost {
 fn connector_params(params: JsonParams, connector: ConnectorType) -> Result<JsonObject, String> {
     let params = params.connection_params().map_err(|error| error.what().to_string())?;
     if params.connector != connector {
-        return Err(format!("the params are no params of {}", connector.display_name()));
+        return Err(format!("the params are no params of {}", connector.connector().display_name()));
     }
     Ok(params.params)
 }

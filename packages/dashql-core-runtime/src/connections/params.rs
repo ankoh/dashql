@@ -4,7 +4,7 @@
 //! one field named after the connector, e.g. `{"trino": {...}}`. The reducer reads only a few fields of them, the rest
 //! passes through untouched.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use dashql_core::error::{Error, Result};
 
@@ -49,7 +49,7 @@ pub const SALESFORCE_CATALOG_SCHEMA: &str = "public";
 pub const HYPER_CLOUD_DEFAULT_DATABASE_NAME: &str = "default";
 
 /// A JSON value as an object, empty for any other value
-fn object(value: Value) -> JsonObject {
+pub(crate) fn object(value: Value) -> JsonObject {
     match value {
         Value::Object(map) => map,
         _ => JsonObject::new(),
@@ -62,48 +62,9 @@ pub(crate) fn string_field<'a>(object: &'a JsonObject, key: &str) -> Option<&'a 
 }
 
 impl ConnectorType {
-    /// The field of the connection params that holds the params of the connector
-    pub fn params_key(self) -> &'static str {
-        match self {
-            ConnectorType::Hyper => "hyper",
-            ConnectorType::SalesforceDataCloud => "salesforce",
-            ConnectorType::Trino => "trino",
-            ConnectorType::Dbcom => "dbcom",
-        }
-    }
-
-    /// The features of the connector
-    pub fn features(self) -> ConnectorFeatures {
-        match self {
-            ConnectorType::Hyper => ConnectorFeatures { query_result_caching: false, read_only: false },
-            ConnectorType::SalesforceDataCloud => ConnectorFeatures { query_result_caching: true, read_only: true },
-            ConnectorType::Trino => ConnectorFeatures { query_result_caching: true, read_only: true },
-            ConnectorType::Dbcom => ConnectorFeatures { query_result_caching: true, read_only: false },
-        }
-    }
-
     /// Does the connector share the connection state of Salesforce?
     pub fn is_salesforce(self) -> bool {
         matches!(self, ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom)
-    }
-
-    /// The params of a new connection of the connector
-    pub fn default_params(self) -> JsonObject {
-        let salesforce = || object(json!({ "instanceUrl": "", "appConsumerKey": "", "appConsumerSecret": "", "login": "" }));
-        match self {
-            ConnectorType::Hyper => object(json!({
-                "protocol": "WASM",
-                "endpoint": "",
-                "tls": { "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" },
-            })),
-            ConnectorType::SalesforceDataCloud => salesforce(),
-            ConnectorType::Trino => object(json!({ "endpoint": "", "catalogs": [], "auth": { "authType": "AUTH_BASIC" } })),
-            ConnectorType::Dbcom => {
-                let mut params = salesforce();
-                params.insert("databaseName".to_string(), json!(HYPER_CLOUD_DEFAULT_DATABASE_NAME));
-                params
-            }
-        }
     }
 }
 
@@ -125,7 +86,7 @@ impl ConnectionParams {
 
     /// The params of a new connection of a connector
     pub fn default_for(connector: ConnectorType) -> Self {
-        Self::new(connector, connector.default_params())
+        Self::new(connector, connector.connector().default_params())
     }
 
     /// Read params from JSON, e.g. `{"trino": {...}}`. The first connector with a field wins.
@@ -141,11 +102,11 @@ impl ConnectionParams {
     /// Read params from a JSON object, e.g. `{"trino": {...}}`. The first connector with a field wins.
     pub fn from_object(fields: JsonObject) -> Result<Self> {
         for connector in CONNECTOR_TYPES {
-            if let Some(params) = fields.get(connector.params_key()) {
+            if let Some(params) = fields.get(connector.connector().params_key()) {
                 let Value::Object(params) = params else {
                     return Err(Error::invalid_argument(format!(
                         "the params of the connector {} must be an object",
-                        connector.params_key()
+                        connector.connector().params_key()
                     )));
                 };
                 return Ok(Self::new(connector, params.clone()));
@@ -166,18 +127,15 @@ impl ConnectionParams {
     /// The params as a JSON object, e.g. `{"trino": {...}}`
     pub fn to_object(&self) -> JsonObject {
         let mut fields = JsonObject::new();
-        fields.insert(self.connector.params_key().to_string(), Value::Object(self.params.clone()));
+        fields.insert(self.connector.connector().params_key().to_string(), Value::Object(self.params.clone()));
         fields
     }
 
     /// The params without the raw form rows, they belong only to the local draft
     pub fn without_draft_rows(&self) -> Self {
         let mut params = self.params.clone();
-        match self.connector {
-            ConnectorType::Hyper | ConnectorType::Trino => {
-                params.remove("draftRows");
-            }
-            ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {}
+        if self.connector.connector().has_draft_rows() {
+            params.remove("draftRows");
         }
         Self::new(self.connector, params)
     }

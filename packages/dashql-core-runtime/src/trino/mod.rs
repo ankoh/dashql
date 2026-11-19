@@ -17,6 +17,7 @@
 //! here.
 
 pub mod arrow;
+pub mod connector;
 pub mod descriptor;
 pub mod error;
 pub mod protocol;

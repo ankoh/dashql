@@ -11,7 +11,7 @@ use crate::connections::{ConnectorType, JsonObject, CONNECTOR_TYPES};
 /// `dbcom` that the params have
 pub fn descriptor_of_params(params: &Value) -> Option<ConnectorType> {
     let object = params.as_object()?;
-    CONNECTOR_TYPES.into_iter().find(|connector| object.contains_key(connector.params_key()))
+    CONNECTOR_TYPES.into_iter().find(|connector| object.contains_key(connector.connector().params_key()))
 }
 
 /// An object without some keys, the other keys keep their order
@@ -26,7 +26,7 @@ pub fn sanitize_connection_params_for_sharing(params: &Value, with_login_hint: b
     let Some(connector) = descriptor_of_params(params) else {
         return params.clone();
     };
-    let key = connector.params_key();
+    let key = connector.connector().params_key();
     let inner = params.get(key).and_then(Value::as_object).cloned().unwrap_or_default();
     let sanitized = match connector {
         ConnectorType::Hyper => {

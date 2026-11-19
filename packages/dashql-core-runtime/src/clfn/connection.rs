@@ -89,16 +89,6 @@ impl ClientFunctionBinding {
     }
 }
 
-/// The long name of a connector
-fn connector_name(connector: ConnectorType) -> &'static str {
-    match connector {
-        ConnectorType::Hyper => "Hyper",
-        ConnectorType::SalesforceDataCloud => "Salesforce Data Cloud",
-        ConnectorType::Trino => "Trino",
-        ConnectorType::Dbcom => "Database.com",
-    }
-}
-
 /// What the host does for the client functions of connections
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClientFunctionRegistryEffect {
@@ -261,7 +251,7 @@ pub fn start_connection_client_function(
     description: &ClientFunctionCallDescription,
     now: f64,
 ) -> Result<ConnectionCallStart, ClientFunctionError> {
-    let name = connector_name(connector);
+    let name = connector.connector().display_name();
     let Some(binding) = ClientFunctionBinding::of_connector(connector) else {
         return Err(ClientFunctionError::new(format!("{name} connections have no client functions")));
     };

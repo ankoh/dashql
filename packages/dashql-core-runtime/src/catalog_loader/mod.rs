@@ -31,7 +31,7 @@ use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogVersion};
 use serde_json::Value;
 
 use crate::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionParams, ConnectionState,
+    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionState,
     ConnectorType, DetailedError, RelationName, Timestamp,
 };
 use crate::query::QueryType;
@@ -109,30 +109,6 @@ pub const CATALOG_QUERY_ISSUER: &str = "Catalog Update";
 
 /// The answer of a query: the result batches, or the message of the error
 pub type QueryAnswer = Result<Vec<RecordBatch>, String>;
-
-/// Does the catalog of a connection outlive the app? The embedded Hyper starts with a new database, its catalog is
-/// neither written nor restored.
-pub fn catalog_is_durable(params: &ConnectionParams) -> bool {
-    match params.connector {
-        ConnectorType::Hyper => params.params.get("protocol").and_then(Value::as_str) != Some("WASM"),
-        ConnectorType::SalesforceDataCloud | ConnectorType::Trino | ConnectorType::Dbcom => true,
-    }
-}
-
-/// The queries that a connection runs at the same time. A catalog update waits for room for another one.
-pub fn max_concurrent_queries(connector: ConnectorType, setup_params: Option<&crate::connections::JsonObject>) -> usize {
-    match connector {
-        ConnectorType::Hyper => {
-            let protocol = setup_params.and_then(|params| params.get("protocol")).and_then(Value::as_str);
-            if protocol.is_some_and(|protocol| protocol != "WASM") {
-                4
-            } else {
-                1
-            }
-        }
-        ConnectorType::SalesforceDataCloud | ConnectorType::Trino | ConnectorType::Dbcom => 1,
-    }
-}
 
 /// What a catalog update asks the host for next
 #[derive(Debug, Clone, PartialEq)]

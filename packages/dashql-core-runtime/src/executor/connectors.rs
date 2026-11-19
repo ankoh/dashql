@@ -621,12 +621,7 @@ fn client_function_rows<H: ExecutorHost>(
 
 /// The failure of a call on a connector without client functions
 fn start_without_spec(target: &ClientFunctionTarget) -> QueryFailure {
-    let name = match target.connector {
-        crate::connections::ConnectorType::Hyper => "Hyper",
-        crate::connections::ConnectorType::SalesforceDataCloud => "Salesforce Data Cloud",
-        crate::connections::ConnectorType::Trino => "Trino",
-        crate::connections::ConnectorType::Dbcom => "Database.com",
-    };
+    let name = target.connector.connector().display_name();
     QueryFailure::new(FailureKind::Error, format!("{name} connections have no client functions"))
 }
 

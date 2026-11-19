@@ -917,7 +917,7 @@ impl Connections {
             text: &description.text,
             read_timeout_ms: options.read_timeout_ms,
             publish_results,
-            connector: connector.display_name(),
+            connector: connector.connector().display_name(),
             client_function: options.client_function_call.is_some(),
         };
         let target = match (&options.client_function_call, channel) {
@@ -1033,7 +1033,7 @@ impl Connections {
             None => None,
         };
         let Some(spec) = spec else {
-            return Err(format!("The client functions of {} connections are not registered", target.connector.display_name()));
+            return Err(format!("The client functions of {} connections are not registered", target.connector.connector().display_name()));
         };
         target.spec = Some(spec);
         Ok(())

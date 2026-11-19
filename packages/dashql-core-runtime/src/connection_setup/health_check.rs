@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use super::{cancellable, ProbeResult, SetupFailure, SetupHost};
-use crate::connections::health_check::{health_check_metadata, health_check_outcome, health_check_query, HealthCheckResult};
+use crate::connections::health_check::{health_check_metadata, health_check_outcome, HealthCheckResult};
 use crate::connections::{ConnectionAction, ConnectorType};
 use crate::http::CancellationToken;
 
@@ -22,7 +22,7 @@ pub async fn check_health<H: SetupHost>(
     let probe = if cancellation.is_cancelled() {
         None
     } else {
-        let call = host.run_probe(health_check_query(connector), &metadata, &cancellation);
+        let call = host.run_probe(connector.connector().health_probe(), &metadata, &cancellation);
         cancellable(&cancellation, call).await
     };
     let (result, value) = match probe {

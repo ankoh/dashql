@@ -19,7 +19,7 @@ pub fn decode_connection(connection: &Value, workbook_id: &str) -> Result<(Conne
     let fields = connection.as_object().ok_or_else(unsupported)?;
     let (connector, value) = IMPORT_ORDER
         .iter()
-        .find_map(|connector| fields.get(connector.params_key()).map(|value| (*connector, value)))
+        .find_map(|connector| fields.get(connector.connector().params_key()).map(|value| (*connector, value)))
         .ok_or_else(unsupported)?;
     // Details carry their params, storage persists the flat params
     let params: JsonObject = match value.get("setupParams") {

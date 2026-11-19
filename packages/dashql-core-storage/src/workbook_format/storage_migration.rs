@@ -19,6 +19,7 @@ use crate::workbook_format::layout::{StorageType, STORAGE_FOLDER_FILE, STORAGE_W
 use crate::workbook_format::migration::{migrate_folder, rename_sidb_connections, FolderHost, WorkbookMigrationResult};
 use crate::workbook_format::tree::{read_workbook_tree, TreeDirectory};
 use crate::workbook_format::validation::is_valid_uuid;
+use dashql_core_runtime::connections::CONNECTOR_TYPES;
 
 /// The manifest of the storage root, it holds the storage version
 pub const MANIFEST_FILE: &str = "dashql-manifest.json";
@@ -419,7 +420,8 @@ struct PlannedConnection {
 fn params_without_draft_rows(params: &Value) -> Value {
     let mut params = params.clone();
     if let Some(object) = params.as_object_mut() {
-        for connector in ["hyper", "trino"] {
+        let keys = CONNECTOR_TYPES.iter().map(|connector| connector.connector()).filter(|connector| connector.has_draft_rows());
+        for connector in keys.map(|connector| connector.params_key()) {
             if let Some(Value::Object(inner)) = object.get_mut(connector) {
                 inner.shift_remove("draftRows");
             }

@@ -8,7 +8,6 @@ use dashql_core_script::touched_relations::touched_relations;
 
 use super::RestoreHost;
 use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations};
-use dashql_core_runtime::catalog_loader::catalog_is_durable;
 use dashql_core_runtime::catalog_loader::tables::{pack_catalog_table_update, CatalogStateFile};
 use dashql_core_runtime::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
 use dashql_core_runtime::host::HostError;
@@ -70,7 +69,7 @@ fn not_blank(text: &Option<String>) -> Option<&str> {
 /// is online, and those it reported as gone stay gone. The relations of the changes file of older versions count as not
 /// answered, the file is cleared.
 pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) -> CatalogRestore {
-    let durable = catalog_is_durable(state.params());
+    let durable = state.params().connector.connector().catalog_is_durable(&state.params().params);
     let mut out = CatalogRestore { succeeded: false, files: Vec::new(), error: None };
     // Clear the dropped relations that older versions of the app wrote
     if !durable && present(&files.relations).is_some() {

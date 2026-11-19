@@ -26,7 +26,7 @@ use dashql_core_runtime::catalog_loader::trino::{
     parse_trino_catalog_entry, trino_catalog_entries, trino_catalog_scopes, TrinoCatalogEntry, TRINO_CATALOGS_QUERY,
 };
 use dashql_core_runtime::catalog_loader::{
-    catalog_is_durable, CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
+    CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
     CatalogQuery, CatalogStep, CatalogUpdate, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
@@ -1301,10 +1301,10 @@ fn trino_groups_the_entries_by_catalog_in_the_order_of_their_first_entry() {
 #[test]
 fn only_the_catalog_of_the_embedded_hyper_does_not_outlive_the_app() {
     let params = |connector, value: Value| ConnectionParams::new(connector, object(value));
-    assert!(!catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "WASM" }))));
-    assert!(catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "V3_HTTP" }))));
-    assert!(catalog_is_durable(&params(ConnectorType::Trino, json!({}))));
-    assert!(catalog_is_durable(&params(ConnectorType::SalesforceDataCloud, json!({}))));
+    assert!(!ConnectorType::Hyper.connector().catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "WASM" })).params));
+    assert!(ConnectorType::Hyper.connector().catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "V3_HTTP" })).params));
+    assert!(ConnectorType::Trino.connector().catalog_is_durable(&params(ConnectorType::Trino, json!({})).params));
+    assert!(ConnectorType::SalesforceDataCloud.connector().catalog_is_durable(&params(ConnectorType::SalesforceDataCloud, json!({})).params));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

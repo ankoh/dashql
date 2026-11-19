@@ -93,7 +93,7 @@ pub fn connector_of_params(params: &Value) -> Option<ConnectorType> {
     let object = params.as_object()?;
     [ConnectorType::Hyper, ConnectorType::SalesforceDataCloud, ConnectorType::Dbcom, ConnectorType::Trino]
         .into_iter()
-        .find(|connector| object.contains_key(connector.params_key()))
+        .find(|connector| object.contains_key(connector.connector().params_key()))
 }
 
 /// Validate the JSON of a workbook file before it is restored: the current format version, a workbook id that is a

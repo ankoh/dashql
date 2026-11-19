@@ -10,6 +10,7 @@
 
 pub mod channel;
 pub mod client;
+pub mod connector;
 pub mod descriptor;
 pub mod embedded;
 pub mod error;

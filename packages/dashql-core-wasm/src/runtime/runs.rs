@@ -25,7 +25,7 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
-use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState, ConnectorType};
+use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState};
 use dashql_core_runtime::executor::{FailureKind, QueryId};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
@@ -120,13 +120,9 @@ struct WorkbookScope {
     empty: bool,
 }
 
-/// The number of statements of a run that a connection runs at once: a Hyper server runs four, the others one
+/// The number of statements of a run that a connection runs at once, the connector decides
 fn max_concurrent_queries(state: &ConnectionState) -> usize {
-    let protocol = state.details().setup_params.as_ref().and_then(|params| params.get("protocol")).and_then(|protocol| protocol.as_str());
-    match (state.connector_type(), protocol) {
-        (ConnectorType::Hyper, Some(protocol)) if protocol != "WASM" => 4,
-        _ => 1,
-    }
+    state.connector_type().connector().max_concurrent_queries(state.details().setup_params.as_ref())
 }
 
 /// Does a connection run a query? The SQLFrame queries of computations run on the compute database, the connection

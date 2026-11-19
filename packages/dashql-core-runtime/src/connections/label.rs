@@ -4,18 +4,6 @@ use super::params::string_field;
 use super::{ConnectionParams, ConnectionState, ConnectorType};
 use crate::hyper::local_cloud::embedded_cloud_databases;
 
-impl ConnectorType {
-    /// The long display name of the connector, e.g. `Salesforce Data Cloud`
-    pub fn display_name(self) -> &'static str {
-        match self {
-            ConnectorType::Hyper => "Hyper",
-            ConnectorType::SalesforceDataCloud => "Salesforce Data Cloud",
-            ConnectorType::Trino => "Trino",
-            ConnectorType::Dbcom => "Database.com",
-        }
-    }
-}
-
 /// The protocol of the setup params of a Hyper connection, the embedded Hyper without one
 fn hyper_protocol(connection: &ConnectionState) -> &str {
     connection.details().setup_params.as_ref().and_then(|params| string_field(params, "protocol")).unwrap_or("WASM")
@@ -69,7 +57,7 @@ pub fn connection_label_parts(connection: &ConnectionState, ordinal: Option<u32>
         ConnectorType::Hyper => protocol_label(hyper_protocol(connection)),
         _ => "Http",
     };
-    let connector = connection.connector_type().display_name();
+    let connector = connection.connector_type().connector().display_name();
     let name = match (connection.name(), ordinal) {
         (Some(name), _) => name.to_string(),
         (None, Some(ordinal)) => format!("{connector} #{ordinal}"),
@@ -86,7 +74,7 @@ pub fn connection_label(connection: &ConnectionState, ordinal: Option<u32>) -> S
 /// A label for connection params, e.g. while the connection isn't restored. It names the connector and the location
 /// of the database that the params describe.
 pub fn connection_params_label(params: &ConnectionParams) -> String {
-    let name = params.connector.display_name();
+    let name = params.connector.connector().display_name();
     let field = |key: &str| string_field(&params.params, key).unwrap_or("");
     match params.connector {
         ConnectorType::Hyper => match string_field(&params.params, "protocol").unwrap_or("WASM") {

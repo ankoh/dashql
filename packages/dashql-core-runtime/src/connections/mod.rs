@@ -12,6 +12,7 @@
 
 mod catalog_updates;
 mod details;
+pub mod connector;
 pub mod health_check;
 mod hyper;
 pub mod import;
@@ -49,6 +50,7 @@ pub use params::{
     SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 pub use salesforce::SalesforceAction;
+pub(crate) use params::object;
 pub use trino::TrinoAction;
 
 pub use crate::workbook::CatalogHandle;
@@ -465,7 +467,7 @@ impl ConnectionState {
 
     /// Does the connection cache query results? The connector decides unless the user chose.
     pub fn caches_query_results(&self) -> bool {
-        self.cache_query_results.unwrap_or(self.connector_type().features().query_result_caching)
+        self.cache_query_results.unwrap_or(self.connector_type().connector().features().query_result_caching)
     }
 
     /// Apply an action that happened at a time. A failed action leaves the connection unchanged.
@@ -646,7 +648,7 @@ impl ConnectionState {
         if foreign {
             return Err(Error::invalid_argument(format!(
                 "a setup action of another connector on a {} connection",
-                connector.params_key()
+                connector.connector().params_key()
             )));
         }
 

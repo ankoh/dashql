@@ -2,21 +2,13 @@
 //! like any other query. The host runs the query on the channel that the setup holds and reports how it ended, the
 //! check returns the action of the connection.
 
-use super::{ConnectionAction, ConnectorType, DetailedError};
+use super::{ConnectionAction, DetailedError};
 use crate::query::{QueryMetadata, QueryType};
 
 /// The message of a check whose query returned no table
 pub const HEALTH_CHECK_FAILED_MESSAGE: &str = "health check failed";
 /// The message of the error of a cancelled check
 pub const HEALTH_CHECK_CANCELLED_MESSAGE: &str = "health check cancelled";
-
-/// The probe query of a connector
-pub fn health_check_query(connector: ConnectorType) -> &'static str {
-    match connector {
-        ConnectorType::Trino => "select 1",
-        ConnectorType::Hyper | ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => "select 1 as healthy",
-    }
-}
 
 /// The metadata of the probe query
 pub fn health_check_metadata() -> QueryMetadata {
