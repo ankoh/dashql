@@ -8,7 +8,7 @@ use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, 
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::attachments::{renamed_attachment_file_name, DataFile, WorkbookAttachment};
 use dashql_core_runtime::workbook::{
-    new_catalog, text_change, CloudLink, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptCachedResult, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange,
+    new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptCachedResult, ScriptConnection, ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange, WorkbookOrigin,
     Workbook, WorkbookAction, WorkbookEffect,
 };
 
@@ -452,7 +452,7 @@ fn renames_the_workbook() {
     let (mut workbook, _) = workbook(&[]);
     let outcome = workbook.apply(WorkbookAction::RenameWorkbook { name: Some("  Sales ".into()) }).unwrap();
     assert_eq!(workbook.name(), Some("Sales"));
-    assert_eq!(outcome.effects, [WorkbookEffect::WriteProperties { name: Some("Sales".into()), ephemeral: false, cloud: None }]);
+    assert_eq!(outcome.effects, [WorkbookEffect::WriteProperties { name: Some("Sales".into()), ephemeral: false, origin: None }]);
     assert!(!workbook.apply(WorkbookAction::RenameWorkbook { name: Some("Sales".into()) }).unwrap().changed);
     workbook.apply(WorkbookAction::RenameWorkbook { name: Some(" ".into()) }).unwrap();
     assert_eq!(workbook.name(), None);
@@ -657,14 +657,19 @@ fn names_a_renamed_attachment_past_the_scripts_and_the_other_attachments() {
     assert_eq!(renamed("  ", &[]), None);
 }
 
+/// The origin of a workbook opened from a published workbook, read-only or imported
+fn published(read_only: bool) -> WorkbookOrigin {
+    WorkbookOrigin { link: serde_json::json!({ "workbookId": "published", "versionId": "v1" }), read_only }
+}
+
 #[test]
-fn a_cloud_preview_refuses_the_rename_of_an_attachment_before_anything_changed() {
+fn a_read_only_workbook_refuses_the_rename_of_an_attachment_before_anything_changed() {
     let (mut workbook, _) = workbook(&[("foo.sql", "")]);
     let foo = key(&workbook, "foo.sql");
     workbook.apply(WorkbookAction::SetWorkbookAttachments { files: vec![data_file("sales.parquet")] }).unwrap();
     set_text(&mut workbook, foo, "select * from :sales", false);
-    let link = CloudLink { workbook_id: "published".into(), version_id: "v1".into(), preview: true };
-    workbook.apply(WorkbookAction::SetCloudLink { link: Some(link) }).unwrap();
+    let link = published(true);
+    workbook.apply(WorkbookAction::SetOrigin { origin: Some(link) }).unwrap();
     assert!(workbook.apply(WorkbookAction::RenameAttachment { file_name: "sales.parquet".into(), name: "revenue".into() }).is_err());
     assert_eq!(text(&workbook, foo), "select * from :sales");
     assert_eq!(workbook.attachments().unwrap()[0].file_name, "sales.parquet");
@@ -711,24 +716,24 @@ fn stored(name: &str, sql: &str, connection: &Rc<ScriptConnection>) -> StoredScr
 }
 
 #[test]
-fn keeps_a_cloud_preview_as_published_until_it_is_imported() {
+fn keeps_a_read_only_workbook_as_it_came_until_it_gets_an_origin_of_its_own() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "/* @param :region = 'US' */ select :region")]);
     let alpha = key(&workbook, "alpha.sql");
-    let link = CloudLink { workbook_id: "published".into(), version_id: "v1".into(), preview: true };
-    let outcome = workbook.apply(WorkbookAction::SetCloudLink { link: Some(link.clone()) }).unwrap();
-    assert!(matches!(&outcome.effects[0], WorkbookEffect::WriteProperties { cloud: Some(cloud), .. } if cloud.preview));
-    assert!(workbook.is_cloud_preview());
+    let link = published(true);
+    let outcome = workbook.apply(WorkbookAction::SetOrigin { origin: Some(link.clone()) }).unwrap();
+    assert!(matches!(&outcome.effects[0], WorkbookEffect::WriteProperties { origin: Some(origin), .. } if origin.read_only));
+    assert!(workbook.is_read_only());
     // Changes of what the workbook says are refused, query ids still land
     let input = WorkbookAction::SetWorkbookInput { name: "region".into(), literal: "'EU'".into(), keys: vec![alpha] };
     assert!(workbook.apply(input).is_err());
     assert!(workbook.apply(WorkbookAction::CreateScript { index: None, text: None, base: "beta".into(), connection: None }).is_err());
     assert_eq!(text(&workbook, alpha), "/* @param :region = 'US' */ select :region");
     assert!(workbook.apply(WorkbookAction::RegisterQuery { key: alpha, query_id: 1 }).unwrap().changed);
-    // A link without preview imports the workbook
-    workbook.apply(WorkbookAction::SetCloudLink { link: Some(CloudLink { preview: false, ..link.clone() }) }).unwrap();
-    assert!(!workbook.is_cloud_preview());
+    // An origin that isn't read-only imports the workbook
+    workbook.apply(WorkbookAction::SetOrigin { origin: Some(published(false)) }).unwrap();
+    assert!(!workbook.is_read_only());
     create(&mut workbook, None, None, "beta");
-    assert!(!workbook.apply(WorkbookAction::SetCloudLink { link: Some(CloudLink { preview: false, ..link }) }).unwrap().changed);
+    assert!(!workbook.apply(WorkbookAction::SetOrigin { origin: Some(published(false)) }).unwrap().changed);
 }
 
 #[test]
@@ -738,7 +743,7 @@ fn promotes_an_ephemeral_workbook_that_holds_a_script() {
     assert_eq!(workbook.promote(["Untitled"]), None);
     create(&mut workbook, None, Some("select 1"), "first");
     let effect = workbook.promote(["Untitled", "Sales"]);
-    assert_eq!(effect, Some(WorkbookEffect::WriteProperties { name: Some("Untitled 2".into()), ephemeral: false, cloud: None }));
+    assert_eq!(effect, Some(WorkbookEffect::WriteProperties { name: Some("Untitled 2".into()), ephemeral: false, origin: None }));
     assert!(!workbook.ephemeral());
     assert_eq!(workbook.promote(["Untitled"]), None);
 }
@@ -917,11 +922,11 @@ fn refuses_a_keystroke_of_an_editor_that_missed_a_change_of_the_text() {
 }
 
 #[test]
-fn a_cloud_preview_refuses_every_change_of_its_scripts() {
+fn a_read_only_workbook_refuses_every_change_of_its_scripts() {
     let (mut workbook, main) = workbook(&[("alpha.sql", "select 1")]);
     let alpha = key(&workbook, "alpha.sql");
-    let link = CloudLink { workbook_id: "published".into(), version_id: "v1".into(), preview: true };
-    workbook.apply(WorkbookAction::SetCloudLink { link: Some(link) }).unwrap();
+    let link = published(true);
+    workbook.apply(WorkbookAction::SetOrigin { origin: Some(link) }).unwrap();
     // Typing and replacing the scripts from storage fail, the text stays
     let event = typed(&workbook, alpha, "select 2");
     assert!(workbook.apply(WorkbookAction::ApplyEditorEvent { key: alpha, event, known: None }).is_err());

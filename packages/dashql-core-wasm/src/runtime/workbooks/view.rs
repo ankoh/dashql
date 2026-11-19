@@ -6,9 +6,7 @@
 //! key. A payload crosses only when its key differs from the one that the host holds.
 
 use dashql_core_runtime::attachments::{DataFile, WorkbookAttachment};
-use dashql_core_runtime::workbook::{
-    CloudLink, ExternalChanges, ScriptList, TextChange, WorkbookScript,
-};
+use dashql_core_runtime::workbook::{ExternalChanges, ScriptList, TextChange, WorkbookOrigin, WorkbookScript};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
@@ -16,7 +14,8 @@ use super::editor_update_key;
 use crate::runtime::storage::restore_view::RestoredInvalidWorkbook;
 use crate::views::{FlatBufferBytes, JsonValue};
 
-/// The published workbook of a cloud that a workbook came from or was published to
+/// The published workbook of a cloud that a workbook came from or was published to: the origin of the workbook in
+/// DashQL, a preview is a read-only workbook
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -26,15 +25,18 @@ pub struct WorkbookCloudLink {
     pub preview: bool,
 }
 
-impl From<&CloudLink> for WorkbookCloudLink {
-    fn from(link: &CloudLink) -> Self {
-        WorkbookCloudLink { workbook_id: link.workbook_id.clone(), version_id: link.version_id.clone(), preview: link.preview }
+impl WorkbookCloudLink {
+    /// The link to a cloud of an origin, none for an origin that names no published workbook and version
+    pub fn of(origin: &WorkbookOrigin) -> Option<Self> {
+        let text = |key: &str| origin.link.get(key).and_then(serde_json::Value::as_str).map(str::to_string);
+        Some(WorkbookCloudLink { workbook_id: text("workbookId")?, version_id: text("versionId")?, preview: origin.read_only })
     }
-}
 
-impl From<WorkbookCloudLink> for CloudLink {
-    fn from(link: WorkbookCloudLink) -> Self {
-        CloudLink { workbook_id: link.workbook_id, version_id: link.version_id, preview: link.preview }
+    /// The origin of a workbook that a link to a cloud names, none without its ids
+    pub fn origin(link: &serde_json::Value) -> Option<WorkbookOrigin> {
+        let ids = link.get("workbookId").and_then(serde_json::Value::as_str).is_some() && link.get("versionId").and_then(serde_json::Value::as_str).is_some();
+        let read_only = link.get("preview").and_then(serde_json::Value::as_bool).unwrap_or(false);
+        ids.then(|| WorkbookOrigin { link: link.clone(), read_only })
     }
 }
 

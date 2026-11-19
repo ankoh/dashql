@@ -211,11 +211,13 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
   in a script, ignoring case, with the folder of each, in pages like a folder. The cloud runs the search, the overview
   waits for a pause in the typing. The request carries the search as an object (`CloudSearch`), the search with SQL
   will be another kind of it.
-- **The link.** A local workbook knows the published workbook it came from or was published to, `metadata.cloud` of
-  its workbook file: the cloud connection, the id of the published workbook and of the version that was opened or
-  published last (`WorkbookCloudLink`). The properties of the workbook write it with its name
-  (`setCloudLink`). A `.dashql` file, a link and a publish never carry it (`shared_workbook_tables`), whoever
-  reads the workbook links it again.
+- **The link.** A local workbook knows the published workbook it came from or was published to, `metadata.cloud` of its
+  workbook file: the cloud connection, the id of the published workbook and of the version that was opened or published
+  last (`WorkbookCloudLink`). The properties of the workbook write it with its name (`setCloudLink`). The core runtime
+  keeps it as the origin of the workbook (`WorkbookOrigin`: the link as it is and whether the workbook is read-only), it
+  knows nothing of clouds; the bindings of DashQL and its storage turn the origin into the link of the view and of the
+  file. A `.dashql` file, a link and a publish never carry it (`shared_workbook_tables`), whoever reads the workbook
+  links it again.
 - **Previews.** A click on a published workbook opens its latest version, a click on a version that version
   (`useCloudWorkbooks().open`). A preview is a local workbook like any other, under a fresh id with `preview` in its
   link, loaded in a step of its own: the version is downloaded and imported like a `.dashql` file, its query results go
@@ -240,7 +242,8 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
   cards have a dashed border and a lock where the run button is, no connection and no actions, the editors are
   read-only, and there is no composer, no adding of scripts or attachments, no agent and no dashboard or dataflow view.
   A single script doesn't run (`runScript`), and the workbook refuses what changes the scripts, the names, the
-  inputs or the connections of the scripts (`Workbook::is_cloud_preview` of the core runtime). The bar says Read-only
+  inputs or the connections of the scripts (`Workbook::is_read_only` of the core runtime, a preview is a read-only
+  origin). The bar says Read-only
   preview next to Execute All and offers Import instead of Share and Export.
 - **Importing.** Import in the bar promotes a preview: it drops `preview` (`setCloudLink`), the workbook
   stays where it is with its results and is listed in Local from then on. A preview whose connections used an existing

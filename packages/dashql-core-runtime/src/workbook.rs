@@ -119,16 +119,16 @@ const ATTACHMENT_MOUNT_ROOT: &str = "/mnt/external/attachments";
 /// How many processing statistics a script keeps
 const STATISTICS_HISTORY_LIMIT: usize = 20;
 
-/// The published workbook of a cloud that a workbook came from or was published to
+/// Where a workbook came from: a link that the host keeps with the workbook, e.g. to the version of a published workbook
+/// that it was opened from or published to. The runtime doesn't read the link, it writes it with the properties of the
+/// workbook (`WorkbookEffect::WriteProperties`).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CloudLink {
-    /// The published workbook
-    pub workbook_id: String,
-    /// The version of it
-    pub version_id: String,
-    /// Is the workbook a read-only look at the version? Its scripts can't be changed, importing it turns it into a
-    /// workbook of its own.
-    pub preview: bool,
+pub struct WorkbookOrigin {
+    /// The link of the host
+    pub link: serde_json::Value,
+    /// Is the workbook a read-only look at its origin? Its scripts and names can't be changed, a new origin that isn't
+    /// read-only turns it into a workbook of its own.
+    pub read_only: bool,
 }
 
 /// A script as storage holds it
@@ -612,8 +612,8 @@ pub enum WorkbookEffect {
     RenameDataFile { from: String, to: String },
     /// Write the script list of the workbook file
     WriteScriptList(ScriptList),
-    /// Write the properties of the workbook file: its name, whether it is ephemeral and its link to a cloud
-    WriteProperties { name: Option<String>, ephemeral: bool, cloud: Option<CloudLink> },
+    /// Write the properties of the workbook file: its name, whether it is ephemeral and its origin
+    WriteProperties { name: Option<String>, ephemeral: bool, origin: Option<WorkbookOrigin> },
     /// Replace connections in the workbook file with another one
     PatchConnection { connection_id: String, params: Option<String>, replaces: Vec<String> },
 }
@@ -690,16 +690,16 @@ pub enum WorkbookAction {
     /// read the new name, the file is renamed (`WorkbookEffect::RenameDataFile`). A name that is no plain file name
     /// changes nothing.
     RenameAttachment { file_name: String, name: String },
-    /// The published workbook that the workbook is linked to, none removes the link. A link without `preview`
-    /// imports a cloud preview.
-    SetCloudLink { link: Option<CloudLink> },
+    /// Set where the workbook came from, none removes the origin. An origin that isn't read-only makes a read-only
+    /// workbook a workbook of its own.
+    SetOrigin { origin: Option<WorkbookOrigin> },
 }
 
 impl WorkbookAction {
-    /// Does a cloud preview refuse the action? These change the scripts or the names of the workbook: every action
+    /// Does a read-only workbook refuse the action? These change the scripts or the names of the workbook: every action
     /// that writes a script. Running scripts, moving the cursor and the connections of the workbook stay, they don't
     /// change what the workbook says.
-    fn changes_published_content(&self) -> bool {
+    fn changes_content(&self) -> bool {
         match self {
             WorkbookAction::CreateScript { .. }
             | WorkbookAction::DeleteScript { .. }
@@ -735,7 +735,7 @@ impl WorkbookAction {
                 | WorkbookAction::RenameWorkbook { .. }
                 | WorkbookAction::SetPendingConnection { .. }
                 | WorkbookAction::DetachConnection { .. }
-                | WorkbookAction::SetCloudLink { .. }
+                | WorkbookAction::SetOrigin { .. }
         )
     }
 }
@@ -781,8 +781,8 @@ pub struct Workbook {
     attachments: Option<Vec<WorkbookAttachment>>,
     /// The table parameters that the scripts read, derived from the scripts and the attachments
     table_parameters: Option<Arc<TableParameters>>,
-    /// The published workbook of a cloud that the workbook came from or was published to
-    cloud: Option<CloudLink>,
+    /// Where the workbook came from
+    origin: Option<WorkbookOrigin>,
     /// The offset unit of the editors
     offset_unit: EditorOffsetUnit,
     /// Did an editor event of the running action change what the table parameters read?
@@ -804,7 +804,7 @@ impl Workbook {
             scripts: Vec::new(),
             attachments: None,
             table_parameters: None,
-            cloud: None,
+            origin: None,
             offset_unit,
             table_parameters_outdated: false,
             published: Vec::new(),
@@ -812,14 +812,14 @@ impl Workbook {
         }
     }
 
-    /// The published workbook of a cloud that the workbook came from or was published to
-    pub fn cloud(&self) -> Option<&CloudLink> {
-        self.cloud.as_ref()
+    /// Where the workbook came from
+    pub fn origin(&self) -> Option<&WorkbookOrigin> {
+        self.origin.as_ref()
     }
 
-    /// Is the workbook a read-only look at a version of a published workbook?
-    pub fn is_cloud_preview(&self) -> bool {
-        self.cloud.as_ref().is_some_and(|cloud| cloud.preview)
+    /// Is the workbook a read-only look at its origin?
+    pub fn is_read_only(&self) -> bool {
+        self.origin.as_ref().is_some_and(|origin| origin.read_only)
     }
 
     /// Set the pending connection that storage holds when a workbook is restored, the connection of a workbook without
@@ -829,9 +829,9 @@ impl Workbook {
         self.revision = next_revision();
     }
 
-    /// Set the link to a cloud that storage holds when a workbook is restored
-    pub fn set_stored_cloud_link(&mut self, link: Option<CloudLink>) {
-        self.cloud = link;
+    /// Set the origin that storage holds when a workbook is restored
+    pub fn set_stored_origin(&mut self, origin: Option<WorkbookOrigin>) {
+        self.origin = origin;
         self.revision = next_revision();
     }
 
@@ -864,8 +864,8 @@ impl Workbook {
     /// script that moved to another connection keeps its key. Every new session is created before anything changes, a
     /// failure leaves the workbook as it is. Returns whether anything changed.
     pub fn replace_from_storage(&mut self, stored: Vec<StoredScript>) -> Result<bool> {
-        if self.is_cloud_preview() {
-            return Err(Error::invalid_argument("a cloud preview can't be changed"));
+        if self.is_read_only() {
+            return Err(Error::invalid_argument("a read-only workbook can't be changed"));
         }
         // The first script of a name wins
         let mut unique: Vec<StoredScript> = Vec::with_capacity(stored.len());
@@ -1346,15 +1346,15 @@ impl Workbook {
     /// Apply an action. A failed action leaves the workbook unchanged.
     pub fn apply(&mut self, action: WorkbookAction) -> Result<WorkbookOutcome> {
         let mut outcome = WorkbookOutcome::default();
-        if self.is_cloud_preview() && action.changes_published_content() {
-            return Err(Error::invalid_argument("a cloud preview can't be changed"));
+        if self.is_read_only() && action.changes_content() {
+            return Err(Error::invalid_argument("a read-only workbook can't be changed"));
         }
         let derives_table_parameters = action.derives_table_parameters();
         self.table_parameters_outdated = false;
         match action {
-            WorkbookAction::SetCloudLink { link } => {
-                if link != self.cloud {
-                    self.cloud = link;
+            WorkbookAction::SetOrigin { origin } => {
+                if origin != self.origin {
+                    self.origin = origin;
                     outcome.changed = true;
                     outcome.effects.push(self.properties_write());
                 }
@@ -1520,7 +1520,7 @@ impl Workbook {
     }
 
     fn properties_write(&self) -> WorkbookEffect {
-        WorkbookEffect::WriteProperties { name: self.name.clone(), ephemeral: self.ephemeral, cloud: self.cloud.clone() }
+        WorkbookEffect::WriteProperties { name: self.name.clone(), ephemeral: self.ephemeral, origin: self.origin.clone() }
     }
 
     /// Create the session of a script on a connection. A script that moves to another connection keeps its key.

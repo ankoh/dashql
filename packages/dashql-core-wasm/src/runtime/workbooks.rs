@@ -24,7 +24,7 @@ use dashql_core_storage::storage::{WriteResult, WriteTask};
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
 use dashql_core_storage::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
-    next_revision, CloudLink, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
+    next_revision, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
     WorkbookScript as Script,
 };
 use serde_json::{json, Map, Value};
@@ -503,10 +503,10 @@ impl Workbooks {
                     scripts: list.scripts.iter().map(|s| WorkbookScript::new(s.name.clone(), s.connection_id.clone())).collect(),
                     connections: list.connections.iter().map(|c| connection_copy(&c.connection_id, Some(&c.params))).collect(),
                 },
-                WorkbookEffect::WriteProperties { name, ephemeral, cloud } => {
-                    // The workbook file holds the whole link to the cloud, the workbook only its ids
+                WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
+                    // The workbook file holds the whole link to the cloud as the metadata of the workbook keeps it
                     let link = self.metadata(workbook_id).get("cloud").and_then(StoredCloudLink::from_json);
-                    WriteTask::WriteWorkbookProperties { workbook_id: workbook_id.to_string(), name, ephemeral, cloud: cloud.and(link) }
+                    WriteTask::WriteWorkbookProperties { workbook_id: workbook_id.to_string(), name, ephemeral, cloud: origin.and(link) }
                 }
                 WorkbookEffect::PatchConnection { connection_id, params, replaces } => {
                     for from in replaces {
@@ -637,11 +637,11 @@ impl Workbooks {
     /// link leaves the workbook and its metadata as they were.
     pub fn set_cloud_link(&self, workbook_id: &str, link: Option<Value>) -> Result<bool> {
         let ids = match &link {
-            Some(link) => Some(cloud_link_of(link).ok_or_else(|| Error::invalid_argument("the link to a cloud misses its ids"))?),
+            Some(link) => Some(WorkbookCloudLink::origin(link).ok_or_else(|| Error::invalid_argument("the link to a cloud misses its ids"))?),
             None => None,
         };
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
-        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(WorkbookAction::SetCloudLink { link: ids })?;
+        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(WorkbookAction::SetOrigin { origin: ids })?;
         // The metadata changes with the workbook, before its effects write the link into the workbook file
         {
             let mut entries = self.entries.borrow_mut();
@@ -724,7 +724,7 @@ impl Workbooks {
                 workbook_id: entry.id.clone(),
                 name: workbook.name().map(str::to_string),
                 ephemeral: workbook.ephemeral(),
-                cloud_preview: workbook.is_cloud_preview(),
+                cloud_preview: workbook.is_read_only(),
             });
         }
         let Ok(invalid) = self.invalid.try_borrow() else { return Read::Busy };
@@ -747,16 +747,6 @@ fn connection_copy(connection_id: &str, params: Option<&str>) -> WorkbookConnect
     WorkbookConnection::new(connection_id, params)
 }
 
-/// The ids of a link to a cloud that the workbook keeps
-fn cloud_link_of(link: &Value) -> Option<CloudLink> {
-    let workbook_id = link.get("workbookId")?.as_str()?.to_string();
-    let version_id = link.get("versionId")?.as_str()?.to_string();
-    let preview = link.get("preview").and_then(Value::as_bool).unwrap_or(false);
-    Some(CloudLink { workbook_id, version_id, preview })
-}
-
-
-
 /// The view of a workbook of an entry
 pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> WorkbookView {
     let mut metadata = match &entry.metadata {
@@ -767,7 +757,7 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
     if workbook.ephemeral() {
         metadata.insert("ephemeral".into(), Value::Bool(true));
     }
-    if workbook.cloud().is_none() {
+    if workbook.origin().is_none() {
         metadata.remove("cloud");
     }
     let scripts = workbook.scripts();
@@ -777,7 +767,7 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
         workbook_metadata: JsonValue(Value::Object(metadata)),
         ephemeral: workbook.ephemeral(),
         pending_connection_id: workbook.pending_connection().map(|c| c.connection_id.clone()),
-        cloud: workbook.cloud().map(WorkbookCloudLink::from),
+        cloud: workbook.origin().and_then(WorkbookCloudLink::of),
         attachments: workbook.attachments().map(|attachments| attachments.iter().map(WorkbookAttachmentView::from).collect()),
         script_list: workbook.script_list().into(),
         script_keys: scripts.iter().map(|script| script.key()).collect(),

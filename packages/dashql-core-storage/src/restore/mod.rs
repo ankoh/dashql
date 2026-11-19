@@ -29,7 +29,7 @@ use crate::storage::keys::{
     connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
 };
 use crate::storage::{FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
-use dashql_core_runtime::workbook::{new_catalog, CloudLink, ScriptConnection, Workbook};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
 use crate::workbook_format::storage_migration::iso_timestamp;
 use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
@@ -221,6 +221,12 @@ struct Promotion {
     workbook_id: String,
     name: Option<String>,
     cloud: Option<WorkbookCloudLink>,
+}
+
+/// Does a link to a cloud name its published workbook and version?
+fn cloud_link_ids(link: &Value) -> bool {
+    let text = |key: &str| link.get(key).and_then(Value::as_str).is_some();
+    text("workbookId") && text("versionId")
 }
 
 /// The state of one restore
@@ -493,13 +499,10 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         if plan.metadata.is_ephemeral() {
             workbook.set_ephemeral(true);
         }
-        // The link to a cloud as the file holds it
-        if let Some(cloud) = metadata.get("cloud").and_then(Value::as_object) {
-            let text = |key: &str| cloud.get(key).and_then(Value::as_str).map(str::to_string);
-            if let (Some(workbook_id), Some(version_id)) = (text("workbookId"), text("versionId")) {
-                let preview = cloud.get("preview").and_then(Value::as_bool) == Some(true);
-                workbook.set_stored_cloud_link(Some(CloudLink { workbook_id, version_id, preview }));
-            }
+        // The link to a cloud as the file holds it is the origin of the workbook, a preview is read-only
+        if let Some(cloud) = metadata.get("cloud").filter(|cloud| cloud_link_ids(cloud)) {
+            let read_only = cloud.get("preview").and_then(Value::as_bool) == Some(true);
+            workbook.set_stored_origin(Some(WorkbookOrigin { link: cloud.clone(), read_only }));
         }
         for script in &plan.scripts {
             let connection = self.script_connection(&script.connection.connection_id)?;

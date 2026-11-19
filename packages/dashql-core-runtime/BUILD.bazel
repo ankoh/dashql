@@ -53,6 +53,7 @@ rust_test(
         ":dashql_core_runtime",
         "//packages/dashql-core:dashql_core",
         "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:serde_json",
     ],
 )
 

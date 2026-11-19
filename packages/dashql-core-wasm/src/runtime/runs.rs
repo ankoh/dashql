@@ -261,7 +261,7 @@ impl Runs {
                     connections.push(id.clone());
                 }
             }
-            (connections, held.is_cloud_preview(), held.scripts().is_empty())
+            (connections, held.is_read_only(), held.scripts().is_empty())
         };
         Some(WorkbookScope { workbook, connections, preview, empty })
     }
