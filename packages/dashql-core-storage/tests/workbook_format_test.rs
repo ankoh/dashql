@@ -6,7 +6,9 @@ use std::collections::HashMap;
 use serde_json::{json, Value};
 
 use dashql_core::error::Result;
-use dashql_core_runtime::connections::ConnectorType;
+use dashql_core_runtime::connections::{
+    ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject,
+};
 use dashql_core_storage::storage::workbook_file::{properties_patch, upsert_connection_entry};
 use dashql_core_storage::workbook_format::bundle::*;
 use dashql_core_runtime::catalog_loader::tables::{
@@ -1460,4 +1462,42 @@ fn compares_file_names_in_nfc_and_refuses_alternate_data_streams() {
     assert!(!is_safe_file_name("a.sql:stream"));
     assert!(!is_script_file_name("a:b.sql"));
     assert!(is_safe_file_name("a b.sql"));
+}
+
+fn json_object(value: Value) -> JsonObject {
+    value.as_object().cloned().unwrap()
+}
+
+#[test]
+fn decodes_the_connections_of_a_workbook_file() {
+    for (key, connector, params) in [
+        (
+            "salesforce",
+            ConnectorType::SalesforceDataCloud,
+            json!({ "instanceUrl": "https://example.my.salesforce.com" }),
+        ),
+        ("dbcom", ConnectorType::Dbcom, json!({ "databases": ["main"] })),
+        ("hyper", ConnectorType::Hyper, json!({ "endpoint": "http://127.0.0.1:7484" })),
+        ("trino", ConnectorType::Trino, json!({ "endpoint": "http://127.0.0.1:8080", "catalog": "tpch" })),
+    ] {
+        // Flat params become the setup params
+        let (decoded, details) = decode_connection(&json!({ key: params }), "workbook").unwrap();
+        assert_eq!(decoded, connector);
+        assert_eq!(details, ConnectionDetails::new(&ConnectionParams::new(connector, json_object(params.clone()))));
+        // Details carry their setup params
+        let proto = json!({ "setupTimings": { "startedAt": 1 }, "setupParams": params });
+        let (_, details) = decode_connection(&json!({ key: proto }), "workbook").unwrap();
+        assert_eq!(details.setup_params, Some(json_object(params.clone())));
+        // Empty params
+        let (_, details) = decode_connection(&json!({ key: null }), "workbook").unwrap();
+        assert_eq!(details.setup_params, Some(JsonObject::new()));
+    }
+    let error = decode_connection(&json!({ "demo": {} }), "workbook").unwrap_err();
+    assert!(error.what().contains("unsupported connection details"));
+    assert!(decode_connection(&json!({}), "workbook").is_err());
+
+    let (_, details) = decode_connection(&json!({ "hyper": { "protocol": "V3_HTTP" } }), "workbook").unwrap();
+    let restored = ConnectionState::new("c1", details, ConnectionStateOptions { active: true, ..Default::default() }, 0.0);
+    assert!(restored.active());
+    assert_eq!(restored.params().params, json_object(json!({ "protocol": "V3_HTTP" })));
 }

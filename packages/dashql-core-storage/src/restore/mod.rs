@@ -23,7 +23,7 @@ use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
 use dashql_core_runtime::attachments::DataFile;
-use dashql_core_runtime::connections::import::decode_connection;
+use crate::workbook_format::data::decode_connection;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
 use dashql_core_runtime::host::{HostError, LogLevel};
 use crate::storage::keys::{

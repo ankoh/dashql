@@ -7,7 +7,7 @@ use dashql_core_storage::workbook_format::validation::InvalidWorkbook;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
-use crate::connection::view::ConnectorType;
+use crate::runtime::connections::view::ConnectorType;
 
 /// A counter of the progress of a step of a restore
 #[derive(Clone, Debug, Serialize, Tsify)]

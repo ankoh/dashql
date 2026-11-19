@@ -38,7 +38,7 @@ use wasm_bindgen::JsCast;
 
 use super::changes::Slice;
 use super::connections::Connections;
-use crate::connection::view::JsonParams;
+use crate::runtime::connections::view::JsonParams;
 use crate::host::{field, host_value, JsPlatform};
 use crate::views::JsonValue;
 

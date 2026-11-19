@@ -15,7 +15,6 @@ mod details;
 pub mod connector;
 pub mod health_check;
 mod hyper;
-pub mod import;
 pub mod open_setup;
 pub mod label;
 mod params;

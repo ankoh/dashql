@@ -9,6 +9,8 @@
 //! manifest, commits the params and writes the copies of the workbooks that use the connection. The workbooks of the
 //! runtime tell the registry which workbooks use a connection.
 
+pub(crate) mod view;
+
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
@@ -39,12 +41,10 @@ use wasm_bindgen::prelude::*;
 use super::catalog::{CatalogLoader, LoaderHost};
 use super::compute_tracking::ComputeTracker;
 use super::changes::{Read, Slice};
-use crate::connection::view::ConnectionView;
 use super::queries::{QueryHost, QueryRun};
 use dashql_core_runtime::connections::open_setup::OpenSetups;
 use super::setups::RunningSetup;
-use crate::connection::view::ConnectionSaveView;
-use crate::connection_persistence::view::{copies, ConnectionSaveOutcome};
+use view::{copies, ConnectionSaveOutcome, ConnectionSaveView, ConnectionView};
 use crate::host::JsPlatform;
 use crate::runtime::storage::view::StorageWriteOutcome;
 use crate::runtime::storage::JsStorage;

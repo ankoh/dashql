@@ -79,11 +79,9 @@ macro_rules! finish {
 
 // After the macros, the module uses them
 mod views;
-mod connection;
 mod query_history;
 mod host;
 mod runtime;
-mod connection_persistence;
 
 /// A formatting config from the numeric arguments of the JS API
 fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool, keyword_case: u8) -> FormattingConfigT {

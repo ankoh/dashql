@@ -2,12 +2,11 @@
 //! and the computations of query results. An action changes a state in place and returns the effects for the host.
 //!
 //! The app runs its workbook scripts on `workbook`, its connections with their query histories on `connections` and
-//! `query`, its computations on `compute` and its storage writes on `storage`. It restores the stored state with
-//! `restore`, decides the writes of connections with `connection_persistence` and the storage format of workbooks with
-//! `workbook_format`. It runs its queries on `executor`, the scripts of workbooks with `workbook_run`, loads its
-//! catalogs with `catalog_loader` and sets up its connections with `connection_setup`, see
-//! `docs/design/dashql_core.md`. The services of the runtime are async functions on a `host::Host`, the platform they
-//! run on.
+//! `query` and its computations on `compute`. It runs its queries on `executor`, the scripts of workbooks with
+//! `workbook_run`, loads its catalogs with `catalog_loader` and sets up its connections with `connection_setup`, see
+//! `docs/design/dashql_core.md`. The storage (the storage writer, the restore, the workbook format and the saves of the
+//! connections) is the crate `dashql_core_storage` on top of this one. The services of the runtime are async functions
+//! on a `host::Host`, the platform they run on.
 
 // Clippy fails on any warning (`clippy_test`). Allowed by choice: enums whose variants differ in size, errors that
 // carry their details, types of listeners spelled out in place, and the generated FlatBuffers objects, which are

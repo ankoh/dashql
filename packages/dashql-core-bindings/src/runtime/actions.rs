@@ -7,7 +7,7 @@ use tsify::Tsify;
 
 use super::computation::{ComputationOrderBy, ComputationSearchKind};
 use super::workbooks::view::WorkbookDataFile;
-use crate::connection::view::{ConnectionTableName, ConnectorType, JsonParams};
+use crate::runtime::connections::view::{ConnectionTableName, ConnectorType, JsonParams};
 use crate::views::JsonValue;
 
 /// The actions of a computation of a result table (`{ computation: tableId }`)

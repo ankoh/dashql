@@ -1,4 +1,4 @@
-//! The views of a connection: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`) with TypeScript
+//! The views of a connection and of its saves: what crosses to the host and back, as JS objects (`serde-wasm-bindgen`) with TypeScript
 //! declarations in the generated `.d.ts` (`tsify`). See docs/design/dashql_core.md.
 //!
 //! The channels, the catalog updates and the queries are named by their ids. Times are milliseconds since epoch, a
@@ -15,14 +15,15 @@ use dashql_core_runtime::connections::{
 };
 use dashql_core_runtime::connections::registry::ListedConnection;
 use dashql_core_runtime::query::QueryExecutionHistory;
+use dashql_core_storage::storage::WriteOutcome;
 
-use crate::connection_persistence::view::ConnectionSaveOutcome;
 use crate::query_history::view::QueryHistoryMetrics;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::views::app_enum;
+use crate::runtime::storage::view::StorageWriteOutcome;
+use crate::views::{app_enum, JsonValue};
 
 app_enum! {
     "The connectors"
@@ -704,4 +705,32 @@ mod tests {
         let ordinals: Vec<Option<u32>> = view.connections.iter().map(|c| c.ordinal).collect();
         assert_eq!(ordinals, [Some(1), None, Some(2)]);
     }
+}
+
+/// The outcome of writing the copy of a connection into a workbook
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionCopyOutcome {
+    pub workbook_id: String,
+    pub result: StorageWriteOutcome,
+}
+
+pub(crate) fn copies(copies: Vec<(String, WriteOutcome)>) -> Vec<ConnectionCopyOutcome> {
+    let copy = |(workbook_id, outcome): (String, WriteOutcome)| ConnectionCopyOutcome { workbook_id, result: outcome.into() };
+    copies.into_iter().map(copy).collect()
+}
+
+/// The outcome of saving a connection
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionSaveOutcome {
+    /// The saved params
+    #[tsify(type = "JsonParams")]
+    pub params: JsonValue,
+    /// The outcome of writing the app manifest
+    pub manifest: StorageWriteOutcome,
+    /// The outcomes of writing the copies of the workbooks, none if the manifest wasn't written
+    pub workbooks: Vec<ConnectionCopyOutcome>,
 }
