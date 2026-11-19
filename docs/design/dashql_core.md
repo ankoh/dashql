@@ -21,7 +21,7 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, parser, buffers, `arrow-rs` |
 | `dashql_core_bindings` | `packages/dashql-core-bindings` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
-| `dashql_dataflow_bindings` | `packages/dashql-dataflow-bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
+| `dashql_dataflow_bindings` | `packages/dashql-dataflow/bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
 
 All third-party crates of these come from the isolated `@core_crates` universe (`bazel/crates/core.MODULE.bazel`).
 `packages/dashql-native-proxy` (the gRPC proxy of the desktop app) is Rust as well but not part of the core.

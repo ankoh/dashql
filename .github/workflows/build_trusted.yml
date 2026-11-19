@@ -77,7 +77,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=fastbuild \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow-bindings:dataflow_wasm
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
     core_wasm_release:
         name: Core Wasm Release
@@ -110,7 +110,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow-bindings:dataflow_wasm
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
     linux_fastbuild:
         name: Linux Fastbuild
@@ -152,7 +152,7 @@ jobs:
               run: |
                 bazel build --config=fastbuild \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow-bindings:dataflow_wasm
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
             - name: Build Everything
               shell: bash
@@ -258,7 +258,7 @@ jobs:
               run: |
                 bazel build --config=release \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow-bindings:dataflow_wasm
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
             - name: Build Web App
               shell: bash
@@ -321,7 +321,7 @@ jobs:
               run: |
                 bazel build --config=release \
                     --experimental_remote_require_cached \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow-bindings:dataflow_wasm
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
             - name: Build and validate the npm tarball of @akohn/dashql
               shell: bash

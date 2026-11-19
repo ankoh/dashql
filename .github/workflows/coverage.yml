@@ -50,7 +50,7 @@ jobs:
                     --instrumentation_filter="//packages/dashql-core(-runtime|-storage|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-native-proxy[/:],//packages/dashql-pack[/:]" \
                     //packages/dashql-core/... //packages/dashql-core-runtime/... //packages/dashql-core-storage/... \
                     //packages/dashql-core-shell/... \
-                    //packages/dashql-core-profile/... //packages/dashql-dataflow/... //packages/dashql-parser/... //packages/dashql-snapshots/... \
+                    //packages/dashql-core-profile/... //packages/dashql-dataflow:dashql_dataflow_unit_tests //packages/dashql-parser/... //packages/dashql-snapshots/... \
                     //packages/dashql-native-proxy:test //packages/dashql-pack:test
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_linux.dat

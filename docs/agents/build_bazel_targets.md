@@ -54,7 +54,7 @@ bazel build //...
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
-| `//packages/dashql-dataflow-bindings:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
+| `//packages/dashql-dataflow:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-storage:dashql_core_storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format and the saves of the connections, wired in by the bindings, see `docs/design/dashql_core.md` |
@@ -472,7 +472,7 @@ bazel build --config=release //packages/dashql:npm_tarball
 ```
 
 `@akohn/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
-`//packages/dashql-core-bindings:core_wasm`, `//packages/dashql-dataflow-bindings:dataflow_wasm` and their wasm-bindgen glue
+`//packages/dashql-core-bindings:core_wasm`, `//packages/dashql-dataflow:dataflow_wasm` and their wasm-bindgen glue
 (`:dashql_core_bindgen`, `:dashql_dataflow_bindgen`), `:bundle` builds the JavaScript and the declarations around them.
 The release archive is `bazel-bin/packages/dashql/dashql.tgz`. Trusted CI waits for the release
 Wasm build and requires that artifact to be available in the remote cache before
@@ -534,7 +534,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings`, `dashql-dataflow-bindings` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

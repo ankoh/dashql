@@ -4,8 +4,8 @@ The glue loads `<name>_bg.wasm` by default, the package ships the modules as `da
 and every glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset.
 """
 
-_DATAFLOW_BINDGEN = "//packages/dashql-dataflow-bindings:dashql_dataflow_bindgen"
-_DATAFLOW_WASM = "//packages/dashql-dataflow-bindings:dataflow_wasm"
+_DATAFLOW_BINDGEN = "//packages/dashql-dataflow:dashql_dataflow_bindgen"
+_DATAFLOW_WASM = "//packages/dashql-dataflow:dataflow_wasm"
 
 # The shell command, `{out_dir}`, `{core_bindgen}` and `{core_wasm}` are filled in. Symbol.dispose needs lib
 # esnext.disposable, which ES2022 consumers lack, the declarations drop it.
