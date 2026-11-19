@@ -1,7 +1,7 @@
 //! JSON the way JavaScript reads it: JSON pointers, the text of a value and the number of a value, so a request carries
 //! the text that JavaScript would write.
 
-use serde_json::{Map, Number, Value};
+use serde_json::{Number, Value};
 
 /// The segments of a JSON pointer
 pub fn json_pointer_segments(pointer: &str) -> Vec<String> {
@@ -120,11 +120,6 @@ pub fn js_truthy(value: Option<&Value>) -> bool {
 /// Is a value absent, null or empty text?
 pub fn is_empty_value(value: Option<&Value>) -> bool {
     matches!(value, None | Some(Value::Null)) || matches!(value, Some(Value::String(s)) if s.is_empty())
-}
-
-/// An object without a key, the other keys keep their order
-pub fn without_key(object: &Map<String, Value>, key: &str) -> Map<String, Value> {
-    object.iter().filter(|(k, _)| k.as_str() != key).map(|(k, v)| (k.clone(), v.clone())).collect()
 }
 
 /// A string as `JSON.stringify` writes it

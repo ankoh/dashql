@@ -94,11 +94,6 @@ pub fn plan_connection_import(workbook: &WorkbookData, entries: &[ConnectionEntr
         .collect()
 }
 
-/// The plan items that need a decision of the user
-pub fn connection_import_questions(plan: &[ConnectionImportPlanItem]) -> Vec<&ConnectionImportPlanItem> {
-    plan.iter().filter(|item| matches!(item.decision, ConnectionImportDecision::Ask { .. })).collect()
-}
-
 /// An imported workbook with resolved connection references
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConnectionImport {

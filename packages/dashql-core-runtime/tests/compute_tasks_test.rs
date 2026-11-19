@@ -23,7 +23,6 @@ use dashql_core_runtime::compute::tasks::data_search::{
     build_column_search_sql, build_data_search_sql, collect_searchable_result_columns, parse_column_search_matches,
     plan_data_search,
 };
-use dashql_core_runtime::compute::tasks::result_computations::ResultComputations;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::tasks::sql::{
     format_number, quote_string_literal, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey,
@@ -443,7 +442,7 @@ fn data_search_reads_the_matching_rows_ordered_by_row() {
     assert_eq!(plan.query.title, "Data search");
     assert_eq!(plan.query.table_name, "__df_11");
     assert!(plan.query.sql.contains("FROM \"__df_10\""));
-    assert!(plan.query.create_sql().starts_with("CREATE TABLE \"__df_11\" AS WITH search AS ("));
+    assert!(plan.query.sql.starts_with("WITH search AS ("));
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"row_idx\" ASC NULLS LAST");
 
     // The host keeps the rows that the search matched
@@ -908,18 +907,4 @@ fn readers_cast_booleans_and_report_missing_fields() {
     assert!(result.int64_values(3).is_err());
     let stats = TableStats::read(1, &result, "missing").expect("the statistics");
     assert!(stats.row_count().is_err());
-}
-
-// ------------------------------------------------------------
-// Result computations
-
-#[test]
-fn result_computations_replace_the_previous_result_and_drop_a_stale_one() {
-    let mut computations = ResultComputations::new();
-    assert_eq!(computations.retain("script", 1), None);
-    assert_eq!(computations.retain("other", 2), None);
-    assert_eq!(computations.retain("script", 4), Some(1));
-    // An overlapping run that started earlier finishes later
-    assert_eq!(computations.retain("script", 3), Some(3));
-    assert_eq!(computations.retain("script", 5), Some(4));
 }

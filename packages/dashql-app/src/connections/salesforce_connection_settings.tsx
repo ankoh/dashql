@@ -61,8 +61,6 @@ export function getConnectionStatusText(status: ConnectionStatus | undefined, lo
             return "Requesting access token";
         case ConnectionStatus.ACCESS_TOKEN_RECEIVED:
             return "Received access token";
-        case ConnectionStatus.CORE_ACCESS_TOKEN_REQUESTED:
-            return "Requesting Core access token";
         case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:
             return "Received Core access token";
         case ConnectionStatus.DATA_CLOUD_TOKEN_REQUESTED:

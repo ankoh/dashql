@@ -58,7 +58,6 @@ app_enum! {
         ACCESS_TOKEN_RECEIVED = 18 => AccessTokenReceived,
         DATA_CLOUD_TOKEN_REQUESTED = 19 => DataCloudTokenRequested,
         DATA_CLOUD_TOKEN_RECEIVED = 20 => DataCloudTokenReceived,
-        CORE_ACCESS_TOKEN_REQUESTED = 21 => CoreAccessTokenRequested,
         CORE_ACCESS_TOKEN_RECEIVED = 22 => CoreAccessTokenReceived,
     }
 }

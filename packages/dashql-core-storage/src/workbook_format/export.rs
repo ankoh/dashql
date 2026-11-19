@@ -189,8 +189,3 @@ pub fn workbook_link(archive: &[u8], link_base: &str) -> String {
     }
     format!("{base}?{ZIP_QUERY_PARAMETER}={zip}")
 }
-
-/// The archive of the `zip` parameter of a link, None if it isn't base64url
-pub fn workbook_link_archive(zip: &str) -> Option<Vec<u8>> {
-    base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(zip.trim_end_matches('=')).ok()
-}

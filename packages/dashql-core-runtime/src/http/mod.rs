@@ -291,14 +291,6 @@ impl HttpResponse {
         Self { status, status_text: String::new(), headers: Headers::new(), body: body.into(), host_body: None }
     }
 
-    /// Take the body, the bytes that stayed with the host if they did
-    pub fn take_body(&mut self) -> Body {
-        match self.host_body.take() {
-            Some(bytes) => Body::Host(bytes),
-            None => Body::Bytes(std::mem::take(&mut self.body)),
-        }
-    }
-
     /// The response with a header, a value of a name that is set already is appended
     pub fn with_header(mut self, name: &str, value: &str) -> Self {
         self.headers.append(name, value);

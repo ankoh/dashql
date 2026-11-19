@@ -7,8 +7,6 @@ use crate::query::{QueryMetadata, QueryType};
 
 /// The message of a check whose query returned no table
 pub const HEALTH_CHECK_FAILED_MESSAGE: &str = "health check failed";
-/// The message of the error of a cancelled check
-pub const HEALTH_CHECK_CANCELLED_MESSAGE: &str = "health check cancelled";
 
 /// The metadata of the probe query
 pub fn health_check_metadata() -> QueryMetadata {

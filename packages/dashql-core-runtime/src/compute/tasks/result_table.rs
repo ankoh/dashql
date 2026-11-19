@@ -164,29 +164,6 @@ impl ResultTable {
         Ok(values)
     }
 
-    /// The values of a column of lists of integers, a null list is none
-    pub fn int64_list_values(&self, column: usize) -> Result<Vec<Option<Vec<i64>>>> {
-        let mut values = Vec::with_capacity(self.num_rows());
-        for array in self.column_arrays(column)? {
-            let lists: Vec<Option<ArrayRef>> = if let Some(list) = array.as_list_opt::<i32>() {
-                list.iter().collect()
-            } else if let Some(list) = array.as_list_opt::<i64>() {
-                list.iter().collect()
-            } else if let Some(list) = array.as_fixed_size_list_opt() {
-                list.iter().collect()
-            } else {
-                return Err(Error::invalid_argument(format!("a column of type {} holds no lists", array.data_type())));
-            };
-            for list in lists {
-                values.push(match list {
-                    Some(list) => Some(int64_values(list.as_ref())?.into_iter().flatten().collect()),
-                    None => None,
-                });
-            }
-        }
-        Ok(values)
-    }
-
     /// An integer value of any integer type, exact for unsigned 64-bit integers
     pub fn integer_value(&self, column: usize, row: usize) -> Result<Option<i128>> {
         match self.value(column, row)? {

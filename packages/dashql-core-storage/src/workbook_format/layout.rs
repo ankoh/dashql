@@ -96,21 +96,6 @@ pub fn validate_data_file_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// The folder of an OPFS workbook, `workbooks/<id>`
-pub fn workbook_folder_path(workbook_id: &str) -> String {
-    format!("{STORAGE_WORKBOOKS_FOLDER}/{workbook_id}")
-}
-
-/// The path of a file of a workbook folder relative to the folder, e.g. `scripts/a.sql`
-pub fn script_file_path(script_name: &str) -> String {
-    format!("{STORAGE_SCRIPTS_FOLDER}/{script_name}")
-}
-
-/// The path of an attachment relative to its workbook folder, e.g. `attachments/a.parquet`
-pub fn attachment_file_path(name: &str) -> String {
-    format!("{STORAGE_ATTACHMENTS_FOLDER}/{name}")
-}
-
 /// The path of a file of a connection, e.g. `connections/<id>/dashql-catalog-relations.sql`. Workbook bundles carry
 /// the catalogs of their connections at the same paths.
 pub fn connection_file_path(connection_id: &str, file_name: &str) -> String {

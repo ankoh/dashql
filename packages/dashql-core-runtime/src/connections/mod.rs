@@ -19,7 +19,6 @@ pub mod import;
 pub mod open_setup;
 pub mod label;
 mod params;
-pub mod refresh;
 pub mod registry;
 pub mod sharing;
 mod salesforce;
@@ -90,7 +89,6 @@ pub enum ConnectionStatus {
     // The OAuth of Salesforce
     DataCloudTokenRequested,
     DataCloudTokenReceived,
-    CoreAccessTokenRequested,
     CoreAccessTokenReceived,
 }
 

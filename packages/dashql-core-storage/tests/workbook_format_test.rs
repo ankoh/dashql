@@ -1193,7 +1193,6 @@ fn shares_a_connection_as_an_empty_workbook_in_a_link() {
     let link = workbook_link(&[0xfb, 0xff, 0x01], "https://dashql.app");
     assert_eq!(link, "https://dashql.app/?zip=-_8B");
     assert_eq!(workbook_link(&[1], DESKTOP_APP_LINK_BASE), "dashql://localhost?zip=AQ");
-    assert_eq!(workbook_link_archive("-_8B"), Some(vec![0xfb, 0xff, 0x01]));
 }
 
 // ---- workbook_connection_import.test.ts ---------------------------------------------------------
@@ -1228,7 +1227,7 @@ fn links_a_known_connection_silently_when_only_secrets_differ() {
     let workbook = imported(KNOWN, sanitize_connection_params_for_sharing(&trino("https://trino", "secret"), false));
     let plan = plan_connection_import(&workbook, &entries());
     assert_eq!(plan[0].decision, ConnectionImportDecision::Link { connection_id: KNOWN.into() });
-    assert!(connection_import_questions(&plan).is_empty());
+    assert!(!matches!(plan[0].decision, ConnectionImportDecision::Ask { .. }));
     let applied = apply_connection_import_plan(&workbook, &plan, &HashMap::new(), &entries(), &mut no_uuid);
     // The copy takes the full params of the connection of the app
     assert_eq!(applied.workbook.connections, vec![WorkbookConnection::new(KNOWN, entries()[0].params.clone())]);
@@ -1292,7 +1291,8 @@ fn keeps_the_names_of_new_connections_and_drops_them_for_existing_ones() {
     }));
     let plan = plan_connection_import(&workbook, &entries());
     assert_eq!(plan[0].decision, ConnectionImportDecision::Register);
-    assert_eq!(connection_import_questions(&plan).iter().map(|item| item.reference.name.as_deref()).collect::<Vec<_>>(), [Some("Production")]);
+    let questions = plan.iter().filter(|item| matches!(item.decision, ConnectionImportDecision::Ask { .. }));
+    assert_eq!(questions.map(|item| item.reference.name.as_deref()).collect::<Vec<_>>(), [Some("Production")]);
     let link = HashMap::from([(FRESH.to_string(), ConnectionImportChoice::Link { connection_id: KNOWN.into() })]);
     let linked = apply_connection_import_plan(&workbook, &plan, &link, &entries(), &mut no_uuid).workbook;
     assert_eq!(linked.connections[0].name.as_deref(), Some("Theirs"));

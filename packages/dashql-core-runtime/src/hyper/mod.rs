@@ -22,8 +22,8 @@ pub mod status;
 
 pub use channel::{HyperChannelContext, HyperHttpChannel, HyperProtocol};
 pub use client::{
-    read_cancel_response, read_query_response, read_rows_response, read_status_header, read_status_response,
-    AttachedDatabase, ExecuteQueryRequest, GetQueryChunkParams, GetQueryRowsParams, GetQueryStatusParams,
+    read_cancel_response, read_query_response, read_status_header, read_status_response,
+    AttachedDatabase, ExecuteQueryRequest, GetQueryChunkParams, GetQueryStatusParams,
     HyperHttpClient, HyperRequestHeaders, QueryResponse, ResultRange, ARROW_STREAM_CONTENT_TYPE, HEADER_HYPERDB_STATUS,
 };
 pub use error::{

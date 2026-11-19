@@ -416,15 +416,6 @@ impl HyperCatalogUpdate {
         (databases, relations, tables)
     }
 
-    /// The names of the databases that answered
-    pub fn updated_databases(&self) -> Vec<String> {
-        self.targets
-            .iter()
-            .filter(|target| matches!(target.state, TargetState::Tables(_)))
-            .map(|target| target.key.clone())
-            .collect()
-    }
-
 }
 
 impl ConnectorCatalogUpdate for HyperCatalogUpdate {

@@ -15,7 +15,6 @@ pub mod analyze_table;
 pub mod column_aggregation;
 pub mod columns;
 pub mod data_search;
-pub mod result_computations;
 pub mod result_table;
 pub mod sql;
 pub mod system_columns;
@@ -31,16 +30,11 @@ use dashql_core::error::{Error, Result};
 
 use crate::compute::types::{DataFrameId, OrderByConstraint};
 use result_table::ResultTable;
-use sql::{quote_ident, SqlFrame};
+use sql::SqlFrame;
 
 /// The table of a data frame in the compute database
 pub fn data_frame_table_name(data_frame: DataFrameId) -> String {
     format!("__df_{data_frame}")
-}
-
-/// The statement that drops the table of a data frame
-pub fn drop_data_frame_sql(data_frame: DataFrameId) -> String {
-    format!("DROP TABLE IF EXISTS {}", quote_ident(&data_frame_table_name(data_frame)))
 }
 
 /// The read of the rows of a data frame. A table doesn't keep the order of the query that created it, a read without
@@ -94,11 +88,6 @@ pub struct TaskQuery {
 impl TaskQuery {
     fn new(title: &'static str, failure: &'static str, data_frame: DataFrameId, sql: String, read_sql: String) -> Self {
         Self { title, data_frame, table_name: data_frame_table_name(data_frame), sql, read_sql, failure }
-    }
-
-    /// The statement that creates the table of the data frame
-    pub fn create_sql(&self) -> String {
-        format!("CREATE TABLE {} AS {}", quote_ident(&self.table_name), self.sql)
     }
 
     /// The error of the task when its query, its read or its finish failed

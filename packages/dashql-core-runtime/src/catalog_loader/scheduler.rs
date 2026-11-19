@@ -123,11 +123,6 @@ impl CatalogLoader {
         self.queue.iter().any(|(id, _)| id == connection_id)
     }
 
-    /// Is an update of a connection in progress?
-    pub fn is_in_progress(&self, connection_id: &str) -> bool {
-        self.in_progress.contains(connection_id)
-    }
-
     /// Follow the connections: a connection that comes online is described if nothing describes it yet, and always if
     /// its database doesn't outlive the app. A busy connection, one whose state is borrowed by an action, isn't seen and
     /// keeps what the loader knows of it.

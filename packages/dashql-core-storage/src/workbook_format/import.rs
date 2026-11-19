@@ -266,8 +266,3 @@ pub fn read_folder_archive<B>(plan: &FolderArchivePlan, files: FolderArchiveFile
 pub fn read_table_archive<B: Clone>(tables: &WorkbookTables<B>, catalog_sql: &dyn CatalogSql) -> Result<WorkbookBundle<B>> {
     crate::workbook_format::tables::workbook_tables_to_bundle(tables, ARCHIVE_ERROR_PREFIX, catalog_sql)
 }
-
-/// The error of an archive of workbook tables without the embedded database
-pub fn missing_database_error() -> Error {
-    archive_error("reading the workbook tables needs the embedded database")
-}

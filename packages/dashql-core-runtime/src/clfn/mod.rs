@@ -12,7 +12,6 @@ pub mod request;
 pub mod result;
 pub mod runtime;
 pub mod spec;
-pub mod specs;
 pub mod time;
 
 use std::fmt;
@@ -29,7 +28,6 @@ pub use request::{
 pub use result::{Cell, ClientFunctionResult, ColumnType, ResultField};
 pub use runtime::{explain_client_function_call, CallStep, ClientFunctionCallRun, POLL_SAME};
 pub use spec::{ClientFunction, ClientFunctionCallDescription, ClientFunctionSpec};
-pub use specs::find_client_function_spec;
 
 /// A call that failed, the status is set if a service answered
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -403,13 +403,6 @@ impl PromptBuffer {
         true
     }
 
-    /// Replace a byte range with bytes that must be valid UTF-8
-    pub fn replace_byte_range_bytes(&mut self, byte_offset: usize, byte_length: usize, text: &[u8]) -> bool {
-        let Ok(text) = std::str::from_utf8(text) else {
-            return false;
-        };
-        self.replace_byte_range(byte_offset, byte_length, text)
-    }
 }
 
 /// Find a byte at or after an offset

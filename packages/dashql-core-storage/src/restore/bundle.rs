@@ -10,7 +10,7 @@ use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
 use serde_json::Value;
 
-use super::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE};
+use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
 use super::{RestoreHost, RestoreProgress};
 use crate::storage::{ConnectionsUpdate, Expect, FileStamp, StorageHost};
 use crate::workbook_format::bundle::WorkbookBundle;
@@ -143,8 +143,8 @@ impl<H: Host, B: BundleFile + 'static> RestoreHost for BundleHost<H, B> {
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {
         let catalog = self.bundle.catalogs.iter().find(|catalog| catalog.connection_id == connection_id);
         Ok(catalog.and_then(|catalog| match file_name {
-            CATALOG_RELATIONS_FILE => catalog.relations.clone(),
-            CATALOG_FUNCTIONS_FILE => catalog.functions.clone(),
+            STORAGE_CATALOG_RELATIONS => catalog.relations.clone(),
+            STORAGE_CATALOG_FUNCTIONS => catalog.functions.clone(),
             _ => None,
         }))
     }

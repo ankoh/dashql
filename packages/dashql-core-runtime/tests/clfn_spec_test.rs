@@ -46,8 +46,6 @@ fn loads_the_generated_spec_of_an_extension() {
     let spec = spec();
     assert_eq!(spec.namespace, "d360");
     assert!(spec.functions.len() > 500);
-    let paths = ["/bundle/extensions/d360-api/clfn/spec/spec.json", "/bundle/other/x.json"];
-    assert_eq!(find_client_function_spec(paths, "d360-api").unwrap(), paths[0]);
 }
 
 #[test]
@@ -56,12 +54,6 @@ fn leaves_out_the_prose_of_the_reference() {
     for function in value["functions"].as_array().unwrap() {
         assert!(function.get("notes").is_none(), "{}", function["name"]);
     }
-}
-
-#[test]
-fn fails_for_an_extension_that_does_not_exist() {
-    let error = find_client_function_spec(["/bundle/extensions/d360-api/clfn/spec/spec.json"], "nope").unwrap_err();
-    assert_eq!(error.message, "no extension in the folder nope");
 }
 
 // The examples

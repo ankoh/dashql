@@ -12,14 +12,10 @@ use dashql_core_runtime::catalog_loader::tables::{pack_catalog_table_update, Cat
 use dashql_core_runtime::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
 use dashql_core_runtime::host::HostError;
 
-/// The relations of the catalog of a connection, written and read as SQL
-pub const CATALOG_RELATIONS_FILE: &str = "dashql-catalog-relations.sql";
-/// The functions of the catalog of a connection
-pub const CATALOG_FUNCTIONS_FILE: &str = "dashql-catalog-functions.sql";
-/// The relations nothing has answered about yet and those that are gone
-pub const CATALOG_STATE_FILE: &str = "dashql-catalog-state.json";
-/// The changes of executed statements that older versions of the app kept, the restore clears the file
-pub const CATALOG_CHANGES_FILE: &str = "dashql-catalog-changes.sql";
+use crate::workbook_format::layout::{
+    STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE,
+};
+
 
 /// The files of the catalog of a connection, None for a file that doesn't exist
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -44,10 +40,10 @@ pub struct CatalogRestore {
 /// Read the files of the catalog of a connection
 pub async fn load_catalog_files<H: RestoreHost>(host: &H, connection_id: &str) -> Result<CatalogFiles, HostError> {
     Ok(CatalogFiles {
-        relations: host.load_connection_file(connection_id, CATALOG_RELATIONS_FILE).await?,
-        functions: host.load_connection_file(connection_id, CATALOG_FUNCTIONS_FILE).await?,
-        changes: host.load_connection_file(connection_id, CATALOG_CHANGES_FILE).await?,
-        state: host.load_connection_file(connection_id, CATALOG_STATE_FILE).await?,
+        relations: host.load_connection_file(connection_id, STORAGE_CATALOG_RELATIONS).await?,
+        functions: host.load_connection_file(connection_id, STORAGE_CATALOG_FUNCTIONS).await?,
+        changes: host.load_connection_file(connection_id, STORAGE_CATALOG_CHANGES).await?,
+        state: host.load_connection_file(connection_id, STORAGE_CATALOG_STATE).await?,
     })
 }
 
@@ -73,7 +69,7 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
     let mut out = CatalogRestore { succeeded: false, files: Vec::new(), error: None };
     // Clear the dropped relations that older versions of the app wrote
     if !durable && present(&files.relations).is_some() {
-        out.files.push((CATALOG_RELATIONS_FILE.to_string(), String::new()));
+        out.files.push((STORAGE_CATALOG_RELATIONS.to_string(), String::new()));
     }
 
     let relations = if durable { not_blank(&files.relations) } else { None };
@@ -134,8 +130,8 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
     if present(&files.changes).is_some() {
         let pending = state.catalog_updates().touched_relations.clone();
         let next = CatalogStateFile { pending, gone: stored.gone };
-        out.files.push((CATALOG_STATE_FILE.to_string(), next.to_json()));
-        out.files.push((CATALOG_CHANGES_FILE.to_string(), String::new()));
+        out.files.push((STORAGE_CATALOG_STATE.to_string(), next.to_json()));
+        out.files.push((STORAGE_CATALOG_CHANGES.to_string(), String::new()));
     }
     out.succeeded = true;
     out

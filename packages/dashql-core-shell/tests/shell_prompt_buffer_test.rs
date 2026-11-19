@@ -267,13 +267,12 @@ fn transpose_needs_two_graphemes_before_the_cursor() {
 }
 
 #[test]
-fn replaces_byte_ranges_with_validated_text() {
+fn replaces_byte_ranges_on_code_point_boundaries() {
     let mut prompt = prompt();
     assert!(prompt.set_text("select 界".as_bytes()));
-    assert!(prompt.replace_byte_range_bytes(0, 6, b"SELECT"));
+    assert!(prompt.replace_byte_range(0, 6, "SELECT"));
     assert_eq!(prompt.text(), "SELECT 界");
-    // Invalid UTF-8 and ranges inside of a code point are rejected
-    assert!(!prompt.replace_byte_range_bytes(0, 6, b"\xff"));
+    // Ranges inside of a code point are rejected
     assert!(!prompt.replace_byte_range(8, 1, "x"));
     assert!(!prompt.replace_byte_range(1000, 1, "x"));
     assert_eq!(prompt.text(), "SELECT 界");

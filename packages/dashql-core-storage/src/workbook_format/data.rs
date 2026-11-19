@@ -421,12 +421,6 @@ impl ConnectionEntry {
     }
 }
 
-/// The connections of a manifest, None if the manifest has none (it was written before connections were global)
-pub fn manifest_connections(manifest: &Value) -> Option<Vec<ConnectionEntry>> {
-    let list = manifest.as_object()?.get("connections")?.as_array()?;
-    Some(list.iter().filter_map(ConnectionEntry::from_json).collect())
-}
-
 /// The integer of a JSON number, None for any other value
 pub fn integer(value: &Value) -> Option<i64> {
     value.as_i64().or_else(|| value.as_f64().filter(|f| f.fract() == 0.0 && f.abs() < 9.0e15).map(|f| f as i64))

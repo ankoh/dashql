@@ -9,7 +9,7 @@ use serde_json::{json, Map, Value};
 
 use dashql_core_runtime::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
 use dashql_core_runtime::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
-use crate::restore::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE, CATALOG_STATE_FILE};
+use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE};
 use crate::storage::keys::{connection_entry_key, connection_file_key, workbook_connection_copy_key};
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteOutcome, WriteTask};
 use crate::workbook_format::data::WorkbookConnection;
@@ -190,12 +190,12 @@ pub fn connection_writes(
             let entry_id = next.relation_entry_id();
             // A reset cleared the catalog in the meantime, what is on disk is better than nothing
             let read = TextSource::Read(Box::new(move || Ok(relations_file_of_entry(&catalog.borrow(), entry_id))));
-            out.writes.push(file(CATALOG_RELATIONS_FILE, read));
+            out.writes.push(file(STORAGE_CATALOG_RELATIONS, read));
         }
         // Only a full refresh reads the functions
         if succeeded && *refreshed {
             let functions = next.function_script().map(|script| script.to_text()).unwrap_or_default();
-            out.writes.push(file(CATALOG_FUNCTIONS_FILE, TextSource::Text(functions)));
+            out.writes.push(file(STORAGE_CATALOG_FUNCTIONS, TextSource::Text(functions)));
         }
     }
     // Statements and the updates that answer them change what the relations don't say. A relation stays pending until
@@ -203,7 +203,7 @@ pub fn connection_writes(
     let answers = matches!(change, ConnectionChange::RelationsTouched | ConnectionChange::CatalogUpdateFinished { .. });
     if durable && answers {
         let state = CatalogStateFile::of_catalog(next.catalog_updates().pending_relations(), &next.catalog().borrow());
-        out.writes.push(file(CATALOG_STATE_FILE, TextSource::Text(state.to_json())));
+        out.writes.push(file(STORAGE_CATALOG_STATE, TextSource::Text(state.to_json())));
     }
     out
 }

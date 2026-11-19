@@ -9,7 +9,6 @@ use arrow_schema::{DataType, Field, Schema};
 use dashql_core_runtime::connections::health_check::*;
 use dashql_core_runtime::connections::import::*;
 use dashql_core_runtime::connections::label::*;
-use dashql_core_runtime::connections::refresh::can_refresh_connection;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments};
@@ -403,33 +402,6 @@ fn chunks_of_a_known_and_an_unknown_query() {
     let params = GetQueryChunkParams { query_id: "nope".to_string(), chunk_id: 0, omit_schema: false };
     let request = mock_client().get_query_chunk(&params, None, &mock_auth());
     assert_eq!(http_error(read_query_response(server.fetch(&request))).http_status, 404);
-}
-
-#[test]
-fn rows_of_a_known_and_an_unknown_query() {
-    let mut server = MockServer::default();
-    server.set_handler(|_, _| produced("q-rows", MOCK_ARROW.to_vec()));
-    execute(&mut server, "SELECT i FROM t").unwrap();
-    let params = GetQueryRowsParams {
-        query_id: "q-rows".to_string(),
-        offset: 0,
-        limit: Some(10),
-        byte_limit: None,
-        omit_schema: false,
-    };
-    let request = mock_client().get_query_rows(&params, None, &mock_auth());
-    assert_eq!(request.url, "https://mock.hyperdb.local/api/v3/query/q-rows/row?offset=0&limit=10");
-    assert_eq!(read_rows_response(server.fetch(&request)).unwrap(), MOCK_ARROW);
-
-    let params = GetQueryRowsParams {
-        query_id: "nope".to_string(),
-        offset: 0,
-        limit: None,
-        byte_limit: None,
-        omit_schema: false,
-    };
-    let request = mock_client().get_query_rows(&params, None, &mock_auth());
-    assert!(matches!(read_rows_response(server.fetch(&request)), Err(HyperError::Http(_))));
 }
 
 #[test]
@@ -1493,15 +1465,15 @@ fn labels_of_connections() {
 #[test]
 fn the_catalog_refreshes_only_online_without_a_running_refresh() {
     let mut connection = ConnectionState::from_params("h", ConnectionParams::default_for(ConnectorType::Hyper), 0.0);
-    assert!(!can_refresh_connection(&connection));
+    assert!(!connection.can_refresh_catalog());
     let ready = HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: object(json!({ "protocol": "WASM" })) };
     connection.apply(ConnectionAction::Hyper(ready), 0.0).unwrap();
-    assert!(can_refresh_connection(&connection));
+    assert!(connection.can_refresh_catalog());
     let refresh = CatalogUpdateTask::new(7, CatalogUpdateVariant::FullCatalogRefresh, 0.0);
     connection.apply(ConnectionAction::UpdateCatalog(refresh), 0.0).unwrap();
-    assert!(!can_refresh_connection(&connection));
+    assert!(!connection.can_refresh_catalog());
     connection.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 7 }, 0.0).unwrap();
-    assert!(can_refresh_connection(&connection));
+    assert!(connection.can_refresh_catalog());
     connection.apply(ConnectionAction::HealthCheckFailed(DetailedError::new("down")), 0.0).unwrap();
-    assert!(!can_refresh_connection(&connection));
+    assert!(!connection.can_refresh_catalog());
 }

@@ -124,16 +124,6 @@ pub struct GetQueryChunkParams {
     pub omit_schema: bool,
 }
 
-/// The parameters of `GET /api/v3/query/{queryId}/row`
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GetQueryRowsParams {
-    pub query_id: String,
-    pub offset: u64,
-    pub limit: Option<u64>,
-    pub byte_limit: Option<u64>,
-    pub omit_schema: bool,
-}
-
 /// The optional headers of a request
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HyperRequestHeaders {
@@ -256,32 +246,6 @@ impl HyperHttpClient {
         }
     }
 
-    /// `GET /api/v3/query/{queryId}/row`
-    pub fn get_query_rows(
-        &self,
-        params: &GetQueryRowsParams,
-        extra: Option<&HyperRequestHeaders>,
-        auth: &Headers,
-    ) -> HttpRequest {
-        let path = format!("{}/row", Self::query_path(&params.query_id));
-        let mut query = vec![("offset", params.offset.to_string())];
-        if let Some(limit) = params.limit {
-            query.push(("limit", limit.to_string()));
-        }
-        if let Some(byte_limit) = params.byte_limit {
-            query.push(("byteLimit", byte_limit.to_string()));
-        }
-        if params.omit_schema {
-            query.push(("omitSchema", "true".to_string()));
-        }
-        HttpRequest {
-            method: HttpMethod::Get,
-            url: self.endpoint.origin_url(&path, &query),
-            headers: self.headers(auth, extra),
-            body: None,
-            sensitive: false,
-        }
-    }
 }
 
 /// Read the status header of a response, none without one
@@ -310,10 +274,4 @@ pub fn read_status_response(response: &HttpResponse) -> Result<QueryStatus, Hype
 /// Read the response of a cancellation
 pub fn read_cancel_response(response: &HttpResponse) -> Result<(), HyperError> {
     check_response(response).map_err(HyperError::Http)
-}
-
-/// Read the response of a rows request: the Arrow body
-pub fn read_rows_response(response: HttpResponse) -> Result<Vec<u8>, HyperError> {
-    check_response(&response).map_err(HyperError::Http)?;
-    Ok(response.body)
 }
