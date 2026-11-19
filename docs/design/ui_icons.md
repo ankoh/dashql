@@ -162,11 +162,11 @@ const icon = `${symbols}#table_24`;
 
 ### Icon Components
 
-Use the named icon components from `src/ui/foundations/symbol_icon.tsx` when rendering a standard
+Use the named icon components from `packages/dashql-react/src/components/symbol_icon.tsx` when rendering a standard
 application icon or passing one to a component property such as `leadingVisual`:
 
 ```tsx
-import { CheckIcon } from './ui/foundations/symbol_icon.js';
+import { CheckIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 <Button leadingVisual={CheckIcon}>Apply</Button>
 ```

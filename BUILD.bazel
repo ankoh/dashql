@@ -1,5 +1,4 @@
-# Root package: exports shared repo files;
-# node_modules at root: npm link tree. App uses NODE_PATH = overlay/node_modules + node_modules (no full merge).
+# Root package: the shared repository files and the npm link tree of the workspace.
 package(default_visibility = ["//visibility:public"])
 
 load("@aspect_rules_js//js:defs.bzl", "js_library")
@@ -35,8 +34,7 @@ js_library(
     visibility = ["//visibility:public"],
 )
 
-# npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).
-# Dashql-app uses this plus //packages/dashql-app:akohn_overlay via NODE_PATH (two entries), no copy_to_directory merge.
+# npm link tree from pnpm lockfile (package.json + pnpm-lock.yaml).
 npm_link_all_packages(name = "node_modules")
 
 # DashQL in TypeScript, the bindings of the core module, the runtime and its platforms, shared by //packages/dashql-app
@@ -52,10 +50,9 @@ npm_link_package(
     src = "//packages/hyperdb-edge:npm_package",
 )
 
-# The DashQL runtime in React: the hooks and the models that //packages/dashql-app and other hosts share.
+# The DashQL runtime in React: the hooks, models and components that //packages/dashql-app and other hosts share,
+# and the code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(
     name = "node_modules/@akohn/dashql-react",
     src = "//packages/dashql-react:npm_package",
 )
-
-# The code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.

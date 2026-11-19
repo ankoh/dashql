@@ -33,71 +33,9 @@ network access is only allowed in the fetch phase (repo rules requiring a pinned
 
 ## Add a dataset
 
-1. Add an entry to `DATASETS` in [`datasets.bzl`](./datasets.bzl):
-   ```python
-   {
-       "name": "my-dataset",
-       "version": "1",
-       "sources": [{
-           "as": "raw",                     # referenced from sql as {raw}
-           "url": "https://example.com/data.json",
-           "sha256": "…",                   # pin the hash (see below); Renovate can bump it
-       }],
-       "outputs": [{
-           "engine": "duckdb",              # or "hyper", which writes a "folder"
-           "file": "points.parquet",        # -> my-dataset/v1/points.parquet
-           "sql": "COPY (SELECT id, CAST(embedding AS FLOAT[]) AS embedding "
-                  "FROM read_json_auto('{raw}')) TO '{output}' (FORMAT PARQUET)",
-       }],
-   }
-   ```
-   Each `duckdb` output's `sql` runs verbatim through the DuckDB CLI. Two placeholders are
-   substituted: `{output}` (the COPY target) and `{<source as>}` (a fetched source's
-   local path, e.g. `{raw}`). You choose the reader and the output format — e.g.
-   `(FORMAT CSV, HEADER)` to emit CSV, `read_csv_auto('{raw}')` / `read_parquet('{raw}')`
-   to read other source formats. A dataset may declare several outputs (parquet + csv,
-   multiple tables, …). To write a literal `$`, use `$$` (Bazel genrule escaping).
-
-2. Add the generated `http_file` repo to `use_repo(dashql_datasets, …)` in
-   `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`
-   (e.g. `my-dataset` + `raw` → `dataset_my_dataset_raw`).
-
-3. **Pin the hash**: download the URL and `shasum -a 256 <file>`, or after adding the
-   entry with a placeholder run `python3 scripts/update_bazel_hashes.py` (the DuckDB CLI
-   archives are handled there; dataset sources are pinned by hand or via Renovate).
-
-4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old
-   workbooks keep working against the old version.
-
-## TPC-H
-
-TPC-H is hosted as one dataset per scale factor (`tpch-0.001`, `tpch-0.01`, `tpch-0.1`,
-`tpch-1`), each with all 8 tables:
-
-```
-https://data.dashql.app/tpch-<sf>/v1/{customer,lineitem,nation,orders,part,partsupp,region,supplier}.parquet
-```
-
-Unlike the classic dbgen pipeline (a `tpch-dbgen` submodule plus a bespoke
-`.tbl`→Parquet converter), generation reuses the DuckDB CLI we already vendor: a `tpch`
-dataset entry just declares a `scale_factor`, and the convert genrule `CALL dbgen(sf=…)`
-+ `COPY … TO … (FORMAT PARQUET)` writes each table directly.
-
-To keep this **hermetic**, the signed `tpch.duckdb_extension` is vendored — DuckDB's
-`tpch` extension is not statically linked, so `CALL dbgen` would otherwise need
-`INSTALL tpch` (network, forbidden in the sandbox). It is fetched as a hash-pinned
-`http_file` per exec platform (`TPCH_EXTENSION_SHA256` in `datasets.bzl`, selected by
-the `//packages/dashql-datasets:tpch_extension` alias), gunzipped in the genrule, and
-`LOAD`ed by absolute path with autoinstall/autoload disabled.
-
-- **Add a scale factor**: append `{"name": "tpch-<sf>", "version": "1", "kind": "tpch",
-  "scale_factor": "<sf>"}` to `DATASETS`. No sources, no `MODULE.bazel` change (the
-  extension repos are already registered).
-- **Version coupling**: `TPCH_DUCKDB_VERSION` **must** equal `_DUCKDB_VERSION` in
-  `bazel/core_dependencies.bzl` — an extension only loads into the exact CLI build it
-  was compiled against. Renovate bumps both together and reruns
-  `scripts/update_bazel_hashes.py packages/dashql-datasets/datasets.bzl` to refresh the four
-  extension hashes.
+[`docs/design/test_data.md`](../../docs/design/test_data.md) describes the entries of `DATASETS` in
+[`datasets.bzl`](./datasets.bzl), the `sql` and `tpch` kinds, the vendored DuckDB CLI and tpch extension, and the
+steps to add a dataset or a TPC-H scale factor.
 
 ## Build & publish
 

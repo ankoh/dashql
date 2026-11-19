@@ -254,6 +254,11 @@ These targets regenerate `tests/snapshots/<category>/<name>.yaml` from the templ
   byte-identical files.
 - Analyzer, completion, planner, dataflow and visualize write their templates back with the results appended, so
   `ryml::parse` keeps the template styles (scalar styles, flow and multi-line flow containers).
+- The Hyper plans in `tests/snapshots/profiles/hyper/tests/*.tpl.yaml` come from a real Hyper: after changing the
+  queries in `tests/snapshots/profiles/hyper/queries/` or the setup in `setup/setup.sql`, run
+  `python3 scripts/update_hyper_plans.py` with the `tableauhyperapi` package installed. It writes each folder of
+  queries to `tests/<folder>.tpl.yaml` with the `EXPLAIN (FORMAT JSON)` plan of every query, outside Bazel since it
+  needs the Hyper API; then run `//tests/snapshots/profiles/hyper/tests:update`.
 
 ### Benchmarks
 

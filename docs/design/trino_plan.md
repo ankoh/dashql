@@ -7,7 +7,7 @@ tree out in the Rust core, and draws edges and stage contours in the app. The pi
 2. `flatten_operators` stores the tree as a flat operator array (`query_profile.rs`).
 3. `compute_layout` positions every operator (`profile_layout.rs`).
 4. `materializeProfileScene` builds edge paths and fragment contours
-   (`packages/dashql-app/src/views/query_profile/profile_scene.ts`).
+   (`packages/dashql-react/src/components/query_profile/profile_scene.ts`).
 
 `loadTrinoPlan` in `packages/dashql-core-bindings/src/lib.rs` runs steps 1 to 3 and hands the profile to JS as a
 FlatBuffer.
@@ -120,4 +120,4 @@ The app reads the FlatBuffer into a `ProfileScene`:
 
 - `packages/dashql-core-profile/src/tests_trino.rs`: parser unit tests.
 - `packages/dashql-snapshots/src/encode/query_profile.rs`: snapshot encoding of parsed and laid-out plans.
-- `packages/dashql-app/src/views/query_profile/profile_scene.test.ts`: scene and contour building.
+- `packages/dashql-react/src/components/query_profile/profile_scene.test.ts`: scene and contour building.

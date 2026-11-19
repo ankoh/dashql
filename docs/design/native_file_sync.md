@@ -312,6 +312,6 @@ bazel build //packages/dashql-native:compile
 - Holds, held and failed writes: `packages/dashql-core-storage/src/storage/writer.rs`
 - Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-storage/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
-- Stamp tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs` and `restore_test.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
-- Writer tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs`
+- Stamp tests: `packages/dashql-core-storage/tests/storage_writer_test.rs` and `restore_test.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
+- Writer tests: `packages/dashql-core-storage/tests/storage_writer_test.rs`
 - Workbook scripts reconciliation tests: `packages/dashql-core-runtime/tests/workbook_test.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync.test.tsx`

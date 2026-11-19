@@ -17,9 +17,9 @@ specification, dataflow, and scenegraph for every brush.
 
 The implementation lives in:
 
-- `packages/dashql-app/src/views/visualization/vegalite_crossfilter.ts`
-- `packages/dashql-app/src/views/visualization/vegalite_view.tsx`
-- `packages/dashql-app/src/ui/vegalite/vegalite_rows.ts` (Arrow to Vega rows)
+- `packages/dashql-react/src/vegalite/vegalite_crossfilter.ts`
+- `packages/dashql-react/src/components/vegalite_view.tsx`
+- `packages/dashql-react/src/vegalite/vegalite_rows.ts` (Arrow to Vega rows)
 
 ## Data flow
 

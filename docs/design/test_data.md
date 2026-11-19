@@ -192,10 +192,15 @@ generator.
 ## Adding a dataset
 
 1. Add an entry to `DATASETS` in `datasets.bzl` (source `url` + `sha256`, one or more outputs
-   with `engine` and `file` or `folder`; or a `tpch` entry with a `scale_factor`).
+   with `engine` and `file` or `folder`; or a `tpch` entry with a `scale_factor`). A TPC-H scale factor is
+   `{"name": "tpch-<sf>", "version": "1", "kind": "tpch", "scale_factor": "<sf>"}`, with no sources and no
+   `MODULE.bazel` change, so it skips steps 2 and 3.
 2. Add the generated `http_file` repo of each source to `use_repo(dashql_datasets, …)` in
-   `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`.
-3. Pin the source hash (`shasum -a 256`, or `scripts/update_bazel_hashes.py`).
+   `MODULE.bazel`. The repo name is `dataset_<name>_<as>` with `-`/`.` replaced by `_`
+   (`my-dataset` + `raw` → `dataset_my_dataset_raw`).
+3. Pin the source hash (`shasum -a 256 <file>`). `scripts/update_bazel_hashes.py` refreshes the DuckDB CLI
+   archives, and `scripts/update_bazel_hashes.py packages/dashql-datasets/datasets.bzl` the four tpch extension
+   hashes after a DuckDB bump; dataset sources are pinned by hand or by Renovate.
 4. Bump `version` whenever you reshape an existing dataset — paths are immutable, so old workbooks
    keep working against the old version.
 5. `bazel run //packages/dashql-datasets:sync` (or trigger the workflow).

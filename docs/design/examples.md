@@ -22,7 +22,7 @@ packages/dashql-app/
       stock_analysis_page.tsx    # the default export is the page
       sql/*.sql                  # the queries of the page, imported with ?raw
     ui/
-      ui_page.tsx                # the components of src/ui/foundations
+      ui_page.tsx                # the components of @akohn/dashql-react/components
 ```
 
 The routes are hashes, `demos.html#/<id>`, so the vite dev server, Cloudflare Pages and the app protocol of
@@ -77,7 +77,7 @@ connections. `useLiveQuery` opens one connection per query.
   - the price of the selected symbol per second, and the trades per second, every 1s.
   - The table shows the time of its latest query.
 
-## UI Foundations
+## UI Components
 
-`#/ui` shows the components of `src/ui/foundations` in their variants and sizes: segmented controls, text
+`#/ui` shows the components of `@akohn/dashql-react/components` (`packages/dashql-react/src/components`) in their variants and sizes: segmented controls, text
 inputs with actions and validation states, buttons and action lists. It runs no queries.
