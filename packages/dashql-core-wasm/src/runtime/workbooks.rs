@@ -451,9 +451,10 @@ impl Workbooks {
     }
 
     /// Rename an attachment of a workbook (`WorkbookAction::RenameAttachment`) and write the rename of its file at once.
-    /// Returns the new file name with the write of the rename, none if the name is unchanged or no plain file name. A
+    /// Returns the new file name with the write of the rename (none in memory, the file is renamed there at once), none
+    /// if the name is unchanged or no plain file name. A
     /// refused rename changes nothing and writes nothing.
-    pub fn rename_attachment(&self, workbook_id: &str, file_name: &str, name: &str) -> Result<Option<(String, WriteResult)>> {
+    pub fn rename_attachment(&self, workbook_id: &str, file_name: &str, name: &str) -> Result<Option<(String, Option<WriteResult>)>> {
         let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let action = WorkbookAction::RenameAttachment { file_name: file_name.to_string(), name: name.to_string() };
         let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
@@ -467,7 +468,7 @@ impl Workbooks {
         };
         let rename = outcome.effects.iter().position(|effect| matches!(effect, WorkbookEffect::RenameDataFile { .. })).map(|index| outcome.effects.remove(index));
         let write = match rename {
-            Some(WorkbookEffect::RenameDataFile { from, to }) => self.persistence.rename_data_file(workbook_id, from, to.clone()).map(|write| (to, write)),
+            Some(WorkbookEffect::RenameDataFile { from, to }) => Some((to.clone(), self.persistence.rename_data_file(workbook_id, from, to))),
             _ => None,
         };
         self.settle(workbook_id, &workbook, outcome, Changed::Workbook);
@@ -545,8 +546,10 @@ impl Workbooks {
         }
     }
 
-    /// A workbook was deleted or replaced: the services that keep state of it forget it, e.g. its run
+    /// A workbook was deleted or replaced: the services that keep state of it forget it, e.g. its run, and so does the
+    /// persistence, e.g. the files of its attachments in memory
     fn removed(&self, workbook_id: &str) {
+        self.persistence.forget_workbook(workbook_id);
         let listener = self.removed_listener.borrow().clone();
         if let Some(listener) = listener {
             listener(workbook_id);

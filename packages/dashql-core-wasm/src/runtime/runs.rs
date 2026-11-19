@@ -43,6 +43,7 @@ use wasm_bindgen_futures::JsFuture;
 use super::changes::{Read, Slice};
 use super::connections::Connections;
 use super::queries::{LocalFuture, Statement};
+use super::persistence::attachments_value;
 use super::workbooks::Workbooks;
 use crate::host::{host_error, JsPlatform};
 use view::{
@@ -697,7 +698,8 @@ impl Runs {
             }
         }
         for (workbook_id, file_name, stamp) in new {
-            let read = self.platform.mounts_call("attachmentColumns", &[JsValue::from_str(&workbook_id), JsValue::from_str(&file_name)]);
+            let files = attachments_value(self.workbooks.persistence.attachments(&workbook_id));
+            let read = self.platform.mounts_call("attachmentColumns", &[JsValue::from_str(&workbook_id), JsValue::from_str(&file_name), files]);
             let workbooks = Rc::downgrade(&self.workbooks);
             let runs = Rc::downgrade(self);
             let platform = self.platform.clone();
@@ -960,7 +962,8 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn mount_attachments(&self) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let call = self.platform.mounts_call("attachments", &[JsValue::from_str(&self.workbook_id)]);
+        let files = self.workbooks.upgrade().map_or(JsValue::NULL, |workbooks| attachments_value(workbooks.persistence.attachments(&self.workbook_id)));
+        let call = self.platform.mounts_call("attachments", &[JsValue::from_str(&self.workbook_id), files]);
         async move { call.await.map(|_| ()) }
     }
 

@@ -696,9 +696,6 @@ impl Imports {
         steps.report("workbook", None);
         // A runtime without storage opens the workbook into memory
         let Some(storage) = restorer.workbooks.persistence.writer().cloned() else {
-            if !bundle.data.is_empty() {
-                return Err(HostError::new("a workbook with attachments can't be opened without storage yet"));
-            }
             if !answers.restore.unwrap_or(true) {
                 return Err(HostError::new("a runtime without storage keeps an import only in memory, it restores it"));
             }

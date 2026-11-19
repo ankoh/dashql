@@ -25,8 +25,8 @@ export function testCore(): Promise<dashql.DashQL> {
 }
 
 export interface TestRuntimeOptions {
-    /// Where the workbooks and connections are kept, in memory by default
-    storage?: StorageBackend;
+    /// Where the workbooks and connections are kept, a backend in memory by default, null for a runtime without storage
+    storage?: StorageBackend | null;
     /// The network, none by default
     http?: HttpClient;
     /// The database of the computations, none by default
@@ -155,7 +155,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
     const instance = await testCore();
     const platform: RuntimeOptions = {
         logger,
-        storage: options.storage ?? new WorkbookTestBackend(),
+        storage: options.storage === undefined ? new WorkbookTestBackend() : options.storage,
         http: options.http ?? ({ fetch: offline } as HttpClient),
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: { authorizeWithRedirectPage: offline, authorizeWithLoopback: offline } as unknown as OAuthFlow,

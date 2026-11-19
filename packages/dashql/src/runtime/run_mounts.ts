@@ -6,7 +6,7 @@ import type { CachePins } from './query/cache_pins.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { QueryResultCache } from '../platform/query/query_result_cache.js';
-import { mountWorkbookAttachments, readAttachmentColumns, unmountWorkbookAttachments } from '../platform/workbook/attachment_mounts.js';
+import { mountWorkbookAttachments, readAttachmentColumns, unmountWorkbookAttachments, type AttachmentFiles } from '../platform/workbook/attachment_mounts.js';
 
 /// The files of the runs of workbooks in the compute database, the `mounts` of the platform of the runtime.
 ///
@@ -17,6 +17,19 @@ import { mountWorkbookAttachments, readAttachmentColumns, unmountWorkbookAttachm
 /// its transient files then. The attachments of a workbook are mounted from its folder, and unmounted when the workbook
 /// is deleted. Without the query result cache a run materializes nothing. The calls wait until the platform set the
 /// compute database up.
+/// The files of the attachments of a workbook in memory by their handles, null for the folder of the workbook. The
+/// handle table holds a file as a Blob or as its bytes.
+function memoryFiles(handles: HandleTable, files: core.RuntimeMemoryFile[] | null): AttachmentFiles | null {
+    if (files == null) return null;
+    const blobs = new Map<string, Blob>();
+    for (const { fileName, file } of files) {
+        const content = handles.get<Blob | Uint8Array>(file);
+        if (content == null) throw new Error(`The attachment ${fileName} is no longer in memory`);
+        blobs.set(fileName, content instanceof Blob ? content : new Blob([content as Uint8Array<ArrayBuffer>]));
+    }
+    return blobs;
+}
+
 export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable, pins: CachePins): core.RuntimeMounts {
     const database = async (): Promise<ParquetDatabase> => {
         const database = await computeDatabase();
@@ -51,10 +64,10 @@ export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDa
             await cache.writeTable(await database(), table, nameOf(cache, path));
             return table.numRows;
         },
-        attachments: async workbookId => {
-            await mountWorkbookAttachments(await database(), workbookId);
+        attachments: async (workbookId, files) => {
+            await mountWorkbookAttachments(await database(), workbookId, memoryFiles(handles, files));
         },
-        attachmentColumns: async (workbookId, fileName) => readAttachmentColumns(await database(), workbookId, fileName),
+        attachmentColumns: async (workbookId, fileName, files) => readAttachmentColumns(await database(), workbookId, fileName, memoryFiles(handles, files)),
         dropAttachments: workbookId => unmountWorkbookAttachments(workbookId),
     };
 }

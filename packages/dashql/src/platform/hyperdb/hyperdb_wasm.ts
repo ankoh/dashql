@@ -3,6 +3,7 @@ import * as arrow from 'apache-arrow';
 import type {
     HyperDB as BrowserHyperDBEngine,
     HyperDBConnection as HyperDBEngineConnection,
+    MemoryDirectory,
     MountedResource,
     MountOptions,
     QueryInfo,
@@ -14,8 +15,8 @@ import type {
     EmbeddedComputeDatabase,
     EmbeddedConnectionOptions,
     EmbeddedDatabaseAlias,
-    EmbeddedExternalDirectoryDatabase,
     EmbeddedExternalFileDatabase,
+    EmbeddedMemoryDirectoryDatabase,
     EmbeddedResultStream,
     ExternalDirectoryMode,
     EmbeddedTableImportConnection,
@@ -26,10 +27,13 @@ import { quoteIdentifier, quoteLiteral } from '../utils/sql_quote.js';
 
 export type { HyperDBSettings } from 'hyperdb-wasm';
 /// The engine of hyperdb-wasm. The browser build mounts files and directory handles, the build of Node folders of the
-/// host by their paths.
+/// host by their paths, both mount files in memory as a memory directory.
 export type HyperDBEngine = Omit<BrowserHyperDBEngine, 'mount'> & {
-    mount(source: File | FileSystemDirectoryHandle | string, options: MountOptions): Promise<MountedResource>;
+    mount(source: File | FileSystemDirectoryHandle | string | MemoryDirectorySource, options: MountOptions): Promise<MountedResource>;
 };
+/// A memory directory as the engine takes it: an object of its shape, the engine makes the directory of it. The
+/// adapter loads no code of hyperdb-wasm, the platform passes the engine.
+type MemoryDirectorySource = Pick<MemoryDirectory, 'kind' | 'files'>;
 /// The client of the engine worker. Tests share one between test frames, every frame wraps it in its own HyperDBEngine.
 export type HyperDBClient = ConstructorParameters<typeof BrowserHyperDBEngine>[0];
 
@@ -106,7 +110,7 @@ function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDataba
     return clientContext == null ? databases : `${databases}:${clientContext}`;
 }
 
-export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase, EmbeddedAttachedDatabases {
+export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedMemoryDirectoryDatabase, EmbeddedAttachedDatabases {
     private readonly sessions = new Set<HyperDBSession>();
     /// The idle pooled sessions by default database alias and client context, see poolKey()
     private readonly idleSessions = new Map<string, HyperDBSession[]>();
@@ -314,6 +318,15 @@ export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDat
             path ??= externalMountPath(handle.name);
             validateExternalMountPath(path);
             const resource = await this.engine.mount(mountSource(handle), { path, mode });
+            this.externalDirectories.set(path, resource);
+            return path;
+        });
+    }
+
+    async registerMemoryDirectory(files: Readonly<Record<string, Blob>>, path: string): Promise<string> {
+        return await this.runDatabaseOperation(async () => {
+            validateExternalMountPath(path);
+            const resource = await this.engine.mount({ kind: 'memory-directory', files }, { path, mode: 'read' });
             this.externalDirectories.set(path, resource);
             return path;
         });

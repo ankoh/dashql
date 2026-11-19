@@ -139,7 +139,7 @@ export class MemoryStorage implements RuntimeStorage {
 }
 
 /// A platform of a test: the handle table, the storage in memory, timers of the event loop and no other I/O
-export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { platform: RuntimePlatform; storage: MemoryStorage; changed: boolean[]; logs: string[] } {
+export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { platform: RuntimePlatform; storage: MemoryStorage; changed: boolean[]; logs: string[]; handleObjects: () => IterableIterator<unknown> } {
     const changed: boolean[] = [];
     const logs: string[] = [];
     const objects = new Map<number, unknown>();
@@ -191,5 +191,5 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
             changed.push(urgent);
         },
     };
-    return { platform, storage, changed, logs };
+    return { platform, storage, changed, logs, handleObjects: () => objects.values() };
 }

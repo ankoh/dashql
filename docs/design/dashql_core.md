@@ -308,13 +308,16 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 ### Storage
 
 - **Persistence.** The workbooks hand their effects to the persistence of the runtime (`runtime/persistence.rs` of the
-  bindings): the storage writer over the storage of the platform, or nothing on a platform without storage, e.g. the
-  shell or an embed in a frame without the origin private file system. Without storage the effects are dropped, the
-  commands of the storage resolve at once, a hold holds nothing, and what is about the storage itself is refused with
-  `the runtime keeps no files`: attaching files, exports, the restore. A workbook enters such a runtime by an import into
+  bindings): the storage writer over the storage of the platform, or memory on a platform without storage, e.g. the
+  shell or an embed in a frame without the origin private file system. In memory the effects are dropped, the commands
+  of the storage resolve at once, a hold holds nothing, and what is about the storage itself is refused with `the
+  runtime keeps no files`: attaching new files, exports, the restore. A workbook enters such a runtime by an import into
   memory: the restore reads the bundle of the archive (`BundleHost` of `runtime/bundle_host.rs`, `AppRestore::in_memory`)
-  and writes nothing. A workbook with attachments can't be opened that way yet, the embedded Hyper mounts attachments
-  from the folder of the workbook.
+  and writes nothing. Memory keeps the files of the attachments of the workbook (`MemoryFiles`), each by a handle of its
+  own, renamed with the attachment and released when the workbook goes or is replaced. The mounts of the platform get
+  the files with every call (`RuntimeMounts.attachments`, `attachmentColumns`): the embedded Hyper mounts them as a
+  memory directory at the path of the folder of a stored workbook (`attachment_mounts.ts`), so the scripts read them
+  alike and their names need not be ASCII.
 - **The storage writer** (`storage/writer.rs`) decides the keys (all formats in `storage/keys.rs`), debouncing and
   coalescing, flushing, statistics and generations. The tasks that patch the workbook file read it as `WorkbookData` and
   keep fields the schema doesn't know (`storage/workbook_file.rs`). A new workbook is one task (`CreateWorkbook`, the

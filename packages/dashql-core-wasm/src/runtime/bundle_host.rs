@@ -121,7 +121,7 @@ impl RestoreHost for BundleHost {
 
     async fn list_data_files(&self, workbook_id: &str) -> Result<Vec<DataFile>, HostError> {
         self.check(workbook_id)?;
-        Ok(Vec::new())
+        Ok(self.bundle.data.iter().map(|file| DataFile { name: file.name.clone(), size_bytes: file.bytes.size, mtime_ms: 0 }).collect())
     }
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {

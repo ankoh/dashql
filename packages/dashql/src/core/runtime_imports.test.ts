@@ -149,7 +149,7 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
-    it('refuse to open a workbook with attachments into a runtime without storage', async () => {
+    it('open a workbook with an attachment into a runtime without storage, which keeps its file until the workbook goes', async () => {
         const { runtime: sourceRuntime, platform: sourcePlatform } = createRuntime();
         const exported = await sourceRuntime.exportWorkbook(WB, { format: 'archive' }, null);
         const archive = sourcePlatform.handles.get(exported.archive!);
@@ -159,7 +159,14 @@ describe('The imports and exports of the runtime', () => {
         const runtime = dql!.createRuntime(platform);
         runtime.runCatalogLoader(false);
         const preview = await runtime.readImport({ archive: platform.handles.register(archive) });
-        await expect(runtime.commitImport(preview.importId, {}, null)).rejects.toThrow("a workbook with attachments can't be opened without storage yet");
+        const outcome = await runtime.commitImport(preview.importId, {}, null);
+        const view = runtime.views('workbook', [outcome.workbookId])[0] as dashql.WorkbookView;
+        expect(view.attachments?.map(attachment => [attachment.fileName, attachment.sizeBytes])).toEqual([['data.parquet', 3]]);
+        // The import let go of its files, the workbook keeps its own handle of the attachment
+        const kept = [...bare.handleObjects()].filter(object => object instanceof Uint8Array);
+        expect(kept).toEqual([new Uint8Array([1, 2, 3])]);
+        runtime.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId: outcome.workbookId } });
+        expect([...bare.handleObjects()].filter(object => object instanceof Uint8Array)).toEqual([]);
         runtime.free();
     });
 

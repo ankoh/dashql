@@ -709,6 +709,7 @@ impl Restorer {
         bundle: dashql_core_storage::workbook_format::bundle::WorkbookBundle<archives::HostFile>,
     ) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
         let workbook_id = bundle.workbook.workbook_id.clone();
+        let files: Vec<(String, archives::HostFile)> = bundle.data.iter().map(|file| (file.name.clone(), file.bytes.clone())).collect();
         let options = RestoreOptions {
             offset_unit: Workbooks::offset_unit(),
             new_uuid: {
@@ -723,6 +724,13 @@ impl Restorer {
         }
         let state = restore.restore_workbook(&workbook_id).await?;
         let outcome = adopt_restored(&self.connections, &self.workbooks, state);
+        // The workbook keeps the files of its attachments in memory, the import releases its own handles
+        if let Some(memory) = self.workbooks.persistence.memory() {
+            if let Err(error) = memory.keep(&workbook_id, &files) {
+                self.workbooks.delete(&workbook_id);
+                return Err(error);
+            }
+        }
         self.runs.describe_attachments();
         Ok(outcome)
     }
@@ -774,7 +782,7 @@ impl Runtime {
             *connections.writer.borrow_mut() = Some(writer.clone());
             Persistence::Writer(writer)
         } else {
-            Persistence::None
+            Persistence::Memory(Rc::new(persistence::MemoryFiles::new(platform.clone())))
         };
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), persistence);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());

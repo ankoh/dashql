@@ -69,6 +69,10 @@ pub(crate) async fn reconcile_attachments(
     workbook_id: &str,
     deferred: &[(String, usize)],
 ) -> Result<(), HostError> {
+    // In memory the attachments of the workbook are its files, there is no storage to list them again
+    if !workbooks.persistence.keeps() {
+        return Ok(());
+    }
     let mut files: Vec<DataFile> =
         items::<WorkbookDataFile>(platform.storage_await("listDataFiles", &[JsValue::from_str(workbook_id)]).await?, "the data files")?.into_iter().map(Into::into).collect();
     let pending: Vec<DataFile> = pending_attachments(workbooks, workbook_id, deferred).into_iter().filter(|file| !files.iter().any(|listed| listed.name == file.name)).collect();
@@ -188,11 +192,14 @@ impl Runtime {
         let (platform, workbooks, runs) = (self.platform.clone(), self.workbooks.clone(), self.runs.clone());
         Ok(future_to_promise(async move {
             let Some((new_file_name, write)) = rename else { return Ok(JsValue::NULL) };
-            if let WriteOutcome::Failed(WriteError::Host(error)) | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) = write.await {
-                return Err(error_value(&error));
+            // In memory the file is renamed with the workbook, the next mount of the attachments follows the new name
+            if let Some(write) = write {
+                if let WriteOutcome::Failed(WriteError::Host(error)) | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) = write.await {
+                    return Err(error_value(&error));
+                }
+                // The mount of the attachments and the attachment list of the workbook file follow the file
+                reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[]).await.map_err(|error| error_value(&error))?;
             }
-            // The mount of the attachments and the attachment list of the workbook file follow the file
-            reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[]).await.map_err(|error| error_value(&error))?;
             Ok(JsValue::from_str(&new_file_name))
         }))
     }

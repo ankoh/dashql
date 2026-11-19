@@ -85,6 +85,18 @@ export function dropsAttachedDatabases(database: object): database is EmbeddedAt
     return typeof (database as Partial<EmbeddedAttachedDatabases>).dropAttachedDatabase === 'function';
 }
 
+/** Optional capability: mount files in memory as a directory, e.g. the attachments of a workbook of a runtime without storage. */
+export interface EmbeddedMemoryDirectoryDatabase extends EmbeddedExternalDirectoryDatabase {
+    /// Mount files in memory as a read-only directory at a path below `/mnt/external/`, by their paths in it. The
+    /// names of the files may be any, the path of the directory is ASCII. `removeExternalDirectory` unmounts it.
+    registerMemoryDirectory(files: Readonly<Record<string, Blob>>, path: string): Promise<string>;
+}
+
+/** Can a database mount files in memory as a directory? */
+export function supportsMemoryDirectories(database: EmbeddedExternalDirectoryDatabase): database is EmbeddedMemoryDirectoryDatabase {
+    return typeof (database as Partial<EmbeddedMemoryDirectoryDatabase>).registerMemoryDirectory === 'function';
+}
+
 /** Optional browser directory registration capability. */
 export interface EmbeddedExternalDirectoryDatabase {
     registerExternalDirectory(

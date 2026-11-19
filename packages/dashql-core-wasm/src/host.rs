@@ -389,6 +389,12 @@ export interface RuntimeResultCache {
     remove(name: string): Promise<boolean>;
 }
 
+/** A file of an attachment of a workbook in memory: its file name and the handle of its Blob or bytes */
+export interface RuntimeMemoryFile {
+    fileName: string;
+    file: number;
+}
+
 /** The files of the runs of workbooks in the compute database, the files of the query result cache. The runtime keeps the pins of a run, releases them with `release` of the cache once the run settled and then removes its transient files with `remove`. */
 export interface RuntimeMounts {
     /** The directory of the files of the runs, the files of the query result cache; null without the cache */
@@ -399,10 +405,10 @@ export interface RuntimeMounts {
     pin(path: string): Promise<number>;
     /** Write a table of the handle table as Parquet file at a path below the prefix that is pinned, resolves with its rows */
     write(path: string, table: number): Promise<number>;
-    /** Mount the attachments of a workbook */
-    attachments(workbookId: string): Promise<void>;
-    /** The columns of a Parquet attachment of a workbook */
-    attachmentColumns(workbookId: string, fileName: string): Promise<string[]>;
+    /** Mount the attachments of a workbook: from the folder of the workbook in the storage (`files` null), or the files of a workbook in memory, mounted at the same paths */
+    attachments(workbookId: string, files: RuntimeMemoryFile[] | null): Promise<void>;
+    /** The columns of a Parquet attachment of a workbook, its attachments where `attachments` mounts them from */
+    attachmentColumns(workbookId: string, fileName: string, files: RuntimeMemoryFile[] | null): Promise<string[]>;
     /** Unmount the attachments of a workbook that was deleted */
     dropAttachments(workbookId: string): Promise<void>;
 }

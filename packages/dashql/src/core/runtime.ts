@@ -25,6 +25,7 @@ export type {
     RuntimeResultCache,
     RuntimeCachedTable,
     RuntimeMounts,
+    RuntimeMemoryFile,
     RuntimeStorage,
     RuntimeStorageRoot,
     RuntimeFolder,
