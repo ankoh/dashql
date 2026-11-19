@@ -15,7 +15,9 @@ export type ConnectHarness = 'claude' | 'codex';
 /// deploys the page, the dev server takes the latest (DASHQL_CLI_VERSION). The page still tells a server of another
 /// protocol to update (agent_session_protocol.ts). From the public registry without a minimum release age: a company's
 /// mirror or release-age policy in the npm config of the user would hold back a version published minutes ago.
-export const DASHQL_CLI_COMMAND = `npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@${DASHQL_CLI_VERSION}`;
+const NPX_LINES = ['npx -y', '--registry=https://registry.npmjs.org/', '--min-release-age=0'];
+const DASHQL_CLI_PACKAGE = `@akohn/dashql-cli@${DASHQL_CLI_VERSION}`;
+export const DASHQL_CLI_COMMAND = [...NPX_LINES, DASHQL_CLI_PACKAGE].join(' ');
 
 /// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
 const MIN_PORT = 49152;
@@ -32,8 +34,10 @@ export function newAgentConnectTarget(random: (bytes: Uint8Array<ArrayBuffer>) =
     return { endpoint: `http://127.0.0.1:${port}`, token: secret };
 }
 
-/// The line that runs a harness and shows its session in the page that waits on the target
-export function agentConnectCommand(harness: ConnectHarness, target: AgentSessionTarget): string {
+/// The command that runs a harness and shows its session in the page that waits on the target, as lines to show: the
+/// program, then every option on a line of its own. Joined with spaces it is the line to copy, a shell would run the
+/// lines one by one.
+export function agentConnectCommandLines(harness: ConnectHarness, target: AgentSessionTarget): string[] {
     const port = new URL(target.endpoint).port;
-    return `${DASHQL_CLI_COMMAND} connect --launch ${harness} --port ${port} --secret ${target.token}`;
+    return [...NPX_LINES, `${DASHQL_CLI_PACKAGE} connect`, `--launch ${harness}`, `--port ${port}`, `--secret ${target.token}`];
 }

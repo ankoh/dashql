@@ -13,6 +13,7 @@ import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { ComposerMode, type ConnectHarness, DASHQL_CLI_COMMAND } from '../../agent/agent_connect.js';
+import { DASHQL_CLI_VERSION } from '../../globals.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -363,7 +364,9 @@ describe('Workbook composer', () => {
             return view!;
         }
         const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
-        const command = () => container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')?.value ?? null;
+        const commandField = () => container.querySelector<HTMLTextAreaElement>('[data-testid="composer-connect-command"]');
+        // The field shows an option on every indented line, the command is the lines joined with spaces
+        const command = () => commandField()?.value.split('\n').map(line => line.trim()).join(' ') ?? null;
 
         it('disables Run and the snippets and shows the line that launches a harness', async () => {
             const editor = await renderConnected(ComposerMode.Sql);
@@ -380,8 +383,18 @@ describe('Workbook composer', () => {
             expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
             expect(container.querySelector('[data-testid="composer-connect-harness"]')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
             expect(command()).toBe(`${DASHQL_CLI_COMMAND} connect --launch claude --port 51234 --secret k3x9`);
+            expect(commandField()!.value.split('\n')).toEqual([
+                'npx -y',
+                '  --registry=https://registry.npmjs.org/',
+                '  --min-release-age=0',
+                `  @akohn/dashql-cli@${DASHQL_CLI_VERSION} connect`,
+                '  --launch claude',
+                '  --port 51234',
+                '  --secret k3x9',
+            ]);
+            expect(commandField()!.rows).toBe(7);
             // The command is only copied, a new port and copy stay usable
-            expect(container.querySelector<HTMLInputElement>('[data-testid="composer-connect-command"]')!.disabled).toBe(true);
+            expect(commandField()!.disabled).toBe(true);
             expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.disabled).toBe(false);
             expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.disabled).toBe(false);
             expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toBe('Run the command in the folder of your project, the session shows here');

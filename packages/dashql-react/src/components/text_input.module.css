@@ -29,7 +29,8 @@
     background-color: var(--color_bg_subtle);
     box-shadow: none;
 }
-.root_disabled > input {
+.root_disabled > input,
+.root_disabled > textarea {
     cursor: not-allowed;
 }
 .root_validation_success {
@@ -77,6 +78,27 @@
 }
 .input_container:last-child {
     padding-right: 12px;
+}
+
+/* Several lines: the field grows, the visuals and actions stay centered on the first line of 30px */
+.root_multiline > textarea {
+    display: block;
+    margin: 0;
+    padding-block: 5px;
+    line-height: inherit;
+    resize: none;
+    white-space: pre;
+    overflow-x: auto;
+}
+.root_multiline > .leading_visual_container,
+.root_multiline > .trailing_visual_container {
+    align-self: flex-start;
+    margin-top: 7px;
+}
+.root_multiline > .leading_action_container,
+.root_multiline > .trailing_action_container {
+    align-self: flex-start;
+    margin-top: 4px;
 }
 
 .trailing_visual_container {

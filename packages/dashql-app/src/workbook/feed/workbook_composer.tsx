@@ -5,11 +5,11 @@ import * as styles from './workbook_composer.module.css';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { TextArea } from '@akohn/dashql-react/components/text_input';
 import { CopyToClipboardAction, TextInputAction } from '@akohn/dashql-react/components/text_input_action';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
+import { agentConnectCommandLines, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import type { AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';
 import { PromptEditor } from '../editor/prompt_editor.js';
@@ -298,7 +298,10 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const handleHarnessChange = React.useCallback((index: number) => {
         connect?.setHarness(CONNECT_HARNESSES[index]);
     }, [connect]);
-    const command = ai && connect?.target != null ? agentConnectCommand(connect.harness, connect.target) : null;
+    // Shown with every option on an indented line of its own, copied as one line
+    const commandLines = ai && connect?.target != null ? agentConnectCommandLines(connect.harness, connect.target) : null;
+    const command = commandLines?.join(' ') ?? null;
+    const commandText = commandLines?.map((line, i) => i == 0 ? line : `  ${line}`).join('\n') ?? '';
     const statusId = React.useId();
     return (
         <div
@@ -341,11 +344,12 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                 : connectStatus(connect.outdated)}
                         </div>
                         {/* The command is only copied, the buttons stay usable */}
-                        <TextInput
+                        <TextArea
                             className={styles.composer_connect_command}
                             block
                             disabled
-                            value={command ?? ''}
+                            rows={commandLines?.length ?? 1}
+                            value={commandText}
                             aria-label="Command"
                             aria-describedby={statusId}
                             data-testid="composer-connect-command"

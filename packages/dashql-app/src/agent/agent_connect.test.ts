@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseAgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 
 import { DASHQL_CLI_VERSION } from '../globals.js';
-import { agentConnectCommand, DASHQL_CLI_COMMAND, newAgentConnectTarget } from './agent_connect.js';
+import { agentConnectCommandLines, DASHQL_CLI_COMMAND, newAgentConnectTarget } from './agent_connect.js';
 
 describe('agent connect', () => {
     it('picks a dynamic loopback port and a secret that a link would take too', () => {
@@ -25,8 +25,9 @@ describe('agent connect', () => {
         expect(DASHQL_CLI_COMMAND).toBe(`npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@${DASHQL_CLI_VERSION}`);
     });
 
-    it('writes the line of dashql connect', () => {
-        expect(agentConnectCommand('codex', { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' }))
-            .toBe(`${DASHQL_CLI_COMMAND} connect --launch codex --port 51234 --secret k3x9`);
+    it('writes the lines of dashql connect, an option on every line', () => {
+        const lines = agentConnectCommandLines('codex', { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' });
+        expect(lines.join(' ')).toBe(`${DASHQL_CLI_COMMAND} connect --launch codex --port 51234 --secret k3x9`);
+        expect(lines.slice(4)).toEqual(['--launch codex', '--port 51234', '--secret k3x9']);
     });
 });
