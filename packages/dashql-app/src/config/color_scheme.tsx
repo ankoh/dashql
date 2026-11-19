@@ -9,7 +9,6 @@ import {
 } from '@akohn/dashql-react/theme/color_scheme';
 
 // The color scheme of the theme is @akohn/dashql-react's, the app pins it to its settings
-export { useColorScheme, type ColorScheme } from '@akohn/dashql-react/theme/color_scheme';
 
 /// Pin the document to the color scheme of the app settings, null follows the OS.
 /// Tells the native window of Electron too.

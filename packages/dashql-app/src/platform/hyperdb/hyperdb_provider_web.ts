@@ -2,7 +2,8 @@ import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { EmbeddedDatabaseOptions, SetupProgress } from '../embedded_database_provider.js';
 
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBSettings } from './hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import {
     EXPERIMENTAL_WASM_BACKEND_SETTING,
     HYPERDB_WASM_ENGINE_SETTINGS,

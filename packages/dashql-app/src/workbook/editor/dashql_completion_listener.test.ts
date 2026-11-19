@@ -5,12 +5,8 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../tests/mocks/editor_completion.js';
 import { DashQLCompletionListenerPlugin } from './dashql_completion_listener.js';
-import {
-    DashQLCompletionSelectCandidateEffect,
-    DashQLCompletionStatus,
-    DashQLProcessorPlugin,
-    DashQLUpdateEffect,
-} from './dashql_processor.js';
+import { DashQLCompletionSelectCandidateEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
+import { DashQLCompletionStatus } from './dashql_completion_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

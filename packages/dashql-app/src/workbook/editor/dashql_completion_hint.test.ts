@@ -2,8 +2,9 @@ import * as dashql from '@akohn/dashql';
 import { Text } from '@codemirror/state';
 
 import { deriveCompletionHints, InsertPatchWidget } from './dashql_completion_hint.js';
-import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
-import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, computePatches } from './dashql_completion_patches.js';
+import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
+import { computePatches } from './dashql_completion_patches.js';
+import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_state.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

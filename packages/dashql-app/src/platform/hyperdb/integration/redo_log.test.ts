@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, openTestHyperDBWindow, testDatabasePath, type TestHyperDBWindow } from '../../../tests/hyperdb_test_client.js';
 import { getOPFSRoot, hyperOPFSRoot } from '@akohn/dashql/platform/opfs_root';
-import { HyperDB, HyperDBEngine, type HyperDBConnection } from '../hyperdb_wasm.js';
+import { HyperDB, type HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { EXPERIMENTAL_REDO_LOG_SETTING } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 
 // The redo log of Hyper across a reload of the app. Hyper writes a database consistently only when no session attaches

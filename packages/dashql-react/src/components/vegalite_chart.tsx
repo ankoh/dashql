@@ -7,7 +7,7 @@ import { loadVega, type VegaModules } from '../vegalite/vegalite_loader.js';
 import { createEmbedOptions, resolveChartColors, type ChartColors } from '../vegalite/vegalite_theme.js';
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
-import { withViewEncodings } from '../vegalite/vegalite_spec.js';
+import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import * as styles from './vegalite_chart.module.css';
 
 /// The items of the named datasets of a spec, by dataset name

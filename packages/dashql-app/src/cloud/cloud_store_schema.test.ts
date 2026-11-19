@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { cloudColumnsUsed } from './cloud_store.js';
 import {

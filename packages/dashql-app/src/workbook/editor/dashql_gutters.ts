@@ -5,7 +5,8 @@ import { gutter, GutterMarker } from '@codemirror/view';
 import { Transaction, StateField, RangeSet, RangeSetBuilder } from '@codemirror/state';
 
 import { editorDiagnostics } from './dashql_script_references.js';
-import { DashQLProcessorPlugin, DashQLScriptKey } from './dashql_processor.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 import { findVegaLiteSpecs, isFolded, toggleVegaLiteSpecAtLine, VegaLiteFoldMarker } from './dashql_vis_folding.js';
 
 import icons from '@akohn/dashql-svg-symbols';

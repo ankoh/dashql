@@ -2,7 +2,8 @@ import type * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient, type HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { connectionClientContext, HyperLogMetrics, queryEndsQuery, readQueryEnds, sqlframeClientContext } from './hyper_log_metrics.js';
 import { QueryScope } from './hyper_log_stats.js';

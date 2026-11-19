@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { HyperDB, HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { testWorkbookTables } from './cloud_test_tables.js';

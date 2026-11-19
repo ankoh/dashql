@@ -11,7 +11,7 @@
 import { DashQLBatchWorker } from '@akohn/dashql/browser-worker';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
-import { HyperDBEngine } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { HYPERDB_WASM_VERSION } from '../globals.js';
 
 // eslint-disable-next-line import/no-unresolved -- resolved by Vite

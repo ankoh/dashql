@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { EXPERIMENTAL_WASM_BACKEND_SETTING, isUnknownHyperDBSettingError } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { setupWebHyperDB } from '../hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';

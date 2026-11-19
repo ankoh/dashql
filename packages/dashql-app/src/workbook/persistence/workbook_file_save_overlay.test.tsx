@@ -16,7 +16,7 @@ import { QueryResultCacheProvider } from '../../storage/query_result_cache_provi
 import type { QueryResultCache } from '@akohn/dashql/platform/query/query_result_cache';
 import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
-import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';

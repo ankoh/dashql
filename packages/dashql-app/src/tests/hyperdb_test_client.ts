@@ -4,7 +4,8 @@ import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@ak
 import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
 import { createWebHyperDBClientOptions } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
-import { HyperDB, HyperDBEngine, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import type { SetupProgress } from '../platform/embedded_database_provider.js';
 import { openTestHyperDB } from '@akohn/dashql/platform/testing/test_hyperdb';
 

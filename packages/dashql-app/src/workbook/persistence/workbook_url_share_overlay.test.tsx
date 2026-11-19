@@ -12,7 +12,7 @@ import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
-import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
 import { DashQLCoreProvider } from '../../runtime/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';

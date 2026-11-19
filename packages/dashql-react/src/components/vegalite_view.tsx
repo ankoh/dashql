@@ -6,7 +6,7 @@ import * as styles from './vegalite_view.module.css';
 import { loadVega } from '../vegalite/vegalite_loader.js';
 import { arrowTableToRows } from '../vegalite/vegalite_rows.js';
 import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../vegalite/vegalite_theme.js';
-import { withViewEncodings } from '../vegalite/vegalite_spec.js';
+import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';

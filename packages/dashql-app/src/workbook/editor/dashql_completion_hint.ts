@@ -3,8 +3,10 @@ import * as dashql from '@akohn/dashql';
 import { Range } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
-import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, comparePatches } from './dashql_completion_patches.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionState } from './dashql_completion_state.js';
+import { comparePatches } from './dashql_completion_patches.js';
+import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_state.js';
 
 import symbols from '@akohn/dashql-svg-symbols';
 

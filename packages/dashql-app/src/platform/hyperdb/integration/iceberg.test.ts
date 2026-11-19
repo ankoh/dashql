@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient } from '../hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {

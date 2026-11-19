@@ -318,7 +318,7 @@ overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
 | Arrow tables that Hyper reads | `packages/dashql/src/platform/hyperdb/hyperdb_arrow_insert.ts` | `@akohn/hyperdb-edge` |
 | The Hyper log: query hash, scheduler counts | `packages/dashql-app/src/platform/hyperdb/hyperdb_log_extract.ts`, `hyperdb_incremental_extract.ts` | `@akohn/hyperdb-edge`, typed against the connection of `hyperdb-wasm` instead of `EmbeddedConnection` |
 | `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@akohn/hyperdb-edge` |
-| `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql-app/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |
+| `HyperDB` implementing `EmbeddedDatabase` (pooled connections, attached databases, mounts) | `packages/dashql/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |
 | The engine settings of the app | `HYPERDB_WASM_ENGINE_SETTINGS` | Stays: the redo log is for the local cloud, the resource log every second for the connection overview, the HTTP allowlist is a choice of the app |
 | OPFS, the web worker, the Parquet export through OPFS | `hyperdb_opfs*.ts`, `hyperdb_provider_web.ts`, `hyperdb_parquet_export.ts` | Stays |
 

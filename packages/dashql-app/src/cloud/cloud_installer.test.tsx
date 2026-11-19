@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { CloudInstaller } from './cloud_installer.js';

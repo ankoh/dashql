@@ -1,6 +1,6 @@
 import { loadVega } from './vegalite_loader.js';
 import { describe, expect, it } from 'vitest';
-import { withViewEncodings } from './vegalite_spec.js';
+import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 
 describe('withViewEncodings', () => {
     it('gives views without an encoding an empty one', () => {

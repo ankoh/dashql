@@ -5,7 +5,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EmbeddedDatabaseProvider } from '../../platform/embedded_database_provider.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';

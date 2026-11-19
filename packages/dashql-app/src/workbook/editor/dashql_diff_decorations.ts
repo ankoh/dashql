@@ -3,7 +3,8 @@ import * as dashql from '@akohn/dashql';
 import { Decoration, DecorationSet, EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { Extension, Range, StateField, Text, Transaction } from '@codemirror/state';
 
-import { DashQLPendingDiff, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLPendingDiff } from '@akohn/dashql/platform/workbook/script_editor_state';
 
 import './dashql_diff_decorations.css';
 

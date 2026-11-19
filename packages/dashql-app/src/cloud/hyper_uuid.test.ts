@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { createTestHyperDB } from '../tests/hyperdb_test_client.js';
 import { createTableSQL, insertStatements } from './cloud_sql.js';
 

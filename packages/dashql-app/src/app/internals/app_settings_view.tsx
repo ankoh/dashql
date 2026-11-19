@@ -16,7 +16,8 @@ import { useDropAllCloudDatabases } from '../../connections/connection_deletion.
 import { AppFlavor, FLAVORS } from '../../config/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../../config/flavor_provider.js';
 import { useAppRestart } from '../../platform/app_hand_over.js';
-import { ColorScheme, useColorSchemeSetting } from '../../config/color_scheme.js';
+import { useColorSchemeSetting } from '../../config/color_scheme.js';
+import { ColorScheme } from '@akohn/dashql-react/theme/color_scheme';
 
 /// The boolean settings that the panel toggles directly
 type ToggleSettingKey =

@@ -2,7 +2,8 @@ import { EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionStatus, DashQLProcessorPlugin, hasEmptyCompletionTarget } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLProcessorPlugin, hasEmptyCompletionTarget } from './dashql_processor.js';
+import { DashQLCompletionStatus } from './dashql_completion_state.js';
 import { applyCompletion, shouldAutoQualifyNonDefaultTable, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type EventListener = (event: Event) => void;

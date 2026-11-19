@@ -5,7 +5,8 @@ import { EditorView } from '@codemirror/view';
 import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
-import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
+import { DashQLProcessorPlugin, DashQLUpdateEffect } from '../editor/dashql_processor.js';
+import { DashQLProcessorUpdateOut } from '../editor/dashql_completion_state.js';
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';

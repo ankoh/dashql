@@ -5,7 +5,6 @@ import { type CompletionPatch, CompletionPatchTarget, type DashQLCompletionState
 
 /// The default database of Hyper
 const DEFAULT_DATABASE_NAME = 'hyper';
-export { type CompletionPatch, CompletionPatchTarget, type CompletionPatchVariant, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, TextAnchor } from './dashql_completion_state.js';
 
 /// Given two strings, derive the required patches to get from `have` to `want`.
 /// If `have` is a proper substring of `want`, emit before/after inserts around it.

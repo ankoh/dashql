@@ -6,10 +6,7 @@ import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createEmbeddedDatabaseShellEnvironment } from '../shell_app/embedded_database_shell_environment.js';
 import { setupWebHyperDB } from '../platform/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import {
-    HyperDB,
-    HyperDBConnection,
-} from '../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

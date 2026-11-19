@@ -4,7 +4,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { forbidEval } from '@akohn/dashql/platform/testing/forbid_eval';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
-import { HyperDB, HyperDBEngine, type HyperDBClient } from '../../platform/hyperdb/hyperdb_wasm.js';
+import { HyperDB, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
+import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, snippetsForConnector, type SnippetRegistry } from './snippet_registry.js';
 import { SnippetSearch, snippetSearchPattern } from './snippet_search.js';

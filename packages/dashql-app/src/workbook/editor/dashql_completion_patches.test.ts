@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { completionDiff, CompletionPatchTarget, TextAnchor, PATCH_INSERT_TEXT, PATCH_DELETE_TEXT } from './dashql_completion_patches.js';
+import { completionDiff } from './dashql_completion_patches.js';
+import { CompletionPatchTarget, TextAnchor, PATCH_INSERT_TEXT, PATCH_DELETE_TEXT } from './dashql_completion_state.js';
 
 const T = CompletionPatchTarget.Candidate;
 

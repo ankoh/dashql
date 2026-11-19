@@ -2,7 +2,8 @@ import * as dashql from '@akohn/dashql';
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { Transaction, StateField, RangeSetBuilder } from '@codemirror/state';
 
-import { DashQLProcessorPlugin, DashQLScriptKey } from './dashql_processor.js';
+import { DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 import { createScannerHighlightPlugin } from './dashql_decorations_standalone.js';
 import { FocusType, SemanticUserFocus } from './semantic_focus.js';
 import { editorDiagnostics } from './dashql_script_references.js';

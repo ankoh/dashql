@@ -6,8 +6,6 @@ import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, Seman
 import { computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './dashql_completion_state.js';
 import type { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
-export { DashQLCompletionStatus, type DashQLCompletionState, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './dashql_completion_state.js';
-export type { DashQLPendingDiff, DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 const LOG_PREFIX = '[workbook-editor-debug]';

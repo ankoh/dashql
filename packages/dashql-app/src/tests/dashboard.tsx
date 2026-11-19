@@ -14,7 +14,7 @@ import {
     SquareFillIcon,
 } from '@akohn/dashql-react/components/symbol_icon';
 import { TextInput } from '@akohn/dashql-react/components/text_input';
-import type { HyperDBClient } from '../platform/hyperdb/hyperdb_wasm.js';
+import type { HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { createTestHyperDBClient } from './hyperdb_test_client.js';
 import {
     BROWSER_TEST_MESSAGE_SOURCE,
