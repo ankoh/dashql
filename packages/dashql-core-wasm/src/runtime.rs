@@ -17,7 +17,6 @@
 
 pub(crate) mod actions;
 pub(crate) mod archives;
-pub(crate) mod bundle_host;
 pub(crate) mod persistence;
 pub(crate) mod attachments;
 pub(crate) mod catalog;
@@ -74,6 +73,7 @@ use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
 use persistence::Persistence;
 use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
+use dashql_core_storage::restore::bundle::BundleHost;
 use dashql_core_storage::restore::{AppRestore, RestoreOptions, RestoredState};
 use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
@@ -717,8 +717,9 @@ impl Restorer {
                 Box::new(move || platform.random_uuid().ok())
             },
         };
-        let host = bundle_host::BundleHost { platform: self.platform.clone(), bundle };
-        let mut restore: AppRestore<bundle_host::BundleHost, bundle_host::BundleHost> = AppRestore::in_memory(host, options);
+        let host = BundleHost { host: archives::ImportHost(self.platform.clone()), bundle };
+        type ImportBundle = BundleHost<archives::ImportHost, archives::HostFile>;
+        let mut restore: AppRestore<ImportBundle, ImportBundle> = AppRestore::in_memory(host, options);
         for live in self.live_connections() {
             restore.add_live_connection(live);
         }
@@ -1018,7 +1019,7 @@ impl Runtime {
     /// again when the workbook or the tokens of the links change.
     #[wasm_bindgen(js_name = setUpOpenedWorkbook)]
     pub fn set_up_opened_workbook(&self, workbook_id: &str) {
-        let connection_ids = self.workbooks.get(workbook_id).and_then(|workbook| workbook.try_borrow().ok().map(|workbook| Workbooks::connection_ids(&workbook)));
+        let connection_ids = self.workbooks.get(workbook_id).and_then(|workbook| workbook.try_borrow().ok().map(|workbook| workbook.connection_ids()));
         self.connections.set_up_opened(workbook_id, connection_ids.unwrap_or_default());
     }
 

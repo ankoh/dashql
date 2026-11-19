@@ -13,6 +13,9 @@ use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::catalog_loader::tables::{catalog_tables_of_descriptor, read_catalog_descriptor};
 use dashql_core_runtime::connections::{ConnectionState, RelationName};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_storage::restore::bundle::BundleHost;
+use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle};
+use dashql_core_storage::workbook_format::data::WorkbookData;
 use dashql_core_storage::restore::{
     script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
@@ -402,6 +405,32 @@ fn restores_a_workbook_into_memory_without_writing() {
     // The list that a restore from storage writes stays unwritten, so does the app manifest
     assert_eq!(fixture.stored(WORKBOOK), file);
     assert!(fixture.host.store.borrow().connections.clone().unwrap_or_default().is_empty());
+}
+
+#[test]
+fn restores_a_bundle_into_memory_without_reading_storage() {
+    // An archive opens into memory: the restore reads the bundle through the bundle host, never the storage of the host
+    let fixture = Fixture::new();
+    let copies = json!([{ "connectionId": CONNECTION, "params": hyper_wasm() }]);
+    let mut file = workbook(WORKBOOK, copies, json!([]));
+    file["attachments"] = json!([{ "name": "orders.parquet" }]);
+    let bundle = WorkbookBundle {
+        workbook: WorkbookData::from_json(&file),
+        catalogs: Vec::new(),
+        scripts: vec![ScriptData::new("10_last.sql", "SELECT 10"), ScriptData::new("2_first.sql", "SELECT 2")],
+        data: vec![DataFileData { name: "orders.parquet".to_string(), bytes: vec![0_u8; 5] }],
+        results: Vec::new(),
+    };
+    let host = BundleHost { host: fixture.host.clone(), bundle };
+    let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
+    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, BundleHost<FakeHost, Vec<u8>>> = AppRestore::in_memory(host, options);
+    let restored = fixture.run(restore.restore_workbook(WORKBOOK)).unwrap();
+    assert_eq!(script_names(&restored, WORKBOOK), vec!["2_first.sql", "10_last.sql"]);
+    assert_eq!(connection_ids(&restored), vec![CONNECTION]);
+    let attachments = restored.workbooks[0].workbook.attachments().unwrap_or_default();
+    assert_eq!(attachments.iter().map(|a| (a.file_name.as_str(), a.size_bytes)).collect::<Vec<_>>(), vec![("orders.parquet", 5)]);
+    assert!(fixture.host.store.borrow().reads.is_empty());
+    assert!(fixture.host.store.borrow().calls.is_empty());
 }
 
 #[test]

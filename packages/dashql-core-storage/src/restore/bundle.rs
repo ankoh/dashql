@@ -1,30 +1,42 @@
-//! The bundle of an archive as the storage of a restore: a workbook opens into memory with the restore of the storage,
-//! which reads the workbook file, the scripts and the catalogs of the connections from the bundle and writes nothing.
-//! A runtime without storage opens an import this way (`imports.rs`).
+//! The bundle of an archive as the storage of a restore: a workbook opens into memory with the restore of the storage
+//! (`AppRestore::in_memory`), which reads the workbook file, the scripts and the catalogs of the connections from the
+//! bundle and writes nothing. A runtime without storage opens an import this way. The host gives the clock, the tasks
+//! and the log, the files of the bundle are any bytes that know their size (`BundleFile`).
 
 use std::future::Future;
 
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_storage::restore::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE};
-use dashql_core_storage::restore::{RestoreHost, RestoreProgress};
-use dashql_core_storage::storage::{ConnectionsUpdate, Expect, FileStamp, StorageHost};
-use dashql_core_storage::workbook_format::bundle::WorkbookBundle;
+use dashql_core_runtime::settings::RuntimeSettings;
 use serde_json::Value;
 
-use super::archives::HostFile;
-use crate::host::JsPlatform;
+use super::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE};
+use super::{RestoreHost, RestoreProgress};
+use crate::storage::{ConnectionsUpdate, Expect, FileStamp, StorageHost};
+use crate::workbook_format::bundle::WorkbookBundle;
 
 /// What a bundle refuses, it is read only
 const READ_ONLY: &str = "a workbook opened into memory writes no files";
 
-/// A bundle that a restore reads
-pub(crate) struct BundleHost {
-    pub platform: JsPlatform,
-    pub bundle: WorkbookBundle<HostFile>,
+/// The bytes of a file of a bundle, e.g. a handle of the platform or the bytes themselves
+pub trait BundleFile {
+    /// The size in bytes
+    fn size_bytes(&self) -> u64;
 }
 
-impl BundleHost {
+impl BundleFile for Vec<u8> {
+    fn size_bytes(&self) -> u64 {
+        self.len() as u64
+    }
+}
+
+/// A bundle that a restore reads, on a host
+pub struct BundleHost<H, B> {
+    pub host: H,
+    pub bundle: WorkbookBundle<B>,
+}
+
+impl<H, B> BundleHost<H, B> {
     fn workbook_id(&self) -> &str {
         &self.bundle.workbook.workbook_id
     }
@@ -38,25 +50,29 @@ impl BundleHost {
     }
 }
 
-impl Host for BundleHost {
+impl<H: Host, B: 'static> Host for BundleHost<H, B> {
+    fn settings(&self) -> RuntimeSettings {
+        self.host.settings()
+    }
+
     fn now(&self) -> f64 {
-        self.platform.now()
+        self.host.now()
     }
 
     fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.platform.sleep(ms)
+        self.host.sleep(ms)
     }
 
     fn spawn(&self, task: LocalTask) {
-        self.platform.spawn(task);
+        self.host.spawn(task);
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        self.platform.log_on(level, message, details, "workbook_import");
+        self.host.log(level, message, details);
     }
 }
 
-impl StorageHost for BundleHost {
+impl<H: Host, B: 'static> StorageHost for BundleHost<H, B> {
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
         self.check(workbook_id)?;
         Ok(self.bundle.workbook.to_json())
@@ -100,7 +116,7 @@ impl StorageHost for BundleHost {
     }
 }
 
-impl RestoreHost for BundleHost {
+impl<H: Host, B: BundleFile + 'static> RestoreHost for BundleHost<H, B> {
     /// The connections of the bundle are the copies in its workbook file, there is no app manifest
     fn owns_connections(&self) -> bool {
         false
@@ -121,7 +137,7 @@ impl RestoreHost for BundleHost {
 
     async fn list_data_files(&self, workbook_id: &str) -> Result<Vec<DataFile>, HostError> {
         self.check(workbook_id)?;
-        Ok(self.bundle.data.iter().map(|file| DataFile { name: file.name.clone(), size_bytes: file.bytes.size, mtime_ms: 0 }).collect())
+        Ok(self.bundle.data.iter().map(|file| DataFile { name: file.name.clone(), size_bytes: file.bytes.size_bytes(), mtime_ms: 0 }).collect())
     }
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {

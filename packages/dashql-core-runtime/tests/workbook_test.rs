@@ -119,6 +119,17 @@ fn creates_the_first_script_on_the_pending_connection() {
 }
 
 #[test]
+fn uses_the_connections_of_its_scripts_and_then_its_pending_connection() {
+    let (mut workbook, _) = workbook(&[]);
+    // A workbook without scripts uses its pending connection
+    assert_eq!(workbook.connection_ids(), ["main"]);
+    create(&mut workbook, None, Some("select 1"), "first");
+    create(&mut workbook, None, Some("select 2"), "second");
+    // The scripts took the pending connection, it is named once
+    assert_eq!(workbook.connection_ids(), ["main"]);
+}
+
+#[test]
 fn deletes_the_last_script_and_keeps_its_connection_for_the_next_one() {
     let (mut workbook, main) = workbook(&[("alpha.sql", "create table t (x int)")]);
     workbook.apply(WorkbookAction::AnalyzeOutdatedScript { key: key(&workbook, "alpha.sql") }).unwrap();

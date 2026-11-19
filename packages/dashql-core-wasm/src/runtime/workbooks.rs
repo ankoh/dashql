@@ -232,29 +232,12 @@ impl Workbooks {
         Ok(script_connection_of(&state))
     }
 
-    /// The ids of the connections that a workbook uses: of its scripts in feed order, then its pending connection
-    pub fn connection_ids(workbook: &Workbook) -> Vec<String> {
-        let mut ids: Vec<String> = Vec::new();
-        for script in workbook.scripts() {
-            let id = &script.connection().connection_id;
-            if !ids.contains(id) {
-                ids.push(id.clone());
-            }
-        }
-        if let Some(pending) = workbook.pending_connection() {
-            if !ids.contains(&pending.connection_id) {
-                ids.push(pending.connection_id.clone());
-            }
-        }
-        ids
-    }
-
     /// Tell the connections which workbooks use them, e.g. a connection that a workbook uses is never deleted
     pub fn sync_references(&self) {
         let mut references: Vec<(String, Vec<String>)> = Vec::new();
         for entry in self.entries.borrow().iter() {
             let Ok(workbook) = entry.workbook.try_borrow() else { continue };
-            for connection_id in Self::connection_ids(&workbook) {
+            for connection_id in workbook.connection_ids() {
                 match references.iter_mut().find(|(id, _)| *id == connection_id) {
                     Some((_, workbooks)) => workbooks.push(entry.id.clone()),
                     None => references.push((connection_id, vec![entry.id.clone()])),
@@ -730,7 +713,7 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
         script_keys: scripts.iter().map(|script| script.key()).collect(),
         script_order: scripts.iter().map(|script| script.file_name().to_string()).collect(),
         script_connections: scripts.iter().map(|script| script.connection().connection_id.clone()).collect(),
-        connection_ids: Workbooks::connection_ids(workbook),
+        connection_ids: workbook.connection_ids(),
         next_script_connection_id: workbook.new_script_connection(None).map(|connection| connection.connection_id.clone()),
     }
 }

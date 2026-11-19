@@ -8,7 +8,9 @@
 use std::cell::RefCell;
 
 use dashql_core_runtime::handles::Handle;
-use dashql_core_runtime::host::HostError;
+use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_storage::restore::bundle::BundleFile;
 use dashql_core_storage::storage::FolderStamps;
 use dashql_core_storage::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
 use dashql_core_storage::workbook_format::data::WorkbookData;
@@ -163,4 +165,36 @@ pub(crate) fn bytes_value(bytes: &[u8]) -> JsValue {
 /// A list of values
 pub(crate) fn list(values: impl IntoIterator<Item = JsValue>) -> JsValue {
     values.into_iter().collect::<Array>().into()
+}
+
+impl BundleFile for HostFile {
+    fn size_bytes(&self) -> u64 {
+        self.size
+    }
+}
+
+/// The platform as the host of the restore of a workbook that opens into memory (`BundleHost`): it logs on the target
+/// of the imports
+pub(crate) struct ImportHost(pub JsPlatform);
+
+impl Host for ImportHost {
+    fn settings(&self) -> RuntimeSettings {
+        self.0.settings()
+    }
+
+    fn now(&self) -> f64 {
+        self.0.now()
+    }
+
+    fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
+        self.0.sleep(ms)
+    }
+
+    fn spawn(&self, task: LocalTask) {
+        self.0.spawn(task);
+    }
+
+    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+        self.0.log_on(level, message, details, "workbook_import");
+    }
 }

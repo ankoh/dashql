@@ -11,6 +11,7 @@
 //! fails fails the workbook or the connection that made it, never the restore: an unreadable workbook is invalid, a
 //! catalog that can't be read is refreshed on connect.
 
+pub mod bundle;
 pub mod catalog;
 
 use std::collections::HashMap;

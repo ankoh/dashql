@@ -1263,6 +1263,19 @@ impl Workbook {
     pub fn set_ephemeral(&mut self, ephemeral: bool) {
         self.ephemeral = ephemeral;
     }
+    /// The ids of the connections that the workbook uses: of its scripts in feed order, then its pending connection. A
+    /// connection that a workbook uses is never deleted.
+    pub fn connection_ids(&self) -> Vec<String> {
+        let mut ids: Vec<String> = Vec::new();
+        let pending = self.pending_connection().map(|pending| &pending.connection_id);
+        for id in self.scripts().iter().map(|script| &script.connection().connection_id).chain(pending) {
+            if !ids.contains(id) {
+                ids.push(id.clone());
+            }
+        }
+        ids
+    }
+
     pub fn pending_connection(&self) -> Option<&Rc<ScriptConnection>> {
         self.pending_connection.as_ref()
     }

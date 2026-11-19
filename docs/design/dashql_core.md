@@ -73,6 +73,14 @@ state sits in the services behind `RefCell`s; every method takes `&self`. The se
 the commands) is described from the TypeScript side in [dashql_runtime.md](dashql_runtime.md#the-seam); the change
 marks are `runtime/changes.rs`.
 
+What the bindings crate holds is the part of a module that is the product's: the composition root that wires the
+services onto the platform (`Workbooks`, `Connections`, the catalog and compute hosts, the external changes), the views
+and actions that cross to TypeScript (tsify types and their conversions), the change journal of the views, and the
+host over the JS platform. A rule that needs none of them belongs to the crates below it, e.g. the connections that a
+workbook uses (`Workbook::connection_ids`) or the restore of a bundle in memory (`restore::bundle::BundleHost`). The
+bindings also build as a host library (`<name>_lib` of `module.bzl`, for the lints so far); a product that wants the
+composition would depend on that rather than copy it.
+
 | Domain | Crate (`dashql-core-runtime/src` unless named) | Bindings (`dashql-core-wasm/src/runtime/`) |
 |---|---|---|
 | Workbooks and scripts | `workbook.rs`, `visible_scripts.rs`, `attachments.rs`, `names.rs` | `workbooks.rs`, `attachments.rs` |
@@ -324,7 +332,7 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
   shell or an embed in a frame without the origin private file system. In memory the effects are dropped, the commands
   of the storage resolve at once, a hold holds nothing, and what is about the storage itself is refused with `the
   runtime keeps no files`: attaching new files, exports, the restore. A workbook enters such a runtime by an import into
-  memory: the restore reads the bundle of the archive (`BundleHost` of `runtime/bundle_host.rs`, `AppRestore::in_memory`)
+  memory: the restore reads the bundle of the archive (`BundleHost` of `dashql_core_storage::restore::bundle`, `AppRestore::in_memory`)
   and writes nothing. Memory keeps the files of the attachments of the workbook (`MemoryFiles`), each by a handle of its
   own, renamed with the attachment and released when the workbook goes or is replaced. The mounts of the platform get
   the files with every call (`RuntimeMounts.attachments`, `attachmentColumns`): the embedded Hyper mounts them as a
