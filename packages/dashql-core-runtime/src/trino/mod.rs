@@ -24,7 +24,6 @@ pub mod protocol;
 pub mod setup;
 pub mod shared;
 pub mod stream;
-pub mod time;
 
 pub use arrow::{parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, trino_schema, NoTimeZones, TimeZoneOffsets};
 pub use error::{TrinoError, TrinoErrorKind, TrinoResult};

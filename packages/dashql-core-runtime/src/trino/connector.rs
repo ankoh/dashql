@@ -5,7 +5,8 @@ use serde_json::{json, Value};
 use crate::catalog_loader::trino::TrinoCatalogUpdate;
 use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
-use crate::connections::sharing::{is_truthy, without};
+use crate::connections::is_truthy;
+use crate::connections::sharing::without;
 use crate::connections::{
     Timestamp, RelationName, object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject,
 };

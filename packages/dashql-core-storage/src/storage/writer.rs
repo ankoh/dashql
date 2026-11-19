@@ -51,7 +51,7 @@ use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_runtime::http::HostBytes;
 use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
-use crate::workbook_format::storage_migration::iso_timestamp;
+use dashql_core_runtime::time::iso_timestamp_f64;
 
 /// A text that is written, or how to read it when the write runs
 pub enum TextSource {
@@ -1026,7 +1026,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             log(shared, LogLevel::Info, "Creating workbook", &[("key", key), ("workbookId", workbook_id)]);
             // A workbook file on disk keeps its scripts, its name and its creation time
             let existing = load_workbook_file(shared, workbook_id).await;
-            let now = iso_timestamp(host.now());
+            let now = iso_timestamp_f64(host.now());
             let created = CreatedWorkbook {
                 workbook_id,
                 format_version: shared.format_version,

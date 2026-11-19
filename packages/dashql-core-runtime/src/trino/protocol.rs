@@ -12,7 +12,7 @@ use crate::http::base64::{base64_decode, base64_encode};
 use crate::salesforce::api::redact_token_diagnostics;
 use crate::http::url::{encode_uri_component, form_encode, set_query_param, url_path};
 use crate::http::{FetchOutcome, HttpMethod, HttpRequest, HttpResponse};
-use super::time::{iso_timestamp, parse_iso_timestamp, Millis};
+use crate::time::{iso_timestamp, parse_iso_timestamp, Millis};
 use crate::connections::{trino_session_defaults, JsonObject, TrinoSessionDefaults};
 
 /// The size of the result pages that we ask Trino for. Trino returns pages of 1 MB by default and caps the size at

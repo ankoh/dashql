@@ -24,7 +24,7 @@ use crate::host::timeout;
 use crate::http::{CancellationToken, Headers, HttpHost, HttpRequest};
 use crate::hyper::client::AttachedDatabase;
 use crate::hyper::{HyperChannelContext, HyperHttpChannel};
-use crate::trino::time::parse_iso_timestamp;
+use crate::time::parse_iso_timestamp;
 
 /// How long before its expiry a Data Cloud token is refreshed
 pub const TOKEN_REFRESH_MARGIN_MS: f64 = 60.0 * 1000.0;

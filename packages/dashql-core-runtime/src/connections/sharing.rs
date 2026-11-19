@@ -34,17 +34,6 @@ pub fn sanitize_connection_params_for_sharing(params: &Value, with_login_hint: b
     Value::Object(out)
 }
 
-/// Is a value truthy like in JavaScript?
-pub(crate) fn is_truthy(value: &Value) -> bool {
-    match value {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0 && !f.is_nan()),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(_) | Value::Object(_) => true,
-    }
-}
-
 /// Is a value an empty list or an empty map?
 fn is_empty_collection(value: &Value) -> bool {
     match value {

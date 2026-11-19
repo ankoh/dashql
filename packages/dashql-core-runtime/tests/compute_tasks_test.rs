@@ -25,7 +25,7 @@ use dashql_core_runtime::compute::tasks::data_search::{
 };
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::tasks::sql::{
-    format_number, quote_string_literal, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey,
+    format_number, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey,
     GroupByKeyBinning, SqlFrame,
 };
 use dashql_core_runtime::compute::tasks::system_columns::plan_system_columns;
@@ -296,7 +296,6 @@ fn sql_quotes_identifiers() {
     assert!(sql.contains(r#""my table""#));
     assert!(sql.contains(r#""row num""#));
     assert_eq!(SqlFrame::from("a\"b").to_sql(), r#"SELECT * FROM "a""b""#);
-    assert_eq!(quote_string_literal("o'neil"), "'o''neil'");
 }
 
 #[test]

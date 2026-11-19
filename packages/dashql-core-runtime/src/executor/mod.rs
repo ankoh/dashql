@@ -681,7 +681,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         let mut details = self.query_details();
         details.push(("numRows".to_string(), table.rows.to_string()));
         details.push(("numCols".to_string(), table.columns.to_string()));
-        details.push(("cachedAt".to_string(), crate::trino::time::iso_timestamp(entry.cached_at as i64)));
+        details.push(("cachedAt".to_string(), crate::time::iso_timestamp(entry.cached_at as i64)));
         self.log(LogLevel::Info, "Served query from cache", details);
         let metrics = QueryExecutionMetrics::default();
         self.report(QueryEvent::ReceivedAllBatches { rows: table.rows, metrics });

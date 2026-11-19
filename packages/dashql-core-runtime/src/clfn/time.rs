@@ -1,33 +1,6 @@
 //! Instants as milliseconds since the epoch: the timestamps of responses and the ISO text of tokens.
 
-/// The milliseconds of a day
-const DAY_MS: i64 = 86_400_000;
-/// The largest instant that JavaScript dates hold
-const MAX_DATE_MS: i64 = 8_640_000_000_000_000;
-
-/// The days since the epoch of a civil date, Howard Hinnant's algorithm
-pub fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let year = if month <= 2 { year - 1 } else { year };
-    let era = year.div_euclid(400);
-    let yoe = year - era * 400;
-    let month_index = if month > 2 { month - 3 } else { month + 9 };
-    let doy = (153 * month_index + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-/// The civil date of days since the epoch
-fn civil_from_days(days: i64) -> (i64, i64, i64) {
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    (yoe + era * 400 + i64::from(month <= 2), month, day)
-}
+use crate::time::{days_from_civil, utc_ms, DAY_MS};
 
 /// The days of a month
 fn days_in_month(year: i64, month: i64) -> i64 {
@@ -37,30 +10,6 @@ fn days_in_month(year: i64, month: i64) -> i64 {
         4 | 6 | 9 | 11 => 30,
         _ => 31,
     }
-}
-
-/// The milliseconds of a wall clock time in UTC. Fields out of range carry over, as they do in `Date.UTC`.
-fn utc_ms(year: i64, month: i64, day: i64, hours: i64, minutes: i64, seconds: i64, ms: i64) -> Option<i64> {
-    let year = year.checked_add((month - 1).div_euclid(12))?;
-    let month = (month - 1).rem_euclid(12) + 1;
-    let days = days_from_civil(year, month, 1).checked_add(day - 1)?;
-    let out = days.checked_mul(DAY_MS)?.checked_add(((hours * 60 + minutes) * 60 + seconds) * 1000 + ms)?;
-    (out.abs() <= MAX_DATE_MS).then_some(out)
-}
-
-/// The ISO 8601 text of an instant with milliseconds, as `Date.toISOString` writes it
-pub fn iso_timestamp(ms: i64) -> String {
-    let days = ms.div_euclid(DAY_MS);
-    let time = ms.rem_euclid(DAY_MS);
-    let (year, month, day) = civil_from_days(days);
-    let year = if (0..=9999).contains(&year) { format!("{year:04}") } else { format!("{year:+07}") };
-    format!(
-        "{year}-{month:02}-{day:02}T{:02}:{:02}:{:02}.{:03}Z",
-        time / 3_600_000,
-        time / 60_000 % 60,
-        time / 1_000 % 60,
-        time % 1_000
-    )
 }
 
 /// Read a run of digits, at least `min` and at most `max` of them
@@ -149,6 +98,7 @@ pub fn parse_iso_ms(text: &str) -> Option<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::time::iso_timestamp;
 
     #[test]
     fn reads_and_writes_iso_text() {

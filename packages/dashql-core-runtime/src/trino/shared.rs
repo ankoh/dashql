@@ -13,7 +13,7 @@ use std::rc::Rc;
 
 use super::error::{TrinoError, TrinoErrorKind, TrinoResult};
 use super::protocol::{TokenRefresh, TrinoAccessToken, TrinoChannel, TrinoRequest};
-use super::time::Millis;
+use crate::time::Millis;
 use crate::host::signal::{oneshot, Receiver, Sender};
 use crate::http::{FetchOutcome, HttpRequest};
 

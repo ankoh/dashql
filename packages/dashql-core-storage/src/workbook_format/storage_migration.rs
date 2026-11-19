@@ -20,6 +20,7 @@ use crate::workbook_format::migration::{migrate_folder, rename_sidb_connections,
 use crate::workbook_format::tree::{read_workbook_tree, TreeDirectory};
 use crate::workbook_format::validation::is_valid_uuid;
 use dashql_core_runtime::connections::CONNECTOR_TYPES;
+use dashql_core_runtime::time::iso_timestamp_f64;
 
 /// The manifest of the storage root, it holds the storage version
 pub const MANIFEST_FILE: &str = "dashql-manifest.json";
@@ -96,33 +97,6 @@ pub struct StorageMigrationSummary {
 
 /// The catalog files that a session copied from its connections, up to the session format version 6
 const CATALOG_FILES: [&str; 3] = ["dashql-catalog-relations.sql", "dashql-catalog-functions.sql", "dashql-catalog-changes.sql"];
-
-/// The time of an epoch timestamp in milliseconds as `Date.prototype.toISOString` writes it, e.g.
-/// `2026-10-22T00:00:00.000Z`
-pub fn iso_timestamp(ms: f64) -> String {
-    let ms = if ms.is_finite() { ms.floor() as i64 } else { 0 };
-    let days = ms.div_euclid(86_400_000);
-    let in_day = ms.rem_euclid(86_400_000);
-    // The civil date of days since 1970-01-01 (Howard Hinnant, civil_from_days)
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = yoe + era * 400 + i64::from(month <= 2);
-    let (hours, minutes, seconds, millis) = (in_day / 3_600_000, in_day / 60_000 % 60, in_day / 1000 % 60, in_day % 1000);
-    let year = if (0..=9999).contains(&year) {
-        format!("{year:04}")
-    } else if year < 0 {
-        format!("-{:06}", -year)
-    } else {
-        format!("+{year:06}")
-    };
-    format!("{year}-{month:02}-{day:02}T{hours:02}:{minutes:02}:{seconds:02}.{millis:03}Z")
-}
 
 /// The message of a failed step for the log
 fn message(error: &HostError) -> &str {
@@ -592,7 +566,7 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
             }
         }
     }
-    let created_at = iso_timestamp(host.now());
+    let created_at = iso_timestamp_f64(host.now());
     let mut failed = None;
     let plan = plan_connection_migration(&sessions, &created_at, &mut || {
         host.random_uuid().unwrap_or_else(|error| {
@@ -896,11 +870,11 @@ mod tests {
 
     #[test]
     fn writes_timestamps_like_to_iso_string() {
-        assert_eq!(iso_timestamp(0.0), "1970-01-01T00:00:00.000Z");
-        assert_eq!(iso_timestamp(1_767_225_600_000.0), "2026-01-01T00:00:00.000Z");
-        assert_eq!(iso_timestamp(1_761_091_200_123.0), "2025-10-22T00:00:00.123Z");
-        assert_eq!(iso_timestamp(951_782_400_000.0 + 3_723_004.0), "2000-02-29T01:02:03.004Z");
-        assert_eq!(iso_timestamp(-1.0), "1969-12-31T23:59:59.999Z");
+        assert_eq!(iso_timestamp_f64(0.0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(iso_timestamp_f64(1_767_225_600_000.0), "2026-01-01T00:00:00.000Z");
+        assert_eq!(iso_timestamp_f64(1_761_091_200_123.0), "2025-10-22T00:00:00.123Z");
+        assert_eq!(iso_timestamp_f64(951_782_400_000.0 + 3_723_004.0), "2000-02-29T01:02:03.004Z");
+        assert_eq!(iso_timestamp_f64(-1.0), "1969-12-31T23:59:59.999Z");
     }
 
     #[test]

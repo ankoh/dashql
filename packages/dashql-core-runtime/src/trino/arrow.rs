@@ -22,7 +22,7 @@ use serde_json::Value;
 use super::error::{TrinoError, TrinoResult};
 use crate::http::base64::base64_decode;
 use super::protocol::TrinoColumn;
-use super::time::{utc_ms, Millis, DAY_MS, MAX_DATE_MS};
+use crate::time::{utc_ms, Millis, DAY_MS, MAX_DATE_MS};
 
 /// The offsets of named time zones, e.g. `Europe/Berlin`
 pub trait TimeZoneOffsets {

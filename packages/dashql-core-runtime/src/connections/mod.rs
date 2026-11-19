@@ -44,7 +44,7 @@ pub use details::{
 };
 pub use hyper::HyperAction;
 pub use params::{
-    trino_session_defaults, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject, TrinoSessionDefaults,
+    is_truthy, string_field, trino_session_defaults, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject, TrinoSessionDefaults,
     CONNECTOR_TYPES, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
     SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
@@ -53,6 +53,7 @@ pub(crate) use params::object;
 pub use trino::TrinoAction;
 
 pub use crate::workbook::CatalogHandle;
+use crate::catalog_loader::sql::function_script_header;
 use crate::handles::Handle;
 use crate::workbook::{new_catalog, next_revision, ScriptConnection, ScriptConnectionProfile};
 use dashql_buffers::formatting::FormattingDialect;
@@ -276,44 +277,6 @@ pub struct ConnectionState {
     revision: u64,
     /// The setup attempt whose steps the connection takes, a new setup, a reset and a delete start the next one
     setup_epoch: u64,
-}
-
-/// The header of the script with the functions of a connection
-fn function_script_header(source: &str, updated_at: Timestamp) -> String {
-    format!(
-        "-- DashQL Connection Functions.
--- This file is auto-generated and can only be updated through a catalog refresh.
---
--- Catalog Source: {source}
--- Last Refresh: {}
-
-",
-        iso_timestamp(updated_at)
-    )
-}
-
-/// A timestamp in ISO 8601 with milliseconds, e.g. `2026-01-01T00:00:00.000Z`
-fn iso_timestamp(ms: Timestamp) -> String {
-    let ms = if ms.is_finite() { ms.floor() as i64 } else { 0 };
-    let days = ms.div_euclid(86_400_000);
-    let time = ms.rem_euclid(86_400_000);
-    // The civil date of the days since the epoch, Howard Hinnant's algorithm
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = yoe + era * 400 + i64::from(month <= 2);
-    format!(
-        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}.{:03}Z",
-        time / 3_600_000,
-        time / 60_000 % 60,
-        time / 1_000 % 60,
-        time % 1_000
-    )
 }
 
 impl ConnectionState {

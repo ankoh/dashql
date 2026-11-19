@@ -2,9 +2,10 @@
 //! text. A search is case-insensitive and matches the text of a value.
 
 use dashql_core::error::Result;
+use dashql_core::utils::quote_string_literal;
 
 use super::result_table::ResultTable;
-use super::sql::{quote_ident, quote_string_literal};
+use crate::catalog_loader::sql::quote_identifier;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
 use crate::compute::types::{ColumnGroup, ComputationVersion, DataFrameId, DataSearchColumn, DataSearchTask};
 
@@ -59,8 +60,8 @@ pub fn build_data_search_sql(
     columns: &[DataSearchColumn],
     pattern: &str,
 ) -> String {
-    let row_number = quote_ident(row_number_field_name);
-    let table = quote_ident(table_name);
+    let row_number = quote_identifier(row_number_field_name);
+    let table = quote_identifier(table_name);
     if columns.is_empty() {
         return format!(
             "SELECT\n    {row_number} AS row_idx,\n    array_agg(0 ORDER BY 0) AS column_indices\nFROM {table}\nWHERE FALSE\nGROUP BY {row_number}\nORDER BY row_idx"
@@ -73,7 +74,7 @@ pub fn build_data_search_sql(
             format!(
                 "    SELECT {row_number} AS row_idx, {} AS column_idx\n    FROM {table}\n    WHERE CAST({} AS TEXT) ILIKE {pattern}",
                 c.column_idx,
-                quote_ident(&c.field_name)
+                quote_identifier(&c.field_name)
             )
         })
         .collect();

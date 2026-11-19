@@ -38,6 +38,7 @@ pub mod planner;
 pub mod query;
 pub mod settings;
 pub mod salesforce;
+pub mod time;
 pub mod trino;
 pub mod visible_scripts;
 pub mod workbook;

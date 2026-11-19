@@ -321,7 +321,7 @@ impl TimeZoneOffsets for FakeZones {
 
 /// Milliseconds since epoch of a time in UTC
 fn utc(year: i64, month: i64, day: i64, hours: i64, minutes: i64, seconds: i64, ms: i64) -> i64 {
-    dashql_core_runtime::trino::time::utc_ms(year, month, day, hours, minutes, seconds, ms).unwrap()
+    dashql_core_runtime::time::utc_ms(year, month, day, hours, minutes, seconds, ms).unwrap()
 }
 
 /// Translate the values of a single column of a type

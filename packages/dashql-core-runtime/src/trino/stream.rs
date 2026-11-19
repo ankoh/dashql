@@ -30,7 +30,7 @@ use super::protocol::{
     read_query_info, read_result_page, read_statement_response, ResultPageOutcome, TrinoQueryResult, TrinoRequest,
     TrinoRetryPolicy,
 };
-use super::time::Millis;
+use crate::time::Millis;
 use crate::query::progress::EngineProgressPayload;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
 

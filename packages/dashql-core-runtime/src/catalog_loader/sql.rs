@@ -1,16 +1,13 @@
 //! The SQL that the catalog loader generates: quoting, the conditions that select relations, the statements of the
 //! catalog files and the headers of the function script.
 
+use dashql_core::utils::quote_string_literal;
+
 use crate::connections::{RelationName, Timestamp, DEFAULT_DATABASE_NAME};
 
 /// A quoted identifier, for Hyper, Trino and PostgreSQL alike
 pub fn quote_identifier(identifier: &str) -> String {
     format!("\"{}\"", identifier.replace('"', "\"\""))
-}
-
-/// A string literal
-pub fn quote_literal(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
 }
 
 /// The type of a column of a generated `CREATE TABLE`. A backend can name any type, such as `USER-DEFINED` or
@@ -26,10 +23,10 @@ pub fn relation_filter(schema_column: &str, table_column: &str, relations: &[Rel
     let relation = |relation: &RelationName| {
         let mut parts = Vec::with_capacity(2);
         if !relation.schema_name.is_empty() {
-            parts.push(format!("{schema_column} = {}", quote_literal(&relation.schema_name)));
+            parts.push(format!("{schema_column} = {}", quote_string_literal(&relation.schema_name)));
         }
         if !relation.table_name.is_empty() {
-            parts.push(format!("{table_column} = {}", quote_literal(&relation.table_name)));
+            parts.push(format!("{table_column} = {}", quote_string_literal(&relation.table_name)));
         }
         format!("({})", parts.join(" AND "))
     };
@@ -41,30 +38,6 @@ pub fn relation_filter(schema_column: &str, table_column: &str, relations: &[Rel
 pub fn qualified_table_name(database_name: Option<&str>, schema_name: &str, table_name: &str) -> String {
     let database = database_name.filter(|database| !database.is_empty()).unwrap_or(DEFAULT_DATABASE_NAME);
     format!("{}.{}.{}", quote_identifier(database), quote_identifier(schema_name), quote_identifier(table_name))
-}
-
-/// The time of a refresh in ISO 8601 with milliseconds, e.g. `2026-01-01T00:00:00.000Z`
-pub fn iso_timestamp(ms: Timestamp) -> String {
-    let ms = if ms.is_finite() { ms.floor() as i64 } else { 0 };
-    let days = ms.div_euclid(86_400_000);
-    let time = ms.rem_euclid(86_400_000);
-    // The civil date of the days since the epoch, Howard Hinnant's algorithm
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = yoe + era * 400 + i64::from(month <= 2);
-    format!(
-        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}.{:03}Z",
-        time / 3_600_000,
-        time / 60_000 % 60,
-        time / 1_000 % 60,
-        time % 1_000
-    )
 }
 
 /// Where the functions of a connection come from
@@ -104,7 +77,7 @@ pub fn function_script_header(source: &str, updated_at: Timestamp) -> String {
 -- Last Refresh: {}
 
 ",
-        iso_timestamp(updated_at)
+        crate::time::iso_timestamp_f64(updated_at)
     )
 }
 

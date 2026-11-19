@@ -45,7 +45,7 @@ use super::tasks::data_search::{
     build_column_search_sql, collect_searchable_result_columns, parse_column_search_matches, plan_data_search,
     DATA_SEARCH_ROW_FIELD,
 };
-use super::tasks::sql::quote_ident;
+use crate::catalog_loader::sql::quote_identifier;
 use super::tasks::result_table::ResultTable;
 use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
@@ -1064,12 +1064,12 @@ fn filtered_aggregation_request(computation: &TableComputation, column_id: u32) 
         (Some(filter), None) => SelectionCount::Rows(filter.table.rows()),
         (None, Some(search)) => SelectionCount::Rows(search.table.rows()),
         (Some(filter), Some(search)) => {
-            let row_number = quote_ident(&filter.input_row_number_column_name);
+            let row_number = quote_identifier(&filter.input_row_number_column_name);
             let sql = format!(
                 "SELECT count(*) AS count FROM {} WHERE {row_number} IN (SELECT {} FROM {})",
-                quote_ident(&data_frame_table_name(filter.data_frame)),
-                quote_ident(DATA_SEARCH_ROW_FIELD),
-                quote_ident(&data_frame_table_name(search.data_frame)),
+                quote_identifier(&data_frame_table_name(filter.data_frame)),
+                quote_identifier(DATA_SEARCH_ROW_FIELD),
+                quote_identifier(&data_frame_table_name(search.data_frame)),
             );
             SelectionCount::Query { sql }
         }

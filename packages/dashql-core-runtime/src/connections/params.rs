@@ -57,8 +57,19 @@ pub(crate) fn object(value: Value) -> JsonObject {
 }
 
 /// A field of a JSON object if it is a string
-pub(crate) fn string_field<'a>(object: &'a JsonObject, key: &str) -> Option<&'a str> {
+pub fn string_field<'a>(object: &'a JsonObject, key: &str) -> Option<&'a str> {
     object.get(key).and_then(Value::as_str)
+}
+
+/// Is a value truthy like in JavaScript?
+pub fn is_truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0 && !f.is_nan()),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(_) | Value::Object(_) => true,
+    }
 }
 
 impl ConnectorType {

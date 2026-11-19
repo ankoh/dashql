@@ -54,7 +54,14 @@ pub fn utc_ms(year: i64, month: i64, day: i64, hours: i64, minutes: i64, seconds
     (total.abs() <= MAX_DATE_MS).then_some(total)
 }
 
-/// A timestamp in ISO 8601 with milliseconds, e.g. `2026-01-01T00:00:00.000Z`, like `Date.toISOString`
+/// A timestamp of the clock of the host in ISO 8601, see `iso_timestamp`. The milliseconds are floored, a time that
+/// isn't finite is the epoch.
+pub fn iso_timestamp_f64(ms: f64) -> String {
+    iso_timestamp(if ms.is_finite() { ms.floor() as i64 } else { 0 })
+}
+
+/// A timestamp in ISO 8601 with milliseconds, e.g. `2026-01-01T00:00:00.000Z`, like `Date.toISOString`: a year
+/// outside of 0 to 9999 has six digits and a sign
 pub fn iso_timestamp(ms: Millis) -> String {
     let days = ms.div_euclid(DAY_MS);
     let time = ms.rem_euclid(DAY_MS);

@@ -21,7 +21,7 @@ use super::auth::{
 };
 use super::types::*;
 use crate::http::{HttpRequest, HttpResponse};
-use crate::clfn::time::iso_timestamp;
+use crate::time::iso_timestamp;
 use super::shared::SharedSalesforceChannel;
 use crate::connections::{
     ConnectorType, DetailedError, JsonObject, OAuthPkceChallenge, SalesforceAction, SALESFORCE_CATALOG_DATABASE,

@@ -13,7 +13,7 @@ use crate::http::url::form_encode;
 use crate::http::{FetchOutcome, HttpRequest};
 use super::protocol::{read_token_response, token_request, TrinoAuthType, TrinoChannel, TrinoOAuthParams};
 use super::shared::SharedTrinoChannel;
-use super::time::{iso_timestamp, Millis};
+use crate::time::{iso_timestamp, Millis};
 use crate::connections::{ConnectionAction, DetailedError, JsonObject, OAuthPkceChallenge, TrinoAction};
 
 /// The redirect of the OAuth flow if the connection doesn't configure one: the loopback server of the platform

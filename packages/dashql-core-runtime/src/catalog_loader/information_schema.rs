@@ -1,9 +1,10 @@
 //! The columns of the `information_schema` of the catalogs of a connection, Trino reads its catalog with them.
 
 use arrow_array::RecordBatch;
+use dashql_core::utils::quote_string_literal;
 
 use super::columns::{batches_with_rows, Integers, Strings};
-use super::sql::{quote_identifier, quote_literal, relation_filter};
+use super::sql::{quote_identifier, relation_filter};
 use super::tables::{catalog_tables_of_schema, CatalogTable, ColumnMetadata, Groups, SchemaTables};
 use super::{CatalogLoadError, CatalogQuery};
 use crate::connections::RelationName;
@@ -36,7 +37,7 @@ pub fn information_schema_columns_query(scopes: &[InformationSchemaScope]) -> St
             relation_filter("table_schema", "table_name", relations)
         ),
         None if !scope.schemas.is_empty() => {
-            let schemas: Vec<String> = scope.schemas.iter().map(|schema| quote_literal(schema)).collect();
+            let schemas: Vec<String> = scope.schemas.iter().map(|schema| quote_string_literal(schema)).collect();
             format!("\nWHERE table_schema IN ({})", schemas.join(", "))
         }
         None => String::new(),

@@ -3,6 +3,7 @@
 //! The stages run in a fixed order, whatever the order of the calls: value ids, bins, scalar filters, semi-join
 //! filters, grouping, then the final projection with its order and limit.
 
+use crate::catalog_loader::sql::quote_identifier;
 use crate::compute::types::{FilterOp, OrderByConstraint, ScalarFilter};
 
 /// The conversion of a value into a number for binning
@@ -139,16 +140,6 @@ struct SemiJoinFilter {
     join_field_name: String,
 }
 
-/// Quote an identifier
-pub fn quote_ident(name: &str) -> String {
-    format!("\"{}\"", name.replace('"', "\"\""))
-}
-
-/// Quote a string literal
-pub fn quote_string_literal(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
-}
-
 /// Format a number the way JavaScript prints it, e.g. `10`, `10.5`, `1e-15`, `1e+21`
 pub fn format_number(value: f64) -> String {
     if value.is_nan() {
@@ -215,11 +206,11 @@ fn to_numeric(expr: &str, conversion: Option<ToNumeric>) -> String {
 
 fn format_aggregate(aggregate: &AggregateFunction) -> String {
     match aggregate {
-        AggregateFunction::Min(field) => format!("MIN({})", quote_ident(field)),
-        AggregateFunction::Max(field) => format!("MAX({})", quote_ident(field)),
-        AggregateFunction::Avg(field) => format!("AVG({})", quote_ident(field)),
-        AggregateFunction::Count(field) => format!("COUNT({})", quote_ident(field)),
-        AggregateFunction::CountDistinct(field) => format!("COUNT(DISTINCT {})", quote_ident(field)),
+        AggregateFunction::Min(field) => format!("MIN({})", quote_identifier(field)),
+        AggregateFunction::Max(field) => format!("MAX({})", quote_identifier(field)),
+        AggregateFunction::Avg(field) => format!("AVG({})", quote_identifier(field)),
+        AggregateFunction::Count(field) => format!("COUNT({})", quote_identifier(field)),
+        AggregateFunction::CountDistinct(field) => format!("COUNT(DISTINCT {})", quote_identifier(field)),
         AggregateFunction::CountStar => "COUNT(*)".to_string(),
     }
 }
@@ -228,7 +219,7 @@ fn format_aggregate(aggregate: &AggregateFunction) -> String {
 pub fn format_order_by_item(constraint: &OrderByConstraint) -> String {
     let direction = if constraint.ascending.unwrap_or(true) { "ASC" } else { "DESC" };
     let nulls = if constraint.nulls_first.unwrap_or(false) { "NULLS FIRST" } else { "NULLS LAST" };
-    format!("{} {direction} {nulls}", quote_ident(&constraint.field))
+    format!("{} {direction} {nulls}", quote_identifier(&constraint.field))
 }
 
 fn push_cte(ctes: &mut Vec<String>, name: &str, body: &str) {
@@ -314,7 +305,7 @@ impl SqlFrame {
     /// The SQL
     pub fn to_sql(&self) -> String {
         let mut ctes: Vec<String> = Vec::new();
-        let mut prev = quote_ident(&self.input_table);
+        let mut prev = quote_identifier(&self.input_table);
 
         // 1. Value identifiers
         if !self.value_identifiers.is_empty() {
@@ -322,7 +313,7 @@ impl SqlFrame {
                 .value_identifiers
                 .iter()
                 .map(|(field, alias)| {
-                    let (field, alias) = (quote_ident(field), quote_ident(alias));
+                    let (field, alias) = (quote_identifier(field), quote_identifier(alias));
                     format!("dense_rank() OVER (ORDER BY {field} ASC NULLS LAST) AS {alias}")
                 })
                 .collect();
@@ -337,17 +328,17 @@ impl SqlFrame {
             for (idx, binning) in self.binnings.iter().enumerate() {
                 let conversion = binning.to_numeric;
                 let alias = format!("__bs{idx}");
-                let min = to_numeric(&quote_ident(&binning.stats_min_field), conversion);
-                let max = to_numeric(&quote_ident(&binning.stats_max_field), conversion);
+                let min = to_numeric(&quote_identifier(&binning.stats_min_field), conversion);
+                let max = to_numeric(&quote_identifier(&binning.stats_max_field), conversion);
                 let range = format!("ABS({max} - {min})");
                 let width = bin_width_expression(&range, binning.bin_count, binning.min_bin_width);
-                let stats_table = quote_ident(&binning.stats_table);
+                let stats_table = quote_identifier(&binning.stats_table);
                 let sub = format!("SELECT {min} AS __min, {width} AS __bin_width FROM {stats_table}");
                 stats_joins.push(format!("CROSS JOIN ({sub}) {alias}"));
                 bin_exprs.push(format!(
                     "({} - {alias}.__min) / {alias}.__bin_width AS {}",
-                    to_numeric(&format!("t.{}", quote_ident(&binning.field_name)), conversion),
-                    quote_ident(&binning.output_alias)
+                    to_numeric(&format!("t.{}", quote_identifier(&binning.field_name)), conversion),
+                    quote_identifier(&binning.output_alias)
                 ));
             }
             let body = format!("SELECT t.*, {} FROM {prev} t {}", bin_exprs.join(", "), stats_joins.join(" "));
@@ -360,7 +351,7 @@ impl SqlFrame {
             let conditions: Vec<String> = self
                 .scalar_filters
                 .iter()
-                .map(|f| format!("{} {} {}", quote_ident(&f.field_name), filter_op(f.op), format_number(f.value)))
+                .map(|f| format!("{} {} {}", quote_identifier(&f.field_name), filter_op(f.op), format_number(f.value)))
                 .collect();
             push_cte(&mut ctes, "__filtered", &format!("SELECT * FROM {prev} WHERE {}", conditions.join(" AND ")));
             prev = "__filtered".to_string();
@@ -371,9 +362,9 @@ impl SqlFrame {
             let name = format!("__semi_{i}");
             let body = format!(
                 "SELECT * FROM {prev} WHERE {} IN (SELECT {} FROM {})",
-                quote_ident(&filter.field_name),
-                quote_ident(&filter.join_field_name),
-                quote_ident(&filter.table_name)
+                quote_identifier(&filter.field_name),
+                quote_identifier(&filter.join_field_name),
+                quote_identifier(&filter.table_name)
             );
             push_cte(&mut ctes, &name, &body);
             prev = name;
@@ -389,7 +380,7 @@ impl SqlFrame {
         }
 
         let select = match &self.projection {
-            Some(fields) => fields.iter().map(|f| quote_ident(f)).collect::<Vec<_>>().join(", "),
+            Some(fields) => fields.iter().map(|f| quote_identifier(f)).collect::<Vec<_>>().join(", "),
             None => "*".to_string(),
         };
         let mut final_select = format!("SELECT {select} FROM {prev}");
@@ -411,14 +402,14 @@ impl SqlFrame {
 }
 
 fn aggregate_selects(group_by: &GroupBy) -> impl Iterator<Item = String> + '_ {
-    group_by.aggregates.iter().map(|a| format!("{} AS {}", format_aggregate(&a.func), quote_ident(&a.output_alias)))
+    group_by.aggregates.iter().map(|a| format!("{} AS {}", format_aggregate(&a.func), quote_identifier(&a.output_alias)))
 }
 
 fn build_simple_group_by(ctes: &mut Vec<String>, prev: &str, group_by: &GroupBy) -> String {
     let mut select: Vec<String> = group_by
         .keys
         .iter()
-        .map(|k| format!("{} AS {}", quote_ident(&k.field_name), quote_ident(&k.output_alias)))
+        .map(|k| format!("{} AS {}", quote_identifier(&k.field_name), quote_identifier(&k.output_alias)))
         .collect();
     select.extend(aggregate_selects(group_by));
     let select = select.join(", ");
@@ -445,24 +436,24 @@ fn build_binned_group_by(
     let Some(key) = group_by.keys.get(binned_key) else {
         return build_simple_group_by(ctes, prev, group_by);
     };
-    let bin_alias = quote_ident(&key.output_alias);
-    let key_field = format!("t.{}", quote_ident(&key.field_name));
+    let bin_alias = quote_identifier(&key.output_alias);
+    let key_field = format!("t.{}", quote_identifier(&key.field_name));
 
     // Temporal bounds keep the type of the values for formatting, other converted values (e.g. booleans) use a
     // numeric minimum.
-    let min_field = quote_ident(&binning.stats_min_field);
-    let max_field = quote_ident(&binning.stats_max_field);
+    let min_field = quote_identifier(&binning.stats_min_field);
+    let max_field = quote_identifier(&binning.stats_max_field);
     let width = bin_width_expression(
         &format!("ABS({} - {})", to_numeric(&max_field, conversion), to_numeric(&min_field, conversion)),
         binning.bin_count,
         binning.min_bin_width,
     );
     let min = if is_temporal { min_field.clone() } else { to_numeric(&min_field, conversion) };
-    let stats_sql = format!("SELECT {min} AS __min, {width} AS __bin_width FROM {}", quote_ident(&binning.stats_table));
+    let stats_sql = format!("SELECT {min} AS __min, {width} AS __bin_width FROM {}", quote_identifier(&binning.stats_table));
     push_cte(ctes, "__grp_stats", &stats_sql);
 
     let bin_expr = match &binning.pre_binned_field_name {
-        Some(field) => format!("t.{}", quote_ident(field)),
+        Some(field) => format!("t.{}", quote_identifier(field)),
         None if is_temporal => format!(
             "({} - {}) / s.__bin_width",
             to_numeric(&key_field, conversion),
@@ -492,7 +483,7 @@ fn build_binned_group_by(
         if i == binned_key {
             select.push(format!("{bin_case} AS {bin_alias}"));
         } else {
-            select.push(format!("{} AS {}", quote_ident(&k.field_name), quote_ident(&k.output_alias)));
+            select.push(format!("{} AS {}", quote_identifier(&k.field_name), quote_identifier(&k.output_alias)));
         }
     }
     select.extend(aggregate_selects(group_by));
@@ -509,11 +500,11 @@ fn build_binned_group_by(
     let mut with_bins_select = vec![format!("ab.{bin_alias}")];
     for (i, k) in group_by.keys.iter().enumerate() {
         if i != binned_key {
-            with_bins_select.push(format!("g.{}", quote_ident(&k.output_alias)));
+            with_bins_select.push(format!("g.{}", quote_identifier(&k.output_alias)));
         }
     }
     for aggregate in &group_by.aggregates {
-        with_bins_select.push(format!("g.{}", quote_ident(&aggregate.output_alias)));
+        with_bins_select.push(format!("g.{}", quote_identifier(&aggregate.output_alias)));
     }
     let with_bins_sql = format!(
         "SELECT {} FROM __all_bins ab LEFT JOIN __grouped g ON ab.{bin_alias} = g.{bin_alias}",
@@ -542,9 +533,9 @@ fn build_binned_group_by(
     };
     let meta_sql = format!(
         "SELECT t.*, {width_expr} AS {}, {lb_expr} AS {}, {ub_expr} AS {} FROM __with_bins t CROSS JOIN __grp_stats s",
-        quote_ident(&binning.output_bin_width_alias),
-        quote_ident(&binning.output_bin_lb_alias),
-        quote_ident(&binning.output_bin_ub_alias)
+        quote_identifier(&binning.output_bin_width_alias),
+        quote_identifier(&binning.output_bin_lb_alias),
+        quote_identifier(&binning.output_bin_ub_alias)
     );
     push_cte(ctes, "__bin_meta", &meta_sql);
     "__bin_meta".to_string()

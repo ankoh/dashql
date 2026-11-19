@@ -1535,7 +1535,7 @@ impl dashql_core_runtime::trino::TimeZoneOffsets for IntlTimeZones {
             }
         }
         let year = if bc { 1 - year? } else { year? };
-        let wall = dashql_core_runtime::trino::time::utc_ms(year, month?, day?, hour?, minute?, 0, 0)?;
+        let wall = dashql_core_runtime::time::utc_ms(year, month?, day?, hour?, minute?, 0, 0)?;
         Some(wall - instant)
     }
 }

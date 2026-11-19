@@ -32,7 +32,7 @@ use crate::storage::keys::{
 use crate::storage::{FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
 use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
-use crate::workbook_format::storage_migration::iso_timestamp;
+use dashql_core_runtime::time::iso_timestamp_f64;
 use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
 use crate::workbook_format::validation::{describe_invalid_workbook, is_valid_uuid, InvalidWorkbook, WorkbookValidationError};
 use catalog::{apply_catalog_files, load_catalog_files, CatalogRestore};
@@ -257,7 +257,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             host,
             writer,
             offset_unit,
-            planner: RestorePlanner::new(iso_timestamp(host.now()), new_uuid),
+            planner: RestorePlanner::new(iso_timestamp_f64(host.now()), new_uuid),
             states: Vec::new(),
             script_connections: HashMap::new(),
             connection_files: Vec::new(),
