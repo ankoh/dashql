@@ -1,7 +1,9 @@
 # Catalog Updates
 
-How the catalog of a connection stays in line with the connection. The catalog types, snapshots and name resolution are
-described in `core_analysis_catalog.md`, the batch worker in `catalog_batching.md`.
+How the catalog of a connection stays in line with the connection: after a statement the connection is asked about the
+relations it named, the relations are kept on disk as SQL, and a full refresh runs only on user input or when nothing
+describes a connection yet. The catalog types, snapshots and name resolution are described in
+`core_analysis_catalog.md`, the batch worker in `catalog_batching.md`.
 
 ## Principles
 
