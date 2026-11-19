@@ -17,6 +17,8 @@
 
 pub(crate) mod actions;
 pub(crate) mod archives;
+pub(crate) mod bundle_host;
+pub(crate) mod persistence;
 pub(crate) mod attachments;
 pub(crate) mod catalog;
 pub(crate) mod changes;
@@ -69,6 +71,7 @@ use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
 use queries::{QueryArgs, QueryTicket};
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
+use persistence::Persistence;
 use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
 use dashql_core_storage::restore::{AppRestore, RestoreOptions, RestoredState};
@@ -685,28 +688,63 @@ pub(crate) struct Restorer {
 }
 
 impl Restorer {
+    /// The connections of the runtime, a restored workbook resolves against them
+    fn live_connections(&self) -> Vec<dashql_core_storage::restore::LiveConnection> {
+        use dashql_core_storage::restore::{script_connection_of, LiveConnection};
+        use dashql_core_storage::workbook_format::restore::RestoreConnection;
+        let mut live = Vec::new();
+        for (connection_id, connection) in self.connections.registry.borrow().connections() {
+            let Ok(state) = connection.state.try_borrow() else { continue };
+            let params = serde_json::Value::Object(state.params().to_object());
+            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
+            live.push(LiveConnection { connection, script_connection: script_connection_of(&state) });
+        }
+        live
+    }
+
+    /// Open the workbook of a bundle into memory against the connections of the runtime: the restore reads the bundle
+    /// and writes nothing. Unknown connections are registered, a workbook with the same id is replaced.
+    pub async fn restore_bundle(
+        self,
+        bundle: dashql_core_storage::workbook_format::bundle::WorkbookBundle<archives::HostFile>,
+    ) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
+        let workbook_id = bundle.workbook.workbook_id.clone();
+        let options = RestoreOptions {
+            offset_unit: Workbooks::offset_unit(),
+            new_uuid: {
+                let platform = self.platform.clone();
+                Box::new(move || platform.random_uuid().ok())
+            },
+        };
+        let host = bundle_host::BundleHost { platform: self.platform.clone(), bundle };
+        let mut restore: AppRestore<bundle_host::BundleHost, bundle_host::BundleHost> = AppRestore::in_memory(host, options);
+        for live in self.live_connections() {
+            restore.add_live_connection(live);
+        }
+        let state = restore.restore_workbook(&workbook_id).await?;
+        let outcome = adopt_restored(&self.connections, &self.workbooks, state);
+        self.runs.describe_attachments();
+        Ok(outcome)
+    }
+
     /// A restore over the storage of the platform that writes through the writer of the runtime
-    fn app_restore(&self) -> AppRestore<JsStorage, JsStorage> {
+    fn app_restore(&self) -> Result<AppRestore<JsStorage, JsStorage>, dashql_core_runtime::host::HostError> {
+        let writer = self.workbooks.persistence.writer().cloned().ok_or_else(|| dashql_core_runtime::host::HostError::new("the runtime keeps no files, its platform has no storage"))?;
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
         let platform = self.platform.clone();
         let options = RestoreOptions {
             offset_unit: Workbooks::offset_unit(),
             new_uuid: Box::new(move || platform.random_uuid().ok()),
         };
-        AppRestore::new(host, self.workbooks.writer.clone(), options)
+        Ok(AppRestore::new(host, writer, options))
     }
 
     /// Restore a single workbook of the storage against the connections of the runtime, unknown connections are
     /// registered and a workbook with the same id is replaced
     pub async fn restore_workbook(self, workbook_id: String) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
-        use dashql_core_storage::restore::{script_connection_of, LiveConnection};
-        use dashql_core_storage::workbook_format::restore::RestoreConnection;
-        let mut restore = self.app_restore();
-        for (connection_id, connection) in self.connections.registry.borrow().connections() {
-            let Ok(state) = connection.state.try_borrow() else { continue };
-            let params = serde_json::Value::Object(state.params().to_object());
-            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
-            restore.add_live_connection(LiveConnection { connection, script_connection: script_connection_of(&state) });
+        let mut restore = self.app_restore()?;
+        for live in self.live_connections() {
+            restore.add_live_connection(live);
         }
         match restore.restore_workbook(&workbook_id).await {
             Ok(state) => {
@@ -730,12 +768,15 @@ impl Runtime {
         tracker.attach(&connections);
         let storage = Rc::new(StorageState::default());
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
-        let writer = dashql_core_storage::storage::StorageWriter::with_stamps(host, WORKBOOK_FORMAT_VERSION, storage.stamps.clone());
-        // A runtime without storage keeps no connections, e.g. the one of the shell
-        if platform.has_storage() {
+        // A runtime without storage keeps nothing, e.g. the one of the shell or of an embed without OPFS
+        let persistence = if platform.has_storage() {
+            let writer = dashql_core_storage::storage::StorageWriter::with_stamps(host, WORKBOOK_FORMAT_VERSION, storage.stamps.clone());
             *connections.writer.borrow_mut() = Some(writer.clone());
-        }
-        let workbooks = Workbooks::new(platform.clone(), connections.clone(), writer);
+            Persistence::Writer(writer)
+        } else {
+            Persistence::None
+        };
+        let workbooks = Workbooks::new(platform.clone(), connections.clone(), persistence);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
         let imports = imports::Imports::new(platform.clone(), connections.clone());
         let external = external::ExternalChanges::new(platform.clone(), storage.clone(), connections.clone(), workbooks.clone(), runs.clone());
@@ -1248,7 +1289,7 @@ impl Runtime {
             Some(progress.dyn_into::<Function>().map_err(|_| JsError::new("the progress of a restore is no function"))?)
         };
         self.storage.set_progress(listener);
-        let restore = self.restorer().app_restore();
+        let restore = self.restorer().app_restore().map_err(|error| JsError::new(error.message()))?;
         let connections = self.connections.clone();
         let workbooks = self.workbooks.clone();
         let runs = self.runs.clone();
@@ -1422,7 +1463,7 @@ impl Runtime {
     /// Delete the files of a workbook that was refused a load and drop it from the list
     #[wasm_bindgen(js_name = deleteInvalidWorkbook, unchecked_return_type = "Promise<void>")]
     pub fn delete_invalid_workbook(&self, workbook_id: String) -> Promise {
-        let deletion = self.workbooks.writer.delete_workbook(&workbook_id);
+        let deletion = self.workbooks.persistence.delete_workbook(&workbook_id);
         let workbooks = self.workbooks.clone();
         future_to_promise(async move {
             let deleted = deletion.await;
@@ -1587,7 +1628,7 @@ impl Runtime {
     #[wasm_bindgen(js_name = storage, unchecked_return_type = "Promise<unknown>")]
     pub fn storage_command(&self, command: Ts<StorageCommand>) -> Result<Promise, JsError> {
         let command = from_js(&command)?;
-        let writer = self.workbooks.writer.clone();
+        let writer = self.workbooks.persistence.clone();
         Ok(match command {
             StorageCommand::Flush { closing } => {
                 let flush = writer.flush();
@@ -1631,7 +1672,7 @@ impl Runtime {
     #[wasm_bindgen(js_name = storageHold)]
     pub fn storage_hold(&self, reason: Ts<StorageHoldReason>, workbook_id: Option<String>) -> Result<(), JsError> {
         let reason: StorageHoldReason = from_js(&reason)?;
-        self.workbooks.writer.hold(workbook_id.as_deref(), reason.into());
+        self.workbooks.persistence.hold(workbook_id.as_deref(), reason.into());
         Ok(())
     }
 
@@ -1639,7 +1680,7 @@ impl Runtime {
     #[wasm_bindgen(js_name = storageRelease)]
     pub fn storage_release(&self, reason: Ts<StorageHoldReason>, workbook_id: Option<String>) -> Result<(), JsError> {
         let reason: StorageHoldReason = from_js(&reason)?;
-        self.workbooks.writer.release(workbook_id.as_deref(), reason.into());
+        self.workbooks.persistence.release(workbook_id.as_deref(), reason.into());
         Ok(())
     }
 
@@ -1647,7 +1688,7 @@ impl Runtime {
     /// writes that waited for them run.
     #[wasm_bindgen(js_name = storageDiscardWrites)]
     pub fn storage_discard_writes(&self, keys: Vec<String>) {
-        self.workbooks.writer.cancel_pending_writes(&keys);
+        self.workbooks.persistence.cancel_pending_writes(&keys);
     }
 
     /// The statistics of the writes by key, of a workbook or of all keys, ordered by key. They change with every write
@@ -1657,8 +1698,10 @@ impl Runtime {
         use dashql_core_storage::storage::keys::{belongs_to_workbook, key_within_workbook};
         let statistics: Vec<StorageKeyStatistics> = self
             .workbooks
-            .writer
-            .statistics()
+            .persistence
+            .writer()
+            .map(|writer| writer.statistics())
+            .unwrap_or_default()
             .into_iter()
             .filter(|(key, _)| workbook_id.as_deref().is_none_or(|id| belongs_to_workbook(key, id)))
             .map(|(key, statistics)| StorageKeyStatistics {
@@ -1674,7 +1717,7 @@ impl Runtime {
     /// changed outside the app?
     #[wasm_bindgen(js_name = isWorkbookHeld)]
     pub fn is_workbook_held(&self, workbook_id: &str) -> bool {
-        self.workbooks.writer.is_workbook_held(workbook_id)
+        self.workbooks.persistence.is_workbook_held(workbook_id)
     }
 
     /// Shut the runtime down, in this order: the runs stop, the catalog loader stops, the writes into the query result
@@ -1689,7 +1732,7 @@ impl Runtime {
             loader.stop();
         }
         let cache = self.connections.executor().map(|executor| executor.flush_cache_writes());
-        let storage = self.workbooks.writer.flush();
+        let storage = self.workbooks.persistence.flush();
         let stop = Shutdown {
             platform: self.platform.clone(),
             computations: self.computations.clone(),

@@ -389,6 +389,22 @@ fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {
 }
 
 #[test]
+fn restores_a_workbook_into_memory_without_writing() {
+    let fixture = Fixture::new();
+    let copies = json!([{ "connectionId": CONNECTION, "params": hyper_wasm() }]);
+    let file = workbook(WORKBOOK, copies, json!([]));
+    fixture.add_workbook(WORKBOOK, file.clone(), &[("10_last.sql", "SELECT 10"), ("2_first.sql", "SELECT 2")]);
+    let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
+    let restore: AppRestore<FakeHost, FakeHost> = AppRestore::in_memory(fixture.host.clone(), options);
+    let restored = fixture.run(restore.restore_workbook(WORKBOOK)).unwrap();
+    assert_eq!(script_names(&restored, WORKBOOK), vec!["2_first.sql", "10_last.sql"]);
+    assert_eq!(connection_ids(&restored), vec![CONNECTION]);
+    // The list that a restore from storage writes stays unwritten, so does the app manifest
+    assert_eq!(fixture.stored(WORKBOOK), file);
+    assert!(fixture.host.store.borrow().connections.clone().unwrap_or_default().is_empty());
+}
+
+#[test]
 fn keeps_the_script_list_while_the_script_files_are_gone() {
     // A checkout or a sync removed the script files for a while, the workbook file still lists them
     let fixture = Fixture::new();

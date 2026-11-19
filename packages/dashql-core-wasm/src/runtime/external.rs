@@ -233,13 +233,13 @@ impl ExternalChanges {
 
     /// The keys of the pending writes that a reload replaces
     fn reloaded_pending(&self, workbook_id: &str) -> Vec<String> {
-        self.workbooks.writer.pending_keys_for_workbook(workbook_id).into_iter().filter(|key| is_reloaded_key(key, workbook_id)).collect()
+        self.workbooks.persistence.pending_keys_for_workbook(workbook_id).into_iter().filter(|key| is_reloaded_key(key, workbook_id)).collect()
     }
 
     /// The latest generation of the writes that a reload replaces
     fn reloaded_generation(&self, workbook_id: &str) -> u64 {
-        self.workbooks
-            .writer
+        let Some(writer) = self.workbooks.persistence.writer() else { return 0 };
+        writer
             .write_generations_for_workbook(workbook_id)
             .into_iter()
             .filter(|(key, _)| is_reloaded_key(key, workbook_id))
@@ -253,7 +253,7 @@ impl ExternalChanges {
         let Some(folder) = self.platform.workbook_folder(&workbook_id) else {
             return;
         };
-        let writer = self.workbooks.writer.clone();
+        let Some(writer) = self.workbooks.persistence.writer().cloned() else { return };
         writer.hold(Some(&workbook_id), HoldReason::Reload);
         let mut created = Vec::new();
         let mut registered = false;
@@ -288,7 +288,7 @@ impl ExternalChanges {
     }
 
     async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<Checked, HostError> {
-        let writer = self.workbooks.writer.clone();
+        let Some(writer) = self.workbooks.persistence.writer().cloned() else { return Ok(Checked::Settled) };
         let stamps = writer.stamps().clone();
         // A write that started before the check must finish before the stable disk read
         writer.settle().await;
@@ -497,7 +497,7 @@ impl ExternalChanges {
             }
             let key = script_key(workbook_id, &file_name);
             let task = WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text };
-            drop(self.workbooks.writer.write(&key, task, DEBOUNCE_MS));
+            self.workbooks.persistence.write(&key, task, DEBOUNCE_MS);
         }
     }
 }

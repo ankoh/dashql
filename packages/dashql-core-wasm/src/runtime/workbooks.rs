@@ -3,7 +3,7 @@
 //! changes.
 //!
 //! A workbook is a workbook of the crate (`dashql_core_runtime::workbook`) that the runtime shares with the runs of it.
-//! An action changes a workbook in place, its effects go to the storage writer of the runtime right away, an ephemeral
+//! An action changes a workbook in place, its effects go to the persistence of the runtime right away, an ephemeral
 //! workbook that got a script is promoted, and the connections learn which workbooks use them. A new catalog of a
 //! connection outdates the analyses of the scripts on it. The scripts take the connections of the runtime with their
 //! catalogs, an action names a connection by its id.
@@ -19,10 +19,8 @@ use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_storage::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
-use dashql_core_storage::storage::keys::workbook_connection_copy_key;
-use dashql_core_storage::storage::{WriteResult, WriteTask};
+use dashql_core_storage::storage::WriteResult;
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
-use dashql_core_storage::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
     next_revision, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
     WorkbookScript as Script,
@@ -31,14 +29,12 @@ use serde_json::{json, Map, Value};
 
 use super::changes::{Read, Slice};
 use super::connections::Connections;
-use super::storage::RuntimeWriter;
+use super::persistence::{CreatedWorkbook, Persistence};
 use crate::host::JsPlatform;
 use crate::runtime::storage::restore_view::RestoredInvalidWorkbook;
 use crate::views::JsonValue;
 use view::{WorkbookAttachmentView, WorkbookCloudLink, WorkbookListEntry, WorkbookListView, WorkbookView};
 
-/// How long the writes of a workbook wait for the next change
-const DEBOUNCE_MS: f64 = 100.0;
 
 /// The target of the log messages of the workbooks
 const LOG_TARGET: &str = "workbook_scripts";
@@ -123,7 +119,8 @@ pub(crate) struct StoredScriptRef {
 pub(crate) struct Workbooks {
     pub platform: JsPlatform,
     pub connections: Rc<Connections>,
-    pub writer: RuntimeWriter,
+    /// Where the workbooks are kept, nothing on a platform without storage
+    pub persistence: Persistence,
     /// The workbooks in the order they were registered
     pub entries: RefCell<Vec<WorkbookEntry>>,
     /// The workbook of a script by its key. A lookup checks the entry and searches the workbooks when it is gone.
@@ -143,13 +140,13 @@ pub(crate) struct Workbooks {
 }
 
 impl Workbooks {
-    pub fn new(platform: JsPlatform, connections: Rc<Connections>, writer: RuntimeWriter) -> Rc<Self> {
+    pub fn new(platform: JsPlatform, connections: Rc<Connections>, persistence: Persistence) -> Rc<Self> {
         let workbooks = Rc::new(Workbooks {
             visible: VisibleScripts::new(platform.clone(), platform.settings().background_analysis_delay_ms),
             pending_derives: Rc::new(RefCell::new(PendingDerives { platform: platform.clone(), workbooks: BTreeSet::new(), generation: 0 })),
             platform,
             connections: connections.clone(),
-            writer,
+            persistence,
             entries: RefCell::new(Vec::new()),
             script_index: RefCell::new(HashMap::new()),
             invalid: RefCell::new(Vec::new()),
@@ -470,10 +467,7 @@ impl Workbooks {
         };
         let rename = outcome.effects.iter().position(|effect| matches!(effect, WorkbookEffect::RenameDataFile { .. })).map(|index| outcome.effects.remove(index));
         let write = match rename {
-            Some(WorkbookEffect::RenameDataFile { from, to }) => {
-                let task = WriteTask::RenameDataFile { workbook_id: workbook_id.to_string(), from, to: to.clone() };
-                Some((to, self.writer.write_durable(&task.key(), task)))
-            }
+            Some(WorkbookEffect::RenameDataFile { from, to }) => self.persistence.rename_data_file(workbook_id, from, to.clone()).map(|write| (to, write)),
             _ => None,
         };
         self.settle(workbook_id, &workbook, outcome, Changed::Workbook);
@@ -485,43 +479,10 @@ impl Workbooks {
         self.entries.borrow().iter().find(|entry| entry.id == workbook_id).map(|entry| entry.metadata.clone()).unwrap_or(Value::Null)
     }
 
-    /// Schedule the writes of the effects of an action, in order
+    /// Schedule the writes of the effects of an action, in order. Nothing is written without storage.
     pub fn write_effects(&self, workbook_id: &str, effects: Vec<WorkbookEffect>) {
-        for effect in effects {
-            // A task names its key (`storage::keys`)
-            let task = match effect {
-                WorkbookEffect::WriteScript { file_name, text } => WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text },
-                WorkbookEffect::DeleteScript { file_name } => WriteTask::DeleteScript { workbook_id: workbook_id.to_string(), file_name },
-                WorkbookEffect::RenameScript { from, to } => WriteTask::RenameScript { workbook_id: workbook_id.to_string(), from, to },
-                WorkbookEffect::RenameDataFile { from, to } => {
-                    let task = WriteTask::RenameDataFile { workbook_id: workbook_id.to_string(), from, to };
-                    drop(self.writer.write_durable(&task.key(), task));
-                    continue;
-                }
-                WorkbookEffect::WriteScriptList(list) => WriteTask::WriteWorkbookScripts {
-                    workbook_id: workbook_id.to_string(),
-                    scripts: list.scripts.iter().map(|s| WorkbookScript::new(s.name.clone(), s.connection_id.clone())).collect(),
-                    connections: list.connections.iter().map(|c| connection_copy(&c.connection_id, Some(&c.params))).collect(),
-                },
-                WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
-                    // The workbook file holds the whole link to the cloud as the metadata of the workbook keeps it
-                    let link = self.metadata(workbook_id).get("cloud").and_then(StoredCloudLink::from_json);
-                    WriteTask::WriteWorkbookProperties { workbook_id: workbook_id.to_string(), name, ephemeral, cloud: origin.and(link) }
-                }
-                WorkbookEffect::PatchConnection { connection_id, params, replaces } => {
-                    for from in replaces {
-                        let task = WriteTask::PatchWorkbookConnection {
-                            workbook_id: workbook_id.to_string(),
-                            copy: connection_copy(&connection_id, params.as_deref()),
-                            replaced: vec![from.clone()],
-                        };
-                        drop(self.writer.write(&workbook_connection_copy_key(workbook_id, &from), task, DEBOUNCE_MS));
-                    }
-                    continue;
-                }
-            };
-            drop(self.writer.write(&task.key(), task, DEBOUNCE_MS));
-        }
+        let metadata = self.metadata(workbook_id);
+        self.persistence.workbook_effects(workbook_id, effects, metadata.get("cloud"));
     }
 
     /// Create a workbook without scripts on a connection and write it, returns its id
@@ -540,7 +501,6 @@ impl Workbooks {
         metadata.insert("originType".into(), json!("LOCAL"));
         metadata.insert("originalFileName".into(), json!(new.original_file_name.clone().unwrap_or_default()));
         metadata.insert("originalHttpUrl".into(), json!(""));
-        let copy = connection_copy(&connection.connection_id, connection.params().as_deref());
         let list = workbook.script_list();
         self.entries.borrow_mut().push(WorkbookEntry {
             id: workbook_id.clone(),
@@ -550,14 +510,13 @@ impl Workbooks {
         });
 
         // The workbook file right away, then its script list. The later writes of the workbook file wait for it.
-        let created = WriteTask::CreateWorkbook {
+        self.persistence.create_workbook(CreatedWorkbook {
             workbook_id: workbook_id.clone(),
             name: new.name,
-            connection: Some(copy),
+            connection: (connection.connection_id.clone(), connection.params()),
             ephemeral: new.ephemeral,
             original_file_name: new.original_file_name,
-        };
-        drop(self.writer.write(&created.key(), created, 0.0));
+        });
         self.write_effects(&workbook_id, vec![WorkbookEffect::WriteScriptList(list)]);
         self.sync_references();
         self.platform.changed(Slice::Workbook(&workbook_id), true);
@@ -741,11 +700,6 @@ fn analysis_key(workbook: &Workbook, key: u32) -> Option<(u64, u64)> {
     Some((text_version, script.analysis_serial()))
 }
 
-/// The copy of a connection in a workbook file
-fn connection_copy(connection_id: &str, params: Option<&str>) -> WorkbookConnection {
-    let params = params.and_then(|params| serde_json::from_str::<Value>(params).ok()).unwrap_or(Value::Null);
-    WorkbookConnection::new(connection_id, params)
-}
 
 /// The view of a workbook of an entry
 pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> WorkbookView {

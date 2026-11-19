@@ -112,7 +112,7 @@ of the module that the runtime builds from it):
 | `logger` | yes | The logger, the Rust runtime logs through it with a target |
 | `scheduler` | yes | When the store takes the changes (`UpdateScheduler`: `afterTask`, `beforeFrame`, `cancelFrame`) |
 | `core` | yes | The `DashQL` instance whose module creates the runtime |
-| `storage` | no | The `StorageBackend` of the workbooks and connections. Without, the runtime keeps nothing |
+| `storage` | no | The `StorageBackend` of the workbooks and connections. Without, the runtime keeps nothing: the changes of the workbooks are dropped, the storage commands resolve at once, a workbook enters by `readImport` and `commitImport` into memory, and what needs files is refused (attachments, exports, the restore), see [The storage](dashql_core.md#storage) |
 | `http` | no | The `HttpClient` of fetches, the executor and the setups send through it |
 | `oauthFlow` | no | The `OAuthFlow`: opens the authorization page and receives the redirect |
 | `channels` | no | A `ChannelConnector` that connects the channels of the host that setups ask for (the embedded Hyper, Hyper over gRPC), and the token of a Hyper link that the page holds. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself |

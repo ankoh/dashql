@@ -105,6 +105,64 @@ describe('The imports and exports of the runtime', () => {
         runtime.free();
     });
 
+    it('open an archive into a runtime without storage, which keeps nothing and refuses what needs files', async () => {
+        // A workbook without attachments, exported from a runtime with storage
+        const storage = new MemoryStorage();
+        storage.workbooks.set(WB, {
+            formatVersion: 11, workbookId: WB, name: 'Sales', connections: [{ connectionId: CONNECTION, params: TRINO }],
+            scripts: [{ name: 'a.sql', connectionId: CONNECTION }], attachments: [], metadata: {},
+        });
+        storage.scripts.set(WB, new Map([['a.sql', 'select 1']]));
+        storage.order.push(WB);
+        const source = testPlatform(storage);
+        const sourceRuntime = dql!.createRuntime({ ...source.platform, archives: testArchives(source.platform.handles) });
+        sourceRuntime.runCatalogLoader(false);
+        const exported = await sourceRuntime.exportWorkbook(WB, { format: 'archive' }, null);
+        const archive = source.platform.handles.get(exported.archive!);
+        sourceRuntime.free();
+
+        // The runtime of an embed without storage
+        const bare = testPlatform();
+        const platform = { ...bare.platform, storage: null, archives: testArchives(bare.platform.handles) };
+        const runtime = dql!.createRuntime(platform);
+        runtime.runCatalogLoader(false);
+        const preview = await runtime.readImport({ archive: platform.handles.register(archive) });
+        const steps: string[] = [];
+        const outcome = await runtime.commitImport(preview.importId, {}, step => steps.push(step));
+        const workbookId = (preview.workbook as { workbookId: string }).workbookId;
+        expect(outcome).toMatchObject({ workbookId, restored: true });
+        expect(steps).toEqual(['workbook', 'open']);
+        const view = runtime.views('workbook', [workbookId])[0] as dashql.WorkbookView;
+        expect(view).toMatchObject({ name: 'Sales', scriptOrder: ['a.sql'] });
+
+        // A change of a script applies and is kept nowhere, no write fails
+        const scriptKey = view.scriptKeys[0];
+        expect(runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptText', value: { scriptKey, text: 'select 2' } })).toMatchObject({ ok: true, changed: true });
+        await runtime.storage({ kind: 'flush' });
+        expect(await runtime.storage({ kind: 'flushWorkbook', workbookId })).toBe(true);
+        expect(runtime.views('storage', ['root'])[0]).toMatchObject({ failedWrites: [] });
+        expect(bare.logs.filter(line => line.startsWith('warn') || line.startsWith('error'))).toEqual([]);
+
+        // What needs files is refused
+        expect(() => runtime.attachFiles(workbookId, [])).toThrow('the runtime keeps no files');
+        await expect(runtime.exportWorkbook(workbookId, { format: 'archive' }, null)).rejects.toThrow('the runtime keeps no files');
+        runtime.free();
+    });
+
+    it('refuse to open a workbook with attachments into a runtime without storage', async () => {
+        const { runtime: sourceRuntime, platform: sourcePlatform } = createRuntime();
+        const exported = await sourceRuntime.exportWorkbook(WB, { format: 'archive' }, null);
+        const archive = sourcePlatform.handles.get(exported.archive!);
+        sourceRuntime.free();
+        const bare = testPlatform();
+        const platform = { ...bare.platform, storage: null, archives: testArchives(bare.platform.handles) };
+        const runtime = dql!.createRuntime(platform);
+        runtime.runCatalogLoader(false);
+        const preview = await runtime.readImport({ archive: platform.handles.register(archive) });
+        await expect(runtime.commitImport(preview.importId, {}, null)).rejects.toThrow("a workbook with attachments can't be opened without storage yet");
+        runtime.free();
+    });
+
     it('ask about connections that describe the same database and replace a registered workbook', async () => {
         const { runtime, storage } = createRuntime();
         storage.connections = [{ id: EXISTING, params: TRINO, name: 'Warehouse' }];

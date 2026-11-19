@@ -80,13 +80,13 @@ pub(crate) async fn reconcile_attachments(
     runs.describe_attachments();
     // The write runs once the workbook is not held
     let key = workbook_attachment_list_key(workbook_id);
-    drop(workbooks.writer.write(&key, WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0));
+    workbooks.persistence.write(&key, WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0);
     Ok(())
 }
 
 /// The attachments of a workbook whose writes wait in the storage writer, e.g. for a hold of the workbook
 fn pending_attachments(workbooks: &Rc<Workbooks>, workbook_id: &str, deferred: &[(String, usize)]) -> Vec<DataFile> {
-    let pending = workbooks.writer.pending_keys_for_workbook(workbook_id);
+    let pending = workbooks.persistence.pending_keys_for_workbook(workbook_id);
     let shown: Vec<WorkbookAttachment> = workbooks
         .get(workbook_id)
         .and_then(|workbook| workbook.try_borrow().ok().map(|workbook| workbook.attachments().map(<[_]>::to_vec).unwrap_or_default()))
@@ -122,6 +122,9 @@ impl Runtime {
     #[wasm_bindgen(js_name = attachFiles, unchecked_return_type = "Promise<AttachFilesOutcome>")]
     pub fn attach_files(&self, workbook_id: String, #[wasm_bindgen(unchecked_param_type = "AttachedFile[]")] files: JsValue) -> Result<Promise, JsError> {
         let workbook = self.workbooks.get(&workbook_id).ok_or_else(|| JsError::new(&format!("no workbook registered with id {workbook_id}")))?;
+        let Some(writer) = self.workbooks.persistence.writer().cloned() else {
+            return Err(JsError::new("the runtime keeps no files, its platform has no storage"));
+        };
         let (script_names, mut taken): (Vec<String>, Vec<WorkbookAttachment>) = {
             let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
             let names = workbook.scripts().iter().map(|script| script_display_name(script.file_name()).to_string()).collect();
@@ -145,7 +148,7 @@ impl Runtime {
             }
             let size = file_size(&content);
             let task = WriteTask::SaveDataFile { workbook_id: workbook_id.clone(), file_name: file_name.clone(), file: HostBytes::new(Rc::new(content), size) };
-            writes.push(self.workbooks.writer.write_durable(&task.key(), task));
+            writes.push(writer.write_durable(&task.key(), task));
             sizes.push((file_name.clone(), size));
             outcome.attached.push(AttachedFileName { name, file_name });
         }

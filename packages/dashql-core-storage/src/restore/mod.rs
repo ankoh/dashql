@@ -232,7 +232,8 @@ fn cloud_link_ids(link: &Value) -> bool {
 /// The state of one restore
 struct Run<'a, H: RestoreHost, W: StorageHost> {
     host: &'a H,
-    writer: &'a StorageWriter<W>,
+    /// Writes what brings the storage in line with the restored state, none for a restore into memory
+    writer: Option<&'a StorageWriter<W>>,
     offset_unit: EditorOffsetUnit,
     planner: RestorePlanner,
     /// The connections that the restore created, in order
@@ -249,7 +250,7 @@ struct Run<'a, H: RestoreHost, W: StorageHost> {
 }
 
 impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
-    fn new(host: &'a H, writer: &'a StorageWriter<W>, options: RestoreOptions, live: Vec<LiveConnection>) -> Self {
+    fn new(host: &'a H, writer: Option<&'a StorageWriter<W>>, options: RestoreOptions, live: Vec<LiveConnection>) -> Self {
         let RestoreOptions { offset_unit, new_uuid } = options;
         let mut run = Self {
             host,
@@ -359,7 +360,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         // a file that changes in between has a newer stamp and is checked again. A migration of the folder records its
         // own writes.
         match self.host.stamp_folder(workbook_id).await {
-            Ok(Some(listing)) => self.writer.stamps().acknowledge(workbook_id, &listing),
+            Ok(Some(listing)) => {
+                if let Some(writer) = self.writer {
+                    writer.stamps().acknowledge(workbook_id, &listing);
+                }
+            }
             Ok(None) => {}
             Err(error) => self.log(LogLevel::Warn, "Failed to stamp the workbook folder", &[("workbookId", workbook_id), ("error", error.message())]),
         }
@@ -530,6 +535,8 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
     /// Write what brings the stored state in line with the restored one, through the storage writer. Failures are
     /// logged, the next restore attempts them again.
     async fn flush_writes(&mut self) {
+        // A restore into memory keeps what it restored, it has no storage to bring in line
+        let Some(writer) = self.writer else { return };
         let pending = self.planner.pending().clone();
         // The app manifest is the source of truth, the copies of the workbooks follow it once it is written
         let mut copies = false;
@@ -541,13 +548,13 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                     fields.insert("params".to_string(), params_value(state));
                 }
                 let task = WriteTask::WriteConnectionEntry { entry: json };
-                writes.push(PendingWrite { result: self.writer.write_durable(&connection_entry_key(&entry.id), task), what: entry.id.clone() });
+                writes.push(PendingWrite { result: writer.write_durable(&connection_entry_key(&entry.id), task), what: entry.id.clone() });
             }
             for (connection_id, file_name, text) in std::mem::take(&mut self.connection_files) {
                 let key = connection_file_key(&connection_id, &file_name);
                 let what = format!("{connection_id}/{file_name}");
                 let task = WriteTask::WriteConnectionFile { connection_id, file_name, text: TextSource::Text(text) };
-                writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what });
+                writes.push(PendingWrite { result: writer.write_durable(&key, task), what });
             }
             copies = await_writes(self.host, writes, "Failed to persist restored connections").await;
         }
@@ -558,7 +565,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 let copy = WorkbookConnection::new(connection_id.clone(), params_value(state));
                 let task = WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
                 let key = workbook_connection_copy_key(workbook_id, connection_id);
-                writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what: format!("{workbook_id}:{connection_id}") });
+                writes.push(PendingWrite { result: writer.write_durable(&key, task), what: format!("{workbook_id}:{connection_id}") });
             }
         }
         for list in &pending.workbook_script_lists {
@@ -568,7 +575,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 connections: list.connections.clone(),
             };
             let key = workbook_script_list_key(&list.workbook_id);
-            writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what: list.workbook_id.clone() });
+            writes.push(PendingWrite { result: writer.write_durable(&key, task), what: list.workbook_id.clone() });
         }
         for promotion in std::mem::take(&mut self.promotions) {
             // The properties as the file holds them, without the ephemeral marker
@@ -579,7 +586,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 ephemeral: false,
                 cloud: promotion.cloud,
             };
-            writes.push(PendingWrite { result: self.writer.write_durable(&key, task), what: promotion.workbook_id });
+            writes.push(PendingWrite { result: writer.write_durable(&key, task), what: promotion.workbook_id });
         }
         await_writes(self.host, writes, "Failed to update a restored workbook").await;
     }
@@ -588,7 +595,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
 /// The restore of the stored state, see the module
 pub struct AppRestore<H: RestoreHost, W: StorageHost> {
     host: H,
-    writer: StorageWriter<W>,
+    writer: Option<StorageWriter<W>>,
     options: RestoreOptions,
     live: Vec<LiveConnection>,
 }
@@ -596,7 +603,12 @@ pub struct AppRestore<H: RestoreHost, W: StorageHost> {
 impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
     /// A restore that reads through a host and writes through a storage writer
     pub fn new(host: H, writer: StorageWriter<W>, options: RestoreOptions) -> Self {
-        Self { host, writer, options, live: Vec::new() }
+        Self { host, writer: Some(writer), options, live: Vec::new() }
+    }
+
+    /// A restore into memory: it reads through a host, e.g. the bundle of an archive, and writes nothing
+    pub fn in_memory(host: H, options: RestoreOptions) -> Self {
+        Self { host, writer: None, options, live: Vec::new() }
     }
 
     /// A connection that the app holds already, a restored workbook resolves against it
@@ -611,7 +623,7 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
         let host = &host;
         host.log(LogLevel::Info, "Starting app state restoration", &[]);
         let start = host.now();
-        let mut run = Run::new(host, &writer, options, live);
+        let mut run = Run::new(host, writer.as_ref(), options, live);
         let mut workbooks = Vec::new();
         let mut invalid_workbooks = Vec::new();
 
@@ -681,7 +693,7 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
     /// result holds the workbook and the connections it registered. Fails if the workbook can't be restored.
     pub async fn restore_workbook(self, workbook_id: &str) -> std::result::Result<RestoredState, HostError> {
         let AppRestore { host, writer, options, live } = self;
-        let mut run = Run::new(&host, &writer, options, live);
+        let mut run = Run::new(&host, writer.as_ref(), options, live);
         let workbook = match run.restore_workbook(workbook_id).await {
             WorkbookOutcome::Restored(workbook) => workbook,
             failed => {

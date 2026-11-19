@@ -237,11 +237,14 @@ impl Exports {
         // The export reads the workbook from the storage, with the changes that are pending. A workbook whose changes
         // didn't reach the storage, or that a change outside the app holds, isn't exported: the export would miss
         // what the app shows.
-        if !self.workbooks.writer.flush_workbook(&workbook_id).await {
-            let writer = &self.workbooks.writer;
-            let reason = match writer.failed_writes_for_workbook(&workbook_id).first() {
+        let persistence = &self.workbooks.persistence;
+        if !persistence.keeps() {
+            return Err(HostError::new("the runtime keeps no files, its platform has no storage"));
+        }
+        if !persistence.flush_workbook(&workbook_id).await {
+            let reason = match persistence.failed_writes_for_workbook(&workbook_id).first() {
                 Some(failed) => format!("saving {} failed: {}", failed.key, failed.error),
-                None if writer.is_workbook_held(&workbook_id) => "its writes are held, e.g. a file changed outside the app".to_string(),
+                None if persistence.is_workbook_held(&workbook_id) => "its writes are held, e.g. a file changed outside the app".to_string(),
                 None => "its changes are not saved yet".to_string(),
             };
             let message = format!("The workbook can't be exported, {reason}");
@@ -275,7 +278,9 @@ impl Exports {
             preserve_uuids: options.preserve_uuids.unwrap_or(false),
             connection_names: HashMap::new(),
         };
-        let stamps = self.workbooks.writer.stamps().clone();
+        let Some(stamps) = self.workbooks.persistence.writer().map(|writer| writer.stamps().clone()) else {
+            return Err(HostError::new("the runtime keeps no files, its platform has no storage"));
+        };
         let bundle = super::archives::read_stored_bundle(&self.platform, &stamps, files, workbook_id, shared.with_catalog(link)).await?;
         let (results, counts) = if !link && options.results.unwrap_or(false) {
             self.retain_results(workbook_id, files, retained).await?

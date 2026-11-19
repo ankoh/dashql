@@ -545,8 +545,12 @@ impl Imports {
         workbook_tables_to_bundle(&tables, &prefix, &CoreCatalogSql).map_err(format_error)
     }
 
-    /// The registered workbook with an id, ignoring the case of the id
+    /// The registered workbook with an id, ignoring the case of the id. A runtime without storage registers none, an
+    /// import into memory replaces a workbook with the same id.
     async fn find_workbook(&self, workbook_id: &str) -> Result<Option<ImportConflict>, HostError> {
+        if !self.platform.has_storage() {
+            return Ok(None);
+        }
         let entry = find_workbook(&self.platform, workbook_id).await?;
         Ok(entry.and_then(|entry| Some(ImportConflict { workbook_id: entry_path(&entry)?.to_string(), entry: JsonValue(entry) })))
     }
@@ -690,7 +694,21 @@ impl Imports {
             }
         }
         steps.report("workbook", None);
-        let writer = Writer { platform: self.platform.clone(), steps: &steps, storage: restorer.workbooks.writer.clone() };
+        // A runtime without storage opens the workbook into memory
+        let Some(storage) = restorer.workbooks.persistence.writer().cloned() else {
+            if !bundle.data.is_empty() {
+                return Err(HostError::new("a workbook with attachments can't be opened without storage yet"));
+            }
+            if !answers.restore.unwrap_or(true) {
+                return Err(HostError::new("a runtime without storage keeps an import only in memory, it restores it"));
+            }
+            outcome.workbook_id = bundle.workbook.workbook_id.clone();
+            steps.report("open", None);
+            restorer.restore_bundle(bundle).await?;
+            outcome.restored = true;
+            return Ok(outcome);
+        };
+        let writer = Writer { platform: self.platform.clone(), steps: &steps, storage };
         let conflict = self.find_workbook(&bundle.workbook.workbook_id).await?;
         match &pending.native_path {
             Some(dir) => {
@@ -710,7 +728,7 @@ impl Imports {
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
-                        let storage = &restorer.workbooks.writer;
+                        let storage = &writer.storage;
                         let refs_changed = connection_refs_changed(&original, &bundle.workbook);
                         let replace = async {
                             writer.replace_with_native(&bundle, dir, &conflict).await?;
@@ -740,7 +758,7 @@ impl Imports {
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
-                        let storage = &restorer.workbooks.writer;
+                        let storage = &writer.storage;
                         let staging = self.new_uuid()?;
                         let backup = self.new_uuid()?;
                         held_replacement(storage, &conflict.workbook_id, writer.replace_with_bundle(&bundle, &conflict, staging, backup)).await?;
@@ -763,7 +781,7 @@ impl Imports {
             return Ok(());
         }
         // The same workbook may have been imported and deleted before
-        restorer.workbooks.writer.revive_workbook(workbook_id);
+        writer.storage.revive_workbook(workbook_id);
         steps.report("open", None);
         match restorer.clone().restore_workbook(workbook_id.to_string()).await {
             Ok(_) => {
