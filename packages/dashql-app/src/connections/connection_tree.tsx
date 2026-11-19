@@ -3,15 +3,15 @@ import * as core from '@akohn/dashql';
 import symbols from '@akohn/dashql-svg-symbols';
 import { List, type RowComponentProps, useListRef } from 'react-window';
 
-import * as ActionList from '../ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { observeSize } from '../ui/foundations/size_observer.js';
-import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
-import { NameInput } from '../ui/foundations/name_input.js';
-import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { NameInput } from '@akohn/dashql-react/components/name_input';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
@@ -25,8 +25,8 @@ import {
     SyncIcon,
     TableIcon,
     TrashIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
 import {

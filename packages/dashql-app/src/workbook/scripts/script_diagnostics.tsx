@@ -2,17 +2,17 @@ import * as React from 'react';
 import * as dashql from '@akohn/dashql';
 import * as styles from './script_diagnostics.module.css';
 
-import { AlertIcon, XCircleFillIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { AlertIcon, XCircleFillIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { formattingDialectForConnector } from './script_format.js';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { JsonView } from '../../ui/json/json_view.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 
 export const SCRIPT_FORMATTING_WARNING = 'This script cannot be formatted';
 

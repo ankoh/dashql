@@ -1,14 +1,14 @@
 import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../foundations/symbol_icon.js';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { ButtonVariant, IconButton } from '../foundations/button.js';
-import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
-import { OverlaySize } from '../foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { JsonView } from '../json/json_view.js';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 
 export interface LogJsonModalProps {
     record: LogRecord | null;

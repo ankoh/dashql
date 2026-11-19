@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './cloud_setup_page.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { PencilIcon, PlusIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { PencilIcon, PlusIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CompactNavBar } from '../app/navbar.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { useConnection, useConnections, useRuntime } from '@akohn/dashql-react/hooks';

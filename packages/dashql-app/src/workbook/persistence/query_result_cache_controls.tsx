@@ -1,14 +1,14 @@
 import * as React from 'react';
 import * as styles from './query_result_cache_controls.module.css';
 
-import { SyncIcon } from '../../ui/foundations/symbol_icon.js';
+import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { useRelativeTime } from '../../utils/time_format.js';
-import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { Tag } from '../../ui/foundations/tag.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { Tag } from '@akohn/dashql-react/components/tag';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 
 interface QueryResultCacheControlsProps {
     query: QueryExecutionState | null;

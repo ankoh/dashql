@@ -5,15 +5,15 @@ import coreWasmUrl from '@akohn/dashql/wasm?url';
 
 import { createPrecompiledTestCore } from './core_pool.js';
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
-import { IconButton, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { IconButton, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
     PaperAirplaneIcon,
     SquareFillIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { TextInput } from '../ui/foundations/text_input.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
 import type { HyperDBClient } from '../platform/hyperdb/hyperdb_wasm.js';
 import { createTestHyperDBClient } from './hyperdb_test_client.js';
 import {

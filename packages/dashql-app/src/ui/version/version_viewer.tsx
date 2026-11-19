@@ -2,7 +2,7 @@ import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
 
-import { SyncIcon, XIcon } from '../foundations/symbol_icon.js';
+import { SyncIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION } from '../../globals.js';
 import {
@@ -18,15 +18,15 @@ import {
     useVersionCheckRefresh,
     VersionCheckStatusCode,
 } from '../../platform/version/version_check.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { canInstallReleaseVersion, detectReleaseChannel, ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../../utils/result.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { ReleaseBundles } from './release_bundle.js';
-import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { ProgressBar } from '../foundations/progress_bar.js';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { ProgressBar } from '@akohn/dashql-react/components/progress_bar';
 import { relaunch } from '../../platform/process.js';
 import { useLogger } from '../../platform/logger_provider.js';
 

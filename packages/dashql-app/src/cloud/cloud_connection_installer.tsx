@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as styles from './cloud_installer.module.css';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { TrashIcon } from '../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { TrashIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { isLocalCloud } from '../connections/cloud_connection.js';
 import { CloudInstaller } from './cloud_installer.js';

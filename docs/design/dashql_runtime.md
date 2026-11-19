@@ -435,7 +435,8 @@ it over, and only the latest lease resets the connection when it closes.
 - **`StandaloneRuntime`** (`runtime/standalone_runtime.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.
 - **Hooks** (`@akohn/dashql-react/hooks`, `packages/dashql-react/src/hooks.ts`, a source package shared with other hosts
-  of the runtime: it imports React, apache-arrow and `@akohn/dashql` only, `//packages/dashql-react:boundary_test`):
+  of the runtime: it imports React, apache-arrow, `@akohn/dashql` and the libraries of its components only,
+  `//packages/dashql-react:boundary_test`):
   `RuntimeContextProvider`, `useOwnedRuntime`, `useRuntime`, `useOptionalRuntime`,
   `useView(kind, id)`, `useDispatch(target)` (typed by the target, see [Dispatch](#dispatch)), `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
   one-line aliases `useWorkbook`, `useScript`,
@@ -449,6 +450,10 @@ it over, and only the latest lease resets the connection when it closes.
   `useScriptModel`, `useConnectionModel` and `useQueryModel`; components take models as props and import nothing of
   the runtime, see
   [writing_components.md](../agents/writing_components.md). Fakes for tests are in `@akohn/dashql-react/testing/...`.
+- **Components** (`@akohn/dashql-react/components/...`, helpers in `@akohn/dashql-react/dom/...`): the building blocks
+  that the app and other hosts share, with their CSS modules. They reach neither the hooks nor the runtime. The same
+  package holds the tokens, fonts and brand code (`styles/`, `fonts/`, `src/theme`, `src/brand`) shared with the
+  website.
 - **What the app keeps** is about the user interface: the script selection (`workbook/scripts/script_selection.ts`),
   the drafts of connection forms (`connections/connection_draft.ts`), the state of a save
   (`connections/connection_persistence.tsx`), creating and deleting workbooks with the selection

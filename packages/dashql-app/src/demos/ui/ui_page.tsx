@@ -1,13 +1,13 @@
 import * as React from 'react';
-import * as ActionList from '../../ui/foundations/action_list.js'
+import * as ActionList from '@akohn/dashql-react/components/action_list'
 import * as styles from './ui_page.module.css';
 
-import { ChecklistIcon, CopyIcon, EyeIcon, HeartIcon, PaperAirplaneIcon, TriangleDownIcon, ListUnorderedIcon, TableIcon, ProjectIcon, CodeIcon, FileIcon, GraphIcon } from '../../ui/foundations/symbol_icon.js';
+import { ChecklistIcon, CopyIcon, EyeIcon, HeartIcon, PaperAirplaneIcon, TriangleDownIcon, ListUnorderedIcon, TableIcon, ProjectIcon, CodeIcon, FileIcon, GraphIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { TextInput, TextInputValidationStatus } from '../../ui/foundations/text_input.js';
-import { TextInputAction } from '../../ui/foundations/text_input_action.js';
-import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
+import { TextInput, TextInputValidationStatus } from '@akohn/dashql-react/components/text_input';
+import { TextInputAction } from '@akohn/dashql-react/components/text_input_action';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 
 /// The components of the UI foundations in their variants and sizes
 function UIPage(): React.ReactElement {

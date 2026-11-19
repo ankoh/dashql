@@ -4,11 +4,11 @@ import * as styles from './workbook_composer.module.css';
 
 import type { EditorView } from '@codemirror/view';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { TextInput } from '../../ui/foundations/text_input.js';
-import { CopyToClipboardAction, TextInputAction } from '../../ui/foundations/text_input_action.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { CopyToClipboardAction, TextInputAction } from '@akohn/dashql-react/components/text_input_action';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { agentConnectCommand, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import type { AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';

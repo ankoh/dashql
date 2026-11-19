@@ -3,17 +3,17 @@ import * as styles from './log_viewer.module.css';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, DownloadIcon } from '../foundations/symbol_icon.js';
+import { XIcon, DownloadIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { getLogLevelName, LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
-import { observeSize } from '../foundations/size_observer.js';
-import { ButtonVariant, IconButton } from '../foundations/button.js';
-import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { useKeyEvents } from '../../utils/key_events.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { LogJsonModal } from './log_json_modal.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { VerticalScrollShadows } from '../foundations/vertical_scroll_shadows.js';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 
 export const ROW_HEIGHT = 32;
 

@@ -26,7 +26,7 @@ import {
 } from './dashboard_layout.js';
 import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer } from './dashboard_source.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import * as styles from './dashboard.module.css';
 
 const GRID_GAP = DASHBOARD_GRID_GAP;

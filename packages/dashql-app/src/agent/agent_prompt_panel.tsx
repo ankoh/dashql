@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from './agent_prompt_panel.module.css';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { ChevronRightIcon, SymbolIcon } from '../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { ChevronRightIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import {
     formatAgentDuration,
     harnessLabel,

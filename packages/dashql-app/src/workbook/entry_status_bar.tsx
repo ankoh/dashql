@@ -2,14 +2,14 @@ import * as React from 'react';
 import * as styles from './entry_status_bar.module.css';
 
 import { EntryStatus } from './entry_status_model.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { JsonView } from '../ui/json/json_view.js';
-import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { ChevronDownIcon, ChevronRightIcon } from '../ui/foundations/symbol_icon.js';
-import { classNames } from '../utils/classnames.js';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ChevronDownIcon, ChevronRightIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 export interface EntryStatusBarDependencies {
     AnchoredOverlay: typeof AnchoredOverlay;

@@ -4,13 +4,13 @@ import symbols from '@akohn/dashql-svg-symbols';
 
 import * as style from './connection_inline_header.module.css';
 
-import { PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { PlugIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { Button, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth, ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { SegmentedControl } from '../ui/foundations/segmented_control.js';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';

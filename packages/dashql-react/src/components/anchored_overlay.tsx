@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { Overlay, OverlayProps, OverlayVisibility } from './overlay.js';
-import { FocusTrapHookArgs, FocusZoneHookArgs, useFocusTrap, useFocusZone } from './focus.js';
-import { PositionSettings, useAnchoredPosition } from './anchored_position.js';
-import { useRenderForcingRef } from './rerender_ref.js';
+import { FocusTrapHookArgs, FocusZoneHookArgs, useFocusTrap, useFocusZone } from '../dom/focus.js';
+import { PositionSettings, useAnchoredPosition } from '../dom/anchored_position.js';
+import { useRenderForcingRef } from '../dom/rerender_ref.js';
 
 interface AnchoredOverlayPropsWithAnchor {
     /// A custom function component used to render the anchor element.

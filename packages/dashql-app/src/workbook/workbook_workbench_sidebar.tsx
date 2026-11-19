@@ -23,10 +23,10 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import { useConnectionList, useConnections, useDispatch, useRuntime, useWorkbooks, useConnectionViews } from '@akohn/dashql-react/hooks';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import * as ActionList from '../ui/foundations/action_list.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import {
     AlertIcon,
     ChevronDownIcon,
@@ -45,8 +45,8 @@ import {
     UnlinkIcon,
     UploadIcon,
     PaperAirplaneIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
@@ -64,8 +64,8 @@ import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connectio
 import { ConnectionSettingsOverlay } from '../connections/connection_settings_overlay.js';
 import { renderWorkbookName } from './workbook_name.js';
 import { WorkbookConnectionAttentionContext } from './workbook_connection_attention.js';
-import { VerticalScrollShadows } from '../ui/foundations/vertical_scroll_shadows.js';
-import { VerticalSplit } from '../ui/foundations/vertical_split.js';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
 import { displayPath } from '../storage/workbook_locator.js';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { WorkbookStorageOverlay } from './persistence/workbook_storage_overlay.js';
@@ -98,8 +98,8 @@ import {
     moveWorkbookInTree,
     upsertWorkbookInTree,
 } from '@akohn/dashql/platform/storage/workbook_tree';
-import { NameInput } from '../ui/foundations/name_input.js';
-import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
+import { NameInput } from '@akohn/dashql-react/components/name_input';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
 import { useMergeConnections } from './workbook_connection_merge.js';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { useDetachConnection } from './workbook_connection_detach.js';

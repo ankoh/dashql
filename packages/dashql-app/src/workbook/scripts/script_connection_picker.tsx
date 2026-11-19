@@ -2,10 +2,10 @@ import * as React from 'react';
 import * as styles from './script_connection_picker.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
-import * as ActionList from '../../ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
 import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';

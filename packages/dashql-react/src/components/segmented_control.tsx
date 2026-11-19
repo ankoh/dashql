@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './segmented_control.module.css';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import { Tooltip } from './tooltip.js';
 
 // ==================== Types ====================

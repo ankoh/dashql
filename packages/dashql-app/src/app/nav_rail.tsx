@@ -3,10 +3,10 @@ import * as styles from './nav_rail.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
 import { useLocation } from 'react-router-dom';
-import { Tooltip } from '../ui/foundations/tooltip.js';
+import { Tooltip } from '@akohn/dashql-react/components/tooltip';
 import { WORKBOOK_PATH, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from './router.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook/workbook_view_mode.js';
-import { classNames } from '../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useAppConfig, useAppReconfigure } from '../config/app_config.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import type { AppFlavorRailPage } from '../config/flavors.js';

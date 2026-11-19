@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import * as ActionList from '../ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
-import { useRowContextMenuOpener, type RowContextMenu } from '../ui/foundations/row_context_menu.js';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { useRowContextMenuOpener, type RowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 
 // The menu of a row of the clouds, in the sidebar and in the overview of a cloud

@@ -5,14 +5,14 @@ import * as auth from '@akohn/dashql-jsonschema/auth.js';
 
 import * as style from './connection_settings.module.css';
 
-import { BookIcon, KeyIcon, PlugIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { BookIcon, KeyIcon, PlugIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
-import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
-import { TextField, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
-import { classNames } from '../utils/classnames.js';
+import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
+import { TextField, VALIDATION_WARNING } from '@akohn/dashql-react/components/text_field';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
@@ -20,9 +20,9 @@ import { useConnectionSetup } from './connection_setup.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { CONNECTOR_INFOS, ConnectorType, TRINO_CONNECTOR } from '@akohn/dashql/platform/connections/connector_info';
 import { requiresSwitchingToNative } from './connector_list.js';
-import { UpdateValueList, ValueListBuilder } from '../ui/foundations/value_list.js';
+import { UpdateValueList, ValueListBuilder } from '@akohn/dashql-react/components/value_list';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { SegmentedControl } from '../ui/foundations/segmented_control.js';
+import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 import { withTrinoCatalogFields } from '@akohn/dashql/platform/connections/trino_catalogs';
 
 const LOG_CTX = "trino_connector";

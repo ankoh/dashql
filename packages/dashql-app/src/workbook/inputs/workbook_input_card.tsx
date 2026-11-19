@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { workbookInputControl, WorkbookInputControl, type SessionInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 
 import * as styles from './workbook_inputs.module.css';

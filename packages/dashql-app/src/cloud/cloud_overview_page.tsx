@@ -14,10 +14,10 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { TextInput } from '../ui/foundations/text_input.js';
-import { NameInput } from '../ui/foundations/name_input.js';
-import { AnchorSide } from '../ui/foundations/anchored_position.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { NameInput } from '@akohn/dashql-react/components/name_input';
+import { AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
@@ -34,9 +34,9 @@ import {
     TrashIcon,
     UnlinkIcon,
     XIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { useRowContextMenu } from '../ui/foundations/row_context_menu.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatTimeDifference } from '../utils/format.js';
 import { startsRowDrag } from '../workbook/workbook_folder_row.js';
 import { useLogger } from '../platform/logger_provider.js';

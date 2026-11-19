@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as styles from './workbook_storage_overlay.module.css';
 
-import { XIcon, FileDirectoryIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon, FileDirectoryIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { displayPath } from '../../storage/workbook_locator.js';

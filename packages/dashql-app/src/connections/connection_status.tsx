@@ -2,8 +2,8 @@ import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 
 import { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
-import { STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '../ui/foundations/status_indicator.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '@akohn/dashql-react/components/status_indicator';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 interface ButtonProps {

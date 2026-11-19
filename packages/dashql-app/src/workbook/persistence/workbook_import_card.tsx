@@ -1,11 +1,11 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import * as baseStyles from '../../ui/foundations/banner_page.module.css';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ProgressBar } from '../../ui/foundations/progress_bar.js';
-import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { AlertIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ProgressBar } from '@akohn/dashql-react/components/progress_bar';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { AlertIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { formatBytes } from '../../utils/format.js';
 import { CompactNavBar } from '../../app/navbar.js';
 import { SetupSteps } from '../../app/setup_steps.js';

@@ -15,11 +15,11 @@ import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartu
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
-import { getAppHost } from '../../platform/native_globals.js';
+import { getAppHost } from '@akohn/dashql-react/dom/app_host';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
-import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_feed_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '../../ui/foundations/symbol_icon.js';
+import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
@@ -11,7 +11,7 @@ import {
     type WorkbookScripts,
 } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { WorkbookNavigationDrawer } from '../workbook_navigation_drawer.js';
 import { WorkbookWorkbenchSidebar } from '../workbook_workbench_sidebar.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
@@ -21,11 +21,11 @@ import { WorkbookFeed, type WorkbookFeedRevealRequest } from './workbook_feed.js
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { useWorkbookExecution } from '@akohn/dashql-react/hooks';
-import { IndicatorStatus, StatusIndicator } from '../../ui/foundations/status_indicator.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';

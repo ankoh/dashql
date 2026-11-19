@@ -5,7 +5,7 @@ import { QueryExecutionState } from '@akohn/dashql/platform/query/query_executio
 import { DataTable } from './data_table.js';
 import { TableColumnHeader } from './data_table_cell.js';
 import { useComputation } from '@akohn/dashql-react/hooks';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 interface Props {
     query: QueryExecutionState | null;

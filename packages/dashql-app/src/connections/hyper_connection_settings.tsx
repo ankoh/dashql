@@ -4,19 +4,19 @@ import * as buf from '@bufbuild/protobuf';
 import * as pb from '@akohn/dashql/platform/proto';
 import * as style from './connection_settings.module.css';
 
-import { ChecklistIcon, DatabaseIcon, FileBadgeIcon, KeyIcon } from '../ui/foundations/symbol_icon.js';
+import { ChecklistIcon, DatabaseIcon, FileBadgeIcon, KeyIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { classNames } from '../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import {
     KeyValueTextField,
     TextField,
     TextFieldValidationStatus,
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
-} from '../ui/foundations/text_field.js';
+} from '@akohn/dashql-react/components/text_field';
 import { useLogger } from '../platform/logger_provider.js';
 import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
-import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../ui/foundations/keyvalue_list.js';
+import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection } from '@akohn/dashql-react/hooks';
@@ -24,7 +24,7 @@ import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { isDesktopHost } from '../platform/native_globals.js';
+import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { DEFAULT_HYPER_ENDPOINT } from '@akohn/dashql/platform/connections/connection_params';

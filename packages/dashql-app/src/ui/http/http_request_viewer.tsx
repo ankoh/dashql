@@ -4,15 +4,15 @@ import * as styles from './http_request_viewer.module.css';
 import { List, useListCallbackRef } from 'react-window';
 import type { ListImperativeAPI, RowComponentProps } from 'react-window';
 
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CopyIcon, TrashIcon, XIcon } from '../foundations/symbol_icon.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
-import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
-import { OverlaySize } from '../foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { JsonView } from '../json/json_view.js';
-import { observeSize } from '../foundations/size_observer.js';
-import { VerticalScrollShadows } from '../foundations/vertical_scroll_shadows.js';
-import { useKeyEvents } from '../../utils/key_events.js';
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CopyIcon, TrashIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useHttpRequestLog } from '../../platform/http/http_client_provider.js';
 import {
     formatCurlCommand,

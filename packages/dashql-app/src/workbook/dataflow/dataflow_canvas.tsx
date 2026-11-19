@@ -2,13 +2,13 @@ import * as React from 'react';
 import * as core from '@akohn/dashql';
 import { select, zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from 'd3';
 
-import { ButtonGroup } from '../../ui/foundations/button_group.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { PlusIcon, SymbolIcon, ZoomInIcon, ZoomOutIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { VisualizationPanel } from '../../views/visualization/visualization_panel.js';
-import { GraphPort } from '../../ui/graph/graph_port.js';
-import * as graphStyles from '../../ui/graph/graph.module.css';
+import { GraphPort } from '@akohn/dashql-react/components/graph_port';
+import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';

@@ -7,7 +7,7 @@ import type { CellComponentProps } from 'react-window';
 import { ArrowTableFormatter, isArrowListType } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { ColumnGroup } from '@akohn/dashql/platform/compute/computation_types';
 import { DataTableLayout } from './data_table_layout.js';
-import { Tag } from '../../ui/foundations/tag.js';
+import { Tag } from '@akohn/dashql-react/components/tag';
 import { peekFormat } from './format_peek.js';
 import { CellFocus, DataTableFocusStore, useCellFocus } from './data_table_focus.js';
 

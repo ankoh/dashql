@@ -3,7 +3,7 @@ import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './card_placeholder.module.css';
 
 import { useAppFlavor } from '../config/flavor_provider.js';
-import { classNames } from '../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { QueryExecutionStatus, queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// The hint of a card before the first run

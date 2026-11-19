@@ -51,6 +51,10 @@
             "@akohn/hyperdb-edge/*": [
                 "./packages/hyperdb-edge/src/*.ts"
             ],
+            "@akohn/dashql-react/components/*": [
+                "./packages/dashql-react/src/components/*.tsx",
+                "./packages/dashql-react/src/components/*"
+            ],
             "@akohn/dashql-react/*": [
                 "./packages/dashql-react/src/*.ts"
             ],

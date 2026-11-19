@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as pageStyles from './app_loading_page.module.css';
 
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 
 /// A step of a setup, e.g. of the app or of an import
 export interface SetupStep {

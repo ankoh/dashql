@@ -1,4 +1,4 @@
-import { isDesktopHost } from './native_globals.js';
+import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
 
 export enum PlatformType {
     WEB = 0,

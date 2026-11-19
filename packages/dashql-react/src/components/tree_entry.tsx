@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { ChevronDownIcon, ChevronRightIcon } from './symbol_icon.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import * as styles from './tree_entry.module.css';
 
 /// The indentation of a tree level

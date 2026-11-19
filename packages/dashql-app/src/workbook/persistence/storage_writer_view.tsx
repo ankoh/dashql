@@ -3,19 +3,19 @@ import * as styles from './storage_writer_view.module.css';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, ChevronUpIcon, ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon, ChevronUpIcon, ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { JsonView } from '../../ui/json/json_view.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 import { useRuntime, useView } from '@akohn/dashql-react/hooks';
 import type { StorageKeyStatistics } from '@akohn/dashql';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
-import { useKeyEvents } from '../../utils/key_events.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 
 export const ROW_HEIGHT = 32;
 

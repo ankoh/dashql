@@ -3,11 +3,11 @@ import * as dashql from '@akohn/dashql';
 import * as styles from '../../app/action_menu.module.css';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import * as ActionList from '../../ui/foundations/action_list.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { useAppConfig } from '../../config/app_config.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';

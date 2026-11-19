@@ -4,7 +4,7 @@ import * as React from 'react';
 import * as Immutable from 'immutable';
 
 import { formatBytes, formatNanoseconds } from '../../utils/format.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 import * as styles from './script_statistics_bar.module.css';
 

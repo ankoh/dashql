@@ -2,8 +2,8 @@ import * as React from 'react';
 import * as styles from './connection_label_view.module.css';
 
 import type { ConnectionLabelParts } from './connection_label.js';
-import { Tag } from '../ui/foundations/tag.js';
-import { classNames } from '../utils/classnames.js';
+import { Tag } from '@akohn/dashql-react/components/tag';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 /// The label of a connection, the protocol is a small muted tag.
 /// The label fills its row and the tag sits at the right end, an inline label puts the tag right

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_UNKNOWN } from '../ui/foundations/text_field.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_UNKNOWN } from '@akohn/dashql-react/components/text_field';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { SalesforceConnectionSettingsPage } from '../connections/salesforce_connection_settings.js';
 import { collectSalesforceAuthInfo } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client';
@@ -12,7 +12,7 @@ import type { SalesforceLoginHistoryEntry } from './salesforce_login_history.js'
 import * as styles from './salesforce_login_dialog.module.css';
 
 import symbols from '@akohn/dashql-svg-symbols';
-import { HistoryIcon, TrashIcon } from '../ui/foundations/symbol_icon.js';
+import { HistoryIcon, TrashIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 export interface SalesforceLoginFormValues {
     alias: string;

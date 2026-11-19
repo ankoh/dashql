@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './text_input.module.css';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 export enum TextInputValidationStatus {
     Success = 1,

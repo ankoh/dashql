@@ -4,7 +4,7 @@ import * as styles from './keyvalue_list.module.css';
 
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { PlusIcon, XIcon } from './symbol_icon.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';
 import { ButtonSize, ButtonVariant, IconButton } from './button.js';

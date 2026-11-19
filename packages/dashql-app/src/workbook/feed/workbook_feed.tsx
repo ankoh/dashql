@@ -38,7 +38,7 @@ import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types'
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
+import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 import type { WorkbookTableParameters } from './workbook_composer.js';
@@ -52,8 +52,8 @@ import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_bac
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
@@ -62,8 +62,8 @@ import {
     type ScriptConnectionView,
 } from '../scripts/script_connection_picker.js';
 import { useConnectionLabeler } from '../connection_labels.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';

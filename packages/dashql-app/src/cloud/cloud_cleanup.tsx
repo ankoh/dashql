@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as styles from './cloud_installer.module.css';
 
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { cloudDatabaseOf, useCloudQuery } from './cloud_query.js';
 import { useCloudState } from './cloud_state.js';

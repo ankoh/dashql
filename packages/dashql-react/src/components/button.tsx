@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './button.module.css';
 
 import { Tooltip, type TooltipDirection } from './tooltip.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 const BUTTON_VARIANT_CLASSNAME = [
     styles.button_variant_default,

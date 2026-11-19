@@ -1,11 +1,11 @@
 import * as React from "react";
 
 import { Portal } from './portal.js';
-import { classNames } from '../../utils/classnames.js';
-import { useOpenAndCloseFocus } from './focus.js';
-import { useOnOutsideClick } from './outside_click.js';
-import { useKeyEvents } from '../../utils/key_events.js';
-import { AnchorSide } from './anchored_position.js';
+import { classNames } from '../dom/classnames.js';
+import { useOpenAndCloseFocus } from '../dom/focus.js';
+import { useOnOutsideClick } from '../dom/outside_click.js';
+import { useKeyEvents } from '../dom/key_events.js';
+import { AnchorSide } from '../dom/anchored_position.js';
 
 import * as styles from './overlay.module.css';
 

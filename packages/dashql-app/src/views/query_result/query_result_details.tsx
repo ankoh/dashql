@@ -4,10 +4,10 @@ import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_exe
 import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
 import { TableColumnHeader } from './data_table_cell.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useComputation, useComputationDispatch, useQueryResultTable } from '@akohn/dashql-react/hooks';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import * as styles from './query_result_details.module.css';
 import { QueryResultToolbar, useQueryResultRowCounts } from './query_result_toolbar.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';

@@ -3,12 +3,12 @@ import * as styles from './workbook_feed.module.css';
 import * as dashql from '@akohn/dashql';
 
 import type { EditorView } from '@codemirror/view';
-import type { Icon } from '../../ui/foundations/symbol_icon.js';
+import type { Icon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ButtonGroup } from '../../ui/foundations/button_group.js';
-import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';

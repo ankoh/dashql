@@ -1,8 +1,13 @@
 # Writing a component
 
-A component of the app shows a model and the state of the user interface. The hooks of the runtime and the models are
-the package `@akohn/dashql-react` (`packages/dashql-react`), shared with other hosts of the runtime; the components are
-the app's. It doesn't talk to the runtime: it knows no
+A component of the app shows a model and the state of the user interface. The hooks of the runtime, the models and the
+components that other hosts share are the package `@akohn/dashql-react` (`packages/dashql-react`): the building blocks
+(buttons, overlays, inputs, tabs, the JSON view, ...) in `src/components` with their stylesheets, their helpers in
+`src/dom`, imported as `@akohn/dashql-react/components/button` and `@akohn/dashql-react/dom/anchored_position`. A
+component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
+(`//packages/dashql-react:boundary_test`); it logs through `useLogger` of `@akohn/dashql-react/logger`, whose context
+the host provides. Their tests run in the browser tests of the app for now (`dashql-app/src/ui/`), they use its test
+helpers. A component doesn't talk to the runtime: it knows no
 view kinds, slices, targets, actions, commands or handles, and it doesn't need to know when the store flushes. Those
 stay in the model hooks, one per thing that the app shows. The runtime itself is described in
 [dashql_runtime.md](../design/dashql_runtime.md), read it when you change the runtime or a model.
@@ -11,7 +16,7 @@ stay in the model hooks, one per thing that the app shows. The runtime itself is
 
 | Layer | Where | Knows |
 |---|---|---|
-| Components | the app, e.g. `workbook/feed/script_card.tsx` | A model, plain props, slots. No import of the runtime |
+| Components | `@akohn/dashql-react/components/...`, or the app, e.g. `workbook/feed/script_card.tsx` | A model, plain props, slots. No import of the runtime |
 | Models | `@akohn/dashql-react/models/...` (`packages/dashql-react/src/models/`) | The views, the actions of a target, the commands of the facade, `settled` |
 | Runtime | `@akohn/dashql/runtime`, the core module | Everything else |
 

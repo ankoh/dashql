@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './narrow_screen_warning.module.css';
 
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CompactNavBar } from './navbar.js';
 
 const NARROW_SCREEN_QUERY = '(max-width: 799px)';

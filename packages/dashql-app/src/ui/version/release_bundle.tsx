@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
-import { Button, ButtonSize } from '../foundations/button.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
+import { Button, ButtonSize } from '@akohn/dashql-react/components/button';
 import { ReleaseChannel, ReleaseManifest } from '../../platform/version/web_version_check.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useLatestReleaseManifest, useStableReleaseManifest } from '../../platform/version/version_check.js';

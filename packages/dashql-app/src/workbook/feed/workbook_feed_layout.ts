@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useListRef } from 'react-window';
 
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 
 interface FeedLayoutEntry {

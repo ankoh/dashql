@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as styles from './tooltip.module.css';
 
-import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { AnchorAlignment, AnchorSide, getAnchoredPosition } from './anchored_position.js';
+import { KeyEventHandler, useKeyEvents } from '../dom/key_events.js';
+import { AnchorAlignment, AnchorSide, getAnchoredPosition } from '../dom/anchored_position.js';
 
 export type TriggerPropsType = {
     'aria-describedby'?: string

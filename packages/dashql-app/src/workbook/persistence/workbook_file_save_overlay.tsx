@@ -1,17 +1,17 @@
 import * as React from 'react';
 import * as styles from './workbook_file_save_overlay.module.css';
 
-import { DownloadIcon, FileIcon } from '../../ui/foundations/symbol_icon.js';
+import { DownloadIcon, FileIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { AnchorAlignment } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { IconButton } from '../../ui/foundations/button.js';
+import { IconButton } from '@akohn/dashql-react/components/button';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hooks';

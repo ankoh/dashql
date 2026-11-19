@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { observeSize } from './size_observer.js';
-import { isDesktopHost } from '../../platform/native_globals.js';
+import { observeSize } from '../components/size_observer.js';
+import { isDesktopHost } from './app_host.js';
 
 export enum AnchorAlignment {
     Start,

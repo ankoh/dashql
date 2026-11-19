@@ -4,7 +4,7 @@ import * as dashql from '@akohn/dashql';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { deriveEntryStatus, EntryStatusKind, getQueryStatusText } from './entry_status_model.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 
 describe('getQueryStatusText', () => {
     it.each([

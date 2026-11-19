@@ -14,9 +14,9 @@ import {
     TrashIcon,
     UnlinkIcon,
     XIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { useRowContextMenu } from '../ui/foundations/row_context_menu.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router.js';

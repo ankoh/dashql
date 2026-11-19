@@ -1,24 +1,24 @@
 import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 
 import type { OAuthState, AppEventData } from '@akohn/dashql/platform/oauth_types';
 
 import { useSearchParams } from 'react-router-dom';
 
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { DASHQL_VERSION } from '../globals.js';
 import { FlavorLogo, useAppFlavor } from '../config/flavor_provider.js';
 import { LogsOverlay } from '../ui/logs/logs_overlay.js';
 import { Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../platform/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
-import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '../ui/foundations/text_field.js';
-import { classNames } from '../utils/classnames.js';
+import { TextField, TextFieldValidationStatus, VALIDATION_ERROR, VALIDATION_WARNING } from '@akohn/dashql-react/components/text_field';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatHHMMSS, formatTimeDifference } from '../utils/format.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../platform/events/event.js';
 import { decodeOAuthState, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';

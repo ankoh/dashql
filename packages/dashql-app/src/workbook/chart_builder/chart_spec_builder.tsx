@@ -12,10 +12,10 @@ import {
     type DragStartEvent,
 } from '@dnd-kit/core';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SymbolIcon, XIcon, type Icon } from '../../ui/foundations/symbol_icon.js';
-import { TextInput } from '../../ui/foundations/text_input.js';
-import { classNames } from '../../utils/classnames.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon, SymbolIcon, XIcon, type Icon } from '@akohn/dashql-react/components/symbol_icon';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import type { ChartColumn } from './chart_columns.js';
 import { ChartSelect, type ChartSelectOption } from './chart_select.js';
 import {

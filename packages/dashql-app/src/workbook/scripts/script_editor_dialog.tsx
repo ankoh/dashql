@@ -4,11 +4,11 @@ import * as styles from './script_editor_dialog.module.css';
 
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime, useQuery, useQueryProgress, useScript, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ButtonGroup } from '../../ui/foundations/button_group.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { IndicatorStatus } from '../../ui/foundations/status_indicator.js';
-import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
+import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { DashQLCompletionAbortEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { acceptPendingDiff, rejectPendingDiff } from '../editor/dashql_diff_hint.js';
 import { EntryStatusBar } from '../entry_status_bar.js';

@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom';
 
 import { useLogger } from '../../platform/logger_provider.js';
 import { LogBuffer, LogLevel, LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 import * as styles from './logger_toast.module.css';
-import { SymbolIcon } from '../foundations/symbol_icon.js';
-import { IconButton } from '../foundations/button.js';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { IconButton } from '@akohn/dashql-react/components/button';
 
 const TOAST_DURATION_MS = 6000;
 const TOAST_EXIT_DURATION_MS = 200;

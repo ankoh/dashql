@@ -1,16 +1,16 @@
 import * as React from 'react';
 import icons from '@akohn/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AppSettings } from './app_settings_view.js';
 import { StorageWriterView } from '../../workbook/persistence/storage_writer_view.js';
 import { LogViewer } from '../../ui/logs/log_viewer.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { QueryViewer } from '../../connections/query_viewer.js';
 import { HttpRequestViewer } from '../../ui/http/http_request_viewer.js';
 import { QueryCacheView } from '../../workbook/persistence/query_cache_view.js';
-import { VerticalTabs, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
+import { VerticalTabs, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
 import { StorageBrowserView } from './storage_browser_view.js';
 
 interface InternalsViewerProps {

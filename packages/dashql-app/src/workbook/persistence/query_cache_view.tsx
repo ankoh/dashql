@@ -3,18 +3,18 @@ import * as styles from './query_cache_view.module.css';
 
 import { List, useListCallbackRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon, TrashIcon, SyncIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon, TrashIcon, SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { ButtonVariant, ButtonSize, IconButton } from '../../ui/foundations/button.js';
+import { ButtonVariant, ButtonSize, IconButton } from '@akohn/dashql-react/components/button';
 import type { QueryResultCacheEntry } from '@akohn/dashql/platform/query/query_result_cache';
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 
 const LOG_CTX = 'query_cache_view';
 

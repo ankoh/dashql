@@ -1,18 +1,18 @@
 import * as React from 'react';
 
 import * as styles from './connection_settings_overlay.module.css';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { OverlaySize } from '../ui/foundations/overlay.js';
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { SymbolIcon } from '../ui/foundations/symbol_icon.js';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useConnectionDraft } from './connection_draft.js';
 import { useConnection, useDispatch } from '@akohn/dashql-react/hooks';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { ToggleSwitch } from '../ui/foundations/toggle_switch.js';
+import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';

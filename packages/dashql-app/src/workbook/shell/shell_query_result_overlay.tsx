@@ -3,12 +3,12 @@ import * as dashql from '@akohn/dashql';
 import icons from '@akohn/dashql-svg-symbols';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ErrorBoundary } from '../../ui/foundations/error_boundary.js';
-import { useFocusTrap } from '../../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '../../ui/foundations/vertical_tabs.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ErrorBoundary } from '@akohn/dashql-react/components/error_boundary';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { VerticalTabs, VerticalTabProps, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
 import { QueryResultDetails } from '../../views/query_result/query_result_details.js';
 import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
 import { QueryProfileView } from '../../views/query_profile/query_profile_view.js';
@@ -16,7 +16,7 @@ import { useQueryProfile } from '../../views/query_profile/engine_profile_view.j
 import { TabHeader } from '../tab_header.js';
 import { getPlanResultText } from '../../shell/shell_result.js';
 import { detectPlanEngine } from '../../views/query_profile/plan_engine.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import * as styles from './shell_query_result_overlay.module.css';
 import { useQueryResultTable } from '@akohn/dashql-react/hooks';
 

@@ -3,8 +3,8 @@ import * as React from 'react';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { SnippetBrowser } from './snippets_overlay.js';
 import type { SnippetRegistry } from './snippet_registry.js';
-import { useFocusTrap } from '../../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 

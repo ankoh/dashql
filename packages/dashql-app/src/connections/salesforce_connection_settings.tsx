@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as style from './connection_settings.module.css';
 import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
-import { KeyIcon, PersonIcon } from '../ui/foundations/symbol_icon.js';
+import { KeyIcon, PersonIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection, useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -15,9 +15,9 @@ import {
     TextFieldValidationStatus,
     VALIDATION_ERROR,
     VALIDATION_UNKNOWN,
-} from '../ui/foundations/text_field.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/text_field';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@akohn/dashql/platform/connections/connector_descriptor';

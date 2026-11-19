@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 import * as styles from './status_indicator.module.css';
 import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from '../workbook/scripts/script_connection_picker.module.css';
 
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ConnectionMenu } from '../workbook/scripts/script_connection_picker.js';
 import { useConnectionList, useConnections } from '@akohn/dashql-react/hooks';
 import { agentConnections } from './agent_connections.js';

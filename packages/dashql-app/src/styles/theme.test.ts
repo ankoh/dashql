@@ -6,6 +6,11 @@ import TOKENS_CSS from '@akohn/dashql-react/styles/tokens.css?raw';
 const APP_STYLESHEETS = import.meta.glob<string>([
     '../**/*.css',
 ], { query: '?raw', import: 'default', eager: true });
+// The stylesheets of the components of @akohn/dashql-react follow the same rules
+const COMPONENT_STYLESHEETS = import.meta.glob<string>([
+    '@akohn/dashql-react/components/**/*.css',
+], { query: '?raw', import: 'default', eager: true });
+const STYLESHEETS = { ...APP_STYLESHEETS, ...COMPONENT_STYLESHEETS };
 
 // The named colors that a stylesheet could pick instead of a token
 const NAMED_COLORS = [
@@ -38,9 +43,13 @@ function tokenValues(name: string): [string, string] {
 }
 
 describe('theme', () => {
+    it('reads the stylesheets of the components', () => {
+        expect(Object.keys(COMPONENT_STYLESHEETS).some(path => path.endsWith('button.module.css'))).toBe(true);
+    });
+
     it('keeps the colors of the stylesheets in the theme', () => {
         const violations: string[] = [];
-        for (const [path, css] of Object.entries(APP_STYLESHEETS)) {
+        for (const [path, css] of Object.entries(STYLESHEETS)) {
             for (const { line, property, value } of declarations(css)) {
                 const where = `${path}:${line} ${property}: ${value.trim()}`;
                 if (COLOR_LITERAL.test(value)) {

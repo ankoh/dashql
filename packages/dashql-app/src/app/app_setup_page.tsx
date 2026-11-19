@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { SetupSteps } from './setup_steps.js';
 import { CompactNavBar } from './navbar.js';
 

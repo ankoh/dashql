@@ -2,10 +2,10 @@ import * as React from 'react';
 import * as styles from './data_table.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import type * as core from '@akohn/dashql';
 import { ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, TrackedTask, WithFilterEpoch, ComputationStateVersion } from '@akohn/dashql/platform/compute/computation_types';
-import { RectangleWaveSpinner } from '../../ui/foundations/spinners.js';
+import { RectangleWaveSpinner } from '@akohn/dashql-react/components/spinners';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';

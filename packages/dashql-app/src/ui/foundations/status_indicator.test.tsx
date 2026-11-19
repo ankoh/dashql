@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { IndicatorStatus, StatusDot, StatusIndicator } from './status_indicator.js';
+import { IndicatorStatus, StatusDot, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 
 describe('StatusIndicator', () => {
     let container: HTMLDivElement;

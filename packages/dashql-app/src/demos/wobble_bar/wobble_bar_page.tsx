@@ -7,9 +7,9 @@ import { useLogger } from '../../platform/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
 import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { PaperAirplaneIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { PaperAirplaneIcon } from '@akohn/dashql-react/components/symbol_icon';
 import * as composerStyles from '../../workbook/feed/workbook_composer.module.css';
 import * as styles from './wobble_bar_page.module.css';
 

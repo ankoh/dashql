@@ -7,9 +7,9 @@ import { getProfileOperatorSymbol, PROFILE_OPERATOR_SYMBOL_SIZE, shouldRenderPro
 import { materializeProfileScene, PROFILE_OPERATOR_PORT_INPUT, PROFILE_OPERATOR_PORT_OUTPUT, type ProfileScene, type ProfileSceneOperator } from '../../views/query_profile/profile_scene.js';
 import { computeProfileFitTransform } from '../../views/query_profile/profile_fit.js';
 import { formatCompactBytes, formatCompactCount, formatElapsed, stat, workOf } from '../../views/query_progress/query_progress_format.js';
-import { GraphPort } from '../../ui/graph/graph_port.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import * as graphStyles from '../../ui/graph/graph.module.css';
+import { GraphPort } from '@akohn/dashql-react/components/graph_port';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
 import * as profileStyles from '../../views/query_profile/query_profile_view.module.css';
 import * as styles from './plan_flow_view.module.css';
 

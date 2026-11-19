@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './navbar.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { HoverMode, NavBarButtonWithRef } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { PlatformType, isMacDesktopHost, usePlatformType } from '../platform/platform_type.js';

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import * as styles from './app_settings_view.module.css';
 
-import { XIcon } from '../../ui/foundations/symbol_icon.js';
-import { Button, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ToggleSwitch } from '../../ui/foundations/toggle_switch.js';
-import { SegmentedControl } from '../../ui/foundations/segmented_control.js';
+import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { Button, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
+import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 
 import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router.js';

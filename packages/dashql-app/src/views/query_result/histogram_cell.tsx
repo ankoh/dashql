@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { dataTypeToString } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { COLUMN_SUMMARY_BASELINE_COLOR, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';

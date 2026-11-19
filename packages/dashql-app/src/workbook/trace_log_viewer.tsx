@@ -5,9 +5,9 @@ import { List, useListRef } from 'react-window';
 
 import { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { pollLogVersion, useLogger } from '../platform/logger_provider.js';
-import { observeSize } from '../ui/foundations/size_observer.js';
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { useKeyEvents } from '../utils/key_events.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { LogJsonModal } from '../ui/logs/log_json_modal.js';
 import {
     LogRow,

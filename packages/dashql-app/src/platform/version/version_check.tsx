@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { ReleaseManifest, WebVersionCheck } from './web_version_check.js';
 import { Result } from '../../utils/result.js';
-import { AppHost, getAppHost } from '../native_globals.js';
+import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { ElectronVersionCheck } from './electron_version_check.js';
 
 export enum VersionCheckStatusCode {

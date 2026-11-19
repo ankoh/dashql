@@ -4,7 +4,7 @@ import * as styles from './mostfrequent_cell.module.css';
 
 import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { dataTypeToString } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 import { COLUMN_SUMMARY_BASELINE_COLOR, COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';

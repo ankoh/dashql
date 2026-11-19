@@ -4,9 +4,9 @@ import symbols from '@akohn/dashql-svg-symbols';
 
 import { useConnections } from '@akohn/dashql-react/hooks';
 import { connectionLabelParts } from '../../connections/connection_label.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { ChevronDownIcon } from '../../ui/foundations/symbol_icon.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
 import { useConnectionOrdinals } from '../connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';

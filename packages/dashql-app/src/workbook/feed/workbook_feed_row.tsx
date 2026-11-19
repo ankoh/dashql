@@ -3,13 +3,13 @@ import { flushSync } from 'react-dom';
 import * as styles from './workbook_feed.module.css';
 import * as dashql from '@akohn/dashql';
 
-import type { Icon } from '../../ui/foundations/symbol_icon.js';
-import { PlusIcon } from '../../ui/foundations/symbol_icon.js';
+import type { Icon } from '@akohn/dashql-react/components/symbol_icon';
+import { PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { RowComponentProps } from 'react-window';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import type { getScriptRefs } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';

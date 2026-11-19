@@ -1,10 +1,10 @@
 import * as React from 'react';
 import icons from '@akohn/dashql-svg-symbols';
 
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { OverlaySize } from '../ui/foundations/overlay.js';
-import { VerticalTabs, VerticalTabVariant } from '../ui/foundations/vertical_tabs.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { VerticalTabs, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
 import { LogViewer } from '../ui/logs/log_viewer.js';
 import { ShellQueryViewer } from './shell_query_history.js';
 import { HttpRequestViewer } from '../ui/http/http_request_viewer.js';

@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
-import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
-import { OverlaySize } from '../foundations/overlay.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { LogViewer } from './log_viewer.js';
 
 interface Props {

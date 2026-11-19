@@ -2,17 +2,17 @@ import * as React from 'react';
 import * as styles from './cell_detail_overlay.module.css';
 import * as dashql from '@akohn/dashql';
 
-import { XIcon, ChevronUpIcon, ChevronDownIcon, ScreenFullIcon, ScreenNormalIcon } from '../../ui/foundations/symbol_icon.js';
+import { XIcon, ChevronUpIcon, ChevronDownIcon, ScreenFullIcon, ScreenNormalIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { ButtonSize, IconButton, ButtonVariant } from '../../ui/foundations/button.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { JsonView } from '../../ui/json/json_view.js';
+import { ButtonSize, IconButton, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 import { projectSqlText, ReadonlySqlView } from '../../workbook/editor/readonly_sql_view.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
-import { CopyToClipboardButton } from '../../ui/foundations/clipboard.js';
-import { useKeyEvents } from '../../utils/key_events.js';
+import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { peekFormat } from './format_peek.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../workbook/scripts/script_format.js';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { Button, ButtonVariant } from '../../ui/foundations/button.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import type * as core from '@akohn/dashql';
 import { connectionParamsLabel } from '../../connections/connection_label.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';

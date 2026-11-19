@@ -2,10 +2,10 @@ import * as React from 'react';
 import * as styles from './result_table_overlay.module.css';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { useFocusTrap } from '../../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { QueryResultDetails } from './query_result_details.js';
 import { TableColumnHeader } from './data_table_cell.js';
 

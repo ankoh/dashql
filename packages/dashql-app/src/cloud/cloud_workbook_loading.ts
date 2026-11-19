@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 
 // The steps of loading a version of a published workbook, shown by a card in place of the feed. The version is
 // downloaded, its connections resolved, its query results added to the cache, its scripts and attachments saved and the

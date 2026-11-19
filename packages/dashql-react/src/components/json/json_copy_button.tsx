@@ -6,7 +6,7 @@ import icons from '@akohn/dashql-svg-symbols';
 import { useJsonViewerState } from './json_view_state.js';
 import { useToolVisibility } from './json_tool_state.js';
 import { bigIntToString } from './json_literal.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../../dom/classnames.js';
 
 export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;

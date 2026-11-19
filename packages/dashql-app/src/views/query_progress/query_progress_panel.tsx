@@ -9,8 +9,8 @@ import { QueryProgressFollower, readProgressRecording, type QueryProfileProgress
 import { createProfileLayoutConfig, rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/profile_layout_config';
 import { useDashQLCoreSetup, type DashQLSetupFn } from '../../runtime/core_provider.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DownloadIcon, ScreenFullIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { DownloadIcon, ScreenFullIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { QueryProfileOverlay } from './query_profile_overlay.js';
 import {
     formatCompactBytes,

@@ -11,12 +11,12 @@ import { rotateProfileLayoutOrientation } from '@akohn/dashql/platform/query/pro
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { CodeMirror } from '../workbook/editor/codemirror.js';
 import type { PlatformEventListener } from '../platform/events/event_listener.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
-import { SegmentedControl, SegmentedControlSize } from '../ui/foundations/segmented_control.js';
-import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import * as styles from './plan_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};

@@ -3,7 +3,7 @@ import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 import { vi } from 'vitest';
 
-import { KeyValueListBuilder } from './keyvalue_list.js';
+import { KeyValueListBuilder } from '@akohn/dashql-react/components/keyvalue_list';
 import { LoggerProvider } from '../../platform/logger_provider.js';
 
 describe('KeyValueListBuilder', () => {

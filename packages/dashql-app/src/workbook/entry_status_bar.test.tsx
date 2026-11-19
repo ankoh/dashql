@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { EntryStatusBar, type EntryStatusBarDependencies } from './entry_status_bar.js';
 import { EntryStatusKind } from './entry_status_model.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

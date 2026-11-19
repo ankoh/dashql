@@ -1,12 +1,12 @@
 import * as React from 'react';
 
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
-import { FileDirectoryIcon, FileIcon, PlusIcon, UnlinkIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { FileDirectoryIcon, FileIcon, PlusIcon, UnlinkIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { DashQLShellCommand } from './api.js';
 import type { ExternalDirectoryMode } from '@akohn/dashql/platform/embedded_database';
-import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
+import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import {
     createShellFilesCommand,
     selectPlatformDirectory,

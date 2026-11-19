@@ -1,8 +1,8 @@
 import * as React from 'react';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import * as ActionList from '../ui/foundations/action_list.js';
-import { Button, ButtonSize, ButtonVariant } from '../ui/foundations/button.js';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS } from './connection_status.js';
 import { connectionLabelText, type ConnectionLabelParts } from './connection_label.js';

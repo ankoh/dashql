@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
+import { KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { type ScriptData, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from './script_selection.js';
 import type { ScriptRef } from '@akohn/dashql/platform/workbook/script_types';

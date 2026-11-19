@@ -2,10 +2,10 @@ import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
 import type * as dashql from '@akohn/dashql';
 
-import type { Icon } from '../../ui/foundations/symbol_icon.js';
-import { GraphIcon, LockIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon } from '../../ui/foundations/symbol_icon.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { useRowContextMenu } from '../../ui/foundations/row_context_menu.js';
+import type { Icon } from '@akohn/dashql-react/components/symbol_icon';
+import { GraphIcon, LockIcon, PaperAirplaneIcon, PencilIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
@@ -21,7 +21,7 @@ import { ScriptConnectionPicker, type ScriptConnectionView } from '../scripts/sc
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ScriptMentionTag } from './script_mention_tag.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
 const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');

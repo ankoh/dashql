@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import { VariantKind } from '@akohn/dashql/platform/utils/variant';
 import { TextInput, TextInputValidationStatus } from './text_input.js';
 import { CopyToClipboardAction } from './text_input_action.js';

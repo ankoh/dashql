@@ -3,8 +3,8 @@ import * as React from 'react';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../platform/logger_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
-import { Button } from '../ui/foundations/button.js';
-import { ErrorBoundary } from '../ui/foundations/error_boundary.js';
+import { Button } from '@akohn/dashql-react/components/button';
+import { ErrorBoundary } from '@akohn/dashql-react/components/error_boundary';
 import * as styles from './shell_error_boundary.module.css';
 
 const LOG_CTX = 'standalone_shell';

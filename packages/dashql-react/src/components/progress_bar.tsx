@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './progress_bar.module.css';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 interface ProgressBarProps extends React.HTMLAttributes<HTMLDivElement> {
     progress: number;

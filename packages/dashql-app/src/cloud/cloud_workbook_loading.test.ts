@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import {
     cloudLoadingDetail,
     cloudLoadingDownloaded,

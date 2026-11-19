@@ -8,7 +8,7 @@ import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
-import { VerticalSplit } from './vertical_split.js';
+import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
 
 function dispatchPointerEvent(target: EventTarget, type: string, init: PointerEventInit) {
     const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;

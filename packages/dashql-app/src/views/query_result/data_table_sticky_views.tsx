@@ -5,7 +5,7 @@ import * as styles from './data_table.module.css';
 import type { DataCellData, HeaderNameCellProps, HeaderPlotsCellProps } from './data_table_cell.js';
 import { DataCell, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
 import type { DataTablePortalContainers } from './data_table_portals.js';
-import { ChevronDownIcon, ChevronUpIcon } from '../../ui/foundations/symbol_icon.js';
+import { ChevronDownIcon, ChevronUpIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { arePropsEqualWithStyle } from './memo_props.js';
 
 /// Row header cells of the sticky column only re-render when their own props change

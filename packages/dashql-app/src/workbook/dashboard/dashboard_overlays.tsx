@@ -1,10 +1,10 @@
 import * as React from 'react';
 
 import { useQuery } from '@akohn/dashql-react/hooks';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { ButtonGroup } from '../../ui/foundations/button_group.js';
-import { Overlay, OverlaySize } from '../../ui/foundations/overlay.js';
-import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ChartBuilderOverlay } from '../chart_builder/chart_builder_overlay.js';
 import { ResultTableOverlay } from '../../views/query_result/result_table_overlay.js';
 import { ScriptEditor } from '../scripts/script_editor.js';

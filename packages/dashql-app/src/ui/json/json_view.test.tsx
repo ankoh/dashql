@@ -3,7 +3,7 @@ import * as React from 'react';
 import { act } from '@dashql/browser-test-act';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { JsonView } from './json_view.js';
+import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 
 describe('JsonView array pagination', () => {
     let container: HTMLDivElement;

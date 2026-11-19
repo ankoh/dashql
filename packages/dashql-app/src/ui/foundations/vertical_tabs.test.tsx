@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { groupVerticalTabs, VerticalTabs, VerticalTabVariant, type VerticalTabProps } from './vertical_tabs.js';
+import { groupVerticalTabs, VerticalTabs, VerticalTabVariant, type VerticalTabProps } from '@akohn/dashql-react/components/vertical_tabs';
 
 function tab(tabId: number, group?: string): VerticalTabProps {
     return { tabId, icon: '', labelShort: `Tab ${tabId}`, group };

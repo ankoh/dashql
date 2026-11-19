@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import * as styles from "./action_list.module.css";
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 export interface ListProps extends React.HTMLAttributes<HTMLDivElement> {
     children?: React.ReactElement | React.ReactElement[];

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './button_group.module.css';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 interface ButtonGroupProps extends React.HTMLAttributes<HTMLDivElement> {
     className?: string;

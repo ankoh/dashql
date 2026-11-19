@@ -3,13 +3,13 @@ import symbols from '@akohn/dashql-svg-symbols';
 
 import * as styles from './workbook_connection_buttons.module.css';
 
-import { AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
+import { AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../connections/connection_status.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
 import { connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
-import { LockIcon } from '../../ui/foundations/symbol_icon.js';
+import { LockIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useConnectionLabeler } from '../connection_labels.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';

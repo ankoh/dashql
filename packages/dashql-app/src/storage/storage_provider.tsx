@@ -8,7 +8,7 @@ import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { migrateStorage } from './storage_migration.js';
 import { useAppHandOver } from '../platform/app_hand_over.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 

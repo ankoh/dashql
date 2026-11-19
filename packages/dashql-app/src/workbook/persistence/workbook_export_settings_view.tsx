@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import * as styles from './workbook_export_settings_view.module.css';
-import { ToggleSwitch } from '../../ui/foundations/toggle_switch.js';
+import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 
 export interface WorkbookExportSettings {
     withCatalog: boolean;

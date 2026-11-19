@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 
 import { AppLoadingStatus } from './loading/app_loading_status.js';
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router.js';
-import { getStatusFromProgressCounter, IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { getStatusFromProgressCounter, IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { AppLoadingProgress } from './loading/app_loading_progress.js';
 import { useStorageMigrationStatus } from '../storage/storage_provider.js';

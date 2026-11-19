@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { XIcon } from '../ui/foundations/symbol_icon.js';
+import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { Portal } from '../ui/foundations/portal.js';
-import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { useOverlay } from '../ui/foundations/overlay.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
+import { Portal } from '@akohn/dashql-react/components/portal';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useOverlay } from '@akohn/dashql-react/components/overlay';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import * as styles from './workbook_navigation_drawer.module.css';
 
 interface Props {

@@ -11,7 +11,7 @@ load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 
 package(default_visibility = ["//visibility:public"])
 
-_SOURCES = glob(["src/**/*.json", "src/**/*.ts"])
+_SOURCES = glob(["src/**/*.css", "src/**/*.json", "src/**/*.ts", "src/**/*.tsx"])
 
 copy_to_bin(
     name = "typecheck_inputs",
@@ -27,9 +27,13 @@ typescript_bin.tsc_test(
     data = [
         ":typecheck_inputs",
         "//:node_modules/@akohn/dashql",
+        "//:node_modules/@primer/behaviors",
+        "//:node_modules/@react-hook/resize-observer",
         "//:node_modules/@types/react",
+        "//:node_modules/@types/react-dom",
         "//:node_modules/apache-arrow",
         "//:node_modules/react",
+        "//:node_modules/react-dom",
         "//:node_modules/vitest",
         "//packages/dashql:dep_jsonschema",
         "//packages/dashql:dep_protobuf",
@@ -43,7 +47,8 @@ typescript_bin.tsc_test(
     ],
 )
 
-# The package reaches React, apache-arrow and @akohn/dashql only, and nothing of an app
+# The package reaches React, apache-arrow, @akohn/dashql and the libraries of the components only, nothing of an app; the
+# components reach neither the hooks nor the runtime
 js_test(
     name = "boundary_test",
     data = _SOURCES,

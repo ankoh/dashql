@@ -2,8 +2,8 @@ import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { DownloadIcon } from '../../ui/foundations/symbol_icon.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { DownloadIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { renderVegaLitePng } from '../../ui/vegalite/vegalite_image.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_hook.js';

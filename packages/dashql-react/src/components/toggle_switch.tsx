@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './toggle_switch.module.css';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 
 interface ToggleSwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
     checked: boolean;

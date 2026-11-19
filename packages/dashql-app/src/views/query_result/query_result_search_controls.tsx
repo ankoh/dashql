@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
-import { SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
-import { TextInput } from '../../ui/foundations/text_input.js';
-import { TextInputAction } from '../../ui/foundations/text_input_action.js';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { SearchIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { TextInputAction } from '@akohn/dashql-react/components/text_input_action';
 import type { ResultSearchState } from '@akohn/dashql/platform/compute/computation_types';
 import * as styles from './query_result_search_controls.module.css';
 

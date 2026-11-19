@@ -5,7 +5,8 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "types": [],
     "strict": true,
     "noImplicitAny": true,
@@ -25,5 +26,5 @@
       "@akohn/dashql-jsonschema/*": ["../dashql/dependencies/dashql-jsonschema/*"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

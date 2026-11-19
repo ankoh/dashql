@@ -9,10 +9,10 @@ import { resolveSummaries, type TableComputationState } from '@akohn/dashql/plat
 import { useComputationDispatch, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { useCrossFilters } from './use_cross_filters.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { CellDetailOverlay } from './cell_detail_overlay.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';

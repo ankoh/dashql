@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { DASHQL_VERSION, HYPERDB_WASM_VERSION } from '../globals.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import { ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { FlavorLogo, useRequestedAppFlavor } from '../config/flavor_provider.js';
-import { Tag, TagVariant } from '../ui/foundations/tag.js';
+import { Tag, TagVariant } from '@akohn/dashql-react/components/tag';
 import { ShellInternals } from './internals.js';
 
-import { XIcon } from '../ui/foundations/symbol_icon.js';
+import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import symbols from '@akohn/dashql-svg-symbols';
 import * as styles from './shell_navbar.module.css';
 

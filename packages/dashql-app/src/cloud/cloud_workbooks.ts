@@ -6,7 +6,7 @@ import type { ConnectionParams, WorkbookCloudLink } from '@akohn/dashql/platform
 import { useStorageReader } from '../storage/storage_provider.js';
 import type * as core from '@akohn/dashql';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import {
     cloudLoadingDetail,
     cloudLoadingDownloaded,

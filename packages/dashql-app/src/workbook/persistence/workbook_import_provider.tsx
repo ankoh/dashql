@@ -10,7 +10,7 @@ import { useLogger } from '../../platform/logger_provider.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { WorkbookImportConflictDialog } from './workbook_import_conflict_dialog.js';
 import { WorkbookConnectionImportDialog } from './workbook_connection_import_dialog.js';
-import { AppHost, getAppHost } from '../../platform/native_globals.js';
+import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 
 // The imports of workbooks in the app. The runtime reads a source (a `.dashql` archive, a workbook folder or the

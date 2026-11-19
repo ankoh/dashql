@@ -3,13 +3,13 @@ import * as dashql from '@akohn/dashql';
 
 import type { EditorView } from '@codemirror/view';
 
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
-import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '../../ui/foundations/symbol_icon.js';
-import { TextInput } from '../../ui/foundations/text_input.js';
-import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { DatabaseIcon, FileDirectoryIcon, FileIcon, LibraryIcon, SearchIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { TreeEntry, TreeEntryName } from '@akohn/dashql-react/components/tree_entry';
 import { useEmbeddedDatabaseSetup } from '../../platform/embedded_database_provider.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';

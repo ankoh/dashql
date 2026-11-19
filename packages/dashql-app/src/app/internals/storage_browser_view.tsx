@@ -11,12 +11,12 @@ import {
     FileIcon,
     SyncIcon,
     XIcon,
-} from '../../ui/foundations/symbol_icon.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { TreeEntry, TreeEntryName } from '../../ui/foundations/tree_entry.js';
-import { VerticalScrollShadows } from '../../ui/foundations/vertical_scroll_shadows.js';
-import { observeSize } from '../../ui/foundations/size_observer.js';
-import { classNames } from '../../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { TreeEntry, TreeEntryName } from '@akohn/dashql-react/components/tree_entry';
+import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatBytes } from '../../utils/format.js';
 import { formatRelativeTime } from '../../utils/time_format.js';
 import { useLogger } from '../../platform/logger_provider.js';

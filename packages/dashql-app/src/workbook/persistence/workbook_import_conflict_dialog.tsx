@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import { AnchoredOverlay } from '../../ui/foundations/anchored_overlay.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
-import { Button } from '../../ui/foundations/button.js';
-import { OverlaySize } from '../../ui/foundations/overlay.js';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { Button } from '@akohn/dashql-react/components/button';
+import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { WorkbookImportCard, type WorkbookImportCardDependencies } from './workbook_import_card.js';
 
 import * as styles from './workbook_import_conflict_dialog.module.css';

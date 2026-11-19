@@ -4,15 +4,15 @@ import * as styles from './workbook_status_bar.module.css';
 import { Wobble, WobbleMode, type WobbleGaze } from '../../agent/wobble.js';
 import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import { harnessLabel, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../../ui/foundations/button.js';
-import { XIcon } from '../../ui/foundations/symbol_icon.js';
-import { IndicatorStatus, StatusDot } from '../../ui/foundations/status_indicator.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { IndicatorStatus, StatusDot } from '@akohn/dashql-react/components/status_indicator';
 import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
 import { useWorkbookLog } from './workbook_log.js';
 import { getLogLevelName, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import { formatLogTimestamp } from '../../ui/logs/log_viewer.js';
 import { LogJsonModal } from '../../ui/logs/log_json_modal.js';
-import { AnchorAlignment, AnchorSide } from '../../ui/foundations/anchored_position.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useWorkbookStatus } from './workbook_status_store.js';
 
 /// Where the bar stands

@@ -11,11 +11,11 @@ import {
     DashQLScannerDecorationUpdateEffect,
     DashQLStandaloneScannerDecorationPlugin,
 } from '../workbook/editor/dashql_decorations_standalone.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
-import { AlertIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { CopyToClipboardButton } from '../ui/foundations/clipboard.js';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { AlertIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { buildShareUrl, encodeShareScript } from './shell_share.js';
 import * as styles from './share_dialog.module.css';
 

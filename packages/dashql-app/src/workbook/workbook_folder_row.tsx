@@ -2,10 +2,10 @@ import * as React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { AnchorAlignment, AnchorSide } from '../ui/foundations/anchored_position.js';
-import { AnchoredOverlay } from '../ui/foundations/anchored_overlay.js';
-import * as ActionList from '../ui/foundations/action_list.js';
-import { ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
+import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
+import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import {
     ChevronDownIcon,
     ChevronRightIcon,
@@ -15,10 +15,10 @@ import {
     PlusIcon,
     SymbolIcon,
     TrashIcon,
-} from '../ui/foundations/symbol_icon.js';
-import { NameInput } from '../ui/foundations/name_input.js';
-import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '../ui/foundations/row_context_menu.js';
-import { classNames } from '../utils/classnames.js';
+} from '@akohn/dashql-react/components/symbol_icon';
+import { NameInput } from '@akohn/dashql-react/components/name_input';
+import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import type { WorkbookTreeFolder } from '@akohn/dashql/platform/storage/workbook_tree';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import * as styles from './workbook_workbench_sidebar.module.css';

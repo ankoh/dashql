@@ -1,14 +1,14 @@
 import * as React from 'react';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { DownloadIcon, LockIcon, XIcon } from '../ui/foundations/symbol_icon.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { DownloadIcon, LockIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import * as styles from './cloud_preview_actions.module.css';
 import { useCloudWorkbooks } from './cloud_workbooks.js';
 import { setCloudWorkbookLoading, useCloudWorkbookLoading, type CloudLoadingStepId } from './cloud_workbook_loading.js';
 import { SetupSteps } from '../app/setup_steps.js';
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 
 // The bar of a read-only look at a published workbook: it says that the workbook is read-only next to Execute All, and
 // offers Import where Share and Export are. A card takes the place of the feed while a version is loaded.

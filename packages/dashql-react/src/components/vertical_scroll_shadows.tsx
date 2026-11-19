@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import * as styles from './vertical_scroll_shadows.module.css';
 
 const SCROLL_EDGE_TOLERANCE = 1;

@@ -14,7 +14,8 @@ Please consult relevant docs in that directory before making changes.
 
 - Writing a component (read before writing a React component on the runtime: a component shows a model and plain
   props and imports nothing of the runtime, the model hooks of `@akohn/dashql-react` (`packages/dashql-react`) bind the
-  runtime, parts that read the runtime come in as slots; the recipe, the boundary test, fake models in tests)
+  runtime, parts that read the runtime come in as slots, shared building blocks are in
+  `@akohn/dashql-react/components`; the recipe, the boundary test, fake models in tests)
     - `docs/agents/writing_components.md`
 
 - Formatting

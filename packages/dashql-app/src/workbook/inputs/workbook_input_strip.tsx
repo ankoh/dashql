@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import { WorkbookInputCard } from './workbook_input_card.js';

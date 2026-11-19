@@ -8,7 +8,7 @@ import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from '../../platform/events/event.js';
-import { AppHost, getAppHost } from '../../platform/native_globals.js';
+import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { importConflictOf, importedWorkbook, useWorkbookImport } from '../../workbook/persistence/workbook_import_provider.js';
 import {

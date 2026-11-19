@@ -1,10 +1,10 @@
 import * as dashql from '@akohn/dashql';
 import * as React from 'react';
 
-import * as baseStyles from '../ui/foundations/banner_page.module.css';
+import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './core_panic_overlay.module.css';
 
-import { Button, ButtonVariant } from '../ui/foundations/button.js';
+import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { useAppRestart } from '../platform/app_hand_over.js';
 import { useLogger } from '../platform/logger_provider.js';
 

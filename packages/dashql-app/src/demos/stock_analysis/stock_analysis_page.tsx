@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../platform/logger_provider.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { VegaLiteChart } from '../../ui/vegalite/vegalite_chart.js';
 import { arrowTableToRows } from '../../ui/vegalite/vegalite_rows.js';
 import { useDemoDataSource, type DemoDataSource } from '../shared/data_source.js';

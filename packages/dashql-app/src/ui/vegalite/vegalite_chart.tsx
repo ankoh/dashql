@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 import type { View } from 'vega';
 
-import { observeSize } from '../foundations/size_observer.js';
+import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { loadVega, type VegaModules } from './vegalite_loader.js';
 import { createEmbedOptions, resolveChartColors, type ChartColors } from './vegalite_theme.js';
 import { useColorScheme } from '../../config/color_scheme.js';

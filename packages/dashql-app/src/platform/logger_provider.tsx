@@ -2,12 +2,13 @@ import * as React from 'react';
 
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { WebLogger } from './web_logger.js';
+import { LoggerContext, useLogger } from '@akohn/dashql-react/logger';
 
-const LOGGER_CTX = React.createContext<Logger | null>(null);
 let GLOBAL_LOGGER: Logger | null;
 export function getGlobalLogger(): Logger | null { return GLOBAL_LOGGER; }
 
-export const useLogger = () => React.useContext(LOGGER_CTX)!;
+// The context belongs to @akohn/dashql-react, its components log through it
+export { useLogger };
 
 type Props = {
     children: React.ReactElement | React.ReactElement[];
@@ -20,9 +21,9 @@ export const LoggerProvider: React.FC<Props> = (props: Props) => {
         return logger;
     }, []);
     return (
-        <LOGGER_CTX.Provider value={logger}>
+        <LoggerContext.Provider value={logger}>
             {props.children}
-        </LOGGER_CTX.Provider>
+        </LoggerContext.Provider>
     )
 };
 

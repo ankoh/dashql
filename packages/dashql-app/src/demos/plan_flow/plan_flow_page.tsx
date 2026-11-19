@@ -5,8 +5,8 @@ import { replayProgressRecording } from '@akohn/dashql/platform/query/query_prog
 import { ProfileExecutionState } from '@akohn/dashql/platform/query/profile_execution_state';
 import { createProfileLayoutConfig } from '@akohn/dashql/platform/query/profile_layout_config';
 import { DashQLCoreProvider, useDashQLCore } from '../../runtime/core_provider.js';
-import { SegmentedControl, SegmentedControlSize } from '../../ui/foundations/segmented_control.js';
-import { Button, ButtonSize, ButtonVariant } from '../../ui/foundations/button.js';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { PlanFlowView } from './plan_flow_view.js';
 import { TPCH_Q3_RECORDING } from './tpch_q3_recording.js';
 import * as styles from './plan_flow_page.module.css';

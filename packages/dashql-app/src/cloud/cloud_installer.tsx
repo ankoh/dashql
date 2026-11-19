@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as styles from './cloud_installer.module.css';
 
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../ui/foundations/status_indicator.js';
-import { SyncIcon } from '../ui/foundations/symbol_icon.js';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
+import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 import {
     CLOUD_SCHEMA,
     inspectCloudStore,

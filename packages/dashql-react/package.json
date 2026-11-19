@@ -8,6 +8,8 @@
   "exports": {
     "./fonts/*.css": "./fonts/*.css",
     "./styles/*.css": "./styles/*.css",
+    "./components/*.css": "./src/components/*.css",
+    "./components/*": "./src/components/*.tsx",
     "./*": "./src/*.ts"
   }
 }

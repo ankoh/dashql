@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import * as ActionList from '../ui/foundations/action_list.js';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '../ui/foundations/button.js';
-import { useFocusTrap } from '../ui/foundations/focus.js';
-import { Overlay, OverlaySize } from '../ui/foundations/overlay.js';
-import { FileDirectoryIcon, FileIcon, XIcon } from '../ui/foundations/symbol_icon.js';
-import { TextInput } from '../ui/foundations/text_input.js';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
+import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { FileDirectoryIcon, FileIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { TextInput } from '@akohn/dashql-react/components/text_input';
 import type { PlatformFile } from '../platform/file/file.js';
 import * as styles from './filesystem_mount_dialog.module.css';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { classNames } from '../../utils/classnames.js';
+import { classNames } from '../dom/classnames.js';
 import icons from '@akohn/dashql-svg-symbols';
 import { IconButton, ButtonVariant } from './button.js';
 

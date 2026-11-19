@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { classNames } from '../utils/classnames.js';
+import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 import * as styles from './navbar_button.module.css';
 import { RouteContext } from './router.js';

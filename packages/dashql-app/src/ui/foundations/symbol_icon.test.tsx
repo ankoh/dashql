@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { CheckIcon, LibraryIcon, SymbolIcon, XIcon } from './symbol_icon.js';
+import { CheckIcon, LibraryIcon, SymbolIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 describe('SymbolIcon', () => {
     let container: HTMLDivElement;

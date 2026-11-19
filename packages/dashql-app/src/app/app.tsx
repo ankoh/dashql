@@ -6,7 +6,7 @@ import { AppConfigProvider, useAppConfig } from '../config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppLoadingPage } from './app_loading_page.js';
 import type { AppLoadingProgress } from './loading/app_loading_progress.js';
-import { IndicatorStatus } from '../ui/foundations/status_indicator.js';
+import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';

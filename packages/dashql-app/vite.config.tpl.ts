@@ -325,6 +325,9 @@ export default vite.defineConfig(({ mode, command }) => {
                 // The script of the core batch worker, for pages that start it from a blob: URL (the embed)
                 { find: /^@akohn\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },
                 { find: /^@akohn\/dashql-react\/((?:fonts|styles)\/.*\.css(?:\?.*)?)$/, replacement: path.join(REACT_PATH, '$1') },
+                // The components are .tsx with their stylesheets, the other modules .ts, like the exports of the package
+                { find: /^@akohn\/dashql-react\/(components\/.+\.css(?:\?.*)?)$/, replacement: path.join(REACT_PATH, 'src/$1') },
+                { find: /^@akohn\/dashql-react\/(components\/.+)$/, replacement: path.join(REACT_PATH, 'src/$1.tsx') },
                 { find: /^@akohn\/dashql-react\/(.+)$/, replacement: path.join(REACT_PATH, 'src/$1.ts') },
                 { find: /^@akohn\/dashql\/(runtime|platform)\/(.+)$/, replacement: path.join(DASHQL_PATH, 'src/$1/$2.ts') },
                 { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(DASHQL_WASM_PATH, '$1') },
