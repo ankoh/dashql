@@ -11,7 +11,7 @@ import { buildSnippetRegistry } from '../snippets/snippet_registry.js';
 import { LoggerProvider } from '../../host/logger_provider.js';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { ComposerMode, type ConnectHarness, DASHQL_CLI_COMMAND } from '../../agent/agent_connect.js';
 import { DASHQL_CLI_VERSION } from '../../globals.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';

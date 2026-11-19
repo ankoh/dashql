@@ -11,7 +11,7 @@ import type { QueryResultCacheEntry } from '@akohn/dashql/platform/query/query_r
 import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { formatBytes } from '@akohn/dashql-react/format/format';
-import { formatRelativeTime } from '../../utils/time_format.js';
+import { formatRelativeTime } from '@akohn/dashql-react/format/time_format';
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { useLogger } from '../../host/logger_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';

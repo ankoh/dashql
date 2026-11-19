@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookCommands, type WorkbookCommandsDependencies } from './workbook_commands.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookViewMode } from '../workbook_view_mode.js';
 
 describe('global workbook execution feedback', () => {

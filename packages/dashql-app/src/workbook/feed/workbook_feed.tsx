@@ -61,10 +61,10 @@ import {
     usePickScriptConnection,
     type ScriptConnectionView,
 } from '../scripts/script_connection_picker.js';
-import { useConnectionLabeler } from '../connection_labels.js';
+import { useConnectionLabeler } from '../connections/connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
 import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';

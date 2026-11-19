@@ -4,10 +4,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { CompositeStorageBackend } from '../storage/composite_storage_backend.js';
+import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
 import { WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { scriptSelectionOf } from './scripts/script_selection.js';
+import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });

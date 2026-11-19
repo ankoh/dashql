@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../connections/connection_label.js';
+import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { useConnectionList } from '@akohn/dashql-react/hooks';
 
 /// The ordinals that tell connections of the same connector apart, from the list of the connections of the runtime.

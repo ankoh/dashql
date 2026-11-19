@@ -18,7 +18,7 @@ import { insertMentionAtCursor } from '../editor/editor_focus.js';
 import { SCRIPT_REFERENCE_PREFIX } from './script_references.js';
 import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
-import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { collectDraftInputs, sameInputs, workbookInputLiteral, type WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';

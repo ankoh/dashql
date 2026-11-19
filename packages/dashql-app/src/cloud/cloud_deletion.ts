@@ -4,7 +4,7 @@ import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connec
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
-import { useDetachConnection } from '../workbook/workbook_connection_detach.js';
+import { useDetachConnection } from '../workbook/connections/workbook_connection_detach.js';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 

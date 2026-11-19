@@ -11,7 +11,7 @@ import { ConnectionSettingsOverlay } from '../../connections/connection_settings
 import { connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
 import { LockIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
-import { useConnectionLabeler } from '../connection_labels.js';
+import { useConnectionLabeler } from '../connections/connection_labels.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 

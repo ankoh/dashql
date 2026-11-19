@@ -8,7 +8,7 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
-import { useConnectionOrdinals } from '../connection_labels.js';
+import { useConnectionOrdinals } from '../connections/connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 

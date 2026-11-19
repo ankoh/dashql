@@ -7,7 +7,7 @@ import { WorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 import { Button } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { DBCOM_FLAVOR } from '../../config/flavors.js';
 import { scriptSelectionOf } from '../scripts/script_selection.js';

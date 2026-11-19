@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { connectionLabelParts } from '../connections/connection_label.js';
-import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
-import { SELECT_WORKBOOK } from '../app/router.js';
+import { connectionLabelParts } from '../../connections/connection_label.js';
+import { WorkbookSetupStatus } from '../../app/loading/workbook_setup_status.js';
+import { SELECT_WORKBOOK } from '../../app/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';

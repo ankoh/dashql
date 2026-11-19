@@ -18,7 +18,7 @@ import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_s
 import { observeSize } from '@akohn/dashql-react/components/size_observer';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatBytes } from '@akohn/dashql-react/format/format';
-import { formatRelativeTime } from '../utils/time_format.js';
+import { formatRelativeTime } from '@akohn/dashql-react/format/time_format';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useStorageReader } from '../storage/storage_provider.js';

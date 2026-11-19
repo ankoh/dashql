@@ -7,7 +7,7 @@ import * as dashql from '@akohn/dashql';
 import { ConnectorType, CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { fakeQueryModel, fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';

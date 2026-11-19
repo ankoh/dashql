@@ -26,8 +26,8 @@ import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { useWorkbooks } from '@akohn/dashql-react/hooks';
 import { isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/workbook_folder_row.js';
-import * as sidebarStyles from '../workbook/workbook_workbench_sidebar.module.css';
+import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from '../workbook/navigation/workbook_folder_row.js';
+import * as sidebarStyles from '../workbook/navigation/workbook_workbench_sidebar.module.css';
 import * as styles from './cloud_sidebar.module.css';
 import { CloudRowMenu } from './cloud_row_menu.js';
 import { useCloudRemoval } from './cloud_deletion.js';

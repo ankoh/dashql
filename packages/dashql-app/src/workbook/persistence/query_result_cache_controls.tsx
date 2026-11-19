@@ -4,7 +4,7 @@ import * as styles from './query_result_cache_controls.module.css';
 import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { useRelativeTime } from '../../utils/time_format.js';
+import { useRelativeTime } from '@akohn/dashql-react/format/time_format';
 import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { Tag } from '@akohn/dashql-react/components/tag';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';

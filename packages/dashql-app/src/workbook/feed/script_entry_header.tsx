@@ -8,7 +8,7 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { displayPath } from '../../storage/workbook_locator.js';
 import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
-import { useConnectionLabeler } from '../connection_labels.js';
+import { useConnectionLabeler } from '../connections/connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';

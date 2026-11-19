@@ -20,7 +20,7 @@ import { NameInput } from '@akohn/dashql-react/components/name_input';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import type { WorkbookTreeFolder } from '@akohn/dashql/platform/storage/workbook_tree';
-import * as actionMenuStyles from '../app/action_menu.module.css';
+import * as actionMenuStyles from '../../app/action_menu.module.css';
 import * as styles from './workbook_workbench_sidebar.module.css';
 
 const MoreIcon = SymbolIcon('kebab_horizontal');

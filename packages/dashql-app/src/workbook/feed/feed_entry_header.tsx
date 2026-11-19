@@ -9,7 +9,7 @@ import { useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { queryIsDone, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { useOptionalRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';

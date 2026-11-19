@@ -8,7 +8,7 @@ import type { ScriptRef } from '@akohn/dashql/platform/workbook/script_types';
 import { useLogger } from '../../host/logger_provider.js';
 import { useRouteContext } from '../../app/router.js';
 import { useConnectionViews, useOptionalRuntime, useScriptRun, useWorkbook } from '@akohn/dashql-react/hooks';
-import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../workbook_connection_attention.js';
+import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../connections/workbook_connection_attention.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 
 const LOG_CTX = "workbook_commands";

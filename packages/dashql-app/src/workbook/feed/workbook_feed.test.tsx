@@ -10,7 +10,7 @@ import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { WorkbookConnectionAttentionContext } from '../workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
 import { LoggerProvider } from '../../host/logger_provider.js';
