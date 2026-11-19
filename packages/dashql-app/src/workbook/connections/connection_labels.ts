@@ -1,22 +1,19 @@
 import * as React from 'react';
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { connectionLabelParts, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
+import { connectionLabelOf, connectionLabels, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { useConnectionList } from '@akohn/dashql-react/hooks';
 
-/// The ordinals that tell connections of the same connector apart, from the list of the connections of the runtime.
-/// The list changes when connections come, go or are used by other workbooks, not with their queries. Views outside of
-/// a runtime (e.g. in tests) number no connections.
-export function useConnectionOrdinals(): ReadonlyMap<string, number> {
+/// The labels of the listed connections by id, numbered by the list of the connections of the runtime. The list changes
+/// when connections come, go, are renamed or are used by other workbooks, not with their queries. Views outside of a
+/// runtime (e.g. in tests) have none.
+export function useConnectionLabels(): ReadonlyMap<string, ConnectionLabelParts> {
     const list = useConnectionList();
-    return React.useMemo(() => connectionOrdinals(list), [list]);
+    return React.useMemo(() => connectionLabels(list), [list]);
 }
 
-/// Label connections after their connectors and their ordinals
-export function useConnectionLabeler(): (database: ConnectionState) => ConnectionLabelParts {
-    const ordinals = useConnectionOrdinals();
-    return React.useCallback(
-        (database: ConnectionState) => connectionLabelParts(database, ordinals.get(database.connectionId) ?? null),
-        [ordinals],
-    );
+/// Label connections with the labels of the list
+export function useConnectionLabeler(): (database: Pick<ConnectionState, 'connectionId' | 'label'>) => ConnectionLabelParts {
+    const labels = useConnectionLabels();
+    return React.useCallback((database: Pick<ConnectionState, 'connectionId' | 'label'>) => connectionLabelOf(database, labels), [labels]);
 }

@@ -1,7 +1,7 @@
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type * as core from '@akohn/dashql';
-import { connectionLabel, connectionLabelParts, connectionOrdinals } from './connection_label.js';
+import { connectionLabelOf, connectionLabels } from './connection_label.js';
 import {
     connectionTreeRowHeight,
     flattenCatalogRows,
@@ -11,41 +11,12 @@ import {
     type CatalogNode,
 } from './connection_tree.js';
 
-describe('connection labels', () => {
-    it('labels the mandatory local database by its connector and Wasm', () => {
-        const database = {
-            connectorType: ConnectorType.HYPER,
-            details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
-        } as unknown as ConnectionState;
-
-        expect(connectionLabel(database)).toBe('Hyper Wasm');
-        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Wasm' });
-    });
-
-    it('keeps the connector and protocol label for remote Hyper databases', () => {
-        const database = {
-            connectorType: ConnectorType.HYPER,
-            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
-        } as unknown as ConnectionState;
-
-        expect(connectionLabel(database)).toBe('Hyper Http');
-        expect(connectionLabelParts(database)).toEqual({ name: 'Hyper', connector: 'Hyper', detail: 'Http' });
-    });
-
-    it('labels a named connection by its name instead of its connector and ordinal', () => {
-        const database = {
-            name: 'Production',
-            connectorType: ConnectorType.HYPER,
-            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
-        } as unknown as ConnectionState;
-
-        expect(connectionLabel(database, 2)).toBe('Production Http');
-        expect(connectionLabelParts(database, 2)).toEqual({ name: 'Production', connector: 'Hyper', detail: 'Http' });
-    });
-
+// The labels themselves come from the runtime (`labels_of_connections` of the tests of the core runtime)
+describe('connection rows', () => {
     it('initially collapses Memory only when another database exists', () => {
         const memory = {
             connectionId: 'memory',
+            embedded: true,
             connectorType: ConnectorType.HYPER,
             details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
         } as unknown as ConnectionState;
@@ -62,9 +33,11 @@ describe('connection labels', () => {
 });
 
 describe('connections of the same connector', () => {
+    const label = (name: string, detail: string) => ({ name, connector: name, detail, text: `${name} ${detail}` });
     const hyper = (connectionId: string, extra: Partial<ConnectionState> = {}) => ({
         connectionId,
         active: true,
+        label: label('Hyper', 'Http'),
         connectorType: ConnectorType.HYPER,
         details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
         ...extra,
@@ -72,6 +45,7 @@ describe('connections of the same connector', () => {
     const trino = (connectionId: string) => ({
         connectionId,
         active: true,
+        label: label('Trino', 'Http'),
         connectorType: ConnectorType.TRINO,
         details: { setupParams: {}, channel: null, connector: { kind: 'trino' } },
     }) as unknown as ConnectionState;
@@ -85,23 +59,26 @@ describe('connections of the same connector', () => {
                 active: database.active,
                 listed: listed[database.connectionId] ?? database.active,
                 ordinal: ordinals[database.connectionId] ?? null,
+                label: ordinals[database.connectionId] == null
+                    ? database.label
+                    : label(`${database.label.name} #${ordinals[database.connectionId]}`, database.label.detail),
             })),
             connectionsByType: [],
         } as unknown as core.ConnectionListView,
     });
 
-    it('labels connections with the ordinals of the list', () => {
+    it('labels connections with the labels of the list', () => {
         const { connections, list } = viewsOf([hyper('a'), trino('t'), hyper('b')], {}, { a: 1, b: 2 });
-        const ordinals = connectionOrdinals(list);
-        expect([...ordinals]).toEqual([['a', 1], ['b', 2]]);
-        expect(connectionLabel(connections.get('b')!, ordinals.get('b'))).toBe('Hyper #2 Http');
-        expect(connectionLabel(connections.get('t')!, ordinals.get('t') ?? null)).toBe('Trino Http');
+        const labels = connectionLabels(list);
+        expect(connectionLabelOf(connections.get('b')!, labels).text).toBe('Hyper #2 Http');
+        expect(connectionLabelOf(connections.get('t')!, labels).text).toBe('Trino Http');
+        // A connection outside of the list keeps its own label
+        expect(connectionLabelOf(hyper('gone'), labels).text).toBe('Hyper Http');
     });
 
     it('lists the connections that the list marks as listed', () => {
         // Inactive connections that no workbook uses are not listed
         const { connections, list } = viewsOf([hyper('a', { active: false }), hyper('b', { active: false })], { a: true });
-        expect(connectionOrdinals(list).size).toBe(0);
         expect(listedConnections(connections, list, []).map(database => database.connectionId)).toEqual(['a']);
     });
 

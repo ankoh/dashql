@@ -174,7 +174,12 @@ that wants the composition would depend on that rather than copy it.
   return `impl Future` and are no trait objects, and the bindings pick the connectors of a module.
 - **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
-  its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,
+  its catalog can be refreshed (`canRefresh`). The labels of connections (`connections/label.rs`) are in the view: the
+  connection carries its `label` and the list of the connections the label with the ordinal that tells the listed
+  connections of a connector apart; an import names the params of its connections (`paramsLabel`). So are whether a
+  connection is the embedded Hyper of the app (`embedded`), a local cloud (`localCloud`, `hyper/local_cloud.rs`) or
+  can be a cloud (`cloudCapable`), whether it has an overview (`supportsOverview`) and the databases of the clouds
+  folder that it attaches (`cloudDatabases`). Sharing params (`sanitizeConnectionParams`,
   `connectionParamsShareEqual`) is `connections/sharing.rs`.
 - **Tokens stay in the runtime and have one owner, the channel of their connection.** The Trino channel holds the
   OAuth token, the Salesforce channel (`salesforce::SharedSalesforceChannel`) the core and the Data Cloud token. The

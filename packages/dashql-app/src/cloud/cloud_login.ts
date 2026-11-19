@@ -3,7 +3,6 @@ import * as React from 'react';
 import { useConnection } from '@akohn/dashql-react/hooks';
 import { connectionParamsWithoutDraftRows } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { isLocalCloud } from '../connections/cloud_connection.js';
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useAppConfig } from '../config/app_config.js';
@@ -54,7 +53,7 @@ export function connectionError(connection: ConnectionState): string | null {
 export function useLocalCloudAutoLogin(cloud: ConnectionState | null, login: CloudLogin): void {
     const loggedIn = React.useRef<string | null>(null);
     React.useEffect(() => {
-        if (cloud == null || !isLocalCloud(cloud.params) || cloud.connectionHealth !== ConnectionHealth.NOT_STARTED) return;
+        if (cloud == null || !cloud.localCloud || cloud.connectionHealth !== ConnectionHealth.NOT_STARTED) return;
         if (loggedIn.current === cloud.connectionId) return;
         loggedIn.current = cloud.connectionId;
         void login.login();

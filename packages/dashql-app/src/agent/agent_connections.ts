@@ -2,7 +2,6 @@ import type * as core from '@akohn/dashql';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { SessionConnections } from '@akohn/dashql/platform/session/workbook_journal';
 
-import { connectionLabelParts, connectionLabelText } from '../connections/connection_label.js';
 import { listedConnections } from '../connections/connection_tree.js';
 
 /// What the user ticked in the menu of the agent: true for a ticked connection, false for an unticked one
@@ -23,6 +22,6 @@ export function agentConnections(
     const listed = listedConnections(connections, list, []);
     const allowed = listed
         .filter(connection => isAllowed(connection.connectionId))
-        .map(connection => ({ connectionId: connection.connectionId, name: connectionLabelText(connectionLabelParts(connection)) }));
+        .map(connection => ({ connectionId: connection.connectionId, name: connection.label.text }));
     return { listed: listed.length, allowed: { connections: allowed } };
 }

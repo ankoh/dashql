@@ -1,7 +1,6 @@
 import * as React from 'react';
 
-import { isLocalCloud, useSetCloudConnection } from '../connections/cloud_connection.js';
-import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { useSetCloudConnection } from '../connections/cloud_connection.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useDeleteConnection } from '../connections/connection_deletion.js';
 import { useDetachConnection } from '../workbook/connections/workbook_connection_detach.js';
@@ -42,11 +41,11 @@ export interface CloudRemoval {
 }
 
 /// Remove a cloud from the menus of the cloud: delete a local cloud, stop using any other as a cloud
-export function useCloudRemoval(connectionId: string, params: ConnectionParams | null | undefined, onRemoved?: () => void): CloudRemoval {
+export function useCloudRemoval(connectionId: string, localCloud: boolean, onRemoved?: () => void): CloudRemoval {
     const setCloud = useSetCloudConnection();
     const deleteLocalCloud = useDeleteLocalCloud();
     const logger = useLogger();
-    if (!isLocalCloud(params)) {
+    if (!localCloud) {
         return { deletes: false, text: 'Stop using as cloud', run: () => { setCloud(connectionId, false); onRemoved?.(); } };
     }
     return {

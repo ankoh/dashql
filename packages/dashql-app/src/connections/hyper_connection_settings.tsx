@@ -28,8 +28,6 @@ import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { DEFAULT_HYPER_ENDPOINT } from '@akohn/dashql/platform/connections/connection_params';
-import { isHyperWasmConnection } from './connection_label.js';
-import { isLocalCloud } from './cloud_connection.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -115,7 +113,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = protocol === "V3_GRPC" && !isDesktopHost();
     // The app holds a single connection to the embedded Hyper, connections don't switch between it and a server. A local
     // cloud runs on the embedded Hyper as well.
-    const embedded = connectionState != null && (isHyperWasmConnection(connectionState) || isLocalCloud(connectionState.params));
+    const embedded = connectionState != null && (connectionState.embedded || connectionState.localCloud);
     // A connection to the Hyper of a link takes its endpoint from the link, it doesn't switch to another protocol
     const linked = protocol === "V3_HTTP_LINK";
     const protocols: connection.HyperProtocol[] = embedded

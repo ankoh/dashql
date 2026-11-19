@@ -20,7 +20,6 @@ import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
@@ -34,6 +33,7 @@ type Registry = ReadonlyMap<string, ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dashql: core.DashQL;
 let database: HyperDB;
 let dispose: () => Promise<void>;
 /// The session of the Hyper server
@@ -42,7 +42,7 @@ let connection: HyperDBConnection;
 let localCloud: HyperDBConnection;
 
 beforeAll(async () => {
-    await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    dashql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-setup');
     database = test.database;
     dispose = test.dispose;
@@ -62,11 +62,14 @@ afterAll(async () => {
 /// A Hyper connection of the runtime, a server unless a local cloud
 function hyperConnection(connectionId: string, health: ConnectionHealth, local = false, setupError?: string): ConnectionState {
     const params = local
-        ? createLocalCloudParams() as unknown as { hyper: Record<string, unknown> }
+        ? dashql.localCloudParams<{ hyper: Record<string, unknown> }>()
         : { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484' } };
     return {
         connectionId,
         name: local ? 'Trial' : 'Server',
+        label: { name: local ? 'Trial' : 'Server', connector: 'Hyper', detail: local ? 'Wasm' : 'Http', text: local ? 'Trial Wasm' : 'Server Http' },
+        localCloud: local,
+        cloudCapable: true,
         connectorType: ConnectorType.HYPER,
         details: { setupParams: params.hyper, channel: null, healthCheckError: setupError ? { message: setupError } : null, connector: { kind: 'hyper' } },
         params,

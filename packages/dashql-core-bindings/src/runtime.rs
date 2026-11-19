@@ -1453,6 +1453,14 @@ impl Runtime {
         dashql_core_runtime::connections::SALESFORCE_CATALOG_DATABASE.to_string()
     }
 
+    /// The params of a new local cloud: a connection of the embedded Hyper whose session attaches only the database of
+    /// the local cloud, see docs/design/cloud.md
+    #[wasm_bindgen(js_name = localCloudParams, unchecked_return_type = "Record<string, unknown>")]
+    pub fn local_cloud_params() -> Result<JsValue, JsError> {
+        let params = dashql_core_runtime::hyper::local_cloud::local_cloud_params();
+        JsonValue(serde_json::Value::Object(params.to_object())).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
     /// The Hyper Cloud database of a Database.com connection that names none
     #[wasm_bindgen(js_name = hyperCloudDefaultDatabaseName)]
     pub fn hyper_cloud_default_database_name() -> String {

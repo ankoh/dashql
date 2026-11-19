@@ -17,7 +17,6 @@ import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { connectionLabelParts, connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
 import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { useShellFiles } from '../../shell/terminal/filesystem_dialog.js';
@@ -25,6 +24,7 @@ import { createExamplesCommand } from '../../shell/terminal/shell_examples.js';
 import { splitShellScript } from '../../shell/terminal/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
+import type * as core from '@akohn/dashql';
 import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
 
 const LOG_CTX = 'workbook_shell_page';
@@ -42,13 +42,15 @@ interface Props {
     workbookName?: string | null;
     /// The connection the shell runs on
     connectionId: string;
-    /// The ordinal that tells the connection apart from others of its connector, see `connectionOrdinals`
+    /// The ordinal that tells the connection apart from others of its connector in the list of the connections
     ordinal?: number | null;
+    /// The label of the connection in the list of the connections, with its ordinal
+    label?: core.ConnectionLabel | null;
     active: boolean;
     dependencies?: WorkbookShellPageDependencies;
 }
 
-export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, connectionId, ordinal = null, active, dependencies = DEFAULT_DEPENDENCIES }) => {
+export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, connectionId, ordinal = null, label = null, active, dependencies = DEFAULT_DEPENDENCIES }) => {
     const ResultOverlay = dependencies.ShellQueryResultOverlay;
     const activeRef = React.useRef(active);
     activeRef.current = active;
@@ -100,7 +102,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     };
     const connectorName = (connection == null ? undefined : connectorInfoOf(connection))?.names.displayShort ?? '';
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
-    const shellName = connection == null ? 'Shell' : `${connectionLabelText(connectionLabelParts(connection, ordinal))} Shell`;
+    const shellName = connection == null ? 'Shell' : `${(label ?? connection.label).text} Shell`;
     const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
         connection?.connectorType ?? ConnectorType.HYPER,
@@ -109,7 +111,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     // The shell mounts files into the embedded Hyper that a Hyper WASM connection queries.
     // The mounts belong to the shell, they are removed when the shell closes or switches the connection.
     const database = useComputeDatabase();
-    const mountsFiles = connection != null && isHyperWasmConnection(connection);
+    const mountsFiles = connection?.embedded ?? false;
     const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
     const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
     React.useEffect(() => {

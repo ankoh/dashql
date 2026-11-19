@@ -3,7 +3,6 @@ import * as React from 'react';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { embeddedCloudDatabases } from '@akohn/dashql/platform/connections/hyper/local_cloud';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
@@ -42,15 +41,14 @@ export function useDeleteConnection(): DeleteConnection {
         const hyper = database.connectorType === ConnectorType.HYPER ? { channel: runtime.channel<HyperDatabaseChannel>(database) } : null;
         // The runtime refuses to delete a connection that workbooks use, its databases stay then
         const deleted = (runtime.store.get('connection', connectionId)?.workbooks ?? []).length === 0;
-        const attached = hyper == null || !deleted ? [] : embeddedCloudDatabases(database.params != null && 'hyper' in database.params ? database.params.hyper : null);
+        const attached = hyper == null || !deleted ? [] : database.cloudDatabases;
         // The session detaches the databases when it closes, the deletion closes it without waiting
         if (attached.length > 0) await hyper?.channel?.close().catch(() => {});
         runtime.dispatch({ connection: connectionId }, { kind: 'deleteConnection' });
         if (attached.length === 0 || setupEmbeddedDatabase == null) return;
 
         const others = [...connectionsOf(runtime).values()].filter(other => other.connectionId !== connectionId);
-        const attachedElsewhere = new Set(others.flatMap(other => embeddedCloudDatabases(other.params != null && 'hyper' in other.params ? other.params.hyper : null)
-            .map(database => database.path)));
+        const attachedElsewhere = new Set(others.flatMap(other => other.cloudDatabases.map(database => database.path)));
         await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), attached.map(database => database.path).filter(path => !attachedElsewhere.has(path)), logger);
     }, [logMetrics, logger, runtime, setupEmbeddedDatabase]);
 }
@@ -78,7 +76,7 @@ export function useDropAllCloudDatabases(): () => Promise<void> {
         const paths = new Set<string>();
         // Outside the runtime, e.g. in a test of the settings, there are none
         for (const connection of connectionsOf(runtime).values()) {
-            const attached = embeddedCloudDatabases(connection.params != null && 'hyper' in connection.params ? connection.params.hyper : null);
+            const attached = connection.cloudDatabases;
             if (attached.length === 0) continue;
             const channel = connection.connectorType === ConnectorType.HYPER ? runtime?.channel<HyperDatabaseChannel>(connection) ?? null : null;
             await channel?.close().catch(() => {});

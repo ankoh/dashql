@@ -3,7 +3,7 @@ import symbols from '@akohn/dashql-svg-symbols';
 
 import { useConnection, useConnectionList } from '@akohn/dashql-react/hooks';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals } from './connection_label.js';
+import { connectionLabelOf, connectionLabels } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
@@ -33,8 +33,8 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
         if (connection == null) onClose();
     }, [connection == null, onClose]);
     if (connection == null) return null;
-    const label = connectionLabelParts(connection, connectionOrdinals(list).get(connectionId) ?? null);
-    const labelText = connectionLabelText(label);
+    const label = connectionLabelOf(connection, connectionLabels(list));
+    const labelText = label.text;
     return (
         <div className={styles.container}>
             <section className={styles.page} aria-label={`Overview of ${labelText}`}>

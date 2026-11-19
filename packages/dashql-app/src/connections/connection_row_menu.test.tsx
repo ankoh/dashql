@@ -26,6 +26,8 @@ function database(connectorType: ConnectorType = ConnectorType.HYPER): Connectio
         connectionId: 'database-1',
         connectionHealth: ConnectionHealth.ONLINE,
         connectorType,
+        label: trino ? { name: 'Trino', connector: 'Trino', detail: 'Http', text: 'Trino Http' } : { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
+        embedded: !trino,
         details: { setupParams: {}, channel: null, connector: { kind: trino ? 'trino' : 'hyper' } },
         params: trino ? { trino: { endpoint: 'https://trino.example' } } : { hyper: {} },
         catalogUpdates: {

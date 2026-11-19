@@ -20,7 +20,6 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouterNavigate } from '../app/router.js';
-import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
@@ -159,12 +158,12 @@ const CloudRow: React.FC<CloudRowProps> = ({ cloud, selected, onOpen }) => {
     const contextMenu = useRowContextMenu();
     const connectorIcon = useConnectorIcon();
     const { openSetup } = useClouds();
-    const removal = useCloudRemoval(cloud.connectionId, cloud.connection.params);
+    const removal = useCloudRemoval(cloud.connectionId, cloud.connection.localCloud);
     // The local cloud needs no credentials, it logs in without a click
     const login = useCloudLogin(cloud.connectionId);
     useLocalCloudAutoLogin(cloud.connection, login);
     const health = cloud.connection.connectionHealth;
-    const name = connectionLabel(cloud.connection);
+    const name = cloud.connection.label.text;
     const count = cloud.stats?.workbooks ?? null;
     return (
         <li

@@ -4,7 +4,6 @@ import * as styles from './cloud_installer.module.css';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { TrashIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { isLocalCloud } from '../connections/cloud_connection.js';
 import { CloudInstaller } from './cloud_installer.js';
 import { cloudDatabaseOf, useCloudQuery } from './cloud_query.js';
 import { useCloudState } from './cloud_state.js';
@@ -25,7 +24,7 @@ export function CloudConnectionInstaller(props: CloudConnectionInstallerProps): 
     const query = useCloudQuery(cloud.connectionId)!;
     const database = cloudDatabaseOf(cloud.params);
     const options = React.useMemo(() => ({ database }), [database]);
-    const local = isLocalCloud(cloud.params);
+    const local = cloud.localCloud;
     const [installation, setInstallation] = React.useState<CloudInstallation | null>(null);
     // A reset of the local cloud shows a new installer
     const [resets, setResets] = React.useState(0);

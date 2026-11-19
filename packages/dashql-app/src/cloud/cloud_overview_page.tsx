@@ -41,7 +41,6 @@ import { formatTimeDifference } from '@akohn/dashql-react/format/format';
 import { startsRowDrag } from '../workbook/navigation/workbook_folder_row.js';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
@@ -124,7 +123,7 @@ export const CloudOverviewPage: React.FC<Props> = ({ connectionId, onClose, depe
     if (cloud == null) return null;
     return (
         <div className={styles.container}>
-            <section className={styles.page} aria-label={`Overview of the cloud ${connectionLabel(cloud.connection)}`} data-testid="cloud-overview">
+            <section className={styles.page} aria-label={`Overview of the cloud ${cloud.connection.label.text}`} data-testid="cloud-overview">
                 <CloudHeader cloud={cloud} />
                 <CloudSummary cloud={cloud} />
                 {cloud.online && cloud.readable && <CloudBrowser cloud={cloud} useWorkbooks={dependencies.useCloudWorkbooks} />}
@@ -137,7 +136,7 @@ export const CloudOverviewPage: React.FC<Props> = ({ connectionId, onClose, depe
 const CloudHeader: React.FC<{ cloud: CloudState }> = ({ cloud }) => {
     const connectorIcon = useConnectorIcon();
     const { openSetup } = useClouds();
-    const removal = useCloudRemoval(cloud.connectionId, cloud.connection.params);
+    const removal = useCloudRemoval(cloud.connectionId, cloud.connection.localCloud);
     const health = cloud.connection.connectionHealth;
     return (
         <header className={styles.header}>
@@ -145,7 +144,7 @@ const CloudHeader: React.FC<{ cloud: CloudState }> = ({ cloud }) => {
                 <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(cloud.connection))}`} style={CONNECTOR_ICON_STYLE} />
             </svg>
             <h2 className={styles.title}>
-                <span className={styles.title_name}>{connectionLabel(cloud.connection)}</span>
+                <span className={styles.title_name}>{cloud.connection.label.text}</span>
                 <svg className={styles.health} width="8px" height="8px" viewBox="0 0 8 8" role="img" aria-label={CONNECTION_HEALTH_NAMES[health]}>
                     <title>{CONNECTION_HEALTH_NAMES[health]}</title>
                     <circle cx="4" cy="4" r="4" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />
@@ -449,7 +448,7 @@ const CloudBrowser: React.FC<{ cloud: CloudState; useWorkbooks: typeof useCloudW
                         </>
                     ) : (
                         <>
-                            <PathSegment id={TOP_DROP_ID} folderId={null} name={connectionLabel(cloud.connection)} current={folderId == null}
+                            <PathSegment id={TOP_DROP_ID} folderId={null} name={cloud.connection.label.text} current={folderId == null}
                                 dropTarget={dropTarget === TOP_DROP_ID} onOpen={() => openFolder(null)} />
                             {path.map((folder, index) => (
                                 <React.Fragment key={folder.folderId}>

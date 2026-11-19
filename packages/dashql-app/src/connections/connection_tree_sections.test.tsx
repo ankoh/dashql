@@ -28,6 +28,10 @@ function connection(connectionId: string, connector: ConnectorType.HYPER | Conne
         connectionId,
         connectionHealth: ConnectionHealth.ONLINE,
         connectorType: connector,
+        label: connector === ConnectorType.HYPER
+            ? { name: 'Hyper', connector: 'Hyper', detail: 'Http', text: 'Hyper Http' }
+            : { name: 'Trino', connector: 'Trino', detail: 'Http', text: 'Trino Http' },
+        supportsOverview: connector === ConnectorType.HYPER,
         details: connector === ConnectorType.HYPER
             ? { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } }
             : { setupParams: {}, channel: null, connector: { kind: 'trino' } },
@@ -167,7 +171,7 @@ describe('ConnectionTree sections', () => {
     });
 
     describe('cloud connection', () => {
-        const cloud = { ...connection('hyper-cloud', ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484' } } } as unknown as ConnectionState;
+        const cloud = { ...connection('hyper-cloud', ConnectorType.HYPER), params: { hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484' } }, cloudCapable: true } as unknown as ConnectionState;
         const rowIds = () => [...container.querySelectorAll('[data-testid="connection-toggle"]')]
             .map(row => row.closest('[data-connection-id]')!.getAttribute('data-connection-id'));
         const menuItem = () => document.querySelector<HTMLElement>('[data-testid="connection-menu-item"][data-action="cloud"]');

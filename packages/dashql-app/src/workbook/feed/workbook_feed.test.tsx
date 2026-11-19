@@ -317,7 +317,7 @@ describe('Workbook feed composer', () => {
     };
     const onlineConn = {
         connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE,
-        connectorType: ConnectorType.HYPER,
+        connectorType: ConnectorType.HYPER, label: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
         details: { setupParams: null, channel: null, connector: { kind: 'hyper' } },
     } as any;
 

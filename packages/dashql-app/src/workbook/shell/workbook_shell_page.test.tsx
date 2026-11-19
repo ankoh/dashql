@@ -236,6 +236,11 @@ describe('WorkbookShellPage', () => {
         active?: boolean;
     }
 
+    /// The label of the connection in the list of the connections, numbered by its ordinal
+    const labelOf = (ordinal: number | null) => ordinal == null
+        ? null
+        : { name: `Hyper #${ordinal}`, connector: 'Hyper', detail: 'gRPC', text: `Hyper #${ordinal} gRPC` };
+
     function tree(props: PageProps = {}) {
         return (
             <LoggerProvider>
@@ -254,6 +259,7 @@ describe('WorkbookShellPage', () => {
                                                         workbookName={props.workbookName === undefined ? 'My workbook' : props.workbookName}
                                                         connectionId={props.connectionId ?? MAIN}
                                                         ordinal={props.ordinal === undefined ? 2 : props.ordinal}
+                                                        label={labelOf(props.ordinal === undefined ? 2 : props.ordinal)}
                                                         active={props.active ?? true}
                                                     />
                                                 </Capture>

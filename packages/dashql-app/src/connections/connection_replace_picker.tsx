@@ -5,7 +5,7 @@ import * as ActionList from '@akohn/dashql-react/components/action_list';
 import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS } from './connection_status.js';
-import { connectionLabelText, type ConnectionLabelParts } from './connection_label.js';
+import type { ConnectionLabelParts } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import * as styles from './connection_replace_picker.module.css';
@@ -29,7 +29,7 @@ interface Props {
 export const ConnectionReplacePicker: React.FC<Props> = ({ source, candidates, labelOf, onCancel, onConfirm }) => {
     const connectorIcon = useConnectorIcon();
     const [selected, setSelected] = React.useState<string | null>(null);
-    const sourceLabel = connectionLabelText(labelOf(source));
+    const sourceLabel = labelOf(source).text;
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}

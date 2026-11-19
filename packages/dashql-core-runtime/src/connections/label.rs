@@ -1,8 +1,10 @@
 //! The labels of connections, and what kind of Hyper connection a connection is.
 
+use serde_json::Value;
+
 use super::params::string_field;
 use super::{ConnectionParams, ConnectionState, ConnectorType};
-use crate::hyper::local_cloud::embedded_cloud_databases;
+use crate::hyper::local_cloud::{embedded_cloud_databases, LOCAL_CLOUD_DATABASE_ALIAS, LOCAL_CLOUD_DATABASE_PATH};
 
 /// The protocol of the setup params of a Hyper connection, the embedded Hyper without one
 fn hyper_protocol(connection: &ConnectionState) -> &str {
@@ -15,6 +17,28 @@ pub fn is_hyper_wasm_connection(connection: &ConnectionState) -> bool {
     connection.connector_type() == ConnectorType::Hyper
         && hyper_protocol(connection) == "WASM"
         && embedded_cloud_databases(connection.details().setup_params.as_ref()).is_empty()
+}
+
+/// Is a connection a local cloud: a connection of the embedded Hyper that attaches the database of the local cloud?
+pub fn is_local_cloud(params: &ConnectionParams) -> bool {
+    params.connector == ConnectorType::Hyper
+        && embedded_cloud_databases(Some(&params.params))
+            .iter()
+            .any(|database| database.path == LOCAL_CLOUD_DATABASE_PATH && database.alias == LOCAL_CLOUD_DATABASE_ALIAS)
+}
+
+/// Can a connection be a cloud? It has to keep the tables of DashQL: a Hyper server whose credentials the user enters,
+/// Database.com, or the local cloud that keeps them in a database of the browser to try the cloud. The embedded Hyper
+/// itself keeps its database only as long as the window, the credentials of a Hyper link live only in its tab, and
+/// Salesforce Data Cloud and Trino don't write.
+pub fn is_cloud_capable(params: &ConnectionParams) -> bool {
+    match params.connector {
+        ConnectorType::Dbcom => true,
+        ConnectorType::Hyper => {
+            matches!(string_field(&params.params, "protocol"), Some("V3_GRPC" | "V3_HTTP")) || is_local_cloud(params)
+        }
+        ConnectorType::SalesforceDataCloud | ConnectorType::Trino => false,
+    }
 }
 
 /// Does a connection offer an operational overview?
@@ -44,8 +68,14 @@ impl ConnectionLabelParts {
 /// connector, the ordinal tells it apart from other connections of the same connector.
 pub fn connection_label_parts(connection: &ConnectionState, ordinal: Option<u32>) -> ConnectionLabelParts {
     let detail = connection.connector_type().connector().label_detail(connection.details().setup_params.as_ref());
-    let connector = connection.connector_type().connector().display_name();
-    let name = match (connection.name(), ordinal) {
+    label_parts(connection.connector_type(), connection.name(), detail, ordinal)
+}
+
+/// The parts of the label of a connection of a connector, by the name the user gave it, the detail of its connector
+/// and its ordinal
+pub fn label_parts(connector: ConnectorType, name: Option<&str>, detail: &str, ordinal: Option<u32>) -> ConnectionLabelParts {
+    let connector = connector.connector().display_name();
+    let name = match (name, ordinal) {
         (Some(name), _) => name.to_string(),
         (None, Some(ordinal)) => format!("{connector} #{ordinal}"),
         (None, None) => connector.to_string(),
@@ -70,7 +100,10 @@ pub fn connection_params_label(params: &ConnectionParams) -> String {
 }
 
 /// A label for the JSON of connection params, `Connection` for params of no connector
-pub fn connection_params_label_of_json(params: &str) -> String {
-    ConnectionParams::from_json(params)
+pub fn connection_params_label_of_value(params: &Value) -> String {
+    let Value::Object(fields) = params else {
+        return "Connection".to_string();
+    };
+    ConnectionParams::from_object(fields.clone())
         .map_or_else(|_| "Connection".to_string(), |params| connection_params_label(&params))
 }

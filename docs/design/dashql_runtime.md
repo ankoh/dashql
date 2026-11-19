@@ -53,7 +53,7 @@ the module, supplies its I/O and holds the views, see [core_first.md](../agents/
   the core.
 - **`src/platform`** is everything else that more than the app uses. It never imports the runtime.
 - **The app** keeps what only it uses, at its own paths under `packages/dashql-app/src`: the OPFS and composite
-  storage backends, the hooks, the labels of connections, the Hyper links of a tab, the Salesforce mock setup, script
+  storage backends, the hooks, the Hyper links of a tab, the Salesforce mock setup, script
   names and formatting with the app settings, the renames of scripts and attachments, workbook links.
 
 The folders stay flat: a module of the runtime sits in `src/runtime`, one of the platform in `src/platform` or in the
@@ -183,8 +183,8 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | Kind | Id | View |
 |---|---|---|
 | `computation` | table id | The computation of a result: column groups, tasks, filters, orderings, searches, its tables as handles |
-| `connectionList` | `'root'` | The connections in order, whether listed and their ordinals, the ids by connector |
-| `connection` | connection id | Connector, params, draft, details with the channel as a handle, health, status, the setup, catalog updates and version, `catalogId`, the queries, the workbooks that use it, the save, token summaries |
+| `connectionList` | `'root'` | The connections in order, whether listed, their ordinals and their labels with the ordinals, the ids by connector |
+| `connection` | connection id | Connector, params, draft, details with the channel as a handle, health, status, the setup, catalog updates and version, `catalogId`, the queries, the workbooks that use it, the save, token summaries, its label, whether it is the embedded Hyper, a local cloud or can be a cloud, the databases of the clouds folder it attaches |
 | `query` | query id | Status, metadata, metrics, error, the latest progress with the structured progress as FlatBuffers by key, the result table as a handle |
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |

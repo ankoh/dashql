@@ -468,6 +468,12 @@ export class DashQL {
         return this.bindings.Runtime.salesforceCatalogDatabase();
     }
 
+    /// The params of a new local cloud: a connection of the embedded Hyper whose session attaches only the database of
+    /// the local cloud
+    public localCloudParams<P extends object = Record<string, unknown>>(): P {
+        return this.bindings.Runtime.localCloudParams() as P;
+    }
+
     /// The Hyper Cloud database of a Database.com connection that names none
     public hyperCloudDefaultDatabaseName(): string {
         return this.bindings.Runtime.hyperCloudDefaultDatabaseName();

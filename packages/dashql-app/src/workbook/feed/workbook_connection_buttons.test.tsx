@@ -14,6 +14,7 @@ function trino(connectionId: string, health: ConnectionHealth): ConnectionState 
         connectionId,
         connectionHealth: health,
         connectorType: ConnectorType.TRINO,
+        label: { name: 'Trino', connector: 'Trino', detail: 'Http', text: 'Trino Http' },
         params: { trino: { endpoint: 'https://trino.example' } },
         details: { setupParams: { endpoint: 'https://trino.example' }, channel: null, connector: { kind: 'trino' } },
     } as unknown as ConnectionState;

@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { connectionLabelParts } from '../../connections/connection_label.js';
 import { WorkbookSetupStatus } from '../../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../../app/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
@@ -63,7 +62,7 @@ function connectionViews(): Map<string, ConnectionState> {
 }
 
 /// The list of the fake connections: connections that workbooks use are listed, as are active ones, and the listed
-/// connections of a connector are numbered when there are several
+/// connections of a connector are numbered and labeled so when there are several
 function connectionList() {
     const entries = [...state.connections.values()].map(connection => ({
         connectionId: connection.connectionId,
@@ -71,10 +70,16 @@ function connectionList() {
         active: connection.active ?? false,
         listed: references.workbooksOf(connection.connectionId).length > 0 || (connection.active ?? false),
         ordinal: null as number | null,
+        label: { name: 'Connection', connector: '', detail: '', text: 'Connection' },
     }));
     for (const ids of connectionsByType()) {
         const listed = entries.filter(entry => ids.includes(entry.connectionId) && entry.listed);
         if (listed.length > 1) listed.forEach((entry, index) => { entry.ordinal = index + 1; });
+    }
+    for (const entry of entries) {
+        const connector = CONNECTOR_INFOS[entry.connectorType as ConnectorType].names.displayLong;
+        const name = entry.ordinal == null ? connector : `${connector} #${entry.ordinal}`;
+        entry.label = { name, connector, detail: '', text: name };
     }
     return { connections: entries, connectionsByType: connectionsByType() };
 }
@@ -195,6 +200,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.local = {
             connectionId: 'local-database',
             connectorType: ConnectorType.HYPER,
+            label: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
+            embedded: true,
             details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
             params: { hyper: { protocol: 'WASM' } },
             queriesActiveOrdered: [],
@@ -303,7 +310,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     });
 
     it('creates a connection that the next script of the current workbook runs on', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
             details: { setupParams: {}, channel: null, connector: { kind: 'trino' } }, params: { trino: {} } } as unknown as ConnectionState;
         state.allocateConnection.mockReturnValue(trino);
         act(() => (container.querySelector('[aria-label="Create connection"]') as HTMLButtonElement).click());
@@ -509,7 +516,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     });
 
     it('lists the connections of other workbooks', () => {
-        const other = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+        const other = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
             details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
         state.connections.set(state.local!.connectionId, state.local!);
         state.connections.set(other.connectionId, other);
@@ -530,7 +537,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     });
 
     it('groups the connections of the workbook and numbers connections of the same connector', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
             details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
         const secondHyper = { ...state.local!, connectionId: 'second-hyper' } as unknown as ConnectionState;
         for (const database of [state.local!, trino, secondHyper]) state.connections.set(database.connectionId, database);
@@ -547,12 +554,12 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         expect(groups()).toEqual(['workbook', 'other']);
         const rowLabel = (connectionId: string) => container
             .querySelector(`[data-connection-id="${connectionId}"] [data-testid="connection-toggle"]`)?.textContent;
-        expect(rowLabel(state.local!.connectionId)).toContain(connectionLabelParts(state.local!, 1).name);
-        expect(rowLabel(secondHyper.connectionId)).toContain(connectionLabelParts(secondHyper, 2).name);
+        expect(rowLabel(state.local!.connectionId)).toContain('Hyper #1');
+        expect(rowLabel(secondHyper.connectionId)).toContain('Hyper #2');
     });
 
     it('groups the active connections that no workbook uses apart', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO,
+        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
             details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
         const unused = { ...state.local!, connectionId: 'unused-hyper', active: true } as unknown as ConnectionState;
         for (const database of [state.local!, unused, trino]) state.connections.set(database.connectionId, database);
@@ -575,6 +582,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const server = {
             ...state.local!,
             connectionId: 'hyper-server',
+            embedded: false,
             details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
             params: { hyper: { protocol: 'V3_HTTP' } },
         } as unknown as ConnectionState;

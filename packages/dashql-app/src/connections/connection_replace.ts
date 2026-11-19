@@ -1,5 +1,5 @@
 import type * as core from '@akohn/dashql';
-import { isHyperWasmConnection, isListedConnection } from './connection_label.js';
+import { isListedConnection } from './connection_label.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
@@ -49,7 +49,7 @@ export function connectionReplaceBlocker(
 ): string | null {
     const source = connections.get(sourceId);
     if (source == null) return 'Unknown connection';
-    if (isHyperWasmConnection(source)) return 'Workbooks fall back to it';
+    if (source.embedded) return 'Workbooks fall back to it';
     const running = source.queriesActiveOrdered.length;
     if (running > 0) return `${running} ${running === 1 ? 'query' : 'queries'} running`;
     const held = source.workbooks.filter(isWorkbookHeld).length;

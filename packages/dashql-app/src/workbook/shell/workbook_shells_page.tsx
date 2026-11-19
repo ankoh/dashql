@@ -2,26 +2,24 @@ import * as React from 'react';
 import * as styles from './workbook_shells_page.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { useConnections } from '@akohn/dashql-react/hooks';
-import { connectionLabelParts } from '../../connections/connection_label.js';
+import { useConnectionList, useConnections } from '@akohn/dashql-react/hooks';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ChevronDownIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.js';
-import { useConnectionOrdinals } from '../connections/connection_labels.js';
 import { WorkbookShellPage } from './workbook_shell_page.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 export interface WorkbookShellsPageDependencies {
     useConnections: typeof useConnections;
-    useConnectionOrdinals: typeof useConnectionOrdinals;
+    useConnectionList: typeof useConnectionList;
     ConnectionMenu: typeof ConnectionMenu;
     WorkbookShellPage: typeof WorkbookShellPage;
 }
 
 const DEFAULT_DEPENDENCIES: WorkbookShellsPageDependencies = {
     useConnections,
-    useConnectionOrdinals,
+    useConnectionList,
     ConnectionMenu,
     WorkbookShellPage,
 };
@@ -42,7 +40,9 @@ interface Props {
 export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const connections = dependencies.useConnections();
-    const ordinals = dependencies.useConnectionOrdinals();
+    // The list of the connections numbers the connections of a connector and labels them so
+    const list = dependencies.useConnectionList();
+    const listed = React.useMemo(() => new Map((list?.connections ?? []).map(entry => [entry.connectionId, entry])), [list]);
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
 
@@ -55,8 +55,8 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
     const shells = opened.filter(connectionId => connections.has(connectionId));
 
     const connection = props.connectionId == null ? null : connections.get(props.connectionId) ?? null;
-    const labelParts = connection == null ? null : connectionLabelParts(connection, ordinals.get(connection.connectionId) ?? null);
-    const label = labelParts == null ? 'No connection' : `${labelParts.name} ${labelParts.detail}`;
+    const labelParts = connection == null ? null : listed.get(connection.connectionId)?.label ?? connection.label;
+    const label = labelParts?.text ?? 'No connection';
 
     return (
         <div className={styles.page}>
@@ -116,7 +116,8 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
                             workbookId={props.workbookId}
                             workbookName={props.workbookName}
                             connectionId={connectionId}
-                            ordinal={ordinals.get(connectionId) ?? null}
+                            ordinal={listed.get(connectionId)?.ordinal ?? null}
+                            label={listed.get(connectionId)?.label ?? null}
                             active={connectionId === props.connectionId}
                         />
                     </div>

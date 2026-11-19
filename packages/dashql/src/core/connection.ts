@@ -4,9 +4,11 @@
 export type {
     ConnectionCatalogUpdates,
     ConnectionCatalogUpdateTask,
+    ConnectionCloudDatabase,
     ConnectionConnectorDetails,
     ConnectionDetailsView,
     ConnectionError,
+    ConnectionLabel,
     ConnectionListEntry,
     ConnectionListView,
     ConnectionNameDefaults,

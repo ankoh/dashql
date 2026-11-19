@@ -1376,8 +1376,35 @@ fn labels_of_connection_params() {
         (json!({ "dbcom": {} }), "Database.com / "),
         (json!({}), "Connection"),
     ] {
-        assert_eq!(connection_params_label_of_json(&params.to_string()), expected);
+        assert_eq!(connection_params_label_of_value(&params), expected);
     }
+}
+
+#[test]
+fn clouds_among_connection_params() {
+    let params = |value: Value| ConnectionParams::from_object(object(value)).unwrap();
+    let local = local_cloud_params();
+    assert!(is_local_cloud(&local) && is_cloud_capable(&local));
+    for capable in [
+        json!({ "hyper": { "protocol": "V3_HTTP", "endpoint": "http://localhost:7484" } }),
+        json!({ "hyper": { "protocol": "V3_GRPC", "endpoint": "http://localhost:7483" } }),
+        json!({ "dbcom": { "instanceUrl": "https://example.my.salesforce.com" } }),
+    ] {
+        assert!(is_cloud_capable(&params(capable.clone())), "{capable}");
+    }
+    // The embedded Hyper, a Hyper link, Salesforce Data Cloud and Trino can't be clouds
+    for incapable in [
+        json!({ "hyper": {} }),
+        json!({ "hyper": { "protocol": "WASM" } }),
+        json!({ "hyper": { "protocol": "V3_HTTP_LINK", "endpoint": "http://127.0.0.1:7484" } }),
+        json!({ "salesforce": { "instanceUrl": "https://example.my.salesforce.com" } }),
+        json!({ "trino": { "endpoint": "https://trino.example" } }),
+    ] {
+        assert!(!is_cloud_capable(&params(incapable.clone())), "{incapable}");
+    }
+    // A server that attaches the database of the local cloud is no local cloud
+    let attached = json!({ "path": LOCAL_CLOUD_DATABASE_PATH, "alias": LOCAL_CLOUD_DATABASE_ALIAS });
+    assert!(!is_local_cloud(&params(json!({ "hyper": { "protocol": "V3_HTTP", "attachedDatabases": [attached] } }))));
 }
 
 #[test]
@@ -1402,6 +1429,7 @@ fn labels_of_connections() {
         ),
     );
     assert!(!is_hyper_wasm_connection(&ConnectionState::from_params("cloud", cloud, 0.0)));
+    assert!(is_hyper_wasm_connection(&ConnectionState::from_params("local", ConnectionParams::default_for(ConnectorType::Hyper), 0.0)));
     let trino = ConnectionState::from_params("t", ConnectionParams::default_for(ConnectorType::Trino), 0.0);
     assert_eq!(connection_label(&trino, None), "Trino Http");
     assert!(!supports_connection_overview(&trino));

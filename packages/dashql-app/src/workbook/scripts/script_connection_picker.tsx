@@ -11,7 +11,7 @@ import type { ConnectorInfo } from '@akohn/dashql/platform/connections/connector
 import { useConnectionList, useConnections, useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { CONNECTION_HEALTH_COLORS } from '../../connections/connection_status.js';
-import { connectionLabelParts, connectionLabelText, connectionOrdinals, type ConnectionLabelParts } from '../../connections/connection_label.js';
+import { connectionLabelOf, connectionLabels, type ConnectionLabelParts } from '../../connections/connection_label.js';
 import { ConnectionLabelView } from '../../connections/connection_label_view.js';
 import { listedConnections } from '../../connections/connection_tree.js';
 import { useCloudConnectionIds } from '../../connections/cloud_connection.js';
@@ -35,13 +35,13 @@ export interface ScriptConnectionView {
 }
 
 /// The view of a connection
-export function scriptConnectionView(connection: ConnectionState, labelParts: ConnectionLabelParts = connectionLabelParts(connection)): ScriptConnectionView {
+export function scriptConnectionView(connection: ConnectionState, labelParts: ConnectionLabelParts = connection.label): ScriptConnectionView {
     return {
         connectionId: connection.connectionId,
         connectionHealth: connection.connectionHealth,
         details: connection.details,
         connectorInfo: connectorInfoOf(connection),
-        label: connectionLabelText(labelParts),
+        label: labelParts.text,
         labelParts,
     };
 }
@@ -172,7 +172,7 @@ export function ConnectionMenu(props: MenuProps) {
     // Renders again when the workbook uses other connections
     const connectionIds = useWorkbook(props.workbookId)?.connectionIds;
     const cloudConnectionIds = useCloudConnectionIds();
-    const { workbookConnections, otherConnections, cloudConnections, ordinals } = React.useMemo(() => {
+    const { workbookConnections, otherConnections, cloudConnections, labels } = React.useMemo(() => {
         // The connections of the workbook, none while one of them is unknown
         const resolved = (connectionIds ?? []).map(connectionId => connections.get(connectionId));
         const workbookConnections = resolved.some(connection => connection == null) ? [] : resolved as ConnectionState[];
@@ -183,7 +183,7 @@ export function ConnectionMenu(props: MenuProps) {
             workbookConnections,
             otherConnections: rest.filter(connection => !isCloud(connection)),
             cloudConnections: rest.filter(isCloud),
-            ordinals: connectionOrdinals(list),
+            labels: connectionLabels(list),
         };
     }, [connections, list, connectionIds, cloudConnectionIds, props.workbookId]);
     const renderItem = (connection: ConnectionState) => (
@@ -199,7 +199,7 @@ export function ConnectionMenu(props: MenuProps) {
             </ActionList.Leading>
             <ActionList.ItemText>
                 <ActionList.ItemTextTitle>
-                    <ConnectionLabelView parts={connectionLabelParts(connection, ordinals.get(connection.connectionId) ?? null)} />
+                    <ConnectionLabelView parts={connectionLabelOf(connection, labels)} />
                 </ActionList.ItemTextTitle>
             </ActionList.ItemText>
             <ActionList.Trailing>

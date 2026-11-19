@@ -13,7 +13,9 @@ use dashql_core_runtime::connections::{
     self as rt, CatalogUpdateTask, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
     RelationName, SetupTimings,
 };
+use dashql_core_runtime::connections::label::{self, ConnectionLabelParts};
 use dashql_core_runtime::connections::registry::ListedConnection;
+use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
 use dashql_core_runtime::hyper::link as rt_link;
 use dashql_core_runtime::query::QueryExecutionHistory;
 use dashql_core_storage::storage::WriteOutcome;
@@ -486,6 +488,39 @@ pub struct ConnectionSaveView {
     pub outcome: Option<ConnectionSaveOutcome>,
 }
 
+/// The label of a connection: its name and the protocol it speaks
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionLabel {
+    /// The name, e.g. `Hyper`, `Hyper #2` or the name the user gave the connection
+    pub name: String,
+    /// The name of the connector, e.g. `Hyper`
+    pub connector: String,
+    /// The protocol, e.g. `Wasm` or `Http`
+    pub detail: String,
+    /// The label as plain text, e.g. `Hyper #2 Wasm`
+    pub text: String,
+}
+
+impl From<ConnectionLabelParts> for ConnectionLabel {
+    fn from(parts: ConnectionLabelParts) -> Self {
+        let text = parts.text();
+        ConnectionLabel { name: parts.name, connector: parts.connector, detail: parts.detail, text }
+    }
+}
+
+/// A database of the clouds folder that a connection of the embedded Hyper attaches
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct ConnectionCloudDatabase {
+    /// The path relative to the OPFS folder of the app, e.g. `clouds/local.hyper`
+    pub path: String,
+    /// The alias of the database in the session
+    pub alias: String,
+}
+
 /// A connection, the slice `connection` of the runtime. The field names are the ones the app reads. The queries are
 /// listed by id, each one is a slice `query` of its own: the connection changes when a query starts or finishes, not
 /// with the progress of a query.
@@ -504,6 +539,20 @@ pub struct ConnectionView {
     pub connector_type: ConnectorType,
     /// The name the user gave the connection, the label falls back to the connector without it
     pub name: Option<String>,
+    /// The label of the connection without the ordinal of the list, see `ConnectionListEntry.label`
+    pub label: ConnectionLabel,
+    /// Is the connection the embedded Hyper of the app? A connection of the embedded Hyper that attaches a database of
+    /// the clouds folder, a local cloud, is a connection of its own like one to a server.
+    pub embedded: bool,
+    /// Is the connection a local cloud, a connection of the embedded Hyper that attaches the database of the local
+    /// cloud?
+    pub local_cloud: bool,
+    /// Can the connection be a cloud, does it keep the tables of DashQL?
+    pub cloud_capable: bool,
+    /// Does the connection offer an operational overview?
+    pub supports_overview: bool,
+    /// The databases of the clouds folder that the params attach to the embedded Hyper, dropped with the connection
+    pub cloud_databases: Vec<ConnectionCloudDatabase>,
     /// Does the connection cache query results? Null for the default of the connector.
     pub cache_query_results: Option<bool>,
     /// Does the connection cache query results, the choice of the user or the default of the connector?
@@ -568,6 +617,18 @@ impl ConnectionView {
             connection_health: state.health().into(),
             connector_type: state.connector_type().into(),
             name: state.name().map(str::to_string),
+            label: label::connection_label_parts(state, None).into(),
+            embedded: label::is_hyper_wasm_connection(state),
+            local_cloud: label::is_local_cloud(state.params()),
+            cloud_capable: label::is_cloud_capable(state.params()),
+            supports_overview: label::supports_connection_overview(state),
+            cloud_databases: match state.params().connector {
+                rt::ConnectorType::Hyper => embedded_cloud_databases(Some(&state.params().params))
+                    .into_iter()
+                    .map(|database| ConnectionCloudDatabase { path: database.path, alias: database.alias })
+                    .collect(),
+                _ => Vec::new(),
+            },
             cache_query_results: state.cache_query_results(),
             caches_query_results: state.caches_query_results(),
             open: state.health().is_open(),
@@ -631,6 +692,8 @@ pub struct ConnectionListEntry {
     pub listed: bool,
     /// The number of the connection among the listed connections of its connector from 1, null if it is the only one
     pub ordinal: Option<u32>,
+    /// The label of the connection with its ordinal, e.g. `Hyper #2 Wasm`
+    pub label: ConnectionLabel,
 }
 
 
@@ -657,6 +720,7 @@ impl ConnectionListView {
                 active: connection.active,
                 listed: connection.used || connection.active,
                 ordinal: None,
+                label: label::label_parts(connection.connector_type, connection.name.as_deref(), connection.label_detail, None).into(),
             })
             .collect();
         for connector in rt::CONNECTOR_TYPES {
@@ -669,6 +733,8 @@ impl ConnectionListView {
                 if of_connector(entry, listed) {
                     next += 1;
                     entry.ordinal = Some(next);
+                    entry.label =
+                        label::label_parts(listed.connector_type, listed.name.as_deref(), listed.label_detail, Some(next)).into();
                 }
             }
         }
@@ -685,7 +751,7 @@ mod tests {
     use super::*;
 
     fn listed(id: &str, connector_type: rt::ConnectorType, active: bool, used: bool) -> ListedConnection {
-        ListedConnection { connection_id: id.to_string(), connector_type, active, used }
+        ListedConnection { connection_id: id.to_string(), connector_type, active, used, name: None, label_detail: "Http" }
     }
 
     #[test]
@@ -705,6 +771,8 @@ mod tests {
         ]);
         let ordinals: Vec<Option<u32>> = view.connections.iter().map(|c| c.ordinal).collect();
         assert_eq!(ordinals, [Some(1), None, Some(2)]);
+        let labels: Vec<&str> = view.connections.iter().map(|c| c.label.text.as_str()).collect();
+        assert_eq!(labels, ["Trino #1 Http", "Hyper Http", "Trino #2 Http"]);
     }
 }
 

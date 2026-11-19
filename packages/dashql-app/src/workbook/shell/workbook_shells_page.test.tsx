@@ -16,18 +16,30 @@ function fakeConnection(connectionId: string) {
         connectionHealth: ConnectionHealth.ONLINE,
         connectorType: ConnectorType.HYPER,
         details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
+        label: { name: 'Hyper', connector: 'Hyper', detail: 'Http', text: 'Hyper Http' },
+    };
+}
+
+/// The list of the connections that numbers them
+function listOf(connectionIds: string[]) {
+    return {
+        connections: connectionIds.map((connectionId, i) => ({
+            connectionId,
+            ordinal: i + 1,
+            label: { name: `Hyper #${i + 1}`, connector: 'Hyper', detail: 'Http', text: `Hyper #${i + 1} Http` },
+        })),
     };
 }
 
 const state = {
     connections: new Map<string, unknown>(),
-    ordinals: new Map<string, number>(),
+    list: listOf([]),
     shellMounts: [] as string[],
 };
 
 const dependencies = {
     useConnections: () => state.connections,
-    useConnectionOrdinals: () => state.ordinals,
+    useConnectionList: () => state.list,
     ConnectionMenu: ({ onPick }: { onPick: (connectionId: string) => void }) => (
         <div data-testid="connection-menu">
             {[...state.connections.keys()].map(connectionId => (
@@ -71,7 +83,7 @@ describe('WorkbookShellsPage', () => {
             ['main', fakeConnection('main')],
             ['attached', fakeConnection('attached')],
         ]);
-        state.ordinals = new Map([['main', 1], ['attached', 2]]);
+        state.list = listOf(['main', 'attached']);
         state.shellMounts = [];
         connectionId = 'main';
         onPickConnection.mockClear();

@@ -24,7 +24,6 @@ import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
-import { createLocalCloudParams } from '../connections/cloud_connection.js';
 import { LoggerProvider } from '../host/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { StorageProvider } from '../storage/storage_provider.js';
@@ -81,7 +80,7 @@ async function publish(name: string, folderId: string | null = null, sql = 'sele
 
 /// The local cloud as a connection of the runtime
 async function cloudConnection(runtime: Runtime, health: ConnectionHealth): Promise<void> {
-    await addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: createLocalCloudParams(), active: true, health });
+    await addTestConnection(runtime, { connectionId: 'trial', name: 'Trial', params: runtime.core.localCloudParams(), active: true, health });
 }
 
 /// The published workbooks of the cloud on the session of the test, every change looks at the cloud again

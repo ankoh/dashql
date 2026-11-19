@@ -77,6 +77,10 @@ pub struct ListedConnection {
     pub active: bool,
     /// Do workbooks use the connection?
     pub used: bool,
+    /// The name the user gave the connection
+    pub name: Option<String>,
+    /// The detail of the label, the protocol, e.g. `Wasm`
+    pub label_detail: &'static str,
 }
 
 /// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
@@ -170,6 +174,8 @@ impl ConnectionRegistry {
                     connector_type: state.connector_type(),
                     active: state.active(),
                     used: !self.workbooks_of(id).is_empty(),
+                    name: state.name().map(str::to_string),
+                    label_detail: state.connector_type().connector().label_detail(state.details().setup_params.as_ref()),
                 })
             })
             .collect()

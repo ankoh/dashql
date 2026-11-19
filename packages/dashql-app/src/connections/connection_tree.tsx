@@ -29,19 +29,11 @@ import {
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from './connection_status.js';
-import {
-    connectionLabelParts,
-    connectionLabelText,
-    isHyperWasmConnection,
-    isListedConnection,
-    supportsConnectionOverview,
-    type ConnectionLabelParts,
-} from './connection_label.js';
+import { isListedConnection, type ConnectionLabelParts } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
 import { ConnectionURLShareOverlay } from './connection_url_share_overlay.js';
 import type { ConnectionReplaceCandidates } from './connection_replace.js';
 import { ConnectionReplacePicker } from './connection_replace_picker.js';
-import { isCloudCapable } from './cloud_connection.js';
 import * as styles from './connection_tree.module.css';
 import * as actionMenuStyles from '../app/action_menu.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
@@ -422,7 +414,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
     if (row.type === 'connection') {
         const expanded = props.expanded.has(row.key);
         const labelParts = props.labelOf(row.database);
-        const label = connectionLabelText(labelParts);
+        const label = labelParts.text;
         const usage = props.describeUsage?.(row.database.connectionId) ?? null;
         const connectionId = row.database.connectionId;
         const isCloud = props.cloudConnectionIds.includes(connectionId);
@@ -488,7 +480,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onRename={startRename}
                         // Workbooks fall back to the embedded Hyper, it is never deleted
-                        onDelete={props.onDelete == null || usage == null || isHyperWasmConnection(row.database) ? undefined : () => props.onDelete!(row.database.connectionId)}
+                        onDelete={props.onDelete == null || usage == null || row.database.embedded ? undefined : () => props.onDelete!(row.database.connectionId)}
                         onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
                         mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
                         onReplace={props.onReplace == null || props.replaceCandidates == null
@@ -499,7 +491,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                         labelOf={props.labelOf}
                         workbookCount={usage?.blockingWorkbookCount}
                         isCloud={isCloud}
-                        onSetCloud={props.onSetCloud == null || (!isCloud && !isCloudCapable(row.database.params))
+                        onSetCloud={props.onSetCloud == null || (!isCloud && !row.database.cloudCapable)
                             ? undefined
                             : cloud => props.onSetCloud!(connectionId, cloud)}
                     />
@@ -508,7 +500,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         );
     }
     if (row.type === 'connection-overview') {
-        const label = connectionLabelText(props.labelOf(row.database));
+        const label = props.labelOf(row.database).text;
         return (
             <div style={props.style} className={styles.tree_row_container} data-connection-id={row.database.connectionId}>
                 <ConnectionTreeEntry
@@ -525,7 +517,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         );
     }
     if (row.type === 'connection-catalog') {
-        const label = connectionLabelText(props.labelOf(row.database));
+        const label = props.labelOf(row.database).text;
         return (
             <div style={props.style} className={styles.tree_row_container} data-connection-id={row.database.connectionId}>
                 <ConnectionTreeEntry
@@ -620,7 +612,7 @@ const CONNECTION_GROUP_LABELS: Record<ConnectionGroupKind, string> = {
     unused: 'Unused connections',
 };
 
-const defaultConnectionLabelOf = (database: ConnectionState) => connectionLabelParts(database);
+const defaultConnectionLabelOf = (database: ConnectionState) => database.label;
 
 /// Keep the identity of an array as long as its elements are identical
 function useShallowStableArray<T>(values: T[]): T[] {
@@ -707,7 +699,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         const pushConnection = (database: ConnectionState, i: number) => {
             next.push({ type: 'connection', key: connectionKey(database.connectionId), database });
             if (!expanded.has(connectionKey(database.connectionId))) return;
-            if (onOpenOverview != null && supportsConnectionOverview(database)) {
+            if (onOpenOverview != null && database.supportsOverview) {
                 next.push({ type: 'connection-overview', key: overviewKey(database.connectionId), database });
             }
             next.push({ type: 'connection-catalog', key: catalogKey(database.connectionId), database });
@@ -808,7 +800,7 @@ export function listedConnections(
 }
 
 export function isConnectionInitiallyExpanded(database: ConnectionState, databaseCount: number): boolean {
-    return databaseCount === 1 || !isHyperWasmConnection(database);
+    return databaseCount === 1 || !database.embedded;
 }
 
 interface ConnectionRowMenuProps {
@@ -873,7 +865,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
     const replaceBlocker = open && onReplace != null ? readReplaceBlocker?.() ?? null : null;
     const [shareOpen, setShareOpen] = React.useState(false);
     // The embedded Hyper is local to the app, a link to it would open an empty workbook on the embedded Hyper of the recipient
-    const canShare = !isHyperWasmConnection(database);
+    const canShare = !database.embedded;
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const refreshCatalog = dependencies.useRefreshCatalog();
     const isRefreshing = database.catalogUpdates.refreshRunning;

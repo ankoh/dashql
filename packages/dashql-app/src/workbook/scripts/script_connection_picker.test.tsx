@@ -51,7 +51,7 @@ describe('ScriptConnectionPicker', () => {
     it('shows the name of the connection without its protocol', () => {
         render({
             connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: null as any, connectorInfo: CONNECTOR_INFOS[ConnectorType.HYPER],
-            label: 'Hyper Wasm', labelParts: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm' },
+            label: 'Hyper Wasm', labelParts: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
         });
         const trigger = container.querySelector('[data-testid="script-connection-picker"]')!;
         expect(trigger.textContent).toBe('Hyper');

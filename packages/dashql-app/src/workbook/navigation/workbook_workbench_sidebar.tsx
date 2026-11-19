@@ -106,7 +106,7 @@ import { useDetachConnection } from '../connections/workbook_connection_detach.j
 import { useDeleteConnection } from '../../connections/connection_deletion.js';
 import { connectionMergeCandidates } from '../../connections/connection_merge.js';
 import { connectionReplaceBlocker, connectionReplaceCandidates } from '../../connections/connection_replace.js';
-import { connectionLabel, connectionLabelParts, connectionLabelText, connectionOrdinals, isHyperWasmConnection } from '../../connections/connection_label.js';
+import { connectionLabelOf, connectionLabels } from '../../connections/connection_label.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
@@ -419,7 +419,7 @@ const WorkbookPublishItems: React.FC<{ item: WorkbookItem; onRun: () => void; de
     };
     const entries: { key: string; action: string; cloudId: string; asNew: boolean; text: string }[] = [];
     for (const cloud of clouds) {
-        const name = connectionLabel(cloud.connection);
+        const name = cloud.connection.label.text;
         if (cloud.connectionId === linkedCloud) {
             entries.unshift({ key: `${cloud.connectionId}:version`, action: 'publish', cloudId: cloud.connectionId, asNew: false, text: named ? `Publish new version to ${name}` : 'Publish new version' });
             entries.push({ key: `${cloud.connectionId}:new`, action: 'publish-as-new', cloudId: cloud.connectionId, asNew: true, text: named ? `Publish as new workbook to ${name}` : 'Publish as new workbook' });
@@ -890,11 +890,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         () => new Set(workbookConnectionRows.map(database => database.connectionId)),
         [workbookConnectionRows],
     );
-    const ordinals = React.useMemo(() => connectionOrdinals(connectionList), [connectionList]);
-    const labelOf = React.useCallback(
-        (database: ConnectionState) => connectionLabelParts(database, ordinals.get(database.connectionId) ?? null),
-        [ordinals],
-    );
+    const labels = React.useMemo(() => connectionLabels(connectionList), [connectionList]);
+    const labelOf = React.useCallback((database: ConnectionState) => connectionLabelOf(database, labels), [labels]);
     const connectionCount = connectionRows.length;
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
         const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
@@ -909,7 +906,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         return {
             workbookCount: workbookIds.length,
             // The workbooks fall back to the embedded Hyper, every workbook that uses it keeps it
-            blockingWorkbookCount: database != null && isHyperWasmConnection(database)
+            blockingWorkbookCount: database != null && database.embedded
                 ? workbookIds.length
                 : workbookIds.filter(workbookId => scriptsOf(workbookId) > 0).length,
             usedHere: workbookConnectionRows.some(database => database.connectionId === connectionId),
@@ -1084,8 +1081,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     /// The workbooks whose new scripts default to the connection are detached from it first.
     const deleteConnection = React.useCallback((connectionId: string) => {
         const database = connections.get(connectionId);
-        if (database == null || isHyperWasmConnection(database) || describeUsage(connectionId).blockingWorkbookCount > 0) return;
-        if (!window.confirm(`Delete the connection "${connectionLabelText(labelOf(database))}"?`)) return;
+        if (database == null || database.embedded || describeUsage(connectionId).blockingWorkbookCount > 0) return;
+        if (!window.confirm(`Delete the connection "${labelOf(database).text}"?`)) return;
         detachConnectionFromWorkbooks(connectionId)
             .then(() => shutDownAndDeleteConnection(connectionId))
             .catch(error => {
@@ -1104,7 +1101,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const duplicates = connectionMergeCandidates(runtime.core, connections, connectionList, connectionId);
         if (database == null || duplicates.length === 0) return;
         const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
-        if (!window.confirm(`Merge ${what} into the connection "${connectionLabelText(labelOf(database))}"?`)) return;
+        if (!window.confirm(`Merge ${what} into the connection "${labelOf(database).text}"?`)) return;
         mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
             logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'workbook_workbench');
         });

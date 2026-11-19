@@ -3,8 +3,6 @@ import * as React from 'react';
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import type * as core from '@akohn/dashql';
-import { connectionParamsLabel } from '../../connections/connection_label.js';
-import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 import * as styles from './workbook_import_conflict_dialog.module.css';
 import * as ownStyles from './workbook_connection_import_dialog.module.css';
@@ -68,16 +66,14 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
                         const options: Array<{ choice: core.ImportChoice; label: string }> = [
                             ...item.candidates.map(candidate => ({
                                 choice: { kind: 'link' as const, connectionId: candidate.id },
-                                label: `Use ${candidate.name ?? connectionParamsLabel(candidate.params as ConnectionParams)}`,
+                                label: `Use ${candidate.name ?? candidate.paramsLabel}`,
                             })),
                             { choice: { kind: 'separate' }, label: 'Keep as a new connection' },
                         ];
                         return (
                             <fieldset key={item.connectionId} className={ownStyles.connection} disabled={props.busy}>
                                 <legend className={ownStyles.connection_label}>
-                                    {item.name == null
-                                        ? connectionParamsLabel(item.params as ConnectionParams)
-                                        : `${item.name} · ${connectionParamsLabel(item.params as ConnectionParams)}`}
+                                    {item.name == null ? item.paramsLabel : `${item.name} · ${item.paramsLabel}`}
                                 </legend>
                                 {options.map(option => (
                                     <label key={choiceValue(option.choice)} className={ownStyles.option}>

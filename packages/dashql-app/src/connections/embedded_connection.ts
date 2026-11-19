@@ -1,11 +1,10 @@
 import type { ConnectionAllocator, ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
-import { isHyperWasmConnection } from './connection_label.js';
 
 /// The connection to the embedded Hyper of the app, if one is known
 export function findEmbeddedConnection(connections: Iterable<ConnectionState>): ConnectionState | null {
     for (const connection of connections) {
-        if (isHyperWasmConnection(connection)) return connection;
+        if (connection.embedded) return connection;
     }
     return null;
 }

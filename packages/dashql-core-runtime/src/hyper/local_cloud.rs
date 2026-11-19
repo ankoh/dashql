@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-use crate::connections::JsonObject;
+use crate::connections::{ConnectionParams, ConnectorType, JsonObject};
 
 /// The OPFS folder of the databases that the embedded Hyper attaches, next to the instance folders and never cleaned
 /// up
@@ -14,6 +14,16 @@ pub const HYPER_CLOUDS_DIRECTORY: &str = "clouds";
 pub const LOCAL_CLOUD_DATABASE_PATH: &str = "clouds/local.hyper";
 /// The alias of the database of the local cloud
 pub const LOCAL_CLOUD_DATABASE_ALIAS: &str = "dashql";
+
+/// The params of a new local cloud: a connection of the embedded Hyper whose session attaches only the database of
+/// the local cloud, like a connection to a Hyper server that attaches the database of DashQL
+pub fn local_cloud_params() -> ConnectionParams {
+    let database = serde_json::json!({ "path": LOCAL_CLOUD_DATABASE_PATH, "alias": LOCAL_CLOUD_DATABASE_ALIAS });
+    let mut params = JsonObject::new();
+    params.insert("protocol".into(), Value::String("WASM".into()));
+    params.insert("attachedDatabases".into(), Value::Array(vec![database]));
+    ConnectionParams::new(ConnectorType::Hyper, params)
+}
 
 /// A database of the clouds folder that a connection of the embedded Hyper attaches
 #[derive(Debug, Clone, PartialEq, Eq)]

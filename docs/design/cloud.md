@@ -39,7 +39,7 @@ a cloud come from a single statement.
 themselves are ordinary connections of the manifest. All clouds are equal: none is a default.
 
 - **Which connections.** A Hyper server that speaks `V3_GRPC` or `V3_HTTP`, Database.com, or a local cloud
-  (`isCloudCapable`). All speak Hyper SQL, so a `.dashql` file, a hyperd, Database.com and the local cloud share one set
+  (`cloudCapable` of the connection view, `is_cloud_capable` of `connections/label.rs` in the core runtime). All speak Hyper SQL, so a `.dashql` file, a hyperd, Database.com and the local cloud share one set
   of tables. The token of a Hyper link lives only in its tab, and Salesforce Data Cloud and Trino don't write.
 - **The database.** The cloud store keeps its tables in the database that the sessions of a cloud connection attach
   for DashQL (`cloudDatabaseOf`): a Hyper server and the local cloud attach it as `dashql`, Database.com attaches the
@@ -50,12 +50,13 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   land in the cloud database, and one that attaches more needs qualified names.
 - **The local cloud.** To try the cloud without a server, a local cloud is a connection like one to a Hyper server, on
   the embedded Hyper: its params are `{ protocol: 'WASM', attachedDatabases: [{ path: 'clouds/local.hyper', alias:
-  'dashql' }] }` (`createLocalCloudParams`). Its session attaches only that database, created on first use unless it
+  'dashql' }] }` (`localCloudParams` of the core, `hyper/local_cloud.rs`), `localCloud` of the connection view tells it
+  apart. Its session attaches only that database, created on first use unless it
   exists, in the `clouds` folder of the OPFS of the app that the OPFS cleanup leaves alone
   (`embeddedAttachedDatabasePath`). The file stays until the local cloud is deleted or all data of the app is cleared,
   a local cloud created after that starts empty. So everything runs as on a server: the statements of the store go through the query executor
   and show in the queries viewer, and the catalog lists the tables of DashQL. Only a database of the `clouds` folder makes a connection of the embedded Hyper a local cloud
-  (`embeddedCloudDatabases`), the embedded Hyper of the app ignores its other attached databases as it always did, and
+  (`embedded_cloud_databases`, `cloudDatabases` of the connection view), the embedded Hyper of the app ignores its other attached databases as it always did, and
   workbooks that name the embedded Hyper never take the local cloud for it. The setup page offers a new Local Cloud,
   connects it without a click, and the reset of the installer drops its tables (`dropCloudStore`) to try the installer
   again.

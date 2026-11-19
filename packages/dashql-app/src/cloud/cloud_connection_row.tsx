@@ -3,7 +3,6 @@ import * as styles from './cloud_connection_row.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { connectionLabel } from '../connections/connection_label.js';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../connections/connection_status.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../connections/connector_icon.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
@@ -19,7 +18,7 @@ export function CloudConnectionRow(props: { connection: ConnectionState; childre
             <svg className={styles.icon} width="16px" height="16px" aria-hidden="true">
                 <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(props.connection))}`} style={CONNECTOR_ICON_STYLE} />
             </svg>
-            <span className={styles.name}>{connectionLabel(props.connection)}</span>
+            <span className={styles.name}>{props.connection.label.text}</span>
             <svg className={styles.health} width="8px" height="8px" viewBox="0 0 8 8" role="img" aria-label={healthName}>
                 <title>{healthName}</title>
                 <circle cx="4" cy="4" r="4" style={{ fill: CONNECTION_HEALTH_COLORS[health] }} />

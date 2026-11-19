@@ -22,6 +22,8 @@ function database(connectionId: string, params: any, options: { active?: boolean
     return {
         connectionId,
         name: connectionId,
+        label: { name: connectionId, connector: '', detail: '', text: connectionId },
+        embedded: 'hyper' in params && params.hyper.protocol === 'WASM',
         params,
         active: options.active ?? true,
         connectionHealth: ConnectionHealth.NOT_STARTED,
@@ -47,6 +49,7 @@ function views(databases: ConnectionState[], used: readonly string[] = []) {
                 active: db.active,
                 listed: db.active || used.includes(db.connectionId),
                 ordinal: null,
+                label: db.label,
             })),
             connectionsByType,
         } as unknown as core.ConnectionListView,

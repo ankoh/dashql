@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { useConnectionSaver } from '../connections/connection_persistence.js';
-import { connectionLabel } from '../connections/connection_label.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -30,7 +29,7 @@ export function workbookOnConnection(workbooks: ReadonlyMap<string, WorkbookScri
 /// Ask whether a link reuses the connection of an earlier link
 function confirmReuse(connection: ConnectionState, endpoint: string): boolean {
     const previous = 'hyper' in connection.params ? connection.params.hyper.endpoint : '';
-    return globalThis.confirm(`Use the connection "${connectionLabel(connection)}" to ${previous} for the Hyper at ${endpoint}? Cancel creates a new connection.`);
+    return globalThis.confirm(`Use the connection "${connection.label.text}" to ${previous} for the Hyper at ${endpoint}? Cancel creates a new connection.`);
 }
 
 /// Follow the Hyper links, of the page and of the native app.

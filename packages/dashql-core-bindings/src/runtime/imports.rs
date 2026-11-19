@@ -13,7 +13,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
+use dashql_core_runtime::connections::label::{connection_params_label_of_value, is_hyper_wasm_connection};
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
@@ -74,6 +74,8 @@ pub struct ImportCandidate {
     pub id: String,
     pub params: JsonValue,
     pub name: Option<String>,
+    /// The label of the params, the connector and the location of its database, e.g. `Trino / http://localhost:8080`
+    pub params_label: String,
 }
 
 /// A question about a connection of an imported workbook: connections of the app may describe the same database
@@ -87,6 +89,8 @@ pub struct ImportQuestion {
     pub params: JsonValue,
     /// The name the connection had in the exporting app
     pub name: Option<String>,
+    /// The label of the params, the connector and the location of its database, e.g. `Trino / http://localhost:8080`
+    pub params_label: String,
     /// The connections of the app that describe the same database, the first is the default
     pub candidates: Vec<ImportCandidate>,
 }
@@ -858,7 +862,16 @@ fn questions_of(plan: &[ConnectionImportPlanItem]) -> Vec<ImportQuestion> {
                 connection_id: item.reference.connection_id.clone(),
                 params: JsonValue(item.reference.params.clone()),
                 name: item.reference.name.clone(),
-                candidates: candidates.iter().map(|entry| ImportCandidate { id: entry.id.clone(), params: JsonValue(entry.params.clone()), name: entry.name.clone() }).collect(),
+                params_label: connection_params_label_of_value(&item.reference.params),
+                candidates: candidates
+                    .iter()
+                    .map(|entry| ImportCandidate {
+                        id: entry.id.clone(),
+                        params: JsonValue(entry.params.clone()),
+                        name: entry.name.clone(),
+                        params_label: connection_params_label_of_value(&entry.params),
+                    })
+                    .collect(),
             })
         })
         .collect()

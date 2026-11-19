@@ -8,7 +8,6 @@ import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/compo
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTION_HEALTH_COLORS, CONNECTION_HEALTH_NAMES } from '../../connections/connection_status.js';
 import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
-import { connectionLabelText, isHyperWasmConnection } from '../../connections/connection_label.js';
 import { LockIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
@@ -47,10 +46,10 @@ export function WorkbookConnectionButtons(props: Props & { dependencies?: Workbo
         <div className={styles.buttons} role="group" aria-label="Connections of the workbook" data-testid="workbook-connections">
             {props.connections.map(connection => {
                 const health = connection.connectionHealth;
-                const locked = readOnly && !isHyperWasmConnection(connection);
+                const locked = readOnly && !connection.embedded;
                 const label = locked
-                    ? `${connectionLabelText(labeler(connection))}: locked until the workbook is imported`
-                    : `${connectionLabelText(labeler(connection))}: ${CONNECTION_HEALTH_NAMES[health]}`;
+                    ? `${labeler(connection).text}: locked until the workbook is imported`
+                    : `${labeler(connection).text}: ${CONNECTION_HEALTH_NAMES[health]}`;
                 return (
                     <IconButton
                         key={connection.connectionId}
