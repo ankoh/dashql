@@ -28,7 +28,7 @@ export async function connectChannel(clients: ChannelClients, connectionId: stri
     const params = request.params as connection.HyperConnectionParams;
     if (request.kind === 'embedded') {
         const database = await clients.setupEmbeddedDatabase('hyper_wasm_connector');
-        const channel = await connectEmbeddedHyper(database, params, clientContext);
+        const channel = await connectEmbeddedHyper(database, request.session, clientContext);
         clients.logMetrics?.watch({ database, sessions: true }, connectionId);
         return channel;
     }

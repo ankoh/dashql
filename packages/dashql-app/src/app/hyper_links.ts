@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import { useConnectionSaver } from '../connections/connection_persistence.js';
 import { connectionLabel } from '../connections/connection_label.js';
-import { useDashQLCoreSetup } from '../runtime/core_provider.js';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from './router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -11,8 +10,9 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { usePlatformEventListener } from '../platform/events/event_listener_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { bindHyperLink, isHyperLinkParams, type HyperLinkTarget } from '../connections/hyper/hyper_link.js';
-import { confirmHyperLink, getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
+import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import type { HyperLinkEvent } from '../platform/events/event_listener.js';
+import { getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
 
 const LOG_CTX = 'hyper_link';
 
@@ -28,52 +28,69 @@ export function workbookOnConnection(workbooks: ReadonlyMap<string, WorkbookScri
 }
 
 /// Ask whether a link reuses the connection of an earlier link
-function confirmReuse(connection: ConnectionState, target: HyperLinkTarget): boolean {
-    const endpoint = 'hyper' in connection.params ? connection.params.hyper.endpoint : '';
-    return globalThis.confirm(`Use the connection "${connectionLabel(connection)}" to ${endpoint} for the Hyper at ${target.endpoint}? Cancel creates a new connection.`);
+function confirmReuse(connection: ConnectionState, endpoint: string): boolean {
+    const previous = 'hyper' in connection.params ? connection.params.hyper.endpoint : '';
+    return globalThis.confirm(`Use the connection "${connectionLabel(connection)}" to ${previous} for the Hyper at ${endpoint}? Cancel creates a new connection.`);
 }
 
 /// Follow the Hyper links, of the page and of the native app.
 ///
-/// A link is handled once the app opened the workbook it starts with: a link to another machine is confirmed, the link is bound
-/// to a connection (see `bindHyperLink`), the connection takes the token of the link and new workbooks start on it.
-/// The app then opens a workbook on the connection, or the greeter on the connection.
+/// A link is handled once the app opened the workbook it starts with: the runtime reads its target and binds it to a
+/// connection (`bindHyperLink`), a link to another machine is confirmed, the connection takes the token of the link and
+/// new workbooks start on it. The app then opens a workbook on the connection, or the greeter on the connection.
 export function useHyperLinks(opened: Promise<void>): void {
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
-    const setupCore = useDashQLCoreSetup();
     const saveConnection = useConnectionSaver();
     const runtime = useOptionalRuntime();
     const ephemeralWorkbook = useEphemeralWorkbook();
     const navigate = useRouterNavigate();
     const route = useRouteContext();
 
-    const follow = React.useEffectEvent(async (target: HyperLinkTarget) => {
-        const dql = await setupCore(LOG_CTX);
+    const follow = React.useEffectEvent(async (event: HyperLinkEvent) => {
         if (runtime == null) throw new Error('the Hyper links need a RuntimeProvider');
-        const connections = [...runtime.store.all('connection').values()] as ConnectionState[];
-        const known = connections.some(connection => isHyperLinkParams(connection.params)
-            && 'hyper' in connection.params && connection.params.hyper.endpoint === target.endpoint);
-        if (!known && !confirmHyperLink(target)) return;
-        const allocate = runtime.createConnection.bind(runtime);
-        const binding = bindHyperLink(target, connections, allocate, getHyperLinkTabState().current,
-            connection => confirmReuse(connection, target));
-        if (binding.params != null) await saveConnection(binding.connection.connectionId, binding.params);
-        setHyperLinkToken(binding.connection.connectionId, target.token);
+        const link = runtime.bindHyperLink(event.endpoint, event.token, getHyperLinkTabState().current);
+        if (link == null) {
+            logger.warn('Ignoring an invalid Hyper link', {}, LOG_CTX);
+            return;
+        }
+        if (link.confirmation != null && !globalThis.confirm(link.confirmation)) return;
+        const create = (params: ConnectionParams) => runtime.createConnection(newConnectionFromParams(params, { active: true }));
+        let connection: ConnectionState | null = null;
+        switch (link.binding.kind) {
+            case 'existing':
+                connection = runtime.connection(link.binding.connectionId);
+                break;
+            case 'askToReuse': {
+                const reused = runtime.connection(link.binding.connectionId);
+                if (reused != null && confirmReuse(reused, link.endpoint)) {
+                    await saveConnection(reused.connectionId, link.binding.params as ConnectionParams);
+                    connection = runtime.connection(reused.connectionId);
+                } else {
+                    connection = create(link.binding.create as ConnectionParams);
+                }
+                break;
+            }
+            case 'create':
+                connection = create(link.binding.params as ConnectionParams);
+                break;
+        }
+        if (connection == null) return;
+        setHyperLinkToken(connection.connectionId, link.token);
         const workbooks = runtime.store.all('workbook');
-        const workbookId = workbookOnConnection(workbooks, route.workbookId ?? null, binding.connection.connectionId);
+        const workbookId = workbookOnConnection(workbooks, route.workbookId ?? null, connection.connectionId);
         if (workbookId != null) {
             if (workbookId !== route.workbookId) navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
             return;
         }
-        const greeter = ephemeralWorkbook(binding.connection);
+        const greeter = ephemeralWorkbook(connection);
         if (greeter.workbookId !== route.workbookId) navigate({ type: OPEN_EPHEMERAL_WORKBOOK, value: greeter.workbookId });
     });
 
-    React.useEffect(() => appEvents.subscribeHyperLinks(target => {
-        logger.info('Received a Hyper link', { endpoint: target.endpoint }, LOG_CTX);
+    React.useEffect(() => appEvents.subscribeHyperLinks(event => {
+        logger.info('Received a Hyper link', { endpoint: event.endpoint }, LOG_CTX);
         void opened
-            .then(() => follow(target))
+            .then(() => follow(event))
             .catch(error => logger.error('Failed to follow a Hyper link', { error: stringifyError(error) }, LOG_CTX));
     }), [appEvents, logger, opened]);
 }

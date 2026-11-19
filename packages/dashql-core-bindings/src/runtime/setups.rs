@@ -15,8 +15,8 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, LoginStep, OAuthCallback, OAuthEvents, OAuthHost,
-    ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
+    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind, HyperChannelRequest, LoginStep,
+    OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
 };
 use dashql_core_runtime::connections::open_setup::OpenSetup;
 use dashql_core_runtime::connections::{
@@ -24,6 +24,7 @@ use dashql_core_runtime::connections::{
     TrinoAction,
 };
 use dashql_core_runtime::executor::FailureKind;
+use dashql_core_runtime::hyper::embedded::embedded_session_options;
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryMetadata;
@@ -303,7 +304,20 @@ impl SetupHost for RuntimeSetupHost {
         channel: &HyperChannelRequest,
         _cancellation: &CancellationToken,
     ) -> impl Future<Output = Result<ChannelId, HostError>> + 'static {
-        self.connect(json!({ "type": "hyper", "kind": channel.kind.name(), "params": channel.params }))
+        // The session of a channel to the embedded Hyper: the database of the instance, or the databases of the clouds
+        // folder that a local cloud attaches
+        let session = match channel.kind {
+            HyperChannelKind::Embedded => embedded_session_options(Some(&channel.params))
+                .map(|options| {
+                    let attached: Vec<Value> =
+                        options.attached_databases.iter().map(|database| json!({ "path": database.path, "alias": database.alias })).collect();
+                    json!({ "defaultDatabase": options.default_database, "attachedDatabases": attached })
+                })
+                .map_err(|error| HostError::new(error.to_string())),
+            _ => Ok(Value::Null),
+        };
+        let connect = session.map(|session| self.connect(json!({ "type": "hyper", "kind": channel.kind.name(), "params": channel.params, "session": session })));
+        async move { connect?.await }
     }
 
     fn hyper_link_token(&self) -> Option<String> {

@@ -250,7 +250,13 @@ export interface ExportedTables {
 }
 
 /** A channel of the host that a setup asks the host to connect: the embedded Hyper, or Hyper over gRPC through the native proxy. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself. */
-export type RuntimeChannelRequest = { type: 'hyper'; kind: 'embedded' | 'grpc'; params: any };
+export type RuntimeChannelRequest = { type: 'hyper'; kind: 'embedded' | 'grpc'; params: any; session: EmbeddedHyperSession | null };
+
+/** The session of a channel to the embedded Hyper: the database of the instance, or none for a local cloud, which attaches databases of the clouds folder of the app by their paths relative to it */
+export interface EmbeddedHyperSession {
+    defaultDatabase: 'hyper' | null;
+    attachedDatabases: { path: string; alias: string }[];
+}
 
 /** How the platform takes the user through the redirect page */
 export interface RuntimeOAuthFlowInfo {
@@ -424,8 +430,8 @@ export interface ComputePlatform {
     query(sql: string, context: ComputeCallContext): Promise<Uint8Array>;
     /** Run a query, resolves to its result as an Arrow table that the runtime keeps in the handle table */
     queryTable(sql: string, context: ComputeCallContext): Promise<unknown>;
-    /** Drop the table of a data frame */
-    dropTable(dataFrame: number, tableName: string): Promise<void>;
+    /** Drop the table of a data frame with the statement that the runtime wrote */
+    dropTable(dataFrame: number, tableName: string, sql: string): Promise<void>;
     /** Abort the calls of a run */
     cancel(run: number): void;
 }
@@ -1446,7 +1452,8 @@ impl ComputeHost for JsPlatform {
 
     async fn drop_table(&self, data_frame: u64, table_name: &str) -> Result<(), HostError> {
         let compute = self.compute()?;
-        settled(call(&compute, "dropTable", &[JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name)])).await?;
+        let sql = format!("DROP TABLE IF EXISTS {}", dashql_core_runtime::catalog_loader::sql::quote_identifier(table_name));
+        settled(call(&compute, "dropTable", &[JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), JsValue::from_str(&sql)])).await?;
         Ok(())
     }
 

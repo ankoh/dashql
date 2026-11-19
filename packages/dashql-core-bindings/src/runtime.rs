@@ -1058,6 +1058,19 @@ impl Runtime {
         Ok(to_js(&secrets)?.into())
     }
 
+    /// Follow a Hyper link (`hyper::link`): the target of an endpoint and a token, the question to ask before the app
+    /// uses it and the connection it binds to, the connection of the recent link of the tab first. Null unless the
+    /// endpoint and the token are a target: an endpoint on this machine may speak http, any other one https.
+    #[wasm_bindgen(js_name = bindHyperLink, unchecked_return_type = "HyperLinkView | null")]
+    pub fn bind_hyper_link(&self, endpoint: &str, token: &str, recent_connection_id: Option<String>) -> Result<JsValue, JsError> {
+        use dashql_core_runtime::hyper::link::{bind_hyper_link, parse_hyper_link_target};
+        let Some(target) = parse_hyper_link_target(Some(endpoint), Some(token)) else { return Ok(JsValue::NULL) };
+        let registry = self.connections.registry.try_borrow().map_err(|_| busy())?;
+        let states = registry.connections().map(|(_, connection)| connection.state.try_borrow()).collect::<Result<Vec<_>, _>>().map_err(|_| busy())?;
+        let binding = bind_hyper_link(&target, states.iter().map(|state| &**state), recent_connection_id.as_deref());
+        Ok(to_js(&connections::view::HyperLinkView::of(target, binding))?.into())
+    }
+
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. The catalog loader
     /// runs it once the connection is online.
     #[wasm_bindgen(js_name = refreshCatalog)]

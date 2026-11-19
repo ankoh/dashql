@@ -5,11 +5,18 @@ import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
-import { parseHyperLinkTarget, type HyperLinkTarget } from '@akohn/dashql/platform/hyper_link_target';
 import { parseAgentSessionTarget, type AgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 import { ZIP_QUERY_PARAMETER } from '../../workbook/persistence/workbook_link.js';
 
 const LOG_CTX = "event_listener";
+
+/// A Hyper link that points the app at a Hyper, e.g. the hyperd of `hyperd run --ui`: the base url of its HTTP API and
+/// its bearer token. The link is an app event, `?data=` with the base64url JSON `{"hyperLink": {"endpoint": ..., "token": ...}}`,
+/// the runtime reads its target (`Runtime.bindHyperLink`).
+export interface HyperLinkEvent {
+    endpoint: string;
+    token: string;
+}
 export const EVENT_QUERY_PARAMETER = "data";
 export const WORKBOOK_QUERY_PARAMETER = "workbook";
 
@@ -87,9 +94,9 @@ export abstract class PlatformEventListener {
     /// Subscribers for pasted text not handled as an app event
     private fallbackPasteSubscribers: Set<(text: string) => void>;
     /// The subscriber for Hyper links
-    private hyperLinkSubscriber: ((target: HyperLinkTarget) => void) | null = null;
+    private hyperLinkSubscriber: ((target: HyperLinkEvent) => void) | null = null;
     /// The latest Hyper link that arrived without a subscriber
-    private queuedHyperLink: HyperLinkTarget | null = null;
+    private queuedHyperLink: HyperLinkEvent | null = null;
     /// The subscriber for the links to sessions of agents
     private agentSessionSubscriber: ((target: AgentSessionTarget) => void) | null = null;
     /// The latest link to a session that arrived without a subscriber
@@ -136,9 +143,8 @@ export abstract class PlatformEventListener {
         } else if ('hyperLink' in event) {
             // Links are not validated against the schema, a malformed link is ignored
             const { endpoint, token } = (event.hyperLink ?? {}) as { endpoint?: unknown; token?: unknown };
-            const target = typeof endpoint === 'string' && typeof token === 'string' ? parseHyperLinkTarget(endpoint, token) : null;
-            if (target == null) this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
-            else this.dispatchHyperLink(target);
+            if (typeof endpoint !== 'string' || typeof token !== 'string') this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
+            else this.dispatchHyperLink({ endpoint, token });
         } else if ('agentSession' in event) {
             const { endpoint, token } = (event.agentSession ?? {}) as { endpoint?: unknown; token?: unknown };
             const target = parseAgentSessionTarget(endpoint, token);
@@ -169,7 +175,7 @@ export abstract class PlatformEventListener {
     }
 
     /// Received a Hyper link, e.g. of `hyperd run --ui`
-    protected dispatchHyperLink(target: HyperLinkTarget): void {
+    protected dispatchHyperLink(target: HyperLinkEvent): void {
         if (this.hyperLinkSubscriber == null) {
             this.queuedHyperLink = target;
         } else {
@@ -178,7 +184,7 @@ export abstract class PlatformEventListener {
     }
 
     /// Subscribe to Hyper links, a link that arrived before is delivered right away
-    public subscribeHyperLinks(handler: (target: HyperLinkTarget) => void): () => void {
+    public subscribeHyperLinks(handler: (target: HyperLinkEvent) => void): () => void {
         this.hyperLinkSubscriber = handler;
         const queued = this.queuedHyperLink;
         this.queuedHyperLink = null;

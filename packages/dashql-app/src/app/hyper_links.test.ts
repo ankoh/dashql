@@ -52,7 +52,7 @@ describe('Hyper links of the platform', () => {
         expect(handler).toHaveBeenCalledTimes(2);
     });
 
-    it('reads Hyper links from the data parameter of app links', () => {
+    it('reads Hyper links from the data parameter of app links, the runtime reads their targets', () => {
         const listener = new LinkListener(new TestLogger());
         const handler = vi.fn();
         listener.subscribeHyperLinks(handler);
@@ -64,6 +64,13 @@ describe('Hyper links of the platform', () => {
             const event = listener.readAppEvent(data, 'test');
             if (event != null) listener.dispatchAppEvent(event);
         }
-        expect(handler.mock.calls).toEqual([[{ endpoint: 'http://127.0.0.1:7484', token: 'secret' }]]);
+        expect(handler.mock.calls).toEqual([
+            [{ endpoint: 'http://127.0.0.1:7484/', token: 'secret' }],
+            [{ endpoint: 'http://hyper.example', token: 'secret' }],
+        ]);
+        // A link without an endpoint or a token is no link
+        const event = listener.readAppEvent(encode({ hyperLink: { endpoint: 'http://127.0.0.1:7484' } }), 'test');
+        if (event != null) listener.dispatchAppEvent(event);
+        expect(handler).toHaveBeenCalledTimes(2);
     });
 });

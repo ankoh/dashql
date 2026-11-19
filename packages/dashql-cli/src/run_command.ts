@@ -376,7 +376,7 @@ async function runHere(
                 if (request.type !== 'hyper' || request.kind !== 'embedded' || embedded == null) {
                     throw new Error('dashql run connects the embedded Hyper only');
                 }
-                return await connectEmbeddedHyper(embedded, request.params);
+                return await connectEmbeddedHyper(embedded, request.session);
             },
         },
     });

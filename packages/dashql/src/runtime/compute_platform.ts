@@ -71,8 +71,8 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
         queryTable: async (sql, context) => {
             return await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
         },
-        dropTable: async (_dataFrame, tableName) => {
-            await withConnection(null, conn => conn.execute(`DROP TABLE IF EXISTS "${tableName}"`));
+        dropTable: async (_dataFrame, _tableName, sql) => {
+            await withConnection(null, conn => conn.execute(sql));
         },
         cancel: run => {
             for (const controller of runs.get(run) ?? []) controller.abort(new DOMException('The task was cancelled', 'AbortError'));

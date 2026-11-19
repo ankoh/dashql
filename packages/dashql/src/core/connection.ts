@@ -19,6 +19,8 @@ export type {
     ConnectionTokenSummary,
     ConnectionTrinoOAuthState,
     ConnectionView,
+    HyperLinkBindingView,
+    HyperLinkView,
     JsonParams,
 } from '@akohn/dashql-wasm/dashql_core.js';
 /// The views of the saves of connections (`packages/dashql-core-bindings/src/connection_persistence/view.rs`)

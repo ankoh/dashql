@@ -4,7 +4,6 @@ import * as dashql from '../core/index.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import { TestLogger } from '../platform/testing/test_logger.js';
 import { connectEmbeddedHyper } from '../platform/connections/embedded_database_channel.js';
-import type { HyperParamsLike } from '../platform/connections/hyper/local_cloud.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 import { createRuntime, type Runtime } from './runtime.js';
@@ -49,7 +48,7 @@ describe('a session on a connection to the embedded Hyper', () => {
             channels: {
                 connect: async (_connectionId, request) => {
                     if (request.type !== 'hyper' || request.kind !== 'embedded') throw new Error(`no ${request.type} channel`);
-                    const channel = await connectEmbeddedHyper(database, request.params as HyperParamsLike);
+                    const channel = await connectEmbeddedHyper(database, request.session);
                     // Hear the queries of the catalog loader
                     return {
                         executeQuery: (params: { query: string }, abort?: AbortSignal) => {

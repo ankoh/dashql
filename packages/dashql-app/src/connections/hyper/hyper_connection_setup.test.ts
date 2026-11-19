@@ -16,7 +16,7 @@ describe('Hyper channels of the setups', () => {
         const session = {};
         const embedded = { connect: vi.fn(async () => session) };
         const params = { protocol: 'WASM', endpoint: '' } as connection.HyperConnectionParams;
-        const channel = await connectChannel(clients({ setupEmbeddedDatabase: vi.fn(async () => embedded as any) }), 'memory', { type: 'hyper', kind: 'embedded', params });
+        const channel = await connectChannel(clients({ setupEmbeddedDatabase: vi.fn(async () => embedded as any) }), 'memory', { type: 'hyper', kind: 'embedded', params, session: { defaultDatabase: 'hyper', attachedDatabases: [] } });
         expect(channel).toBeInstanceOf(Object);
         expect(embedded.connect).toHaveBeenCalledWith(expect.objectContaining({ defaultDatabase: 'hyper', clientContext: connectionClientContext('memory') }));
     });
@@ -38,7 +38,7 @@ describe('Hyper channels of the setups', () => {
         } as connection.HyperConnectionParams;
 
         // The runtime hands the app a copy of the params
-        expect(await connectChannel(clients({ grpcClient: client }), 'connection-1', { type: 'hyper', kind: 'grpc', params: structuredClone(params) })).toBe(channel);
+        expect(await connectChannel(clients({ grpcClient: client }), 'connection-1', { type: 'hyper', kind: 'grpc', session: null, params: structuredClone(params) })).toBe(channel);
         expect(capturedContext).not.toBeNull();
         params.metadata!['ctx-tenant-id'] = 'edited-after-setup';
         expect(await capturedContext!.getRequestMetadata()).toEqual({ 'ctx-tenant-id': 'tenant-123' });
@@ -60,7 +60,7 @@ describe('Hyper channels of the setups', () => {
             tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
         } as connection.HyperConnectionParams;
 
-        await connectChannel(clients({ grpcClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'grpc', params });
+        await connectChannel(clients({ grpcClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'grpc', session: null, params });
 
         expect(contexts.map(context => context.getClientContext?.())).toEqual([connectionClientContext('connection-1')]);
         expect(logMetrics.watch).toHaveBeenCalledTimes(1);
@@ -74,6 +74,6 @@ describe('Hyper channels of the setups', () => {
 
     it('fails without a client of the protocol', async () => {
         const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' } as connection.HyperConnectionParams;
-        await expect(connectChannel(clients({}), 'connection-1', { type: 'hyper', kind: 'grpc', params })).rejects.toThrow('gRPC client is not available');
+        await expect(connectChannel(clients({}), 'connection-1', { type: 'hyper', kind: 'grpc', session: null, params })).rejects.toThrow('gRPC client is not available');
     });
 });

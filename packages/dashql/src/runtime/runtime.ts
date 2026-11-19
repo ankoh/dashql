@@ -378,6 +378,13 @@ export class Runtime {
         return this.module.catalogRelationsFile(connectionId) ?? null;
     }
 
+    /// Follow a Hyper link: its target, the question to ask before the app uses it and the connection it binds to, the
+    /// connection of the recent link of the tab first. Null unless the endpoint and the token are a target.
+    bindHyperLink(endpoint: string, token: string, recentConnectionId: string | null): core.HyperLinkView | null {
+        if (this.stopping) return null;
+        return this.module.bindHyperLink(endpoint, token, recentConnectionId ?? undefined);
+    }
+
     /// The secrets of a connection that its settings show on request, null without a connection
     revealConnectionSecrets(connectionId: string): core.ConnectionSecrets | null {
         if (this.stopping) return null;

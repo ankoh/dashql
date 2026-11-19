@@ -1,19 +1,11 @@
-import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { KeyValueStorage } from '@akohn/dashql/platform/key_value_storage';
-import type { ConnectionAllocator, ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { isLoopbackHyperLink, type HyperLinkTarget } from '@akohn/dashql/platform/hyper_link_target';
 
-export { hyperLinkChannelParams, isLoopbackHyperLink, parseHyperLinkTarget, type HyperLinkTarget } from '@akohn/dashql/platform/hyper_link_target';
+// The Hyper links of a tab: the runtime reads the target of a link, asks for confirmation and binds it to a connection
+// (`Runtime.bindHyperLink`), the tab keeps the tokens of the links in its storage.
 
 /// The session storage key of the tokens of the Hyper links of a tab
 const HYPER_LINKS_STORAGE_KEY = 'dashql.hyper_links';
-
-/// Confirm a link before the app uses it.
-/// A link to another machine would receive the queries of the new workbooks, the user confirms its host first.
-export function confirmHyperLink(target: HyperLinkTarget, confirm: (message: string) => boolean): boolean {
-    if (isLoopbackHyperLink(target)) return true;
-    return confirm(`Run new workbooks on the Hyper at ${target.endpoint}? Only continue if you trust the link that opened DashQL.`);
-}
 
 /// The Hyper links of a tab
 export interface HyperLinkTabState {
@@ -72,49 +64,4 @@ export class HyperLinkTabStore {
 /// Does a connection speak to the Hyper of a link?
 export function isHyperLinkParams(params: ConnectionParams): boolean {
     return 'hyper' in params && params.hyper.protocol === 'V3_HTTP_LINK';
-}
-
-/// The params of a new connection to the Hyper of a link, its token is never stored
-export function createHyperLinkConnectionParams(endpoint: string): ConnectionParams {
-    return {
-        hyper: {
-            protocol: 'V3_HTTP_LINK',
-            endpoint,
-            tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
-        },
-    };
-}
-
-/// The connection that a link is bound to
-export interface HyperLinkBinding {
-    /// The connection
-    connection: ConnectionState;
-    /// The params that the connection is saved with, null if they don't change
-    params: ConnectionParams | null;
-}
-
-/// Bind a link to a connection.
-///
-/// A connection to the endpoint of the link is reused. Otherwise the user may reuse the connection of an earlier link,
-/// e.g. of an earlier run of hyperd on another port, which then moves to the endpoint of the link. Declining creates a
-/// new connection, so the app can speak to several Hyper of links at once.
-export function bindHyperLink(
-    target: HyperLinkTarget,
-    connections: Iterable<ConnectionState>,
-    allocate: ConnectionAllocator,
-    recentConnectionId: string | null,
-    confirmReuse: (connection: ConnectionState) => boolean,
-): HyperLinkBinding {
-    const linked = [...connections].filter(connection => isHyperLinkParams(connection.params));
-    const endpointOf = (connection: ConnectionState) => 'hyper' in connection.params ? connection.params.hyper.endpoint : null;
-    const same = linked.find(connection => endpointOf(connection) === target.endpoint);
-    if (same != null) return { connection: same, params: null };
-    const recent = linked.find(connection => connection.connectionId === recentConnectionId) ?? linked[linked.length - 1];
-    if (recent != null && 'hyper' in recent.params && confirmReuse(recent)) {
-        return { connection: recent, params: { hyper: { ...recent.params.hyper, endpoint: target.endpoint } } };
-    }
-    return {
-        connection: allocate(newConnectionFromParams(createHyperLinkConnectionParams(target.endpoint), { active: true })),
-        params: null,
-    };
 }

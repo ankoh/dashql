@@ -14,6 +14,7 @@ use dashql_core_runtime::connections::{
     RelationName, SetupTimings,
 };
 use dashql_core_runtime::connections::registry::ListedConnection;
+use dashql_core_runtime::hyper::link as rt_link;
 use dashql_core_runtime::query::QueryExecutionHistory;
 use dashql_core_storage::storage::WriteOutcome;
 
@@ -733,4 +734,68 @@ pub struct ConnectionSaveOutcome {
     pub manifest: StorageWriteOutcome,
     /// The outcomes of writing the copies of the workbooks, none if the manifest wasn't written
     pub workbooks: Vec<ConnectionCopyOutcome>,
+}
+
+/// The connection that a Hyper link binds to (`hyper::link::HyperLinkBinding`)
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(tag = "kind")]
+pub enum HyperLinkBindingView {
+    /// A connection speaks to the endpoint of the link already
+    #[serde(rename = "existing")]
+    Existing {
+        #[serde(rename = "connectionId")]
+        connection_id: String,
+    },
+    /// The user may reuse the connection of an earlier link, which then moves to the endpoint of the link with the
+    /// params. Declining creates a connection with `create`.
+    #[serde(rename = "askToReuse")]
+    AskToReuse {
+        #[serde(rename = "connectionId")]
+        connection_id: String,
+        #[tsify(type = "JsonParams")]
+        params: JsonValue,
+        #[tsify(type = "JsonParams")]
+        create: JsonValue,
+    },
+    /// Create an active connection with the params
+    #[serde(rename = "create")]
+    Create {
+        #[tsify(type = "JsonParams")]
+        params: JsonValue,
+    },
+}
+
+/// A Hyper link that the app follows: its target, the question to ask before the app uses it and the connection it
+/// binds to
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct HyperLinkView {
+    /// The origin of the HTTP API of the Hyper
+    pub endpoint: String,
+    /// The bearer token of the Hyper
+    pub token: String,
+    /// The question to confirm before the app uses the link, none for a link to this machine or to the endpoint of a
+    /// connection
+    pub confirmation: Option<String>,
+    pub binding: HyperLinkBindingView,
+}
+
+impl HyperLinkView {
+    /// The view of a link and its binding
+    pub fn of(target: rt_link::HyperLinkTarget, binding: rt_link::HyperLinkBinding) -> Self {
+        let params = |params: dashql_core_runtime::connections::ConnectionParams| JsonValue(serde_json::Value::Object(params.to_object()));
+        let confirmation = match binding {
+            rt_link::HyperLinkBinding::Existing { .. } => None,
+            _ => rt_link::hyper_link_confirmation(&target),
+        };
+        let binding = match binding {
+            rt_link::HyperLinkBinding::Existing { connection_id } => HyperLinkBindingView::Existing { connection_id },
+            rt_link::HyperLinkBinding::AskToReuse { connection_id, params: reused, create } => {
+                HyperLinkBindingView::AskToReuse { connection_id, params: params(reused), create: params(create) }
+            }
+            rt_link::HyperLinkBinding::Create { params: created } => HyperLinkBindingView::Create { params: params(created) },
+        };
+        HyperLinkView { endpoint: target.endpoint, token: target.token, confirmation, binding }
+    }
 }

@@ -2,10 +2,9 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import * as dashql from '@akohn/dashql';
 
 import type { ConnectionState, NewConnection } from '@akohn/dashql/platform/connections/connection_state';
-import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
+import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
-import { createHyperLinkConnectionParams } from './hyper/hyper_link.js';
 import { isHyperWasmConnection } from './connection_label.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
@@ -51,7 +50,7 @@ describe('embedded connection', () => {
 describe('new workbook connection', () => {
     const connections = () => {
         const embedded = runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
-        const linked = runtime.createConnection(newConnectionFromParams(createHyperLinkConnectionParams('http://127.0.0.1:7484')), 'linked');
+        const linked = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP_LINK', endpoint: 'http://127.0.0.1:7484', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams), 'linked');
         const cloud = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as any), 'cloud');
         return { embedded, linked, cloud, all: new Map([['embedded', embedded], ['linked', linked], ['cloud', cloud]]) };
     };

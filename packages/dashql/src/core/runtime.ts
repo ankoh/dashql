@@ -19,6 +19,7 @@ export type {
     RuntimeChannelMessage,
     RuntimeChannelTarget,
     RuntimeChannelRequest,
+    EmbeddedHyperSession,
     RuntimeChannelQuery,
     RuntimeOAuth,
     RuntimeOAuthFlowInfo,
