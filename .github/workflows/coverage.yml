@@ -47,11 +47,11 @@ jobs:
               shell: bash
               run: |
                 bazel coverage --config=fastbuild \
-                    --instrumentation_filter="//packages/dashql-core(-runtime|-storage|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-native/proxy[/:],//packages/dashql-pack[/:]" \
+                    --instrumentation_filter="//packages/dashql-core(-runtime|-storage|-shell|-profile)?[/:],//packages/dashql-dataflow[/:],//packages/dashql-parser[/:],//packages/dashql-native/proxy[/:],//tools/pack[/:]" \
                     //packages/dashql-core/... //packages/dashql-core-runtime/... //packages/dashql-core-storage/... \
                     //packages/dashql-core-shell/... \
                     //packages/dashql-core-profile/... //packages/dashql-dataflow:dashql_dataflow_unit_tests //packages/dashql-parser/... //tests/snapshots/... \
-                    //packages/dashql-native/proxy:test //packages/dashql-pack:test
+                    //packages/dashql-native/proxy:test //tools/pack:test
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_linux.dat
 
@@ -85,10 +85,10 @@ jobs:
                 cp /tmp/lcov_app.dat /tmp/coverage_site/lcov_app.info
                 cp bazel-testlogs/packages/dashql-app/coverage_chromium/test.outputs/coverage_summary.txt \
                     /tmp/coverage_site/app_gaps.txt
-                bazel run --config=fastbuild //packages/dashql-pack:pack -- coverage-badge \
+                bazel run --config=fastbuild //tools/pack:pack -- coverage-badge \
                     /tmp/lcov_linux.dat /tmp/lcov_app.dat \
                     --output /tmp/coverage_site/badge.svg
-                # The same rule as the release badge in dashql-pack
+                # The same rule as the release badge of tools/pack
                 printf '/badge.svg\n  Cache-Control: no-cache\n' > /tmp/coverage_site/_headers
 
             - uses: actions/upload-artifact@v7

@@ -51,8 +51,8 @@ bazel build //...
 | `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@akohn/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@akohn/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
-| `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
-| `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
+| `//tools/pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
+| `//tools/pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
@@ -447,7 +447,7 @@ bazel test //packages/dashql:all //packages/dashql/test/browser:all
 
 ```bash
 # Build and test (type checking happens automatically)
-bazel test //packages/dashql-native/proxy:test //packages/dashql-pack:test
+bazel test //packages/dashql-native/proxy:test //tools/pack:test
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
@@ -533,7 +533,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 
 | Universe | Specs | Used by |
 |---|---|---|
-| `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native/proxy`, `dashql-pack`, `dashql-datasets` |
+| `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native/proxy`, `tools/pack`, `tools/datasets` |
 | `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-bindings`, `tests/snapshots` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as

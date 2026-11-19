@@ -4,7 +4,7 @@ load("@rules_rust//rust:defs.bzl", "rust_library")
 package(default_visibility = ["//visibility:public"])
 
 # The Tableau Hyper API (C++) for the tests and the test data: the Hyper process, a C ABI for the Rust tests and
-# :hyper_sql, which the datasets of //packages/dashql-datasets use to write Hyper files.
+# :hyper_sql, which the datasets of //tools/datasets use to write Hyper files.
 
 alias(
     name = "hyperapi",

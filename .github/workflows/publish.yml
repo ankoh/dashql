@@ -226,7 +226,7 @@ jobs:
                       printf 'expected one x64 update manifest, found: %s\n' "${X64_MANIFESTS[*]}" >&2
                       exit 1
                   fi
-                  bazel run --config=release //packages/dashql-pack:pack -- publish \
+                  bazel run --config=release //tools/pack:pack -- publish \
                       --channel "${CHANNEL}" \
                       --source-dir "${{ github.workspace }}" \
                       --macos-arm64-dmg-path "$ARM64"/DashQL-*-arm64.dmg \
@@ -245,7 +245,7 @@ jobs:
                   DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
                   DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
               run: |
-                  bazel run --config=release //packages/dashql-pack:vacuum -- \
+                  bazel run --config=release //tools/pack:vacuum -- \
                       --keep-stable 100 \
                       --keep-latest 10
 

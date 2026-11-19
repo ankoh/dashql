@@ -36,7 +36,7 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^packages/dashql-datasets/datasets\\.bzl$/"],
+            "managerFilePatterns": ["/^tools/datasets/datasets\\.bzl$/"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nTPCH_DUCKDB_VERSION = \"(?<currentValue>[^\"]+)\""
             ]
@@ -86,7 +86,7 @@
                 "bazel/external_m4.bzl",
                 "bazel/external_tableauhyperapi.bzl",
                 "bazel/external_wabt.bzl",
-                "packages/dashql-datasets/datasets.bzl"
+                "tools/datasets/datasets.bzl"
             ],
             "postUpgradeTasks": {
                 "commands": [
@@ -101,7 +101,7 @@
                     "bazel/external_m4.bzl",
                     "bazel/external_tableauhyperapi.bzl",
                     "bazel/external_wabt.bzl",
-                    "packages/dashql-datasets/datasets.bzl",
+                    "tools/datasets/datasets.bzl",
                     "MODULE.bazel.lock"
                 ],
                 "executionMode": "update"

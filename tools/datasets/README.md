@@ -41,20 +41,20 @@ steps to add a dataset or a TPC-H scale factor.
 
 ```bash
 # Hermetic build (fetch + convert + assemble + index); re-runs are cached.
-bazel build //packages/dashql-datasets:datasets
+bazel build //tools/datasets:datasets
 
 # Inspect
-duckdb -c "SELECT * FROM 'bazel-bin/packages/dashql-datasets/datasets/vega-cars/v1/cars.parquet' LIMIT 5"
+duckdb -c "SELECT * FROM 'bazel-bin/tools/datasets/datasets/vega-cars/v1/cars.parquet' LIMIT 5"
 
 # Dry run — print planned uploads, touch nothing (no credentials needed)
-bazel run //packages/dashql-datasets:sync -- --dry-run
+bazel run //tools/datasets:sync -- --dry-run
 
 # Live mirror to R2 (needs the three env vars below)
 export DASHQL_DATA_R2_ENDPOINT=…
 export DASHQL_DATA_R2_ACCESS_KEY_ID=…
 export DASHQL_DATA_R2_SECRET_ACCESS_KEY=…
-bazel run //packages/dashql-datasets:sync
+bazel run //tools/datasets:sync
 ```
 
-CI does the same on `workflow_dispatch` (and on push to `packages/dashql-datasets/**`) via
+CI does the same on `workflow_dispatch` via
 `.github/workflows/publish_data.yml`, reading the credentials from GitHub secrets.

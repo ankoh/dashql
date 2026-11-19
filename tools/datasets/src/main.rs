@@ -1,7 +1,7 @@
 //! `dashql-datasets` — build-artifact indexer + R2 mirror for data.dashql.app.
 //!
 //! Three subcommands, operating on locally-built directory trees (the Bazel
-//! `//packages/dashql-datasets:datasets` artifact — a versioned dataset tree):
+//! `//tools/datasets:datasets` artifact — a versioned dataset tree):
 //!
 //!   * `index` — walk the tree and emit `index.json`
 //!     (`{ dataset -> version -> files[{url,bytes,sha256}] }`). Run inside the
@@ -13,7 +13,7 @@
 //!
 //! The mirror is deliberately dumb: it knows nothing about dataset definitions,
 //! DuckDB, or fetching. It shares only ~10 lines of S3-client setup with
-//! `dashql-pack` (intentionally duplicated, not coupled — see docs/design/test_data.md).
+//! `tools/pack` (intentionally duplicated, not coupled — see docs/design/test_data.md).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -251,7 +251,7 @@ fn run_folder_index(args: FolderIndexArgs) -> Result<()> {
 // sync
 // ---------------------------------------------------------------------------
 
-/// R2 credentials, read from the environment. Mirrors dashql-pack's RemoteAccess but
+/// R2 credentials, read from the environment. Mirrors the RemoteAccess of tools/pack but
 /// with the DATA (not GET) variable prefix — the two tools stay independent.
 struct RemoteAccess {
     /// The R2 S3 endpoint URL (`DASHQL_DATA_R2_ENDPOINT`)
@@ -340,7 +340,7 @@ async fn run_sync(args: SyncArgs) -> Result<()> {
         return Ok(());
     }
 
-    // Build the R2 client (same shape as dashql-pack's publish_command.rs).
+    // Build the R2 client (same shape as publish_command.rs of tools/pack).
     let remote_access = RemoteAccess::from_env()?;
     log::info!("r2 bucket: {} (endpoint/key/secret from environment)", BUCKET);
     let r2_credentials = remote_access.get_credentials();

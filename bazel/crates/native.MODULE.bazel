@@ -1,5 +1,5 @@
 # Native crate universe @crates: the Electron addon (//packages/dashql-native/proxy) and the release
-# tooling (//packages/dashql-pack, //packages/dashql-datasets). Built for the macOS universal binary
+# tooling (//tools/pack, //tools/datasets). Built for the macOS universal binary
 # slices and Linux, never for wasm.
 #
 # The specs below are the only place that declares crate versions and features. BUILD files pick crates

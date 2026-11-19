@@ -144,7 +144,7 @@ on macOS runners, signed on pushes to main and on tags. Setup is in `docs/misc/b
 
 ## Updates
 
-`//packages/dashql-pack:pack` publishes releases to the R2 bucket behind `https://get.dashql.app`
+`//tools/pack:pack` publishes releases to the R2 bucket behind `https://get.dashql.app`
 (`.github/workflows/publish.yml`):
 
 - immutable artifacts at `releases/<version>/macos/<arch>/<artifact>` with

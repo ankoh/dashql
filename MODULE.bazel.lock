@@ -331,7 +331,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "ANsuirOsyvCkpxUQkChFJ30ghreLjCNvypIR4AIKIgM=",
+        "bzlTransitiveDigest": "lVaE2jnrQfD7/ynUQECd98i5eStfV79IeBc80TY9Avk=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -524,10 +524,10 @@
         }
       }
     },
-    "//packages/dashql-datasets:deps.bzl%dashql_datasets": {
+    "//tools/datasets:deps.bzl%dashql_datasets": {
       "general": {
-        "bzlTransitiveDigest": "Sg+dhy3zpruMrIhBHTgBDUZBC7Ds64IZpnAJZ0rn02I=",
-        "usagesDigest": "9CaQiSHsXruJokdO8YydY9q/SD/pqdC92pCiFtJCctc=",
+        "bzlTransitiveDigest": "10SItGrrWu/ssd3ZFYWGsvn5zJ+0woPb5Zx0ZLpnwH4=",
+        "usagesDigest": "IzofGRqEPAe7c83smuEejTbFkitxTe8Hslt8QjbAOWM=",
         "recordedInputs": [
           "REPO_MAPPING:,aspect_bazel_lib aspect_bazel_lib+",
           "REPO_MAPPING:,bazel_tools bazel_tools",

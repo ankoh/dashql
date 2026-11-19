@@ -50,7 +50,7 @@ export type ReleaseChannel = "stable" | "latest";
 ///
 /// Releases are versioned as `MAJOR.MINOR.PATCH` for stable builds and
 /// `MAJOR.MINOR.PATCH-dev.N` for prereleases on the latest channel (see `bazel/versioning.bzl` and
-/// `dashql-pack/src/release_version.rs`, which derive the channel from the git iteration).
+/// `tools/pack/src/release_version.rs`, which derive the channel from the git iteration).
 /// A prerelease suffix therefore uniquely identifies a build of the latest channel.
 export function detectReleaseChannel(version: string): ReleaseChannel {
     return version.includes("-") ? "latest" : "stable";

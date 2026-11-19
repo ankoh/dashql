@@ -238,7 +238,7 @@ def update_prebuilt_archives(filepath: Path, workspace: Path, force: bool = Fals
 
 
 # ---------------------------------------------------------------------------
-# Handler: packages/dashql-datasets/datasets.bzl (vendored DuckDB tpch extension)
+# Handler: tools/datasets/datasets.bzl (vendored DuckDB tpch extension)
 # ---------------------------------------------------------------------------
 #
 # The TPCH_EXTENSION_SHA256 dict pins one gzipped tpch extension per platform. The

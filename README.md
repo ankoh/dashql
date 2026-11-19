@@ -69,9 +69,9 @@ bazel run //scripts:repin_crates -- full
 bazel run //scripts:rust_project
 
 # Fetch test datasets
-bazel build //packages/dashql-datasets:datasets
+bazel build //tools/datasets:datasets
 # Upload missing test datasets to data.dashql.app (requires R2 key)
-bazel run //packages/dashql-datasets:sync
+bazel run //tools/datasets:sync
 
 # Build and test the npm packages @akohn/dashql and @akohn/dashql-cli, CI publishes them (see Continuous Deployment).
 # Their version is the one of the commit, 0.0.19-dev.255.ge8e09a80c, whatever npm/package.json says.
@@ -99,7 +99,7 @@ bazel test --config=release //packages/dashql:all \
     - Trusted publishing, no npm token: npm takes the OIDC token of the run. Both packages on npmjs.com have a trusted publisher for each calling workflow, `on_push_main.yml`, `on_push_dev.yml` and `on_push_tag.yml` (owner `ankoh`, repository `dashql`, no environment), and the callers grant `id-token: write`
     - Only these two go to npm: they inline `hyperdb-edge` and the generated packages, `hyperdb-wasm` is on npm already
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
-    - Built hermetically by `//packages/dashql-datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //packages/dashql-datasets:sync`
+    - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //tools/datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry
 - Our builds heavily rely on a bazel-remote cache server under [bazel-cache.dashql.app](https://bazel-cache.dashql.app)
 - You can see bazel cache statistics [here](https://bazel-cache.dashql.app/public-dashboards/a9d003b26c7c4da6962c2c9bf3e5c329)
