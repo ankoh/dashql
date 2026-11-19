@@ -1,28 +1,6 @@
 import * as core from '../../core/index.js';
 
-import { ConnectorType } from '../connections/connector_info.js';
 import type { ResolvedVisualizeQuery } from './script_types.js';
-
-/// The formatting of compiled queries in the dialect of the connector
-function executionFormattingConfig(connectorType: ConnectorType): core.buffers.formatting.FormattingConfigT {
-    return new core.buffers.formatting.FormattingConfigT(
-        connectorType === ConnectorType.TRINO
-            ? core.buffers.formatting.FormattingDialect.TRINO
-            : core.buffers.formatting.FormattingDialect.HYPER,
-        core.buffers.formatting.FormattingMode.INLINE,
-        120,
-        2,
-        false,
-    );
-}
-
-/// The statement that a chart of the script visualizes, the last statement. Null when the script has no statement.
-/// Compilation errors, e.g. of other statements, do not matter here, the rewrite of a tag refuses unparsed scripts.
-export function chartStatementId(scriptSession: core.DashQLScriptSessionReader): number | null {
-    const reader = scriptSession.compileQuery(executionFormattingConfig(ConnectorType.HYPER)).read();
-    const statementId = reader.terminalStatementId();
-    return statementId === 0xFFFFFFFF ? null : statementId;
-}
 
 export function resolveCompiledVisualization(
     sql: string,

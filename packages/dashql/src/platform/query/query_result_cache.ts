@@ -87,8 +87,9 @@ export interface QueryResultCache {
     /// its files, also one that a run wrote while the bytes were streamed: resolves true if the file was added. Fails
     /// and leaves no file if the bytes don't have the given CRC-32.
     importFile(key: string, data: Blob, options?: { crc32?: number }): Promise<boolean>;
-    /// The limits of the files, the eviction of the runtime removes the least recently read files beyond them
-    readonly capacity: { maxBytes: number; maxFiles: number };
+    /// The limits of the files, the eviction of the runtime removes the least recently read files beyond them. A limit
+    /// that is null is the default of the runtime.
+    readonly capacity: { maxBytes: number | null; maxFiles: number | null };
     /// The Parquet files with their sizes and times. Old transient files that nobody pins are removed.
     fileStats(): Promise<CacheFileStat[]>;
     /// Remove a file and its marker if nobody reads it, e.g. a transient file of a run once the run ended. Resolves

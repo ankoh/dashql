@@ -21,7 +21,6 @@ import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_colu
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
-import { collectSearchableResultColumns } from '@akohn/dashql/platform/compute/query_result_search_sql';
 
 export { TableColumnHeader } from './data_table_cell.js';
 export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
@@ -161,9 +160,8 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         return matches == null ? null : new Set(matches);
     }, [computationState.columnSearch.matchingColumnGroups]);
     const searchColumnIndexByGroup = React.useMemo(() => new Map(
-        collectSearchableResultColumns(computationState.columnGroups)
-            .map(column => [column.columnGroupIdx, column.columnIdx] as const),
-    ), [computationState.columnGroups]);
+        computationState.searchColumns.map(column => [column.columnGroupIdx, column.columnIdx] as const),
+    ), [computationState.searchColumns]);
 
     // Construct the arrow formatter and update it whenever the data table changes
     const tableFormatter = React.useMemo(() => {

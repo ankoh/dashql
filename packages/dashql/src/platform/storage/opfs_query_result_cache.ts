@@ -22,10 +22,6 @@ const TRANSIENT_SUFFIX = '.transient.parquet';
 const GARBAGE_AFTER_MS = 60 * 60 * 1000;
 /// The Web Lock of a file, readers hold it shared, eviction and deletion take it exclusively if nobody holds it
 const LOCK_PREFIX = 'dashql-query-result-cache/';
-/// The default cap on the total size of the query result cache of the app
-export const DEFAULT_CACHE_MAX_BYTES = 2 * 1024 * 1024 * 1024;
-/// The default cap on the number of cached query results of the app
-export const DEFAULT_CACHE_MAX_FILES = 1000;
 
 /// The options of the query result cache
 export interface OPFSQueryResultCacheOptions {
@@ -33,9 +29,9 @@ export interface OPFSQueryResultCacheOptions {
     getRoot?: () => Promise<FileSystemDirectoryHandle>;
     /// The locks of the windows of the app
     locks?: LockManager;
-    /// The maximum total size of the files
+    /// The maximum total size of the files, the default of the runtime without
     maxBytes?: number;
-    /// The maximum number of files
+    /// The maximum number of files, the default of the runtime without
     maxFiles?: number;
     /// The current time in milliseconds since the epoch
     now?: () => number;
@@ -55,8 +51,8 @@ export function isTransientCacheFile(name: string): boolean {
 export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions = {}): QueryResultCache {
     const getRoot = options.getRoot ?? getOPFSRoot;
     const locks = options.locks ?? navigator.locks;
-    const maxBytes = options.maxBytes ?? DEFAULT_CACHE_MAX_BYTES;
-    const maxFiles = options.maxFiles ?? DEFAULT_CACHE_MAX_FILES;
+    const maxBytes = options.maxBytes ?? null;
+    const maxFiles = options.maxFiles ?? null;
     const now = options.now ?? Date.now;
     const directory = async () => await (await getRoot()).getDirectoryHandle(QUERY_RESULT_CACHE_DIRECTORY, { create: true });
 

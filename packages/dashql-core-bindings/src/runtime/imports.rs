@@ -845,8 +845,7 @@ impl Imports {
     /// The limits of the query result cache of the platform
     async fn cache_capacity(&self) -> Result<CacheCapacity, HostError> {
         let capacity = self.platform.cache_call("capacity", &[]).await?;
-        let limit = |name: &str| field(&capacity, name).and_then(|n| n.as_f64()).map(|n| n.max(0.0) as u64).ok_or_else(|| HostError::new("the cache has no capacity"));
-        Ok(CacheCapacity { max_bytes: limit("maxBytes")?, max_files: limit("maxFiles")? })
+        Ok(crate::host::cache_capacity(&capacity))
     }
 }
 

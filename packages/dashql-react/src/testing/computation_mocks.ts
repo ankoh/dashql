@@ -54,6 +54,7 @@ export function mockTableComputation(columnGroups: ComputationColumnGroup[], fie
         dataTableFields: [],
         dataFrame: 1,
         columnGroups,
+        searchColumns: [],
         dataTableOrdering: [],
         crossFilters: [],
         filterTable: null,

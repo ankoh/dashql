@@ -26,7 +26,8 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_storage::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost};
+use dashql_core_storage::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES};
+use dashql_core_storage::workbook_format::query_results::CacheCapacity;
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -381,8 +382,8 @@ export interface RuntimeResultCache {
     file(name: string): Promise<Blob>;
     /** Add a result of a key from a file of the handle table, checked against the CRC-32. Resolves false if the key was cached already, the files of the app win. */
     import(key: string, file: number, crc32: number | null): Promise<boolean>;
-    /** The limits of the files, the runtime evicts the least recently read files beyond them after every write of a file of a key */
-    capacity(): { maxBytes: number; maxFiles: number };
+    /** The limits of the files, the runtime evicts the least recently read files beyond them after every write of a file of a key. A limit that is null is the default of the runtime. */
+    capacity(): { maxBytes: number | null; maxFiles: number | null };
     /** The Parquet files with their sizes, their write times and the times they were read last (the write time if never), for the eviction */
     files(): Promise<{ name: string; size: number; mtimeMs: number; lastAccessMs: number }[]>;
     /** Remove a file and its marker if nobody reads it, resolves false if the file is read and stays */
@@ -644,6 +645,15 @@ pub(crate) fn host_table(value: &JsValue) -> HostTable {
 /// The details of a log message as `[key, value]` pairs
 pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
     details.iter().map(|(key, value)| Array::of2(&JsValue::from_str(key), &JsValue::from_str(value))).collect()
+}
+
+/// The limits of the query result cache of the platform, a limit that it leaves out is the default of the runtime
+pub(crate) fn cache_capacity(capacity: &JsValue) -> CacheCapacity {
+    let limit = |name: &str| field(capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite()).map(|n| n.max(0.0) as u64);
+    CacheCapacity {
+        max_bytes: limit("maxBytes").unwrap_or(DEFAULT_CACHE_MAX_BYTES),
+        max_files: limit("maxFiles").unwrap_or(DEFAULT_CACHE_MAX_FILES),
+    }
 }
 
 impl JsPlatform {
@@ -1184,8 +1194,8 @@ impl JsPlatform {
         async move {
             let evicted = async {
                 let capacity = settled(platform.result_cache().and_then(|cache| call(&cache, "capacity", &[]))).await?;
-                let limit = |name: &str| field(&capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).map(|n| n as u64).unwrap_or(u64::MAX);
-                evict_to_fit(&JsCache(platform.clone()), limit("maxBytes"), limit("maxFiles")).await
+                let limits = cache_capacity(&capacity);
+                evict_to_fit(&JsCache(platform.clone()), limits.max_bytes, limits.max_files).await
             };
             match evicted.await {
                 Ok(removed) if !removed.is_empty() => {

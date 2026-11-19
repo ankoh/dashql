@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { Crc32 } from '../utils/crc32.js';
-import { cacheFileKey, createOPFSQueryResultCache, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
+import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
 
 const KEY_A = 'a'.repeat(64);
 const KEY_B = 'b'.repeat(64);
@@ -142,7 +142,7 @@ describe('OPFS query result cache', () => {
         expect(await c.importFile('c'.repeat(64), bytes)).toBe(true);
         expect((await c.list()).map(e => e.key).sort()).toEqual([KEY_A, KEY_B, 'c'.repeat(64)].sort());
         expect((await files()).filter(name => isTransientCacheFile(name))).toEqual([]);
-        expect(c.capacity).toEqual({ maxBytes: DEFAULT_CACHE_MAX_BYTES, maxFiles: 2 });
+        expect(c.capacity).toEqual({ maxBytes: null, maxFiles: 2 });
         // The files of the eviction, least recently read first: the read of the first file counts
         await c.touch(entry.name);
         const stats = await c.fileStats();
@@ -167,7 +167,7 @@ describe('OPFS query result cache', () => {
         expect(await files()).toEqual([]);
         expect(await c.importFile(KEY_A, new Blob([raw]), { crc32: crc.value })).toBe(true);
         expect(await c.lookup(KEY_A)).toMatchObject({ size: raw.length });
-        expect(c.capacity).toEqual({ maxBytes: DEFAULT_CACHE_MAX_BYTES, maxFiles: DEFAULT_CACHE_MAX_FILES });
+        expect(c.capacity).toEqual({ maxBytes: null, maxFiles: null });
     });
 
     it('drops an imported result once a run wrote its key while the bytes were streamed', async () => {

@@ -1,5 +1,4 @@
 import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
-import { chartStatementId } from '@akohn/dashql/platform/workbook/script_compilation';
 import type { ModifyWorkbookScripts, ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardPlacement } from './dashboard_layout.js';
 
@@ -12,7 +11,8 @@ export type DashboardRenderer = 'table' | 'vegalite' | 'markdown';
 function cardStatementId(script: ScriptData): number | null {
     return script.annotations.visualizeQuery?.statementId
         ?? script.annotations.boardPosition?.statementId
-        ?? chartStatementId(script.scriptSession);
+        ?? script.annotations.lastStatementId
+        ?? null;
 }
 
 /// Write a placement into the `@board` tag of the statement that the card shows.

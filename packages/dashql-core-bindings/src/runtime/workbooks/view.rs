@@ -206,6 +206,8 @@ pub struct WorkbookScriptAnnotations {
     pub table_defs: Vec<String>,
     pub flow_position: Option<WorkbookFlowPosition>,
     pub board_position: Option<WorkbookBoardPosition>,
+    /// The last statement, the one that a chart of the script shows unless a tag names another
+    pub last_statement_id: Option<u32>,
     pub last_statement_is_query: bool,
     pub manual: bool,
 }
@@ -235,6 +237,7 @@ impl WorkbookScriptAnnotations {
                 width: board.width,
                 height: board.height,
             }),
+            last_statement_id: last.map(|statement| statement.statement_id),
             last_statement_is_query: last.is_some_and(|statement| statement.statement_type == dashql_buffers::parser::StatementType::SELECT),
             manual: annotations.manual,
         }

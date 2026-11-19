@@ -63,6 +63,8 @@ export interface ScriptAnnotations {
     // The dashboard placement of the script, the `@board` tag of its last statement, if any. A script without a
     // visualization is a collapsed card on the board.
     boardPosition?: BoardPosition | null;
+    // The last statement, the one that a chart of the script shows unless a tag names another
+    lastStatementId?: number | null;
     // Is the last statement a query? Only a query is visualized.
     lastStatementIsQuery?: boolean;
     // Does the script run only on request, its `@manual` tag? Execute All and input changes leave it out.

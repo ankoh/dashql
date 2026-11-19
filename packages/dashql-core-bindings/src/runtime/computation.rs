@@ -8,6 +8,7 @@
 
 use dashql_core_runtime::compute::cross_filters::CrossFilterPredicate;
 use dashql_core_runtime::compute::tasks::analysis::BinBounds;
+use dashql_core_runtime::compute::tasks::data_search::collect_searchable_result_columns;
 use dashql_core_runtime::compute::types::{
     self as rt, ColumnStatsFields, ColumnSummaryAnalysis, ComputationVersion, FilterOp, OrderByConstraint, ScalarFilter, TrackedTask,
 };
@@ -488,6 +489,16 @@ pub struct ComputationTasks {
     pub filtered_column_aggregation_tasks: Vec<Option<ComputationTrackedTask>>,
 }
 
+/// A column that the searches of a computation search
+#[derive(Clone, Copy, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ComputationSearchColumn {
+    /// The column among the searched columns, the index of the matches of a data search
+    pub column_idx: u32,
+    /// The column group of the column
+    pub column_group_idx: u32,
+}
+
 /// The view of the computation of a result table. The tables are handles of the platform, the data frames ids of
 /// the compute database.
 #[derive(Clone, Debug, Serialize, Tsify)]
@@ -509,6 +520,8 @@ pub struct ComputationView {
     pub data_frame: Option<u64>,
     /// The column groups of the grid
     pub column_groups: Vec<ComputationColumnGroup>,
+    /// The columns that the searches search: the ordinal, string and list columns
+    pub search_columns: Vec<ComputationSearchColumn>,
     pub data_table_ordering: Vec<ComputationOrderBy>,
     /// The selections in the summaries of the column groups, in the order of the column groups
     pub cross_filters: Vec<ComputationCrossFilter>,
@@ -571,6 +584,10 @@ impl From<&TableComputation> for ComputationView {
             data_table_fields: c.data_table_fields.clone(),
             data_frame: c.data_frame,
             column_groups: c.column_groups.iter().map(ComputationColumnGroup::from).collect(),
+            search_columns: collect_searchable_result_columns(&c.column_groups)
+                .into_iter()
+                .map(|column| ComputationSearchColumn { column_idx: column.column_idx, column_group_idx: column.column_group_idx })
+                .collect(),
             data_table_ordering: order_by(&c.data_table_ordering),
             cross_filters,
             filter_table: c.filter_table.as_ref().map(|t| ComputationFilterTable {
