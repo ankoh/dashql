@@ -303,6 +303,8 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const commandLines = ai && connect?.target != null ? agentConnectCommandLines(connect.harness, connect.target) : null;
     const command = commandLines?.join(' ') ?? null;
     const commandText = commandLines?.map((line, i) => i == 0 ? line : `  ${line}`).join(' \\\n') ?? '';
+    // The port and secret of the command, for the page tests that connect without reading the text
+    const connectPort = connect?.target != null ? new URL(connect.target.endpoint).port : undefined;
     const statusId = React.useId();
     return (
         <div
@@ -338,7 +340,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                     />
                 </div>
                 {ai && connect != null && (
-                    <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect">
+                    <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect" data-port={connectPort} data-secret={connect.target?.token}>
                         <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
                             {session != null
                                 ? `${harnessLabel(session.harness)} works on this workbook in the terminal, switch to SQL to edit the scripts yourself`

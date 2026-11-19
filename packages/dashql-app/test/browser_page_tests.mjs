@@ -347,17 +347,19 @@ async function testAppAgentSession(page, navigate) {
     await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
     await page.getByTestId('composer-connect-renew').click();
     await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
-    const line = await page.getByTestId('composer-connect-command').inputValue();
-    const match = /^npx -y --registry=https:\/\/registry\.npmjs\.org\/ --min-release-age=0 @akohn\/dashql-cli@\d+\.\d+\.\d+(?:-dev\.\d+\.g[0-9a-f]+)? connect --launch codex --port (\d+) --secret ([\w-]+)$/.exec(line ?? '');
-    assert.ok(match, line);
+    // The port and secret of the command, its text is checked by the unit tests of the composer
+    const connect = page.getByTestId('composer-connect');
+    const port = Number(await connect.getAttribute('data-port'));
+    const secret = await connect.getAttribute('data-secret');
+    assert.ok(port > 0 && secret, `port ${port}, secret ${secret}`);
     // An older dashql-cli answers on the port first: the page tells to run the command again
-    const outdated = await startSessionServer({ port: Number(match[1]), token: match[2], protocol: null });
+    const outdated = await startSessionServer({ port, token: secret, protocol: null });
     try {
         await page.getByTestId('composer-connect-status').getByText('The session runs an older dashql-cli, stop it and run the command again').waitFor();
     } finally {
         await outdated.close();
     }
-    const connected = await startSessionServer({ port: Number(match[1]), token: match[2], id: 'first' });
+    const connected = await startSessionServer({ port, token: secret, id: 'first' });
     try {
         connected.push({ harness: 'codex' });
         await page.getByTestId('composer-connect-status').getByText('Codex works on this workbook in the terminal').waitFor();
@@ -461,7 +463,7 @@ async function testAppAgentSession(page, navigate) {
     }
     // The same line runs the next session on the same port, here with the other harness: the page follows it and copies
     // the workbook again
-    const next = await startSessionServer({ port: Number(match[1]), token: match[2], id: 'second' });
+    const next = await startSessionServer({ port, token: secret, id: 'second' });
     try {
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         await waitUntil(() => next.writes.some(write => write.path === 'dashql-workbook.json'));
