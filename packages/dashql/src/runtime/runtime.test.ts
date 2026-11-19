@@ -69,6 +69,37 @@ describe('the runtime', () => {
         }
     });
 
+    it('dispatches an action of the target and settles once the store shows it, refuses an action of another target', async () => {
+        const runtime = createRuntime(testPlatform(new WorkbookTestBackend()));
+        try {
+            await runtime.restore();
+            const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: true }));
+            const workbook = runtime.createWorkbook(connection.connectionId, 'Sales', false);
+            const target = { workbook: workbook.workbookId };
+
+            const renamed = runtime.dispatch(target, { kind: 'renameWorkbook', value: { name: 'Revenue' } });
+            expect(renamed).toMatchObject({ ok: true, changed: true });
+            await renamed.settled;
+            expect(runtime.store.get('workbook', workbook.workbookId)?.name).toBe('Revenue');
+
+            // An action of a connection is no action of a workbook
+            const refused = runtime.dispatch(target, { kind: 'discardDraft' } as unknown as dashql.WorkbookAction);
+            expect(refused).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
+            await refused.settled;
+
+            // A script that runs nothing has nothing to cancel
+            const created = runtime.dispatch(target, { kind: 'createScript', value: { base: 'query', text: 'select 1' } });
+            await created.settled;
+            const scriptKey = runtime.store.get('workbook', workbook.workbookId)!.scriptKeys[0];
+            await runtime.cancelScript(workbook.workbookId, scriptKey);
+        } finally {
+            await runtime.destroy();
+        }
+        const destroyed = runtime.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId: 'w' } });
+        expect(destroyed.ok).toBe(false);
+        await destroyed.settled;
+    });
+
     it('aborts the requests and the OAuth flows of the platform and refuses commands once destroyed', async () => {
         const requests: AbortSignal[] = [];
         const platform = testPlatform(new WorkbookTestBackend());

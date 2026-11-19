@@ -59,7 +59,7 @@ export function findWorkbookQueries(
 }
 
 /// The action of the runtime that creates a connection, with a fixed id or a new one
-export function createConnectionAction(connection: NewConnection, connectionId?: string): core.RuntimeAction {
+export function createConnectionAction(connection: NewConnection, connectionId?: string): core.AppAction {
     return {
         kind: 'createConnection',
         value: {

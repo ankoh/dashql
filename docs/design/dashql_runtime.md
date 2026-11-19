@@ -227,12 +227,13 @@ can't be read, keeps the previous views, and the store asks for the slices again
 times in a row; then it drops the slice until it changes. Changes that fail to cross to the host come again with the
 next `takeChanges`.
 
-Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush. The commands of
-the facade that wait for the state of the module flush the store once they settled (`settled` of `runtime.ts`):
-`analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`, `restore`, `restoreWorkbook`,
-`deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `refreshAttachments`, `runWorkbook`, `runScript` and
-`commitImport`. `createConnection`, `createWorkbook` and `deleteWorkbook` flush right after their action. The others,
-e.g. `execute`, `cancel`, `authenticateSalesforce`, the exports and `readImport`, leave the views to the next flush.
+Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush, a read after its
+`settled` sees the action. The commands of the facade that wait for the state of the module flush the store once they
+settled (`settled` of `runtime.ts`): `analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`,
+`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `refreshAttachments`,
+`runWorkbook`, `runScript` and `commitImport`. `createConnection`, `createWorkbook` and `deleteWorkbook` flush right
+after their action. The others, e.g. `execute`, `cancel`, `authenticateSalesforce`, the exports and `readImport`, leave
+the views to the next flush.
 
 ### The store and its projections
 
@@ -272,25 +273,32 @@ A new view kind:
 ### Dispatch
 
 ```ts
-runtime.dispatch(target, action): DispatchOutcome
+runtime.dispatch<T extends Target>(target: T, action: ActionOf<T>): Settled
 ```
 
 - **Targets**: `{ workbook: id }`, `{ connection: id }`, `{ computation: tableId }` or `'app'`
   (create and delete workbooks and connections).
-- **Actions** are one generated union, `RuntimeAction` of `runtime.rs`, adjacently tagged: `{ kind: 'setScriptText',
-  value: { ... } }`. They are synchronous changes of state, e.g. `createScript`, `setScriptText`, `showScript`,
-  `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The queries run with `execute`, never by actions.
-- **The outcome** is `{ ok, changed, error, id }` (`DispatchOutcome`): `id` names what the action created (a workbook,
-  a connection). A failed action leaves the state as it was; the runtime logs every refused action as a warning.
-- **Never throws.** A malformed target or action is a failed outcome like a refused action, and so is a dispatch
-  after `destroy`.
+- **Actions** are one generated union per target in `runtime/actions.rs` of the bindings, adjacently tagged:
+  `{ kind: 'setScriptText', value: { ... } }`. `WorkbookAction`, `ConnectionAction` (with the actions of the queries
+  of its history), `ComputationAction` and `AppAction`; `ActionOf<T>` picks the union of a target and `RuntimeAction`
+  is all of them. The module reads an action with the union of its target, so an action of another target is a type
+  error in TypeScript and a malformed action in the module. They are synchronous changes of state, e.g.
+  `createScript`, `setScriptText`, `showScript`, `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The
+  queries run with `execute`, never by actions.
+- **The outcome** is `{ ok, changed, error, id, settled }` (`Settled` of `runtime.ts`, over `DispatchOutcome`): `id`
+  names what the action created (a workbook, a connection). A failed action leaves the state as it was; the runtime
+  logs every refused action as a warning. `settled` resolves once the store took the changes of the action
+  (`RuntimeStore.afterFlush`), so a read after it sees them unless a task held the slice; it resolves at once when the
+  action changed nothing, and for a destroyed runtime.
+- **Never throws.** A malformed target or action and a refused action are a failed outcome, and so is a dispatch after
+  `destroy`.
 
 A new action:
 
-1. A variant of `RuntimeAction` in `runtime.rs`, with doc comments, they become the declarations.
-2. An arm in the dispatch of its target: `dispatch_action` for a computation, `dispatch_connection` (or
+1. A variant of the union of its target in `runtime/actions.rs`, with doc comments, they become the declarations.
+2. An arm in the dispatch of its target in `runtime.rs`: `dispatch_computation`, `dispatch_connection` (or
    `dispatch_query` for the queries of its history), `dispatch_workbook`, which maps it to a `WorkbookAction` of
-   `workbook.rs` that `Workbooks::apply` settles, or `dispatch_app`.
+   `workbook.rs` that `Workbooks::apply` settles, or `dispatch_app`. The matches are exhaustive.
 3. Its outcome: `DispatchOutcome::changed(changed)`, `created(id)` or `failed(error)`. The service marks what it
    changed, a workbook action through `Workbooks::settle`.
 4. A test in the crate (`tests/workbook_test.rs` for a workbook) and a step in the property test of
@@ -320,7 +328,7 @@ is a typed method with its contract rather than a generated table, the app reads
 | `createWorkbook`, `deleteWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors |
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
 | `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
-| `runWorkbook`, `runScript`, `stopRun`, `setUpOpenedWorkbook` | Runs, and the setups of the connections of an opened workbook |
+| `runWorkbook`, `runScript`, `stopRun`, `cancelScript`, `setUpOpenedWorkbook` | Runs; `cancelScript` stops the run of the workbook while one is busy, else cancels the latest query of the script; the setups of the connections of an opened workbook |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
 | `storage` | `StorageCommands`, the commands of the storage writer: flush (`closing` while the window closes), flush of a workbook, holds, handover, discarding failed writes, statistics |
 | `computeDatabase` | The compute database of the platform and whether it is ready |
@@ -421,7 +429,7 @@ it over, and only the latest lease resets the connection when it closes.
 - **`StandaloneRuntime`** (`runtime_hooks.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP
   client and the embedded database, without storage.
 - **Hooks** (`packages/dashql-app/src/runtime/runtime_hooks.tsx`): `useRuntime`, `useOptionalRuntime`,
-  `useView(kind, id)`, `useDispatch(target)`, `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
+  `useView(kind, id)`, `useDispatch(target)` (typed by the target, see [Dispatch](#dispatch)), `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
   one-line aliases `useWorkbook`, `useScript`,
   `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`,
   `useComputationDispatch`; hooks that read all slices of a kind for the views that show all of them (`useWorkbooks`,

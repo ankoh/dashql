@@ -1,6 +1,6 @@
 /// The views of the connections of the runtime, declared by the module (`packages/dashql-core-wasm/src/connection/view.rs`):
 /// a connection is a slice `connection` of the `Runtime`, the list of the connections the slice `connectionList`. The
-/// actions of a connection are the ones of the runtime (`RuntimeAction`), see docs/design/dashql_runtime.md.
+/// actions of a connection are `ConnectionAction` of the runtime, see docs/design/dashql_runtime.md.
 export type {
     ConnectionCatalogUpdates,
     ConnectionCatalogUpdateTask,

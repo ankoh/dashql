@@ -3,18 +3,19 @@
 //! `Runtime` owns the state of DashQL and its services on one platform object (`JsPlatform`). The host reads the state
 //! as views by revision: the runtime tells the platform that it changed, the store of the host takes the changed slices
 //! (`takeChanges`) and reads their views once per kind (`views`). Writes are one `dispatch` with a generated union of
-//! actions; the work that takes time and returns a result is a method each (`analyzeTable`, `executeQuery`,
+//! actions per target (`actions.rs`); the work that takes time and returns a result is a method each (`analyzeTable`, `executeQuery`,
 //! `cancelQuery`, `saveConnection`, `setupConnection`, ...).
 //!
 //! The runtime owns the computations of result tables, the connections with the histories of their queries, the query
 //! executor, the setups and the health checks of the connections, the catalog loader, the saves of the connections, the
 //! workbooks with their scripts, the runs of the workbooks, the storage writer and the restore of the stored state. A new domain adds its state to `Runtime`, its
-//! slices to `ViewKind`, its targets and actions to the unions.
+//! slices to `ViewKind`, its target and its union of actions to `actions.rs`.
 //!
 //! Every method takes `&self` and the state sits behind the `RefCell`s of the services, which no call holds across a
 //! call into the platform. The services mark the slices they change, `takeChanges` reads only those (`changes.rs`).
 //! Arguments of the wrong type fail with a JS error, `dispatch` refuses them with a failed outcome, nothing panics.
 
+pub(crate) mod actions;
 pub(crate) mod archives;
 pub(crate) mod attachments;
 pub(crate) mod catalog;
@@ -55,7 +56,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
 use crate::connection::view::{
-    ConnectionListView, ConnectionSecrets, ConnectionTableName, ConnectionView, ConnectorType, JsonParams,
+    ConnectionListView, ConnectionSecrets, ConnectionView, ConnectorType, JsonParams,
 };
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryProfileKeys, QueryProfileProgressView, QueryView};
@@ -63,7 +64,7 @@ use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
 use changes::{Read, Slice, Taken};
-use computation::{AnalyzeTableOptions, ComputationOrderBy, ComputationSearchKind, ComputationView};
+use computation::{AnalyzeTableOptions, ComputationView};
 use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
 use queries::{QueryArgs, QueryTicket};
@@ -76,7 +77,7 @@ use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressVi
 use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteStatistics};
 use storage::{error_value, JsStorage, StorageCommand, StorageState, StorageView};
 use workbooks::view::{
-    EditorEventOutcome, StoredScriptView, WorkbookDataFile, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView,
+    EditorEventOutcome, StoredScriptView, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView,
 };
 use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
 
@@ -105,6 +106,15 @@ export type ViewOf<K extends ViewKind> = RuntimeViews[K]['view'];
 export type KnownKeys<K extends ViewKind> = RuntimeViews[K]['known'];
 /** The read of a slice that a task of the runtime holds: it moves with the next changes, the host keeps its view */
 export type BusyView = 'busy';
+/** Every action of the runtime, the union of the actions of the targets */
+export type RuntimeAction = ComputationAction | ConnectionAction | WorkbookAction | AppAction;
+/** The actions of a target: `dispatch` reads an action with the union of its target */
+export type ActionOf<T extends Target> =
+    T extends 'app' ? AppAction
+    : T extends { workbook: string } ? WorkbookAction
+    : T extends { connection: string } ? ConnectionAction
+    : T extends { computation: number } ? ComputationAction
+    : never;
 export interface Runtime {
     /** The views of the slices of a kind, null for a slice that is gone, `'busy'` for one that a task holds. One crossing per kind and flush. */
     views<K extends ViewKind>(kind: K, ids: ViewId<K>[], known?: KnownKeys<K>): (ViewOf<K> | BusyView | null)[];
@@ -123,170 +133,6 @@ pub enum Target {
     Workbook(String),
     /// The runtime: the lists of the connections and the workbooks
     App,
-}
-
-/// The actions of the runtime. An action changes the state in the call and returns its outcome; a failed action leaves
-/// the state as it was.
-#[derive(Clone, Debug, Deserialize, Tsify)]
-#[serde(tag = "kind", content = "value", rename_all = "camelCase", rename_all_fields = "camelCase")]
-#[tsify(missing_as_null)]
-pub enum RuntimeAction {
-    // The computations
-    /// Delete the computation, its runs are cancelled and its tables released
-    DeleteComputation,
-    /// Order the rows, an empty ordering clears it
-    OrderBy { constraints: Vec<ComputationOrderBy> },
-    /// Select a range of bins of the histogram of a column group, null clears the selection of the column
-    HistogramFilter { column_group: u32, selection: Option<(f64, f64)> },
-    /// Select a frequent value of a column group by its id, the selected value again or null clears the selection
-    MostFrequentValueFilter { column_group: u32, value_id: Option<i64> },
-    /// Clear the selections of all column groups
-    ClearCrossFilters,
-    /// Search the columns or the data, an empty pattern ends the search
-    SetResultSearchPattern { search: ComputationSearchKind, pattern: String },
-    /// Summarize a column group over the selected rows if its summary is outdated, e.g. once it shows
-    RequestFilteredColumnAggregation { column_group: u32 },
-
-    // The runtime
-    /// Create a connection with an empty catalog, the outcome names its id. An active connection is written into the
-    /// app manifest right away.
-    CreateConnection {
-        /// The id, a new one without
-        #[serde(default)]
-        #[tsify(optional)]
-        connection_id: Option<String>,
-        #[tsify(type = "ConnectorType")]
-        connector_type: ConnectorType,
-        /// The params of the connector that the details of the setup start with
-        #[serde(default)]
-        #[tsify(optional)]
-        setup_params: Option<JsonParams>,
-        /// Does the connection belong to a committed workbook or was it connected once?
-        #[serde(default)]
-        #[tsify(optional)]
-        active: Option<bool>,
-        /// The params, the setup params by default
-        #[serde(default)]
-        #[tsify(optional)]
-        params: Option<JsonParams>,
-        #[serde(default)]
-        #[tsify(optional)]
-        params_draft: Option<JsonParams>,
-        #[serde(default)]
-        #[tsify(optional)]
-        name: Option<String>,
-        #[serde(default)]
-        #[tsify(optional)]
-        cache_query_results: Option<bool>,
-    },
-    /// Create a workbook without scripts on a connection and write it, the outcome names its id
-    CreateWorkbook {
-        /// The id, a new one without
-        #[serde(default)]
-        #[tsify(optional)]
-        workbook_id: Option<String>,
-        /// The connection of its first script
-        connection_id: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        name: Option<String>,
-        /// Is it the ephemeral workbook of the greeter? Its first script promotes it.
-        #[serde(default)]
-        #[tsify(optional)]
-        ephemeral: Option<bool>,
-        /// The file name the workbook is created from, e.g. the short name of its connector
-        #[serde(default)]
-        #[tsify(optional)]
-        original_file_name: Option<String>,
-    },
-    /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
-    DeleteWorkbook { workbook_id: String },
-
-    // A workbook
-    /// Create a script at an index of the feed, appended without one. The base names its file, the connection is the
-    /// one of its neighbors without one.
-    CreateScript {
-        #[serde(default)]
-        #[tsify(optional)]
-        index: Option<u32>,
-        #[serde(default)]
-        #[tsify(optional)]
-        text: Option<String>,
-        base: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        connection_id: Option<String>,
-    },
-    DeleteScript { file_name: String },
-    /// Rename a script, the name is a display name
-    RenameScript { file_name: String, new_name: String },
-    /// Order the scripts by their file names
-    ReorderScripts { order: Vec<String> },
-    /// Replace the text of a script, with a diff the rewrite is staged to accept or reject
-    SetScriptText {
-        script_key: u32,
-        text: String,
-        #[serde(default)]
-        #[tsify(optional)]
-        with_diff: Option<bool>,
-    },
-    AcceptPendingDiff { script_key: u32 },
-    RejectPendingDiff { script_key: u32 },
-    /// Set the Vega-Lite spec of the chart of a script
-    SetScriptVisSpec { script_key: u32, spec: String },
-    /// Set the value of an input in the scripts that use it
-    SetWorkbookInput { name: String, literal: String, script_keys: Vec<u32> },
-    /// Analyze a script if its analysis is outdated
-    AnalyzeOutdatedScript { script_key: u32 },
-    /// An editor shows a script, the selected one or not: its outdated analysis runs right away when it is selected,
-    /// once the changes pause otherwise
-    ShowScript { script_key: u32, selected: bool },
-    /// An editor no longer shows a script, with the selection of its `showScript`
-    HideScript { script_key: u32, selected: bool },
-    /// Rename the workbook, null removes the name
-    RenameWorkbook {
-        #[serde(default)]
-        #[tsify(optional)]
-        name: Option<String>,
-    },
-    /// Move a script to another connection
-    SetScriptConnection { file_name: String, connection_id: String },
-    /// Pick the connection of the next appended script
-    SetPendingConnection { connection_id: String },
-    /// Move the scripts and the pending connection on one connection to another
-    ReplaceConnection { from: String, into: String },
-    /// Let go of a connection that only the next script would use
-    DetachConnection { from: String, into: String },
-    /// The data files of the workbook as storage lists them
-    SetWorkbookAttachments { files: Vec<WorkbookDataFile> },
-
-    /// Link the workbook to a published workbook, the whole link is written into the workbook file, null removes it
-    SetCloudLink {
-        #[serde(default)]
-        #[tsify(optional)]
-        link: Option<JsonValue>,
-    },
-
-    // A connection
-    /// Set the draft of the params, params of another connector are ignored
-    SetDraft { params: JsonParams },
-    /// Drop the draft and the errors of the last setup
-    DiscardDraft,
-    /// Rename the connection, a blank name removes the name
-    Rename { name: String },
-    /// Choose whether the connection caches query results
-    SetQueryResultCaching { caching: bool },
-    /// Stop the connection and drop it with its catalog. A connection that workbooks use is never deleted.
-    DeleteConnection,
-    /// Stop the connection and clear its catalog and queries
-    ResetConnection,
-    /// Statements that the host ran on the connection itself touched relations, e.g. those of the shell. The names have
-    /// nulls for the parts that a statement left out.
-    RelationsTouched { names: Vec<ConnectionTableName> },
-
-    // The queries of a connection
-    /// The cached result of the query was deleted
-    QueryCacheDeleted { query_id: f64 },
 }
 
 /// The id of a slice or of what an action created: a number or a string
@@ -601,42 +447,44 @@ impl Runtime {
         }
     }
 
-    /// Apply an action to a slice. Malformed input fails with its error, a refused action is a failed outcome.
-    fn dispatch_action(&self, target: Target, action: RuntimeAction) -> Result<DispatchOutcome, String> {
-        Ok(match target {
-            Target::Computation(table_id) => {
-                let service = &self.computations;
-                match action {
-                    RuntimeAction::DeleteComputation => self.settle(service.delete_computation(table_id)),
-                    RuntimeAction::OrderBy { constraints } => {
-                        self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect()))
-                    }
-                    RuntimeAction::HistogramFilter { column_group, selection } => {
-                        self.settle(service.histogram_filter(table_id, column_group, selection))
-                    }
-                    RuntimeAction::MostFrequentValueFilter { column_group, value_id } => {
-                        self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
-                    }
-                    RuntimeAction::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
-                    RuntimeAction::SetResultSearchPattern { search, pattern } => {
-                        self.settle(service.set_search_pattern(table_id, search.into(), pattern))
-                    }
-                    RuntimeAction::RequestFilteredColumnAggregation { column_group } => {
-                        let requested =
-                            service.request_filtered_column_aggregation(table_id, column_group).map(|_| ComputationOutcome::default());
-                        self.settle(requested)
-                    }
-                    _ => DispatchOutcome::failed("the action doesn't apply to a computation"),
-                }
+    /// Apply an action to a slice: the action is read with the union of the target. Malformed input and a refused
+    /// action are failed outcomes.
+    fn dispatch_action(&self, target: Target, action: JsValue) -> DispatchOutcome {
+        fn read<A: serde::de::DeserializeOwned>(action: JsValue) -> Result<A, String> {
+            serde_wasm_bindgen::from_value::<A>(action).map_err(|error| format!("the action is malformed: {error}"))
+        }
+        let outcome = match target {
+            Target::Computation(table_id) => read(action).map(|action| self.dispatch_computation(table_id, action)),
+            Target::Connection(connection_id) => read(action).and_then(|action| self.dispatch_connection(connection_id, action)),
+            Target::Workbook(workbook_id) => read(action).map(|action| self.dispatch_workbook(workbook_id, action)),
+            Target::App => read(action).map(|action| self.dispatch_app(action)),
+        };
+        outcome.unwrap_or_else(DispatchOutcome::failed)
+    }
+
+    /// Apply an action to a computation
+    fn dispatch_computation(&self, table_id: u64, action: actions::ComputationAction) -> DispatchOutcome {
+        use actions::ComputationAction as A;
+        let service = &self.computations;
+        match action {
+            A::DeleteComputation => self.settle(service.delete_computation(table_id)),
+            A::OrderBy { constraints } => self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect())),
+            A::HistogramFilter { column_group, selection } => self.settle(service.histogram_filter(table_id, column_group, selection)),
+            A::MostFrequentValueFilter { column_group, value_id } => {
+                self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
             }
-            Target::Connection(connection_id) => self.dispatch_connection(connection_id, action)?,
-            Target::Workbook(workbook_id) => self.dispatch_workbook(workbook_id, action),
-            Target::App => self.dispatch_app(action),
-        })
+            A::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
+            A::SetResultSearchPattern { search, pattern } => self.settle(service.set_search_pattern(table_id, search.into(), pattern)),
+            A::RequestFilteredColumnAggregation { column_group } => {
+                let requested = service.request_filtered_column_aggregation(table_id, column_group).map(|_| ComputationOutcome::default());
+                self.settle(requested)
+            }
+        }
     }
 
     /// Apply an action to a connection, the actions of its queries included
-    fn dispatch_connection(&self, connection_id: String, action: RuntimeAction) -> Result<DispatchOutcome, String> {
+    fn dispatch_connection(&self, connection_id: String, action: actions::ConnectionAction) -> Result<DispatchOutcome, String> {
+        use actions::ConnectionAction as A;
         let connections = &self.connections;
         let Ok(registry) = connections.registry.try_borrow() else { return Ok(DispatchOutcome::failed("the connections are busy")) };
         if registry.get(&connection_id).is_none() {
@@ -644,18 +492,20 @@ impl Runtime {
         }
         drop(registry);
         let action = match action {
-            RuntimeAction::SetDraft { params: draft } => match draft.connection_params() {
+            A::SetDraft { params: draft } => match draft.connection_params() {
                 // Params of another connector are ignored
                 Ok(draft) => ConnectionAction::SetDraft(draft),
                 Err(error) => return Ok(DispatchOutcome::failed(error_text(error))),
             },
-            RuntimeAction::DiscardDraft => ConnectionAction::DiscardDraft,
-            RuntimeAction::Rename { name } => ConnectionAction::Rename(name),
-            RuntimeAction::SetQueryResultCaching { caching } => ConnectionAction::SetQueryResultCaching(caching),
-            RuntimeAction::DeleteConnection => ConnectionAction::Delete,
-            RuntimeAction::ResetConnection => ConnectionAction::Reset,
-            RuntimeAction::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
-            action => return self.dispatch_query(&connection_id, action),
+            A::DiscardDraft => ConnectionAction::DiscardDraft,
+            A::Rename { name } => ConnectionAction::Rename(name),
+            A::SetQueryResultCaching { caching } => ConnectionAction::SetQueryResultCaching(caching),
+            A::DeleteConnection => ConnectionAction::Delete,
+            A::ResetConnection => ConnectionAction::Reset,
+            A::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
+            A::QueryCacheDeleted { query_id } => {
+                return self.dispatch_query(&connection_id, QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? })
+            }
         };
         // The host logs a refused action
         let outcome = connections.apply(&connection_id, action, None);
@@ -663,11 +513,7 @@ impl Runtime {
     }
 
     /// Apply an action to a query of a connection
-    fn dispatch_query(&self, connection_id: &str, action: RuntimeAction) -> Result<DispatchOutcome, String> {
-        let action = match action {
-            RuntimeAction::QueryCacheDeleted { query_id } => QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? },
-            _ => return Ok(DispatchOutcome::failed("the action doesn't apply to the target")),
-        };
+    fn dispatch_query(&self, connection_id: &str, action: QueryExecutionAction) -> Result<DispatchOutcome, String> {
         Ok(match self.connections.apply_query(connection_id, action, true) {
             Ok(outcome) => DispatchOutcome::changed(outcome.changed),
             Err(error) => DispatchOutcome::failed(error_text(error)),
@@ -675,10 +521,11 @@ impl Runtime {
     }
 
     /// Apply an action of the runtime
-    fn dispatch_app(&self, action: RuntimeAction) -> DispatchOutcome {
+    fn dispatch_app(&self, action: actions::AppAction) -> DispatchOutcome {
+        use actions::AppAction as A;
         let connections = &self.connections;
         match action {
-            RuntimeAction::CreateConnection {
+            A::CreateConnection {
                 connection_id,
                 connector_type,
                 setup_params,
@@ -710,7 +557,7 @@ impl Runtime {
                     Err(error) => DispatchOutcome::failed(error_text(error)),
                 }
             }
-            RuntimeAction::CreateWorkbook { workbook_id, connection_id, name, ephemeral, original_file_name } => {
+            A::CreateWorkbook { workbook_id, connection_id, name, ephemeral, original_file_name } => {
                 let created = self.workbooks.create(NewWorkbook {
                     workbook_id,
                     connection_id,
@@ -724,8 +571,7 @@ impl Runtime {
                 }
             }
             // The run of a workbook that is gone stops and its slice goes, see `Runs::forget`
-            RuntimeAction::DeleteWorkbook { workbook_id } => DispatchOutcome::changed(self.workbooks.delete(&workbook_id)),
-            _ => DispatchOutcome::failed("the action doesn't apply to the runtime"),
+            A::DeleteWorkbook { workbook_id } => DispatchOutcome::changed(self.workbooks.delete(&workbook_id)),
         }
     }
 }
@@ -737,55 +583,56 @@ impl Runtime {
     }
 
     /// Apply an action to a workbook
-    fn dispatch_workbook(&self, workbook_id: String, action: RuntimeAction) -> DispatchOutcome {
+    fn dispatch_workbook(&self, workbook_id: String, action: actions::WorkbookAction) -> DispatchOutcome {
+        use actions::WorkbookAction as W;
         use dashql_core_runtime::workbook::WorkbookAction as A;
         let workbooks = &self.workbooks;
         let connection = |id: &str| self.script_connection(id);
         let action = match action {
-            RuntimeAction::CreateScript { index, text, base, connection_id } => {
+            W::CreateScript { index, text, base, connection_id } => {
                 let connection = match connection_id.as_deref().map(connection).transpose() {
                     Ok(connection) => connection,
                     Err(error) => return DispatchOutcome::failed(error),
                 };
                 A::CreateScript { index: index.map(|index| index as usize), text, base, connection }
             }
-            RuntimeAction::DeleteScript { file_name } => A::DeleteScript { file_name },
-            RuntimeAction::RenameScript { file_name, new_name } => A::RenameScript { file_name, new_name },
-            RuntimeAction::ReorderScripts { order } => A::ReorderScripts { order },
-            RuntimeAction::SetScriptText { script_key, text, with_diff } => {
+            W::DeleteScript { file_name } => A::DeleteScript { file_name },
+            W::RenameScript { file_name, new_name } => A::RenameScript { file_name, new_name },
+            W::ReorderScripts { order } => A::ReorderScripts { order },
+            W::SetScriptText { script_key, text, with_diff } => {
                 A::SetScriptText { key: script_key, text, with_diff: with_diff.unwrap_or(false) }
             }
-            RuntimeAction::AcceptPendingDiff { script_key } => A::AcceptPendingDiff { key: script_key },
-            RuntimeAction::RejectPendingDiff { script_key } => A::RejectPendingDiff { key: script_key },
-            RuntimeAction::SetScriptVisSpec { script_key, spec } => A::SetScriptVisSpec { key: script_key, spec },
-            RuntimeAction::SetWorkbookInput { name, literal, script_keys } => A::SetWorkbookInput { name, literal, keys: script_keys },
-            RuntimeAction::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
-            RuntimeAction::ShowScript { script_key, selected } => {
+            W::AcceptPendingDiff { script_key } => A::AcceptPendingDiff { key: script_key },
+            W::RejectPendingDiff { script_key } => A::RejectPendingDiff { key: script_key },
+            W::SetScriptVisSpec { script_key, spec } => A::SetScriptVisSpec { key: script_key, spec },
+            W::SetWorkbookInput { name, literal, script_keys } => A::SetWorkbookInput { name, literal, keys: script_keys },
+            W::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
+            W::ShowScript { script_key, selected } => {
                 workbooks.visible.show(script_key, selected);
                 return DispatchOutcome::changed(false);
             }
-            RuntimeAction::HideScript { script_key, selected } => {
+            W::HideScript { script_key, selected } => {
                 workbooks.visible.hide(script_key, selected);
                 return DispatchOutcome::changed(false);
             }
-            RuntimeAction::RenameWorkbook { name } => A::RenameWorkbook { name },
-            RuntimeAction::SetScriptConnection { file_name, connection_id } => match connection(&connection_id) {
+            W::RenameWorkbook { name } => A::RenameWorkbook { name },
+            W::SetScriptConnection { file_name, connection_id } => match connection(&connection_id) {
                 Ok(connection) => A::SetScriptConnection { file_name, connection },
                 Err(error) => return DispatchOutcome::failed(error),
             },
-            RuntimeAction::SetPendingConnection { connection_id } => match connection(&connection_id) {
+            W::SetPendingConnection { connection_id } => match connection(&connection_id) {
                 Ok(connection) => A::SetPendingConnection { connection },
                 Err(error) => return DispatchOutcome::failed(error),
             },
-            RuntimeAction::ReplaceConnection { from, into } => match connection(&into) {
+            W::ReplaceConnection { from, into } => match connection(&into) {
                 Ok(into) => A::ReplaceConnection { from, into },
                 Err(error) => return DispatchOutcome::failed(error),
             },
-            RuntimeAction::DetachConnection { from, into } => match connection(&into) {
+            W::DetachConnection { from, into } => match connection(&into) {
                 Ok(into) => A::DetachConnection { from, into },
                 Err(error) => return DispatchOutcome::failed(error),
             },
-            RuntimeAction::SetWorkbookAttachments { files } => {
+            W::SetWorkbookAttachments { files } => {
                 let action = A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
                 let outcome = self.workbook_outcome(workbooks.apply(&workbook_id, action));
                 // The columns of new Parquet attachments are read with the compute database
@@ -793,11 +640,10 @@ impl Runtime {
                 return outcome;
             }
 
-            RuntimeAction::SetCloudLink { link } => {
+            W::SetCloudLink { link } => {
                 let link = link.map(|link| link.0).filter(|link| !link.is_null());
                 return self.workbook_outcome(workbooks.set_cloud_link(&workbook_id, link));
             }
-            _ => return DispatchOutcome::failed("the action doesn't apply to a workbook"),
         };
         self.workbook_outcome(workbooks.apply(&workbook_id, action))
     }
@@ -934,18 +780,18 @@ impl Runtime {
         Ok(views)
     }
 
-    /// Apply an action to a slice. Never throws: a malformed target or action and a refused action are failed outcomes,
-    /// logged as warnings.
+    /// Apply an action to a slice, read with the union of the actions of its target (`ActionOf`). Never throws: a
+    /// malformed target or action, an action of another target and a refused action are failed outcomes, logged as
+    /// warnings.
     #[wasm_bindgen(unchecked_return_type = "DispatchOutcome")]
     pub fn dispatch(
         &self,
         #[wasm_bindgen(unchecked_param_type = "Target")] target: JsValue,
         #[wasm_bindgen(unchecked_param_type = "RuntimeAction")] action: JsValue,
     ) -> JsValue {
-        let outcome = match (serde_wasm_bindgen::from_value::<Target>(target.clone()), serde_wasm_bindgen::from_value::<RuntimeAction>(action.clone())) {
-            (Ok(target), Ok(action)) => self.dispatch_action(target, action).unwrap_or_else(DispatchOutcome::failed),
-            (Err(error), _) => DispatchOutcome::failed(format!("the target is malformed: {error}")),
-            (_, Err(error)) => DispatchOutcome::failed(format!("the action is malformed: {error}")),
+        let outcome = match serde_wasm_bindgen::from_value::<Target>(target.clone()) {
+            Ok(target) => self.dispatch_action(target, action.clone()),
+            Err(error) => DispatchOutcome::failed(format!("the target is malformed: {error}")),
         };
         if !outcome.ok {
             let target = js_sys::JSON::stringify(&target).ok().and_then(|target| target.as_string()).unwrap_or_default();
@@ -1621,6 +1467,27 @@ impl Runtime {
     #[wasm_bindgen(js_name = stopRun)]
     pub fn stop_run(&self, workbook_id: &str) {
         self.runs.stop(workbook_id);
+    }
+
+    /// Cancel what runs for a script: the run of its workbook while one plans, runs or stops, the latest query of the
+    /// script otherwise. Resolves once a cancelled query ended, at once for a run (its view follows) and for a script
+    /// that runs nothing.
+    #[wasm_bindgen(js_name = cancelScript, unchecked_return_type = "Promise<void>")]
+    pub fn cancel_script(&self, workbook_id: &str, script_key: u32) -> Promise {
+        if self.runs.busy(workbook_id) {
+            self.runs.stop(workbook_id);
+            return Promise::resolve(&JsValue::UNDEFINED);
+        }
+        let latest = self.workbooks.get(workbook_id).and_then(|workbook| {
+            let workbook = workbook.try_borrow().ok()?;
+            workbook.script(script_key).and_then(|script| script.latest_query_id())
+        });
+        let Some(query_id) = latest else { return Promise::resolve(&JsValue::UNDEFINED) };
+        let cancelled = self.connections.cancel(QueryId::from(query_id));
+        future_to_promise(async move {
+            cancelled.await;
+            Ok(JsValue::UNDEFINED)
+        })
     }
 
     /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reads and writes: of the

@@ -42,10 +42,10 @@ function workbookOnConnection(appRuntime: Runtime): void {
 }
 
 /// Set the draft of the params
-function setDraft(params: ConnectionParams): core.RuntimeAction {
+function setDraft(params: ConnectionParams): core.ConnectionAction {
     return { kind: 'setDraft', value: { params: params as unknown as core.JsonParams } };
 }
-const DISCARD_DRAFT: core.RuntimeAction = { kind: 'discardDraft' };
+const DISCARD_DRAFT: core.ConnectionAction = { kind: 'discardDraft' };
 function edited(params: ConnectionParams, endpoint: string): ConnectionParams {
     if ('hyper' in params) return { hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint } };
     if ('trino' in params) return { trino: { ...params.trino, endpoint } };
@@ -60,7 +60,7 @@ describe('durable connection drafts', () => {
         const backend = new WorkbookTestBackend();
         let appRuntime!: Runtime;
         let edit!: React.Dispatch<React.SetStateAction<string>>;
-        let dispatch!: ReturnType<typeof useDispatch>;
+        let dispatch!: (action: core.ConnectionAction) => core.DispatchOutcome;
         let writer!: StorageCommands;
         let current!: ConnectionState;
         let value = '';
@@ -108,7 +108,7 @@ describe('durable connection drafts', () => {
         const backend = new WorkbookTestBackend();
         let appRuntime!: Runtime;
         let edit!: React.Dispatch<React.SetStateAction<HyperConnectionPageState>>;
-        let dispatch!: ReturnType<typeof useDispatch>;
+        let dispatch!: (action: core.ConnectionAction) => core.DispatchOutcome;
         let form!: HyperConnectionPageState;
         let writer!: StorageCommands;
         function Harness() {

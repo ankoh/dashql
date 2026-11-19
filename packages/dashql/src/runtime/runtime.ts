@@ -80,6 +80,9 @@ export interface RuntimeOptions {
 /// Creates the `.dashql` archives of a platform over the handle table of the runtime
 export type RuntimeArchivesFactory = (handles: HandleTable) => core.RuntimeArchives;
 
+/// The outcome of a dispatch right away, and `settled`, which resolves once the store took its changes
+export type Settled = core.DispatchOutcome & { settled: Promise<void> };
+
 /// The source of an import: a `.dashql` archive, a workbook folder, or the workbook tables of a cloud
 export type ImportSource =
     | { archive: Blob }
@@ -290,12 +293,21 @@ export class Runtime {
         }
     }
 
-    /// Apply an action to a slice. It applies at once, the views follow with the next flush. The runtime logs a refused
-    /// action. Never throws: the runtime refuses an action that it can't read, and a destroyed runtime refuses every
-    /// action.
-    dispatch(target: core.Target, action: core.RuntimeAction): core.DispatchOutcome {
-        if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null };
-        return this.module.dispatch(target, action);
+    /// Apply an action to a slice, one of the actions of its target (`ActionOf`). It applies at once and the outcome
+    /// says so, the views follow with the next flush: `settled` resolves once the store took the changes, so a read
+    /// after it sees them unless a task held the slice. The runtime logs a refused action. Never throws: the runtime
+    /// refuses an action that it can't read, and a destroyed runtime refuses every action.
+    dispatch<T extends core.Target>(target: T, action: core.ActionOf<T>): Settled {
+        if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null, settled: Promise.resolve() };
+        const outcome = this.module.dispatch(target, action);
+        return { ...outcome, settled: this.store.afterFlush() };
+    }
+
+    /// Cancel what runs for a script of a workbook: the run of the workbook while one is busy, the latest query of the
+    /// script otherwise. Resolves once a cancelled query ended.
+    async cancelScript(workbookId: string, scriptKey: number): Promise<void> {
+        if (this.stopping) return;
+        await this.module.cancelScript(workbookId, scriptKey);
     }
 
     // The computations

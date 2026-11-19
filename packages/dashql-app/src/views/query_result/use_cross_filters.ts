@@ -7,7 +7,7 @@ import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
 
 /// Dispatch an action to the computation of the table
-export type ComputationDispatch = (action: core.RuntimeAction) => core.DispatchOutcome;
+export type ComputationDispatch = (action: core.ComputationAction) => core.DispatchOutcome;
 
 export interface CrossFilterController {
     /// The selections in the summaries of the column groups (shared, read from the computation)

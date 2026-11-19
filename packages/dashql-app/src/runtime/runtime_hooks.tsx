@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 import type * as core from '@akohn/dashql';
 
-import { createRuntime, type ChannelConnector, type Runtime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime, type ChannelConnector, type Runtime, type Settled } from '@akohn/dashql/runtime/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
@@ -102,14 +102,15 @@ function useAll<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, S
 }
 const NO_SLICES: ReadonlyMap<never, never> = new Map<never, never>();
 
-/// Dispatch actions to a slice. The runtime is resolved when the function is called, it logs an action that it refuses.
-export function useDispatch(target: core.Target | null): (action: core.RuntimeAction) => core.DispatchOutcome {
+/// Dispatch actions to a slice, the actions of its target. The runtime is resolved when the function is called, it logs
+/// an action that it refuses. `settled` of the outcome resolves once the store shows the change.
+export function useDispatch<T extends core.Target>(target: T | null): (action: core.ActionOf<T>) => Settled {
     const runtime = React.useContext(RUNTIME_CTX);
     const key = target == null ? null : JSON.stringify(target);
-    return React.useCallback((action: core.RuntimeAction) => {
+    return React.useCallback((action: core.ActionOf<T>) => {
         if (runtime == null) throw new Error('the runtime needs a RuntimeProvider or a StandaloneRuntime');
-        if (key == null) return { ok: false, changed: false, error: 'no target', id: null };
-        return runtime.dispatch(JSON.parse(key) as core.Target, action);
+        if (key == null) return { ok: false, changed: false, error: 'no target', id: null, settled: Promise.resolve() };
+        return runtime.dispatch(JSON.parse(key) as T, action);
     }, [runtime, key]);
 }
 

@@ -21,7 +21,7 @@ let dql: core.DashQL;
 beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// Hand the runtime, the logger and a dispatch of the app to the test
-function Probe(props: { capture: (runtime: Runtime, logger: Logger, dispatch: ReturnType<typeof useDispatch>) => void }) {
+function Probe(props: { capture: (runtime: Runtime, logger: Logger, dispatch: (action: core.WorkbookAction) => core.DispatchOutcome) => void }) {
     const runtime = useRuntime();
     const logger = useLogger();
     const dispatch = useDispatch({ workbook: 'unknown' });
@@ -65,7 +65,7 @@ describe('the runtime of the app', () => {
         document.body.appendChild(container);
         const root = createRoot(container);
         let logger!: Logger;
-        let dispatch!: ReturnType<typeof useDispatch>;
+        let dispatch!: (action: core.WorkbookAction) => core.DispatchOutcome;
         try {
             await act(async () => {
                 root.render(<LoggerProvider>

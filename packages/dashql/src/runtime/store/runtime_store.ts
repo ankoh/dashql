@@ -76,6 +76,8 @@ export class RuntimeStore {
     private readonly failures = new Map<string, number>();
     /// The handles to forget once no view of the store names them
     private releases: number[] = [];
+    /// Those who wait for the next flush (`afterFlush`)
+    private waiting: (() => void)[] = [];
 
     constructor(
         private readonly handles: HandleTable,
@@ -107,8 +109,25 @@ export class RuntimeStore {
         }
     };
 
+    /// Resolves once the store took the changes that are scheduled now, e.g. those of an action: after the next flush,
+    /// at once when no flush is scheduled. The views of the store then show the changes.
+    afterFlush(): Promise<void> {
+        if (this.scheduled == null || this.disposed) return Promise.resolve();
+        return new Promise(resolve => this.waiting.push(resolve));
+    }
+
     /// Take the changes of the runtime now, e.g. after a command or in the command line tool
     flush = (): void => {
+        const waiting = this.waiting;
+        this.waiting = [];
+        try {
+            this.take();
+        } finally {
+            for (const resolve of waiting) resolve();
+        }
+    };
+
+    private take(): void {
         if (this.scheduled?.type === 'frame') this.scheduler.cancelFrame(this.scheduled.handle);
         this.scheduled = null;
         const source = this.source;
@@ -202,7 +221,7 @@ export class RuntimeStore {
         for (const kind of notifyKinds) {
             for (const listener of [...(this.kindListeners.get(kind) ?? [])]) listener();
         }
-    };
+    }
 
     /// Slices that the store failed to project keep their views, the runtime is asked for them again a few times.
     /// Returns the slices that were asked for again.
@@ -271,6 +290,9 @@ export class RuntimeStore {
         this.scheduled = null;
         this.disposed = true;
         this.source = null;
+        const waiting = this.waiting;
+        this.waiting = [];
+        for (const resolve of waiting) resolve();
     }
 }
 

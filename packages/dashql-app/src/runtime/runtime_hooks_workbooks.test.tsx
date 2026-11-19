@@ -48,7 +48,7 @@ function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; ch
 }
 
 /// A workbook and the dispatch of its actions
-type ScriptsHook = [WorkbookScripts | null, (action: dashql.RuntimeAction) => dashql.DispatchOutcome];
+type ScriptsHook = [WorkbookScripts | null, (action: dashql.WorkbookAction) => dashql.DispatchOutcome];
 
 function Consumer(props: { workbookId: string; scriptKey: number; capture: (scripts: ScriptsHook, fileName: string | null) => void }) {
     const scripts: ScriptsHook = [useWorkbook(props.workbookId), useDispatch({ workbook: props.workbookId })];

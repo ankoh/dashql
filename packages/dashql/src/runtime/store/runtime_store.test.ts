@@ -54,6 +54,32 @@ describe('RuntimeStore', () => {
         expect(store.ids('workbookDerived')).toEqual(['w1', 'w2']);
     });
 
+    it('resolves afterFlush once the scheduled flush took the changes, at once without one', async () => {
+        const source = new FakeSource();
+        let scheduled: (() => void) | null = null;
+        const scheduler: UpdateScheduler = { afterTask: flush => { scheduled = flush; }, beforeFrame: () => 0, cancelFrame: () => { } };
+        const store = new RuntimeStore(new HandleTable(), scheduler);
+        store.attach(source);
+        // Nothing is scheduled: nothing to wait for
+        await store.afterFlush();
+
+        source.set('workbook', 'w1', 1, { name: 'first' });
+        store.changed(true);
+        let resolved = false;
+        const waited = store.afterFlush().then(() => { resolved = true; });
+        await Promise.resolve();
+        expect(resolved).toBe(false);
+        scheduled!();
+        await waited;
+        expect(store.get('workbook', 'w1')).toEqual({ name: 'first' });
+
+        // A disposed store lets its waiters go
+        store.changed(true);
+        const pending = store.afterFlush();
+        store.dispose();
+        await pending;
+    });
+
     it('keeps the view of a slice whose projection throws and asks the runtime for it again', () => {
         const source = new FakeSource();
         const errors: string[] = [];
