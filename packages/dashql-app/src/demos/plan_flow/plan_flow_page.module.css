@@ -1,0 +1,86 @@
+/* The page of the demo: the controls of the replay on top, the view below it on the whole page */
+.root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    color-scheme: light;
+    background: var(--color_bg);
+    color: var(--color_fg);
+}
+
+.root[data-scheme="dark"] { color-scheme: dark; }
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 24px;
+    row-gap: 8px;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--color_border_muted);
+    background: var(--color_bg_pane);
+    font-size: var(--font_size_small);
+}
+
+.title { font-weight: 600; }
+
+.transport,
+.options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.options { margin-left: auto; flex-wrap: wrap; }
+
+.scrubber {
+    width: 220px;
+    accent-color: var(--color_accent_fg);
+}
+
+.clock {
+    min-width: 88px;
+    font-family: var(--font_family_mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color_fg_muted);
+}
+
+.open {
+    padding: 4px 10px;
+    border: 1px solid var(--color_border);
+    border-radius: 6px;
+    color: var(--color_fg_muted);
+    cursor: pointer;
+}
+
+.open:hover { background: var(--color_bg_hover); }
+.open input { display: none; }
+
+.error {
+    padding: 6px 24px;
+    background: var(--color_danger_muted);
+    color: var(--color_danger_fg);
+    font-size: var(--font_size_small);
+}
+
+.stage {
+    flex: 1;
+    min-height: 0;
+    padding: 20px 24px 24px;
+}
+
+.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--color_fg_muted);
+    font-family: var(--font_family_mono);
+    font-size: var(--font_size_small);
+}
+
+@media (max-width: 700px) {
+    .controls, .stage { padding-left: 16px; padding-right: 16px; }
+    .scrubber { width: 120px; }
+}

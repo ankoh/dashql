@@ -21,6 +21,12 @@ export const DEMOS: readonly DemoEntry[] = [
         load: () => import('./stock_analysis/stock_analysis_page.js'),
     },
     {
+        id: 'plan_flow',
+        title: 'Query Progress Flow',
+        description: 'The progress of a replayed Trino query with a CPU timeline, a sidebar and edges as thick as their rows, horizontal and vertical.',
+        load: () => import('./plan_flow/plan_flow_page.js'),
+    },
+    {
         id: 'ui',
         title: 'UI Foundations',
         description: 'The buttons, text inputs, segmented controls and action lists of the app in their variants and sizes.',
