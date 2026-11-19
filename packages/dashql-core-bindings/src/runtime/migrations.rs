@@ -10,6 +10,7 @@
 //! the platform) when it reads a workbook file of an older format.
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
 use wasm_bindgen::JsCast;
 use dashql_core_storage::storage::{FileStamp, FolderStamps};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
@@ -149,6 +150,10 @@ impl Host for JsStorageRoot {
 
     fn spawn(&self, task: LocalTask) {
         wasm_bindgen_futures::spawn_local(task);
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {

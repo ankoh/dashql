@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::host::{Host, LocalTask, LogLevel};
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts, BACKGROUND_ANALYSIS_DELAY_MS};
 
@@ -114,6 +115,10 @@ impl Host for FakeHost {
     }
 
     fn log(&self, _level: LogLevel, _message: &str, _details: &[(&str, &str)]) {}
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
+    }
 }
 
 impl FakeHost {

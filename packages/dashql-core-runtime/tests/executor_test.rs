@@ -14,6 +14,7 @@ use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use serde_json::{json, Value};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessionDefaults};
 use dashql_core_runtime::executor::connectors::{BACKEND_CANCEL_TIMEOUT_MS, TRINO_TOKEN_REFRESH_TIMEOUT_MS};
@@ -268,6 +269,10 @@ impl Host for FakeHost {
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.state.borrow_mut().logs.push((level, message.to_string(), Vec::new()));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 

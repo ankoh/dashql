@@ -3,11 +3,10 @@
 //! bundle and writes nothing. A runtime without storage opens an import this way. The host gives the clock, the tasks
 //! and the log, the files of the bundle are any bytes that know their size (`BundleFile`).
 
-use std::future::Future;
 
 use dashql_core_runtime::attachments::DataFile;
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::host::{Host, HostError, OnHost};
+
 use serde_json::Value;
 
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
@@ -50,25 +49,11 @@ impl<H, B> BundleHost<H, B> {
     }
 }
 
-impl<H: Host, B: 'static> Host for BundleHost<H, B> {
-    fn settings(&self) -> RuntimeSettings {
-        self.host.settings()
-    }
+impl<H: Host, B: 'static> OnHost for BundleHost<H, B> {
+    type Inner = H;
 
-    fn now(&self) -> f64 {
-        self.host.now()
-    }
-
-    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.host.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.host.spawn(task);
-    }
-
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        self.host.log(level, message, details);
+    fn inner_host(&self) -> &H {
+        &self.host
     }
 }
 

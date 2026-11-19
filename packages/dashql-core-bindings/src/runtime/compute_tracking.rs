@@ -9,13 +9,12 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId};
 use dashql_core_runtime::compute::ComputationEffect;
 use dashql_core_runtime::handles::Handle;
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::host::{HostError, LogLevel, OnHost};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryId, QueryMetadata, QueryType};
 
 use super::connections::Connections;
@@ -142,21 +141,11 @@ fn sqlframe_client_context(connection_id: &str) -> String {
     serde_json::json!({ "dashql": { "connectionId": connection_id, "queryType": "sqlframe" } }).to_string()
 }
 
-impl Host for ComputeTracker {
-    fn now(&self) -> f64 {
-        self.inner.platform.now()
-    }
+impl OnHost for ComputeTracker {
+    type Inner = JsPlatform;
 
-    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.inner.platform.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.inner.platform.spawn(task)
-    }
-
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        self.inner.platform.log(level, message, details)
+    fn inner_host(&self) -> &JsPlatform {
+        &self.inner.platform
     }
 }
 

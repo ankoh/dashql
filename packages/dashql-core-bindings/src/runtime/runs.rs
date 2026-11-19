@@ -27,7 +27,7 @@ use std::rc::{Rc, Weak};
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState};
 use dashql_core_runtime::executor::{FailureKind, QueryId};
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
 use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction, WorkbookEffect};
 use dashql_core_runtime::workbook_run::plan::result_keys;
@@ -799,20 +799,14 @@ impl RuntimeRunHost {
     }
 }
 
-impl Host for RuntimeRunHost {
-    fn now(&self) -> f64 {
-        self.platform.now()
+impl OnHost for RuntimeRunHost {
+    type Inner = JsPlatform;
+
+    fn inner_host(&self) -> &JsPlatform {
+        &self.platform
     }
 
-    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.platform.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.platform.spawn(task);
-    }
-
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+    fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         self.platform.log_on(level, message, details, LOG_TARGET);
     }
 }

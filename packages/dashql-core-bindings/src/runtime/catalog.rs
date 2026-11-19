@@ -15,7 +15,7 @@ use dashql_core_runtime::catalog_loader::{CatalogLoaderHost, CatalogLoaderServic
 use dashql_core_runtime::catalog_loader::CATALOG_QUERY_ISSUER;
 use dashql_core_runtime::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction};
 use dashql_core_runtime::executor::ipc;
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryMetadata;
 
@@ -49,21 +49,15 @@ impl LoaderHost {
     }
 }
 
-impl Host for LoaderHost {
-    fn now(&self) -> f64 {
-        self.platform.now()
-    }
+impl OnHost for LoaderHost {
+    type Inner = JsPlatform;
 
-    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.platform.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.platform.spawn(task);
+    fn inner_host(&self) -> &JsPlatform {
+        &self.platform
     }
 
     /// The detail `target` names the target of the log
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+    fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         let target = details.iter().find(|(key, _)| *key == "target").map_or(LOG_TARGET, |(_, value)| value);
         let details: Vec<(&str, &str)> = details.iter().filter(|(key, _)| *key != "target").copied().collect();
         self.platform.log_on(level, message, &details, target);

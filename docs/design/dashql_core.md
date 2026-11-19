@@ -389,7 +389,9 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 `dashql_core_runtime::host::Host` is what every service needs: the clock (`now`), timers (`sleep`, a future that clears
 its timer when dropped), tasks (`spawn`), the log and the settings (`settings`, `RuntimeSettings` of `settings.rs`: the
 timings and limits that another product may want different, the defaults of DashQL unless the host chose others; a
-limit of the workbook format or a wait of a busy state is no setting). A service adds a trait for its I/O:
+limit of the workbook format or a wait of a busy state is no setting). A host that wraps another, e.g. the host of a
+service over the platform, implements `OnHost` instead: `Host` follows from it with every call of the other host, only
+the log may differ. A service adds a trait for its I/O:
 
 | Trait | Adds |
 |---|---|
@@ -418,7 +420,8 @@ and a task that wakes up later ends at its next call. The host takes the last ch
 the platform object. The bindings of each service implement its traits over `JsPlatform`: `QueryHost` of
 `runtime/queries.rs`, `LoaderHost` of `catalog.rs`, `RuntimeSetupHost` of `setups.rs`, `RuntimeRunHost` of `runs.rs`,
 `ComputeTracker` of `compute_tracking.rs`, `JsStorage` of `storage.rs` (the writer and the restore), `JsFolder` and
-`JsStorageRoot` of `migrations.rs`. Every member is reached through `Reflect` and every call catches: a member that
+`JsStorageRoot` of `migrations.rs`; all but `JsStorageRoot` are `OnHost` over `JsPlatform` with a log target of their
+own. Every member is reached through `Reflect` and every call catches: a member that
 throws or is missing fails the call with a `HostError`. `JsPlatform` collects the effects on handles and the marked
 slices and calls `changed(urgent)`.
 

@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
@@ -213,6 +214,10 @@ impl Host for FakeHost {
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.store.borrow_mut().logs.push((level, message.to_string()));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 

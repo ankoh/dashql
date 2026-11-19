@@ -9,6 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::storage::{Expect, FileStamp, FolderListing, FolderStamps};
@@ -170,6 +171,10 @@ impl Host for FakeRoot {
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.fs.borrow_mut().logs.push((level, message.to_string()));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 

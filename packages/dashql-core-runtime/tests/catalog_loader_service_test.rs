@@ -13,6 +13,7 @@ use std::task::{Context, Poll, Wake, Waker};
 use arrow_array::{ArrayRef, Int32Array, RecordBatch, StringArray};
 use serde_json::{json, Value};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::catalog_loader::tables::relations_file_of_entry;
 use dashql_core_runtime::catalog_loader::{
     CatalogLoaderHost, CatalogLoaderService, CatalogQuery, CatalogUpdateOutcome, FollowedConnection,
@@ -266,6 +267,10 @@ impl Host for FakeHost {
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.state.borrow_mut().logs.push((level, message.to_string()));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 

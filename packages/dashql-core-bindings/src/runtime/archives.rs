@@ -8,8 +8,8 @@
 use std::cell::RefCell;
 
 use dashql_core_runtime::handles::Handle;
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::host::{HostError, LogLevel, OnHost};
+
 use dashql_core_storage::restore::bundle::BundleFile;
 use dashql_core_storage::storage::FolderStamps;
 use dashql_core_storage::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
@@ -177,24 +177,14 @@ impl BundleFile for HostFile {
 /// of the imports
 pub(crate) struct ImportHost(pub JsPlatform);
 
-impl Host for ImportHost {
-    fn settings(&self) -> RuntimeSettings {
-        self.0.settings()
+impl OnHost for ImportHost {
+    type Inner = JsPlatform;
+
+    fn inner_host(&self) -> &JsPlatform {
+        &self.0
     }
 
-    fn now(&self) -> f64 {
-        self.0.now()
-    }
-
-    fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
-        self.0.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.0.spawn(task);
-    }
-
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+    fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         self.0.log_on(level, message, details, "workbook_import");
     }
 }

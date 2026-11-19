@@ -11,6 +11,7 @@ use std::task::{Context, Wake, Waker};
 use arrow_array::types::Int32Type;
 use arrow_array::{ArrayRef, Float64Array, Int64Array, ListArray, RecordBatch, StringArray};
 use dashql_core::error::Result;
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService, TaskOutput};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions;
@@ -148,6 +149,10 @@ impl Host for FakeHost {
     }
 
     fn log(&self, _level: LogLevel, _message: &str, _details: &[(&str, &str)]) {}
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
+    }
 }
 
 /// The table that a read names

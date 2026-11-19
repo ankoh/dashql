@@ -10,6 +10,7 @@ use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::formatting::FormattingDialect;
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::executor::QueryId;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
@@ -138,6 +139,10 @@ impl Host for FakeHost {
         self.executor.spawn(task);
     }
     fn log(&self, _level: LogLevel, _message: &str, _details: &[(&str, &str)]) {}
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
+    }
 }
 
 impl RunHost for FakeHost {

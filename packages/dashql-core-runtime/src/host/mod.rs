@@ -52,9 +52,43 @@ pub trait Host: 'static {
     fn spawn(&self, task: LocalTask);
     /// Log a message with its details
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]);
-    /// The settings of the runtime, the defaults of DashQL unless the host chose others
+    /// The settings of the runtime: the defaults of DashQL (`RuntimeSettings::default`) unless the host chose others
+    fn settings(&self) -> RuntimeSettings;
+}
+
+/// A host that hands its calls to another host, e.g. the host of a service over the platform of the module with a log
+/// of its own. `Host` follows from it: the clock, the timers, the tasks and the settings are those of the other host,
+/// so a host that wraps another can't leave one of them out.
+pub trait OnHost: 'static {
+    /// The host that takes the calls
+    type Inner: Host;
+    /// The host that takes the calls
+    fn inner_host(&self) -> &Self::Inner;
+    /// Log a message, on the other host unless the host logs in a way of its own, e.g. on a target
+    fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+        self.inner_host().log(level, message, details);
+    }
+}
+
+impl<T: OnHost> Host for T {
+    fn now(&self) -> f64 {
+        self.inner_host().now()
+    }
+
+    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
+        self.inner_host().sleep(ms)
+    }
+
+    fn spawn(&self, task: LocalTask) {
+        self.inner_host().spawn(task);
+    }
+
+    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+        self.log_on_host(level, message, details);
+    }
+
     fn settings(&self) -> RuntimeSettings {
-        RuntimeSettings::default()
+        self.inner_host().settings()
     }
 }
 

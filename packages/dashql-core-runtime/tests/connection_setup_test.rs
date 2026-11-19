@@ -13,6 +13,7 @@ use std::task::{Context, Poll, Wake, Waker};
 
 use serde_json::{json, Value};
 
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::connection_setup::{
     authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind, HyperChannelRequest,
     LoginStep, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
@@ -179,6 +180,10 @@ impl Host for FakeHost {
 
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.logs.borrow_mut().push((level, message.to_string()));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 

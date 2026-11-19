@@ -42,7 +42,7 @@ use dashql_core_runtime::executor::{
 };
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::trino::TimeZoneOffsets;
 use dashql_core_runtime::salesforce::SharedSalesforceChannel;
@@ -640,20 +640,14 @@ impl Connections {
     }
 }
 
-impl Host for QueryHost {
-    fn now(&self) -> f64 {
-        self.platform.now()
+impl OnHost for QueryHost {
+    type Inner = JsPlatform;
+
+    fn inner_host(&self) -> &JsPlatform {
+        &self.platform
     }
 
-    fn sleep(&self, ms: f64) -> impl Future<Output = ()> + 'static {
-        self.platform.sleep(ms)
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        self.platform.spawn(task);
-    }
-
-    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
+    fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         self.platform.log_on(level, message, details, LOG_TARGET);
     }
 }

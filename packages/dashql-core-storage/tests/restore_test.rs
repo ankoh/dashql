@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::catalog_loader::tables::{catalog_tables_of_descriptor, read_catalog_descriptor};
 use dashql_core_runtime::connections::{ConnectionState, RelationName};
@@ -121,6 +122,10 @@ impl Host for FakeHost {
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         let details = details.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
         self.store.borrow_mut().logs.push((level, message.to_string(), details));
+    }
+
+    fn settings(&self) -> RuntimeSettings {
+        RuntimeSettings::default()
     }
 }
 
