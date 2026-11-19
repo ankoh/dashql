@@ -3,8 +3,11 @@
 A component of the app shows a model and the state of the user interface. The hooks of the runtime, the models and the
 components that other hosts share are the package `@akohn/dashql-react` (`packages/dashql-react`): the building blocks
 (buttons, overlays, inputs, tabs, the JSON view, ...) in `src/components` with their stylesheets, their helpers in
-`src/dom`, imported as `@akohn/dashql-react/components/button` and `@akohn/dashql-react/dom/anchored_position`. A
-component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
+`src/dom`, imported as `@akohn/dashql-react/components/button` and `@akohn/dashql-react/dom/anchored_position`. The
+largest is the data table (`components/data_table/data_table`, its entry module exports what a host uses): it shows a
+computation model, takes the column header as a prop and the detail of a cell as a slot; the app wraps it in
+`DataTableView` (`views/query_result/data_table_view.tsx`), which adds the column plots of the settings and its cell
+overlay. A component shared there reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
 (`//packages/dashql-react:boundary_test`); it logs through `useLogger` of `@akohn/dashql-react/logger`, whose context
 the host provides. Their tests sit next to them (`button.test.tsx`) with the helpers of `src/testing` (`react_act`,
 `ResizeObserverMock`); the browser tests of the app run them as `dashql-react/src/<path>`
