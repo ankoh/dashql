@@ -53,6 +53,7 @@ import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
+import type { ScriptFeedCommands } from './script_card.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './workbook_feed_drag.js';
 import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
@@ -350,26 +351,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         latest.current.scriptConnections.get(scriptData.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
     const runScript = dependencies.useScriptRun();
 
-    // Refresh: run the script and the scripts it references without reading cached results, their results become the
-    // newest files of their keys. Resolves the script by feed file name.
-    const handleRerunEntry = React.useCallback((fileName: string) => {
-        const { workbookScripts, scripts } = latest.current;
-        const entry = workbookScripts.scriptRefs[fileName];
-        const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
-        if (scriptData == null || runScript == null || !isScriptOnline(scriptData)) {
-            return;
-        }
-        void runScript(workbookScripts.workbookId, scriptData.scriptKey, { refresh: true });
-    }, [runScript]);
-
-    const handleExecuteEntry = React.useCallback((fileName: string) => {
-        const { workbookScripts, scripts } = latest.current;
-        const entry = workbookScripts.scriptRefs[fileName];
-        const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
-        if (scriptData == null || runScript == null || !isScriptOnline(scriptData)) return;
-        void runScript(workbookScripts.workbookId, scriptData.scriptKey);
-    }, [runScript]);
-
     const handleDelete = React.useCallback((fileName: string) => {
         deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
     }, [props.modifyWorkbookScripts, selection]);
@@ -411,20 +392,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         props.modifyWorkbookScripts({ kind: 'reorderScripts', value: { order: reordered.map(entry => entry.fileName) } });
     }, [entries, props.modifyWorkbookScripts, canonicalEntries]);
 
-    const handleFormat = React.useCallback((scriptKey: number, text: string) => {
-        props.modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey, text, withDiff: true } });
-    }, [props.modifyWorkbookScripts]);
 
-    // A snippet replaces the text of a script, a script with text shows the replacement as a diff to accept or reject
-    const handleApplySnippet = React.useCallback((scriptKey: number, text: string) => {
-        const priorText = latest.current.scripts[scriptKey]?.scriptSession.getText() ?? '';
-        props.modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey, text, withDiff: priorText.trim().length > 0 } });
-    }, [props.modifyWorkbookScripts]);
 
-    // The chart builder of a card stages every edit of its spec for the `@vis vegalite` tag as a diff to accept or reject
-    const handleSetVisSpec = React.useCallback((scriptKey: number, spec: string) => {
-        props.modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey, spec } });
-    }, [props.modifyWorkbookScripts]);
 
     // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
     // prior text and re-analyzes.
@@ -733,41 +702,40 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
     // lines at a few characters per row, and gets no resize event to correct that.
     const rowsActive = props.active && feedLayout.listWidth > 0;
+    // The commands of the feed for its cards, by file name. The models of the scripts run and rewrite them.
+    const feedCommands = React.useMemo<ScriptFeedCommands>(() => ({
+        create: handleCreate,
+        focus: handleFocus,
+        delete: handleDelete,
+        rename: handleRename,
+        pickConnection: pickScriptConnection,
+        moveUp: handleMoveUp,
+        moveDown: handleMoveDown,
+        target: handleTargetScript,
+        editorView: handleEditorView,
+    }), [handleCreate, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleTargetScript, handleEditorView]);
+    const fold = React.useMemo(() => ({
+        toggle: handleToggleResultExpanded,
+        autoCollapse: handleAutoCollapseResult,
+        resetAutoCollapsed: handleResetAutoCollapsedResult,
+    }), [handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult]);
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         workbookId: props.workbookScripts.workbookId,
         scriptReferences,
         connections: scriptConnections,
         entries,
         storageReader: storageReader,
-        scripts,
         scriptDebugMode,
         formattingDebugMode,
         keywordCase,
         focusedFileName: selectedFileName,
         active: rowsActive,
-        onFocus: handleFocus,
-        onDelete: handleDelete,
-        onRename: handleRename,
-        onPickConnection: pickScriptConnection,
-        onMoveUp: handleMoveUp,
-        onMoveDown: handleMoveDown,
-        onExecute: handleExecuteEntry,
-        onRerun: handleRerunEntry,
-        onFormat: handleFormat,
-        onApplySnippet: handleApplySnippet,
-        onSetVisSpec: handleSetVisSpec,
         canTarget: true,
-        onTarget: handleTargetScript,
-        onAcceptDiff: handleAcceptDiff,
-        onRejectDiff: handleRejectDiff,
         collapsedResults,
-        onToggleResultExpanded: handleToggleResultExpanded,
-        onAutoCollapseResult: handleAutoCollapseResult,
-        onResetAutoCollapsedResult: handleResetAutoCollapsedResult,
-        onCreate: handleCreate,
-        onEditorView: handleEditorView,
+        fold,
+        feed: feedCommands,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, rowsActive, scriptConnections, scripts, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleExecuteEntry, handleRerunEntry, handleFormat, handleApplySnippet, handleSetVisSpec, handleTargetScript, handleAcceptDiff, handleRejectDiff, collapsedResults, handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult, handleCreate, handleEditorView, feedLayout.rowHeights.setRowHeight]);
+    }), [entries, scriptReferences, rowsActive, scriptConnections, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The composer drafts on the connection of the next script, against its catalog and the table parameters of the

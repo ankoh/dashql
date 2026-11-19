@@ -638,7 +638,7 @@ pub enum WorkbookAction {
     ReorderScripts { order: Vec<String> },
     /// Replace the text of a script and analyze it. With a diff, the rewrite is staged to accept or reject, together
     /// with a rewrite that is staged already: rejecting restores the text before both. A rewrite back to that text
-    /// drops the diff.
+    /// drops the diff, a rewrite of a blank script is not staged.
     SetScriptText { key: ScriptKey, text: String, with_diff: bool },
     /// Keep the new text of a staged rewrite
     AcceptPendingDiff { key: ScriptKey },
@@ -1730,8 +1730,9 @@ impl Workbook {
             _ => current.clone(),
         };
         // The diff is computed on a session of the prior text of its own, the script changes only with the new text. A
-        // failed diff never blocks the rewrite, the rewrite is just not staged then.
-        let pending_diff = (with_diff && text != prior)
+        // failed diff never blocks the rewrite, the rewrite is just not staged then, nor is a rewrite of a blank script:
+        // there is nothing to keep.
+        let pending_diff = (with_diff && text != prior && !prior.trim().is_empty())
             .then(|| Scratch::new(&prior, unit).and_then(|mut scratch| scratch.diff_to(text)).ok())
             .flatten()
             .map(|diff| PendingDiff { prior_text: prior, diff, revision: next_revision() });

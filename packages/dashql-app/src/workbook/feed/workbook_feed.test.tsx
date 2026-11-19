@@ -4,6 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@akohn/dashql';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_row.js';
+import type { ScriptCardProps } from './script_card.js';
+import { ScriptModelProvider } from '../../runtime/models/script_model.js';
+import { fakeScript, fakeScriptModels } from '../../tests/fake_models.js';
 import { ResizeObserverMock } from '../../tests/mocks/view_mocks.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
@@ -18,73 +21,54 @@ import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
 import { ComposerMode } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
-import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
-import { EntryStatusBar } from '../entry_status_bar.js';
-import { CachedResultBean } from '../persistence/query_result_cache_controls.js';
-import { FeedEntryTabStrip } from './feed_entry_footer.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { query: null as any, sortableTransform: null as any, formatScriptEditor: vi.fn() };
-const dependencies = {
+const state = { sortableTransform: null as any };
+// The row connects a card, the tests of the card are in script_card.test.tsx
+const dependencies: ScriptFeedRowDependencies = {
     useSortable: () => ({
         attributes: {}, listeners: {}, setNodeRef: vi.fn(), transform: state.sortableTransform, transition: undefined, isDragging: false,
     }),
     translateTransform: (transform: { x: number; y: number } | null) => transform == null
         ? undefined
         : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    scriptCard: {
-        useQuery: () => state.query,
-        ScriptEditor: (props: any) => {
-            React.useEffect(() => props.setView?.({}), [props.setView]);
-            return <div data-testid="editor" />;
-        },
-        ScriptDiagnosticsButton: () => <button>diagnostics</button>,
-        ScriptStatisticsBar: () => null,
-        isScriptFormattable: () => true,
-        formatScriptEditor: (...args: any[]) => {
-            state.formatScriptEditor(...args);
-            args[3]('SELECT 1;');
-        },
-        CachedResultBean: () => null,
-        QueryResultRerunButton: () => null,
-        EntryStatusBar: (props: any) => <button data-testid="status" onClick={props.onToggleExpanded}>{props.status.message}</button>,
-        FeedEntryFooter: (props: any) => <button data-testid="integrated-footer" onClick={props.onShowTable}>footer</button>,
-        FeedEntryTabStrip: () => null,
-        ResultTableOverlay: (props: any) => (
-            <div data-testid="result-table-overlay" data-script={props.scriptName} data-query={props.query.queryId}>
-                <button data-testid="result-table-overlay-close" onClick={props.onClose} />
-            </div>
-        ),
-    },
+    ScriptCard: (props: ScriptCardProps) => <article data-testid="script-cell" data-script={props.model.script.fileName} />,
 } as unknown as ScriptFeedRowDependencies;
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
 function baseProps() {
+    const scripts = { 1: fakeScript(1, '01_alpha.sql'), 2: fakeScript(2, '02_beta.sql') } as { [key: number]: ScriptData };
     return {
         workbookId: 'workbook', connections: new Map(),
         storageReader: { backend: {}, getWorkbookLocation: () => ({ type: 'opfs' }) },
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
-        scripts: { 1: script(1, '01_alpha.sql'), 2: script(2, '02_beta.sql') }, scriptDebugMode: false, formattingDebugMode: false,
+        scripts, scriptDebugMode: false, formattingDebugMode: false,
         keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
-        focusedFileName: '01_alpha.sql', active: true, onFocus: vi.fn(), onDelete: vi.fn(),
-        onRename: vi.fn(), onPickConnection: vi.fn(), onMoveUp: vi.fn(), onMoveDown: vi.fn(), onExecute: vi.fn(), onRerun: vi.fn(),
-        onFormat: vi.fn(), onApplySnippet: vi.fn(), onSetVisSpec: vi.fn(), canTarget: true, onTarget: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), collapsedResults: new Map(), onToggleResultExpanded: vi.fn(),
-        onAutoCollapseResult: vi.fn(), onResetAutoCollapsedResult: vi.fn(),
-        onCreate: vi.fn(), onEditorView: vi.fn(), onRowHeightChange: vi.fn(), dependencies,
+        focusedFileName: '01_alpha.sql', active: true, canTarget: true, collapsedResults: new Map(),
+        fold: { toggle: vi.fn(), autoCollapse: vi.fn(), resetAutoCollapsed: vi.fn() },
+        feed: {
+            create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),
+            moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
+        },
+        onRowHeightChange: vi.fn(), dependencies,
     };
 }
 
-function script(scriptKey: number, fileName: string) {
-    return { scriptKey, fileName, scriptSession: { getText: () => 'SELECT 1' }, analysisOutdated: true,
-        annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null, connectionId: 'database' };
+/// Render a row of the feed over fake models of its scripts
+function renderRow(root: Root, props: ReturnType<typeof baseProps>, wrap: (row: React.ReactElement) => React.ReactElement = row => row) {
+    const models = fakeScriptModels(new Map(), props.scripts);
+    act(() => root.render(<ScriptModelProvider value={models}>
+        {wrap(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />)}
+    </ScriptModelProvider>));
 }
 
 describe('V2 workbook feed rows', () => {
     let container: HTMLDivElement;
     let root: Root;
-    beforeEach(() => { state.query = null; state.sortableTransform = null; state.formatScriptEditor.mockReset(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
+    beforeEach(() => { state.sortableTransform = null; container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
     it('disables every file action for non-WASM connections', () => {
@@ -166,217 +150,22 @@ describe('V2 workbook feed rows', () => {
 
     it('adds scripts above and below a script without separator rows', () => {
         const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+        renderRow(root, props);
         // The first row holds the space above the feed
         expect(container.querySelector<HTMLDivElement>('[data-testid="script-feed-row"]')!.style.paddingTop).toBe('32px');
+        expect(container.querySelector('[data-testid="script-cell"]')?.getAttribute('data-script')).toBe('01_alpha.sql');
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-above"]')!.click());
-        expect(props.onCreate).toHaveBeenLastCalledWith(0);
+        expect(props.feed.create).toHaveBeenLastCalledWith(0);
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-below"]')!.click());
-        expect(props.onCreate).toHaveBeenLastCalledWith(1);
+        expect(props.feed.create).toHaveBeenLastCalledWith(1);
     });
 
-    it('shows the scripts of a read-only workbook greyed out, without what runs or changes them', () => {
-        const props = baseProps();
-        act(() => root.render(<WorkbookReadOnlyContext.Provider value={true}>
-            <ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />
-        </WorkbookReadOnlyContext.Provider>));
-        expect(container.querySelector('[data-testid="script-cell"]')!.hasAttribute('data-read-only')).toBe(true);
-        expect(container.querySelector('[data-testid="script-read-only"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="editor"]')).not.toBeNull();
-        for (const action of ['script-execute', 'script-delete', 'script-chart', 'script-snippets', 'script-more-actions',
-            'script-move-up', 'script-move-down', 'script-insert-above', 'script-insert-below', 'script-drag-handle']) {
+    it('adds and moves no scripts of a read-only workbook', () => {
+        renderRow(root, baseProps(), row => <WorkbookReadOnlyContext.Provider value={true}>{row}</WorkbookReadOnlyContext.Provider>);
+        expect(container.querySelector('[data-testid="script-cell"]')).not.toBeNull();
+        for (const action of ['script-insert-above', 'script-insert-below', 'script-drag-handle']) {
             expect(container.querySelector(`[data-testid="${action}"]`), action).toBeNull();
         }
-    });
-
-    it('marks a result that was loaded from the cache as cached in the status bar', async () => {
-        const props = baseProps();
-        // The runtime looked up the cached result of the script
-        props.scripts[1] = { ...props.scripts[1], latestQueryId: 42, analysisOutdated: false, cachedResult: { key: 'key', cachedAt: Date.now() - 8 * 60_000 } } as any;
-        Object.assign(props, {
-            connections: new Map([['database', {
-                connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } },
-                connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
-            }]]),
-            dependencies: { ...dependencies, scriptCard: { ...dependencies.scriptCard, EntryStatusBar, CachedResultBean, FeedEntryTabStrip } },
-        });
-        state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {}, servedFromCache: true };
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        expect(container.textContent).toContain('Result loaded from cache');
-        await vi.waitFor(() => expect(container.querySelector('[data-testid="cached-result"]')).not.toBeNull());
-
-        // Clicking the tag tells since when the result is cached
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="cached-result"]')!.click());
-        expect(document.querySelector('[data-testid="cached-result-detail"]')?.textContent).toContain('8 minutes ago');
-    });
-
-    it('focuses on pointer entry and exposes integrated execution footer', () => {
-        const props = baseProps();
-        props.scripts[1] = { ...props.scripts[1], latestQueryId: 42 } as any;
-        // The script runs on Trino, its rows format in the dialect of Trino
-        Object.assign(props, { connections: new Map([['database', {
-            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } },
-            connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino', labelParts: { name: 'Trino', detail: '' },
-        }]]) });
-        state.query = { queryId: 42, traceId: 9, status: 9, resultTable: {} };
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        const article = container.querySelector('[data-testid="script-cell"]')!;
-        act(() => article.dispatchEvent(new MouseEvent('pointerover', { bubbles: true })));
-        expect(props.onFocus).toHaveBeenCalledWith('01_alpha.sql');
-        expect(container.querySelector('[data-testid="status"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="integrated-footer"]')).not.toBeNull();
-        // The script details are gone, the full result table opens in an overlay over the feed
-        expect(container.querySelector('[data-testid="script-expand"]')).toBeNull();
-        expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="integrated-footer"]')!.click());
-        const overlay = container.querySelector('[data-testid="result-table-overlay"]');
-        expect(overlay?.getAttribute('data-script')).toBe('01_alpha');
-        expect(overlay?.getAttribute('data-query')).toBe('42');
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="result-table-overlay-close"]')!.click());
-        expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
-        expect(container.querySelector('[data-testid="script-drag-handle"]')).not.toBeNull();
-        const moreButton = container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement;
-        expect(moreButton).not.toBeNull();
-        act(() => moreButton.click());
-        const compactButton = document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="format-compact"]')!;
-        expect(compactButton).not.toBeNull();
-        act(() => compactButton.click());
-        expect(state.formatScriptEditor).toHaveBeenCalledWith(
-            expect.anything(),
-            props.scripts[1],
-            dashql.buffers.formatting.FormattingMode.COMPACT,
-            expect.any(Function),
-            false,
-            dashql.buffers.formatting.KeywordCase.UPPER,
-            dashql.buffers.formatting.FormattingDialect.TRINO,
-        );
-        expect(props.onFormat).toHaveBeenCalledWith(1, 'SELECT 1;');
-        props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-accept"]')!.click());
-        expect(props.onAcceptDiff).toHaveBeenCalledWith(1);
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="diff-reject"]')!.click());
-        expect(props.onRejectDiff).toHaveBeenCalledWith(1);
-        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-move-up"]')?.disabled).toBe(true);
-        const moveDownButton = container.querySelector<HTMLButtonElement>('[data-testid="script-move-down"]')!;
-        expect(moveDownButton.disabled).toBe(false);
-        act(() => moveDownButton.click());
-        expect(props.onMoveDown).toHaveBeenCalledWith('01_alpha.sql');
-        act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-delete"]')!.click());
-        expect(props.onDelete).toHaveBeenCalledWith('01_alpha.sql');
-    });
-
-    it('offers snippets next to the delete button unless a rewrite is pending', () => {
-        const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        const snippets = container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!;
-        expect(snippets.disabled).toBe(false);
-        const deleteButton = container.querySelector('[data-testid="script-delete"]')!;
-        expect(snippets.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        props.scripts[1] = { ...props.scripts[1], pendingDiff: {} } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        expect(container.querySelector<HTMLButtonElement>('[data-testid="script-snippets"]')!.disabled).toBe(true);
-    });
-
-    it('shows the connection instead of the file name and edits the file in the storage view', () => {
-        const props = baseProps();
-        Object.assign(props, { connections: new Map([['database', {
-            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } }, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO],
-            label: 'Trino Http', labelParts: { name: 'Trino', detail: 'Http' },
-        }]]) });
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        // The connection takes the place of the file name
-        const picker = container.querySelector('[data-testid="script-connection-picker"]')!;
-        expect(picker.textContent).toContain('Trino');
-        // The header shows the logo of the database, neither the protocol nor the health
-        expect(picker.textContent).not.toContain('Http');
-        expect(picker.querySelector('use')?.getAttribute('xlink:href')).toContain(CONNECTOR_INFOS[ConnectorType.TRINO].icons.colored);
-        expect(picker.textContent).not.toContain('01_alpha');
-
-        act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
-        act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="storage"]')!.click());
-        const storage = document.querySelector('[data-testid="script-storage"]')!;
-        expect(storage.textContent).toContain('opfs://workbooks/workbook/scripts/01_alpha.sql');
-        const input = storage.querySelector<HTMLInputElement>('[data-testid="script-file-name-input"]')!;
-        expect(input.value).toBe('01_alpha.sql');
-        input.value = 'report';
-        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
-        expect(props.onRename).toHaveBeenCalledExactlyOnceWith('01_alpha.sql', 'report');
-    });
-
-    it('mentions the script with a tag that shows its current name', () => {
-        const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
-        expect(mention.textContent).toBe(':01_alpha');
-        act(() => mention.click());
-        expect(props.onTarget).toHaveBeenCalledWith('01_alpha.sql');
-
-        // A rename shows the new name right away
-        props.entries[0] = { scriptId: 1, fileName: 'report.sql' };
-        props.scripts[1] = script(1, 'report.sql');
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':report');
-    });
-
-    it('renames the script in the tag from the action menu', async () => {
-        const props = baseProps();
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-        const setInputValue = (input: HTMLInputElement, value: string) => {
-            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        };
-        const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
-        // Rename in the action menu edits the name in the tag, the header has no rename button
-        const rename = () => {
-            act(() => (container.querySelector('[data-testid="script-more-actions"]') as HTMLButtonElement).click());
-            act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="rename"]')!.click());
-        };
-        expect(container.querySelector('[data-testid="script-rename"]')).toBeNull();
-        // A double click on the tag mentions the script twice and edits nothing
-        const mention = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
-        act(() => {
-            mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
-            mention.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
-            mention.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
-        });
-        expect(props.onTarget).toHaveBeenCalledTimes(2);
-        expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
-
-        // The input keeps the focus after the menu closes
-        rename();
-        let input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
-        expect(input.value).toBe('01_alpha');
-        await act(nextFrame);
-        expect(document.activeElement).toBe(input);
-        act(() => setInputValue(input, 'report'));
-        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
-        expect(props.onRename).toHaveBeenCalledWith('01_alpha.sql', 'report');
-        expect(container.querySelector('[data-testid="script-name-input"]')).toBeNull();
-
-        // Escape abandons the edit
-        rename();
-        input = container.querySelector<HTMLInputElement>('[data-testid="script-name-input"]')!;
-        act(() => setInputValue(input, 'other'));
-        act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
-        expect(props.onRename).toHaveBeenCalledTimes(1);
-        expect(container.querySelector('[data-testid="script-mention"]')!.textContent).toBe(':01_alpha');
-    });
-
-    it('keeps Play available for SQL with parser diagnostics', () => {
-        const props = baseProps();
-        Object.assign(props, { connections: new Map([['database', {
-            connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE, details: { setupParams: null, channel: null, connector: { kind: 'trino' } }, connectorInfo: CONNECTOR_INFOS[ConnectorType.TRINO], label: 'Trino Http',
-            labelParts: { name: 'Trino', detail: 'Http' },
-        }]]) });
-        props.scripts[1] = { ...props.scripts[1], analysisOutdated: false,
-            editorUpdate: { analysisAvailable: true }, scriptSession: { getText: () => 'SELECT * FROM t QUALIFY x = 1' } } as any;
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
-
-        const play = container.querySelector('[data-testid="script-execute"]') as HTMLButtonElement;
-        expect(play.disabled).toBe(false);
-        act(() => play.click());
-        expect(props.onExecute).toHaveBeenCalledWith('01_alpha.sql');
     });
 
     /// The size observers report when the test asks them to, a browser reports a new observer once before the paint
@@ -396,7 +185,7 @@ describe('V2 workbook feed rows', () => {
             const props = baseProps();
             const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
             try {
-                act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+                renderRow(root, props);
                 expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
                 expect(props.onRowHeightChange).not.toHaveBeenCalled();
                 ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
@@ -412,15 +201,15 @@ describe('V2 workbook feed rows', () => {
             const props = baseProps();
             const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 120 } as DOMRect);
             try {
-                act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+                renderRow(root, props);
                 ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
                 expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
                 props.onRowHeightChange.mockClear();
                 const observers = ResizeObserverMock.instances.length;
                 // A script inserted above takes the mounted row of index 0, a new size observer reports the same size
                 const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
-                    scripts: { ...props.scripts, 3: script(3, '03_gamma.sql') } };
-                act(() => root.render(<ScriptFeedRow {...({ ...inserted, index: 0, style: {} } as any)} />));
+                    scripts: { ...props.scripts, 3: fakeScript(3, '03_gamma.sql') } };
+                renderRow(root, inserted);
                 expect(ResizeObserverMock.instances.length).toBe(observers + 1);
                 ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
                 expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
@@ -430,37 +219,10 @@ describe('V2 workbook feed rows', () => {
         });
     });
 
-    it('greys the play button offline and requests attention once per pointer entry without opening settings', () => {
-        const props = baseProps();
-        const request = vi.fn();
-        act(() => root.render(<WorkbookConnectionAttentionContext.Provider value={{ workbookId: 'workbook', active: false, request }}>
-            <ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />
-        </WorkbookConnectionAttentionContext.Provider>));
-        const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
-        // The button stays a greyed play button that does not run the script
-        expect(play.disabled).toBe(false);
-        expect(play.getAttribute('aria-label')).toMatch(/^Execute /);
-        expect(props.onExecute).not.toHaveBeenCalled();
-        const wrapper = container.querySelector<HTMLElement>('[data-execution-connection-blocked="true"]')!;
-        expect(wrapper.contains(play)).toBe(true);
-        act(() => {
-            wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
-            wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, relatedTarget: play }));
-            wrapper.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
-        });
-        expect(request).toHaveBeenCalledExactlyOnceWith('workbook');
-        expect(wrapper.tabIndex).toBe(0);
-        // A click pulses the connections as well, it opens nothing
-        act(() => play.click());
-        expect(request).toHaveBeenCalledTimes(2);
-        expect(props.onExecute).not.toHaveBeenCalled();
-        expect(document.querySelector('[role="dialog"]')).toBeNull();
-    });
-
     it('translates a dragged card without applying dnd-kit scale distortion', () => {
         const props = baseProps();
         state.sortableTransform = { x: 0, y: 120, scaleX: 0.8, scaleY: 0.4 };
-        act(() => root.render(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />));
+        renderRow(root, props);
 
         const item = container.querySelector<HTMLElement>('[data-testid="script-feed-item"]')!;
         expect(item.style.transform).toBe('translate3d(0px, 120px, 0px)');
@@ -552,7 +314,7 @@ describe('Workbook feed composer', () => {
         const scripts: ScriptDataMap = {};
         const scriptRefs: WorkbookScripts['scriptRefs'] = {};
         fileNames.forEach((fileName, i) => {
-            scripts[i + 1] = script(i + 1, fileName) as any;
+            scripts[i + 1] = fakeScript(i + 1, fileName);
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
@@ -799,7 +561,7 @@ describe('Workbook feed composer', () => {
             for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
             scrollTo.mockClear();
 
-            act(() => feedState.rowProps.onCreate(2));
+            act(() => feedState.rowProps.feed.create(2));
             expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ index: 2 }) });
             render(created, modify);
             await vi.waitFor(() => expect(scrollTo).toHaveBeenCalled());
@@ -864,18 +626,6 @@ describe('Workbook feed composer', () => {
             scrollTo.mockRestore();
             clientHeight.mockRestore();
         }
-    });
-
-    it('replaces the text of a script with a snippet, as a diff if the script has text', async () => {
-        const modify = vi.fn(() => APPLIED);
-        const current = workbook(['1_alpha.sql', '2_beta.sql']);
-        current.scripts[2] = { ...current.scripts[2], scriptSession: { getText: () => '  \n' } } as any;
-        render(current, modify);
-        expect(feedState.rowProps).not.toBeNull();
-        await act(async () => feedState.rowProps.onApplySnippet(1, 'select 2;'));
-        expect(modify).toHaveBeenLastCalledWith({ kind: 'setScriptText', value: { scriptKey: 1, text: 'select 2;', withDiff: true } });
-        await act(async () => feedState.rowProps.onApplySnippet(2, 'select 3;'));
-        expect(modify).toHaveBeenLastCalledWith({ kind: 'setScriptText', value: { scriptKey: 2, text: 'select 3;', withDiff: false } });
     });
 
     it('leaves Enter and Escape to an open modal dialog instead of a staged rewrite', () => {

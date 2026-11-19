@@ -115,7 +115,7 @@ pub enum WorkbookAction {
     RenameScript { file_name: String, new_name: String },
     /// Order the scripts by their file names
     ReorderScripts { order: Vec<String> },
-    /// Replace the text of a script, with a diff the rewrite is staged to accept or reject
+    /// Replace the text of a script, with a diff the rewrite is staged to accept or reject unless the script is blank
     SetScriptText {
         script_key: u32,
         text: String,

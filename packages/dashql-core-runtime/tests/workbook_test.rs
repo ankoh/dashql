@@ -283,6 +283,17 @@ fn restages_a_rewrite_of_a_script_with_a_staged_diff_against_the_text_before_it(
 }
 
 #[test]
+fn stages_no_rewrite_of_a_blank_script() {
+    let (mut workbook, _) = workbook(&[("alpha.sql", "  \n"), ("beta.sql", "select 1")]);
+    let (alpha, beta) = (key(&workbook, "alpha.sql"), key(&workbook, "beta.sql"));
+    set_text(&mut workbook, alpha, "select 2", true);
+    assert_eq!(text(&workbook, alpha), "select 2");
+    assert_eq!(prior_text(&workbook, alpha), None);
+    set_text(&mut workbook, beta, "select 3", true);
+    assert_eq!(prior_text(&workbook, beta).as_deref(), Some("select 1"));
+}
+
+#[test]
 fn keeps_the_rewritten_text_when_a_staged_diff_is_accepted() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 2 as x, 3 as y")]);
     let alpha = key(&workbook, "alpha.sql");

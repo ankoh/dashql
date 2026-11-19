@@ -129,9 +129,8 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 aria-current={props.focused ? 'true' : undefined}
                 disabled={!queryActive && (workbookExecution.runActive || (needsConnection ? props.scriptData == null : !props.canExecute))}
                 onClick={() => {
-                    if (queryActive && props.scriptData?.latestQueryId != null) {
-                        if (workbookExecution.busy) workbookExecution.stop();
-                        else void runtime?.cancel(props.scriptData.latestQueryId);
+                    if (queryActive && props.scriptData != null) {
+                        void runtime?.cancelScript(props.workbookId, props.scriptData.scriptKey);
                     } else if (needsConnection) {
                         connectionAttention?.request(props.workbookId);
                     } else {
