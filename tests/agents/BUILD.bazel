@@ -1,7 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_test")
 
 # Agent integration tests: real agent harnesses with a fake model, no model calls, see
-# docs/wip/agent_integration_tests.md. The harnesses come from //bazel:external_agent_harnesses.bzl.
+# docs/design/agent_integration_tests.md. The harnesses come from //bazel:external_agent_harnesses.bzl.
 #
 #   bazel test //tests/agents:all
 #

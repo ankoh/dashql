@@ -54,9 +54,9 @@ export interface AgentSessionRunHost {
     renderChart: (workbookId: string, script: string, table: arrow.Table | null, size: AgentSessionChartSize) => Promise<{ png: Uint8Array; width: number; height: number }>;
 }
 
-/// The runs that `dashql run` asks the tab for (docs/wip/tab_driven_runs.md): the tab runs the scripts of its workbook
-/// with its runtime, the feed shows the run and its progress as any other, and the events go back to `dashql run`. A
-/// run takes only the connections that the agent may use and that are set up in the tab, the tab reaches what the
+/// The runs that `dashql run` asks the tab for (docs/design/agent_integration.md, "Runs in the tab"): the tab runs the
+/// scripts of its workbook with its runtime, the feed shows the run and its progress as any other, and the events go
+/// back to `dashql run`. A run takes only the connections that the agent may use and that are set up in the tab, the tab reaches what the
 /// browser reaches.
 export class AgentSessionRuns {
     private readonly running = new Map<string, AbortController>();

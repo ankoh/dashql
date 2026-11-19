@@ -172,7 +172,7 @@ that are not named show up only when they fail. `--verbose` prints the log of th
   own runtime on its connections that the agent may use, as far as the browser reaches them, the feed of the tab shows
   the run, and the events come back and print as above. A result comes with its first `--rows` rows, its row count
   and, for a result with a key, its Parquet file, which the tab writes into `.dashql/cache/`. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
-  (`docs/wip/tab_driven_runs.md`). Every other workbook folder runs in the process.
+  (`docs/design/agent_integration.md`, "Runs in the tab"). Every other workbook folder runs in the process.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
   override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
   A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
@@ -230,7 +230,7 @@ The port names the session: its journal is `.dashql/sessions/<port>/journal.json
 `DASHQL_SESSION=<port>`, which `dashql run` appends to. Two sessions in one folder keep apart, the folder of a session
 goes when it ends. The tab writes the workbook that it shows into `.dashql/workbooks/<workbook id>/` once the server
 answers, with the catalogs of the connections that the agent may use, and the agent works on that copy; its changed
-scripts come back into the tab with their text (`docs/wip/agent_session.md`).
+scripts come back into the tab with their text (`docs/design/agent_session.md`).
 
 ## dashql catalog
 
@@ -263,7 +263,7 @@ result nor made by a transform, and sizes that DashQL decides (`chartSpecProblem
 
 The PNG comes from the tab, like the result: the run request asks for charts (`chart`, the size), and the tab renders
 the chart of the script with its result as the image download of the feed does, and sends it as the event
-`script_chart` before `run_finished` (`docs/wip/tab_driven_runs.md`). 800x500 at scale 2 by default, `charts/<script>.png`
+`script_chart` before `run_finished` (`docs/design/agent_integration.md`, "Runs in the tab"). 800x500 at scale 2 by default, `charts/<script>.png`
 of the `.dashql/` of the workspace or `--out`. A workbook folder that runs in the process gets the check only. The exit
 code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors.
 
@@ -290,7 +290,7 @@ dashql session link [--session <id>]
 ```
 
 The hooks of a harness send its events to the server of the session, DashQL follows the session through a link
-(`docs/wip/agent_session.md`). `session hook` reads the payload of the hook on stdin, starts the server of the session
+(`docs/design/agent_session.md`). `session hook` reads the payload of the hook on stdin, starts the server of the session
 (`session serve`, detached, on `127.0.0.1` with a token) if it has none, and sends the event to it. `SessionStart`
 prints the link, the harness hands it to the agent. A hook never fails the harness. The server keeps the question,
 the steps (every use of a tool, from `PreToolUse` to `PostToolUse`), the files that the tools touched and the final
@@ -302,7 +302,7 @@ the page of the links (`https://dashql.app`).
 The server also creates the journal of the session, `.dashql/journal.jsonl` in its folder (the one of `dashql
 connect` is `.dashql/sessions/<port>/journal.jsonl`). `dashql run` appends the files of a workbook folder below it and
 every result, the server folds them into its state and hands out the files of the workbook folders and the results of
-its `.dashql/cache` to the page (`docs/wip/agent_session.md`). The page writes the copy of its workbook with `PUT` and
+its `.dashql/cache` to the page (`docs/design/agent_session.md`). The page writes the copy of its workbook with `PUT` and
 `DELETE` on the routes of the files of the workbooks, and the connections that the agent may use with `PUT
 /v1/connections/<token>`: the server writes them into `connections.json` next to the journal. `dashql run` in a session
 of `dashql connect` (`DASHQL_SESSION`) reads that file and runs no script on a connection that is not in it.

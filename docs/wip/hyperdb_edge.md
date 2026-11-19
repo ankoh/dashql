@@ -167,7 +167,7 @@ runtime links the package as `@akohn/hyperdb-edge`.
 ## Harness tests
 
 `//tests/agents:hyperdb_edge_claude_code_test` and `//tests/agents:hyperdb_edge_codex_test` run the real harnesses
-with a fake model (see [agent_integration_tests.md](agent_integration_tests.md)). The model calls `hyperdb-edge`, a
+with a fake model (see [agent_integration_tests.md](../design/agent_integration_tests.md)). The model calls `hyperdb-edge`, a
 script like the one npm links that runs the compiled command on the Node of the toolchain, and the tests check the
 tool results that the harness sent back and the files left in the workspace:
 

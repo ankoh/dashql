@@ -184,7 +184,7 @@ jobs:
 
             - uses: ./.github/actions/setup-ubuntu-mirror
 
-            # The sandbox of Claude Code on Linux, see docs/wip/agent_integration_tests.md.
+            # The sandbox of Claude Code on Linux, see docs/design/agent_integration_tests.md.
             # Ubuntu restricts the unprivileged user namespaces that bubblewrap needs. It also confines /usr/bin/bwrap
             # with the AppArmor profiles bwrap and unpriv_bwrap: the children of bwrap get no capabilities in a nested
             # user namespace, where the seccomp helper of Claude Code writes /proc/self/setgroups.

@@ -1,5 +1,5 @@
 // `dashql describe`: what an agent needs to know to work on the workbooks of DashQL, and the workbooks that the tabs of
-// DashQL copied into the workspace (docs/wip/agent_session.md, "How the agent learns DashQL")
+// DashQL copied into the workspace (docs/design/agent_session.md, "How the agent learns DashQL")
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 

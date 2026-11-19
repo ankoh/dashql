@@ -346,7 +346,7 @@ the rest, e.g. `runCatalogLoader`, `resultKeys`, `migrateWorkbookFolder`, `query
 
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
 reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that
-runs a workbook for the agent of a session sends them back to `dashql run` (`docs/wip/tab_driven_runs.md`).
+runs a workbook for the agent of a session sends them back to `dashql run` (`docs/design/agent_integration.md`, "Runs in the tab").
 `Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
 
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects
@@ -514,7 +514,7 @@ the `query` views. `lint` and `format` use `platform/sql/` and no runtime.
   (JavaScriptCore has no memory64). The CLI loads `hyperdb-wasm` only in commands that need it, so the commands without
   Hyper run on Node 22 (`engines: node >=22`).
 - **Agent sessions.** `dashql session serve` and the journal of a session are in
-  [agent_session.md](../wip/agent_session.md).
+  [agent_session.md](agent_session.md).
 
 ## The package on npm
 

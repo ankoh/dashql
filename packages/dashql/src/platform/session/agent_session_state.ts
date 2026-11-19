@@ -1,7 +1,7 @@
 import type { LogRecord } from '../logger/log_buffer.js';
 import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
 
-/// The events of a harness that its hooks send to `dashql session serve`, docs/wip/agent_session.md
+/// The events of a harness that its hooks send to `dashql session serve`, docs/design/agent_session.md
 export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Stop' | 'SessionEnd';
 
 /// An event of a session, as the hook command of dashql reads it from the harness

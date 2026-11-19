@@ -1,4 +1,4 @@
-// The journal of a session (docs/wip/agent_session.md). `dashql session serve` creates `.dashql/journal.jsonl` in the
+// The journal of a session (docs/design/agent_session.md). `dashql session serve` creates `.dashql/journal.jsonl` in the
 // folder of the session, and dashql commands below it append their log records to it, one JSON line each. Records of
 // the target `workbook_journal` are markers that tell what changed: the files of a workbook folder. The server folds
 // the markers into the workbooks of the session and keeps the latest other records as the log of the commands; the

@@ -1,5 +1,5 @@
 // The events of a run of a workbook that reports what happens: `dashql run` prints them, a tab that runs the workbook
-// for the agent of a session sends them to `dashql run` (docs/wip/tab_driven_runs.md)
+// for the agent of a session sends them to `dashql run` (docs/design/agent_integration.md, "Runs in the tab")
 import * as arrow from 'apache-arrow';
 
 /// What happens in a run

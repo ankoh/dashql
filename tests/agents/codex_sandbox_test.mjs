@@ -1,4 +1,4 @@
-// Where the sandbox of Codex ends, with a fake model and no model calls (docs/wip/agent_integration_tests.md).
+// Where the sandbox of Codex ends, with a fake model and no model calls (docs/design/agent_integration_tests.md).
 // The model calls exec_command once, e.g. with a probe that connects to a server on loopback, hooks run the same probe
 // or carry the events of the session to a server that a SessionStart hook started, and a prefix rule of the execution
 // policy lets a command out of the sandbox.

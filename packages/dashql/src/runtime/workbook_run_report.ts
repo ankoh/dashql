@@ -1,5 +1,5 @@
 // A run of a workbook that reports what happens as RunEvents: `dashql run` on its own runtime, and a tab that runs a
-// workbook for the agent of a session (docs/wip/tab_driven_runs.md)
+// workbook for the agent of a session (docs/design/agent_integration.md, "Runs in the tab")
 import type * as arrow from 'apache-arrow';
 
 import type { ConnectionState } from '../platform/connections/connection_state.js';

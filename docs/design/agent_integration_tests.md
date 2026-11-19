@@ -1,11 +1,10 @@
 # Agent Integration Tests
 
-Status: Claude Code and Codex are tested (sandbox, hooks, the ways out of the sandbox, the session server that
-`dashql session hook` starts, `dashql lint`), `dashql run` in the sandboxes and opencode are planned.
-
 The integrations with agent harnesses rest on assumptions about their sandboxes: what a command of the agent can
-reach, where hooks run, what an approval by prefix allows. These tests run the real harnesses with a fake model, so
-they check those assumptions on every machine that runs them, without model calls and in CI.
+reach, where hooks run, what an approval by prefix allows. The tests in `//tests/agents` run the real harnesses, Claude
+Code and Codex, with a fake model, so they check those assumptions on every machine that runs them, without model calls
+and in CI: the sandbox, the hooks, the ways out of the sandbox, the session server that `dashql session hook` starts,
+`dashql lint` and `dashql connect`. `dashql run` in the sandboxes and opencode are planned.
 
 | Part | State |
 |---|---|
@@ -13,8 +12,8 @@ they check those assumptions on every machine that runs them, without model call
 | Fake Messages API of Anthropic (`tests/agents/fake_anthropic.mjs`), fake Responses API of OpenAI (`tests/agents/fake_openai.mjs`) | Done |
 | `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server, `dashql lint`, `dashql connect`: the guide in the system prompt, `dashql` and the copies without approval, other files only with one | Done |
 | `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server, `dashql lint` | Done |
-| `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](hyperdb_edge.md#harness-tests) | Done |
-| `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
+| `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](../wip/hyperdb_edge.md#harness-tests) | Done |
+| `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](../wip/hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
 | `dashql session hook` in the hooks of both harnesses: it starts `dashql session serve`, which holds the question, the command and the final message | Done |
 | `dashql run` in both sandboxes: the embedded Hyper, its root in the `.dashql/` of the workspace, the journal | Planned |
 | opencode | Planned |

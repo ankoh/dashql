@@ -206,7 +206,7 @@ interface Copy {
     adopted: boolean;
 }
 
-/// The copies of the workbooks of a page in a session (docs/wip/agent_session.md). The page writes a workbook into the
+/// The copies of the workbooks of a page in a session (docs/design/agent_session.md). The page writes a workbook into the
 /// folder of the session once, then both sides change it: the scripts that the agent changes in the copy come into the
 /// workbook of the page with their text, a new script as a script of the workbook; the scripts that the user changes
 /// in the page go into the copy, the page stays the truth. The page runs the scripts for the agent

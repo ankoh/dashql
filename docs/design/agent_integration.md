@@ -2,10 +2,10 @@
 
 An agent works on the workbooks of a tab of DashQL from a harness in a terminal, Claude Code or Codex. The work is
 split between two sides: the tab in the browser, which has the logins of the user, and the processes on the machine of
-the agent, which have the files. This document says what happens on which side, what crosses between them, and why. The
-details of each part are in [agent_session.md](../wip/agent_session.md) (the session, the copies, the handoff),
-[tab_driven_runs.md](../wip/tab_driven_runs.md) (runs) and [packages/dashql-cli/README.md](../../packages/dashql-cli/README.md)
-(the commands).
+the agent, which have the files. This document says what happens on which side, what crosses between them, and why,
+and how a run of the agent runs in the tab. The details of the session, the copies and the handoff are in
+[agent_session.md](agent_session.md), the commands in [packages/dashql-cli/README.md](../../packages/dashql-cli/README.md),
+the tests of the harnesses in [agent_integration_tests.md](agent_integration_tests.md).
 
 ## The two sides
 
@@ -50,8 +50,7 @@ The reasons:
 
 - **The tab reaches what the browser reaches.** Its connections are set up with the logins of the user, OAuth and
   Salesforce included. The terminal gets no token and no password of a connection, and there is no proxy that would
-  make the terminal an exit to the network of the browser or the browser one to the intranet (tab_driven_runs.md, "No
-  proxy").
+  make the terminal an exit to the network of the browser or the browser one to the intranet ([No proxy](#no-proxy)).
 - **One runtime shows the run.** A run of the agent is a run of the tab, so the feed is the live preview of it, with
   progress, profiles and results, and nothing of the feed is specific to agents.
 - **The checks need no tab.** A command that only reads files and the core works on any workbook folder, also one that
@@ -84,7 +83,7 @@ The reasons:
 
 ## What crosses
 
-Every request carries the token of the session and names its protocol (agent_session.md, "Protocol"). Only the pages
+Every request carries the token of the session and names its protocol ([agent_session.md](agent_session.md#protocol)). Only the pages
 of DashQL get CORS headers.
 
 | Route | From | Carries |
@@ -161,7 +160,8 @@ harness: the tab keeps trying the port, tells the new session by the `id` of its
    `.dashql/cache/`.
 
 `dashql vis` is the same run with `chart` in the request and no rows. It checks the chart while the run goes, and
-writes the PNG that the tab sends as `script_chart` before `run_finished`.
+writes the PNG that the tab sends as `script_chart` before `run_finished`. The details are in
+[Runs in the tab](#runs-in-the-tab).
 
 ### The handoff
 
@@ -200,13 +200,80 @@ Decide the side first:
    a run (a field of the run request and a run event, like the charts) or as files that it writes into the copy (like
    the catalogs).
 3. **Does the agent change a workbook?** Through the files of the copy; the tab takes them.
-4. **Anything that crosses** raises the protocol (agent_session.md, "Protocol"), and the side that is too old says so.
+4. **Anything that crosses** raises the protocol ([agent_session.md](agent_session.md#protocol)), and the side that is
+   too old says so.
 
 Not on the list: a route that lets the terminal read or change the state of the tab, an answer of the tab to anything
 but a run, a proxy, a secret on disk.
 
+## Runs in the tab
+
+`dashql run` in a session of `dashql connect` asks the tab to run a workbook that the tab copied into the session; the
+tab runs it with its own runtime, its feed shows the run, and the events go back to `dashql run`. The runs of the agent
+are runs of the tab, so the live preview of a query is the feed of the tab as it is, with the running query, its
+progress, the profile of Trino and the result. Nothing of the feed is specific to the session.
+
+### Why the tab runs
+
+The other ways were to show the state of the runtime of `dashql run` in the tab: mirror its queries into the runtime of
+the tab, or send the views of its store to the page.
+
+- **Mirroring** needs a query that runs elsewhere in the core runtime, a second kind of query that every part that
+  handles queries knows, and a marker, a field of the protocol and a call of the runtime for every new thing to show.
+- **Views over the wire** make every view kind a contract between the version of the tab and the version of
+  `dashql-cli` that npx runs.
+
+When the tab runs the scripts, it shows its own state. Between the command line tool and the tab there are the files of
+the copy, the run request, the `RunEvent`s and the first rows of the results.
+
+### No proxy
+
+The tab reaches what the browser reaches: an endpoint that doesn't allow the origin of DashQL (CORS) can't be reached
+from the web app, by the user as by the agent. The desktop app reaches every endpoint through its native proxy. A proxy
+of `dashql connect` for the tab was considered and left out: it would make the process an exit to the network for the
+agent and the intranet reachable for a script injected into the page, and the hosts of a Salesforce login are known
+only from its tokens. With the proxy, the allowed hosts would go on the command line (`--allow`), which the user
+decides on. The tab logs in as it does for its own runs, no token reaches the terminal.
+
+### The flow of a run
+
+1. **Files come in.** The agent writes the copy of the workbook (`.dashql/workbooks/<workbook id>/`), the tab takes the
+   changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
+2. **The run request.** `dashql run .dashql/workbooks/<id>` in a session of `dashql connect` (`DASHQL_SESSION`) posts
+   `{ workbookId, label, scripts, refresh, rows }` to `/v1/runs/<token>` (`run_tab.ts`). The server stamps the copies,
+   sends the state, then the run as an event `run` on the stream of the tab (`event: run`), and answers with the
+   events of the run as JSON lines, its header `X-DashQL-Run` names the run.
+3. **The tab runs.** `AgentSessionRuns` (`agent/agent_session_runs.ts`) waits until the changes of the agent are in the
+   workbook, then runs it with `runWorkbookReported` of the runtime (`runtime/workbook_run_report.ts`), the same code
+   that `dashql run` runs without a tab. A connection that the agent may not use, or that is not online in the tab,
+   fails before the first statement and its scripts don't run.
+4. **The results go into the session.** The cached result of a script with a key goes as its Parquet file to
+   `PUT /v1/results/<token>/<key>` before the script is reported: the server writes it into the query result cache of
+   the session, `.dashql/cache/<key>.<uuid>.parquet`, and answers with the path, where the agent reads the whole
+   result. A result without a key has no file, as in a run of the process.
+5. **The events go back.** The tab posts every event to `/v1/runs/<token>/<run id>` (`encodeRunEvent`: the table of a
+   result with its first `rows` rows as an Arrow IPC stream in base64, the file in the session), the server writes it
+   to the answer, which ends with `run_finished`. `dashql run` prints them with its reporters.
+
+- **Stop.** Ctrl-C posts `DELETE /v1/runs/<token>/<run id>`, the server tells the tab (`{ type: 'stop' }`), the tab stops
+  the run and its events end with `run_finished` as interrupted. A `dashql run` that goes away stops the run as well, an
+  event of a run that is gone answers 404 and the tab stops.
+- **Charts.** A run request of `dashql vis` carries `chart`, the size of the images. After the results the tab renders
+  the `@vis vegalite` chart of every script that the run reports with its result (`renderScriptChart`, the renderer of
+  the image download of the feed) and sends each as `script_chart` with the PNG in base64, or with the error when the
+  script has no chart or no result, then `run_finished`. A tab of protocol 1 ignores `chart` and sends none.
+- **The user has the workbook.** While the prompt of the tab is in SQL, the tab runs nothing for the agent: the run ends
+  at once with `run_failed` (`AGENT_PAUSED_ERROR`) and `run_finished`, see
+  [Who has the workbook](agent_session.md#who-has-the-workbook).
+- **No tab.** Without a tab on the stream the run request answers 409. A run that no tab takes within 30 s ends with
+  `run_failed`, so does a run whose tab goes away.
+- **Other folders.** A workbook folder that no tab copied, and every run outside a session of `dashql connect`, runs in
+  the process of `dashql run` with Trino with basic auth and the embedded Hyper.
+
 ## Open
 
+- The way back from an edit of the agent: the editor may not undo a text that was set from outside.
+- Scripts that the agent creates take the name that the page gives them, a run of the agent names its file.
 - Scripts that the agent deletes or renames, the order of the scripts, the attachments of a copy.
 - The functions of a connection in its catalog file, client functions included.
 - `dashql connect` with Codex is tested with its hooks, not yet end to end with the guide.

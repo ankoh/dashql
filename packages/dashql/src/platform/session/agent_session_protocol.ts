@@ -1,5 +1,5 @@
 /// The protocol between `dashql session serve` and its clients: the page that follows a session, the hooks of a
-/// harness and the runs of `dashql run` in it (docs/wip/agent_session.md#protocol). A client names its protocol on
+/// harness and the runs of `dashql run` in it (docs/design/agent_session.md#protocol). A client names its protocol on
 /// every request, the server names its own and the oldest one of a client that it answers on every answer.
 ///
 /// Raise AGENT_SESSION_PROTOCOL with every change of what goes over the wire: a route, a request, a field of the

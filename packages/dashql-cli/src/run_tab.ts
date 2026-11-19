@@ -1,5 +1,5 @@
 // dashql run in a session of dashql connect: the tab of DashQL runs a workbook that it copied into the session and
-// sends the events of the run back (docs/wip/tab_driven_runs.md)
+// sends the events of the run back (docs/design/agent_integration.md, "Runs in the tab")
 import {
     startAgentSessionRun,
     stopAgentSessionRun,
