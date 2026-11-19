@@ -4,22 +4,6 @@ import * as pb from "../../proto.js";
 
 import { LoggableException } from "../../logger/logger.js";
 
-/// The JSON error body of the HTTP API of Hyper (v3)
-export interface QueryErrorResponse {
-    error: string;
-    message: string;
-    details?: {
-        customerHint?: string;
-        customerDetail?: string;
-        systemDetail?: string;
-        errorSource?: string;
-        position?: {
-            errorBeginCharacterOffset: string;
-            errorEndCharacterOffset: string;
-        };
-    };
-}
-
 /// The gRPC "richer error model" trailer that carries the base64-encoded
 /// google.rpc.Status. This is the same name the wire uses, mirrored by the
 /// native proxy (see proxy_headers.rs HEADER_NAME_GRPC_STATUS_DETAILS).
@@ -41,11 +25,9 @@ export interface HyperTextPosition {
 /// The origin of an error, as classified by Hyper.
 export type HyperErrorSource = "User" | "System" | "Unknown";
 
-/// A structured, transport-independent view of Hyper's rich error model.
-///
-/// Both the native gRPC path (via the `grpc-status-details-bin` trailer) and
-/// the web HTTP v3 path (via the JSON error body) are decoded into this shape
-/// so the rest of the app has a single error representation.
+/// Hyper's rich error model as the gRPC channel of the desktop app receives it, in the `grpc-status-details-bin`
+/// trailer that the native proxy forwards. The HTTP API sends it as a JSON error body, which the core reads
+/// (`hyper/error_info.rs` of the core runtime): each side decodes what it receives.
 export interface HyperErrorInfo {
     /// The primary (terse) error message
     primaryMessage: string;
@@ -193,9 +175,7 @@ export function hyperErrorInfoToKeyValues(info: HyperErrorInfo): Record<string, 
     return kv;
 }
 
-/// An error raised for a failed Hyper query, carrying the decoded rich error
-/// model. Both the native gRPC path and the web HTTP v3 path raise this so the
-/// rest of the app has a single, structured error type.
+/// An error raised for a failed Hyper query of the gRPC channel, carrying the decoded rich error model
 export class HyperQueryError extends LoggableException {
     /// The decoded rich error info
     readonly info: HyperErrorInfo;
@@ -204,27 +184,4 @@ export class HyperQueryError extends LoggableException {
         super(info.primaryMessage, hyperErrorInfoToKeyValues(info), target);
         this.info = info;
     }
-}
-
-/// A five-character SQL state, the V3 error field holds one or a word like INTERNAL_ERROR
-const SQLSTATE_PATTERN = /^[0-9A-Z]{5}$/;
-
-/// Map the web HTTP v3 JSON error body into a HyperErrorInfo.
-export function fromHttpErrorResponse(response: QueryErrorResponse): HyperErrorInfo {
-    const details = response.details;
-    const position = details?.position
-        ? {
-            beginCharacterOffset: Number.parseInt(details.position.errorBeginCharacterOffset),
-            endCharacterOffset: Number.parseInt(details.position.errorEndCharacterOffset),
-        }
-        : undefined;
-    return {
-        primaryMessage: response.message || response.error,
-        sqlstate: SQLSTATE_PATTERN.test(response.error) ? response.error : undefined,
-        customerHint: details?.customerHint || undefined,
-        customerDetail: details?.customerDetail || undefined,
-        systemDetail: details?.systemDetail || undefined,
-        position,
-        errorSource: normalizeErrorSource(details?.errorSource),
-    };
 }

@@ -6,7 +6,6 @@ import * as pb from "../../proto.js";
 import {
     decodeGrpcStatusDetails,
     decodeGrpcErrorHeaders,
-    fromHttpErrorResponse,
     hyperErrorInfoToKeyValues,
     HEADER_GRPC_MESSAGE,
     HEADER_GRPC_STATUS,
@@ -139,35 +138,6 @@ describe('hyper_error_info', () => {
         it('returns null when there is no error data', () => {
             expect(decodeGrpcErrorHeaders(new Headers())).toBeNull();
             expect(decodeGrpcErrorHeaders(null)).toBeNull();
-        });
-    });
-
-    describe('fromHttpErrorResponse', () => {
-        it('maps the v3 JSON error body', () => {
-            const info = fromHttpErrorResponse({
-                error: "INVALID_ARGUMENT",
-                message: "syntax error",
-                details: {
-                    customerHint: "fix it",
-                    customerDetail: "near 'slect'",
-                    errorSource: "User",
-                    position: {
-                        errorBeginCharacterOffset: "0",
-                        errorEndCharacterOffset: "5",
-                    },
-                },
-            });
-            expect(info.primaryMessage).toBe("syntax error");
-            expect(info.customerHint).toBe("fix it");
-            expect(info.customerDetail).toBe("near 'slect'");
-            expect(info.errorSource).toBe("User");
-            expect(info.position).toEqual({ beginCharacterOffset: 0, endCharacterOffset: 5 });
-        });
-
-        it('falls back to the error code when message is empty', () => {
-            const info = fromHttpErrorResponse({ error: "INTERNAL", message: "" });
-            expect(info.primaryMessage).toBe("INTERNAL");
-            expect(info.errorSource).toBe("Unknown");
         });
     });
 
