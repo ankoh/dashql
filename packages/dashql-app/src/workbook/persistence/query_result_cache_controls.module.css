@@ -1,14 +1,3 @@
-/* The "Executed <relative time>" label in the Query Results header: a subtle secondary text, shown
-   for any succeeded result. */
-.cache_label {
-    display: inline-flex;
-    align-items: center;
-    height: 22px;
-    font-size: var(--font_size_caption);
-    color: var(--color_fg_muted);
-    white-space: nowrap;
-}
-
 .rerun_button {
     flex-shrink: 0;
 }

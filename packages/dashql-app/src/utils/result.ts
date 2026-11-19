@@ -20,12 +20,3 @@ export async function awaitAndSet<V>(v: Promise<V>, setResult: (result: Result<V
         });
     }
 }
-
-export async function awaitAndSetOrNull<V>(v: Promise<V>, setResult: (result: V | null) => void) {
-    try {
-        const res = await v;
-        setResult(res);
-    } catch (e: any) {
-        setResult(null)
-    }
-}

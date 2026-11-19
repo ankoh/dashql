@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@akohn/dashql';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_row.js';
 import type { ScriptCardProps } from './script_card.js';
-import { ScriptModelProvider } from '@akohn/dashql-react/models/script_model';
-import { fakeScript, fakeScriptModels } from '@akohn/dashql-react/testing/fake_models';
+import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
+import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
@@ -26,9 +26,21 @@ import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_in
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { sortableTransform: null as any };
+const state = { sortableTransform: null as any, scripts: {} as { [key: number]: ScriptData } };
+const scriptModels = new WeakMap<ScriptData, ScriptModel>();
 // The row connects a card, the tests of the card are in script_card.test.tsx
 const dependencies: ScriptFeedRowDependencies = {
+    // A fake model of each script of the row, one per script, the scripts come from the props of the row
+    useScriptModel: (workbookId: string, scriptKey: number | null | undefined) => {
+        const script = scriptKey == null ? undefined : state.scripts[scriptKey];
+        if (script == null) return null;
+        let model = scriptModels.get(script);
+        if (model == null) {
+            model = fakeScriptModel({ workbookId, script });
+            scriptModels.set(script, model);
+        }
+        return model;
+    },
     useSortable: () => ({
         attributes: {}, listeners: {}, setNodeRef: vi.fn(), transform: state.sortableTransform, transition: undefined, isDragging: false,
     }),
@@ -59,10 +71,8 @@ function baseProps() {
 
 /// Render a row of the feed over fake models of its scripts
 function renderRow(root: Root, props: ReturnType<typeof baseProps>, wrap: (row: React.ReactElement) => React.ReactElement = row => row) {
-    const models = fakeScriptModels(new Map(), props.scripts);
-    act(() => root.render(<ScriptModelProvider value={models}>
-        {wrap(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />)}
-    </ScriptModelProvider>));
+    state.scripts = props.scripts;
+    act(() => root.render(wrap(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />)));
 }
 
 describe('V2 workbook feed rows', () => {

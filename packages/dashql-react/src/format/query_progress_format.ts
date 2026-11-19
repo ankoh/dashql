@@ -25,18 +25,6 @@ export function workOf(state: ProfileEntityState | null | undefined): ProgressWo
     return { done: Math.min(done, total), total };
 }
 
-/// A label of an execution status
-export function formatExecutionStatus(status: dashql.buffers.profile.ProfileExecutionStatus): string {
-    switch (status) {
-        case view.ProfileExecutionStatus.PENDING: return 'Pending';
-        case view.ProfileExecutionStatus.RUNNING: return 'Running';
-        case view.ProfileExecutionStatus.SUCCEEDED: return 'Done';
-        case view.ProfileExecutionStatus.FAILED: return 'Failed';
-        case view.ProfileExecutionStatus.SKIPPED: return 'Skipped';
-        default: return 'Unknown';
-    }
-}
-
 /// A phase name of an engine (QUEUED, WAITING_FOR_RESOURCES) as label (Queued, Waiting for resources)
 export function formatPhase(phase: string): string {
     const words = phase.toLowerCase().replace(/_/g, ' ');

@@ -6,8 +6,6 @@ export const DASHQL_GIT_COMMIT: string = process.env.DASHQL_GIT_COMMIT!;
 export const DASHQL_CLI_VERSION: string = process.env.DASHQL_CLI_VERSION!;
 export const HYPERDB_WASM_VERSION: string = process.env.HYPERDB_WASM_VERSION!;
 
-// The URL of the git repository
-export const DASHQL_GIT_REPO: URL = new URL(`https://github.com/ankoh/dashql/tree/${DASHQL_GIT_COMMIT}`);
 /// The URL of the stable release manifest
 export const DASHQL_STABLE_RELEASE_MANIFEST = new URL("https://get.dashql.app/stable.json");
 /// The URL of the latest release manifest

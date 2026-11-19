@@ -48,7 +48,6 @@ export async function downloadAppConfig(logger: Logger, flavor: AppFlavor): Prom
 type ReconfigureStateFn = (res: AppConfig | null) => (AppConfig | null);
 const RECONFIGURE_CTX = React.createContext<((config: ReconfigureStateFn) => void) | null>(null);
 const CONFIG_CTX = React.createContext<AppConfig | null>(null);
-const CONFIG_TRACE_ID_CTX = React.createContext<number | null>(null);
 
 type Props = {
     children: React.ReactElement;
@@ -59,17 +58,14 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     const flavor = useAppFlavor();
     const configPromise = React.useRef<Promise<AppConfigResult>>(null);
     const [config, setConfig] = React.useState<AppConfig | null>(null);
-    const [traceId, setTraceId] = React.useState<number | null>(null);
 
     React.useEffect(() => {
         if (!configPromise.current) {
             configPromise.current = downloadAppConfig(logger, flavor);
             configPromise.current.then(result => {
                 setConfig(result.config);
-                setTraceId(result.traceId);
             }).catch(() => {
                 setConfig(null);
-                setTraceId(null);
             });
         }
     }, []);
@@ -81,13 +77,10 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
 
     return (
         <CONFIG_CTX.Provider value={config}>
-            <CONFIG_TRACE_ID_CTX.Provider value={traceId}>
-                <RECONFIGURE_CTX.Provider value={reconfigure}>{props.children}</RECONFIGURE_CTX.Provider>
-            </CONFIG_TRACE_ID_CTX.Provider>
+            <RECONFIGURE_CTX.Provider value={reconfigure}>{props.children}</RECONFIGURE_CTX.Provider>
         </CONFIG_CTX.Provider>
     );
 };
 
 export const useAppConfig = (): AppConfig | null => React.useContext(CONFIG_CTX);
-export const useAppConfigTraceId = (): number | null => React.useContext(CONFIG_TRACE_ID_CTX);
 export const useAppReconfigure = (): ((config: ReconfigureStateFn) => void) => React.useContext(RECONFIGURE_CTX)!;

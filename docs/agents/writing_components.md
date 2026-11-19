@@ -40,12 +40,10 @@ A model is an interface with a hook that implements it over the runtime:
 | Model | Shows | Operations |
 |---|---|---|
 | `useScriptModel` (`models/script_model`) | the script, its latest query, whether its workbook runs | `run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec` |
-| `useConnectionModel` (`models/connection_model`) | the connection and its catalog | `setUp`, `save`, `setDraft`, `discardDraft`, `rename`, `setQueryResultCaching`, `refreshCatalog`, `reset`, `remove` |
 | `useQueryModel` (`models/query_model`) | the query, its progress, its result as an Arrow table; the profile while asked for | `cancel` |
 | `useComputationModel` (`models/computation_model`) | the computation of a result table and the Arrow tables of its handles | `dispatch` of a computation action (filters, ordering, searches, summaries) |
 
-Each has a provider for other sources of models (`ScriptModelProvider`, ...) and a fake in
-`@akohn/dashql-react/testing/fake_models`. An operation that changes state resolves once the
+Each has a fake in `@akohn/dashql-react/testing/fake_models`. An operation that changes state resolves once the
 store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A model is
 the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the new one.
 
@@ -68,8 +66,7 @@ whether a cancel stops the run of the workbook or the query of a script, is a co
    operations are spies. Test a new operation of a model on a runtime, e.g. `src/runtime/script_model.test.tsx` of the
    app with `TestRuntime`.
 5. **Connect it** in the parent: the parent resolves the model with the hook and renders the slots, e.g.
-   `ScriptFeedRow` of `workbook/feed/workbook_feed_row.tsx`. A test of the parent hands it other models with
-   `ScriptModelProvider` and `fakeScriptModels`.
+   `ScriptFeedRow` of `workbook/feed/workbook_feed_row.tsx`.
 
 ## Example
 

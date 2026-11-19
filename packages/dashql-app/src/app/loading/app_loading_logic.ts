@@ -13,15 +13,6 @@ export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): 
         && (!pauseAfterSetup || route.confirmedFinishedSetup);
 }
 
-export interface AppLoadingResult {
-    /// Workbooks whose metadata failed validation and were refused a load (keyed by bare UUID).
-    invalidWorkbooks: Map<string, InvalidWorkbook>;
-    /// Valid restored workbooks in persisted manifest order.
-    restoredWorkbooks: ReadonlyMap<string, WorkbookScripts>;
-    /// The connections that the runtime restored, in the order of the app manifest
-    restoredConnections: string[];
-}
-
 /// The workbook that the app opens with: the restored workbook of the path, otherwise the app opens the greeter
 export function selectStartupWorkbook(
     requestedWorkbookId: string | null,

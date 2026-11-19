@@ -22,16 +22,10 @@ export interface QueryModel {
     cancel(): Promise<void>;
 }
 
-/// Where the models of the queries come from: the runtime of the app, or a fake model of a test
-export interface QueryModelSource {
-    /// The model of a query, null while the query is unknown. `profile` shows the profile of the query while the
-    /// component is mounted: the connector then fetches the plan and its statistics. A hook, the source of a provider
-    /// never changes.
-    useQueryModel(queryId: number | null | undefined, options?: { profile?: boolean }): QueryModel | null;
-}
-
-/// The model of a query over the runtime of the provider above
-function useRuntimeQueryModel(queryId: number | null | undefined, options: { profile?: boolean } = {}): QueryModel | null {
+/// The model of a query, null while the query is unknown. `profile` shows the profile of the query while the component
+/// is mounted: the connector then fetches the plan and its statistics. It renders again when the query changes and no
+/// other.
+export function useQueryModel(queryId: number | null | undefined, options: { profile?: boolean } = {}): QueryModel | null {
     const runtime = useOptionalRuntime();
     const query = useQuery(queryId);
     const result = useTable(query?.resultTable?.id ?? null);
@@ -46,17 +40,4 @@ function useRuntimeQueryModel(queryId: number | null | undefined, options: { pro
             cancel: async () => await runtime?.cancel(queryId),
         };
     }, [runtime, queryId, query, result]);
-}
-
-/// The models of the runtime of the provider above
-export const RUNTIME_QUERY_MODELS: QueryModelSource = { useQueryModel: useRuntimeQueryModel };
-
-const QUERY_MODELS = React.createContext<QueryModelSource>(RUNTIME_QUERY_MODELS);
-
-/// Hand the components below another source of query models, e.g. the fake models of a test
-export const QueryModelProvider = QUERY_MODELS.Provider;
-
-/// The model of a query, null while the query is unknown. It renders again when the query changes and no other.
-export function useQueryModel(queryId: number | null | undefined, options?: { profile?: boolean }): QueryModel | null {
-    return React.useContext(QUERY_MODELS).useQueryModel(queryId, options);
 }

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ZoomInIcon, ZoomOutIcon } from '../symbol_icon.js';
-import { color as parseColor, interpolateBrBG, interpolateOrRd, interpolatePuOr, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
+import { color as parseColor, interpolateOrRd, interpolateRdBu, interpolateRdPu, select, zoom, zoomIdentity, ZoomBehavior, ZoomTransform } from 'd3';
 
 import * as dashql from '@akohn/dashql';
 import { JsonView } from '../json/json_view.js';
@@ -221,8 +221,6 @@ const DEFAULT_DEPENDENCIES: QueryProfileViewDependencies = {
 };
 
 export type ProfileEdgeColorScheme = (value: number) => string;
-export const PROFILE_EDGE_COLOR_SCHEME_PU_OR: ProfileEdgeColorScheme = interpolatePuOr;
-export const PROFILE_EDGE_COLOR_SCHEME_BR_BG: ProfileEdgeColorScheme = interpolateBrBG;
 export const PROFILE_EDGE_COLOR_SCHEME_RD_BU: ProfileEdgeColorScheme = value => interpolateRdBu(1 - value);
 export const PROFILE_EDGE_COLOR_SCHEME_RD_PU: ProfileEdgeColorScheme = interpolateRdPu;
 export const PROFILE_COST_COLOR_SCHEME_OR_RD: ProfileEdgeColorScheme = interpolateOrRd;

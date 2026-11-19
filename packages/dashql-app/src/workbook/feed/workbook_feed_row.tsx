@@ -57,12 +57,14 @@ export interface ScriptFeedRowProps {
 }
 
 export interface ScriptFeedRowDependencies {
+    useScriptModel: typeof useScriptModel;
     useSortable: typeof useSortable;
     translateTransform: typeof CSS.Translate.toString;
     ScriptCard: typeof ScriptCard;
 }
 
 const DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES: ScriptFeedRowDependencies = {
+    useScriptModel,
     useSortable,
     translateTransform: CSS.Translate.toString,
     ScriptCard,
@@ -72,7 +74,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const dependencies = props.dependencies ?? DEFAULT_SCRIPT_FEED_ROW_DEPENDENCIES;
     const entryIndex = props.index;
     const entry = props.entries[entryIndex];
-    const model = useScriptModel(props.workbookId, entry?.scriptId ?? null);
+    const model = dependencies.useScriptModel(props.workbookId, entry?.scriptId ?? null);
     const scriptKey = model?.script.scriptKey ?? null;
     const scriptFileName = entry?.fileName ?? 'script.sql';
     const displayName = scriptDisplayName(scriptFileName);

@@ -84,9 +84,6 @@ const DEFAULT_DEPENDENCIES: WorkbookCommandsDependencies = {
     useRefreshCatalog, useLogger, useWorkbookViewMode, useScriptReader, useScriptRun,
 };
 
-const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
-export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
-
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const route = useRouteContext();
@@ -202,9 +199,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
 
     return (
         <WorkbookConnectionAttentionContext.Provider value={connectionAttention}>
-            <COMMAND_DISPATCH_CTX.Provider value={commandDispatch}>
-                {props.children}
-            </COMMAND_DISPATCH_CTX.Provider>
+            {props.children}
         </WorkbookConnectionAttentionContext.Provider>
     );
 };

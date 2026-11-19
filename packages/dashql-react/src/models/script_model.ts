@@ -40,14 +40,9 @@ export interface ScriptModel {
     setVisSpec(spec: string): Promise<void>;
 }
 
-/// Where the models of the scripts come from: the runtime of the app, or a fake model of a test
-export interface ScriptModelSource {
-    /// The model of a script, null while the script is unknown. A hook, the source of a provider never changes.
-    useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null;
-}
-
-/// The model of a script over the runtime of the provider above
-function useRuntimeScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
+/// The model of a script of a workbook, null while the script is unknown. It renders again when the script, its latest
+/// query or the run of its workbook changes.
+export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
     const script = useScript(scriptKey);
     const query = useQuery(script?.latestQueryId ?? null);
@@ -77,18 +72,4 @@ function useRuntimeScriptModel(workbookId: string, scriptKey: number | null | un
             setVisSpec: spec => dispatch({ kind: 'setScriptVisSpec', value: { scriptKey: key, spec } }).settled,
         };
     }, [runtime, workbookId, script, query, runActive, dispatch]);
-}
-
-/// The models of the runtime of the provider above
-export const RUNTIME_SCRIPT_MODELS: ScriptModelSource = { useScriptModel: useRuntimeScriptModel };
-
-const SCRIPT_MODELS = React.createContext<ScriptModelSource>(RUNTIME_SCRIPT_MODELS);
-
-/// Hand the components below another source of script models, e.g. the fake models of a test
-export const ScriptModelProvider = SCRIPT_MODELS.Provider;
-
-/// The model of a script of a workbook, null while the script is unknown. It renders again when the script, its latest
-/// query or the run of its workbook changes.
-export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
-    return React.useContext(SCRIPT_MODELS).useScriptModel(workbookId, scriptKey);
 }

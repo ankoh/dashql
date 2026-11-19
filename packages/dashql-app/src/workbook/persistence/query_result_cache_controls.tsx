@@ -10,10 +10,6 @@ import { Tag } from '@akohn/dashql-react/components/tag';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 
-interface QueryResultCacheControlsProps {
-    query: QueryExecutionState | null;
-}
-
 interface CachedResultBeanProps {
     /// The time the cached result was written
     cachedAtMs: number;
@@ -64,35 +60,6 @@ function lowerFirst(text: string): string {
 function hasResult(query: QueryExecutionState | null): boolean {
     return query?.status === QueryExecutionStatus.SUCCEEDED && query?.cacheDeleted !== true;
 }
-
-/// The timestamp to show as "Executed <relative>": for a cache hit this is the cached entry's write
-/// time (the original execution); otherwise it's when this run succeeded (which is "now" right after
-/// a cache miss). Falls back to null when neither is available yet.
-function executedAtMs(query: QueryExecutionState | null): number | null {
-    if (query == null) {
-        return null;
-    }
-    if (query.servedFromCache && query.cachedAt != null) {
-        return query.cachedAt;
-    }
-    return query.metrics?.querySucceededAt ?? null;
-}
-
-/// The execution age label shown in the entry status bar: "Executed <relative time>" (e.g.
-/// "Executed 8 minutes ago", "Executed just now"). Shown for any succeeded result regardless of
-/// cache hit/miss; a cache hit reports the original execution time, a fresh run reports "now". The
-/// relative time refreshes on an interval.
-export const QueryResultCacheLabel: React.FC<QueryResultCacheControlsProps> = ({ query }) => {
-    const relativeTime = useRelativeTime(executedAtMs(query));
-    if (!hasResult(query) || relativeTime == null) {
-        return null;
-    }
-    return (
-        <span className={styles.cache_label}>
-            Executed {lowerFirst(relativeTime)}
-        </span>
-    );
-};
 
 interface QueryResultRerunButtonProps {
     query: QueryExecutionState | null;

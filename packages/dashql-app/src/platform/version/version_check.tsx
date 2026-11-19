@@ -31,8 +31,6 @@ export interface InstallationState {
     error: Error | null;
 }
 
-export type InstallationStatusSetter = React.SetStateAction<InstallationState | null>;
-
 export interface InstallableUpdate {
     download(): Promise<void>
 }

@@ -38,13 +38,6 @@ function writeFlow(script: ScriptData, placement: core.DataflowPlacement, modify
     return true;
 }
 
-/// Write the position of a script into its `@flow` tag, the size of the box stays. Returns whether the script has
-/// the position.
-export function persistFlowPosition(script: ScriptData, x: number, y: number, modifyWorkbookScripts: ModifyWorkbookScripts): boolean {
-    const current = placementOf(script.annotations.flowPosition);
-    return writeFlow(script, { ...current, position: { x, y } }, modifyWorkbookScripts);
-}
-
 /// Write the position and the size of a box into the `@flow` tag of its script at once: its width and the height of
 /// its chart, null for the default. Returns whether the script has the placement.
 export function persistFlowPlacement(
@@ -55,14 +48,6 @@ export function persistFlowPlacement(
     modifyWorkbookScripts: ModifyWorkbookScripts,
 ): boolean {
     return writeFlow(script, { position, width, height }, modifyWorkbookScripts);
-}
-
-/// Write the size of a box into the `@flow` tag of its script: its width and the height of its chart, null for the
-/// default. The position stays, a box without one is still placed by the layout. Returns whether the script has
-/// the size.
-export function persistFlowSize(script: ScriptData, width: number | null, height: number | null, modifyWorkbookScripts: ModifyWorkbookScripts): boolean {
-    const current = placementOf(script.annotations.flowPosition);
-    return writeFlow(script, { position: current?.position ?? null, width, height }, modifyWorkbookScripts);
 }
 
 /// Remove the positions from the `@flow` tags of scripts, the layout places them again. The sizes of the boxes stay.

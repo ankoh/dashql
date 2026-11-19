@@ -447,7 +447,7 @@ it over, and only the latest lease resets the connection when it closes.
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
   changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
 - **Models** (`@akohn/dashql-react/models/...`): a model is what a component shows of the runtime with its operations,
-  `useScriptModel`, `useConnectionModel`, `useQueryModel` and `useComputationModel`; components take models as props and import nothing of
+  `useScriptModel`, `useQueryModel` and `useComputationModel`; components take models as props and import nothing of
   the runtime, see
   [writing_components.md](../agents/writing_components.md). Fakes for tests are in `@akohn/dashql-react/testing/...`.
 - **Components** (`@akohn/dashql-react/components/...`, helpers in `@akohn/dashql-react/dom/...`): the building blocks

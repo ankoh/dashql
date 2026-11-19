@@ -226,16 +226,3 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
         headerRowCount
     };
 }
-
-export function skipTableLayoutUpdate(old: DataTableLayout, next: DataTableLayout) {
-    if (old.columnXOffsets.length != next.columnXOffsets.length) {
-        return false;
-    }
-    for (let i = 0; i < old.columnXOffsets.length; ++i) {
-        const delta = next.columnXOffsets[i] - old.columnXOffsets[i];
-        if (Math.abs(delta) > 0.01) {
-            return false;
-        }
-    }
-    return true;
-}
