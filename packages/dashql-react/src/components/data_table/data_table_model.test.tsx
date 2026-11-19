@@ -9,7 +9,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { LoggerContext } from '../../logger.js';
 import { mockTableComputation, valueColumn } from '../../testing/computation_mocks.js';
 import { fakeComputationModel } from '../../testing/fake_models.js';
-import { act } from '../../testing/react_act.js';
+import { act, waitForRender } from '../../testing/react_act.js';
 import { createTestRoot } from '../../testing/react_root.js';
 import { DataTable, TableColumnHeader, type CellDetailProps } from './data_table.js';
 
@@ -49,19 +49,22 @@ describe('DataTable', () => {
     it('shows the rows of the table of a model', async () => {
         const model = nameTable();
         await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
-        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
-        const text = root.container.textContent ?? '';
-        for (const value of ['id', 'name', 'alpha', 'beta', 'gamma', '9']) {
-            expect(text).toContain(value);
-        }
+        // The grid renders its rows once it measured its host, the headers in portals after it
+        await waitForRender(() => {
+            const text = root.container.textContent ?? '';
+            for (const value of ['id', 'name', 'alpha', 'beta', 'gamma', '9']) {
+                expect(text).toContain(value);
+            }
+        });
     });
 
     it('asks the model to order by a column', async () => {
         const model = nameTable();
         await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
-        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+        await waitForRender(() => {
+            expect(root.container.querySelector('button[aria-label^="Sort name"]')).not.toBeNull();
+        });
         const sort = root.container.querySelector<HTMLButtonElement>('button[aria-label^="Sort name"]');
-        expect(sort).not.toBeNull();
         act(() => sort!.click());
         expect(model.dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: 'orderBy' }));
     });
@@ -74,7 +77,9 @@ describe('DataTable', () => {
             return null;
         };
         await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight cellDetail={CellDetail} />);
-        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+        await waitForRender(() => {
+            expect(Array.from(root.container.querySelectorAll('[role="gridcell"]')).some(element => element.textContent === 'beta')).toBe(true);
+        });
         const cell = Array.from(root.container.querySelectorAll<HTMLElement>('[role="gridcell"]'))
             .find(element => element.textContent === 'beta');
         expect(cell).toBeDefined();
