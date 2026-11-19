@@ -42,6 +42,8 @@ function script(scriptKey: number, fileName: string, options: { vis?: VisOptions
         connectionId: 'db',
         pendingDiff: options.pendingDiff ? { priorText: 'select 0', diffBuffer: null } : null,
         annotations: {
+            // A script without a visualization shows its last statement
+            lastStatementId: 1,
             lastStatementIsQuery: true,
             boardPosition: null,
             visualizeQuery: options.vis == null ? null : {
@@ -49,8 +51,6 @@ function script(scriptKey: number, fileName: string, options: { vis?: VisOptions
             },
         },
         scriptSession: {
-            // A script without a visualization shows its last statement
-            compileQuery: () => ({ read: () => ({ terminalStatementId: () => 1 }) }),
             rewriteVisBoard: (statementId: number, row: number, column: number, width: number, height: number) =>
                 `board ${statementId} ${row} ${column} ${width} ${height}`,
             rewriteVisRenderer: (statementId: number, renderer: string | null, body: string) => {
