@@ -1,6 +1,6 @@
 # The layout of the dataflow canvas: ELK (elk-rs) places the script boxes and routes the edges between them, and
 # orthogonal routes go around boxes at any position. Built natively for the snapshots and into its own wasm module
-# (//packages/dashql-dataflow-wasm), so that the core module does not carry ELK.
+# (//packages/dashql-dataflow-bindings), so that the core module does not carry ELK.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

@@ -20,9 +20,9 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the tables of the first rows of results, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers, `arrow-rs` |
 | `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O and without storage | core, script, profile, parser, buffers, `arrow-rs` |
 | `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, script, parser, buffers, `arrow-rs` |
-| `dashql_core_wasm` | `packages/dashql-core-wasm` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
+| `dashql_core_bindings` | `packages/dashql-core-bindings` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
-| `dashql_dataflow_wasm` | `packages/dashql-dataflow-wasm` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
+| `dashql_dataflow_bindings` | `packages/dashql-dataflow-bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
 
 All third-party crates of these come from the isolated `@core_crates` universe (`bazel/crates/core.MODULE.bazel`).
 `packages/dashql-native-proxy` (the gRPC proxy of the desktop app) is Rust as well but not part of the core.
@@ -34,7 +34,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
 
 ## The core module
 
-- **Build.** `//packages/dashql-core-wasm:dashql_core_wasm` is a `rust_shared_library` for `wasm32`,
+- **Build.** `//packages/dashql-core-bindings:dashql_core_bindings` is a `rust_shared_library` for `wasm32`,
   `:dashql_core_bindgen` runs wasm-bindgen (`target = "web"`), and `:core_wasm` is the shipped `dashql_core_bg.wasm`.
   The generated glue and the Wasm reach TypeScript as `@akohn/dashql-wasm` (`//packages/dashql:dep_wasm`), the
   declarations of the glue import the FlatBuffers as `@akohn/dashql-flatbuffers`.
@@ -46,8 +46,8 @@ to DashQL and changes with it; its state crosses as views with generated types.
 - **Features.** The language, the workbooks and their execution are in every module. The services that share the
   state of the scripts but not every product needs are features of the bindings (`#[cfg(feature = "...")]`): a module
   without a feature has none of its classes, views, actions and commands. `DASHQL_CORE_FEATURES` of
-  `packages/dashql-core-wasm/module.bzl` lists them with the crates that each adds, so far `shell`.
-  `//packages/dashql-core-wasm:core_wasm` has all of them (`DASHQL_FULL_FEATURES`), the app, the command line tool and
+  `packages/dashql-core-bindings/module.bzl` lists them with the crates that each adds, so far `shell`.
+  `//packages/dashql-core-bindings:core_wasm` has all of them (`DASHQL_FULL_FEATURES`), the app, the command line tool and
   the package on npm ship it. Another product builds its own module with `dashql_core_module(name, features)` and its
   glue with `dashql_wasm_glue` of `packages/dashql/glue.bzl`, no Rust of its own. `:core_minimal` has no feature: it
   builds, passes Clippy (`:clippy_minimal_test`) and runs the tests of the bindings
@@ -58,7 +58,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
   anymore. `installPanicHook` reports the message to `globalThis.__dashqlCorePanic` first, and the app shows
   `core_panic_overlay.tsx`. This is why every crate of the module denies panicking code, see [The rules](#the-rules).
 - **Views.** The views of the runtime are Rust structs with `Serialize` and `Tsify` next to the bindings
-  (`*/view.rs`, `views.rs` of `dashql-core-wasm`). serde-wasm-bindgen builds the JS objects directly, tsify writes their
+  (`*/view.rs`, `views.rs` of `dashql-core-bindings`). serde-wasm-bindgen builds the JS objects directly, tsify writes their
   declarations into the `.d.ts` of wasm-bindgen. `Option<T>` is `T | null` (`missing_as_null`), `u64` is `number` and
   fails above 2^53 instead of panicking, a unit enum of the app is a wasm-bindgen C-style enum named by `app_enum!`, and
   a FlatBuffer payload is a `Uint8Array` typed as `FlatBuffer<T>` of its root table, read in place with
@@ -67,7 +67,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
 
 ## The runtime
 
-`Runtime` of `packages/dashql-core-wasm/src/runtime.rs` is the one class of the runtime. `Runtime::create(platform)`
+`Runtime` of `packages/dashql-core-bindings/src/runtime.rs` is the one class of the runtime. `Runtime::create(platform)`
 wires the services of `dashql_core_runtime` on `JsPlatform`, the host over the platform object of TypeScript. The
 state sits in the services behind `RefCell`s; every method takes `&self`. The seam (views, `takeChanges`, `dispatch`,
 the commands) is described from the TypeScript side in [dashql_runtime.md](dashql_runtime.md#the-seam); the change
@@ -81,7 +81,7 @@ workbook uses (`Workbook::connection_ids`) or the restore of a bundle in memory 
 bindings also build as a host library (`<name>_lib` of `module.bzl`, for the lints so far); a product that wants the
 composition would depend on that rather than copy it.
 
-| Domain | Crate (`dashql-core-runtime/src` unless named) | Bindings (`dashql-core-wasm/src/runtime/`) |
+| Domain | Crate (`dashql-core-runtime/src` unless named) | Bindings (`dashql-core-bindings/src/runtime/`) |
 |---|---|---|
 | Workbooks and scripts | `workbook.rs`, `visible_scripts.rs`, `attachments.rs`, `names.rs` | `workbooks.rs`, `attachments.rs` |
 | The planner, references, dataflow, inputs | `planner/` | `workbooks.rs` (the derived view) |
@@ -414,7 +414,7 @@ outside the app, cancels the setups and the queries, deletes
 the computations and fences `JsPlatform` (`fence`): from then on every call of the platform fails, a timer never fires
 and a task that wakes up later ends at its next call. The host takes the last changes and frees the module.
 
-**`JsPlatform`** (`packages/dashql-core-wasm/src/host.rs`) implements `Host`, `HttpHost` and `ComputeHost` once over
+**`JsPlatform`** (`packages/dashql-core-bindings/src/host.rs`) implements `Host`, `HttpHost` and `ComputeHost` once over
 the platform object. The bindings of each service implement its traits over `JsPlatform`: `QueryHost` of
 `runtime/queries.rs`, `LoaderHost` of `catalog.rs`, `RuntimeSetupHost` of `setups.rs`, `RuntimeRunHost` of `runs.rs`,
 `ComputeTracker` of `compute_tracking.rs`, `JsStorage` of `storage.rs` (the writer and the restore), `JsFolder` and
@@ -460,16 +460,16 @@ A panic in any crate of the module traps it, so every crate linked into the core
 `//bazel:rust_safety_lints`, which denies outside of tests: `unwrap_used`, `expect_used`, `panic`, `unreachable`,
 `todo`, `unimplemented`, `indexing_slicing` (an index or a slice that can fail), `string_slice` (a slice of a `str`
 that can split a character) and `await_holding_refcell_ref`. The crates are `dashql-parser`, `dashql-core`,
-`dashql-core-script`, `dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-wasm`; each sets
+`dashql-core-script`, `dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-bindings`; each sets
 the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
-`dashql-core-wasm` over `:dashql_core_wasm_lint`, a host build of the same sources. In `dashql-core` the analyzer,
+`dashql-core-bindings` over `:dashql_core_bindings_lint`, a host build of the same sources. In `dashql-core` the analyzer,
 completion, formatter and diff look up the arrays of a parsed and analyzed script by the ids that the script holds,
 through `AnalyzedScript::{node, children, expression, scope, table_ref}` (with `_mut` forms) and
 `AnalysisState::{node, children}`, which return an `Option` or an empty slice. Such a lookup misses only when an
 invariant of the analysis breaks; the caller then returns an error where it returns a `Result`, and otherwise skips the
 object or returns None. The generated FlatBuffers bindings (`//proto/fb:dashql_buffers_rs`) are not linted. Test code (`#[cfg(test)]`, `tests/`) may index and unwrap.
 
-`dashql-core-runtime` and `dashql-core-wasm` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
+`dashql-core-runtime` and `dashql-core-bindings` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
 their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,
 `type_complexity` and `field_reassign_with_default`.
 

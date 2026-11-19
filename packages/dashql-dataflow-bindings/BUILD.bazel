@@ -8,9 +8,9 @@ load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
 load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
 
 rust_shared_library(
-    name = "dashql_dataflow_wasm",
+    name = "dashql_dataflow_bindings",
     srcs = glob(["src/**/*.rs"]),
-    crate_name = "dashql_dataflow_wasm",
+    crate_name = "dashql_dataflow_bindings",
     crate_root = "src/lib.rs",
     edition = "2021",
     target_compatible_with = ["@platforms//cpu:wasm32"],
@@ -26,7 +26,7 @@ rust_wasm_bindgen(
     out_name = "dashql_dataflow",
     target = "web",
     visibility = ["//visibility:public"],
-    wasm_file = ":dashql_dataflow_wasm",
+    wasm_file = ":dashql_dataflow_bindings",
 )
 
 wasm_bindgen_module(

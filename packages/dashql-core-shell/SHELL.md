@@ -10,7 +10,7 @@ with an effect envelope (version, type, id, payload); JavaScript performs the Pr
 workflow through `Shell.completeEffect` or `Shell.cancelEffect`. This avoids Asyncify and JSPI while keeping workflow
 ownership in Rust.
 
-The wasm-bindgen API is the `Shell` class of the core module (`//packages/dashql-core-wasm:core_wasm`), and a shell runs on a
+The wasm-bindgen API is the `Shell` class of the core module (`//packages/dashql-core-bindings:core_wasm`), and a shell runs on a
 `Catalog` of that module. The app shell shares the catalog of its connection. Shell instances are independent.
 
 The TypeScript binding lives in `packages/dashql-app/src/shell`. Its root entrypoint exports
@@ -50,7 +50,7 @@ Build and test through Bazel:
 
 ```bash
 bazel test //packages/dashql-core-shell:all
-bazel build //packages/dashql-core-wasm:core_wasm
+bazel build //packages/dashql-core-bindings:core_wasm
 ```
 
 Prompt text uses a contiguous UTF-8 buffer with cached grapheme boundaries. Cursor movement and deletion operate on

@@ -4,7 +4,7 @@ The language, the workbooks and their execution are always in a module. The serv
 are features of the bindings crate (`#[cfg(feature = "...")]`), a module that leaves one out leaves its classes, views,
 actions and commands out too. A product builds the module it needs:
 
-    load("//packages/dashql-core-wasm:module.bzl", "dashql_core_module")
+    load("//packages/dashql-core-bindings:module.bzl", "dashql_core_module")
 
     dashql_core_module(
         name = "studio_core",
@@ -55,8 +55,8 @@ DASHQL_MINIMAL_FEATURES = []
 
 DASHQL_CORE_PROC_MACRO_DEPS = ["@core_crates//:serde_repr"]
 
-_SRCS = "//packages/dashql-core-wasm:srcs"
-_CRATE_ROOT = "//packages/dashql-core-wasm:src/lib.rs"
+_SRCS = "//packages/dashql-core-bindings:srcs"
+_CRATE_ROOT = "//packages/dashql-core-bindings:src/lib.rs"
 
 def dashql_core_deps(features):
     """The crates of a module with features"""
@@ -105,7 +105,7 @@ def dashql_core_lint(name, features):
     rust_library(
         name = name + "_lib",
         srcs = [_SRCS],
-        crate_name = "dashql_core_wasm",
+        crate_name = "dashql_core_bindings",
         crate_root = _CRATE_ROOT,
         crate_features = features,
         edition = "2021",

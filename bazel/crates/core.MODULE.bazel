@@ -1,4 +1,4 @@
-# Crate universe @core_crates of the Rust core (//packages/dashql-{parser,core,snapshots,core-wasm,shell-wasm}) and
+# Crate universe @core_crates of the Rust core (//packages/dashql-{parser,core,snapshots,core-bindings,shell-wasm}) and
 # the dashql command line tool built on it (//packages/dashql-cli).
 # Isolated from @crates because the core is built natively (tests, snapshotter, benchmarks) and for
 # wasm32, and its pins (wasm-bindgen, serde_json) conflict with the native crates.
@@ -57,12 +57,12 @@ crate_core.spec(package = "unicode-width", version = "=0.2.3")
 # Must match the wasm-bindgen-cli bundled with rules_rust_wasm_bindgen (MODULE.bazel).
 crate_core.spec(package = "wasm-bindgen", version = "=0.2.105")
 
-# The executor of the runtime in the core module: the promises of the host as futures (//packages/dashql-core-wasm).
+# The executor of the runtime in the core module: the promises of the host as futures (//packages/dashql-core-bindings).
 # They move together with wasm-bindgen.
 crate_core.spec(package = "js-sys", version = "=0.3.82")
 crate_core.spec(package = "wasm-bindgen-futures", version = "=0.4.55")
 
-# The views of the runtime state as JS objects with generated TypeScript declarations (//packages/dashql-core-wasm),
+# The views of the runtime state as JS objects with generated TypeScript declarations (//packages/dashql-core-bindings),
 # see docs/design/dashql_core.md. tsify needs wasm-bindgen 0.2.104 or newer.
 crate_core.spec(package = "serde-wasm-bindgen", version = "=0.6.5")
 crate_core.spec(package = "serde_bytes", version = "=0.11.19")

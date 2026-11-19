@@ -3,7 +3,7 @@
 The runtime of DashQL is the state of the app and the services that change it: the workbooks with their scripts, the
 connections with the histories of their queries, the computations of query results, the query executor, the catalog
 loader, the setups of connections, the runs of workbooks, the storage writer, the restore, the migrations and the
-imports and exports. It is Rust: the `Runtime` class of the core module (`packages/dashql-core-wasm/src/runtime.rs`)
+imports and exports. It is Rust: the `Runtime` class of the core module (`packages/dashql-core-bindings/src/runtime.rs`)
 over the crate `dashql_core_runtime`, see [dashql_core.md](dashql_core.md).
 
 TypeScript holds one facade over it, `Runtime` of `packages/dashql/src/runtime/runtime.ts`. The facade builds the
@@ -130,7 +130,7 @@ archive first needs it.
 ### The platform object of the module
 
 `createRuntime` builds the one object that the Rust runtime calls (`RuntimePlatform` of the generated declarations,
-declared in `packages/dashql-core-wasm/src/host.rs`) from the members above, in `Runtime.modulePlatform`:
+declared in `packages/dashql-core-bindings/src/host.rs`) from the members above, in `Runtime.modulePlatform`:
 
 | Group | What the runtime asks for | Built by |
 |---|---|---|

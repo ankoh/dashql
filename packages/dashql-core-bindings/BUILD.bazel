@@ -29,9 +29,9 @@ exports_files(["src/lib.rs"])
 DASHQL_CORE_WASM_DEPS = dashql_core_deps(DASHQL_FULL_FEATURES)
 
 rust_shared_library(
-    name = "dashql_core_wasm",
+    name = "dashql_core_bindings",
     srcs = glob(["src/**/*.rs"]),
-    crate_name = "dashql_core_wasm",
+    crate_name = "dashql_core_bindings",
     crate_root = "src/lib.rs",
     edition = "2021",
     lint_config = "//bazel:rust_safety_lints",
@@ -43,9 +43,9 @@ rust_shared_library(
 
 # The same crate for the host, only for clippy: the bindings compile on the host and fail only when they call JS
 rust_library(
-    name = "dashql_core_wasm_lint",
+    name = "dashql_core_bindings_lint",
     srcs = glob(["src/**/*.rs"]),
-    crate_name = "dashql_core_wasm",
+    crate_name = "dashql_core_bindings",
     crate_root = "src/lib.rs",
     edition = "2021",
     lint_config = "//bazel:rust_safety_lints",
@@ -58,14 +58,14 @@ rust_library(
 # Clippy with the safety lints (//bazel:rust_safety_lints) and no warnings, see "The rules" in docs/design/dashql_core.md
 rust_safety_test(
     name = "clippy_test",
-    deps = [":dashql_core_wasm_lint"],
+    deps = [":dashql_core_bindings_lint"],
 )
 
 # The unit tests of the parts of the bindings that call no JS, e.g. the marks of the changes, on the host
 rust_test(
-    name = "dashql_core_wasm_unit_tests",
+    name = "dashql_core_bindings_unit_tests",
     size = "small",
-    crate = ":dashql_core_wasm_lint",
+    crate = ":dashql_core_bindings_lint",
 )
 
 # The wasm_file attribute transitions to wasm32, independent of the host --platforms.
@@ -74,7 +74,7 @@ rust_wasm_bindgen(
     out_name = "dashql_core",
     target = "web",
     visibility = ["//visibility:public"],
-    wasm_file = ":dashql_core_wasm",
+    wasm_file = ":dashql_core_bindings",
 )
 
 wasm_bindgen_module(

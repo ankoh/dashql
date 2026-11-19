@@ -2,7 +2,7 @@ import type * as buffers from './buffers.js';
 import { DashQL, Ptr } from './api.js';
 import type * as glue from '@akohn/dashql-wasm/dashql_core.js';
 
-/// The views of the queries of the runtime, declared by the module (`packages/dashql-core-wasm/src/query_history/view.rs`):
+/// The views of the queries of the runtime, declared by the module (`packages/dashql-core-bindings/src/query_history/view.rs`):
 /// a query is a slice `query` of the `Runtime`.
 export type {
     ProfileLayoutView,

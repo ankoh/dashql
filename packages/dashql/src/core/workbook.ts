@@ -2,7 +2,7 @@ import * as buffers from './buffers.js';
 import { DashQL, FlatBufferPtr } from './api.js';
 import type { FlatBuffer } from '@akohn/dashql-wasm/dashql_core.js';
 
-/// The views of the workbooks of the runtime, declared by the module (`packages/dashql-core-wasm/src/runtime/workbooks/view.rs`)
+/// The views of the workbooks of the runtime, declared by the module (`packages/dashql-core-bindings/src/runtime/workbooks/view.rs`)
 export type {
     EditorEventOutcome,
     StoredScriptView,
@@ -26,7 +26,7 @@ export type {
     WorkbookView,
 } from '@akohn/dashql-wasm/dashql_core.js';
 
-/// The runs of the workbooks of the runtime, declared by the module (`packages/dashql-core-wasm/src/runtime/runs/view.rs`)
+/// The runs of the workbooks of the runtime, declared by the module (`packages/dashql-core-bindings/src/runtime/runs/view.rs`)
 export type {
     RunListener,
     RunOutcome,

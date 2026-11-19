@@ -46,7 +46,7 @@ the wasm boundary, and the way the app drives them.
 | Id | Type | Scope | Allocated by |
 |---|---|---|---|
 | Catalog id | `u64` | process | `NEXT_CATALOG_ID` on `Catalog::new` / `with_entry_ids`, carried by every snapshot. `load_scripts` rejects analyses of another catalog's snapshot (`CATALOG_MISMATCH`). |
-| Catalog entry id | `CatalogEntryId = u32` | an `EntryIdSource` | `Catalog::allocate_entry_id`, from `INITIAL_ENTRY_ID = 1`. Catalogs that share a source never hand out the same id. The wasm module shares one source across all its catalogs (`ENTRY_IDS` in `dashql-core-wasm`). |
+| Catalog entry id | `CatalogEntryId = u32` | an `EntryIdSource` | `Catalog::allocate_entry_id`, from `INITIAL_ENTRY_ID = 1`. Catalogs that share a source never hand out the same id. The wasm module shares one source across all its catalogs (`ENTRY_IDS` in `dashql-core-bindings`). |
 | Database id | `u32` | catalog | Reserved by name on first use, from `INITIAL_DATABASE_ID = 256`. Never reused. |
 | Schema id | `u32` | catalog | Reserved by (database, schema) on first use, from `INITIAL_SCHEMA_ID = 65536`. Never reused. |
 | Table / function id | `ExternalObjectId { origin, object }` | entry | `origin` is the declaring entry. `object` is reserved by (entry, qualified name, occurrence of the name in the entry), see below. |
@@ -430,7 +430,7 @@ the connection, the statements it follows, the files on disk and when a full ref
 
 ## Wasm boundary and app
 
-**Ownership** (`packages/dashql-core-wasm/src/lib.rs`)
+**Ownership** (`packages/dashql-core-bindings/src/lib.rs`)
 - The JS `Catalog` wraps a `SharedCatalog`, the only shared catalog of the Rust side. `Script`,
   `ScriptSession` and the shell's `Shell` handles clone it, so they can outlive the JS catalog object,
   and pass borrows of it into the core.
@@ -522,7 +522,7 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Editor session | `packages/dashql-core-script/src/script_session.rs` |
 | Completion | `packages/dashql-core/src/completion.rs` |
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` |
-| Wasm boundary | `packages/dashql-core-wasm/src/lib.rs` |
+| Wasm boundary | `packages/dashql-core-bindings/src/lib.rs` |
 | JS wrapper | `packages/dashql/src/core/api.ts` |
 | App script state | `packages/dashql/src/platform/workbook/workbook_scripts.ts` |
 | Tests | `packages/dashql-core/tests/catalog_test.rs`, `catalog_descriptor_test.rs`, `packages/dashql-core-script/tests/script_session_test.rs` |

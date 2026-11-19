@@ -7,7 +7,7 @@ import type { ScriptAnnotations, ScriptRef, WorkbookMetadata } from './script_ty
 import type { ScriptReferenceReport, ScriptTextChange } from './script_reference_check.js';
 import type { SessionInput } from './workbook_inputs.js';
 
-/// The workbooks are a domain of the runtime of the module (`packages/dashql-core-wasm/src/runtime/workbooks.rs`,
+/// The workbooks are a domain of the runtime of the module (`packages/dashql-core-bindings/src/runtime/workbooks.rs`,
 /// docs/design/dashql_runtime.md). The app reads them as views through the store: the workbook, a script, and what the
 /// runtime derives from the scripts of a workbook. This module holds their types and the helpers of the UI.
 

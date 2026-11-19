@@ -10,7 +10,7 @@ load(":glue.bzl", "dashql_wasm_glue")
 # DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
 # docs/design/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
 #
-# - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-wasm), the generated packages of the
+# - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-bindings), the generated packages of the
 #   core module (@akohn/dashql-wasm, @akohn/dashql-flatbuffers) are folders of Bazel next to them,
 # - src/platform: the platforms of the runtime, the storage, the connector clients and the support of the command line
 #   tool, on the bindings,
@@ -68,16 +68,16 @@ filegroup(
 # @akohn/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas, see glue.bzl
 dashql_wasm_glue(
     name = "dep_wasm",
-    core_bindgen = "//packages/dashql-core-wasm:dashql_core_bindgen",
-    core_wasm = "//packages/dashql-core-wasm:core_wasm",
+    core_bindgen = "//packages/dashql-core-bindings:dashql_core_bindgen",
+    core_wasm = "//packages/dashql-core-bindings:core_wasm",
     out_dir = "dependencies/dashql-wasm",
 )
 
 # The same of the core module without features, the tests of the bindings run on it as well (:test_core_minimal_node)
 dashql_wasm_glue(
     name = "dep_wasm_minimal",
-    core_bindgen = "//packages/dashql-core-wasm:core_minimal_bindgen",
-    core_wasm = "//packages/dashql-core-wasm:core_minimal",
+    core_bindgen = "//packages/dashql-core-bindings:core_minimal_bindgen",
+    core_wasm = "//packages/dashql-core-bindings:core_minimal",
     out_dir = "dependencies/dashql-wasm-minimal",
 )
 

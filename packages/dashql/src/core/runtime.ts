@@ -1,4 +1,4 @@
-/// The runtime of DashQL, a class of the module (`packages/dashql-core-wasm/src/runtime.rs`,
+/// The runtime of DashQL, a class of the module (`packages/dashql-core-bindings/src/runtime.rs`,
 /// docs/design/dashql_runtime.md): the state of DashQL and its services on one platform object.
 /// `DashQL.createRuntime(platform)` creates it.
 ///

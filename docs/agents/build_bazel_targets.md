@@ -53,9 +53,9 @@ bazel build //...
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
-| `//packages/dashql-core-wasm:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
-| `//packages/dashql-core-wasm:core_minimal` | The core module without features (`dashql_core_module` of `packages/dashql-core-wasm/module.bzl`), built so that every feature can be left out; another product builds its own module the same way |
-| `//packages/dashql-dataflow-wasm:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
+| `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
+| `//packages/dashql-core-bindings:core_minimal` | The core module without features (`dashql_core_module` of `packages/dashql-core-bindings/module.bzl`), built so that every feature can be left out; another product builds its own module the same way |
+| `//packages/dashql-dataflow-bindings:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
 | `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
@@ -113,7 +113,7 @@ bazel test //...
 | `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests without the storage, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-storage:all` | The storage writer, the restore, the workbook format and the migrations of the storage on fake hosts, Clippy with the safety lints |
-| `//packages/dashql-core-wasm:all` | The bindings of the core module on the host, with all features and without (`:clippy_minimal_test`): the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
+| `//packages/dashql-core-bindings:all` | The bindings of the core module on the host, with all features and without (`:clippy_minimal_test`): the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
 | `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
@@ -306,20 +306,20 @@ bazel build //packages/dashql-native-proxy:addon
 ### Clippy
 
 Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-shell`,
-`dashql-core-profile`, `dashql-core-runtime` and the bindings `dashql-core-wasm`) runs Clippy with the safety lints of
+`dashql-core-profile`, `dashql-core-runtime` and the bindings `dashql-core-bindings`) runs Clippy with the safety lints of
 `//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
 `unimplemented`, `indexing_slicing`, `string_slice` and `await_holding_refcell_ref` are denied outside of tests, a panic
-traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-wasm` deny
+traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-bindings` deny
 every warning under Clippy (`lib.rs`). See "The rules" in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
 (`:clippy_test` of each crate), part of `//packages/...`; the bindings are checked as a host build of the same sources
-(`//packages/dashql-core-wasm:dashql_core_wasm_lint`), they compile on the host.
+(`//packages/dashql-core-bindings:dashql_core_bindings_lint`), they compile on the host.
 
 ```bash
 # Clippy with the safety lints, a breach fails the build of the test
-bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-wasm:clippy_test //packages/dashql-core:clippy_test
+bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-bindings:clippy_test //packages/dashql-core:clippy_test
 
 # The findings, warnings included
-bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-wasm:clippy_test_clippy
+bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-bindings:clippy_test_clippy
 ```
 
 A new crate of the module takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
@@ -471,7 +471,7 @@ bazel build --config=release //packages/dashql:npm_tarball
 ```
 
 `@akohn/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
-`//packages/dashql-core-wasm:core_wasm`, `//packages/dashql-dataflow-wasm:dataflow_wasm` and their wasm-bindgen glue
+`//packages/dashql-core-bindings:core_wasm`, `//packages/dashql-dataflow-bindings:dataflow_wasm` and their wasm-bindgen glue
 (`:dashql_core_bindgen`, `:dashql_dataflow_bindgen`), `:bundle` builds the JavaScript and the declarations around them.
 The release archive is `bazel-bin/packages/dashql/dashql.tgz`. Trusted CI waits for the release
 Wasm build and requires that artifact to be available in the remote cache before
@@ -533,7 +533,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-wasm`, `dashql-dataflow-wasm` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings`, `dashql-dataflow-bindings` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

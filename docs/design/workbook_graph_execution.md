@@ -17,7 +17,7 @@ turns the scripts of a workbook, or one target script and the scripts it referen
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
 order conflicting accesses. The run (`workbook_run`) executes that graph for a run of the workbook
 (`runWorkbook` of the runtime) and for a run of one script (`runScript`), the service of the runs of the runtime
-(`packages/dashql-core-wasm/src/runtime/runs.rs`) on its executor.
+(`packages/dashql-core-bindings/src/runtime/runs.rs`) on its executor.
 
 ## The run
 
@@ -44,7 +44,7 @@ the embedded Hyper. The holds of workbooks, the cancellation of the queries and 
 
 - `packages/dashql-core-runtime/src/planner/mod.rs`
 - `packages/dashql-core-runtime/src/workbook_run/mod.rs`, `engine.rs`, `plan.rs`
-- `packages/dashql-core-wasm/src/runtime/runs.rs` (the service of the runs, the holds of workbooks, the host of a run)
+- `packages/dashql-core-bindings/src/runtime/runs.rs` (the service of the runs, the holds of workbooks, the host of a run)
 - `packages/dashql/src/runtime/run_mounts.ts` (the files of the runs on the platform)
 - `proto/fb/dashql/execution_graph.fbs`
 - `docs/design/core_analysis_catalog.md` (catalog changes in planned execution)

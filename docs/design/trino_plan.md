@@ -9,7 +9,7 @@ tree out in the Rust core, and draws edges and stage contours in the app. The pi
 4. `materializeProfileScene` builds edge paths and fragment contours
    (`packages/dashql-app/src/views/query_profile/profile_scene.ts`).
 
-`loadTrinoPlan` in `packages/dashql-core-wasm/src/lib.rs` runs steps 1 to 3 and hands the profile to JS as a
+`loadTrinoPlan` in `packages/dashql-core-bindings/src/lib.rs` runs steps 1 to 3 and hands the profile to JS as a
 FlatBuffer.
 
 ## Input formats (`read_fragments`)

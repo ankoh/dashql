@@ -79,7 +79,7 @@ TypeScript without saying so.
 
 - **Pick the crate by its layer** (the table in [dashql_core.md](../design/dashql_core.md#the-crates)): the language in
   `dashql-core`, scripts, editor sessions and `VISUALIZE` in `dashql-core-script`, profiles in `dashql-core-profile`,
-  the shell in `dashql-core-shell`, state and services in `dashql-core-runtime`. `dashql-core-wasm` binds and
+  the shell in `dashql-core-shell`, state and services in `dashql-core-runtime`. `dashql-core-bindings` binds and
   converts, it holds no logic.
 - **Cross the seam per operation, never per value.** The classes of the core through `src/core/api.ts`. For the
   runtime a view kind, an action or a command, and a host call for new I/O; each has its steps in

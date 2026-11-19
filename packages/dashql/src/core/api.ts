@@ -7,7 +7,7 @@ import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
 
-/// The classes of the features of a core module by feature (`DASHQL_CORE_FEATURES` of `packages/dashql-core-wasm/module.bzl`).
+/// The classes of the features of a core module by feature (`DASHQL_CORE_FEATURES` of `packages/dashql-core-bindings/module.bzl`).
 /// A module built without a feature has none of its classes.
 export interface DashQLFeatureClasses {
     shell: 'Shell';
@@ -17,7 +17,7 @@ export type DashQLFeature = keyof DashQLFeatureClasses;
 type FeatureClass = DashQLFeatureClasses[DashQLFeature];
 const FEATURE_CLASSES: DashQLFeatureClasses = { shell: 'Shell' };
 
-/// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`): what every module has, and the classes of the
+/// The wasm-bindgen module of the Rust core (`packages/dashql-core-bindings`): what every module has, and the classes of the
 /// features that the module was built with.
 export type DashQLBindings = DashQLCoreBindings & Partial<Pick<typeof glue, Extract<FeatureClass, keyof typeof glue>>>;
 

@@ -1,6 +1,6 @@
 import * as glue from '@akohn/dashql-wasm/dashql_dataflow.js';
 
-/// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow-wasm`)
+/// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow-bindings`)
 export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'dataflowConfig' | 'installPanicHook'>;
 
 /// The sizes of the dataflow canvas, in canvas pixels. They are set in the Rust layout (`DataflowLayoutConfig` of

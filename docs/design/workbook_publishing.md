@@ -133,7 +133,7 @@ Remote trees use the portable import path of `.dashql` files and inline ZIP link
 - No conflict: keep the published UUID.
 - Create new: allocate a fresh UUID and append ` (copy)` to a non-empty name.
 - Replace: stage the workbook under a fresh UUID, verify it, then swap it in (`commitImport` of the runtime,
-  `packages/dashql-core-wasm/src/runtime/imports.rs`).
+  `packages/dashql-core-bindings/src/runtime/imports.rs`).
 - Close: no storage changes.
 
 OPFS and registered native workbooks both participate in the UUID check.

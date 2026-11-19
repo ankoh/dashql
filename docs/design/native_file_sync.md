@@ -113,7 +113,7 @@ storage writer view of the app offers to discard it.
 
 ### Coordinator
 
-The checks are a service of the runtime of the core (`packages/dashql-core-wasm/src/runtime/external.rs`):
+The checks are a service of the runtime of the core (`packages/dashql-core-bindings/src/runtime/external.rs`):
 `checkWorkbookFolders(workbookIds)` queues checks, they run one at a time and a request for a workbook that is queued
 already is dropped. The storage of the platform names the folder of a workbook (`storage.workbookFolder`, the
 `NativeStorageBackend` of a native workbook) with its stamps. The runtime resolves the scripts of a folder that changed
@@ -307,7 +307,7 @@ bazel build //packages/dashql-native:compile
 
 ## Implementation References
 
-- Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
+- Checks: `packages/dashql-core-bindings/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
 - Stamps: `packages/dashql-core-storage/src/storage/stamps.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
 - Holds, held and failed writes: `packages/dashql-core-storage/src/storage/writer.rs`
 - Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-storage/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`

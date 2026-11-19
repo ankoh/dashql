@@ -36,7 +36,7 @@ sequenceDiagram
 ## Batch Contract
 
 The TypeScript entry point is `DashQL.processBatch(request)` (`packages/dashql/src/core/api.ts`,
-`batch.ts`). It calls the wasm-bindgen export `processBatch` (`packages/dashql-core-wasm/src/lib.rs`), which
+`batch.ts`). It calls the wasm-bindgen export `processBatch` (`packages/dashql-core-bindings/src/lib.rs`), which
 wraps `dashql_core_script::batch::process_batch` (`packages/dashql-core-script/src/batch.rs`). Request and result are
 FlatBuffers of `proto/fb/dashql/batch.fbs`.
 

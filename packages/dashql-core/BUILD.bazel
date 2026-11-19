@@ -1,7 +1,7 @@
 # The DashQL core, the language: scripts, catalog, analyzer, cursor, completion, formatter and script diffs. The
 # scripts on top (sessions, compilation, batch, visualizations) are //packages/dashql-core-script, the planner and
 # the state of a workbook //packages/dashql-core-runtime, the shell is //packages/dashql-core-shell, the query
-# profile //packages/dashql-core-profile, the wasm module is //packages/dashql-core-wasm.
+# profile //packages/dashql-core-profile, the wasm module is //packages/dashql-core-bindings.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 

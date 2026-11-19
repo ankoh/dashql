@@ -47,7 +47,7 @@ whether a cancel stops the run of the workbook or the query of a script, is a co
 
 1. **Find the model** of what the component shows. If an operation is missing, add it to the interface and the hook. If
    the runtime has no action or command for it, add that first: an action of the union of its target in
-   `packages/dashql-core-wasm/src/runtime/actions.rs`, or a command of the facade.
+   `packages/dashql-core-bindings/src/runtime/actions.rs`, or a command of the facade.
 2. **Write the component** against the interface of the model and plain props. Group props by what they are: the place
    in a list, how it is shown, the commands of the parent. A part that reads the runtime itself, e.g. an editor or a
    result table, comes in as a slot, a function of the props it needs that the parent renders.
