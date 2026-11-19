@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { TableColumnHeader } from './data_table_cell.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { ResultTableOverlay, type ResultTableOverlayDependencies } from './result_table_overlay.js';
 
 const detailsProps: any[] = [];

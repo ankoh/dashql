@@ -9,9 +9,9 @@ import { withViewEncodings } from '../../ui/vegalite/vegalite_spec.js';
 import { useColorScheme } from '../../config/color_scheme.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { useComputation, useQueryResultTable } from '@akohn/dashql-react/hooks';
-import { useComputationTables } from '../query_result/computation_tables.js';
-import type { ComputationTables } from '../query_result/computation_tables.js';
+import { useComputation, useQueryResultTable, useOptionalRuntime } from '@akohn/dashql-react/hooks';
+import { useComputationTables } from '@akohn/dashql-react/components/data_table/data_table';
+import type { ComputationTables } from '@akohn/dashql-react/components/data_table/data_table';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 import {
     filterTableToVegaCrossFilterRows,
@@ -61,7 +61,7 @@ export function useNearViewport(ref: React.RefObject<HTMLElement | null>, mounte
 /// The computation of the result of a query with its tables, null without one
 function useResultComputation(queryId: number | null): { rowNumberColumnName: string | null; tables: ComputationTables } | null {
     const computation = useComputation(queryId);
-    const tables = useComputationTables(computation);
+    const tables = useComputationTables(computation, useOptionalRuntime());
     return React.useMemo(
         () => computation == null ? null : { rowNumberColumnName: computation.rowNumberColumnName, tables },
         [computation?.rowNumberColumnName, computation == null, tables],

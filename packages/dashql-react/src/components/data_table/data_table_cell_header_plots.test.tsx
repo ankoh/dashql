@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as d3 from 'd3';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from '../../testing/react_act.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import * as styles from './data_table.module.css';
@@ -21,8 +21,8 @@ import {
 } from '@akohn/dashql/platform/compute/computation_types';
 import { ordinalAggregate, stringAggregate, summaryColumn } from '@akohn/dashql/platform/testing/column_aggregates';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { valueColumn } from '../../tests/mocks/computation.js';
-import { createTestRoot } from '../../tests/react_root.js';
+import { valueColumn } from '../../testing/computation_mocks.js';
+import { createTestRoot } from '../../testing/react_root.js';
 import type { DataTableLayout } from './data_table_layout.js';
 import { HeaderPlotsCell, type HeaderPlotsCellProps } from './data_table_cell_header_plots.js';
 

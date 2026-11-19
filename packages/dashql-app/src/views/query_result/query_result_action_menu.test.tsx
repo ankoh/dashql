@@ -12,7 +12,7 @@ import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_f
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { QueryResultActionMenu } from './query_result_action_menu.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';

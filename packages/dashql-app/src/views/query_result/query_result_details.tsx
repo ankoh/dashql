@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader, formatRowCountDetail } from '../../workbook/tab_header.js';
 import { QueryResultView } from './query_result_view.js';
-import { TableColumnHeader } from './data_table_cell.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useComputation, useComputationDispatch, useQueryResultTable } from '@akohn/dashql-react/hooks';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';

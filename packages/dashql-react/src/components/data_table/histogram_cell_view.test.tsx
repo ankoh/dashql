@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as arrow from 'apache-arrow';
 import * as d3 from 'd3';
-import { act, flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
+import { act, flushContinuousUpdates } from '../../testing/react_act.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
@@ -16,7 +16,7 @@ import {
 } from '@akohn/dashql/platform/compute/computation_types';
 import { filteredAggregate, ordinalAggregate } from '@akohn/dashql/platform/testing/column_aggregates';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '../../testing/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
 import { HistogramCell, type HistogramFilterCallback } from './histogram_cell.js';
 

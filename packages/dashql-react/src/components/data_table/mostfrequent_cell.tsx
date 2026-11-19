@@ -4,8 +4,7 @@ import * as styles from './mostfrequent_cell.module.css';
 
 import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { dataTypeToString } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
-import { assert } from '../../utils/assert.js';
+import { observeSize } from '../size_observer.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 import { COLUMN_SUMMARY_BASELINE_COLOR, COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
@@ -73,7 +72,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
 
     // Compute x-scale and offsets
     const [xScale, xOffsets, xCounts, xSum] = React.useMemo(() => {
-        assert(frequentValues.schema.fields[1].name == "count" || frequentValues.schema.fields[2].name == "count");
+        console.assert(frequentValues.schema.fields[1].name == "count" || frequentValues.schema.fields[2].name == "count");
 
         const xCounts: BigInt64Array = frequentValueCounts;
         const xOffsets: BigInt64Array = new BigInt64Array(xCounts.length);

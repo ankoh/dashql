@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import type { HyperDB, HyperDBConnection } from '../platform/hyperdb/hyperdb_wasm.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
-import { createTestRoot } from '../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { CloudInstaller } from './cloud_installer.js';
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudMigration, type CloudQuery } from './cloud_store_schema.js';
 

@@ -5,18 +5,16 @@ import * as styles from './data_table.module.css';
 import { Grid, useGridCallbackRef } from 'react-window';
 
 import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { resolveSummaries, type TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
-import { useComputationDispatch, useOptionalRuntime } from '@akohn/dashql-react/hooks';
+import { resolveSummaries } from '@akohn/dashql/platform/compute/computation_types';
+import type { ComputationModel } from '../../models/computation_model.js';
 import { useComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
-import { classNames } from '@akohn/dashql-react/dom/classnames';
+import { classNames } from '../../dom/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { useCrossFilters } from './use_cross_filters.js';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
-import { CellDetailOverlay } from './cell_detail_overlay.js';
-import { useAppConfig } from '../../config/app_config.js';
-import { useLogger } from '../../platform/logger_provider.js';
-import { useScrollbarHeight } from '../../utils/scrollbar.js';
+import { observeSize } from '../size_observer.js';
+import { useLogger } from '../../logger.js';
+import { useScrollbarHeight } from '../../dom/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';
 import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
@@ -25,11 +23,38 @@ import { DataTableFocusStore } from './data_table_focus.js';
 import { resolveSearchedRowIndices } from './visible_rows.js';
 import { collectSearchableResultColumns } from '@akohn/dashql/platform/compute/query_result_search_sql';
 
+export { TableColumnHeader } from './data_table_cell.js';
+export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
+export type { ComputationDispatch } from './use_cross_filters.js';
+export { forEachIntegerValue } from './visible_rows.js';
+export { peekFormat, type FormatHint } from './format_peek.js';
+
 const LOG_CTX = 'data_table';
 
-interface Props {
+// The grid of a result table with its column plots, cross filters, ordering and searches, over the model of the
+// computation of the table (`useComputationModel`). The module is the entry of the table: what a host uses of it is
+// exported here.
+
+/// What the detail of a cell shows, e.g. in an overlay over the table
+export interface CellDetailProps {
+    isOpen: boolean;
+    onClose: () => void;
+    /// The value as the table formats it, null for NULL
+    formattedValue: string | null;
+    /// The value of a list or a struct as JSON, null for any other value
+    structuredValue: object | null;
+    columnName: string | null;
+    /// The row of the table, from 0
+    dataRow: number;
+    maxRow: number;
+    /// Go to the cell of the row above (-1) or below (1)
+    onNavigate: (delta: number) => void;
+}
+
+export interface DataTableProps {
     className?: string;
-    table: TableComputationState;
+    /// The computation of the table, its tables and its actions
+    model: ComputationModel;
     debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
@@ -40,7 +65,10 @@ interface Props {
     fillHeight?: boolean;
     maxHeight?: number;
     compact?: boolean;
+    /// The detail of a cell that the user opened, none shows no detail
+    cellDetail?: React.ComponentType<CellDetailProps>;
 }
+type Props = DataTableProps;
 
 const MIN_GRID_HEIGHT = 200;
 const MIN_GRID_WIDTH = 100;
@@ -89,32 +117,29 @@ interface RenderedCells {
 
 /// The grid of the computation of a result, once its table is there
 export const DataTable = React.memo((props: Props) => {
-    const tables = useComputationTables(props.table);
+    const tables = useComputationTables(props.model.computation, props.model.tables);
     if (tables.dataTable == null) return null;
     return <DataTableGrid {...props} dataTable={tables.dataTable} />;
 });
 
 function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
-    const config = useAppConfig();
     const logger = useLogger();
-    const runtime = useOptionalRuntime();
-    const computationState = props.table;
-    const dispatchComputation = useComputationDispatch(computationState.tableId);
+    const computationState = props.model.computation;
+    const summaryTables = props.model.tables;
+    const dispatchComputation = props.model.dispatch;
     const dataTable = props.dataTable;
-    const tables = useComputationTables(computationState);
+    const tables = useComputationTables(computationState, summaryTables);
     const matchingRows = tables.matchingRows;
     // The summaries of the columns that the plots draw, they keep their objects while their tables are the same
     const summaries = React.useMemo(
-        () => resolveSummaries(computationState, runtime ?? { table: () => undefined }, logger),
-        [runtime, logger, computationState.tableAggregation, computationState.columnAggregates, computationState.filteredColumnAggregates, computationState.columnGroups, dataTable],
+        () => resolveSummaries(computationState, summaryTables, logger),
+        [summaryTables, logger, computationState.tableAggregation, computationState.columnAggregates, computationState.filteredColumnAggregates, computationState.columnGroups, dataTable],
     );
     const [gridApi, setGridApi] = useGridCallbackRef(null);
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
-    const columnHeader = props.columnHeader ?? ((config?.settings?.enableTableColumnPlots ?? false)
-        ? TableColumnHeader.WithColumnPlots
-        : TableColumnHeader.OnlyColumnName);
+    const columnHeader = props.columnHeader ?? TableColumnHeader.OnlyColumnName;
     const [plotsCollapsed, setPlotsCollapsed] = React.useState(false);
     const togglePlots = React.useCallback(() => setPlotsCollapsed(c => !c), []);
     const plotsHeight = plotsCollapsed ? COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT : COLUMN_HEADER_PLOTS_HEIGHT;
@@ -450,7 +475,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                     gridData={gridData}
                 />
             </div>
-            <CellDetailOverlay
+            {props.cellDetail && <props.cellDetail
                 isOpen={cellDetail != null}
                 onClose={() => setCellDetail(null)}
                 formattedValue={cellDetail?.formattedValue ?? null}
@@ -459,7 +484,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                 dataRow={cellDetail?.visibleRow ?? 0}
                 maxRow={dataRowCount - 1}
                 onNavigate={onNavigateCell}
-            />
+            />}
         </div>
     );
 }

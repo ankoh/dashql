@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { mockTableComputation, recordingDispatch } from '../../tests/mocks/computation.js';
-import { createTestRoot } from '../../tests/react_root.js';
+import { mockTableComputation, recordingDispatch } from '../../testing/computation_mocks.js';
+import { createTestRoot } from '../../testing/react_root.js';
 import { getColumnSortDirection, getNextColumnSortDirection, useDataTableOrdering } from './data_table_ordering.js';
 
 describe('data table ordering', () => {

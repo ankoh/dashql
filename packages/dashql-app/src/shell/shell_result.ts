@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 
 import type { DashQLShellCommand } from './api.js';
 import { QueryType, type QueryMetadata } from '@akohn/dashql/platform/query/query_execution_state';
-import { detectPlanEngine } from '../views/query_profile/plan_engine.js';
+import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 
 /// The metadata of the queries that users enter in the shell
 export const SHELL_QUERY_METADATA: QueryMetadata = {

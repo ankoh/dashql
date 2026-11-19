@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act } from '@akohn/dashql-react/testing/react_act';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { collectScriptDiagnostics, ScriptDiagnosticsButton, SCRIPT_FORMATTING_WARNING } from './script_diagnostics.js';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';

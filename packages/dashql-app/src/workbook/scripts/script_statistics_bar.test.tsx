@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import * as Immutable from 'immutable';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { ScriptStatisticsBar } from './script_statistics_bar.js';
 import * as styles from './script_statistics_bar.module.css';
 

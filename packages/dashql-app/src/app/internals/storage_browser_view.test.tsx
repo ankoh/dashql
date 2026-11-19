@@ -9,7 +9,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 
 describe('StorageBrowserView', () => {
     let root: ReturnType<typeof createTestRoot>;

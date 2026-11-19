@@ -11,7 +11,7 @@ import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { applyFlavorToDocument } from './flavor_resolution.js';
-import { createTestRoot } from '../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 
 describe('AppSettingsSync', () => {
     let root: ReturnType<typeof createTestRoot>;

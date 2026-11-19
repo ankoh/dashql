@@ -1,7 +1,7 @@
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import * as dashql from '@akohn/dashql';
-import { detectPlanEngine } from './plan_engine.js';
-import { peekFormat } from '../query_result/format_peek.js';
+import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
+import { peekFormat } from '@akohn/dashql-react/components/data_table/data_table';
 import { getPlanResultText } from '../../shell/shell_result.js';
 
 const Engine = dashql.buffers.profile.ProfileEngine;

@@ -16,7 +16,7 @@ import { QueryResultCacheProvider } from '../../storage/query_result_cache_provi
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { applyFlavorToDocument } from '../../config/flavor_resolution.js';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { type RouteContext } from '../router.js';
 import { AppLoadingStatus } from '../loading/app_loading_status.js';
 import { WorkbookSetupStatus } from '../loading/workbook_setup_status.js';

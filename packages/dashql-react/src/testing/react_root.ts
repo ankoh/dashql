@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act } from './react_act.js';
 
 /// A React root in a container attached to the document, for tests that render components
 export function createTestRoot() {

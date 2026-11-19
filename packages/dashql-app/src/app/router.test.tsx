@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createTestRoot } from '../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { AppLoadingStatus } from './loading/app_loading_status.js';
 import { WorkbookSetupStatus } from './loading/workbook_setup_status.js';
 import {

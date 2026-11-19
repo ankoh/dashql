@@ -1,0 +1,85 @@
+import * as arrow from 'apache-arrow';
+import * as React from 'react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
+import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+
+import { LoggerContext } from '../../logger.js';
+import { mockTableComputation, valueColumn } from '../../testing/computation_mocks.js';
+import { fakeComputationModel } from '../../testing/fake_models.js';
+import { act } from '../../testing/react_act.js';
+import { createTestRoot } from '../../testing/react_root.js';
+import { DataTable, TableColumnHeader, type CellDetailProps } from './data_table.js';
+
+// The data table on its own: a model of a computation and nothing of a runtime or an app, the way another host shows it
+
+/// A computation of the table 1 with a row number, an ordinal column `id` and a string column `name`
+function nameTable() {
+    const numbers = tableFromArrays({ rownum: Int32Array.from([0, 1, 2]), id: Int32Array.from([7, 8, 9]) });
+    // Plain text, the fixtures would encode strings as a dictionary
+    const table = new arrow.Table({
+        rownum: numbers.getChild('rownum')!,
+        id: numbers.getChild('id')!,
+        name: vectorFromArray(['alpha', 'beta', 'gamma'], new arrow.Utf8()),
+    });
+    const columnGroups: ColumnGroup[] = [
+        { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
+        { type: ORDINAL_COLUMN, value: valueColumn('id', 'Int32', { inputFieldNullable: false }) },
+        { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') },
+    ];
+    const computation = mockTableComputation(columnGroups, { dataTableRows: 3 });
+    return fakeComputationModel(computation, new Map([[1, table]]));
+}
+
+describe('DataTable', () => {
+    let root: ReturnType<typeof createTestRoot>;
+    beforeEach(() => {
+        root = createTestRoot();
+        root.container.style.width = '600px';
+        root.container.style.height = '300px';
+    });
+    afterEach(() => root.unmount());
+
+    function render(element: React.ReactElement) {
+        return root.render(<LoggerContext.Provider value={new TestLogger()}>{element}</LoggerContext.Provider>);
+    }
+
+    it('shows the rows of the table of a model', async () => {
+        const model = nameTable();
+        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+        const text = root.container.textContent ?? '';
+        for (const value of ['id', 'name', 'alpha', 'beta', 'gamma', '9']) {
+            expect(text).toContain(value);
+        }
+    });
+
+    it('asks the model to order by a column', async () => {
+        const model = nameTable();
+        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+        const sort = root.container.querySelector<HTMLButtonElement>('button[aria-label^="Sort name"]');
+        expect(sort).not.toBeNull();
+        act(() => sort!.click());
+        expect(model.dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: 'orderBy' }));
+    });
+
+    it('opens the detail of a cell in the slot of the host', async () => {
+        const model = nameTable();
+        const opened: CellDetailProps[] = [];
+        const CellDetail = (props: CellDetailProps) => {
+            if (props.isOpen) opened.push(props);
+            return null;
+        };
+        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight cellDetail={CellDetail} />);
+        await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+        const cell = Array.from(root.container.querySelectorAll<HTMLElement>('[role="gridcell"]'))
+            .find(element => element.textContent === 'beta');
+        expect(cell).toBeDefined();
+        act(() => cell!.click());
+        expect(opened.at(-1)?.formattedValue).toBe('beta');
+        expect(opened.at(-1)?.columnName).toBe('name');
+    });
+});

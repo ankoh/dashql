@@ -5,7 +5,7 @@ import icons from '@akohn/dashql-svg-symbols';
 
 import { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { QueryResultView } from '../../views/query_result/query_result_view.js';
-import { TableColumnHeader } from '../../views/query_result/data_table_cell.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { VisualizationDispatch } from '../../views/visualization/visualization_dispatch.js';
 import { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';

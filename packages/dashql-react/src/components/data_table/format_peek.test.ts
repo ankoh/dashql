@@ -1,4 +1,5 @@
 import { peekFormat } from './format_peek.js';
+import { describe, expect, it } from 'vitest';
 
 describe('peekFormat', () => {
     it('returns null for null and short strings', () => {

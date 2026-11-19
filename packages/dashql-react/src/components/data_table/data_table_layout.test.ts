@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { valueColumn } from '../../tests/mocks/computation.js';
+import { valueColumn } from '../../testing/computation_mocks.js';
 import { ColumnGroup, ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';

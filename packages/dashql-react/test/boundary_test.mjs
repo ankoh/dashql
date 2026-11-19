@@ -10,7 +10,7 @@ const SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const IMPORT = /(?:^|[\n;])\s*(?:import|export)\s+(type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const DYNAMIC_IMPORT = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
 /// The packages that the modules may import, the sprite of the SVG symbols comes from the bundler of the host
-const ALLOWED = /^(react|react-dom|apache-arrow|@akohn\/dashql|@akohn\/dashql-svg-symbols|@primer\/behaviors|@react-hook\/resize-observer)(\/|$)/;
+const ALLOWED = /^(react|react-dom|apache-arrow|@akohn\/dashql|@akohn\/dashql-svg-symbols|@primer\/behaviors|@react-hook\/resize-observer|react-window|d3)(\/|$)/;
 /// The folders of the components and their helpers
 const SHOWS = /^(components|dom)\//;
 /// What a component may not import

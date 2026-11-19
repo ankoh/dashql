@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { resolveSearchedRowIndices } from './visible_rows.js';
 import type { ComputationTables } from './computation_tables.js';
-import { mockTableComputation } from '../../tests/mocks/computation.js';
+import { mockTableComputation } from '../../testing/computation_mocks.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 const tables = (fields: Partial<ComputationTables>): ComputationTables => ({

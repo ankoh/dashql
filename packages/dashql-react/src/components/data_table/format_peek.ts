@@ -1,4 +1,4 @@
-import { detectPlanEngine } from '../query_profile/plan_engine.js';
+import { detectPlanEngine } from '../../utils/plan_engine.js';
 
 export type FormatHint = 'array' | 'struct' | 'json' | 'sql' | 'plan' | null;
 

@@ -5,6 +5,9 @@ import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_script
 import type { ScriptModel, ScriptModelSource } from '../models/script_model.js';
 import type { ConnectionModel } from '../models/connection_model.js';
 import type { QueryModel } from '../models/query_model.js';
+import type { ComputationModel } from '../models/computation_model.js';
+import type * as arrow from 'apache-arrow';
+import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
@@ -79,6 +82,20 @@ export function fakeQueryModel(query: Partial<QueryExecutionState> & { queryId: 
         progress: query.progress ?? null,
         result: null,
         cancel: vi.fn(async () => { }),
+        ...overrides,
+    };
+}
+
+/// The model of a computation: its view and the Arrow tables of its handles, an action is recorded and changes nothing
+export function fakeComputationModel(
+    computation: TableComputationState,
+    tables: ReadonlyMap<number, arrow.Table> = new Map(),
+    overrides: Partial<ComputationModel> = {},
+): ComputationModel {
+    return {
+        computation,
+        tables: { table: handle => handle == null ? undefined : tables.get(handle) },
+        dispatch: vi.fn(() => ({ ok: true, changed: true, error: null, id: null })),
         ...overrides,
     };
 }

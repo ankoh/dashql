@@ -9,7 +9,7 @@ import { LoggerProvider } from '../../platform/logger_provider.js';
 import { WebFileDownloader } from '../../platform/file/web_file_downloader.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { QueryResultCacheProvider } from '../../storage/query_result_cache_provider.js';

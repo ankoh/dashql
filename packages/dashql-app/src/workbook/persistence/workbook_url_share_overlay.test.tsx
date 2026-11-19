@@ -8,7 +8,7 @@ import type { WorkbookData } from '@akohn/dashql/platform/storage/storage_backen
 import { LoggerProvider } from '../../platform/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';

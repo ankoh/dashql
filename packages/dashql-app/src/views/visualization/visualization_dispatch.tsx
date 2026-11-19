@@ -6,7 +6,7 @@ import { VegaLiteView } from './vegalite_view.js';
 import { VegaLitePreview } from './vegalite_preview.js';
 import { MarkdownView } from './markdown_view.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
-import { TableColumnHeader } from '../query_result/data_table_cell.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 
 interface Props {
     query: QueryExecutionState | null;

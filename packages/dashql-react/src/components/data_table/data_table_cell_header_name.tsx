@@ -3,8 +3,8 @@ import * as React from 'react';
 import * as styles from './data_table.module.css';
 import symbols from '@akohn/dashql-svg-symbols';
 
-import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { classNames } from '../../dom/classnames.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
 

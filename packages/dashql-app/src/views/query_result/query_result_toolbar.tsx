@@ -2,12 +2,12 @@ import * as React from 'react';
 
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { TableComputationState } from '@akohn/dashql/platform/compute/computation_types';
-import { useComputation, useComputationDispatch } from '@akohn/dashql-react/hooks';
+import { useComputation, useComputationDispatch, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
-import { forEachIntegerValue } from './visible_rows.js';
-import { useComputationTables, type ComputationTables } from './computation_tables.js';
-import type { ComputationDispatch } from './use_cross_filters.js';
+import { forEachIntegerValue } from '@akohn/dashql-react/components/data_table/data_table';
+import { useComputationTables, type ComputationTables } from '@akohn/dashql-react/components/data_table/data_table';
+import type { ComputationDispatch } from '@akohn/dashql-react/components/data_table/data_table';
 
 interface Props {
     query: QueryExecutionState;
@@ -30,7 +30,7 @@ interface TableSearchToolbarProps {
 export function TableSearchToolbar(props: TableSearchToolbarProps) {
     const { table, dispatch } = props;
     const search = useQueryResultSearch(table, dispatch);
-    const tables = useComputationTables(table);
+    const tables = useComputationTables(table, useOptionalRuntime());
     if (search.columnSearch == null || search.dataSearch == null) return props.children;
     const dataMatchCount = getMatchingRowCount(tables);
     return (
@@ -50,7 +50,7 @@ export function TableSearchToolbar(props: TableSearchToolbarProps) {
 
 export function useQueryResultRowCounts(query: QueryExecutionState | null) {
     const table = useComputation(query?.queryId);
-    const tables = useComputationTables(table);
+    const tables = useComputationTables(table, useOptionalRuntime());
     const totalRows = table?.dataTableRows ?? null;
     const matchingRows = getMatchingRowCount(tables);
     const currentRows = matchingRows ?? table?.filterTable?.rows ?? totalRows;

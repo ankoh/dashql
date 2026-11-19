@@ -14,7 +14,7 @@ import { QueryResultCacheProvider } from '../../storage/query_result_cache_provi
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '../../tests/opfs_mock.js';
 import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
-import { createTestRoot } from '../../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';

@@ -21,7 +21,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createLocalCloudParams } from '../connections/cloud_connection.js';
-import { createTestRoot } from '../tests/react_root.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';

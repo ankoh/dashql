@@ -7,7 +7,7 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { ScreenFullIcon, ScreenNormalIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { QueryResultDetails } from './query_result_details.js';
-import { TableColumnHeader } from './data_table_cell.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 
 export interface ResultTableOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;

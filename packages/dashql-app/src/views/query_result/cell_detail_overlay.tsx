@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './cell_detail_overlay.module.css';
+import type { CellDetailProps } from '@akohn/dashql-react/components/data_table/data_table';
 import * as dashql from '@akohn/dashql';
 
 import { XIcon, ChevronUpIcon, ChevronDownIcon, ScreenFullIcon, ScreenNormalIcon } from '@akohn/dashql-react/components/symbol_icon';
@@ -13,11 +14,11 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { useDashQLCoreSetup } from '../../runtime/core_provider.js';
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
-import { peekFormat } from './format_peek.js';
+import { peekFormat } from '@akohn/dashql-react/components/data_table/data_table';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../../workbook/scripts/script_format.js';
 import { EngineProfileView } from '../query_profile/engine_profile_view.js';
-import { detectPlanEngine } from '../query_profile/plan_engine.js';
+import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 
 const LOG_CTX = 'cell_detail_overlay';
 
@@ -197,16 +198,8 @@ function StructuredValueView(props: { value: object }) {
 }
 
 
-export interface CellDetailOverlayProps {
-    isOpen: boolean;
-    onClose: () => void;
-    formattedValue: string | null;
-    structuredValue: object | null;
-    columnName: string | null;
-    dataRow: number;
-    maxRow: number;
-    onNavigate: (delta: number) => void;
-}
+/// The overlay is the detail of a cell of the data table
+export type CellDetailOverlayProps = CellDetailProps;
 
 /// Public interface
 export function CellDetailOverlay(props: CellDetailOverlayProps) {

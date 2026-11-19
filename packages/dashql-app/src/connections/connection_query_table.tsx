@@ -6,8 +6,8 @@ import { useComputeDatabase } from './compute_connection_provider.js';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../platform/logger_provider.js';
-import { DataTable } from '../views/query_result/data_table.js';
-import { TableColumnHeader } from '../views/query_result/data_table_cell.js';
+import { DataTableView } from '../views/query_result/data_table_view.js';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 
 const LOG_CTX = 'connection_overview';
 
@@ -108,7 +108,7 @@ export const QueryTable: React.FC<QueryTableProps> = ({ sql, clientContext, runQ
     const computation = useComputation(tableId);
     if (computation == null) return null;
     return (
-        <DataTable
+        <DataTableView
             table={computation}
             debugMode={false}
             columnHeader={TableColumnHeader.OnlyColumnName}
