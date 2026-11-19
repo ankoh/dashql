@@ -7,8 +7,22 @@ import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
 
-/// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`).
-export type DashQLBindings = Pick<
+/// The classes of the features of a core module by feature (`DASHQL_CORE_FEATURES` of `packages/dashql-core-wasm/module.bzl`).
+/// A module built without a feature has none of its classes.
+export interface DashQLFeatureClasses {
+    shell: 'Shell';
+}
+/// A feature of a core module
+export type DashQLFeature = keyof DashQLFeatureClasses;
+type FeatureClass = DashQLFeatureClasses[DashQLFeature];
+const FEATURE_CLASSES: DashQLFeatureClasses = { shell: 'Shell' };
+
+/// The wasm-bindgen module of the Rust core (`packages/dashql-core-wasm`): what every module has, and the classes of the
+/// features that the module was built with.
+export type DashQLBindings = DashQLCoreBindings & Partial<Pick<typeof glue, Extract<FeatureClass, keyof typeof glue>>>;
+
+/// What every core module has
+type DashQLCoreBindings = Pick<
     typeof glue,
     | 'Catalog'
     | 'Script'
@@ -28,7 +42,6 @@ export type DashQLBindings = Pick<
     | 'processBatch'
     | 'touchedRelations'
     | 'installPanicHook'
-    | 'Shell'
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
     | 'Runtime'
@@ -224,6 +237,19 @@ export class DashQL {
     registeredMemoryRefs: WeakMap<Ptr<symbol>, WeakRef<Ptr<symbol>>>;
     /// Removes the entries of collected objects from `registeredMemory`
     registeredMemoryCleanup: FinalizationRegistry<WeakRef<Ptr<symbol>>>;
+
+    /// Was the module built with a feature?
+    public hasFeature(feature: DashQLFeature): boolean {
+        return FEATURE_CLASSES[feature] in this.bindings;
+    }
+
+    /// The classes of a feature of the module, throws if the module was built without it
+    public feature<F extends DashQLFeature>(feature: F): NonNullable<DashQLBindings[DashQLFeatureClasses[F] & keyof DashQLBindings]> {
+        const name = FEATURE_CLASSES[feature] as keyof DashQLBindings;
+        const value = this.bindings[name];
+        if (value == null) throw new Error(`the core module was built without the feature ${feature}`);
+        return value as NonNullable<DashQLBindings[DashQLFeatureClasses[F] & keyof DashQLBindings]>;
+    }
 
     public constructor(bindings: DashQLBindings) {
         this.encoder = new TextEncoder();

@@ -219,7 +219,7 @@ export class DashQLShell {
     ) {
         this.commands = commands;
         this.settings = settings;
-        this.shell = new core.bindings.Shell(
+        this.shell = new (core.feature('shell'))(
             catalog.ptr.assertNotNull(),
             terminalColumns,
             autoQualifyNonDefaultDatabaseTables,

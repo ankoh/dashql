@@ -23,30 +23,45 @@ function runtimeProject(name) {
     };
 }
 
+/// The aliases of the generated packages, the glue of the core module from a folder of dependencies/
+function aliases(wasm) {
+    return [
+        { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(root, `dependencies/${wasm}/$1`) },
+        { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-flatbuffers/$1') },
+        { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
+        { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
+        { find: /^@dashql\/extensions/, replacement: path.join(root, 'dependencies/extensions') },
+    ];
+}
+
+/// The tests of the bindings on a core module, `features` are the features that the module was built with
+/// (DASHQL_CORE_FEATURES of the tests, see features.test.ts)
+function coreProject(name, wasm, features) {
+    return {
+        resolve: { alias: aliases(wasm) },
+        test: {
+            name,
+            environment: 'node',
+            globals: true,
+            include: ['src/core/**/*.test.ts'],
+            env: { DASHQL_CORE_FEATURES: features.join(',') },
+            hookTimeout: 30000,
+            testTimeout: 30000,
+        },
+    };
+}
+
 export default {
     resolve: {
-        alias: [
-            { find: /^@akohn\/dashql-wasm\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-wasm/$1') },
-            { find: /^@akohn\/dashql-flatbuffers\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-flatbuffers/$1') },
-            { find: /^@akohn\/dashql-protobuf\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-protobuf/$1') },
-            { find: /^@akohn\/dashql-jsonschema\/(.+)$/, replacement: path.join(root, 'dependencies/dashql-jsonschema/$1') },
-            { find: /^@dashql\/extensions/, replacement: path.join(root, 'dependencies/extensions') },
-        ],
+        alias: aliases('dashql-wasm'),
     },
     test: {
         environment: 'node',
         globals: true,
         projects: [
-            // The bindings of the core module
-            {
-                extends: true,
-                test: {
-                    name: 'core',
-                    include: ['src/core/**/*.test.ts'],
-                    hookTimeout: 30000,
-                    testTimeout: 30000,
-                },
-            },
+            // The bindings of the core module with all features, and of the module without features
+            coreProject('core', 'dashql-wasm', ['shell']),
+            coreProject('core_minimal', 'dashql-wasm-minimal', []),
             runtimeProject('runtime'),
             runtimeProject('platform'),
         ],

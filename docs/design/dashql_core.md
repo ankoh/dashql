@@ -43,6 +43,17 @@ to DashQL and changes with it; its state crosses as views with generated types.
 - **One module.** The runtime is linked into the core module. A module of its own would duplicate the core and split
   the catalogs: the workbook owns the script sessions and the catalogs of its connections as plain Rust values, `Drop`
   frees them, and calls into the core are function calls.
+- **Features.** The language, the workbooks and their execution are in every module. The services that share the
+  state of the scripts but not every product needs are features of the bindings (`#[cfg(feature = "...")]`): a module
+  without a feature has none of its classes, views, actions and commands. `DASHQL_CORE_FEATURES` of
+  `packages/dashql-core-wasm/module.bzl` lists them with the crates that each adds, so far `shell`.
+  `//packages/dashql-core-wasm:core_wasm` has all of them (`DASHQL_FULL_FEATURES`), the app, the command line tool and
+  the package on npm ship it. Another product builds its own module with `dashql_core_module(name, features)` and its
+  glue with `dashql_wasm_glue` of `packages/dashql/glue.bzl`, no Rust of its own. `:core_minimal` has no feature: it
+  builds, passes Clippy (`:clippy_minimal_test`) and runs the tests of the bindings
+  (`//packages/dashql:test_core_minimal_node`), so every feature can be left out. In TypeScript the classes of a
+  feature are optional in `DashQL.bindings`, `hasFeature` asks for one and `feature` returns its classes or throws. A
+  part that keeps no state of the scripts, e.g. the layout of the dataflow, is a module of its own instead.
 - **Panics.** The module aborts on a panic: the call traps without dropping its guards, and the module must not be used
   anymore. `installPanicHook` reports the message to `globalThis.__dashqlCorePanic` first, and the app shows
   `core_panic_overlay.tsx`. This is why every crate of the module denies panicking code, see [The rules](#the-rules).

@@ -5,6 +5,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load(":glue.bzl", "dashql_wasm_glue")
 
 # DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
 # docs/design/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
@@ -64,45 +65,20 @@ filegroup(
     ),
 )
 
-# @akohn/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas. The glue loads
-# `<name>_bg.wasm` by default, the package ships the modules as `dashql_core.wasm` and `dashql_dataflow.wasm`, and every
-# glue exports the URL of its module next to it (`wasmUrl`), which bundlers turn into an asset.
-genrule(
+# @akohn/dashql-wasm: the wasm-bindgen modules of the Rust core and of the layout of the dataflow canvas, see glue.bzl
+dashql_wasm_glue(
     name = "dep_wasm",
-    srcs = [
-        "//packages/dashql-core-wasm:dashql_core_bindgen",
-        "//packages/dashql-core-wasm:core_wasm",
-        "//packages/dashql-dataflow-wasm:dashql_dataflow_bindgen",
-        "//packages/dashql-dataflow-wasm:dataflow_wasm",
-    ],
-    outs = [
-        "dependencies/dashql-wasm/dashql_core.js",
-        "dependencies/dashql-wasm/dashql_core.d.ts",
-        "dependencies/dashql-wasm/dashql_core.wasm",
-        "dependencies/dashql-wasm/dashql_dataflow.js",
-        "dependencies/dashql-wasm/dashql_dataflow.d.ts",
-        "dependencies/dashql-wasm/dashql_dataflow.wasm",
-    ],
-    cmd = """
-        OUT="$(RULEDIR)/dependencies/dashql-wasm"
-        for src in $(locations //packages/dashql-core-wasm:dashql_core_bindgen) $(locations //packages/dashql-dataflow-wasm:dashql_dataflow_bindgen); do
-            case "$$src" in
-                */dashql_core.js|*/dashql_dataflow.js)
-                    name=$$(basename "$$src" .js)
-                    sed "s/$${name}_bg[.]wasm/$${name}.wasm/g" "$$src" > "$$OUT/$$name.js"
-                    printf '\\n/** The URL of the module next to this glue */\\nexport const wasmUrl = new URL(%s, import.meta.url);\\n' "'./$$name.wasm'" >> "$$OUT/$$name.js"
-                    ;;
-                # Symbol.dispose needs lib esnext.disposable, which ES2022 consumers lack
-                */dashql_core.d.ts|*/dashql_dataflow.d.ts)
-                    name=$$(basename "$$src" .d.ts)
-                    sed '/[[]Symbol[.]dispose[]]/d' "$$src" > "$$OUT/$$name.d.ts"
-                    printf '\\n/** The URL of the module next to this glue */\\nexport declare const wasmUrl: URL;\\n' >> "$$OUT/$$name.d.ts"
-                    ;;
-            esac
-        done
-        cp "$(location //packages/dashql-core-wasm:core_wasm)" "$$OUT/dashql_core.wasm"
-        cp "$(location //packages/dashql-dataflow-wasm:dataflow_wasm)" "$$OUT/dashql_dataflow.wasm"
-    """,
+    core_bindgen = "//packages/dashql-core-wasm:dashql_core_bindgen",
+    core_wasm = "//packages/dashql-core-wasm:core_wasm",
+    out_dir = "dependencies/dashql-wasm",
+)
+
+# The same of the core module without features, the tests of the bindings run on it as well (:test_core_minimal_node)
+dashql_wasm_glue(
+    name = "dep_wasm_minimal",
+    core_bindgen = "//packages/dashql-core-wasm:core_minimal_bindgen",
+    core_wasm = "//packages/dashql-core-wasm:core_minimal",
+    out_dir = "dependencies/dashql-wasm-minimal",
 )
 
 # @akohn/dashql-flatbuffers: the FlatBuffers of the core module in TypeScript, the bindings export them as `buffers`
@@ -250,6 +226,22 @@ vitest_bin.vitest_test(
     ],
     chdir = package_name(),
     data = _VITEST_DATA,
+)
+
+# The tests of the bindings on the core module without features: a module that leaves a feature out keeps the rest
+vitest_bin.vitest_test(
+    name = "test_core_minimal_node",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+        "--project",
+        "core_minimal",
+        "--maxWorkers=1",
+    ],
+    chdir = package_name(),
+    data = _VITEST_DATA + [":dep_wasm_minimal"],
 )
 
 # The tests of the runtime in Node, without those that need a browser (*.browser.test.ts), e.g. a Web Worker

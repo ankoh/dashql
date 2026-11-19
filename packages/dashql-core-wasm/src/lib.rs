@@ -32,6 +32,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
+#[cfg(feature = "shell")]
 mod shell;
 
 #[wasm_bindgen]
@@ -285,6 +286,7 @@ impl Default for Catalog {
 
 impl Catalog {
     /// The shared core catalog, for bindings of other crates in the same module (the shell)
+    #[cfg(feature = "shell")]
     pub fn shared(&self) -> SharedCatalog {
         self.inner.clone()
     }
