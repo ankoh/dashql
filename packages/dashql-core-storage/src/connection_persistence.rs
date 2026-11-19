@@ -7,14 +7,14 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::catalog_loader::catalog_is_durable;
-use crate::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
-use crate::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
+use dashql_core_runtime::catalog_loader::catalog_is_durable;
+use dashql_core_runtime::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
+use dashql_core_runtime::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
 use crate::restore::catalog::{CATALOG_FUNCTIONS_FILE, CATALOG_RELATIONS_FILE, CATALOG_STATE_FILE};
 use crate::storage::keys::{connection_entry_key, connection_file_key, workbook_connection_copy_key};
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteOutcome, WriteTask};
 use crate::workbook_format::data::WorkbookConnection;
-use crate::workbook_format::sharing::connection_params_share_equal;
+use dashql_core_runtime::connections::sharing::connection_params_share_equal;
 
 /// The debounce of the writes of the params and the catalog of a connection
 pub const CONNECTION_WRITE_DEBOUNCE_MS: f64 = 100.0;

@@ -9,11 +9,11 @@ use std::cell::RefCell;
 
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::HostError;
-use dashql_core_runtime::storage::FolderStamps;
-use dashql_core_runtime::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
-use dashql_core_runtime::workbook_format::data::WorkbookData;
-use dashql_core_runtime::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
-use dashql_core_runtime::workbook_format::tables::{Cell, WorkbookTableName, WorkbookTableRow, WorkbookTables};
+use dashql_core_storage::storage::FolderStamps;
+use dashql_core_storage::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
+use dashql_core_storage::workbook_format::data::WorkbookData;
+use dashql_core_storage::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
+use dashql_core_storage::workbook_format::tables::{Cell, WorkbookTableName, WorkbookTableRow, WorkbookTables};
 use js_sys::{Array, Object, Reflect, Uint8Array};
 use serde::de::DeserializeOwned;
 use serde_json::{json, Map, Value};

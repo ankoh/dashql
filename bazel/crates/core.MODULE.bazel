@@ -47,7 +47,7 @@ crate_core.spec(package = "ropey", version = "=1.6.1")
 crate_core.spec(package = "serde", features = ["derive"], version = "=1.0.229")
 crate_core.spec(package = "serde_json", features = ["preserve_order"], version = "=1.0.154")
 
-# The file names of workbooks in NFC (dashql_core_runtime::workbook_format::files)
+# The file names of workbooks in NFC (dashql_core_storage::workbook_format::files)
 crate_core.spec(package = "unicode-normalization", version = "=0.1.24")
 
 # Display widths and grapheme clusters for the shell (dashql_core_shell)

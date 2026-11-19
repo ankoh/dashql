@@ -18,7 +18,8 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core_script` | `packages/dashql-core-script` | Scripts on the core: editor sessions (`script_session.rs`), the compilation of scripts, batch processing of catalog SQL, the relations that statements touch, the renderer specs of `VISUALIZE` statements | core, parser, buffers |
 | `dashql_core_profile` | `packages/dashql-core-profile` | The query profile: Hyper plans and Trino stages parsed into operators, edges, fragments and pipelines, their layout, and the progress of a running query as events | buffers |
 | `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the tables of the first rows of results, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers, `arrow-rs` |
-| `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O | core, script, profile, parser, buffers, `arrow-rs` |
+| `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O and without storage | core, script, profile, parser, buffers, `arrow-rs` |
+| `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, script, parser, buffers, `arrow-rs` |
 | `dashql_core_wasm` | `packages/dashql-core-wasm` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
 | `dashql_dataflow_wasm` | `packages/dashql-dataflow-wasm` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
@@ -61,7 +62,7 @@ state sits in the services behind `RefCell`s; every method takes `&self`. The se
 the commands) is described from the TypeScript side in [dashql_runtime.md](dashql_runtime.md#the-seam); the change
 marks are `runtime/changes.rs`.
 
-| Domain | Crate (`dashql-core-runtime/src`) | Bindings (`dashql-core-wasm/src/runtime/`) |
+| Domain | Crate (`dashql-core-runtime/src` unless named) | Bindings (`dashql-core-wasm/src/runtime/`) |
 |---|---|---|
 | Workbooks and scripts | `workbook.rs`, `visible_scripts.rs`, `attachments.rs`, `names.rs` | `workbooks.rs`, `attachments.rs` |
 | The planner, references, dataflow, inputs | `planner/` | `workbooks.rs` (the derived view) |
@@ -71,9 +72,9 @@ marks are `runtime/changes.rs`.
 | Computations | `compute/` | `computation.rs`, `compute_tracking.rs` |
 | The catalog loader | `catalog_loader/` | `catalog.rs` |
 | Runs of workbooks | `workbook_run/` | `runs.rs`, `runs/cached_results.rs` |
-| The storage writer | `storage/` | `storage.rs` |
-| Restore and the persistence of connections | `restore/`, `connection_persistence.rs` | `storage.rs`, `src/runtime.rs` |
-| The workbook format: imports, exports, migrations, eviction | `workbook_format/` | `imports.rs`, `exports.rs`, `archives.rs`, `migrations.rs`, `external.rs`, `src/host.rs` |
+| The storage writer | `storage/` of `dashql-core-storage` | `storage.rs` |
+| Restore and the persistence of connections | `restore/`, `connection_persistence.rs` of `dashql-core-storage` | `storage.rs`, `src/runtime.rs` |
+| The workbook format: imports, exports, migrations, eviction | `workbook_format/` of `dashql-core-storage` | `imports.rs`, `exports.rs`, `archives.rs`, `migrations.rs`, `external.rs`, `src/host.rs` |
 | Handles | `handles.rs` | `src/host.rs` |
 
 ### Workbooks and scripts
@@ -153,7 +154,7 @@ marks are `runtime/changes.rs`.
 - **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
   (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). Sharing params (`sanitizeConnectionParams`,
-  `connectionParamsShareEqual`) is `workbook_format/sharing.rs`.
+  `connectionParamsShareEqual`) is `connections/sharing.rs`.
 - **Tokens stay in the runtime and have one owner, the channel of their connection.** The Trino channel holds the
   OAuth token, the Salesforce channel (`salesforce::SharedSalesforceChannel`) the core and the Data Cloud token. The
   setups keep the PKCE verifier and the codes, the connection learns only that they arrived; the steps of a setup carry
@@ -351,13 +352,13 @@ limit of the workbook format or a wait of a busy state is no setting). A service
 | Trait | Adds |
 |---|---|
 | `http::HttpHost` | `fetch` with a `CancellationToken` |
-| `storage::StorageHost`, `restore::RestoreHost` | The operations of the storage backend, the reads of the restore |
+| `storage::StorageHost`, `restore::RestoreHost` (`dashql_core_storage`) | The operations of the storage backend, the reads of the restore |
 | `connection_setup::OAuthHost`, `SetupHost` | The OAuth flows, PKCE and random ids; connecting and closing channels, the token of a Hyper link, the probe of a health check |
 | `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the query result cache, the analysis of a result, host channels, time zones |
 | `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
 | `workbook_run::RunHost` | Statements, the result keys, preparing connections, cached results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
-| `workbook_format`: `FolderHost`, `StorageRootHost`, `CacheHost`, `CatalogSql` | Folders, the storage root, the files of the cache, catalog SQL |
+| `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost`, `CacheHost`, `CatalogSql` | Folders, the storage root, the files of the cache, catalog SQL |
 
 A host call that fails returns a `HostError`, the error of the task: it keeps what the host failed with and hands it
 back unchanged. A call that was cancelled fails with `HostError::cancelled()`, the code asks `is_cancelled()` and

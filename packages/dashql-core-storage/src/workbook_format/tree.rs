@@ -12,7 +12,7 @@ use dashql_core::error::{Error, Result};
 
 use crate::workbook_format::json::{to_pretty_text, JsonObject};
 use crate::workbook_format::layout::{StorageType, STORAGE_FOLDER_FILE, STORAGE_WORKBOOK_TREE_FOLDER};
-use crate::workbook_format::natural::natural_compare;
+use dashql_core_runtime::natural::natural_compare;
 
 /// A workbook of the workbook tree
 #[derive(Debug, Clone, PartialEq)]

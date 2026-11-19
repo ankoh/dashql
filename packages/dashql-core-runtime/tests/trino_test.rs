@@ -23,7 +23,7 @@ use dashql_core_runtime::connections::{
 use dashql_core_runtime::query::progress::EngineProgressPayload;
 use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
 use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
-use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::http::base64::{base64_decode, base64_encode};
 use dashql_core_runtime::http::url::{form_encode, set_query_param};
 use dashql_core_runtime::trino::protocol::{

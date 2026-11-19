@@ -2,7 +2,7 @@
 
 DashQL native workbooks live in user-owned directories. DashQL writes scripts and attachments to
 those directories through the debounced storage writer of the runtime (`StorageWriter` of
-`packages/dashql-core-runtime/src/storage/writer.rs`); users and external tools may also edit the
+`packages/dashql-core-storage/src/storage/writer.rs`); users and external tools may also edit the
 same files. Native file synchronization detects those external changes and offers to reload them into
 the running application without reopening the workbook.
 
@@ -86,7 +86,7 @@ size and modification time of a file. The Electron bridge returns them without r
 - `writeTextFile(path, text)` resolves with the stamp of the written file, taken from the temporary file before it is
   renamed over the file: a stamp taken after the rename could be the one of another program that wrote in between.
 
-The runtime keeps the stamps (`FolderStamps` of `packages/dashql-core-runtime/src/storage/stamps.rs`): per script, by
+The runtime keeps the stamps (`FolderStamps` of `packages/dashql-core-storage/src/storage/stamps.rs`): per script, by
 its name in NFC and lower case, and for `dashql-workbook.json`, the stamp of its own last write or of the last
 acknowledgement. A script without a stamp is known to be absent. DashQL's own writes therefore never look like external
 changes, and no event correlation is needed. The restore acknowledges the folder: it takes the stamps before it reads
@@ -308,9 +308,9 @@ bazel build //packages/dashql-native:compile
 ## Implementation References
 
 - Checks: `packages/dashql-core-wasm/src/runtime/external.rs`, the dialogs: `packages/dashql-app/src/workbook/persistence/native_workbook_sync_react.tsx`
-- Stamps: `packages/dashql-core-runtime/src/storage/stamps.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
-- Holds, held and failed writes: `packages/dashql-core-runtime/src/storage/writer.rs`
-- Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-runtime/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`
+- Stamps: `packages/dashql-core-storage/src/storage/stamps.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.ts`
+- Holds, held and failed writes: `packages/dashql-core-storage/src/storage/writer.rs`
+- Workbook scripts reconciliation: `resolve_workbook_scripts` of `packages/dashql-core-storage/src/workbook_format/script_connections.rs`, `Workbook::replace_from_storage` of `packages/dashql-core-runtime/src/workbook.rs`
 - Electron filesystem bridge: `packages/dashql-native/src/main.ts` and `src/preload.cjs`
 - Stamp tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs` and `restore_test.rs`, refused writes: `packages/dashql/src/platform/storage/native_storage_backend.test.ts`
 - Writer tests: `packages/dashql-core-runtime/tests/storage_writer_test.rs`

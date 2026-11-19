@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
-use crate::catalog_loader::tables::Groups;
+use dashql_core_runtime::catalog_loader::tables::Groups;
 use crate::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
 };

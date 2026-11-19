@@ -13,6 +13,7 @@ DASHQL_CORE_WASM_DEPS = [
     "//packages/dashql-core-shell:dashql_core_shell",
     "//packages/dashql-core-profile:dashql_core_profile",
     "//packages/dashql-core-runtime:dashql_core_runtime",
+    "//packages/dashql-core-storage:dashql_core_storage",
     "//packages/dashql-parser:dashql_parser",
     "//proto/fb:dashql_buffers_rs",
     "@core_crates//:flatbuffers",

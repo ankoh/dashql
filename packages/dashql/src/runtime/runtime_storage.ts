@@ -7,7 +7,7 @@ import { NativeStorageBackend } from '../platform/storage/native_storage_backend
 import { markWorkbookAttachmentsChanged } from '../platform/workbook/attachment_mounts.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
-/// storage writer of the runtime (`packages/dashql-core-runtime/src/storage`, docs/design/dashql_runtime.md). The
+/// storage writer of the runtime (`packages/dashql-core-storage/src/storage`, docs/design/dashql_runtime.md). The
 /// writer decides what to write and when: the keys and their chains, debouncing, coalescing, pausing, flushing and the
 /// statistics. The workbooks and the connections of the runtime write through it.
 
@@ -96,7 +96,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
 }
 
 /// The commands of the storage writer of the runtime over the module (`StorageWriter` of
-/// `packages/dashql-core-runtime/src/storage`). Once the runtime is destroyed the commands do nothing: a flush or a
+/// `packages/dashql-core-storage/src/storage`). Once the runtime is destroyed the commands do nothing: a flush or a
 /// settle has nothing to wait for, a hold has nothing to hold and the reads are empty.
 export class StorageCommands {
     constructor(private readonly runtime: { readonly module: core.Runtime; readonly destroyed: boolean }) { }

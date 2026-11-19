@@ -18,7 +18,7 @@ use dashql_core_runtime::catalog_loader::CatalogLoaderService;
 use dashql_core_runtime::compute::service::ComputeService;
 use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connection_persistence::{
+use dashql_core_storage::connection_persistence::{
     connection_entry, connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes, write_workbook_copies,
     ConnectionChange, PersistedConnection,
 };
@@ -30,8 +30,8 @@ use dashql_core_runtime::connections::{
 use dashql_core_runtime::executor::QueryExecutor;
 use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::query::{QueryExecutionAction, QueryId};
-use dashql_core_runtime::storage::keys::connection_entry_key;
-use dashql_core_runtime::storage::{StorageWriter as RuntimeStorageWriter, WriteTask};
+use dashql_core_storage::storage::keys::connection_entry_key;
+use dashql_core_storage::storage::{StorageWriter as RuntimeStorageWriter, WriteTask};
 use dashql_core_runtime::workbook::{next_revision, CatalogHandle};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;

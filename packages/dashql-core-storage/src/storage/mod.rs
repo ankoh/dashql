@@ -10,8 +10,8 @@ pub mod writer;
 
 use serde_json::Value;
 
-use crate::host::{Host, HostError};
-use crate::http::HostBytes;
+use dashql_core_runtime::host::{Host, HostError};
+use dashql_core_runtime::http::HostBytes;
 pub use stamps::{Expect, FileStamp, FolderListing, FolderStamps, NamedStamp};
 pub use writer::{
     FailedWrite, HoldReason, StorageWriter, TextSource, WriteError, WriteHold, WriteOutcome, WriteResult, WriteStatistics, WriteTask,

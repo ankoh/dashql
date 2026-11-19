@@ -4,7 +4,7 @@
 //!
 //! A failed write hands back the value that the host failed with.
 
-use dashql_core_runtime::storage::{FailedWrite, HoldReason, WriteError, WriteHold, WriteOutcome, WriteStatistics};
+use dashql_core_storage::storage::{FailedWrite, HoldReason, WriteError, WriteHold, WriteOutcome, WriteStatistics};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;

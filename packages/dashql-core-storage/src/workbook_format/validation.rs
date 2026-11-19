@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use crate::connections::ConnectorType;
+use dashql_core_runtime::connections::ConnectorType;
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::is_truthy;
 use crate::workbook_format::layout::HYPER_CLOUDS_DIRECTORY;

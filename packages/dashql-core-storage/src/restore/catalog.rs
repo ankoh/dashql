@@ -7,11 +7,11 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core_script::touched_relations::touched_relations;
 
 use super::RestoreHost;
-use crate::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations};
-use crate::catalog_loader::catalog_is_durable;
-use crate::catalog_loader::tables::{pack_catalog_table_update, CatalogStateFile};
-use crate::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
-use crate::host::HostError;
+use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations};
+use dashql_core_runtime::catalog_loader::catalog_is_durable;
+use dashql_core_runtime::catalog_loader::tables::{pack_catalog_table_update, CatalogStateFile};
+use dashql_core_runtime::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
+use dashql_core_runtime::host::HostError;
 
 /// The relations of the catalog of a connection, written and read as SQL
 pub const CATALOG_RELATIONS_FILE: &str = "dashql-catalog-relations.sql";

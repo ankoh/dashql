@@ -47,7 +47,7 @@ use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOut
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
-use dashql_core_runtime::workbook_format::sharing::{self, sanitize_connection_params_for_sharing};
+use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -71,8 +71,8 @@ use queries::{QueryArgs, QueryTicket};
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
 use runs::Runs;
 use setups::{listener, SetupOptions, SetupOutcome};
-use dashql_core_runtime::restore::{AppRestore, RestoreOptions, RestoredState};
-use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
+use dashql_core_storage::restore::{AppRestore, RestoreOptions, RestoredState};
+use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
 use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteStatistics};
 use storage::{error_value, JsStorage, StorageCommand, StorageState, StorageView};
@@ -699,8 +699,8 @@ impl Restorer {
     /// Restore a single workbook of the storage against the connections of the runtime, unknown connections are
     /// registered and a workbook with the same id is replaced
     pub async fn restore_workbook(self, workbook_id: String) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
-        use dashql_core_runtime::restore::{script_connection_of, LiveConnection};
-        use dashql_core_runtime::workbook_format::restore::RestoreConnection;
+        use dashql_core_storage::restore::{script_connection_of, LiveConnection};
+        use dashql_core_storage::workbook_format::restore::RestoreConnection;
         let mut restore = self.app_restore();
         for (connection_id, connection) in self.connections.registry.borrow().connections() {
             let Ok(state) = connection.state.try_borrow() else { continue };
@@ -730,7 +730,7 @@ impl Runtime {
         tracker.attach(&connections);
         let storage = Rc::new(StorageState::default());
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
-        let writer = dashql_core_runtime::storage::StorageWriter::with_stamps(host, WORKBOOK_FORMAT_VERSION, storage.stamps.clone());
+        let writer = dashql_core_storage::storage::StorageWriter::with_stamps(host, WORKBOOK_FORMAT_VERSION, storage.stamps.clone());
         // A runtime without storage keeps no connections, e.g. the one of the shell
         if platform.has_storage() {
             *connections.writer.borrow_mut() = Some(writer.clone());
@@ -1654,7 +1654,7 @@ impl Runtime {
     /// and are no slice: a view of them reads them when it shows them.
     #[wasm_bindgen(js_name = storageStatistics, unchecked_return_type = "StorageKeyStatistics[]")]
     pub fn storage_statistics(&self, workbook_id: Option<String>) -> Result<JsValue, JsError> {
-        use dashql_core_runtime::storage::keys::{belongs_to_workbook, key_within_workbook};
+        use dashql_core_storage::storage::keys::{belongs_to_workbook, key_within_workbook};
         let statistics: Vec<StorageKeyStatistics> = self
             .workbooks
             .writer

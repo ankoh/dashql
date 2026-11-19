@@ -5,7 +5,7 @@ use std::collections::{BTreeSet, HashMap};
 
 use dashql_core::error::{Error, Result};
 
-use crate::attachments::attachment_parameter_name;
+use dashql_core_runtime::attachments::attachment_parameter_name;
 
 /// The manifest of the storage root
 pub const STORAGE_MANIFEST_FILE: &str = "dashql-manifest.json";
@@ -42,7 +42,7 @@ pub const DRAFT_SCRIPT_FILE: &str = "dashql-draft.sql";
 /// The maximum number of scripts and the maximum number of attachments of a workbook
 pub const MAX_WORKBOOK_FILES: usize = 2048;
 /// The extension of attachments
-pub const ATTACHMENT_EXTENSION: &str = crate::attachments::ATTACHMENT_EXTENSION;
+pub const ATTACHMENT_EXTENSION: &str = dashql_core_runtime::attachments::ATTACHMENT_EXTENSION;
 /// The workbook file up to format version 10
 pub const LEGACY_SESSION_FILE: &str = "dashql-session.json";
 /// The `.gitignore` of a native workbook folder
@@ -164,7 +164,7 @@ pub fn native_script_files(entries: &[FolderEntry]) -> Result<Vec<String>> {
             names.push(entry.name.clone());
         }
     }
-    crate::workbook_format::natural::sort_naturally(&mut names, |name| name.as_str());
+    dashql_core_runtime::natural::sort_naturally(&mut names, |name| name.as_str());
     Ok(names)
 }
 
@@ -184,7 +184,7 @@ pub fn native_attachment_files(entries: &[FolderEntry]) -> Result<Vec<String>> {
             names.push(entry.name.clone());
         }
     }
-    crate::workbook_format::natural::sort_naturally(&mut names, |name| name.as_str());
+    dashql_core_runtime::natural::sort_naturally(&mut names, |name| name.as_str());
     Ok(names)
 }
 

@@ -234,7 +234,7 @@ cleanup of the app lists `tests/` as files of the browser tests.
 ## Versions and migrations
 
 Two versions describe the stored data. Both migrations are steps of the runtime of the core
-(`packages/dashql-core-runtime/src/workbook_format/`), the platform reads and writes the files.
+(`packages/dashql-core-storage/src/workbook_format/`), the platform reads and writes the files.
 
 - The storage version, `storageVersion` in the manifest, describes the OPFS root. `migrateStorage` of the core
   (a static function of the module, `DashQL.migrateStorage`) brings an older root to the current version at startup with the steps of `storage_migration.rs`, e.g. version 5 moves

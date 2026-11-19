@@ -14,7 +14,7 @@ use crate::workbook_format::bundle::{prune_bundle_connections, regenerate_connec
 use crate::workbook_format::catalog::CatalogSql;
 use crate::workbook_format::data::{WorkbookConnection, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE};
-use crate::workbook_format::sharing::sanitize_connection_params_for_sharing;
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use crate::workbook_format::tables::{workbook_bundle_to_tables, workbook_table_file_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX};
 
 /// The parameter of a link that carries a `.dashql` archive inline, base64url-encoded

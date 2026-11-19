@@ -12,7 +12,7 @@
 
 use serde_json::{json, Value};
 
-use crate::host::{Host, HostError, LogLevel};
+use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use crate::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::{to_pretty_text, to_text, JsonObject};
 use crate::workbook_format::layout::{StorageType, STORAGE_FOLDER_FILE, STORAGE_WORKBOOK_TREE_FOLDER};

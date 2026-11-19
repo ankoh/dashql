@@ -11,8 +11,8 @@ use dashql_core_runtime::attachments::{attachment_parameter_name, unique_attachm
 use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::names::script_display_name;
-use dashql_core_runtime::storage::keys::{attachment_key, workbook_attachment_list_key};
-use dashql_core_runtime::storage::{WriteError, WriteOutcome, WriteTask};
+use dashql_core_storage::storage::keys::{attachment_key, workbook_attachment_list_key};
+use dashql_core_storage::storage::{WriteError, WriteOutcome, WriteTask};
 use dashql_core_runtime::workbook::WorkbookAction;
 use js_sys::{Array, Promise};
 use serde::Serialize;

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use crate::workbook_format::natural::sort_naturally;
+use crate::natural::sort_naturally;
 
 /// The extension of an attachment
 pub const ATTACHMENT_EXTENSION: &str = ".parquet";

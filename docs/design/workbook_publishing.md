@@ -54,13 +54,13 @@ Static HTTP servers cannot enumerate folders, so `dashql-workbook.json` lists th
   of the name, and reordering scripts only rewrites the list.
 - The attachment list is kept in natural order.
 - `connections/<id>/` carries the relation and function catalogs of each connection of the workbook
-  (`bundle_catalog_path`, `packages/dashql-core-runtime/src/workbook_format/bundle.rs`). Bundles of format 6 and older carry top-level catalog files, which
+  (`bundle_catalog_path`, `packages/dashql-core-storage/src/workbook_format/bundle.rs`). Bundles of format 6 and older carry top-level catalog files, which
   are read for the default connection of that format.
 
 ## Reconciling Lists and Files
 
 Every loader, local or remote, reconciles the lists with the files it finds, with the workbook format of the core
-runtime (`packages/dashql-core-runtime/src/workbook_format/files.rs`):
+runtime (`packages/dashql-core-storage/src/workbook_format/files.rs`):
 
 - `sanitize_workbook_files` drops entries with unsafe names (empty, longer than 255 characters, separators, NUL,
   `.` or `..`), non-`.sql` scripts, `dashql-draft.sql`, and invalid connection ids. Duplicates are detected
@@ -73,7 +73,7 @@ runtime (`packages/dashql-core-runtime/src/workbook_format/files.rs`):
 
 Older formats are migrated: v5 moved the order of `dashql-workbook-index.json` into the script list, v6
 turned `mainDatabase` and `attachedDatabases` into the connection list, and v7 moved the catalogs out of the
-workbook folder into the connections (`packages/dashql-core-runtime/src/workbook_format/migration.rs`). Remote workbooks of older
+workbook folder into the connections (`packages/dashql-core-storage/src/workbook_format/migration.rs`). Remote workbooks of older
 formats are migrated in memory.
 
 ## Links and Loading
@@ -141,7 +141,7 @@ OPFS and registered native workbooks both participate in the UUID check.
 ## Imported Connections
 
 Exports give every connection a fresh id, so an import finds the connections of the app by their params
-(`plan_connection_import`, `packages/dashql-core-runtime/src/workbook_format/connection_import.rs`):
+(`plan_connection_import`, `packages/dashql-core-storage/src/workbook_format/connection_import.rs`):
 
 - A connection that the app knows under the same id and the same params (ignoring secrets) is used silently.
 - A server connection whose params match connections of the app asks the user whether to use one of them or
@@ -151,7 +151,7 @@ Exports give every connection a fresh id, so an import finds the connections of 
 - An embedded database (`"protocol": "WASM"`) always uses the embedded database of the app, without a question.
   Its id is rewritten in `connections`, in the `connectionId` of every script and in the names of its catalogs.
   The restoration of the app does the same for an embedded database with an unknown id
-  (the `RestorePlanner` of `packages/dashql-core-runtime/src/workbook_format/restore.rs`).
+  (the `RestorePlanner` of `packages/dashql-core-storage/src/workbook_format/restore.rs`).
 
 **Open problem: attached databases of the embedded database.** The params of an embedded database may list
 `attachedDatabases` (e.g. `tpch.hyper`). An imported workbook takes the params of the embedded database of the

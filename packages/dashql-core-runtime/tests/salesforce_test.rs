@@ -11,7 +11,7 @@ use dashql_core_runtime::salesforce::auth::*;
 use dashql_core_runtime::salesforce::client_functions::*;
 use dashql_core_runtime::salesforce::setup::*;
 use dashql_core_runtime::salesforce::*;
-use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z

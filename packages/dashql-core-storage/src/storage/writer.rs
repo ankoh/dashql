@@ -46,9 +46,9 @@ use super::keys::{
 use super::stamps::{Expect, FolderStamps};
 use super::workbook_file::{attachments_patch, created_workbook_file, properties_patch, same_file, upsert_connection_entry, CreatedWorkbook};
 use super::StorageHost;
-use crate::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
-use crate::host::{HostError, LogLevel};
-use crate::http::HostBytes;
+use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
+use dashql_core_runtime::host::{HostError, LogLevel};
+use dashql_core_runtime::http::HostBytes;
 use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
 use crate::workbook_format::storage_migration::iso_timestamp;

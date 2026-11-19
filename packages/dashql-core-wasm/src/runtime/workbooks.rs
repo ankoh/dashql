@@ -17,12 +17,12 @@ use std::rc::{Rc, Weak};
 use dashql_buffers::editor::{EditorEventT, EditorOffsetUnit};
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::{Host, LogLevel};
-use dashql_core_runtime::restore::script_connection_of;
+use dashql_core_storage::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
-use dashql_core_runtime::storage::keys::workbook_connection_copy_key;
-use dashql_core_runtime::storage::{WriteResult, WriteTask};
+use dashql_core_storage::storage::keys::workbook_connection_copy_key;
+use dashql_core_storage::storage::{WriteResult, WriteTask};
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
-use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
+use dashql_core_storage::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
 use dashql_core_runtime::workbook::{
     next_revision, CloudLink, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
     WorkbookScript as Script,

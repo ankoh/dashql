@@ -20,6 +20,7 @@ pub mod label;
 mod params;
 pub mod refresh;
 pub mod registry;
+pub mod sharing;
 mod salesforce;
 mod trino;
 

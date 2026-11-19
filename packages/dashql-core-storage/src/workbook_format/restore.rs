@@ -15,13 +15,13 @@ use serde_json::{Map, Value};
 
 use dashql_core::error::{Error, Result};
 
-use crate::connections::{ConnectionParams, ConnectorType};
+use dashql_core_runtime::connections::{ConnectionParams, ConnectorType};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookMetadata, WorkbookScript};
 use crate::workbook_format::files::{sanitize_workbook_files, workbook_connection_ids_of};
 use crate::workbook_format::script_connections::{
     resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection, ResolvedWorkbookScript,
 };
-use crate::workbook_format::sharing::connection_params_equal;
+use dashql_core_runtime::connections::sharing::connection_params_equal;
 use crate::workbook_format::validation::{describe_invalid_workbook, is_local_hyper_wasm_params, is_valid_uuid, validate_workbook_json, InvalidWorkbook, WorkbookValidationError};
 
 /// A connection that the restore knows

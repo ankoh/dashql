@@ -21,15 +21,15 @@ use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
-use crate::attachments::DataFile;
-use crate::connections::import::decode_connection;
-use crate::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
-use crate::host::{HostError, LogLevel};
+use dashql_core_runtime::attachments::DataFile;
+use dashql_core_runtime::connections::import::decode_connection;
+use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
+use dashql_core_runtime::host::{HostError, LogLevel};
 use crate::storage::keys::{
     connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
 };
 use crate::storage::{FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
-use crate::workbook::{new_catalog, CloudLink, ScriptConnection, Workbook};
+use dashql_core_runtime::workbook::{new_catalog, CloudLink, ScriptConnection, Workbook};
 use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
 use crate::workbook_format::storage_migration::iso_timestamp;
 use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};

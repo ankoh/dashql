@@ -10,7 +10,7 @@ use dashql_core_runtime::connections::health_check::*;
 use dashql_core_runtime::connections::import::*;
 use dashql_core_runtime::connections::label::*;
 use dashql_core_runtime::connections::refresh::can_refresh_connection;
-use dashql_core_runtime::workbook_format::sharing::sanitize_connection_params_for_sharing;
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments};
 use dashql_core_runtime::hyper::embedded::*;

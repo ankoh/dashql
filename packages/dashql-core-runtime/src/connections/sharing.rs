@@ -5,8 +5,7 @@
 
 use serde_json::{json, Value};
 
-use crate::connections::{ConnectorType, CONNECTOR_TYPES};
-use crate::workbook_format::json::JsonObject;
+use crate::connections::{ConnectorType, JsonObject, CONNECTOR_TYPES};
 
 /// The connector of params as the connector descriptors match them: the first of `hyper`, `salesforce`, `trino` and
 /// `dbcom` that the params have
@@ -40,7 +39,7 @@ pub fn sanitize_connection_params_for_sharing(params: &Value, with_login_hint: b
             // The basic-auth secret goes, the user name is the login hint. Request headers may carry credentials.
             let mut trino = without(&inner, &["draftRows", "metadata"]);
             let mut auth = inner.get("auth").and_then(Value::as_object).cloned().unwrap_or_default();
-            if let Some(basic) = auth.get("basic").filter(|basic| crate::workbook_format::json::is_truthy(basic)) {
+            if let Some(basic) = auth.get("basic").filter(|basic| is_truthy(basic)) {
                 let mut basic = basic.as_object().cloned().unwrap_or_default();
                 basic.insert("secret".into(), json!(""));
                 if !with_login_hint {
@@ -64,6 +63,17 @@ pub fn sanitize_connection_params_for_sharing(params: &Value, with_login_hint: b
     let mut out = JsonObject::new();
     out.insert(key.to_string(), Value::Object(sanitized));
     Value::Object(out)
+}
+
+/// Is a value truthy like in JavaScript?
+fn is_truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0 && !f.is_nan()),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(_) | Value::Object(_) => true,
+    }
 }
 
 /// Is a value an empty list or an empty map?

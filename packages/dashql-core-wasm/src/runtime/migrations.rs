@@ -11,10 +11,10 @@
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use wasm_bindgen::JsCast;
-use dashql_core_runtime::storage::{FileStamp, FolderStamps};
-use dashql_core_runtime::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
-use dashql_core_runtime::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
-use dashql_core_runtime::workbook_format::storage_migration::{migrate_storage, DirEntry, StorageRootHost, StorageMigrationSummary};
+use dashql_core_storage::storage::{FileStamp, FolderStamps};
+use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
+use dashql_core_storage::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
+use dashql_core_storage::workbook_format::storage_migration::{migrate_storage, DirEntry, StorageRootHost, StorageMigrationSummary};
 use js_sys::{Array, Function, Promise, Reflect};
 use serde::Serialize;
 use tsify::Tsify;

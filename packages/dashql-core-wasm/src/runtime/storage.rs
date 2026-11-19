@@ -20,14 +20,14 @@ use std::rc::Rc;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
-use dashql_core_runtime::restore::{RestoreHost, RestoreProgress};
-use dashql_core_runtime::storage::{
+use dashql_core_storage::restore::{RestoreHost, RestoreProgress};
+use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, FolderStamps, NamedStamp, StorageHost, StorageWriter, WriterStatus,
 };
 use dashql_core_runtime::workbook::next_revision;
-use dashql_core_runtime::workbook_format::data::WORKBOOK_FORMAT_VERSION;
-use dashql_core_runtime::workbook_format::files::{is_script_file_name, nfc};
-use dashql_core_runtime::workbook_format::layout::is_attachment_file_name;
+use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
+use dashql_core_storage::workbook_format::files::{is_script_file_name, nfc};
+use dashql_core_storage::workbook_format::layout::is_attachment_file_name;
 use js_sys::{Array, Function, Object, Reflect};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -331,7 +331,7 @@ impl StorageHost for JsStorage {
         }
         // The attachments in NFC and in natural order
         let names: Vec<String> = Array::from(&names).iter().filter_map(|name| name.as_string()).map(|name| nfc(&name)).collect();
-        Ok(dashql_core_runtime::workbook_format::files::workbook_attachments(&names).into_iter().map(|attachment| attachment.name).collect())
+        Ok(dashql_core_storage::workbook_format::files::workbook_attachments(&names).into_iter().map(|attachment| attachment.name).collect())
     }
 
     async fn save_data_file(&self, workbook_id: &str, file_name: &str, file: &HostBytes) -> Result<(), HostError> {

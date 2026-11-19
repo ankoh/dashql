@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use crate::workbook_format::data::{ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::dedupe_connections;
-use crate::workbook_format::sharing::connection_params_share_equal;
+use dashql_core_runtime::connections::sharing::connection_params_share_equal;
 use crate::workbook_format::validation::is_local_hyper_wasm_params;
 
 /// A connection that a workbook brings along

@@ -8,7 +8,7 @@
 //! The cache is best-effort, not transactional: under concurrent writes the totals are approximate, a removal of a
 //! file that is gone already counts as removed, and a file that is read is kept.
 
-use crate::host::HostError;
+use dashql_core_runtime::host::HostError;
 
 /// The files of the query result cache as the eviction sees them
 #[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send

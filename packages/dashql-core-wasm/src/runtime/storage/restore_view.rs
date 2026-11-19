@@ -2,8 +2,8 @@
 //! that the host reads, as JS objects (`serde-wasm-bindgen`) with TypeScript declarations in the generated `.d.ts`
 //! (`tsify`). See docs/design/dashql_core.md.
 
-use dashql_core_runtime::restore::{ProgressCounter, RestoreProgress as RuntimeProgress};
-use dashql_core_runtime::workbook_format::validation::InvalidWorkbook;
+use dashql_core_storage::restore::{ProgressCounter, RestoreProgress as RuntimeProgress};
+use dashql_core_storage::workbook_format::validation::InvalidWorkbook;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 

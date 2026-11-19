@@ -15,7 +15,7 @@ use crate::workbook_format::bundle::{
 use crate::workbook_format::catalog::CatalogSql;
 use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE, STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER};
 use crate::workbook_format::migration::MigrationFolder;
-use crate::workbook_format::natural::sort_naturally;
+use dashql_core_runtime::natural::sort_naturally;
 use crate::workbook_format::query_results::{workbook_result_key, WORKBOOK_RESULTS_FOLDER};
 use crate::workbook_format::tables::{is_data_table_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX, TABLE_FILE_EXTENSION};
 

@@ -1,0 +1,100 @@
+# The storage of DashQL on the runtime (//packages/dashql-core-runtime): the storage writer, the restore, the workbook
+# format with its imports, exports and migrations, and the saves of the connections. The runtime doesn't know it, the
+# bindings of the core module wire it in. See docs/design/dashql_core.md.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
+
+rust_library(
+    name = "dashql_core_storage",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_core_storage",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-runtime:dashql_core_runtime",
+        "//packages/dashql-core-script:dashql_core_script",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-cast",
+        "@core_crates//:arrow-ipc",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:base64",
+        "@core_crates//:flatbuffers",
+        "@core_crates//:serde",
+        "@core_crates//:serde_json",
+        "@core_crates//:unicode-normalization",
+    ],
+)
+
+rust_test(
+    name = "dashql_core_storage_unit_tests",
+    size = "small",
+    crate = ":dashql_core_storage",
+)
+
+# Clippy with the safety lints (//bazel:rust_safety_lints) and no warnings, see "The rules" in docs/design/dashql_core.md
+rust_safety_test(
+    name = "clippy_test",
+    deps = [":dashql_core_storage"],
+)
+
+rust_test(
+    name = "workbook_format_test",
+    size = "small",
+    srcs = ["tests/workbook_format_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_storage",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-runtime:dashql_core_runtime",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "storage_writer_test",
+    size = "small",
+    srcs = ["tests/storage_writer_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_storage",
+        "//packages/dashql-core-runtime:dashql_core_runtime",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "storage_migration_test",
+    size = "small",
+    srcs = ["tests/storage_migration_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_storage",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-runtime:dashql_core_runtime",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "restore_test",
+    size = "small",
+    srcs = ["tests/restore_test.rs"],
+    edition = "2021",
+    deps = [
+        ":dashql_core_storage",
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-core-runtime:dashql_core_runtime",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:serde_json",
+    ],
+)

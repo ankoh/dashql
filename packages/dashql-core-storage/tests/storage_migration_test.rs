@@ -10,10 +10,10 @@ use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
-use dashql_core_runtime::storage::{Expect, FileStamp, FolderListing, FolderStamps};
-use dashql_core_runtime::workbook_format::migration::{migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
-use dashql_core_runtime::workbook_format::storage_migration::{
+use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
+use dashql_core_storage::storage::{Expect, FileStamp, FolderListing, FolderStamps};
+use dashql_core_storage::workbook_format::migration::{migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
+use dashql_core_storage::workbook_format::storage_migration::{
     migrate_storage, plan_connection_migration, run_storage_migration_step, DirEntry, MigratingSession, StorageMigrationSummary,
     StorageRootHost, STORAGE_MIGRATION_STEPS,
 };
@@ -860,7 +860,7 @@ fn session(session_id: &str, database_id: &str, params: Value, draft: Option<Val
     v4_session(session_id, main, json!([]))
 }
 
-fn plan(sessions: &[MigratingSession]) -> dashql_core_runtime::workbook_format::storage_migration::ConnectionMigrationPlan {
+fn plan(sessions: &[MigratingSession]) -> dashql_core_storage::workbook_format::storage_migration::ConnectionMigrationPlan {
     plan_connection_migration(sessions, "2026-10-22T00:00:00.000Z", &mut || "00000000-0000-4000-8000-000000000000".to_string())
 }
 

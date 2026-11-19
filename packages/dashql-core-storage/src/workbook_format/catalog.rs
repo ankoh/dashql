@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use dashql_core::error::{Error, Result};
 
-use crate::catalog_loader::tables as loader;
+use dashql_core_runtime::catalog_loader::tables as loader;
 
 /// A column of a table of a catalog
 #[derive(Debug, Clone, PartialEq, Eq)]

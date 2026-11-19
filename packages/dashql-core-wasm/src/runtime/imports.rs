@@ -16,26 +16,26 @@ use std::rc::Rc;
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
-use dashql_core_runtime::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
-use dashql_core_runtime::workbook_format::bundle::{
+use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
+use dashql_core_storage::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle, describe_workbook_bundle_difference, filter_invalid_workbook_catalogs,
     prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData,
     WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
 };
-use dashql_core_runtime::workbook_format::catalog::CoreCatalogSql;
-use dashql_core_runtime::workbook_format::connection_import::{
+use dashql_core_storage::workbook_format::catalog::CoreCatalogSql;
+use dashql_core_storage::workbook_format::connection_import::{
     apply_connection_import_plan, connection_refs_changed, plan_connection_import, ConnectionImportChoice, ConnectionImportDecision,
     ConnectionImportPlanItem,
 };
-use dashql_core_runtime::workbook_format::data::{ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
-use dashql_core_runtime::workbook_format::files::nfc;
-use dashql_core_runtime::workbook_format::import::{plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry, FolderArchiveFiles, TableArchiveEntry};
-use dashql_core_runtime::workbook_format::layout::{StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
-use dashql_core_runtime::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
-use dashql_core_runtime::workbook_format::query_results::{plan_result_import, CacheCapacity, ImportedWorkbookQueryResults};
-use dashql_core_runtime::workbook_format::sharing::descriptor_of_params;
-use dashql_core_runtime::workbook_format::tables::{workbook_tables_to_bundle, DataTableFile, WorkbookTableName, WorkbookTables};
-use dashql_core_runtime::workbook_format::validation::validate_workbook_data;
+use dashql_core_storage::workbook_format::data::{ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
+use dashql_core_storage::workbook_format::files::nfc;
+use dashql_core_storage::workbook_format::import::{plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry, FolderArchiveFiles, TableArchiveEntry};
+use dashql_core_storage::workbook_format::layout::{StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
+use dashql_core_storage::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
+use dashql_core_storage::workbook_format::query_results::{plan_result_import, CacheCapacity, ImportedWorkbookQueryResults};
+use dashql_core_runtime::connections::sharing::descriptor_of_params;
+use dashql_core_storage::workbook_format::tables::{workbook_tables_to_bundle, DataTableFile, WorkbookTableName, WorkbookTables};
+use dashql_core_storage::workbook_format::validation::validate_workbook_data;
 use js_sys::{Function, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

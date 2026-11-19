@@ -125,4 +125,4 @@ batching does not reconstruct argument metadata the engine does not expose.
   transport.
 - `packages/dashql-core-runtime/src/catalog_loader/batch.rs`: batches, generations and publication.
 - `packages/dashql-core-runtime/src/catalog_loader/service.rs`: refresh queue, supersession and the updates.
-- `packages/dashql-core-runtime/src/restore/catalog.rs`: catalog restoration.
+- `packages/dashql-core-storage/src/restore/catalog.rs`: catalog restoration.

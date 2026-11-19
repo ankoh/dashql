@@ -11,12 +11,12 @@ use std::task::{Context, Poll, Wake, Waker};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
-use dashql_core_runtime::storage::keys::chain_key;
-use dashql_core_runtime::storage::{
+use dashql_core_storage::storage::keys::chain_key;
+use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, HoldReason, NamedStamp, StorageHost, StorageWriter, TextSource, WriteError,
     WriteOutcome, WriteStatistics, WriteTask, WriterStatus,
 };
-use dashql_core_runtime::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookScript};
+use dashql_core_storage::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookScript};
 use serde_json::{json, Value};
 
 const WORKBOOK: &str = "11111111-2222-4333-8444-555555555555";

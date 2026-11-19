@@ -23,17 +23,17 @@ use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::connections::ConnectionAction;
 use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
-use dashql_core_runtime::restore::connection_state;
-use dashql_core_runtime::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
-use dashql_core_runtime::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
+use dashql_core_storage::restore::connection_state;
+use dashql_core_storage::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
+use dashql_core_storage::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
 use dashql_core_runtime::workbook::WorkbookAction;
-use dashql_core_runtime::workbook_format::data::{WorkbookConnection, WorkbookData};
-use dashql_core_runtime::workbook_format::files::nfc;
-use dashql_core_runtime::workbook_format::restore::RestoreConnection;
-use dashql_core_runtime::workbook_format::script_connections::{
+use dashql_core_storage::workbook_format::data::{WorkbookConnection, WorkbookData};
+use dashql_core_storage::workbook_format::files::nfc;
+use dashql_core_storage::workbook_format::restore::RestoreConnection;
+use dashql_core_storage::workbook_format::script_connections::{
     resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection,
 };
-use dashql_core_runtime::workbook_format::validation::is_local_hyper_wasm_params;
+use dashql_core_storage::workbook_format::validation::is_local_hyper_wasm_params;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 

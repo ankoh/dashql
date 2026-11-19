@@ -10,7 +10,7 @@ use unicode_normalization::UnicodeNormalization;
 
 use crate::workbook_format::data::{WorkbookAttachment, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::layout::{is_attachment_file_name, DRAFT_SCRIPT_FILE, MAX_WORKBOOK_FILES};
-use crate::workbook_format::natural::sort_naturally;
+use dashql_core_runtime::natural::sort_naturally;
 use crate::workbook_format::validation::is_valid_uuid;
 
 /// Is a name a plain file name that can't escape its folder? A `:` would name an alternate data stream on NTFS.

@@ -54,19 +54,19 @@ impl CatalogTable {
 
 /// Values grouped by key in the order of the first appearance of the keys
 #[derive(Debug, Clone)]
-pub(crate) struct Groups<K, V> {
+pub struct Groups<K, V> {
     /// The keys in the order of their first appearance
     keys: Vec<K>,
     values: HashMap<K, V>,
 }
 
 impl<K: Clone + Eq + Hash, V: Default> Groups<K, V> {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self { keys: Vec::new(), values: HashMap::new() }
     }
 
     /// The value of a key, a new value for a new key
-    pub(crate) fn entry(&mut self, key: &K) -> &mut V {
+    pub fn entry(&mut self, key: &K) -> &mut V {
         let keys = &mut self.keys;
         self.values.entry(key.clone()).or_insert_with(|| {
             keys.push(key.clone());
@@ -74,7 +74,7 @@ impl<K: Clone + Eq + Hash, V: Default> Groups<K, V> {
         })
     }
 
-    pub(crate) fn into_entries(self) -> Vec<(K, V)> {
+    pub fn into_entries(self) -> Vec<(K, V)> {
         let mut values = self.values;
         self.keys.into_iter().filter_map(|key| values.remove(&key).map(|value| (key, value))).collect()
     }

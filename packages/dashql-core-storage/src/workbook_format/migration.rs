@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
-use crate::host::HostError;
+use dashql_core_runtime::host::HostError;
 use crate::storage::stamps::{FileStamp, FolderStamps};
 use crate::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use crate::workbook_format::json::{to_pretty_text, JsonObject};

@@ -13,12 +13,12 @@ use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::catalog_loader::tables::{catalog_tables_of_descriptor, read_catalog_descriptor};
 use dashql_core_runtime::connections::{ConnectionState, RelationName};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::restore::{
+use dashql_core_storage::restore::{
     script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
-use dashql_core_runtime::storage::{ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics};
-use dashql_core_runtime::workbook_format::restore::RestoreConnection;
-use dashql_core_runtime::workbook_format::validation::WorkbookValidationError;
+use dashql_core_storage::storage::{ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics};
+use dashql_core_storage::workbook_format::restore::RestoreConnection;
+use dashql_core_storage::workbook_format::validation::WorkbookValidationError;
 use serde_json::{json, Value};
 
 const WORKBOOK: &str = "11111111-2222-4333-8444-555555555555";
@@ -708,15 +708,15 @@ fn restores_an_imported_workbook_against_the_live_connections() {
 
 mod persistence {
     use super::*;
-    use dashql_core_runtime::connection_persistence::{
+    use dashql_core_storage::connection_persistence::{
         connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes, ConnectionChange,
         ConnectionWrites, PersistedConnection, CONNECTION_DRAFT_WRITE_DEBOUNCE_MS,
     };
     use dashql_core_runtime::connections::{
         CatalogUpdateTaskStatus, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionStateOptions,
     };
-    use dashql_core_runtime::restore::catalog::{apply_catalog_files, CatalogFiles};
-    use dashql_core_runtime::storage::{WriteOutcome, WriteTask};
+    use dashql_core_storage::restore::catalog::{apply_catalog_files, CatalogFiles};
+    use dashql_core_storage::storage::{WriteOutcome, WriteTask};
 
     fn state(params: &Value, active: bool) -> ConnectionState {
         let params = ConnectionParams::from_json(&params.to_string()).unwrap();

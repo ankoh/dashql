@@ -12,13 +12,13 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_core_runtime::host::{HostError, LogLevel};
-use dashql_core_runtime::workbook_format::bundle::{WorkbookBundle, WorkbookBundleResult};
-use dashql_core_runtime::workbook_format::catalog::CoreCatalogSql;
-use dashql_core_runtime::workbook_format::export::{
+use dashql_core_storage::workbook_format::bundle::{WorkbookBundle, WorkbookBundleResult};
+use dashql_core_storage::workbook_format::catalog::CoreCatalogSql;
+use dashql_core_storage::workbook_format::export::{
     connection_link_workbook, exported_bundle, shared_export_head, shared_workbook_tables, workbook_archive_entries, workbook_link,
     ArchiveEntrySource, EntryCompression, SharedWorkbookExportOptions,
 };
-use dashql_core_runtime::workbook_format::tables::{ColumnType, WorkbookTableName, WorkbookTables};
+use dashql_core_storage::workbook_format::tables::{ColumnType, WorkbookTableName, WorkbookTables};
 use js_sys::{Function, Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
