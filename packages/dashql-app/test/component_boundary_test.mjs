@@ -1,0 +1,47 @@
+// The components that show a model import nothing of the runtime, see docs/agents/writing_components.md. Reads every
+// module of COMPONENTS and fails with each import that reaches the runtime: the hooks and the provider of the runtime,
+// the runtime package (@akohn/dashql/runtime/...), and the models other than by type. A component takes its model as a
+// prop; what reads the runtime itself comes in as a slot.
+//
+// A component that is written against a model adds its module here.
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/// The modules of the components that show a model
+const COMPONENTS = [
+    'src/workbook/feed/script_card.tsx',
+];
+
+const IMPORT = /(?:^|[\n;])\s*(import|export)\s+(type\s+)?(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+const DYNAMIC_IMPORT = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+/// What a component may not import, a model only by type
+const RUNTIME = [
+    { test: path => /(^|\/)runtime\/runtime_(hooks|provider)(\.js)?$/.test(path), reason: 'the hooks of the runtime' },
+    { test: path => /^@akohn\/dashql\/runtime(\/|$)/.test(path), reason: 'the runtime package' },
+];
+const MODEL = path => /(^|\/)runtime\/models\//.test(path);
+
+const failures = [];
+for (const module of COMPONENTS) {
+    const text = readFileSync(join(ROOT, module), 'utf8');
+    for (const match of text.matchAll(IMPORT)) {
+        const [, , typeOnly, path] = match;
+        for (const rule of RUNTIME) {
+            if (rule.test(path)) failures.push(`${module}: imports ${path}, ${rule.reason}`);
+        }
+        if (MODEL(path) && typeOnly == null) failures.push(`${module}: imports ${path} for more than its types, a component takes its model as a prop`);
+    }
+    for (const match of text.matchAll(DYNAMIC_IMPORT)) {
+        const path = match[1];
+        if (RUNTIME.some(rule => rule.test(path)) || MODEL(path)) failures.push(`${module}: imports ${path} dynamically`);
+    }
+}
+if (failures.length > 0) {
+    console.error(failures.join('\n'));
+    process.exit(1);
+}
+console.log(`${COMPONENTS.length} components import nothing of the runtime`);

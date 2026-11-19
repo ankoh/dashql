@@ -12,6 +12,11 @@ Please consult relevant docs in that directory before making changes.
   logic on the wrong side, how to move it, and what stays in TypeScript)
     - `docs/agents/core_first.md`
 
+- Writing a component (read before writing a React component on the runtime: a component shows a model and plain
+  props and imports nothing of the runtime, the model hooks in `packages/dashql-app/src/runtime/models/` bind the
+  runtime, parts that read the runtime come in as slots; the recipe, the boundary test, fake models in tests)
+    - `docs/agents/writing_components.md`
+
 - Formatting
     - `docs/agents/core_sql_formatting.md`
 
