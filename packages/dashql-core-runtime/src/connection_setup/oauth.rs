@@ -12,7 +12,19 @@ use crate::connections::OAuthPkceChallenge;
 use crate::host::HostError;
 use crate::http::{CancellationToken, HttpHost};
 use crate::salesforce::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData};
-use crate::trino::OAuthCallback;
+
+/// What the loopback redirect of an OAuth flow received
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct OAuthCallback {
+    /// The authorization code
+    pub code: Option<String>,
+    /// The state of the authorization request
+    pub state: Option<String>,
+    /// The error of the identity provider
+    pub error: Option<String>,
+    /// The description of the error
+    pub error_description: Option<String>,
+}
 
 /// Learns what the platform shows while the user authorizes
 pub type OAuthEvents = Rc<dyn Fn(OAuthFlowEvent)>;

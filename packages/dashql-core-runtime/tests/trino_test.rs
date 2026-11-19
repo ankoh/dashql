@@ -16,10 +16,7 @@ use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::{json, Value};
 
-use dashql_core_runtime::connections::{
-    ConnectionAction, ConnectionChannel, ConnectionHealth, ConnectionParams, ConnectionState, ConnectorType, DetailedError, JsonObject,
-    OAuthPkceChallenge, TrinoAction, TrinoSessionDefaults,
-};
+use dashql_core_runtime::connections::{JsonObject, TrinoSessionDefaults};
 use dashql_core_runtime::query::progress::EngineProgressPayload;
 use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
 use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
@@ -30,10 +27,9 @@ use dashql_core_runtime::trino::protocol::{
     parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response, ResultPageOutcome,
 };
 use dashql_core_runtime::trino::{
-    read_cancel_response, FetchOutcome, HealthCheckOutcome, HttpMethod, HttpRequest, HttpResponse, OAuthCallback,
-    RequestId, SetupOutput, StreamOutput, TimerId, TokenRefresh, TrinoAccessToken, TrinoAuthParams, TrinoAuthType,
-    TrinoChannel, TrinoColumn, TrinoErrorKind, TrinoQuery, TrinoQueryOptions, TrinoRequest, TrinoRetryPolicy,
-    TrinoSetup, TrinoSetupOptions, TARGET_RESULT_SIZE,
+    read_cancel_response, FetchOutcome, HttpMethod, HttpRequest, HttpResponse, RequestId, StreamOutput, TimerId,
+    TokenRefresh, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoColumn, TrinoErrorKind,
+    TrinoQuery, TrinoQueryOptions, TrinoRequest, TrinoRetryPolicy, TARGET_RESULT_SIZE,
 };
 
 const ENDPOINT: &str = "https://trino.example.com";
@@ -1115,81 +1111,7 @@ fn replays_recorded_queries() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The setup
-
-/// Apply the actions of a setup to a connection, return the other outputs
-fn apply_setup(connection: &mut ConnectionState, outputs: Vec<SetupOutput>) -> Vec<SetupOutput> {
-    let mut rest = Vec::new();
-    for output in outputs {
-        match output {
-            SetupOutput::Dispatch(action) => {
-                connection.apply(action, 1000.0).unwrap();
-            }
-            other => rest.push(other),
-        }
-    }
-    rest
-}
-
-/// The actions of setup outputs
-fn actions(outputs: &[SetupOutput]) -> Vec<ConnectionAction> {
-    outputs
-        .iter()
-        .filter_map(|output| match output {
-            SetupOutput::Dispatch(action) => Some(action.clone()),
-            _ => None,
-        })
-        .collect()
-}
-
-#[test]
-fn sets_up_a_connection_with_basic_auth_and_checks_its_health() {
-    let params = object(json!({
-        "endpoint": ENDPOINT,
-        "auth": { "authType": "AUTH_BASIC", "basic": { "username": "user", "secret": "secret" } },
-        "defaultCatalog": "hive",
-        "draftRows": [],
-    }));
-    let mut connection = ConnectionState::from_params("c1", ConnectionParams::new(ConnectorType::Trino, params.clone()), 0.0);
-    let (mut setup, out) = TrinoSetup::start(&params, TrinoSetupOptions { health_check: true, ..Default::default() });
-    let mut without_draft = params.clone();
-    without_draft.remove("draftRows");
-    let dispatched = actions(&out);
-    let [ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: started }), ConnectionAction::Trino(TrinoAction::ChannelReady(trino)), ConnectionAction::HealthCheckStarted] =
-        dispatched.as_slice()
-    else {
-        panic!("unexpected actions {dispatched:?}");
-    };
-    assert_eq!(started, &without_draft);
-    // The connection owns the channel of the setup, the host keeps nothing of it
-    let channel = trino.channel();
-    assert_eq!(channel.defaults.catalog.as_deref(), Some("hive"));
-    assert_eq!(channel.auth.username, "user");
-    let rest = apply_setup(&mut connection, out);
-    assert_eq!(rest, [SetupOutput::RunHealthCheck { query: "select 1" }]);
-    assert_eq!(connection.health(), ConnectionHealth::Connecting);
-    assert!(matches!(connection.details().channel, Some(ConnectionChannel::Trino(_))));
-
-    let rest = apply_setup(&mut connection, setup.on_health_check(HealthCheckOutcome::Succeeded));
-    assert_eq!(rest, [SetupOutput::Succeeded]);
-    assert_eq!(connection.health(), ConnectionHealth::Online);
-    assert_eq!(connection.params().params, without_draft);
-    assert!(setup.is_done());
-}
-
-#[test]
-fn fails_the_setup_when_the_health_check_fails() {
-    let params = object(json!({ "endpoint": ENDPOINT }));
-    let (mut setup, _) = TrinoSetup::start(&params, TrinoSetupOptions { health_check: true, ..Default::default() });
-    let rejected = DetailedError::new("Query failed");
-    let out = setup.on_health_check(HealthCheckOutcome::Failed(rejected.clone()));
-    assert_eq!(actions(&out), [ConnectionAction::HealthCheckFailed(rejected)]);
-    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.kind == TrinoErrorKind::HealthCheck));
-    // Without the health check, the channel is the end of the setup
-    let (setup, out) = TrinoSetup::start(&params, TrinoSetupOptions::default());
-    assert_eq!(out.last(), Some(&SetupOutput::Succeeded));
-    assert!(setup.is_done());
-}
+// The descriptor
 
 /// Trino params with OAuth
 fn oauth_params() -> JsonObject {
@@ -1201,145 +1123,6 @@ fn oauth_params() -> JsonObject {
         },
     }))
 }
-
-#[test]
-fn sets_up_a_connection_with_oauth() {
-    let params = oauth_params();
-    let mut connection = ConnectionState::from_params("c1", ConnectionParams::new(ConnectorType::Trino, params.clone()), 0.0);
-    let (mut setup, out) = TrinoSetup::start(&params, TrinoSetupOptions { force_relogin: true, health_check: true });
-    assert_eq!(
-        actions(&out),
-        [ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() }), ConnectionAction::Trino(TrinoAction::GeneratingPkceChallenge)]
-    );
-    assert_eq!(apply_setup(&mut connection, out), [SetupOutput::GeneratePkce]);
-
-    let pkce = OAuthPkceChallenge { value: "challenge".into(), verifier: "verifier".into() };
-    let rest = apply_setup(&mut connection, setup.on_pkce(pkce.clone(), "state-1".into()));
-    assert_eq!(
-        rest,
-        [SetupOutput::Authorize {
-            url: "https://idp/auth?client_id=dashql&redirect_uri=http%3A%2F%2Flocalhost%3A56512%2FCallback&response_type=code&code_challenge=challenge&code_challenge_method=S256&scope=openid+email+profile+offline_access&state=state-1&prompt=login".into(),
-            callback_url: "http://localhost:56512/Callback".into(),
-        }]
-    );
-    assert_eq!(connection.details().trino().and_then(|trino| trino.oauth_state.clone()).map(|state| state.pkce_generated), Some(true));
-    assert_eq!(actions(&setup.on_browser_opened()), [ConnectionAction::Trino(TrinoAction::OAuthBrowserOpened)]);
-
-    let callback = OAuthCallback { code: Some("code-1".into()), state: Some("state-1".into()), ..Default::default() };
-    let rest = apply_setup(&mut connection, setup.on_callback(callback, 5_000));
-    let [SetupOutput::RequestToken(request)] = rest.as_slice() else {
-        panic!("unexpected outputs {rest:?}");
-    };
-    assert_eq!(request.url, "https://idp/token");
-    assert_eq!(
-        request.body.as_deref(),
-        Some("grant_type=authorization_code&client_id=dashql&code=code-1&redirect_uri=http%3A%2F%2Flocalhost%3A56512%2FCallback&code_verifier=verifier")
-    );
-    // The code stays with the setup, the connection learns when it arrived
-    let received = connection.details().trino().and_then(|trino| trino.oauth_state.clone()).and_then(|state| state.auth_code_received_at);
-    assert_eq!(received.as_deref(), Some("1970-01-01T00:00:05.000Z"));
-
-    let token = json_response(json!({ "access_token": "token-1", "token_type": "Bearer", "expires_in": 60 }));
-    let rest = apply_setup(&mut connection, setup.on_token_response(&token, 6_000));
-    assert!(matches!(rest.as_slice(), [SetupOutput::RunHealthCheck { .. }]), "{rest:?}");
-    // The channel of the connection is the one owner of the token
-    let Some(ConnectionChannel::Trino(shared)) = connection.details().channel.clone() else { panic!("a Trino channel") };
-    let channel = shared.channel();
-    let statement = channel.http_request(&TrinoRequest::SubmitStatement { text: "select 1".into() }).unwrap();
-    assert_eq!(statement.header("Authorization"), Some("Bearer token-1"));
-    assert_eq!(channel.access_token.as_ref().and_then(|token| token.expires_at), Some(66_000));
-    assert!(!format!("{:?}", connection.details().trino()).contains("token-1"));
-
-    apply_setup(&mut connection, setup.on_health_check(HealthCheckOutcome::Succeeded));
-    assert_eq!(connection.health(), ConnectionHealth::Online);
-}
-
-#[test]
-fn fails_the_oauth_flow_on_bad_callbacks_and_tokens() {
-    let start = || {
-        let (mut setup, _) = TrinoSetup::start(&oauth_params(), TrinoSetupOptions::default());
-        setup.on_pkce(OAuthPkceChallenge { value: "c".into(), verifier: "v".into() }, "state-1".into());
-        setup
-    };
-    let failure = |out: &[SetupOutput]| -> String {
-        assert!(matches!(actions(out).as_slice(), [ConnectionAction::Trino(TrinoAction::OAuthFailed(_))]), "{out:?}");
-        match out.last() {
-            Some(SetupOutput::Failed(error)) => error.message.clone(),
-            other => panic!("expected a failure, got {other:?}"),
-        }
-    };
-    let callback = |code: Option<&str>, state: Option<&str>, error: Option<&str>, description: Option<&str>| OAuthCallback {
-        code: code.map(Into::into),
-        state: state.map(Into::into),
-        error: error.map(Into::into),
-        error_description: description.map(Into::into),
-    };
-    assert_eq!(failure(&start().on_callback(callback(None, None, Some("access_denied"), Some("Denied by the user")), 0)), "Denied by the user");
-    assert_eq!(failure(&start().on_callback(callback(None, None, Some("access_denied"), None), 0)), "access_denied");
-    assert_eq!(
-        failure(&start().on_callback(callback(Some("code"), Some("other"), None, None), 0)),
-        "OAuth callback state does not match the authorization request"
-    );
-    assert_eq!(failure(&start().on_callback(callback(None, Some("state-1"), None, None), 0)), "No authorization code received");
-
-    let mut setup = start();
-    setup.on_callback(callback(Some("code"), Some("state-1"), None, None), 0);
-    let rejected = FetchOutcome::Response(HttpResponse::new(401, "unauthorized"));
-    assert_eq!(failure(&setup.on_token_response(&rejected, 0)), "Token request failed: 401");
-    // A response that echoes credentials is redacted
-    let mut setup = start();
-    setup.on_callback(callback(Some("code"), Some("state-1"), None, None), 0);
-    let echoed = json!({ "error": "invalid_grant", "refresh_token": "refresh-secret", "code_verifier": "verifier-secret" });
-    let rejected = FetchOutcome::Response(HttpResponse::new(400, echoed.to_string()));
-    let message = failure(&setup.on_token_response(&rejected, 0));
-    assert!(message.starts_with("Token request failed: 400 ") && message.contains("invalid_grant"), "{message}");
-    assert!(!message.contains("refresh-secret") && !message.contains("verifier-secret"), "{message}");
-
-    // OAuth without its settings fails before the flow starts, the connection shows the error
-    let mut params = oauth_params();
-    params.insert("auth".into(), json!({ "authType": "AUTH_OAUTH" }));
-    let (setup, out) = TrinoSetup::start(&params, TrinoSetupOptions::default());
-    let message = "OAuth configuration is required for OAuth authentication";
-    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.kind == TrinoErrorKind::OAuth));
-    assert_eq!(
-        actions(&out),
-        [
-            ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() }),
-            ConnectionAction::Trino(TrinoAction::OAuthFailed(DetailedError::new(message))),
-        ]
-    );
-    assert!(setup.is_done());
-}
-
-#[test]
-fn aborts_the_setup_in_any_step() {
-    let (mut setup, _) = TrinoSetup::start(&oauth_params(), TrinoSetupOptions::default());
-    setup.on_pkce(OAuthPkceChallenge::default(), "s".into());
-    let out = setup.abort();
-    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::OAuthCancelled(DetailedError::new("OAuth flow was aborted")))]);
-    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.kind == TrinoErrorKind::Aborted));
-    // A late callback changes nothing
-    assert!(setup.on_callback(OAuthCallback::default(), 0).is_empty());
-    assert!(setup.abort().is_empty());
-
-    let (mut setup, _) = TrinoSetup::start(&object(json!({ "endpoint": ENDPOINT })), TrinoSetupOptions { health_check: true, ..Default::default() });
-    assert_eq!(actions(&setup.abort()), [ConnectionAction::HealthCheckCancelled]);
-
-    // A setup with basic auth has its channel right away, nothing is left to abort or to fail
-    let (mut setup, _) = TrinoSetup::start(&object(json!({ "endpoint": ENDPOINT })), TrinoSetupOptions::default());
-    assert!(setup.is_done());
-    assert!(setup.abort().is_empty());
-    assert!(setup.fail("no channel").is_empty());
-
-    // A step of the host that fails fails the flow of OAuth
-    let (mut setup, _) = TrinoSetup::start(&oauth_params(), TrinoSetupOptions::default());
-    let out = setup.fail("no loopback server");
-    assert_eq!(actions(&out), [ConnectionAction::Trino(TrinoAction::OAuthFailed(DetailedError::new("no loopback server")))]);
-    assert!(matches!(out.last(), Some(SetupOutput::Failed(error)) if error.message == "no loopback server"));
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// The descriptor
 
 #[test]
 fn shares_params_without_secrets() {

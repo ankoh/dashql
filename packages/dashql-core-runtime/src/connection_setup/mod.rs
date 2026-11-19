@@ -1,9 +1,8 @@
 //! The setups of the connectors and the health checks as async services on a host.
 //!
-//! A setup is an async function that drives the state machine of its connector: `trino::setup::TrinoSetup`,
-//! `salesforce::setup::SalesforceSetup`, and the steps of a Hyper channel in `hyper`. It applies every action of the
-//! connection through the host (`SetupHost::dispatch`), awaits the host for what it can't do itself and hands the
-//! channel to the connection with the ready step. The health check runs its probe query through the query executor of
+//! A setup is an async function per connector (`setup_trino`, `setup_salesforce`, `setup_hyper`). It applies every
+//! action of the connection through the host (`SetupHost::dispatch`), awaits the host for what it can't do itself and
+//! hands the channel to the connection with the ready step. The health check runs its probe query through the query executor of
 //! the host.
 //!
 //! - `oauth`: what an OAuth flow asks of the platform, the PKCE challenge, a random state and the authorization page with
@@ -17,8 +16,8 @@
 //! keeps under a handle. A login of Salesforce has no connection, its listener hears the names of its steps
 //! (`salesforce::LoginStep`), the tokens are in its outcome.
 //!
-//! A cancelled setup ends at the next step: the token stops the host call that runs, the state machine reports the
-//! cancellation as an action of the connection. A failed host call keeps what the host failed with, the caller gets it
+//! A cancelled setup ends at the next step: the token stops the host call that runs, the setup reports the cancellation
+//! as an action of the connection. A failed host call keeps what the host failed with, the caller gets it
 //! back unchanged.
 
 pub mod health_check;
@@ -43,7 +42,7 @@ use crate::query::QueryMetadata;
 
 pub use health_check::check_health;
 pub use hyper::{setup_hyper, HyperChannelKind, HyperChannelRequest};
-pub use oauth::{OAuthEvents, OAuthHost};
+pub use oauth::{OAuthCallback, OAuthEvents, OAuthHost};
 pub use salesforce::{authenticate_salesforce, setup_salesforce, LoginStep, SalesforceAuthentication};
 pub use trino::setup_trino;
 

@@ -4,12 +4,11 @@ use std::collections::BTreeMap;
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use dashql_core_runtime::clfn::{HttpRequest, HttpResponse};
-use dashql_core_runtime::connections::{ConnectorType, OAuthPkceChallenge, SalesforceAction};
+use dashql_core_runtime::clfn::HttpResponse;
+use dashql_core_runtime::connections::{ConnectorType, OAuthPkceChallenge};
 use dashql_core_runtime::salesforce::api::*;
 use dashql_core_runtime::salesforce::auth::*;
 use dashql_core_runtime::salesforce::client_functions::*;
-use dashql_core_runtime::salesforce::setup::*;
 use dashql_core_runtime::salesforce::*;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use serde_json::{json, Value};
@@ -456,126 +455,6 @@ fn validates_the_state_of_a_callback() {
     assert_eq!(validate_salesforce_oauth_callback_state(&callback(expected.clone()), &expected, later).unwrap_err().message, "OAuth callback state has expired");
     let without = OAuthRedirectData::default();
     assert!(validate_salesforce_oauth_callback_state(&without, &expected, NOW as i64).unwrap_err().message.contains("missing"));
-}
-
-// The setup
-
-fn data_cloud_answer() -> HttpResponse {
-    let payload = json!({ "exp": 1_800_000_000, "audienceTenantId": "tenant-1" });
-    let raw = format!("{}.{}.signature", encode_jwt_part(&json!({ "alg": "RS256" })), encode_jwt_part(&payload));
-    ok(json!({ "access_token": raw, "instance_url": "tenant.example.com" }))
-}
-
-fn start(connector: ConnectorType) -> (SalesforceSetup, SalesforceSetupOutput) {
-    let object = serde_json::to_value(params()).unwrap().as_object().cloned().unwrap();
-    let config = SalesforceOAuthConfig { oauth_redirect: "https://dashql.app/oauth.html".into() };
-    SalesforceSetup::start(connector, &object, config, flow(), false)
-}
-
-fn fetched(output: &SalesforceSetupOutput) -> HttpRequest {
-    match &output.step {
-        SalesforceSetupStep::Fetch(request) => request.clone(),
-        other => panic!("no request: {other:?}"),
-    }
-}
-
-#[test]
-fn sets_up_a_connection_step_by_step() {
-    let (mut setup, output) = start(ConnectorType::SalesforceDataCloud);
-    assert!(matches!(output.actions.as_slice(), [SalesforceAction::SetupStarted { .. }, SalesforceAction::GeneratingPkceChallenge]));
-    assert_eq!(output.step, SalesforceSetupStep::GeneratePkce);
-
-    let output = setup.on_pkce(pkce(), "flow-1", NOW);
-    assert_eq!(output.actions, [SalesforceAction::GeneratedPkceChallenge]);
-    let SalesforceSetupStep::Authorize { url, flow_id } = &output.step else { panic!("{:?}", output.step) };
-    assert!(url.starts_with("https://org.my.salesforce.com/services/oauth2/authorize?"));
-    assert_eq!(flow_id, "flow-1");
-    assert_eq!(setup.on_flow_event(OAuthFlowEvent::WindowOpened).actions, [SalesforceAction::OAuthWebWindowOpened]);
-
-    let state = salesforce_oauth_state(&params(), &flow(), "flow-1", NOW as i64);
-    let callback = OAuthRedirectData { state: Some(state), code: Some("the-code".into()), ..Default::default() };
-    let output = setup.on_callback(&callback, NOW + 1000.0);
-    assert!(matches!(&output.actions[..], [SalesforceAction::ReceivedCoreAuthCode { .. }, SalesforceAction::RequestingCoreAuthToken]));
-    // The code stays in the setup, the connection learns when it arrived
-    assert!(!format!("{:?}", output.actions).contains("the-code"));
-    let request = fetched(&output);
-    assert_eq!(request.url, "https://org.my.salesforce.com/services/oauth2/token");
-    assert_eq!(form(request.body.as_deref().unwrap())["code_verifier"], "verifier");
-
-    let output = setup.on_response(&ok(json!({ "access_token": "core", "instance_url": "https://org.my.salesforce.com" })), NOW);
-    assert_eq!(output.actions, [SalesforceAction::ReceivedCoreAuthToken]);
-    assert!(fetched(&output).url.contains("/services/oauth2/userinfo"));
-
-    let output = setup.on_response(&ok(json!({ "preferred_username": "user@org", "email": "user@example.com" })), NOW);
-    assert_eq!(
-        output.actions,
-        [
-            SalesforceAction::ReceivedCoreUserInfo { preferred_username: Some("user@org".into()), email: Some("user@example.com".into()) },
-            SalesforceAction::RequestingDataCloudAccessToken,
-        ]
-    );
-    assert!(fetched(&output).url.ends_with("/services/a360/token"));
-
-    // The channel is ready with the tokens, the connection owns it
-    let output = setup.on_response(&data_cloud_answer(), NOW);
-    let [SalesforceAction::ReceivedDataCloudAccessToken, SalesforceAction::ChannelSetupStarted, SalesforceAction::ChannelReady(channel)] =
-        &output.actions[..]
-    else {
-        panic!("{:?}", output.actions)
-    };
-    assert_eq!(channel.hyper().client().endpoint().origin(), "https://tenant.example.com");
-    let auth = channel.auth();
-    assert_eq!(auth.get("audience"), Some("tenant-1"));
-    assert!(auth.get("authorization").is_some_and(|value| value.starts_with("Bearer ")));
-    assert!(channel.hyper().context().attached_databases.is_empty());
-    let SalesforceSetupStep::Done(result) = &output.step else { panic!("{:?}", output.step) };
-    assert_eq!(result.tokens.core.access_token, "core");
-    assert_eq!(result.user_info.as_ref().unwrap().preferred_username.as_deref(), Some("user@org"));
-}
-
-#[test]
-fn skips_the_user_info_if_it_fails() {
-    let (mut setup, _) = start(ConnectorType::Dbcom);
-    setup.on_pkce(pkce(), "flow-1", NOW);
-    let state = salesforce_oauth_state(&params(), &flow(), "flow-1", NOW as i64);
-    setup.on_callback(&OAuthRedirectData { state: Some(state), code: Some("c".into()), ..Default::default() }, NOW);
-    setup.on_response(&ok(json!({ "access_token": "core", "instance_url": "https://org.my.salesforce.com" })), NOW);
-    let output = setup.on_fetch_failed("offline");
-    assert_eq!(output.actions, [SalesforceAction::RequestingDataCloudAccessToken]);
-    assert_eq!(output.log.len(), 1);
-    let output = setup.on_response(&data_cloud_answer(), NOW);
-    let Some(SalesforceAction::ChannelReady(channel)) = output.actions.last() else { panic!("{:?}", output.actions) };
-    // Database.com queries the configured Hyper Cloud database
-    let databases = channel.hyper().context().attached_databases.clone();
-    assert_eq!(databases.len(), 1);
-    assert_eq!((databases[0].path.as_str(), databases[0].alias.as_deref()), ("hyper.cloud:default", Some("lakehouse")));
-}
-
-#[test]
-fn stops_on_a_callback_that_is_not_its_own_or_an_error() {
-    let (mut setup, _) = start(ConnectorType::SalesforceDataCloud);
-    setup.on_pkce(pkce(), "flow-1", NOW);
-    let state = salesforce_oauth_state(&params(), &flow(), "flow-2", NOW as i64);
-    let output = setup.on_callback(&OAuthRedirectData { state: Some(state), code: Some("c".into()), ..Default::default() }, NOW);
-    assert_eq!(output.step, SalesforceSetupStep::Stopped);
-    assert!(matches!(&output.actions[..], [SalesforceAction::SetupFailed(e)] if e.message == "OAuth callback flow ID does not match"));
-
-    let (mut setup, _) = start(ConnectorType::SalesforceDataCloud);
-    setup.on_pkce(pkce(), "flow-1", NOW);
-    let state = salesforce_oauth_state(&params(), &flow(), "flow-1", NOW as i64);
-    let denied = OAuthRedirectData { state: Some(state), error: Some("access_denied".into()), error_description: Some("denied".into()), ..Default::default() };
-    assert!(matches!(&setup.on_callback(&denied, NOW).actions[..], [SalesforceAction::SetupFailed(e)] if e.message == "denied"));
-
-    let (mut setup, _) = start(ConnectorType::SalesforceDataCloud);
-    assert!(matches!(&setup.cancel("aborted").actions[..], [SalesforceAction::SetupCancelled(e)] if e.message == "aborted"));
-}
-
-#[test]
-fn fails_without_a_redirect() {
-    let object = serde_json::to_value(params()).unwrap().as_object().cloned().unwrap();
-    let (_, output) = SalesforceSetup::start(ConnectorType::SalesforceDataCloud, &object, SalesforceOAuthConfig::default(), flow(), false);
-    assert!(matches!(&output.actions[..], [SalesforceAction::SetupStarted { .. }, SalesforceAction::SetupFailed(e)] if e.message == "missing oauth redirect url"));
-    assert_eq!(output.step, SalesforceSetupStep::Stopped);
 }
 
 // The params

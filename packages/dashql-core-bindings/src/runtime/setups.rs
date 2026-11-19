@@ -15,7 +15,7 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, LoginStep, OAuthEvents, OAuthHost,
+    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelRequest, LoginStep, OAuthCallback, OAuthEvents, OAuthHost,
     ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
 };
 use dashql_core_runtime::connections::open_setup::OpenSetup;
@@ -28,7 +28,6 @@ use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryMetadata;
 use dashql_core_runtime::salesforce::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, SalesforceOAuthConfig, SalesforceTokens};
-use dashql_core_runtime::trino::OAuthCallback;
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

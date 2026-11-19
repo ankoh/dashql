@@ -16,9 +16,8 @@ use super::api::{
     collect_salesforce_auth_info, data_cloud_access_token_request, form_post, read_core_access_token_response,
     read_data_cloud_access_token_response,
 };
-use super::setup::hyper_cloud_attached_database;
 use super::types::{SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceTokens};
-use crate::connections::ConnectorType;
+use crate::connections::{ConnectorType, SALESFORCE_CATALOG_DATABASE};
 use crate::host::signal::{oneshot, Receiver, Sender};
 use crate::host::timeout;
 use crate::http::{CancellationToken, Headers, HttpHost, HttpRequest};
@@ -66,8 +65,10 @@ impl SharedSalesforceChannel {
     /// database of a Database.com connection
     pub fn new(connector: ConnectorType, params: &SalesforceConnectionParams, tokens: SalesforceTokens) -> Result<Self, String> {
         let attached_databases = if connector == ConnectorType::Dbcom {
-            let database = hyper_cloud_attached_database(params);
-            vec![AttachedDatabase { path: database.path, alias: Some(database.alias) }]
+            vec![AttachedDatabase {
+                path: format!("hyper.cloud:{}", params.hyper_cloud_database()),
+                alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
+            }]
         } else {
             Vec::new()
         };

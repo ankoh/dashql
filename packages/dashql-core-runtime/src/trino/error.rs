@@ -18,8 +18,6 @@ pub enum TrinoErrorKind {
     Protocol,
     /// The OAuth flow failed, e.g. the callback reported an error
     OAuth,
-    /// The health check of a new channel failed
-    HealthCheck,
     /// The task was aborted
     Aborted,
 }
