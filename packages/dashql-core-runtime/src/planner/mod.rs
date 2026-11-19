@@ -19,13 +19,13 @@
 //!
 //! `script_references` checks and splices the table parameters that read other scripts, `session_inputs` collects the
 //! inputs of a session, `dataflow` derives the dataflow of a session from a plan. The script sessions and the
-//! compiler are `dashql_core_script`.
+//! compiler are `dashql_core`.
 
 pub mod dataflow;
 pub mod script_references;
 pub mod session_inputs;
 
-use dashql_core_script::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
+use dashql_core::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
 use script_references::{ReferenceErrors, ReferenceKind, ScriptReferences};
 use session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
@@ -768,7 +768,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 // A root that the parser didn't emit has no children, the EXPLAIN has no body then
                 let children = parsed.nodes.get(statement.root as usize).map(|root| parsed.children(root)).unwrap_or_default();
                 let [body, options] = attrs!(children, [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
-                explain_executes = dashql_core_script::touched_relations::explain_executes(parsed, options);
+                explain_executes = dashql_core::touched_relations::explain_executes(parsed, options);
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
                     barrier!("EXPLAIN requires a statement or expressions body");
                 }

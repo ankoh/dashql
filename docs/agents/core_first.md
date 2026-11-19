@@ -78,7 +78,7 @@ TypeScript without saying so.
 ## How to put it into the core
 
 - **Pick the crate by its layer** (the table in [dashql_core.md](../design/dashql_core.md#the-crates)): the language in
-  `dashql-core`, scripts, editor sessions and `VISUALIZE` in `dashql-core-script`, profiles in `dashql-core-profile`,
+  `dashql-core`, with the scripts on it, editor sessions and `VISUALIZE`, profiles in `dashql-core-profile`,
   the shell in `dashql-core-shell`, state and services in `dashql-core-runtime`. `dashql-core-bindings` binds and
   converts, it holds no logic.
 - **Cross the seam per operation, never per value.** The classes of the core through `src/core/api.ts`. For the

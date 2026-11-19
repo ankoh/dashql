@@ -394,7 +394,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 - `parser/context.rs`: panics on an unknown statement root.
 - `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
 - `dashql-core-runtime/src/planner/mod.rs`: see [Running calls](#running-calls).
-- `dashql-core-script/src/compiler.rs` and `dashql-core/src/pack.rs`.
+- `dashql-core/src/compiler.rs` and `dashql-core/src/pack.rs`.
 - `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls

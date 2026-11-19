@@ -111,7 +111,7 @@ entry when you find another one. The headings name where the behavior lives.
   the tasks of a stage are done, and stays there until the query finishes. The splits of a stage that
   reads other stages may still count as not completed.
 
-## Script session (`packages/dashql-core-script/src/script_session.rs`)
+## Script session (`packages/dashql-core/src/script_session.rs`)
 
 - **Offset projection.** In UTF-8 mode, offsets are projected without checks. In UTF-16 mode, spans
   that are not on a code point boundary are dropped, including keyword names whose byte-span fields

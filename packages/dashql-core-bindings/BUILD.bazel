@@ -9,7 +9,6 @@ load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
 
 DASHQL_CORE_DEPS = [
     "//packages/dashql-core:dashql_core",
-    "//packages/dashql-core-script:dashql_core_script",
     "//packages/dashql-core-profile:dashql_core_profile",
     "//packages/dashql-core-runtime:dashql_core_runtime",
     "//packages/dashql-core-shell:dashql_core_shell",

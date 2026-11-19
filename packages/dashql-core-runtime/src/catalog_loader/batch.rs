@@ -11,7 +11,7 @@ use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
 use dashql_buffers::catalog::CatalogDescriptor;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::pack::pack_catalog_descriptor;
-use dashql_core_script::batch::check_script;
+use dashql_core::batch::check_script;
 
 use super::{CatalogLoadError, STALE_MESSAGE};
 

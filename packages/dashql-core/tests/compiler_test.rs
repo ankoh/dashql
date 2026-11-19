@@ -5,7 +5,7 @@ use dashql_buffers::execution::{ScriptCompilationErrorCode as ErrorCode, ScriptC
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::analyzer::{MarkdownSpec, VisualizationSpec};
-use dashql_core_script::compiler::{
+use dashql_core::compiler::{
     compile, compile_visualization, produces_output, read_executable_text, read_executable_text_with, CompilationOptions,
 };
 use dashql_core::script::Script;

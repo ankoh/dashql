@@ -27,7 +27,7 @@ use dashql_core::error::Error;
 use dashql_core::annotation::Annotation;
 use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::script::Script as CoreScript;
-use dashql_core_script::script_session::ScriptSession as CoreScriptSession;
+use dashql_core::script_session::ScriptSession as CoreScriptSession;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -407,7 +407,7 @@ impl Script {
     #[wasm_bindgen(js_name = getAnalyzed)]
     pub fn get_analyzed(&self) -> Result<Vec<u8>, JsError> {
         let analyzed = self.inner.analyzed.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
-        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core_script::visualize::pack_visualization)))
+        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core::visualize::pack_visualization)))
     }
 
     /// The packed `ScriptDiff` from this script to a target script
@@ -456,12 +456,12 @@ impl Script {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        let options = dashql_core_script::compiler::CompilationOptions {
+        let options = dashql_core::compiler::CompilationOptions {
             allow_extensions,
             parse_if_outdated,
         };
         let catalog = self.catalog.borrow();
-        finish!(dashql_core_script::compiler::compile(&mut self.inner, &catalog, &config, options))
+        finish!(dashql_core::compiler::compile(&mut self.inner, &catalog, &config, options))
     }
 
     /// The first parsed statement without its separator or surrounding trivia
@@ -1590,13 +1590,13 @@ pub fn quote_column_name(text: &str) -> String {
 /// The relations that the statements of a text create or drop, returns packed `TouchedRelations`
 #[wasm_bindgen(js_name = touchedRelations)]
 pub fn touched_relations(text: &str) -> Vec<u8> {
-    finish!(dashql_core_script::touched_relations::touched_relations(text))
+    finish!(dashql_core::touched_relations::touched_relations(text))
 }
 
 /// Process a batch request into a `BatchResult`
 #[wasm_bindgen(js_name = processBatch)]
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
-    dashql_core_script::batch::process_batch(request).map_err(js_error)
+    dashql_core::batch::process_batch(request).map_err(js_error)
 }
 
 

@@ -1,15 +1,13 @@
-# The DashQL core, the language: scripts, catalog, analyzer, cursor, completion, formatter and script diffs. The
-# scripts on top (sessions, compilation, batch, visualizations) are //packages/dashql-core-script, the planner and
-# the state of a workbook //packages/dashql-core-runtime, the shell is //packages/dashql-core-shell, the query
-# profile //packages/dashql-core-profile, the wasm module is //packages/dashql-core-bindings.
+# The DashQL core, the language: scripts, catalog, analyzer, cursor, completion, formatter and script diffs, and the
+# scripts on top of it: editor sessions, compilation, batch processing, the catalog changes of executed statements and
+# the renderer specs of `@vis` tags. The planner and the state of a workbook are //packages/dashql-core-runtime, the
+# shell is //packages/dashql-core-shell, the query profile //packages/dashql-core-profile, the wasm module is
+# //packages/dashql-core-bindings.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 load("//bazel:rust_safety.bzl", "rust_safety_test")
-
-# The measurement loop, shared with the benchmarks of the script crate
-exports_files(["benches/harness.rs"])
 
 rust_library(
     name = "dashql_core",
@@ -23,6 +21,7 @@ rust_library(
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
+        "@core_crates//:pulldown-cmark",
         "@core_crates//:ropey",
         "@core_crates//:serde",
         "@core_crates//:serde_json",
@@ -47,6 +46,7 @@ DASHQL_CORE_SNAPSHOT_TESTS = {
     "analyzer_snapshot_test": ("analyzer_snapshots.rs", "//tests/snapshots/analyzer:files"),
     "completion_snapshot_test": ("completion_snapshots.rs", "//tests/snapshots/completion:files"),
     "diff_snapshot_test": ("diff_snapshots.rs", "//tests/snapshots/diff:files"),
+    "visualize_snapshot_test": ("visualize_snapshots.rs", "//tests/snapshots/visualize:files"),
 }
 
 [rust_test(
@@ -127,8 +127,10 @@ DASHQL_CORE_UNIT_TESTS = [
     "analyzer_delete_test",
     "analyzer_insert_test",
     "analyzer_name_resolution_test",
+    "batch_test",
     "catalog_descriptor_test",
     "catalog_test",
+    "compiler_test",
     "completion_test",
     "cursor_test",
     "error_test",
@@ -137,11 +139,13 @@ DASHQL_CORE_UNIT_TESTS = [
     "nesting_test",
     "pack_test",
     "table_parameters_test",
+    "script_session_test",
     "script_test",
     "signature_test",
     "sql_types_test",
     "string_conversion_test",
     "topk_test",
+    "touched_relations_test",
     "unification_test",
 ]
 
@@ -152,7 +156,6 @@ DASHQL_CORE_UNIT_TESTS = [
     edition = "2021",
     deps = [
         ":dashql_core",
-        "//packages/dashql-core-script:dashql_core_script",
         "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
@@ -190,4 +193,20 @@ rust_binary(
     crate_root = "benches/pipeline_ctes.rs",
     edition = "2021",
     deps = [":dashql_core"],
+)
+
+# Editor events of a session (bazel run -c opt //packages/dashql-core:bench_session)
+rust_binary(
+    name = "bench_session",
+    srcs = [
+        "benches/harness.rs",
+        "benches/session.rs",
+    ],
+    crate_root = "benches/session.rs",
+    edition = "2021",
+    deps = [
+        ":dashql_core",
+        "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:flatbuffers",
+    ],
 )

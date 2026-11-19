@@ -15,7 +15,7 @@ use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::pack::pack_completion;
 use dashql_core::vis_rewrite::VisBoard;
 use dashql_core::script::Script;
-use dashql_core_script::script_session::ScriptSession;
+use dashql_core::script_session::ScriptSession;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::execution::ScriptCompilationResultT;
 use std::cell::RefCell;

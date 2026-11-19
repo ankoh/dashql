@@ -22,7 +22,7 @@ use dashql_core::script::Script;
 use dashql_core::table_parameters::{TableParameterAttachment, TableParameters};
 use dashql_core::utils::quote_identifier;
 use dashql_core::vis_rewrite::VisRenderer;
-use dashql_core_script::script_session::ScriptSession;
+use dashql_core::script_session::ScriptSession;
 
 use crate::attachments::{attachment_parameter_name, read_workbook_attachments, renamed_attachment_file_name, DataFile, WorkbookAttachment};
 use crate::names::{free_workbook_name, script_display_name, script_file_name, unique_script_base};

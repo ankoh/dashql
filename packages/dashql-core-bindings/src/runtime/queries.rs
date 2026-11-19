@@ -538,7 +538,7 @@ impl Connections {
                 QueryExecutionAction::QueryCacheRecorded { query_id, cache_key: key, served_from_cache, cached_at: cached_at.map(|at| at as i64) }
             }
             QueryEvent::TouchRelations => {
-                let touched = dashql_core_script::touched_relations::touched_relations(&run.text).relations.unwrap_or_default();
+                let touched = dashql_core::touched_relations::touched_relations(&run.text).relations.unwrap_or_default();
                 if !touched.is_empty() {
                     // Following the catalog must not change the outcome of the statement
                     if let Err(error) = self.apply(&run.connection_id, ConnectionAction::RelationsTouched(touched), None) {

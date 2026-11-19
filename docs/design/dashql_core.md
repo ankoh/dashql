@@ -14,12 +14,11 @@ the rules that keep the module alive. The deep design docs are linked where a to
 |---|---|---|---|
 | `dashql_buffers` | `proto/fb` | The FlatBuffers schemas of the core (`proto/fb/dashql/*.fbs`) and their Rust code | |
 | `dashql_parser` | `packages/dashql-parser` | Scanner (logos), the LALR(1) tables that bison computes from `grammar/`, keywords | buffers |
-| `dashql_core` | `packages/dashql-core` | The language: scripts, analyzer, catalog, cursor, completion, formatter, script diff, signatures, packing into FlatBuffers | parser, buffers |
-| `dashql_core_script` | `packages/dashql-core-script` | Scripts on the core: editor sessions (`script_session.rs`), the compilation of scripts, batch processing of catalog SQL, the relations that statements touch, the renderer specs of `VISUALIZE` statements | core, parser, buffers |
+| `dashql_core` | `packages/dashql-core` | The language: scripts, analyzer, catalog, cursor, completion, formatter, script diff, signatures, packing into FlatBuffers; and the scripts on it: editor sessions (`script_session.rs`), the compilation of scripts, batch processing of catalog SQL, the relations that statements touch, the renderer specs of `VISUALIZE` statements | parser, buffers |
 | `dashql_core_profile` | `packages/dashql-core-profile` | The query profile: Hyper plans and Trino stages parsed into operators, edges, fragments and pipelines, their layout, and the progress of a running query as events | buffers |
 | `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the tables of the first rows of results, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers, `arrow-rs` |
-| `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O and without storage | core, script, profile, parser, buffers, `arrow-rs` |
-| `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, script, parser, buffers, `arrow-rs` |
+| `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O and without storage | core, profile, parser, buffers, `arrow-rs` |
+| `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, parser, buffers, `arrow-rs` |
 | `dashql_core_bindings` | `packages/dashql-core-bindings` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
 | `dashql_dataflow_bindings` | `packages/dashql-dataflow-bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
@@ -235,7 +234,7 @@ that wants the composition would depend on that rather than copy it.
   Hyper that waits for the one before it. Its controls (`QueryControls`) count the views of its profile from the
   registration on. The run owns its result table, the history and the analysis take handles of their own.
 - **The executor** (`executor/`, `QueryExecutor::execute`) serves a result from the cache or sends the query, reports
-  `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core script crate),
+  `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core),
   analyzes the result on the computations and writes it into the cache, also when only the analysis failed. The
   history applies the start and the end of a query as urgent changes, the rest with the next frame (see
   [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the
@@ -457,7 +456,7 @@ A panic in any crate of the module traps it, so every crate linked into the core
 `//bazel:rust_safety_lints`, which denies outside of tests: `unwrap_used`, `expect_used`, `panic`, `unreachable`,
 `todo`, `unimplemented`, `indexing_slicing` (an index or a slice that can fail), `string_slice` (a slice of a `str`
 that can split a character) and `await_holding_refcell_ref`. The crates are `dashql-parser`, `dashql-core`,
-`dashql-core-script`, `dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-bindings`; each sets
+`dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-bindings`; each sets
 the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
 `dashql-core-bindings` over `:dashql_core_bindings_lint`, a host build of the same sources. In `dashql-core` the analyzer,
 completion, formatter and diff look up the arrays of a parsed and analyzed script by the ids that the script holds,

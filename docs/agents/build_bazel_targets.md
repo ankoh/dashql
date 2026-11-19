@@ -55,8 +55,7 @@ bazel build //...
 | `//packages/dashql-pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow-bindings:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
-| `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff |
-| `//packages/dashql-core-script:dashql_core_script` | Scripts on the core: editor sessions, compilation, batch, the relations that statements touch, visualizations |
+| `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-storage:dashql_core_storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format and the saves of the connections, wired in by the bindings, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, tables of the first rows of results, effect protocol |
@@ -108,8 +107,7 @@ bazel test //...
 | Target | Purpose |
 |--------|---------|
 | `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test, Clippy with the safety lints |
-| `//packages/dashql-core:all` | Core unit tests, the analyzer, completion, formatter and diff snapshot tests, the Hyper validation, Clippy with the safety lints |
-| `//packages/dashql-core-script:all` | Script session, compiler, batch and touched relation tests, and the visualize snapshot tests, Clippy with the safety lints |
+| `//packages/dashql-core:all` | Core unit tests with the script session, compiler, batch and touched relation tests, the analyzer, completion, formatter, diff and visualize snapshot tests, the Hyper validation, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests without the storage, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-storage:all` | The storage writer, the restore, the workbook format and the migrations of the storage on fake hosts, Clippy with the safety lints |
 | `//packages/dashql-core-bindings:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
@@ -263,7 +261,7 @@ These targets regenerate `tests/snapshots/<category>/<name>.yaml` from the templ
 ```bash
 bazel run -c opt //packages/dashql-core:bench_pipeline
 bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
-bazel run -c opt //packages/dashql-core-script:bench_session
+bazel run -c opt //packages/dashql-core:bench_session
 bazel run //packages/dashql-app:bench_hyperdb_wasm_backend [-- --rows=100000 --repeat=2 --filter=<case>]
 bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
 ```
@@ -308,8 +306,8 @@ bazel build //packages/dashql-native-proxy:addon
 
 ### Clippy
 
-Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-shell`,
-`dashql-core-profile`, `dashql-core-runtime` and the bindings `dashql-core-bindings`) runs Clippy with the safety lints of
+Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql-core-shell`, `dashql-core-profile`,
+`dashql-core-runtime` and the bindings `dashql-core-bindings`) runs Clippy with the safety lints of
 `//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
 `unimplemented`, `indexing_slicing`, `string_slice` and `await_holding_refcell_ref` are denied outside of tests, a panic
 traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-bindings` deny
@@ -452,8 +450,8 @@ bazel test //packages/dashql:all //packages/dashql/test/browser:all
 bazel test //packages/dashql-native-proxy:test //packages/dashql-pack:test
 
 # The core
-bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-script:all \
-    //packages/dashql-core-runtime:all //packages/dashql-core-shell:all //packages/dashql-core-profile:all \
+bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
+    //packages/dashql-core-shell:all //packages/dashql-core-profile:all \
     //packages/dashql-dataflow:all //packages/dashql-snapshots:all
 ```
 
@@ -536,7 +534,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native-proxy`, `dashql-pack`, `dashql-datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-script`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings`, `dashql-dataflow-bindings` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-snapshots`, `dashql-core-bindings`, `dashql-dataflow-bindings` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

@@ -1,8 +1,8 @@
 //! Unit tests of the renderer specs of `@vis` tags.
 
 use super::*;
-use dashql_core::analyzer::analyze;
-use dashql_core::catalog::Catalog;
+use crate::analyzer::analyze;
+use crate::catalog::Catalog;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;

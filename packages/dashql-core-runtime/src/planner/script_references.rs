@@ -21,7 +21,7 @@
 //! in the context of the statement, every script appears once, after the scripts it references. They go into
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
-use dashql_core_script::compiler::read_executable_text_with;
+use dashql_core::compiler::read_executable_text_with;
 use crate::planner::{has_manual_tag, script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};

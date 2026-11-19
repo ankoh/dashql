@@ -18,19 +18,19 @@
 //!
 //! Projections convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
-use dashql_core::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
+use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
+use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::{compile, CompilationOptions};
-use dashql_core::completion::is_symbol_kind_completable;
-use dashql_core::cursor::CursorContext;
-use dashql_core::error::{Error, Result};
-use dashql_core::annotation::Annotation;
-use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
-use dashql_core::pack::{pack_completion, pack_tokens};
-use dashql_core::script::{Script, TextVersion};
-use dashql_core::table_parameters::TableParameters;
-use dashql_core::script_diff::ScriptDiff;
-use dashql_core::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
+use crate::completion::is_symbol_kind_completable;
+use crate::cursor::CursorContext;
+use crate::error::{Error, Result};
+use crate::annotation::Annotation;
+use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
+use crate::pack::{pack_completion, pack_tokens};
+use crate::script::{Script, TextVersion};
+use crate::table_parameters::TableParameters;
+use crate::script_diff::ScriptDiff;
+use crate::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
@@ -116,7 +116,7 @@ fn resolved_table_ids(reference: &TableReference) -> Option<ResolvedTableIds> {
 }
 
 /// The ids of the table and column of a resolved column reference
-fn resolved_column_ids(expression: &dashql_core::analyzer::Expression) -> Option<(ResolvedTableIds, u32)> {
+fn resolved_column_ids(expression: &crate::analyzer::Expression) -> Option<(ResolvedTableIds, u32)> {
     let ExpressionInner::ColumnRef(column) = &expression.inner else {
         return None;
     };
@@ -351,8 +351,8 @@ impl ScriptSession {
     /// targets of writes reference no script. Empty if the analysis lags behind the text.
     pub fn script_references(&self, names: &[String]) -> Vec<(EditorTextSpanT, Option<usize>)> {
         use dashql_buffers::parser::AttributeKey;
-        use dashql_core::analyzer::ParameterKind;
-        use dashql_core::table_parameters::{find_table_parameter, TableParameterLookup};
+        use crate::analyzer::ParameterKind;
+        use crate::table_parameters::{find_table_parameter, TableParameterLookup};
         let Some((scanned, parsed, analyzed)) = self.script.current_analysis() else {
             return Vec::new();
         };
@@ -815,7 +815,7 @@ impl ScriptSession {
             add_syntax(projector, token_type, TextSpan::new(offset, length), false);
         }
         // Comments with `@vis` tags are split into the tokens of the tags
-        let (comment_spans, vegalite_specs) = dashql_core::vis_highlight::comment_syntax_spans(parsed);
+        let (comment_spans, vegalite_specs) = crate::vis_highlight::comment_syntax_spans(parsed);
         for (span, token_type) in comment_spans {
             add_syntax(projector, token_type, span, true);
         }

@@ -6,7 +6,7 @@ use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core_runtime::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
-use dashql_core_script::script_session::ScriptSession;
+use dashql_core::script_session::ScriptSession;
 
 /// Plan scripts of one catalog as the session of one connection
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {

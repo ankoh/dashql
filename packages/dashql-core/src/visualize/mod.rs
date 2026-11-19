@@ -14,7 +14,7 @@ pub use markdown::{
 };
 pub use vegalite_generator::generate_vegalite_spec;
 
-use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
+use crate::analyzer::{AnalyzedScript, VisualizationSpec};
 use dashql_parser::parser::context::resolve_text_span;
 
 /// The text of a node (`input.substr(span.offset(), span.length())`)

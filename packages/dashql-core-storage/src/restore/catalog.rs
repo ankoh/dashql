@@ -4,7 +4,7 @@
 //! connection and names the files to write after the restore.
 
 use dashql_core::catalog::CatalogLayer;
-use dashql_core_script::touched_relations::touched_relations;
+use dashql_core::touched_relations::touched_relations;
 
 use super::RestoreHost;
 use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations};

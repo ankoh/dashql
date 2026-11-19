@@ -2,10 +2,10 @@
 //! terminal query with `@vis` tags. Runs execute the plan of the planner, the compilation describes the
 //! terminal statement for the editor.
 
-use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
-use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
-use dashql_core::formatter::Formatter;
-use dashql_core::script::Script;
+use crate::analyzer::{AnalyzedScript, VisualizationSpec};
+use crate::catalog::{Catalog, PROTO_NULL_U32};
+use crate::formatter::Formatter;
+use crate::script::Script;
 use crate::visualize;
 use dashql_buffers::execution::{
     CompiledVisualizationT, ScriptCompilationErrorCode as ErrorCode, ScriptCompilationErrorT, ScriptCompilationResultT,
@@ -195,7 +195,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     // A query with `@vis` tags is a visualization, the shell runs it as a plain query
     let vis_tags = options.allow_extensions
         && terminal_statement.statement_type == StatementType::SELECT
-        && dashql_core::analyzer::has_vis_tags(&parsed, terminal_statement_id);
+        && crate::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let descriptions = parsed.associate_descriptions();
     // There is one description per statement
     let terminal_span = descriptions.last().map_or_else(|| TextSpan::new(0, scanned.text.len() as u32), |d| d.statement_span);

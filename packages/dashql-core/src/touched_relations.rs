@@ -7,9 +7,9 @@
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_buffers::catalog::TouchedRelationsT;
 use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};
-use dashql_core::catalog::Catalog;
-use dashql_core::pack::{pack_parsed_statement, read_name_path};
-use dashql_core::script::Script;
+use crate::catalog::Catalog;
+use crate::pack::{pack_parsed_statement, read_name_path};
+use crate::script::Script;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::parser::context::resolve_text_span;
 

@@ -3,9 +3,8 @@
 //! The document has 40 join queries over a schema of 30 tables, so an update with the analysis holds a few
 //! thousand syntax spans and several hundred semantic spans.
 //!
-//!   bazel run -c opt //packages/dashql-core-script:bench_session
+//!   bazel run -c opt //packages/dashql-core:bench_session
 
-#[path = "../../dashql-core/benches/harness.rs"]
 mod harness;
 
 use dashql_buffers::editor::{
@@ -14,7 +13,7 @@ use dashql_buffers::editor::{
 };
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
-use dashql_core_script::script_session::ScriptSession;
+use dashql_core::script_session::ScriptSession;
 use harness::bench;
 use std::fmt::Write;
 use std::hint::black_box;

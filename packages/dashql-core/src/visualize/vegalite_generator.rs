@@ -1,6 +1,6 @@
 //! The Vega-Lite JSON of a `@vis vegalite` tag: the spec of the tag with the query as data.
 
-use dashql_core::analyzer::{AnalyzedScript, VisualizationSpec};
+use crate::analyzer::{AnalyzedScript, VisualizationSpec};
 use serde_json::{Map, Value};
 
 /// Generate the pretty-printed Vega-Lite spec of a visualization
