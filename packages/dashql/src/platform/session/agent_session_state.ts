@@ -148,6 +148,7 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
             break;
     }
     return {
+        id: state.id,
         harness: event.harness || state.harness,
         folder: event.folder || state.folder,
         ended: event.event === 'SessionEnd' ? true : event.event === 'SessionStart' ? false : state.ended,

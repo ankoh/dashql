@@ -16,6 +16,14 @@ describe('the state of an agent session', () => {
         expect(state.version).toBe(5);
     });
 
+    it('keeps the id of the session through its events, a page tells the next session on a port by it', () => {
+        let state = createAgentSessionState('claude', '/w', 'session-1');
+        for (const event of ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop', 'SessionEnd'] as const) {
+            state = reduceAgentSessionEvent(state, at({ event }));
+            expect(state.id, event).toBe('session-1');
+        }
+    });
+
     it('shows what the agent does without a question and ends the session', () => {
         let state = createAgentSessionState('codex', '/w');
         state = reduceAgentSessionEvent(state, { event: 'PostToolUse', harness: 'codex', folder: '/w', status: 'ls' });
