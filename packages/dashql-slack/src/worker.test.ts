@@ -61,6 +61,14 @@ async function signedRequest(body: object, options: { timestamp?: number; secret
     });
 }
 
+// The fields of a Work Object entity that the tests read
+type TestEntity = {
+    entity_type: string;
+    app_unfurl_url: string;
+    external_ref: unknown;
+    entity_payload: { attributes: { title: { text: string }; full_size_preview: { preview_url?: string } } };
+};
+
 function linkShared(urls: string[]) {
     return {
         type: 'event_callback',
@@ -130,8 +138,8 @@ describe('buildEntity', () => {
 
     it('sets the preview URL only for the side panel', async () => {
         const link = parseEmbedLink(`${APP}/embed?file=https%3A%2F%2Fexample.com%2Fa.csv`, APP)!;
-        const unfurl = (await buildEntity(link, false)) as any;
-        const details = (await buildEntity(link, true)) as any;
+        const unfurl = (await buildEntity(link, false)) as TestEntity;
+        const details = (await buildEntity(link, true)) as TestEntity;
         expect(unfurl.entity_payload.attributes.full_size_preview).toEqual({
             is_supported: true,
             mime_type: 'application/vnd.slack-embed',
@@ -178,8 +186,8 @@ describe('handleRequest', () => {
         expect(call.params.get('unfurl_id')).toBe('U1');
         expect(call.params.get('source')).toBe('conversations_history');
         expect(call.params.get('unfurls')).toBe('{}');
-        const metadata = JSON.parse(call.params.get('metadata')!);
-        expect(metadata.entities.map((e: any) => [e.entity_type, e.app_unfurl_url, e.entity_payload.attributes.title.text])).toEqual([
+        const metadata: { entities: TestEntity[] } = JSON.parse(call.params.get('metadata')!);
+        expect(metadata.entities.map(e => [e.entity_type, e.app_unfurl_url, e.entity_payload.attributes.title.text])).toEqual([
             ['slack#/entities/file', file, 'a.csv'],
             ['slack#/entities/item', `${APP}/embed#script=x`, 'Hyper script'],
         ]);
@@ -189,9 +197,8 @@ describe('handleRequest', () => {
     it('uses channel and ts without an unfurl id', async () => {
         const h = harness();
         const payload = linkShared([`${APP}/embed`]);
-        delete (payload.event as any).unfurl_id;
-        delete (payload.event as any).source;
-        await h.send(await signedRequest(payload));
+        const { unfurl_id: _unfurlId, source: _source, ...event } = payload.event;
+        await h.send(await signedRequest({ ...payload, event }));
         expect(h.calls[0].params.get('channel')).toBe('C1');
         expect(h.calls[0].params.get('ts')).toBe('1700000000.000100');
     });

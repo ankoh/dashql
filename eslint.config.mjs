@@ -86,6 +86,11 @@ export default defineConfig(
         },
     },
     {
+        // The packages without explicit any, until all of them are
+        files: ['packages/dashql-slack/**'],
+        rules: { '@typescript-eslint/no-explicit-any': 'error' },
+    },
+    {
         // Globals of a declaration are declared with var
         files: ['**/*.d.ts'],
         rules: { 'no-var': 'off' },
