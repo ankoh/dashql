@@ -158,13 +158,13 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=fastbuild \
-                    //packages/...
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/...
 
             - name: Test Everything
               shell: bash
               run: |
                 bazel test --config=fastbuild \
-                    //packages/... \
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed
@@ -264,13 +264,13 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/...
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/...
 
             - name: Test Web App
               shell: bash
               run: |
                 bazel test --config=release \
-                    //packages/... \
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed
