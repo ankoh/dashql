@@ -198,7 +198,7 @@ class RecordedHttpFetchResult implements HttpFetchResult {
         return this.record(this.inner.text(), text => recordText(text, HTTP_RESPONSE_PREVIEW_BYTES));
     }
 
-    async json(): Promise<any> {
+    async json(): Promise<unknown> {
         if (this.bufferedBody != null) {
             const text = new TextDecoder().decode(await this.bufferedBody);
             return text == '' ? {} : JSON.parse(text);

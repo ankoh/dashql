@@ -76,7 +76,7 @@ export class LiveQueryLoop {
         try {
             this.connection ??= this.database.connect();
             table = await (await this.connection).query(this.sql, this.abort.signal);
-        } catch (e: any) {
+        } catch (e) {
             error = e instanceof Error ? e : new Error(String(e));
             // A connection that failed to open is opened again by the next run
             if (await this.connection?.then(() => false, () => true)) this.connection = null;

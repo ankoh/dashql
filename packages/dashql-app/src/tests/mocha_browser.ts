@@ -24,7 +24,8 @@ export interface BrowserMochaSuiteConstructor {
 export interface BrowserMochaRunner {
     failures: number;
     total: number;
-    on(event: string, callback: (...args: any[]) => void): void;
+    /// The events of tests pass the test and the error of a failure, the events of suites the suite
+    on(event: string, callback: (runnable: BrowserMochaTest & BrowserMochaSuite, error?: Error) => void): void;
 }
 
 export interface BrowserMocha {

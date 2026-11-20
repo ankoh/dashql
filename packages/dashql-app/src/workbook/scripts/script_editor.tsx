@@ -152,7 +152,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
 function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void, resync = false) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
-    const effects: StateEffect<any>[] = [];
+    const effects: StateEffect<unknown>[] = [];
     // The text version that the document shows after the update, if it takes the text of the session
     let textVersion: bigint | undefined = undefined;
 

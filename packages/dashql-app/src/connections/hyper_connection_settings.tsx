@@ -60,7 +60,7 @@ export function buildHyperConnectionPageState(params: connection.HyperConnection
         mTlsKeyPath: params?.tls?.clientKeyPath ?? "",
         mTlsPubPath: params?.tls?.clientCertPath ?? "",
         mTlsCaPath: params?.tls?.caCertsPath ?? "",
-        attachedDatabases: (params?.attachedDatabases ?? []).map((db: any) => ({
+        attachedDatabases: (params?.attachedDatabases ?? []).map(db => ({
             key: db?.path ?? "",
             value: db?.alias ?? "",
         })),

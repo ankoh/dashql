@@ -335,7 +335,7 @@ export abstract class PlatformEventListener {
     }
 
     /// Helper to unpack app link data
-    public readAppEvent(dataBase64: any, fromWhat: string) {
+    public readAppEvent(dataBase64: unknown, fromWhat: string) {
         // Make sure everything arriving here is a valid base64 string
         if (!dataBase64 || typeof dataBase64 !== 'string') {
             this.logger.trace("Skipping app event with non-string data", {}, LOG_CTX);

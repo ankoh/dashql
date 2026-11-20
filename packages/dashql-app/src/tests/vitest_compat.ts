@@ -107,7 +107,7 @@ chai.use(JestAsymmetricMatchers);
 const expect = ((value: unknown, message?: string): Assertion => {
     return chai.expect(value, message) as unknown as Assertion;
 }) as ExpectStatic;
-Object.assign(expect, chai.expect, (globalThis as any)[ASYMMETRIC_MATCHERS_OBJECT]);
+Object.assign(expect, chai.expect, (globalThis as typeof globalThis & { [ASYMMETRIC_MATCHERS_OBJECT]: object })[ASYMMETRIC_MATCHERS_OBJECT]);
 setState<MatcherState>({ assertionCalls: 0 }, expect);
 Object.defineProperty(globalThis, GLOBAL_EXPECT, {
     configurable: true,
@@ -115,7 +115,7 @@ Object.defineProperty(globalThis, GLOBAL_EXPECT, {
     writable: true,
 });
 
-type TestFunction = (...args: any[]) => any;
+type TestFunction = (...args: unknown[]) => unknown;
 type TestOptions = number | { timeout?: number };
 
 function formatCaseTitle(template: string, values: unknown[], index: number): string {

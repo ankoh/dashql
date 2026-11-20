@@ -83,7 +83,7 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
     /// The query result iterator
     resultReader: QueryResultReader;
     /// The schema Promise
-    resultSchema: AsyncValue<arrow.Schema<any>, Error>;
+    resultSchema: AsyncValue<arrow.Schema, Error>;
 
     constructor(stream: NativeGrpcServerStream, _connection: HyperDatabaseConnectionContext, logger: Logger) {
         this.resultReader = new QueryResultReader(stream, logger);

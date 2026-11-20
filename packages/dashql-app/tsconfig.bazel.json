@@ -3,6 +3,7 @@
         "target": "ESNext",
         "module": "ESNext",
         "moduleResolution": "bundler",
+        "resolveJsonModule": true,
         "noImplicitAny": true,
         "esModuleInterop": false,
         "downlevelIteration": true,

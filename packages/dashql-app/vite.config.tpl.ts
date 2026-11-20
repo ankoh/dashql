@@ -82,7 +82,7 @@ export default vite.defineConfig(({ mode, command }) => {
     const precompressWasm = {
         name: 'dashql-precompress-wasm',
         enforce: 'post' as const,
-        generateBundle(this: vite.Rollup.PluginContext, _options: unknown, bundle: Record<string, any>): void {
+        generateBundle(this: vite.Rollup.PluginContext, _options: unknown, bundle: vite.Rollup.OutputBundle): void {
             const renamed = new Map<string, string>();
             for (const [fileName, item] of Object.entries(bundle)) {
                 if (item.type !== 'asset' || !fileName.endsWith('.wasm')) continue;

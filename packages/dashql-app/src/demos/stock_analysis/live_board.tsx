@@ -18,7 +18,7 @@ export interface BoardRow {
 }
 
 /// A number of a row, null for null
-function numberOf(row: any, field: string): number | null {
+function numberOf(row: arrow.StructRowProxy, field: string): number | null {
     const value = row[field];
     if (value == null) return null;
     return Number(value);

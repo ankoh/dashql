@@ -303,7 +303,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         if (viewport == null || svg == null || behavior == null) return;
         const { x, y, scale } = fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight);
         const target = zoomIdentity.translate(x, y).scale(scale);
-        (animate ? select(svg).transition().duration(160) : select(svg)).call(behavior.transform as any, target);
+        if (animate) select(svg).transition().duration(160).call(behavior.transform, target);
+        else select(svg).call(behavior.transform, target);
     }, [scene.bounds]);
     React.useLayoutEffect(() => {
         const svg = svgRef.current;

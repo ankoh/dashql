@@ -91,6 +91,12 @@ export default defineConfig(
         rules: { '@typescript-eslint/no-explicit-any': 'error' },
     },
     {
+        // The app without its tests
+        files: ['packages/dashql-app/**'],
+        ignores: ['**/*.test.ts', '**/*.test.tsx'],
+        rules: { '@typescript-eslint/no-explicit-any': 'error' },
+    },
+    {
         // Globals of a declaration are declared with var
         files: ['**/*.d.ts'],
         rules: { 'no-var': 'off' },

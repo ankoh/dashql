@@ -38,11 +38,10 @@ export interface AppEventPostMessage {
     data: string;
 }
 
-export function isAppEventPostMessage(msg: any): msg is AppEventPostMessage {
-    return msg != null
-        && typeof msg === "object"
-        && msg.kind === APP_EVENT_POST_MESSAGE_KIND
-        && typeof msg.data === "string";
+export function isAppEventPostMessage(msg: unknown): msg is AppEventPostMessage {
+    if (msg == null || typeof msg !== "object") return false;
+    const { kind, data } = msg as Partial<Record<keyof AppEventPostMessage, unknown>>;
+    return kind === APP_EVENT_POST_MESSAGE_KIND && typeof data === "string";
 }
 
 export const SETUP_WORKBOOK = Symbol("SETUP_WORKBOOK");

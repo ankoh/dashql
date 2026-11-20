@@ -33,9 +33,15 @@ export interface ReleaseManifest {
     bundles: ReleaseBundle[];
 }
 
-function parseReleaseManifest(raw: any): ReleaseManifest {
+/// A release manifest as JSON, the parsing turns its date and the URLs of its bundles into objects in place
+interface ReleaseManifestJson extends Omit<ReleaseManifest, 'pub_date' | 'bundles'> {
+    pub_date: string | Date;
+    bundles: (Omit<ReleaseBundle, 'url'> & { url: string | URL })[];
+}
+
+function parseReleaseManifest(raw: ReleaseManifestJson): ReleaseManifest {
     if (raw.pub_date) {
-        raw.pub_date = new Date(Date.parse(raw.pub_date));
+        raw.pub_date = new Date(Date.parse(String(raw.pub_date)));
     }
     for (const bundle of raw.bundles) {
         bundle.url = new URL(bundle.url);
@@ -131,7 +137,7 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, log
         const end = performance.now();
         traced.info(`Fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
         return manifest;
-    } catch (e: any) {
+    } catch (e) {
         const end = performance.now();
         traced.warn(`Failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": stringifyError(e) }, LOG_CTX);
         throw e;

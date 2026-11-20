@@ -45,7 +45,7 @@ export async function relocateWorkbookToNative(
         // 4. Reload to re-run the StorageProvider init and the restore of the runtime against the new layout.
         globalThis.location.reload();
         return true;
-    } catch (e: any) {
+    } catch (e) {
         // Re-arm the writer so the app keeps working on OPFS, then surface the failure via the toast.
         writer.resume();
         logger.error('relocating workbook to native storage failed', {

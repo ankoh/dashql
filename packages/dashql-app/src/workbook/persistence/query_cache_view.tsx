@@ -89,8 +89,8 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         }
         try {
             setEntries(sortEntries(await cache.list()));
-        } catch (e: any) {
-            logger.warn('failed to list query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
+        } catch (e) {
+            logger.warn('failed to list query result cache', { error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
             setEntries([]);
         }
     }, [cache, logger]);
@@ -106,8 +106,8 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         try {
             // A file that is read right now stays, the key is still cached
             if ((await cache.delete(key)) && runtime != null) markDeletedQueryResults(runtime, [key]);
-        } catch (e: any) {
-            logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
+        } catch (e) {
+            logger.warn('failed to delete query result cache entry', { error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
         }
         await refresh();
     }, [cache, logger, refresh, runtime]);
@@ -123,8 +123,8 @@ export function QueryCacheView(props: { onClose: () => void; }) {
                 entries: String(keys.length),
                 queries: String(queries),
             }, LOG_CTX);
-        } catch (e: any) {
-            logger.warn('failed to clear the query result cache', { error: String(e?.message ?? e) }, LOG_CTX);
+        } catch (e) {
+            logger.warn('failed to clear the query result cache', { error: e instanceof Error ? e.message : String(e) }, LOG_CTX);
         }
         await refresh();
     }, [cache, logger, refresh, runtime]);

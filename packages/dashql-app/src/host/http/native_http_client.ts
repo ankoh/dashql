@@ -154,7 +154,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
         this.initialBody = combined.buffer;
     }
 
-    async json(): Promise<any> {
+    async json(): Promise<unknown> {
         const buffer = await this.arrayBuffer();
         const text = this.textDecoder.decode(buffer);
         if (text == "") {
@@ -165,7 +165,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
         }
     }
 
-    async text(): Promise<any> {
+    async text(): Promise<string> {
         const buffer = await this.arrayBuffer();
         return this.textDecoder.decode(buffer);
     }

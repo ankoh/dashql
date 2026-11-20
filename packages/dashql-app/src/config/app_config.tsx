@@ -17,11 +17,11 @@ export interface AppConfig {
     connectors?: ConnectorConfigs;
 }
 
-function readAppConfig(object: Record<string, object>): AppConfig {
+function readAppConfig(object: AppConfig): AppConfig {
     if (object.connectors) {
         object.connectors = readConnectorConfigs(object.connectors);
     }
-    return object as AppConfig;
+    return object;
 }
 
 export interface AppConfigResult {
@@ -39,7 +39,7 @@ export async function downloadAppConfig(logger: Logger, flavor: AppFlavor): Prom
         config.settings = applyFlavorSettings(config.settings, flavor);
         traced.info("Loaded app config", {}, "app_config");
         return { config, traceId: trace.traceId };
-    } catch (e: any) {
+    } catch (e) {
         console.error(e);
         throw e;
     }

@@ -147,7 +147,7 @@ const RequestRow = (props: RowComponentProps<RequestRowProps>) => {
 };
 
 export interface HttpRequestViewerDependencies {
-    List: React.ComponentType<any>;
+    List: typeof List;
     useListCallbackRef(initialValue: ListImperativeAPI | null): [ListImperativeAPI | null, React.Dispatch<React.SetStateAction<ListImperativeAPI | null>>];
 }
 

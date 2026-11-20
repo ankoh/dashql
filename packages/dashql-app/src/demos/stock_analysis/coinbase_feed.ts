@@ -11,9 +11,20 @@ export const COINBASE_PRODUCTS: readonly string[] = [
     'FIL-USD', 'NEAR-USD', 'APT-USD', 'ARB-USD', 'OP-USD', 'SHIB-USD',
 ];
 
+/// The fields of a ticker message that the board reads, unchecked JSON
+interface CoinbaseTicker {
+    type?: unknown;
+    product_id?: unknown;
+    price?: unknown;
+    time?: unknown;
+    last_size?: unknown;
+    best_bid?: unknown;
+    best_ask?: unknown;
+}
+
 /// The trade of a ticker message, null for other messages, e.g. the confirmation of the subscription
 export function parseCoinbaseMessage(data: string): Tick | null {
-    let message: any;
+    let message: CoinbaseTicker | null;
     try {
         message = JSON.parse(data);
     } catch {

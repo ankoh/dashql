@@ -108,7 +108,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 }));
 
                 return instance;
-            } catch (e: any) {
+            } catch (e) {
                 const initEnd = performance.now();
                 traced.error("Failed to instantiate core", {
                     "error": stringifyError(e),

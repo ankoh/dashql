@@ -139,7 +139,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                 triggerFlow(props.state, eventBase64, deepLink, logger);
                 setWasTriggered(true);
             }, remainingUntilAutoTrigger);
-            const updaterId: { current: unknown | null } = { current: null };
+            const updaterId: { current: ReturnType<typeof setTimeout> | null } = { current: null };
 
             const updateRemaining = () => {
                 const now = new Date();
@@ -154,7 +154,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
             return () => {
                 clearTimeout(timeoutId);
                 if (updaterId.current != null) {
-                    clearTimeout(updaterId.current as any);
+                    clearTimeout(updaterId.current);
                 }
             }
         }
@@ -429,7 +429,7 @@ export const RedirectPage: React.FC<RedirectPageProps> = (props: RedirectPagePro
     const [params, _setParams] = useSearchParams();
     const state = params.get("state") ?? "";
 
-    const authState = React.useMemo<Result<OAuthState>>(() => {
+    const authState = React.useMemo<Result<OAuthState, Error>>(() => {
         try {
             const parsed = decodeOAuthState(state);
             validateOAuthRedirectState(parsed);
@@ -437,7 +437,7 @@ export const RedirectPage: React.FC<RedirectPageProps> = (props: RedirectPagePro
                 type: RESULT_OK,
                 value: parsed,
             };
-        } catch (e: any) {
+        } catch (e) {
             return {
                 type: RESULT_ERROR,
                 error: new Error(stringifyError(e)),

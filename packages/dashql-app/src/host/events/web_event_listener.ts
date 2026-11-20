@@ -6,7 +6,7 @@ import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, OAUTH_BROADCAST_CHANNEL, Platf
 const DRAG_TIMEOUT = 100;
 
 export class WebPlatformEventListener extends PlatformEventListener {
-    private readonly onWindowMessage: (event: any) => void;
+    private readonly onWindowMessage: (event: MessageEvent) => void;
     private readonly oauthBroadcastChannel: BroadcastChannel;
     private readonly onWindowDragOver: (event: DragEvent) => void;
     private readonly onWindowDragEnd: (event: DragEvent) => void;

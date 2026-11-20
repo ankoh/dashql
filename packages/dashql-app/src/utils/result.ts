@@ -1,9 +1,10 @@
 export const RESULT_OK = Symbol();
 export const RESULT_ERROR = Symbol();
 
-export type Result<ValueType> =
+/// A value or the error of its computation, by default whatever was thrown
+export type Result<ValueType, ErrorType = unknown> =
     | { type: typeof RESULT_OK; value: ValueType }
-    | { type: typeof RESULT_ERROR; error: any };
+    | { type: typeof RESULT_ERROR; error: ErrorType };
 
 
 export async function awaitAndSet<V>(v: Promise<V>, setResult: (result: Result<V>) => void) {
@@ -13,7 +14,7 @@ export async function awaitAndSet<V>(v: Promise<V>, setResult: (result: Result<V
             type: RESULT_OK,
             value: res,
         })
-    } catch (e: any) {
+    } catch (e) {
         setResult({
             type: RESULT_ERROR,
             error: e

@@ -31,6 +31,13 @@ interface Quote {
     ask: number | null;
 }
 
+/// The fields of a message of the combined streams that the protocol reads, unchecked JSON
+interface BinanceMessage {
+    error?: { msg?: unknown } | null;
+    stream?: unknown;
+    data?: { e?: unknown; s?: unknown; b?: unknown; a?: unknown; p?: unknown; q?: unknown; T?: unknown } | null;
+}
+
 /// Reads the combined stream of trades and best quotes.
 /// A trade carries no quote, it gets the latest best bid and ask of its pair.
 export class BinanceProtocol implements FeedProtocol {
@@ -44,7 +51,7 @@ export class BinanceProtocol implements FeedProtocol {
     }
 
     read(data: string): FeedMessage {
-        let message: any;
+        let message: BinanceMessage | null;
         try {
             message = JSON.parse(data);
         } catch {

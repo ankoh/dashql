@@ -24,7 +24,7 @@ export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
                 if (!cancelled) {
                     setDatabase(embeddedDatabase);
                 }
-            } catch (e: any) {
+            } catch (e) {
                 logger.warn("Failed to create compute database", { error: stringifyError(e) }, "compute");
             }
         };
