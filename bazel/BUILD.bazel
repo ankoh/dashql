@@ -1,4 +1,5 @@
 # Package for Bzlmod external_projects extension and build_file fragments.
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@rules_rust//rust:defs.bzl", "rust_lint_config")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
@@ -50,4 +51,11 @@ sh_binary(
     srcs = ["rustfmt.sh"],
     args = ["$(rootpath @rules_rust//rust/toolchain:current_rustfmt_toolchain)"],
     data = ["@rules_rust//rust/toolchain:current_rustfmt_toolchain"],
+)
+
+# ESLint with --fix on the workspace, see eslint.bzl: bazel run //bazel:eslint_fix [-- <paths>]
+js_binary(
+    name = "eslint_fix",
+    data = ["//:eslint_config"],
+    entry_point = "eslint_fix.mjs",
 )

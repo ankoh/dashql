@@ -5,6 +5,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load("//bazel:eslint.bzl", "eslint_test")
 
 # hyperdb-edge: runs SQL on the embedded Hyper of hyperdb-wasm, a command line tool and its library, see
 # docs/wip/hyperdb_edge.md. Builds on hyperdb-wasm, not part of it. The library is a source package like
@@ -223,3 +224,6 @@ npm_package(
     include_transitive_sources = False,
     include_transitive_types = False,
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

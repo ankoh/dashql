@@ -35,6 +35,19 @@ js_library(
     visibility = ["//visibility:public"],
 )
 
+# The ESLint config with the plugins it imports, for the eslint_test of every package (//bazel:eslint.bzl)
+js_library(
+    name = "eslint_config",
+    srcs = ["eslint.config.mjs"],
+    deps = [
+        ":node_modules/@eslint/js",
+        ":node_modules/eslint",
+        ":node_modules/eslint-plugin-react-hooks",
+        ":node_modules/globals",
+        ":node_modules/typescript-eslint",
+    ],
+)
+
 # npm link tree from pnpm lockfile (package.json + pnpm-lock.yaml).
 npm_link_all_packages(name = "node_modules")
 

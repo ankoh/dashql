@@ -3,6 +3,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//packages/dashql-org:astro/package_json.bzl", astro_bin = "bin")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//bazel:eslint.bzl", "eslint_test")
 
 # The website and blog at dashql.org, a static Astro site.
 # Code, tokens and fonts shared with the app come from //packages/dashql-react, the brand assets from //packages/dashql-app.
@@ -114,3 +115,6 @@ sh_binary(
         ":svg_symbols",
     ],
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

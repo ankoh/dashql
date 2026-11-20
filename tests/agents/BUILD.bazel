@@ -1,4 +1,5 @@
 load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("//bazel:eslint.bzl", "eslint_test")
 
 # Agent integration tests: real agent harnesses with a fake model, no model calls, see
 # docs/design/agent_integration_tests.md. The harnesses come from //bazel:external_agent_harnesses.bzl.
@@ -157,3 +158,6 @@ js_test(
     no_copy_to_bin = [":claude"],
     tags = ["no-sandbox"],
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

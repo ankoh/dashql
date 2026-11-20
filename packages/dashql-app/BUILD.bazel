@@ -6,6 +6,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
+load("//bazel:eslint.bzl", "eslint_test")
 load(":bazel/browser_test.bzl", "browser_test")
 
 # Stage the declared SQL snippets for the @dashql/snippets alias, the app bundles them as text.
@@ -437,3 +438,6 @@ js_binary(
     ],
     entry_point = "utils/bench_hyperdb_wasm_backend.mjs",
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

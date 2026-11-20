@@ -5,6 +5,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load("//bazel:eslint.bzl", "eslint_test")
 load(":glue.bzl", "dashql_wasm_glue")
 
 # DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
@@ -428,3 +429,6 @@ js_test(
     ],
     entry_point = "test/npm/tarball_consumer.mjs",
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

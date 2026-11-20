@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
+load("//bazel:eslint.bzl", "eslint_test")
 load(":bazel/browser_test.bzl", "browser_test")
 
 copy_to_bin(
@@ -67,3 +68,6 @@ browser_test(
     executable = ":playwright_firefox",
     executable_root = True,
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()

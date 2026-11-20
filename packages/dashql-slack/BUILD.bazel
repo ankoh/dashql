@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load("//bazel:eslint.bzl", "eslint_test")
 
 # The Slack app of DashQL, a Cloudflare Worker that turns embed links into Work Objects, see docs/wip/embeds.md.
 # Wrangler bundles src/worker.ts itself when it deploys, so nothing is compiled here.
@@ -37,3 +38,6 @@ vitest_bin.vitest_test(
         "//:node_modules/vitest",
     ],
 )
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()
