@@ -11,8 +11,6 @@ use crate::compute::types::{ColumnGroup, ComputationVersion, DataFrameId, DataSe
 
 /// The row number of a matching row in the result of a data search
 pub const DATA_SEARCH_ROW_FIELD: &str = "row_idx";
-/// The matching columns of a row in the result of a data search
-pub const DATA_SEARCH_COLUMNS_FIELD: &str = "column_indices";
 /// The matching column group in the result of a search of the columns
 pub const COLUMN_SEARCH_GROUP_FIELD: &str = "column_group_idx";
 

@@ -4,7 +4,7 @@ use dashql_buffers::profile as fb;
 use dashql_core_profile::{EntityState, ProfileUpdate, Stats, Status};
 use dashql_core_runtime::query::progress::{
     replay_recording, EngineProgressPayload, HyperExecutionStats, HyperQueryStatus, ProfileExecutionState,
-    ProfileRecording, QueryProfileProgress, QueryProgressFollower, QueryProgressModels, NO_INDEX,
+    ProfileRecording, QueryProfileProgress, QueryProgressFollower, QueryProgressModel, NO_INDEX,
 };
 use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
@@ -269,9 +269,9 @@ fn active_queries_move_through_the_execution_statuses_and_become_queued_only_whi
 fn active_queries_keep_the_profile_progress_of_an_earlier_update() {
     let mut history = QueryExecutionHistory::new();
     start(&mut history, 1, metadata(QueryType::UserProvided, None));
-    let mut models = QueryProgressModels::default();
+    let mut model = trino_model();
     let payload = EngineProgressPayload::TrinoStatementStats { stats: poll("RUNNING", 4), received_at: 1 };
-    let profile = models.apply(1, payload).unwrap().clone();
+    let profile = model.apply(payload).unwrap().clone();
     let progress = QueryExecutionProgress { profile_progress: Some(profile.clone()), ..Default::default() };
     history
         .apply(QueryExecutionAction::QueryProgressUpdated { query_id: 1, progress: Box::new(progress), now: 1 })
@@ -498,6 +498,11 @@ fn stats(stats: Value, received_at: i64) -> EngineProgressPayload {
     EngineProgressPayload::TrinoStatementStats { stats, received_at }
 }
 
+/// The progress model of a Trino query
+fn trino_model() -> QueryProgressModel {
+    QueryProgressModel::new(fb::ProfileEngine::TRINO, None)
+}
+
 /// A stage of a Trino QueryInfo with its plan
 fn stage(id: &str, plan: Value) -> Value {
     json!({ "stageId": format!("q.{id}"), "plan": { "jsonRepresentation": plan.to_string() } })
@@ -505,16 +510,16 @@ fn stage(id: &str, plan: Value) -> Value {
 
 #[test]
 fn progress_models_follow_the_trino_polls_of_a_query_and_list_its_stages() {
-    let mut models = QueryProgressModels::default();
-    let first = models.apply(1, stats(poll("RUNNING", 4), 2)).unwrap().clone();
+    let mut model = trino_model();
+    let first = model.apply(stats(poll("RUNNING", 4), 2)).unwrap().clone();
     assert_eq!(structure(&first).fragments().unwrap().len(), 3);
     assert_eq!(work_of(first.execution.query), Some((4, 20)));
 
-    let second = models.apply(1, stats(poll("RUNNING", 8), 3)).unwrap().clone();
+    let second = model.apply(stats(poll("RUNNING", 8), 3)).unwrap().clone();
     assert!(second.revision > first.revision);
     assert_eq!(work_of(second.execution.query), Some((8, 20)));
     // A repeated poll changes nothing
-    assert_eq!(models.apply(1, stats(poll("RUNNING", 8), 4)).unwrap().revision, second.revision);
+    assert_eq!(model.apply(stats(poll("RUNNING", 8), 4)).unwrap().revision, second.revision);
 
     // The stages are the fragments, nested like the stage tree
     let fragments = fragments_of(&second);
@@ -526,15 +531,13 @@ fn progress_models_follow_the_trino_polls_of_a_query_and_list_its_stages() {
     assert_eq!(stages[2].unwrap().stats.cpu_time_us, Some(42_000));
 
     // Fields of unexpected types are not reported
-    assert_eq!(models.apply(1, stats(json!({ "state": 7 }), 5)).unwrap().revision, second.revision);
-    models.release(1);
-    assert!(models.model(1).is_none());
+    assert_eq!(model.apply(stats(json!({ "state": 7 }), 5)).unwrap().revision, second.revision);
 }
 
 #[test]
 fn progress_models_replace_the_stages_with_the_plan_of_the_query_info_and_keep_their_state() {
-    let mut models = QueryProgressModels::default();
-    models.apply(2, stats(poll("RUNNING", 4), 1)).unwrap();
+    let mut model = trino_model();
+    model.apply(stats(poll("RUNNING", 4), 1)).unwrap();
     let remote = |id: &str, source: &str| json!({ "id": id, "name": "RemoteSource", "descriptor": { "sourceFragmentIds": format!("[{source}]") }, "children": [] });
     let info = json!({ "queryId": "q", "stages": { "stages": [
         stage("0", json!({ "id": "1", "name": "Output", "children": [remote("2", "1")] })),
@@ -544,7 +547,7 @@ fn progress_models_replace_the_stages_with_the_plan_of_the_query_info_and_keep_t
         ] }] })),
         stage("2", json!({ "id": "5", "name": "TableScan", "descriptor": { "table": "tpch:sf1:lineitem" }, "children": [] })),
     ] } });
-    let progress = models.apply(2, EngineProgressPayload::TrinoQueryInfo { info, received_at: 2 }).unwrap().clone();
+    let progress = model.apply(EngineProgressPayload::TrinoQueryInfo { info, received_at: 2 }).unwrap().clone();
     assert_eq!(operator_count(&progress), 8);
     // The stages are the fragments of the plan, with the state of the latest poll
     assert_eq!(
@@ -556,7 +559,7 @@ fn progress_models_replace_the_stages_with_the_plan_of_the_query_info_and_keep_t
 
     // A broken plan leaves the stages without plan
     let info = json!({ "stages": { "stages": [{ "stageId": "q.0", "plan": { "jsonRepresentation": "{" } }] } });
-    let broken = models.apply(2, EngineProgressPayload::TrinoQueryInfo { info, received_at: 3 }).unwrap().clone();
+    let broken = model.apply(EngineProgressPayload::TrinoQueryInfo { info, received_at: 3 }).unwrap().clone();
     assert_eq!(operator_count(&broken), 0);
     assert_eq!(fragments_of(&broken).len(), 3);
     assert!(broken.structure_version != progress.structure_version);
@@ -564,18 +567,18 @@ fn progress_models_replace_the_stages_with_the_plan_of_the_query_info_and_keep_t
 
 #[test]
 fn progress_models_apply_the_operator_summaries_of_a_later_query_info_to_the_plan() {
-    let mut models = QueryProgressModels::default();
+    let mut model = trino_model();
     let info = json!({ "queryId": "q", "stages": { "stages": [
         stage("0", json!({ "id": "1", "name": "Output", "children": [{ "id": "2", "name": "TableScan", "children": [] }] })),
     ] } });
-    let loaded = models.apply(3, EngineProgressPayload::TrinoQueryInfo { info, received_at: 1 }).unwrap().clone();
+    let loaded = model.apply(EngineProgressPayload::TrinoQueryInfo { info, received_at: 1 }).unwrap().clone();
     assert_eq!(pipeline_count(&loaded), 0);
     let summary = |operator_id: u32, plan_node_id: &str, rows: u64| json!({ "pipelineId": 0, "operatorId": operator_id, "planNodeId": plan_node_id, "inputPositions": rows, "outputPositions": rows });
     let sample = json!({ "stages": { "stages": [{ "stageId": "q.0", "state": "PENDING", "stageStats": {
         "operatorSummaries": [summary(0, "2", 25), summary(1, "1", 25)],
     } }] } });
     let progress =
-        models.apply(3, EngineProgressPayload::TrinoQueryInfoStats { info: sample, received_at: 2 }).unwrap().clone();
+        model.apply(EngineProgressPayload::TrinoQueryInfoStats { info: sample, received_at: 2 }).unwrap().clone();
     // The pipeline appears in the structure, the edge from the scan carries its rows
     assert_eq!(pipeline_count(&progress), 1);
     let edge = structure(&progress).operator_edges().unwrap().get(0);
@@ -584,30 +587,30 @@ fn progress_models_apply_the_operator_summaries_of_a_later_query_info_to_the_pla
 
 #[test]
 fn progress_models_ignore_payloads_of_another_engine() {
-    let mut models = QueryProgressModels::default();
-    let first = models.apply(1, stats(poll("RUNNING", 4), 1)).unwrap().clone();
+    let mut model = trino_model();
+    let first = model.apply(stats(poll("RUNNING", 4), 1)).unwrap().clone();
     let status = HyperQueryStatus {
         completion_status: "FINISHED".into(),
         row_count: None,
         progress: None,
         execution_stats: None,
     };
-    let other = models.apply(1, EngineProgressPayload::HyperQueryStatus { status, received_at: 2 }).unwrap();
+    let other = model.apply(EngineProgressPayload::HyperQueryStatus { status, received_at: 2 }).unwrap();
     assert_eq!(*other, first);
-    assert_eq!(models.model(1).unwrap().recording().len(), 1);
+    assert_eq!(model.recording().len(), 1);
 }
 
 #[test]
 fn profile_recordings_record_the_payloads_of_a_query_and_replay_them_to_any_point_in_time() {
-    let mut models = QueryProgressModels::default();
-    models.apply(5, stats(poll("RUNNING", 2), 1000)).unwrap();
-    models.apply(5, stats(poll("RUNNING", 8), 4000)).unwrap();
-    let progress = models.model(5).unwrap().progress().clone();
+    let mut model = trino_model();
+    model.apply(stats(poll("RUNNING", 2), 1000)).unwrap();
+    model.apply(stats(poll("RUNNING", 8), 4000)).unwrap();
+    let progress = model.progress().clone();
     let recording = progress.recording.snapshot();
     let elapsed: Vec<i64> = recording.payloads.iter().map(|p| p.elapsed_ms).collect();
     assert_eq!(elapsed, vec![0, 3000]);
     // The recording outlives the model, the progress keeps it
-    models.release(5);
+    drop(model);
     assert_eq!(progress.recording.len(), 2);
 
     // The recording serializes as JSON
@@ -622,14 +625,14 @@ fn profile_recordings_record_the_payloads_of_a_query_and_replay_them_to_any_poin
 
 #[test]
 fn profile_recordings_share_the_payloads_with_the_progress_of_every_update() {
-    let mut models = QueryProgressModels::default();
-    let first = models.apply(6, stats(poll("RUNNING", 2), 1000)).unwrap().clone();
-    let second = models.apply(6, stats(poll("RUNNING", 4), 2000)).unwrap().clone();
+    let mut model = trino_model();
+    let first = model.apply(stats(poll("RUNNING", 2), 1000)).unwrap().clone();
+    let second = model.apply(stats(poll("RUNNING", 4), 2000)).unwrap().clone();
     // An earlier update sees the later payloads
     assert_eq!(first.recording.len(), 2);
     assert_eq!(first.recording, second.recording);
     // The recording of another query is another one
-    let other = models.apply(7, stats(poll("RUNNING", 2), 1000)).unwrap().clone();
+    let other = trino_model().apply(stats(poll("RUNNING", 2), 1000)).unwrap().clone();
     assert_ne!(other.recording, first.recording);
 }
 
@@ -697,15 +700,15 @@ fn orientation(progress: &QueryProfileProgress) -> fb::ProfileLayoutOrientation 
 fn progress_followers_follow_the_recording_of_a_query_with_the_other_orientation() {
     let (left_to_right, top_down) =
         (fb::ProfileLayoutOrientation::LEFT_TO_RIGHT, fb::ProfileLayoutOrientation::TOP_DOWN);
-    let mut models = QueryProgressModels::new(Some(layout(left_to_right)));
+    let mut model = QueryProgressModel::new(fb::ProfileEngine::TRINO, Some(&layout(left_to_right)));
     let info = json!({ "queryId": "q", "stages": { "stages": [
         stage("0", json!({ "id": "1", "name": "Output", "children": [{ "id": "2", "name": "InnerJoin", "children": [
             { "id": "3", "name": "TableScan", "children": [] },
             { "id": "4", "name": "TableScan", "children": [] },
         ] }] })),
     ] } });
-    models.apply(4, stats(poll("RUNNING", 4), 1)).unwrap();
-    let loaded = models.apply(4, EngineProgressPayload::TrinoQueryInfo { info, received_at: 2 }).unwrap().clone();
+    model.apply(stats(poll("RUNNING", 4), 1)).unwrap();
+    let loaded = model.apply(EngineProgressPayload::TrinoQueryInfo { info, received_at: 2 }).unwrap().clone();
     assert_eq!(orientation(&loaded), left_to_right);
 
     let mut follower = QueryProgressFollower::new(Some(layout(top_down)));
@@ -715,7 +718,7 @@ fn progress_followers_follow_the_recording_of_a_query_with_the_other_orientation
     assert_eq!(work_of(rotated.execution.query), Some((4, 20)));
 
     // A later payload of the query reaches the rotated plan as well
-    let later = models.apply(4, stats(poll("RUNNING", 8), 3)).unwrap().clone();
+    let later = model.apply(stats(poll("RUNNING", 8), 3)).unwrap().clone();
     let followed = follower.follow(&later.recording).unwrap().clone();
     assert_eq!(orientation(&followed), top_down);
     assert_eq!(work_of(followed.execution.query), Some((8, 20)));
@@ -724,7 +727,7 @@ fn progress_followers_follow_the_recording_of_a_query_with_the_other_orientation
     assert_eq!(follower.follow(&later.recording).unwrap().revision, followed.revision);
 
     // The recording of another query starts over
-    let other = models.apply(5, stats(poll("RUNNING", 2), 1)).unwrap().clone();
+    let other = trino_model().apply(stats(poll("RUNNING", 2), 1)).unwrap().clone();
     let switched = follower.follow(&other.recording).unwrap();
     assert_eq!(operator_count(switched), 0);
     assert_eq!(work_of(switched.execution.query), Some((2, 20)));
@@ -735,19 +738,19 @@ fn progress_followers_follow_the_recording_of_a_query_with_the_other_orientation
 
 #[test]
 fn progress_models_fail_on_malformed_payloads_and_change_nothing() {
-    let mut models = QueryProgressModels::default();
-    let first = models.apply(1, stats(poll("RUNNING", 4), 1)).unwrap().clone();
+    let mut model = trino_model();
+    let first = model.apply(stats(poll("RUNNING", 4), 1)).unwrap().clone();
     let info = json!({ "stages": { "stages": [{ "stageId": "q.0", "stageStats": { "operatorSummaries": 7 } }] } });
-    let _ = models.apply(1, EngineProgressPayload::TrinoQueryInfoStats { info, received_at: 2 });
-    let after = models.model(1).unwrap().progress();
+    let _ = model.apply(EngineProgressPayload::TrinoQueryInfoStats { info, received_at: 2 });
+    let after = model.progress();
     assert_eq!(after.execution, first.execution);
     assert_eq!(after.structure, first.structure);
 }
 
 #[test]
 fn profile_execution_states_pack_as_the_events_of_the_core() {
-    let mut models = QueryProgressModels::default();
-    let progress = models.apply(1, stats(poll("RUNNING", 4), 1)).unwrap().clone();
+    let mut model = trino_model();
+    let progress = model.apply(stats(poll("RUNNING", 4), 1)).unwrap().clone();
     let bytes = progress.execution.pack_events(progress.structure_version);
     let events = flatbuffers::root::<fb::QueryProfileEvents>(&bytes).unwrap();
     assert_eq!(events.structure_version(), progress.structure_version);
@@ -791,7 +794,7 @@ fn engine_progress_payloads_read_their_json() {
 
 #[test]
 fn hyper_query_progress_reports_the_progress_of_the_whole_query() {
-    let mut models = QueryProgressModels::default();
+    let mut model = QueryProgressModel::new(fb::ProfileEngine::HYPER, None);
     let status = |completion_status: &str, progress: Option<f64>| EngineProgressPayload::HyperQueryStatus {
         status: HyperQueryStatus {
             completion_status: completion_status.into(),
@@ -801,7 +804,7 @@ fn hyper_query_progress_reports_the_progress_of_the_whole_query() {
         },
         received_at: 1,
     };
-    let running = models.apply(4, status("RUNNING_OR_UNSPECIFIED", Some(0.42))).unwrap().clone();
+    let running = model.apply(status("RUNNING_OR_UNSPECIFIED", Some(0.42))).unwrap().clone();
     let query = running.execution.query.unwrap();
     assert_eq!(query.status, Status::Running);
     assert_eq!(work_of(Some(query)), Some((420, 1000)));
@@ -810,12 +813,11 @@ fn hyper_query_progress_reports_the_progress_of_the_whole_query() {
         (Some(12000), Some(7), Some(1_500_000))
     );
     // Percentages count like fractions
-    let percent = models.apply(4, status("RUNNING_OR_UNSPECIFIED", Some(60.0))).unwrap();
+    let percent = model.apply(status("RUNNING_OR_UNSPECIFIED", Some(60.0))).unwrap();
     assert_eq!(work_of(percent.execution.query), Some((600, 1000)));
-    let finished = models.apply(4, status("FINISHED", None)).unwrap().clone();
+    let finished = model.apply(status("FINISHED", None)).unwrap().clone();
     assert_eq!(finished.execution.query.unwrap().status, Status::Succeeded);
     assert_eq!(structure(&finished).fragments().map_or(0, |f| f.len()), 0);
-    models.release(4);
 }
 
 // The execution state of a plan

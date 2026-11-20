@@ -12,7 +12,6 @@
 //! the recordings of the Trino test harness (`tests/snapshots/profiles/trino/recordings/`).
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_buffers::profile as fb;
@@ -21,7 +20,7 @@ use dashql_core_profile::{EntityState, ProfileInputEvent, ProfileUpdate, QueryPr
 use flatbuffers::FlatBufferBuilder;
 use serde_json::{json, Value};
 
-use super::{QueryId, Timestamp};
+use super::Timestamp;
 
 /// No index of an entity (`u32::MAX`), e.g. an edge without slot
 pub const NO_INDEX: u32 = u32::MAX;
@@ -648,38 +647,5 @@ impl QueryProgressFollower {
         }
         self.applied = length;
         self.model.as_ref().map(QueryProgressModel::progress)
-    }
-}
-
-/// The progress models of running queries, created with the first payload of a query
-#[derive(Default)]
-pub struct QueryProgressModels {
-    /// The models by query
-    models: HashMap<QueryId, QueryProgressModel>,
-    /// The layout of the plans
-    layout: Option<fb::ProfileLayoutConfig>,
-}
-
-impl QueryProgressModels {
-    /// The models with a layout of the plans or the default one
-    pub fn new(layout: Option<fb::ProfileLayoutConfig>) -> Self {
-        Self { models: HashMap::new(), layout }
-    }
-
-    /// Apply a payload to the model of a query, the first payload of a query creates its model for its engine
-    pub fn apply(&mut self, query_id: QueryId, payload: EngineProgressPayload) -> Result<&QueryProfileProgress> {
-        let layout = self.layout.as_ref();
-        let model = self.models.entry(query_id).or_insert_with(|| QueryProgressModel::new(payload.engine(), layout));
-        model.apply(payload)
-    }
-
-    /// The model of a query
-    pub fn model(&self, query_id: QueryId) -> Option<&QueryProgressModel> {
-        self.models.get(&query_id)
-    }
-
-    /// Release the model of a query
-    pub fn release(&mut self, query_id: QueryId) {
-        self.models.remove(&query_id);
     }
 }

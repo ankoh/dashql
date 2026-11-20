@@ -1085,49 +1085,6 @@ fn the_cloud_databases_of_the_embedded_hyper() {
 }
 
 #[test]
-fn queries_of_the_embedded_hyper_run_one_at_a_time() {
-    let mut queue = EmbeddedQueryQueue::new();
-    let (first, runs) = queue.enqueue();
-    assert!(runs);
-    let (second, runs) = queue.enqueue();
-    assert!(!runs);
-    // The second query waits until the result of the first one is read, cancelled or failed
-    assert_eq!(queue.finish(first), Some(second));
-    assert_eq!(queue.running(), Some(second));
-    assert_eq!(queue.finish(second), None);
-    assert!(queue.enqueue().1);
-}
-
-#[test]
-fn a_waiting_query_that_is_cancelled_leaves_the_queue() {
-    let mut queue = EmbeddedQueryQueue::new();
-    let (first, _) = queue.enqueue();
-    let (second, _) = queue.enqueue();
-    let (third, _) = queue.enqueue();
-    // The cancellation does not wait for the running query
-    assert_eq!(queue.finish(second), None);
-    assert_eq!(queue.running(), Some(first));
-    assert_eq!(queue.waiting().collect::<Vec<_>>(), vec![third]);
-    assert_eq!(queue.finish(first), Some(third));
-}
-
-#[test]
-fn the_metrics_of_a_result_of_the_embedded_hyper() {
-    let mut metrics = EmbeddedStreamMetrics::new(100.0);
-    assert_eq!(metrics.metrics().total_query_requests_started, 1);
-    let yields: Vec<bool> = (0..8).map(|i| metrics.record_batch(10, 3, 110.0 + f64::from(i))).collect();
-    assert_eq!(yields.iter().filter(|y| **y).count(), 1);
-    metrics.succeed(150.0);
-    let metrics = metrics.metrics();
-    assert_eq!(metrics.duration_until_first_batch_ms, Some(10));
-    assert_eq!(
-        (metrics.total_batches_received, metrics.total_rows_received, metrics.total_data_bytes_received),
-        (8, 24, 80)
-    );
-    assert_eq!((metrics.total_query_requests_succeeded, metrics.total_query_request_duration_ms), (1, 50));
-}
-
-#[test]
 fn the_descriptor_of_the_hyper_connector() {
     let params = object(json!({
         "protocol": "V3_HTTP",

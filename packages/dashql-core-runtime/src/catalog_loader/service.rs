@@ -372,11 +372,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         token.cancel();
     }
 
-    /// Is an update running?
-    pub fn is_running(&self, task_id: u32) -> bool {
-        self.state.borrow().tasks.contains_key(&task_id)
-    }
-
     /// Schedule at the end of the task
     fn request_schedule(&self) {
         {

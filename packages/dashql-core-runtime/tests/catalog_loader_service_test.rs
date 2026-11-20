@@ -714,7 +714,6 @@ fn a_reset_cancels_the_update_and_nothing_is_published() {
     host.run();
     assert!(host.query_cancelled(0));
     assert!(!host.relations_published());
-    assert!(!host.service().is_running(1));
 }
 
 impl FakeHost {
