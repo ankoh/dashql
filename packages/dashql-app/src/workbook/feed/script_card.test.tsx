@@ -75,7 +75,8 @@ function cardProps(model: ScriptModel = fakeScriptModel({ script: fakeScript(1, 
 
 /// The editor of a test mounts a view, the format of the card needs one
 function EditorSlot(props: { setView: (view: never) => void }) {
-    React.useEffect(() => props.setView({} as never), [props.setView]);
+    const { setView } = props;
+    React.useEffect(() => setView({} as never), [setView]);
     return <div data-testid="editor" />;
 }
 

@@ -112,16 +112,17 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     // effect would see the card without its editor and move all rows below by the height of the editor.
     // The rows below move in the same frame, a height applied after the paint would show them at the old height.
     const rowScriptId = entry?.scriptId;
+    const { index: rowIndex, onRowHeightChange } = props;
     React.useLayoutEffect(() => {
         const row = rowRef.current;
         if (row == null) return;
         const observer = new ResizeObserver(() => {
             const height = Math.ceil(row.getBoundingClientRect().height);
-            if (height > 0) flushSync(() => props.onRowHeightChange(props.index, height));
+            if (height > 0) flushSync(() => onRowHeightChange(rowIndex, height));
         });
         observer.observe(row);
         return () => observer.disconnect();
-    }, [props.index, rowScriptId, props.onRowHeightChange]);
+    }, [rowIndex, rowScriptId, onRowHeightChange]);
 
     // What the card shows, the identity of each part stays while it is unchanged: the card is memoized
     const position = React.useMemo<ScriptCardPosition>(() => ({ index: entryIndex, canMoveUp, canMoveDown }), [entryIndex, canMoveUp, canMoveDown]);

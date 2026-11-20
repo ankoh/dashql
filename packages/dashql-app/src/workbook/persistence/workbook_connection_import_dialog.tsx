@@ -36,9 +36,10 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
         item.connectionId,
         item.candidates.length > 0 ? { kind: 'link', connectionId: item.candidates[0].id } : { kind: 'separate' },
     ])));
+    const { busy, onCancel } = props;
     const cancel = React.useCallback(() => {
-        if (!props.busy) props.onCancel();
-    }, [props.busy, props.onCancel]);
+        if (!busy) onCancel();
+    }, [busy, onCancel]);
 
     return (
         <Overlay centered width={OverlaySize.L} onEscape={cancel} onClickOutside={cancel} initialFocusRef={dialogRef}>

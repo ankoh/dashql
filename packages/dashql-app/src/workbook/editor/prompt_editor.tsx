@@ -24,6 +24,11 @@ interface PromptEditorCallbacks {
 /// The SQL assistance: completion, highlighting and auto-closing.
 /// An empty prompt shows its placeholder rather than a completion hint.
 const SQL_ASSIST_EXTENSIONS = DashQLExtensions.filter(extension => extension !== DashQLFocusCompletionEffect && extension !== DashQLProcessorPlugin);
+/// The parts of a prompt that change without a new view. A compartment is a key into the state of a view, the prompts
+/// share them.
+const PLACEHOLDER = new Compartment();
+const ASSIST = new Compartment();
+const EDITABILITY = new Compartment();
 
 /// Create CodeMirror extensions for a prompt editor.
 /// This is a minimal setup without line numbers and gutters that grows with its content.
@@ -110,24 +115,23 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     // Create the CodeMirror view when the DOM node is mounted
     const [editorNode, setEditorNode] = React.useState<HTMLDivElement | null>(null);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const compartments = React.useMemo(() => ({
-        placeholder: new Compartment(),
-        assist: new Compartment(),
-        editability: new Compartment(),
-    }), []);
+    // The view starts with the placeholder, the assistance and the editability of the render that mounts it
+    const createView = React.useEffectEvent((editorNode: HTMLDivElement) => {
+        const configurable = [
+            PLACEHOLDER.of(placeholder(props.placeholder)),
+            ASSIST.of(props.assist ?? SQL_ASSIST_EXTENSIONS),
+            EDITABILITY.of(editability(props.readOnly ?? false)),
+        ];
+        return new EditorView({
+            state: EditorState.create({ extensions: createPromptExtensions(configurable, callbacks) }),
+            parent: editorNode,
+        });
+    });
     React.useEffect(() => {
         if (editorNode == null) {
             return;
         }
-        const configurable = [
-            compartments.placeholder.of(placeholder(props.placeholder)),
-            compartments.assist.of(props.assist ?? SQL_ASSIST_EXTENSIONS),
-            compartments.editability.of(editability(props.readOnly ?? false)),
-        ];
-        const view = new EditorView({
-            state: EditorState.create({ extensions: createPromptExtensions(configurable, callbacks) }),
-            parent: editorNode,
-        });
+        const view = createView(editorNode);
         setEditorView(view);
         return () => {
             view.destroy();
@@ -137,13 +141,13 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
 
     // Swap the placeholder, the assistance and the editability without recreating the view
     React.useEffect(() => {
-        editorView?.dispatch({ effects: compartments.placeholder.reconfigure(placeholder(props.placeholder)) });
+        editorView?.dispatch({ effects: PLACEHOLDER.reconfigure(placeholder(props.placeholder)) });
     }, [editorView, props.placeholder]);
     React.useEffect(() => {
         if (editorView == null || editorView.state.readOnly === (props.readOnly ?? false)) return;
         editorView.dispatch({
             effects: [
-                compartments.editability.reconfigure(editability(props.readOnly ?? false)),
+                EDITABILITY.reconfigure(editability(props.readOnly ?? false)),
                 // An open completion would still apply to a prompt that refuses edits
                 DashQLCompletionAbortEffect.of(null),
             ],
@@ -152,10 +156,10 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     React.useEffect(() => {
         if (editorView == null) return;
         const next = props.assist ?? SQL_ASSIST_EXTENSIONS;
-        if (compartments.assist.get(editorView.state) === next) return;
+        if (ASSIST.get(editorView.state) === next) return;
         editorView.dispatch({
             effects: [
-                compartments.assist.reconfigure(next),
+                ASSIST.reconfigure(next),
                 // A SQL completion makes no sense with a different assistance
                 ...(props.assist != null ? [DashQLCompletionAbortEffect.of(null)] : []),
             ],
@@ -163,9 +167,10 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
     }, [editorView, props.assist]);
 
     // Forward the view
+    const { setView } = props;
     React.useEffect(() => {
-        props.setView?.(editorView);
-    }, [editorView, props.setView]);
+        setView?.(editorView);
+    }, [editorView, setView]);
 
     // Bind the script session to the editor.
     // A new workbook (e.g. after the connection catalog changed) takes over the current text. The

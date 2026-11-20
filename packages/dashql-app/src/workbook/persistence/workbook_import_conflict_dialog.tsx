@@ -121,9 +121,10 @@ function CenteredConflictCard(props: CenteredWorkbookImportConflictDialogProps) 
 
 function AnchoredConflictDialog(props: AnchoredWorkbookImportConflictDialogProps) {
     const dialogRef = React.useRef<HTMLElement>(null);
+    const { busy, onCancel } = props;
     const cancel = React.useCallback(() => {
-        if (!props.busy) props.onCancel();
-    }, [props.busy, props.onCancel]);
+        if (!busy) onCancel();
+    }, [busy, onCancel]);
     const content = (
         <DialogContent
             {...props}

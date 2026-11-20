@@ -194,10 +194,11 @@ export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement
     const listRef = React.useRef<HTMLDivElement>(null);
     const searchRef = React.useRef<HTMLInputElement>(null);
     const [open, setOpen] = React.useState(false);
+    const { onApply } = props;
     const apply = React.useCallback((text: string) => {
         setOpen(false);
-        props.onApply(text);
-    }, [props.onApply]);
+        onApply(text);
+    }, [onApply]);
 
     return (
         <>
@@ -295,9 +296,10 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
     ), [formatWidth, keywordCase, props.connectorType]);
     const preview = useProjectedSqlText(text, 'snippets', formatConfig);
 
+    const { onApply } = props;
     const apply = React.useCallback(() => {
-        if (selected != null) props.onApply(text);
-    }, [selected, text, props.onApply]);
+        if (selected != null) onApply(text);
+    }, [selected, text, onApply]);
 
     // Arrow keys move the selection, Enter applies it. In the list, the focus follows the selection.
     const onKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLElement>, focusItem: boolean) => {

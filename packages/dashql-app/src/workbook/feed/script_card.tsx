@@ -23,7 +23,7 @@ import { EntryStatusBar } from '../entry_status_bar.js';
 import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
 import { DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies } from './feed_entry_header.js';
 import { FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryTab } from './feed_entry_footer.js';
-import { formattingDialectForConnector, isScriptFormattable } from '../scripts/script_format.js';
+import { formattingDialectForConnector, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
@@ -158,13 +158,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const expandResult = React.useCallback(() => {
         if (!result.expanded) result.toggle(scriptKey);
     }, [scriptKey, result]);
+    const { autoCollapse, resetAutoCollapsed } = result;
     React.useEffect(() => {
         if (query?.status !== QueryExecutionStatus.SUCCEEDED || query.resultTable !== null) {
-            result.resetAutoCollapsed(scriptKey, query?.queryId ?? script.latestQueryId ?? null);
+            resetAutoCollapsed(scriptKey, query?.queryId ?? script.latestQueryId ?? null);
             return;
         }
-        result.autoCollapse(scriptKey, query.queryId);
-    }, [result.autoCollapse, result.resetAutoCollapsed, script.latestQueryId, query, scriptKey]);
+        autoCollapse(scriptKey, query.queryId);
+    }, [autoCollapse, resetAutoCollapsed, script.latestQueryId, query, scriptKey]);
     const cancel = React.useCallback(() => {
         if (entryStatus.kind === EntryStatusKind.Query) void model.cancel();
     }, [model, entryStatus.kind]);
@@ -172,18 +173,20 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const formattingDialect = formattingDialectForConnector(connectorType);
     // Formattability only depends on the text, cursor moves bump the state revision but not the text version
+    const scriptText = useScriptText(script);
+    const { isScriptFormattable, formatScriptEditor } = dependencies;
     const isFormattable = React.useMemo(
-        () => dependencies.isScriptFormattable(script, formattingDialect),
-        [script.scriptSession, script.editorUpdate?.textVersion, formattingDialect],
+        () => isScriptFormattable(scriptText, formattingDialect),
+        [isScriptFormattable, scriptText, formattingDialect],
     );
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
         feed.editorView(scriptKey, view);
     }, [feed, scriptKey]);
     const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        dependencies.formatScriptEditor(editorView, script, mode, text => void model.setText(text),
+        formatScriptEditor(editorView, script, mode, text => void model.setText(text),
             display.formattingDebugMode, display.keywordCase, formattingDialect);
-    }, [editorView, script, model, display.formattingDebugMode, display.keywordCase, formattingDialect]);
+    }, [formatScriptEditor, editorView, script, model, display.formattingDebugMode, display.keywordCase, formattingDialect]);
 
     // Labels use the display name (the file name without ".sql"), the file name stays the identity of the commands
     const displayName = scriptDisplayName(fileName);

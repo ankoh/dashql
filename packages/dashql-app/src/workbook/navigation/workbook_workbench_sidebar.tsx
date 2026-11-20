@@ -764,6 +764,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const shutDownAndDeleteConnection = dependencies.useDeleteConnection();
     const deleteWorkbookFromRuntime = dependencies.useDeleteWorkbook();
     const storageReader = dependencies.useStorageReader();
+    const { onOpenOverview, closeAfterSelection, onOpenScript } = props;
     const storageWriter = runtime.storage;
     const setupCore = dependencies.useDashQLCoreSetup();
     const workbookImport = dependencies.useWorkbookImport();
@@ -920,12 +921,13 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     );
     /// Change the workbook tree: the change shows right away, the write follows the earlier ones, then the
     /// sidebar shows the tree as it is stored. A write that fails, e.g. a taken folder name, is logged.
+    const treeFolders = storageReader.workbookFolders;
     const changeWorkbookTree = React.useCallback((
         what: string,
-        write: (folders: NonNullable<typeof storageReader.workbookFolders>) => Promise<void>,
+        write: (folders: NonNullable<typeof treeFolders>) => Promise<void>,
         optimistic?: (tree: WorkbookTreeFolder) => WorkbookTreeFolder,
     ) => {
-        const workbookFolders = storageReader.workbookFolders;
+        const workbookFolders = treeFolders;
         if (workbookFolders == null) return;
         if (optimistic != null) setWorkbookTree(optimistic);
         treeWriteRef.current = treeWriteRef.current
@@ -933,7 +935,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             .then(() => write(workbookFolders))
             .catch(error => logger.warn(`failed to ${what}`, { error: String(error) }, 'workbook_workbench'))
             .then(() => setWorkbookTree(workbookFolders.getWorkbookTree()));
-    }, [logger, storageReader.workbookFolders]);
+    }, [logger, treeFolders]);
 
     const moveWorkbook = React.useCallback((workbookId: string, folderPath: string[], index: number) => {
         changeWorkbookTree(
@@ -1013,7 +1015,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             return;
         }
         changeWorkbookTree('rename the folder', folders => folders.moveFolder(folder.path, parentPath, name));
-    }, [changeWorkbookTree, logger, workbookTree]);
+    }, [changeWorkbookTree, logger, runtime, workbookTree]);
 
     const deleteFolder = React.useCallback((folder: WorkbookTreeFolder) => {
         const count = flattenWorkbookTree(folder).length;
@@ -1026,9 +1028,9 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     /// Open the greeter, its first script creates the workbook
     const openGreeter = React.useCallback(() => {
         openGreeterPage();
-        props.onOpenOverview?.(null);
-        props.closeAfterSelection?.();
-    }, [openGreeterPage, props.closeAfterSelection, props.onOpenOverview]);
+        onOpenOverview?.(null);
+        closeAfterSelection?.();
+    }, [openGreeterPage, closeAfterSelection, onOpenOverview]);
 
     /// Create a workbook in a folder on the embedded Hyper, or on the Hyper of the link that the app was opened with.
     /// Its scripts attach other connections.
@@ -1036,8 +1038,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const { workbookId } = createWorkbook(resolveNewWorkbookConnection());
         moveWorkbook(workbookId, folderPath, Number.MAX_SAFE_INTEGER);
         navigate({ type: SELECT_WORKBOOK, value: workbookId });
-        props.closeAfterSelection?.();
-    }, [createWorkbook, moveWorkbook, navigate, props.closeAfterSelection, resolveNewWorkbookConnection]);
+        closeAfterSelection?.();
+    }, [createWorkbook, moveWorkbook, navigate, closeAfterSelection, resolveNewWorkbookConnection]);
 
     // A promoted workbook moves to the end of the root like a new workbook, its entry in the tree may be older than the
     // others. The next ephemeral workbook takes over the row. The aside and the drawer may both do this: the second move
@@ -1102,7 +1104,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
             logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'workbook_workbench');
         });
-    }, [connections, connectionList, labelOf, logger, mergeConnections]);
+    }, [runtime, connections, connectionList, labelOf, logger, mergeConnections]);
 
     /// What keeps a connection from being replaced, the picker offers every other listed connection
     const replaceBlocker = React.useCallback(
@@ -1214,18 +1216,16 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
 
     const openWorkbook = React.useCallback((item: WorkbookItem) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });
-        props.onOpenOverview?.(null);
-        props.closeAfterSelection?.();
-    }, [navigate, props.closeAfterSelection, props.onOpenOverview]);
+        onOpenOverview?.(null);
+        closeAfterSelection?.();
+    }, [navigate, closeAfterSelection, onOpenOverview]);
     /// Open a workbook at one of its scripts, the workbook row selects the script
     const openScript = React.useCallback((item: WorkbookItem, fileName: string) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });
-        props.onOpenOverview?.(null);
-        props.onOpenScript?.(item.workbookId, fileName);
-        props.closeAfterSelection?.();
-    }, [navigate, props.closeAfterSelection, props.onOpenOverview, props.onOpenScript]);
-    const onOpenOverview = props.onOpenOverview;
-    const closeAfterSelection = props.closeAfterSelection;
+        onOpenOverview?.(null);
+        onOpenScript?.(item.workbookId, fileName);
+        closeAfterSelection?.();
+    }, [navigate, closeAfterSelection, onOpenOverview, onOpenScript]);
     const openOverview = React.useMemo(() => onOpenOverview == null ? undefined : (connectionId: string) => {
         onOpenOverview(connectionId);
         closeAfterSelection?.();

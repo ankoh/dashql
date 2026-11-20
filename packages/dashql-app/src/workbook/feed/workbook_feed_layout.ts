@@ -172,6 +172,7 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
         getRowHeight: (index: number) => rowHeightCache.getRowHeight(index),
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the cache is mutable, a new object after a measure or a new inset makes the list read its heights again
     }), [rowHeightCache, heightsVersion, bottomInset]);
     // A row above the viewport changed its height: the rows in view stay in place.
     // The browser can't anchor the scroll position itself, the list positions its rows with transforms.

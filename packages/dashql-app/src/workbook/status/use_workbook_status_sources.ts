@@ -72,10 +72,10 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
     }));
 }
 
-/// Keeps the identity of a value while its JSON is unchanged
+/// Keeps the identity of a value of plain JSON while its JSON is unchanged
 function useStable<T>(value: T): T {
     const json = JSON.stringify(value);
-    return React.useMemo(() => value, [json]);
+    return React.useMemo(() => JSON.parse(json) as T, [json]);
 }
 
 /// What runs: the queries of single scripts, all scripts, connections that connect and refresh their catalog, a

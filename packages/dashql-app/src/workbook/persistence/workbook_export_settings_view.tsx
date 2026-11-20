@@ -25,26 +25,27 @@ interface Props {
 }
 
 export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
+    const { settings, setSettings } = props;
 
     const toggleCatalog = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        props.setSettings({ ...props.settings, withCatalog: !props.settings.withCatalog });
-    }, [props.settings, props.setSettings]);
+        setSettings({ ...settings, withCatalog: !settings.withCatalog });
+    }, [settings, setSettings]);
 
     const toggleLoginHint = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        props.setSettings({ ...props.settings, withLoginHint: !props.settings.withLoginHint });
-    }, [props.settings, props.setSettings]);
+        setSettings({ ...settings, withLoginHint: !settings.withLoginHint });
+    }, [settings, setSettings]);
 
     const toggleQueryResults = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        props.setSettings({ ...props.settings, withQueryResults: !props.settings.withQueryResults });
-    }, [props.settings, props.setSettings]);
+        setSettings({ ...settings, withQueryResults: !settings.withQueryResults });
+    }, [settings, setSettings]);
 
     const togglePreserveUUIDs = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        props.setSettings({ ...props.settings, preserveUUIDs: !props.settings.preserveUUIDs });
-    }, [props.settings, props.setSettings]);
+        setSettings({ ...settings, preserveUUIDs: !settings.preserveUUIDs });
+    }, [settings, setSettings]);
 
     return (
         <div className={styles.root}>

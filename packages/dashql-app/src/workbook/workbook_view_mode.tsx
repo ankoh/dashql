@@ -76,20 +76,24 @@ export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (prop
             pendingViewSearchRef.current = navigation.to.search;
             navigate(navigation.to, navigation.options);
         }
-    }, [location.pathname, location.search, location.hash, location.state, navigate]);
+    }, [location, navigate]);
     const workbookViewModeValue = React.useMemo<WorkbookViewModeContextValue>(
         () => ({ mode: workbookViewMode, setMode: setWorkbookViewMode }),
         [workbookViewMode, setWorkbookViewMode],
     );
 
+    // The fallback to the workbook keeps the rest of the current location
+    const showWorkbookInUrl = React.useEffectEvent(() => {
+        const navigation = workbookViewNavigation(location, WorkbookViewMode.Workbook);
+        navigate(navigation.to, navigation.options);
+    });
     React.useEffect(() => {
         const requested = workbookViewModeFromSearch(location.search);
         const parameter = new URLSearchParams(location.search).get('view');
         // An unknown view falls back to the workbook, also in the URL
         if (parameter != null && !inSearch(requested)) {
             pendingViewSearchRef.current = null;
-            const navigation = workbookViewNavigation(location, WorkbookViewMode.Workbook);
-            navigate(navigation.to, navigation.options);
+            showWorkbookInUrl();
             return;
         }
         if (pendingViewSearchRef.current != null) {

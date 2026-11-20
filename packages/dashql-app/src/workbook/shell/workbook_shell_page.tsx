@@ -124,13 +124,15 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         };
     }, [connection?.connectionId, database, logger, mountsFiles]);
 
+    // The terminal follows its connection by id, an event of the connection keeps it
+    const shellConnectionId = connection?.connectionId ?? null;
     React.useEffect(() => {
-        if (connection == null || catalog == null || containerRef.current == null) return;
+        if (shellConnectionId == null || catalog == null || containerRef.current == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
         const environment = createWorkbookShellEnvironment(
             workbookId,
-            connection.connectionId,
+            shellConnectionId,
             (connectionId, args) => {
                 const current = runtimeRef.current;
                 if (current == null) throw new Error('the query executor needs a RuntimeProvider');
@@ -219,7 +221,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [connection?.connectionId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult]);
+    }, [shellConnectionId, workbookId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult, logger]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

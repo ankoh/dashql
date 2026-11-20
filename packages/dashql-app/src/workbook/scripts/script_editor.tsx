@@ -88,13 +88,15 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     // Track the current CodeMirror view. The session of the script only reads, the events of the editor go to the
     // runtime, so several editors may show the same script.
     const [view, setViewState] = React.useState<EditorView | null>(null);
-    // Effect to update the editor script whenever the script changes
-    React.useEffect(() => {
+    // Update the editor script whenever the script changes: its session, its analysis, its diff or its connection, a
+    // new script object alone (e.g. a new cached result) doesn't bind it again, nor does a change of the extensions
+    const bindScript = React.useEffectEvent(() => {
         if (config == null || view == null || scriptData == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
         const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
         updateEditor(view, runtime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
-    }, [
+    });
+    React.useEffect(() => bindScript(), [
         config,
         view,
         scriptData?.scriptSession,
@@ -118,11 +120,12 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         view.dispatch({ effects: DashQLScriptReferencesEffect.of(references) });
     }, [view, references, scriptData?.editorUpdate, scriptData?.scriptSession]);
     // Forward the view ref, if requested
+    const { setView } = props;
     React.useEffect(() => {
-        if (props.setView && view != null) {
-            props.setView(view);
+        if (setView && view != null) {
+            setView(view);
         }
-    }, [view, props.setView]);
+    }, [view, setView]);
 
     // The CodeMirror view only reads the initial document when mounting, don't copy the text on every render
     const initialDoc = React.useMemo(() => scriptData?.scriptSession.getText() ?? '', [scriptData?.scriptSession]);

@@ -48,8 +48,9 @@ function App(props: { restore: (runtime: Runtime) => Promise<core.RestoreOutcome
     const connections = useConnections();
     const workbooks = useWorkbooks();
     const [restored, setRestored] = React.useState<core.RestoreOutcome | null>(null);
+    const restore = React.useEffectEvent(() => props.restore(runtime));
     React.useEffect(() => {
-        void props.restore(runtime).then(setRestored);
+        void restore().then(setRestored);
     }, []);
     React.useLayoutEffect(() => {
         if (restored != null) props.capture({ runtime, writer, logger, connections, workbooks });

@@ -48,7 +48,8 @@ const dependencies = {
         </div>
     ),
     WorkbookShellPage: ({ connectionId, active }: { connectionId: string; active: boolean }) => {
-        React.useEffect(() => { state.shellMounts.push(connectionId); }, []);
+        const mounted = React.useEffectEvent(() => { state.shellMounts.push(connectionId); });
+        React.useEffect(() => mounted(), []);
         return <div data-testid="shell" data-connection-id={connectionId} data-active={active} />;
     },
 } as unknown as WorkbookShellsPageDependencies;

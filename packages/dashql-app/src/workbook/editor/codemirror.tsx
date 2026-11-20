@@ -64,23 +64,27 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
 
     const [node, setNode] = React.useState<HTMLDivElement | null>(null);
 
+    // The view starts with the document and the extensions of the render that mounts it, later ones change the view
+    const createView = React.useEffectEvent((node: HTMLDivElement) => {
+        logger.debug("Creating a new codemirror view", {}, "codemirror");
+        const extensions = props.extensions == null
+            ? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])]
+            : [...props.extensions, ...CodeMirrorSearchExtensions];
+        return new EditorView({
+            state: EditorState.create({ doc: props.initialDoc, extensions }),
+            parent: node,
+            root: props.root,
+        });
+    });
+
     React.useEffect(() => {
         // Not mounted yet?
         // Then do nothing.
         if (node == null) {
             return () => { };
         }
-        logger.debug("Creating a new codemirror view", {}, "codemirror");
-
         // The DOM node has changed, create a new view
-        const extensions = props.extensions == null
-            ? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])]
-            : [...props.extensions, ...CodeMirrorSearchExtensions];
-        const view = new EditorView({
-            state: EditorState.create({ doc: props.initialDoc, extensions }),
-            parent: node,
-            root: props.root,
-        });
+        const view = createView(node);
 
         // Forward the ref
         if (typeof ref === 'function') {

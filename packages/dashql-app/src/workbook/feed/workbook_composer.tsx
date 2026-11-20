@@ -156,16 +156,17 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     const [view, setView] = React.useState<EditorView | null>(null);
     const [empty, setEmpty] = React.useState(true);
+    const { setView: forwardView, onDraftEmptyChange, onSend } = props;
     const handleView = React.useCallback((next: EditorView | null) => {
         setView(next);
-        props.setView?.(next);
-    }, [props.setView]);
+        forwardView?.(next);
+    }, [forwardView]);
 
     const scriptNames = props.scriptNames ?? NO_SCRIPT_NAMES;
     const handleTextChange = React.useCallback((text: string) => {
         setEmpty(text.trim().length === 0);
     }, []);
-    React.useEffect(() => props.onDraftEmptyChange?.(empty), [empty, props.onDraftEmptyChange]);
+    React.useEffect(() => onDraftEmptyChange?.(empty), [empty, onDraftEmptyChange]);
     // The inputs of the draft follow its analysis, a cursor move changes nothing
     const [draftInputs, setDraftInputs] = React.useState(NO_INPUTS);
     const handleEditorUpdate = React.useCallback((update: core.buffers.editor.EditorUpdateT) => {
@@ -207,9 +208,9 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (active instanceof HTMLElement && inputsRef.current?.contains(active)) active.blur();
         const text = takeComposerDraft(view);
         if (text != null) {
-            props.onSend(text);
+            onSend(text);
         }
-    }, [props.onSend, view, ai, offlineWorkbookId, connectionAttention]);
+    }, [onSend, view, ai, offlineWorkbookId, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -266,9 +267,10 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     // The landing view is all about the prompt, focus it right away
     const hero = props.variant === WorkbookComposerVariant.Hero;
-    React.useEffect(() => {
+    const focusHero = React.useEffectEvent((view: EditorView | null) => {
         if (hero) view?.focus();
-    }, [view]);
+    });
+    React.useEffect(() => focusHero(view), [view]);
 
     const session = props.session != null && props.session.connected ? props.session : null;
     const showDraftInputs = !ai && draftInputs.length > 0;

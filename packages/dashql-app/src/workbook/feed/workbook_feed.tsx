@@ -204,6 +204,7 @@ const LANDING_WOBBLE_TUNING: Partial<WobbleTuning> = { wobble: 0.03, wobbleSpeed
 
 export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const { modifyWorkbookScripts } = props;
     const config = useAppConfig();
     const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
@@ -219,7 +220,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // The estimated heights only matter until a row is measured.
     // Don't re-estimate (and copy the text of every script) whenever any script changes.
     const canonicalEntries = React.useMemo(
-        () => getScriptRefs(props.workbookScripts).map(entry => ({
+        () => getScriptRefs({ scriptRefs, scriptOrder }).map(entry => ({
             ...entry,
             estimatedHeight: estimateFeedEntryHeight(
                 scriptsRef.current[entry.scriptId]?.scriptSession.getText() ?? '',
@@ -311,7 +312,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const handleAttachmentInput = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (attachmentsEnabled && event.target.files != null) void saveAttachments(Array.from(event.target.files));
         event.target.value = '';
-    }, [saveAttachments]);
+    }, [attachmentsEnabled, saveAttachments]);
     const handleAttachmentDrop = React.useCallback((event: React.DragEvent<HTMLElement>) => {
         event.preventDefault();
         if (props.active && attachmentsEnabled) void saveAttachments(Array.from(event.dataTransfer.files));
@@ -321,9 +322,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
     const latest = React.useRef({ workbookScripts: props.workbookScripts, scripts, scriptConnections });
     latest.current = { workbookScripts: props.workbookScripts, scripts, scriptConnections };
-    const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, props.modifyWorkbookScripts);
+    const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, modifyWorkbookScripts);
     // New scripts, and the draft of the composer, use the default connection of the workbook
-    const pickPendingConnection = dependencies.usePickPendingConnection(props.modifyWorkbookScripts);
+    const pickPendingConnection = dependencies.usePickPendingConnection(modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -343,17 +344,17 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const runScript = dependencies.useScriptRun();
 
     const handleDelete = React.useCallback((fileName: string) => {
-        deleteScript(selection, latest.current.workbookScripts, props.modifyWorkbookScripts, fileName);
-    }, [props.modifyWorkbookScripts, selection]);
+        deleteScript(selection, latest.current.workbookScripts, modifyWorkbookScripts, fileName);
+    }, [modifyWorkbookScripts, selection]);
 
     // A rename rewrites the references in the other scripts and in the draft of the composer
     const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     const composerRenameScriptRef = props.draftRenameRef ?? ownDraftRenameRef;
     const readScript = dependencies.useLiveScriptReader();
     const handleRename = React.useCallback((oldFileName: string, newFileName: string) => {
-        renameScript(props.workbookScripts, props.modifyWorkbookScripts, oldFileName, newFileName, composerRenameScriptRef.current,
+        renameScript(props.workbookScripts, modifyWorkbookScripts, oldFileName, newFileName, composerRenameScriptRef.current,
             key => readScript(key)?.fileName ?? null);
-    }, [props.workbookScripts, props.modifyWorkbookScripts, composerRenameScriptRef, readScript]);
+    }, [props.workbookScripts, modifyWorkbookScripts, composerRenameScriptRef, readScript]);
 
     // Move a script one position up/down within the workbook by swapping it with its neighbour in the
     // feed order and dispatching the new full order.
@@ -363,8 +364,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const to = from + delta;
         if (from < 0 || to < 0 || to >= order.length) return;
         [order[from], order[to]] = [order[to], order[from]];
-        props.modifyWorkbookScripts({ kind: 'reorderScripts', value: { order } });
-    }, [props.modifyWorkbookScripts]);
+        modifyWorkbookScripts({ kind: 'reorderScripts', value: { order } });
+    }, [modifyWorkbookScripts]);
     const handleMoveUp = React.useCallback((fileName: string) => moveScript(fileName, -1), [moveScript]);
     const handleMoveDown = React.useCallback((fileName: string) => moveScript(fileName, 1), [moveScript]);
     const dndSensors = useSensors(
@@ -380,8 +381,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         // Stable script ids let React and dnd-kit retain card identity without forcing a render while
         // dnd-kit still has the active drag transform applied.
         setDisplayEntries({ source: canonicalEntries, entries: reordered });
-        props.modifyWorkbookScripts({ kind: 'reorderScripts', value: { order: reordered.map(entry => entry.fileName) } });
-    }, [entries, props.modifyWorkbookScripts, canonicalEntries]);
+        modifyWorkbookScripts({ kind: 'reorderScripts', value: { order: reordered.map(entry => entry.fileName) } });
+    }, [entries, modifyWorkbookScripts, canonicalEntries]);
 
 
 
@@ -389,11 +390,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // Accept / reject a staged rewrite from the feed. Accept keeps the new text; reject restores the
     // prior text and re-analyzes.
     const handleAcceptDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
-    }, [props.modifyWorkbookScripts]);
+        modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
+    }, [modifyWorkbookScripts]);
     const handleRejectDiff = React.useCallback((scriptKey: number) => {
-        props.modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
-    }, [props.modifyWorkbookScripts]);
+        modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
+    }, [modifyWorkbookScripts]);
     const handleToggleResultExpanded = React.useCallback((scriptKey: number) => {
         setCollapsedResults(current => {
             const next = new Map(current);
@@ -451,7 +452,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 setAttachmentError('Renaming attachment failed');
                 logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
-    }, [runtime, composerRenameScriptRef, logger]);
+    }, [runtime, composerRenameScriptRef, logger, workbookId]);
     const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global
@@ -533,6 +534,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const composerSectionSize = useObservedSize(composerSectionRef);
     const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
     const feedLayout = useWorkbookFeedLayout(entries, bottomInset);
+    const { listRef: feedListRef, getEntrySpan } = feedLayout;
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -549,7 +551,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const readWorkbook = dependencies.useLiveWorkbookReader();
     const appendScript = React.useCallback(async (text: string) => {
         const prev = latest.current.workbookScripts;
-        const outcome = props.modifyWorkbookScripts(createScriptAction(prev, { text }));
+        const outcome = modifyWorkbookScripts(createScriptAction(prev, { text }));
         if (!outcome.ok) return null;
         pendingScrollToEndRef.current = true;
         const next = readWorkbook(prev.workbookId);
@@ -557,7 +559,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         if (next == null || created == null) return null;
         const scriptData = readScript(created.scriptId);
         return scriptData != null ? { next, scriptData } : null;
-    }, [props.modifyWorkbookScripts, selection, readWorkbook, readScript]);
+    }, [modifyWorkbookScripts, selection, readWorkbook, readScript]);
     const runAppendedScript = React.useCallback((next: WorkbookScripts, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
@@ -573,9 +575,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // A created script has no entry until the next render.
     const revealScript = React.useCallback((scriptKey: number, target: AgentFollowTarget) => {
         const index = entries.findIndex(entry => entry.scriptId === scriptKey);
-        const element = feedLayout.listRef.current?.element;
+        const element = feedListRef.current?.element;
         if (index < 0 || element == null) return;
-        const [cardTop, bottom] = feedLayout.getEntrySpan(index);
+        const [cardTop, bottom] = getEntrySpan(index);
         // The first script also shows the space above the feed, the add button above the script sits in it
         let top = index === 0 ? 0 : cardTop;
         // The part of the feed that the prompt leaves free
@@ -589,7 +591,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         }
         const offset = revealScrollOffset(top, bottom, element.scrollTop, viewportHeight);
         if (offset != null) element.scrollTo({ top: offset });
-    }, [entries, feedLayout.listRef, feedLayout.getEntrySpan, bottomInset]);
+    }, [entries, feedListRef, getEntrySpan, bottomInset]);
 
     // The feed follows the agent of a session to the scripts it edits and runs for a question, also while the agent
     // still works. The followed script stays in view as it is measured and its results arrive.
@@ -634,7 +636,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const handleCreate = React.useCallback((index: number) => {
         const prev = latest.current.workbookScripts;
-        const outcome = props.modifyWorkbookScripts(createScriptAction(prev, { index }));
+        const outcome = modifyWorkbookScripts(createScriptAction(prev, { index }));
         if (!outcome.ok) return;
         const created = selectCreatedScript(selection, prev, readWorkbook(prev.workbookId));
         if (created == null) return;
@@ -648,7 +650,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         } else {
             pendingCreatedScriptKeyRef.current = created.scriptId;
         }
-    }, [props.modifyWorkbookScripts, selection, readWorkbook]);
+    }, [modifyWorkbookScripts, selection, readWorkbook]);
 
     // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
@@ -684,8 +686,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
-        feedLayout.listRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
-    }, [entries.length]);
+        feedListRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
+    }, [entries.length, feedListRef]);
 
     // The checked script references of every script, the runtime checks them again when an analysis changes
     const scriptReferences = dependencies.useWorkbookDerived(workbookId)?.references;
@@ -711,7 +713,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         resetAutoCollapsed: handleResetAutoCollapsedResult,
     }), [handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult]);
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
-        workbookId: props.workbookScripts.workbookId,
+        workbookId,
         scriptReferences,
         connections: scriptConnections,
         entries,
@@ -726,7 +728,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         fold,
         feed: feedCommands,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [entries, scriptReferences, rowsActive, scriptConnections, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
@@ -797,7 +799,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             <WorkbookInputStrip
                 className={styles.feed_top_strip}
                 workbookId={workbookId}
-                modifyWorkbookScripts={props.modifyWorkbookScripts}
+                modifyWorkbookScripts={modifyWorkbookScripts}
                 leading={attachmentsVisible ? (
                     <button type="button" className={styles.feed_data_chip}
                         aria-expanded={attachmentsExpanded}

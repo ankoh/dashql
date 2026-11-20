@@ -96,16 +96,10 @@ export default defineConfig(
         plugins: { 'react-hooks': reactHooks },
         rules: {
             'react-hooks/rules-of-hooks': 'error',
-            // Off until the hooks of a package are reviewed (the block below): a missing dependency changes when an
-            // effect runs, so every hook needs a review of its own before the rule can be an error
-            'react-hooks/exhaustive-deps': 'off',
+            // A hook lists every value it reads. An effect that runs on one value by intent reads the others with
+            // useEffectEvent
+            'react-hooks/exhaustive-deps': 'error',
         },
-    },
-    {
-        // The React packages whose hooks are reviewed: every hook lists what it reads. The workbooks of the app follow.
-        files: ['packages/dashql-org/**', 'packages/dashql-react/**', 'packages/dashql-app/**'],
-        ignores: ['packages/dashql-app/src/workbook/**'],
-        rules: { 'react-hooks/exhaustive-deps': 'error' },
     },
     {
         // Scripts of Node: tests, drivers, build scripts and the configs of the tools

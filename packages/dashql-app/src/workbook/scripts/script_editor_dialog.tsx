@@ -52,11 +52,12 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     const status = deriveEntryStatus(queryState, queryProgress);
     const runtime = useOptionalRuntime();
     const workbookExecution = useWorkbookExecution(workbookId);
+    const { busy: workbookBusy, stop: stopWorkbook } = workbookExecution;
     const cancel = React.useCallback(() => {
         if (script?.latestQueryId == null) return;
-        if (workbookExecution.busy) workbookExecution.stop();
+        if (workbookBusy) stopWorkbook();
         else void runtime?.cancel(script.latestQueryId);
-    }, [script, workbookExecution.busy, workbookExecution.stop, runtime]);
+    }, [script, workbookBusy, stopWorkbook, runtime]);
 
     // Escape closes an open completion first, then the dialog
     const onEscape = React.useCallback(() => {
@@ -70,11 +71,12 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     // The menus of the header open outside of the dialog, a click outside keeps it open
     const ignoreOutsideClick = React.useCallback(() => {}, []);
     const selection = useScriptSelection();
+    const { onDelete } = props;
     const remove = React.useCallback((target: ScriptData) => {
-        if (props.onDelete != null) props.onDelete(target);
+        if (onDelete != null) onDelete(target);
         else deleteScript(selection, workbookScripts, modifyWorkbookScripts, target.fileName);
         onClose();
-    }, [props.onDelete, selection, workbookScripts, modifyWorkbookScripts, onClose]);
+    }, [onDelete, selection, workbookScripts, modifyWorkbookScripts, onClose]);
     // The editor accepts or rejects a diff itself and clears the staged rewrite through the workbook
     const acceptDiff = React.useCallback(() => {
         if (editorView != null) acceptPendingDiff(editorView);

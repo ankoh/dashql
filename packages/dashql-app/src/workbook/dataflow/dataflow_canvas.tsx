@@ -237,12 +237,13 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             if (p != null) placedInputs.set(input.name, { x: p.x, y: p.y });
         });
         return { boxes, laidOut };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- a drop, a resize and arrange lay out again by a new revision, the layout reads them from refs
     }, [graph, scriptOf, chartStatement, arrangeRevision, layoutModule]);
     const positions = layout.boxes;
 
     // After a drop or a resize, every script box is saved in its `@flow` tag: a reload lays out from there and shows
     // the same layout. Tags that already hold the position and the size stay.
-    React.useEffect(() => {
+    const persistLayout = React.useEffectEvent((positions: DataflowBoxPosition[]) => {
         const commit = commitRef.current;
         if (commit == null) return;
         commitRef.current = null;
@@ -256,7 +257,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             const height = resized != null ? resized.chartHeight ?? flow?.height ?? null : flow?.height ?? null;
             persistFlowPlacement(script, { x: p.x, y: p.y }, width, height, modifyWorkbookScripts);
         });
-    }, [positions]);
+    });
+    React.useEffect(() => persistLayout(positions), [positions]);
 
     // A dragged box follows the pointer, a resized box takes the size of the pointer. The other boxes make room once
     // the size is written.
@@ -276,14 +278,14 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             }
         }
         return out;
-    }, [positions, drag, resize, graph.scripts, graph.inputs, chartStatement]);
+    }, [positions, drag, resize, graph.scripts, graph.inputs, chartStatement, config]);
     // The edges between boxes go around the other boxes, routed by the core
     // Edges follow the routes of the layout, the edges of a dragged or resized box are routed around the boxes
     const routing: DataflowRouting = React.useMemo(
         () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
         [layout, layoutModule],
     );
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, NEVER_COLLAPSED, config, routing), [graph, shown, chartStatement, routing]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, NEVER_COLLAPSED, config, routing), [graph, shown, chartStatement, config, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -404,7 +406,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             window.removeEventListener('pointerup', up);
             window.removeEventListener('pointercancel', cancel);
         };
-    }, []);
+    }, [config]);
     const onHandleDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneBox) => {
         if (event.button !== 0) return;
         event.stopPropagation();
@@ -456,7 +458,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             window.removeEventListener('pointerup', up);
             window.removeEventListener('pointercancel', cancel);
         };
-    }, []);
+    }, [config]);
     const onResizeDown = React.useCallback((event: React.PointerEvent, box: DataflowSceneBox) => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -481,7 +483,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         // A box at a bound of its size stays as it is
         if (size.width === box.width && size.chartHeight === (box.chart?.height ?? null)) return;
         writeSize(box.script.scriptKey, size);
-    }, [writeSize]);
+    }, [writeSize, config]);
 
     // Creating and removing scripts
     // The selected script of the workbook, not the selection of the boxes
@@ -512,7 +514,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         const [x, y] = transformRef.current.invert([event.clientX - rect.left, event.clientY - rect.top]);
         const grid = config.grid;
         createAt({ x: Math.round(x / grid) * grid, y: Math.round(y / grid) * grid }, null);
-    }, [createAt]);
+    }, [createAt, config]);
     const arrange = React.useCallback(() => {
         placedRef.current.clear();
         placedInputsRef.current.clear();

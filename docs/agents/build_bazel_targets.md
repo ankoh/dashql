@@ -310,14 +310,12 @@ part of `//packages/...` and `//tests/agents/...`. Every finding fails the test,
   (`no-restricted-imports` for `import` and `export … from`, `no-restricted-syntax` for `import()`); hyperdb-edge and
   the desktop app run the output of tsc in Node, and the declarations of `@akohn/dashql` resolve under `NodeNext`.
   Assets keep their extension (`.css`, `.sql?raw`, `?url`)
-- `react-hooks/rules-of-hooks` in the app, `@akohn/dashql-react` and the website: a function that calls hooks is
-  named `use…`
-- `react-hooks/exhaustive-deps` in `@akohn/dashql-react`, the website and the app outside of `src/workbook`: a hook
-  lists every value it reads
+- `react-hooks/rules-of-hooks` and `react-hooks/exhaustive-deps` in the app, `@akohn/dashql-react` and the website: a
+  function that calls hooks is named `use…`, a hook lists every value it reads. An effect that runs on one value by
+  intent reads the others with `useEffectEvent`, a suppression names its reason
 
-Off, with the reason in the config: `@typescript-eslint/no-explicit-any`, `no-control-regex`,
-`@typescript-eslint/no-namespace` and `react-hooks/exhaustive-deps` in `src/workbook` of the app (a dependency added
-changes when an effect runs, so the hooks need a review before the rule is on there).
+Off, with the reason in the config: `@typescript-eslint/no-explicit-any`, `no-control-regex` and
+`@typescript-eslint/no-namespace`.
 
 ```bash
 # One package

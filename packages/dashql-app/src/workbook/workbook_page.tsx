@@ -72,7 +72,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
         if (route.workbookId === null) {
             logger.warn('missing workbook id', {}, LOG_CTX);
         }
-    }, [route.workbookId]);
+    }, [route.workbookId, logger]);
 
     // The greeter stays at the root until a script promotes its workbook
     const navigate = dependencies.useRouterNavigate();

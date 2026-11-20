@@ -84,13 +84,17 @@ describe('ScriptEditor', () => {
             createCodeMirrorExtensions: () => [DashQLProcessorPlugin],
             CodeMirror: React.forwardRef<EditorView, any>((props, ref) => {
                 const [node, setNode] = React.useState<HTMLDivElement | null>(null);
-                React.useEffect(() => {
-                    if (node == null) return;
+                const createView = React.useEffectEvent((node: HTMLDivElement) => {
                     const view = new EditorView({
                         state: EditorState.create({ doc: props.initialDoc, extensions: [DashQLProcessorPlugin, ...(props.extraExtensions ?? [])] }),
                         parent: node,
                     });
                     (ref as (view: EditorView) => void)(view);
+                    return view;
+                });
+                React.useEffect(() => {
+                    if (node == null) return;
+                    const view = createView(node);
                     return () => view.destroy();
                 }, [node]);
                 return <div ref={setNode} />;

@@ -108,7 +108,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         scrollToLast();
         const raf = requestAnimationFrame(scrollToLast);
         return () => cancelAnimationFrame(raf);
-    }, [logVersion, containerHeight, filteredLogs, filteredLogsVersion, props.traceId, logger]);
+    }, [logVersion, containerHeight, filteredLogs, filteredLogsVersion, props.traceId, logger, listRef, rowCount]);
 
     // Helper to show JSON modal for a log record
     const showJsonRecord = React.useCallback((rowIndex: number) => {
@@ -121,7 +121,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         if (record) {
             setJsonModalState([record, rowIndex]);
         }
-    }, [props.traceId, filteredLogs, filteredLogsVersion, logger]);
+    }, [props.traceId, filteredLogs, logger]);
 
     // Navigate to previous log record
     const showPreviousRecord = React.useCallback(() => {
@@ -134,7 +134,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         const maxIndex = props.traceId !== undefined ? filteredLogs.length - 1 : logger.buffer.length - 1;
         if (jsonModalRecordIndex >= maxIndex) return;
         showJsonRecord(jsonModalRecordIndex + 1);
-    }, [jsonModalRecordIndex, showJsonRecord, props.traceId, filteredLogs, filteredLogsVersion, logger]);
+    }, [jsonModalRecordIndex, showJsonRecord, props.traceId, filteredLogs, logger]);
 
     // Keyboard navigation when modal is open
     useKeyEvents(
@@ -168,7 +168,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
                 align: 'center',
             });
         }
-    }, [jsonModalRecordIndex]);
+    }, [jsonModalRecordIndex, listRef]);
 
     // Row props
     const rowProps = React.useMemo<LogRowProps>(() => ({
@@ -176,7 +176,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         showJsonRecord,
         selectedRecordIndex: jsonModalRecordIndex,
         filteredLogs: props.traceId !== undefined ? filteredLogs : undefined,
-    }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs, filteredLogsVersion]);
+    }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs]);
 
     return (
         <>

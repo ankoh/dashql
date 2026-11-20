@@ -37,7 +37,8 @@ export function ChartSpecJsonEditor(props: Props): React.ReactElement {
     const [error, setError] = React.useState<string | null>(null);
     const onChangeRef = React.useRef(props.onChange);
     onChangeRef.current = props.onChange;
-    const initialDoc = React.useMemo(() => JSON.stringify(props.initialSpec, null, 2), []);
+    // The editor starts with the spec it opened with, its edits change the spec
+    const [initialDoc] = React.useState(() => JSON.stringify(props.initialSpec, null, 2));
 
     const extensions = React.useMemo<Extension[]>(() => [
         themes.xcode,

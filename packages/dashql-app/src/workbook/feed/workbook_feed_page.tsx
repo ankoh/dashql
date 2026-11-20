@@ -207,7 +207,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
         setDetails(null);
         if (mode !== WorkbookViewMode.Workbook) setMode(WorkbookViewMode.Workbook);
         setRevealRequest({ workbookId, fileName });
-    }, [mode, setMode]);
+    }, [mode, setMode, setOverviewConnectionId]);
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.WorkbookWorkbenchSidebar
             workbookScripts={props.workbookScripts}

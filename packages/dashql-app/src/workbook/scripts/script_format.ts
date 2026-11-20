@@ -1,3 +1,4 @@
+import * as React from 'react';
 import * as dashql from '@akohn/dashql';
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -56,8 +57,25 @@ export function formatSqlText(core: dashql.DashQL, text: string, config: dashql.
     }
 }
 
+/// The text of a script at a version of its text. The object stays the same while the text does, a cursor move keeps
+/// it, so a function of the text is memoized on it.
+export interface ScriptText {
+    scriptSession: ScriptData['scriptSession'];
+    textVersion: bigint | null;
+}
+
+/// The text of a script, null without one
+export function useScriptText(scriptData: ScriptData | null): ScriptText | null {
+    const scriptSession = scriptData?.scriptSession ?? null;
+    const textVersion = scriptData?.editorUpdate?.textVersion ?? null;
+    return React.useMemo(
+        () => scriptSession == null ? null : { scriptSession, textVersion },
+        [scriptSession, textVersion],
+    );
+}
+
 export function isScriptFormattable(
-    scriptData: ScriptData | null,
+    scriptData: Pick<ScriptData, 'scriptSession'> | null,
     dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
 ): boolean {
     if (scriptData == null) return false;

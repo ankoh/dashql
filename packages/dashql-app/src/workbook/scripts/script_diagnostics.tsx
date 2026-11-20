@@ -6,7 +6,7 @@ import { AlertIcon, XCircleFillIcon, XIcon } from '@akohn/dashql-react/component
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
-import { formattingDialectForConnector } from './script_format.js';
+import { formattingDialectForConnector, useScriptText } from './script_format.js';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
@@ -22,7 +22,7 @@ export interface ScriptDiagnostic {
     details: Record<string, unknown>;
 }
 
-function formattingDetails(scriptData: ScriptData, connectorType?: ConnectorType): Record<string, unknown> {
+function formattingDetails(scriptData: Pick<ScriptData, 'scriptKey' | 'scriptSession'>, connectorType?: ConnectorType): Record<string, unknown> {
     const details: Record<string, unknown> = {
         source: 'formatter',
         severity: 'warning',
@@ -50,7 +50,7 @@ function formattingDetails(scriptData: ScriptData, connectorType?: ConnectorType
     return details;
 }
 
-export function collectScriptDiagnostics(scriptData: ScriptData, isFormattable: boolean,
+export function collectScriptDiagnostics(scriptData: Pick<ScriptData, 'scriptKey' | 'scriptSession' | 'editorUpdate'>, isFormattable: boolean,
     connectorType?: ConnectorType, formatting: Record<string, unknown> | null = null,
     references: ScriptReferenceReport | null = null): ScriptDiagnostic[] {
     const diagnostics: ScriptDiagnostic[] = (scriptData.editorUpdate?.diagnostics ?? []).map(diagnostic => {
@@ -109,13 +109,15 @@ export const ScriptDiagnosticsButton: React.FC<{
     const [selectedDiagnostic, setSelectedDiagnostic] = React.useState<ScriptDiagnostic | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
     // Inspecting the formatter is a full pass over the script, only repeat it when the text changes
+    const { scriptKey, scriptSession, editorUpdate } = scriptData;
+    const scriptText = useScriptText(scriptData);
     const formatting = React.useMemo(
-        () => isFormattable ? null : formattingDetails(scriptData, connectorType),
-        [scriptData.scriptSession, scriptData.editorUpdate?.textVersion, isFormattable, connectorType],
+        () => isFormattable || scriptText == null ? null : formattingDetails({ scriptKey, scriptSession: scriptText.scriptSession }, connectorType),
+        [scriptKey, scriptText, isFormattable, connectorType],
     );
     const diagnostics = React.useMemo(
-        () => collectScriptDiagnostics(scriptData, isFormattable, connectorType, formatting, references),
-        [scriptData.editorUpdate, isFormattable, connectorType, formatting, references],
+        () => collectScriptDiagnostics({ scriptKey, scriptSession, editorUpdate }, isFormattable, connectorType, formatting, references),
+        [scriptKey, scriptSession, editorUpdate, isFormattable, connectorType, formatting, references],
     );
     React.useEffect(() => {
         if (diagnostics.length === 0) {

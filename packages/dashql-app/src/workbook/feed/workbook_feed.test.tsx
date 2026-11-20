@@ -286,7 +286,8 @@ describe('Workbook feed composer', () => {
         WorkbookComposer: (props: WorkbookComposerProps) => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;
-            React.useEffect(() => props.setView?.(feedState.view), [props.setView]);
+            const { setView } = props;
+            React.useEffect(() => setView?.(feedState.view), [setView]);
             return <div data-testid="composer">{props.bar}</div>;
         },
         WorkbookStatusBar: (props) => {

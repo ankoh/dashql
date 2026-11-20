@@ -111,15 +111,17 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     const cancelRename = React.useCallback(() => setRenaming(false), []);
     const transform = draggable.transform == null ? undefined : CSS.Translate.toString(draggable.transform);
 
+    const { columnStep, rowStep, onResize, onResizeCancel } = props;
+    const { width: placementWidth, height: placementHeight } = props.placement;
     const resizeFromPointer = React.useCallback((event: PointerEvent, commit: boolean) => {
         const start = resizeStart.current;
         if (start == null || event.pointerId !== start.pointerId) return;
-        const width = start.width + Math.round((event.clientX - start.x) / Math.max(1, props.columnStep));
+        const width = start.width + Math.round((event.clientX - start.x) / Math.max(1, columnStep));
         // A collapsed card is one row high, it only changes its width
-        const height = collapsed ? start.height : start.height + Math.round((event.clientY - start.y) / Math.max(1, props.rowStep));
-        props.onResize(props.script.scriptKey, width, height, commit);
+        const height = collapsed ? start.height : start.height + Math.round((event.clientY - start.y) / Math.max(1, rowStep));
+        onResize(scriptKey, width, height, commit);
         if (commit) resizeStart.current = null;
-    }, [props.columnStep, props.rowStep, props.onResize, props.script.scriptKey, collapsed]);
+    }, [columnStep, rowStep, onResize, scriptKey, collapsed]);
 
     const startResize = React.useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
         event.preventDefault();
@@ -127,8 +129,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         resizeStart.current = {
             x: event.clientX,
             y: event.clientY,
-            width: props.placement.width,
-            height: props.placement.height,
+            width: placementWidth,
+            height: placementHeight,
             pointerId: event.pointerId,
         };
         const move = (next: PointerEvent) => resizeFromPointer(next, false);
@@ -138,7 +140,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         };
         const cancel = () => {
             resizeStart.current = null;
-            props.onResizeCancel();
+            onResizeCancel();
             cleanup();
         };
         const cleanup = () => {
@@ -149,19 +151,19 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', finish);
         window.addEventListener('pointercancel', cancel);
-    }, [props.placement.width, props.placement.height, props.onResizeCancel, resizeFromPointer]);
+    }, [placementWidth, placementHeight, onResizeCancel, resizeFromPointer]);
 
     const resizeWithKeyboard = React.useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
-        let width = props.placement.width;
-        let height = props.placement.height;
+        let width = placementWidth;
+        let height = placementHeight;
         if (event.key === 'ArrowLeft') width -= 1;
         else if (event.key === 'ArrowRight') width += 1;
         else if (event.key === 'ArrowUp' && !collapsed) height -= 1;
         else if (event.key === 'ArrowDown' && !collapsed) height += 1;
         else return;
         event.preventDefault();
-        props.onResize(props.script.scriptKey, width, height, true);
-    }, [props.placement, props.onResize, props.script.scriptKey, collapsed]);
+        onResize(scriptKey, width, height, true);
+    }, [placementWidth, placementHeight, onResize, scriptKey, collapsed]);
 
     // The Markdown template starts with the columns of the latest result
     const queryResult = model?.result ?? null;

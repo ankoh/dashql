@@ -185,7 +185,7 @@ export function ConnectionMenu(props: MenuProps) {
             cloudConnections: rest.filter(isCloud),
             labels: connectionLabels(list),
         };
-    }, [connections, list, connectionIds, cloudConnectionIds, props.workbookId]);
+    }, [connections, list, connectionIds, cloudConnectionIds]);
     const renderItem = (connection: ConnectionState) => (
         <ActionList.ListItem
             key={connection.connectionId}

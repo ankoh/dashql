@@ -14,7 +14,7 @@ import { deleteScript, useScriptSelection } from '../scripts/script_selection.js
 import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { useQuery, useScript, useScriptRun, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import { formattingDialectForConnector, getKeywordCase, isScriptFormattable } from '../scripts/script_format.js';
+import { formattingDialectForConnector, getKeywordCase, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
 import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
@@ -69,9 +69,10 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const keywordCase = getKeywordCase(config?.settings);
     const connectorType = connectionState?.connectorType as ConnectorType | undefined;
     const formattingDialect = formattingDialectForConnector(connectorType);
+    const scriptText = useScriptText(scriptData ?? null);
     const isFormattable = React.useMemo(
-        () => isScriptFormattable(scriptData ?? null, formattingDialect),
-        [scriptData?.scriptSession, scriptData?.editorUpdate?.textVersion, formattingDialect],
+        () => isScriptFormattable(scriptText, formattingDialect),
+        [scriptText, formattingDialect],
     );
     const editorView = props.editorView ?? null;
     const format = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
@@ -90,11 +91,12 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
         renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
     }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef, readScript]);
     const selection = useScriptSelection();
+    const { onDelete } = props;
     const remove = React.useCallback(() => {
         if (scriptData == null) return;
-        if (props.onDelete != null) props.onDelete(scriptData);
+        if (onDelete != null) onDelete(scriptData);
         else deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
-    }, [scriptData, props.onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
+    }, [scriptData, onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
     // A snippet replaces the text of the script, a script with text shows the replacement as a diff to accept or reject
     const applySnippet = React.useCallback((text: string) => {
         const priorText = scriptData?.scriptSession.getText() ?? '';

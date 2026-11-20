@@ -65,9 +65,12 @@ function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; ca
     const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeDatabase();
     const [created, setCreated] = React.useState(false);
+    const createDatabases = React.useEffectEvent(async () => {
+        for (const create of props.databases) await create(runtime);
+    });
     React.useEffect(() => {
         void (async () => {
-            for (const create of props.databases) await create(runtime);
+            await createDatabases();
             setCreated(true);
         })();
     }, [runtime]);

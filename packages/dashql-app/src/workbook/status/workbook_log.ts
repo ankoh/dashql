@@ -56,6 +56,6 @@ export function useWorkbookLog(workbookId: string, enabled: boolean): readonly L
         }
         scan.current = { workbookId, traceIds, scanned: length, records };
         return records;
-        // The version of the log tells new records
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the buffer of the logger is mutable, its version tells new records
     }, [logger, runtime, workbookId, enabled, version]);
 }
