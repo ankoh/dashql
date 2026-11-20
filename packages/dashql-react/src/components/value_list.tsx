@@ -68,7 +68,7 @@ export const ValueListBuilder: React.FC<Props> = (props: Props) => {
                             block
                             className={styles.path}
                             value={elem}
-                            onChange={(ev: any) => modifyElement(i, ev.target.value)}
+                            onChange={ev => modifyElement(i, ev.target.value)}
                             leadingVisual={props.valueIcon}
                             trailingAction={
                                 <TextInputAction

@@ -17,7 +17,8 @@ import {
     type QueryEntry,
 } from './query_history_viewer.js';
 
-const dependencies = fakeReactWindowModule(React, vi.fn()) as QueryHistoryViewerDependencies;
+// The fake List renders every row and takes only the props that it reads
+const dependencies = fakeReactWindowModule(React, vi.fn()) as unknown as QueryHistoryViewerDependencies;
 
 /// A queued query as far as the history viewer reads it
 function createExecution(queryType: QueryType, userProvided: boolean): QueryExecutionState {

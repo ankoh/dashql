@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 
 /// Convert an arrow row object to a vega-compatible plain object.
-function arrowRowToObject(row: any, fields: readonly arrow.Field[]): Record<string, unknown> {
+function arrowRowToObject(row: arrow.StructRowProxy, fields: readonly arrow.Field[]): Record<string, unknown> {
     const obj: Record<string, unknown> = {};
     for (const field of fields) {
         const value = row[field.name];

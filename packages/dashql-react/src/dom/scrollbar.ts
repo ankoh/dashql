@@ -7,6 +7,9 @@ const OVERLAY_SCROLLBAR_HEIGHT = 12;
 
 // Kudos to: https://www.robinwieruch.de/react-hook-scrollbar-width/
 
+/// The scrollbar style of old Edge, missing in the DOM types
+type MsOverflowStyle = CSSStyleDeclaration & { msOverflowStyle?: string };
+
 export const useScrollbarWidth = () => {
     if (SCROLLBAR_WIDTH !== null) {
         return SCROLLBAR_WIDTH;
@@ -16,7 +19,7 @@ export const useScrollbarWidth = () => {
     const outer = document.createElement('div');
     outer.style.visibility = 'hidden';
     outer.style.overflow = 'scroll';
-    (outer.style as any).msOverflowStyle = 'scrollbar';
+    (outer.style as MsOverflowStyle).msOverflowStyle = 'scrollbar';
     document.body.appendChild(outer);
 
     // Creating inner element and placing it in the container
@@ -43,7 +46,7 @@ export const useScrollbarHeight = () => {
     const outer = document.createElement('div');
     outer.style.visibility = 'hidden';
     outer.style.overflow = 'scroll';
-    (outer.style as any).msOverflowStyle = 'scrollbar';
+    (outer.style as MsOverflowStyle).msOverflowStyle = 'scrollbar';
     document.body.appendChild(outer);
 
     // Creating inner element and placing it in the container

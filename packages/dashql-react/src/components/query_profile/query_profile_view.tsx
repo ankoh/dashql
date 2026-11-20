@@ -551,8 +551,8 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         // A large plan fits below the default zoom limit, allow zooming out as far as the fit
         behavior.scaleExtent([Math.min(PROFILE_MIN_ZOOM, scale), PROFILE_MAX_ZOOM]);
         const target = zoomIdentity.translate(x, y).scale(scale);
-        const targetSelection = animate ? select(svg).transition().duration(160) : select(svg);
-        targetSelection.call(behavior.transform as any, target);
+        if (animate) select(svg).transition().duration(160).call(behavior.transform, target);
+        else select(svg).call(behavior.transform, target);
     }, [scene]);
 
     // The zoom transform is applied to the DOM directly. Only the open inspector depends on the

@@ -170,7 +170,7 @@ function isOnTopLayer(element: Element) {
         return true
     }
     try {
-        if (element.matches(':popover-open') && /native code/.test((document.body as any).showPopover?.toString())) {
+        if (element.matches(':popover-open') && /native code/.test(String(document.body.showPopover))) {
             return true
         }
     } catch {

@@ -97,8 +97,8 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
     const isNested = isMyObject || isMyArray || isMySet || isMyMap;
     if (isNested) {
         const mappedValue = isMySet
-            ? Array.from(props.value as Set<any>)
-            : (isMyMap ? Object.fromEntries(props.value as Iterable<[any, any]>) : props.value);
+            ? Array.from(props.value as Set<unknown>)
+            : (isMyMap ? Object.fromEntries(props.value as Map<PropertyKey, unknown>) : props.value);
         return (
             <JsonValue
                 keyName={props.keyName}

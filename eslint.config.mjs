@@ -87,7 +87,7 @@ export default defineConfig(
     },
     {
         // The packages without explicit any, until all of them are
-        files: ['packages/dashql/**', 'packages/dashql-slack/**'],
+        files: ['packages/dashql/**', 'packages/dashql-react/**', 'packages/dashql-slack/**'],
         rules: { '@typescript-eslint/no-explicit-any': 'error' },
     },
     {

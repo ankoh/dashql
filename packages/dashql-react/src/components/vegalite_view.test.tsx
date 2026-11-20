@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
+import type { TopLevelSpec } from 'vega-lite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -72,8 +73,8 @@ describe('VegaLiteView', () => {
 
     it('does not rebuild Vega for an equivalent analyzed spec', async () => {
         const model = succeededQuery();
-        const render = (spec: object) => root.render(
-            <VegaLiteView model={model} vegaLiteSpec={spec as any} height={180} dependencies={dependencies} />,
+        const render = (spec: TopLevelSpec) => root.render(
+            <VegaLiteView model={model} vegaLiteSpec={spec} height={180} dependencies={dependencies} />,
         );
 
         await act(async () => {

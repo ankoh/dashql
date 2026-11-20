@@ -54,7 +54,12 @@ describe('VegaLitePreview', () => {
         });
 
         expect(vegaEmbed).toHaveBeenCalledTimes(1);
-        const [, spec, options] = vegaEmbed.mock.calls[0] as unknown as [HTMLElement, any, any];
+        // The parts of the spec and the options of vega-embed that the preview sets
+        const [, spec, options] = vegaEmbed.mock.calls[0] as unknown as [
+            HTMLElement,
+            { width: number; height: number },
+            { config: { axis: { labelFontSize: number }; axisX: { labelAngle: number } } },
+        ];
         expect([spec.width, spec.height]).toEqual([262 - 2 * VEGALITE_PREVIEW_INSET, 198 - 2 * VEGALITE_PREVIEW_INSET]);
         expect(JSON.stringify(spec)).toContain('"legend":null');
         expect(options.config.axis.labelFontSize).toBe(8);

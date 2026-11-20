@@ -126,7 +126,7 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
 };
 
 export interface QueryHistoryViewerDependencies {
-    List: React.ComponentType<any>;
+    List: typeof List;
     useListCallbackRef(initialValue: ListImperativeAPI | null): [ListImperativeAPI | null, React.Dispatch<React.SetStateAction<ListImperativeAPI | null>>];
 }
 

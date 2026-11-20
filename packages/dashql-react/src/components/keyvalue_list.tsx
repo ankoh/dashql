@@ -84,7 +84,7 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                                 [styles.path_side_by_side]: props.sideBySide,
                             })}
                             value={elem.key}
-                            onChange={(ev: any) => modifyElement(i, ev.target.value, elem.value)}
+                            onChange={ev => modifyElement(i, ev.target.value, elem.value)}
                             aria-label={`${props.title} name ${i + 1}`}
                             leadingVisual={props.keyIcon}
                             trailingAction={!props.readOnly ? (
@@ -106,7 +106,7 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
                                 [styles.alias_side_by_side]: props.sideBySide,
                             })}
                             value={elem.value}
-                            onChange={(ev: any) => modifyElement(i, elem.key, ev.target.value)}
+                            onChange={ev => modifyElement(i, elem.key, ev.target.value)}
                             aria-label={`${props.title} value ${i + 1}`}
                             leadingVisual={props.valueIcon}
                             disabled={props.disabled}

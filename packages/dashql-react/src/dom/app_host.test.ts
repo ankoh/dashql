@@ -2,9 +2,11 @@ import {afterEach, describe, expect, it} from 'vitest';
 
 import {AppHost, getAppHost, isDesktopHost} from './app_host.js';
 
+const host = globalThis as { dashqlElectron?: object };
+
 describe('application host detection', () => {
     afterEach(() => {
-        delete (globalThis as any).dashqlElectron;
+        delete host.dashqlElectron;
     });
 
     it('detects the web host', () => {
@@ -13,7 +15,7 @@ describe('application host detection', () => {
     });
 
     it('detects Electron as the desktop host', () => {
-        (globalThis as any).dashqlElectron = {};
+        host.dashqlElectron = {};
         expect(getAppHost()).toBe(AppHost.ELECTRON);
         expect(isDesktopHost()).toBe(true);
     });
