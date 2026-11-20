@@ -227,8 +227,6 @@ impl ConnectionRegistry {
         for effect in applied.effects {
             match effect {
                 ConnectionEffect::CancelSetup => outcome.effects.push(RegistryEffect::CancelSetup),
-                // The catalog loader publishes only for a connection that runs its update, the updates are aborted
-                ConnectionEffect::InvalidateCatalogBatch => {}
                 ConnectionEffect::Abort { handle, reason } => {
                     outcome.effects.push(RegistryEffect::Abort { handle, reason })
                 }

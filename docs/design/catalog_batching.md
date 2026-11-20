@@ -78,11 +78,10 @@ doesn't start it: the catalog loader and the restore of the runtime parse their 
 The catalog loader of the runtime publishes the batches of an update (`catalog_loader/batch.rs` and
 `catalog_loader/service.rs` of `dashql_core_runtime`). Production callers request only `catalogDescriptor` outputs.
 
-- An update begins a generation of the catalog (`CatalogGenerations::begin`) before it fetches metadata, a newer update
-  of the catalog supersedes it.
+- The loader runs at most one update of a connection at a time (`CatalogLoader`).
 - The connector parses the batch of an update in the module as soon as it has its SQL (`CatalogBatch::prepare`), on an
   empty catalog of its own.
-- Immediately before publication the update checks its generation and its cancellation, and the loader checks that the
+- Before every step the update checks its cancellation, and immediately before publication the loader checks that the
   connection still runs the update. A reset or a delete of the connection aborts its updates. Every entry was checked
   when it was parsed: failures, error diagnostics, descriptor presence, and `require_functions` (a non-empty function
   catalog).
@@ -123,6 +122,6 @@ batching does not reconstruct argument metadata the engine does not expose.
 - `packages/dashql/src/core/batch.ts`, `api.ts`: API and buffer ownership.
 - `packages/dashql/src/core/batch_worker.ts`, `batch_worker_client.ts`, `batch_worker_protocol.ts`: worker
   transport.
-- `packages/dashql-core-runtime/src/catalog_loader/batch.rs`: batches, generations and publication.
+- `packages/dashql-core-runtime/src/catalog_loader/batch.rs`: batches and publication.
 - `packages/dashql-core-runtime/src/catalog_loader/service.rs`: refresh queue, supersession and the updates.
 - `packages/dashql-core-storage/src/restore/catalog.rs`: catalog restoration.

@@ -39,11 +39,11 @@ use crate::http::{HttpRequest, HttpResponse};
 use crate::query::QueryType;
 use crate::workbook::CatalogHandle;
 
-pub use batch::{CatalogBatch, CatalogBatchEntry, CatalogGenerations, CatalogTicket};
+pub use batch::{CatalogBatch, CatalogBatchEntry};
 pub use scheduler::{CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogSchedule};
 pub use service::{CatalogLoaderHost, CatalogLoaderService, FollowedConnection, QueryBatches};
 
-/// The reason of an update whose connection is gone or got another catalog, or whose batch a newer one superseded
+/// The reason of an update whose connection is gone or got another catalog, or that was cancelled
 pub const STALE_MESSAGE: &str = "Catalog refresh was cancelled or superseded";
 
 /// The read timeout of the metadata queries of Hyper
@@ -221,8 +221,8 @@ impl Publication {
 /// What a running update asks of the loader: the answers of its steps, and whether it may go on. A step answers None
 /// once the update was cancelled.
 pub trait CatalogUpdateHost {
-    /// Why the update can't go on, none while it may: it was cancelled, or a newer batch of its catalog superseded it
-    fn stopped(&self, ticket: CatalogTicket) -> Option<CatalogLoadError>;
+    /// Why the update can't go on, none while it may, e.g. it was cancelled
+    fn stopped(&self) -> Option<CatalogLoadError>;
     /// Run the metadata queries at the same time, the answers in their order
     fn run_queries(&self, queries: &[CatalogQuery]) -> impl Future<Output = Option<Vec<QueryAnswer>>>;
     /// The channel of the connection with fresh credentials (`ConnectionChannel::fresh`), none if it has none, or the
@@ -239,8 +239,6 @@ pub trait CatalogUpdateHost {
 pub struct CatalogUpdate {
     /// The task of the update, the connection registers it (`ConnectionAction::UpdateCatalog`)
     pub task: CatalogUpdateTask,
-    /// The generation of the catalog that the update began with
-    ticket: CatalogTicket,
     /// The version of the catalog when the update began
     version_before: CatalogVersion,
     /// The update of the connector
@@ -248,20 +246,15 @@ pub struct CatalogUpdate {
 }
 
 impl CatalogUpdate {
-    /// Begin an update of the catalog of a connection: all of it, or the relations of executed statements. It
-    /// supersedes the pending batches of the catalog.
+    /// Begin an update of the catalog of a connection: all of it, or the relations of executed statements
     pub fn start(
         connection: &ConnectionState,
         task_id: u32,
         relations: Option<Vec<RelationName>>,
-        generations: &mut CatalogGenerations,
         now: Timestamp,
     ) -> Result<Self, CatalogLoadError> {
-        let (catalog_id, version_before) = {
-            let catalog =
-                connection.catalog().try_borrow().map_err(|_| CatalogLoadError::failed("the catalog is in use"))?;
-            (catalog.id(), catalog.version())
-        };
+        let version_before =
+            connection.catalog().try_borrow().map_err(|_| CatalogLoadError::failed("the catalog is in use"))?.version();
         let variant = match relations {
             Some(_) => CatalogUpdateVariant::RelationRefresh,
             None => CatalogUpdateVariant::FullCatalogRefresh,
@@ -276,23 +269,17 @@ impl CatalogUpdate {
         };
         let connector =
             connection.connector_type().connector().catalog_update(connection.details(), entries, relations, now);
-        Ok(Self { task, ticket: generations.begin(catalog_id), version_before, connector })
-    }
-
-    /// The generation of the catalog that the update began with
-    pub fn ticket(&self) -> CatalogTicket {
-        self.ticket
+        Ok(Self { task, version_before, connector })
     }
 
     /// Run the steps of the connector over the host to the end of the update. Before every step the host says whether
     /// the update may go on; a cancelled step stops it. Nothing is published once the update stopped.
     pub async fn run<H: CatalogUpdateHost>(mut self, host: &H) -> CatalogUpdateOutcome {
-        let ticket = self.ticket;
-        let stopped = |host: &H| host.stopped(ticket).unwrap_or_else(|| CatalogLoadError::cancelled(STALE_MESSAGE));
+        let stopped = |host: &H| host.stopped().unwrap_or_else(|| CatalogLoadError::cancelled(STALE_MESSAGE));
         let mut function_script_text = None;
         let mut catalog_changed = false;
         let result = loop {
-            if let Some(error) = host.stopped(self.ticket) {
+            if let Some(error) = host.stopped() {
                 break Err(error);
             }
             let answered = match self.connector.step() {

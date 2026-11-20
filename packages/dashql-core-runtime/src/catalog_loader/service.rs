@@ -21,8 +21,8 @@ use std::rc::{Rc, Weak};
 use arrow_array::RecordBatch;
 
 use super::{
-    CatalogGenerations, CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery,
-    CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer, STALE_MESSAGE,
+    CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery, CatalogUpdate,
+    CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer, STALE_MESSAGE,
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
 use crate::connections::{
@@ -107,7 +107,6 @@ struct Wake {
 
 struct LoaderState {
     scheduler: CatalogLoader,
-    generations: CatalogGenerations,
     /// The connections by id, in the order of the registry
     connections: Vec<(String, Followed)>,
     registrations: ClientFunctionRegistrations,
@@ -175,7 +174,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     pub fn new(host: Rc<H>) -> Self {
         let state = LoaderState {
             scheduler: CatalogLoader::new(),
-            generations: CatalogGenerations::default(),
             connections: Vec::new(),
             registrations: ClientFunctionRegistrations::default(),
             spec_waiters: Vec::new(),
@@ -499,8 +497,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         let update = {
             let connection_state =
                 connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
-            let mut state = self.state.borrow_mut();
-            CatalogUpdate::start(&connection_state, task_id, relations, &mut state.generations, now)
+            CatalogUpdate::start(&connection_state, task_id, relations, now)
         };
         let update = match update {
             Ok(update) => update,
@@ -615,11 +612,8 @@ struct RunningUpdate<'a, H: CatalogLoaderHost> {
 }
 
 impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
-    fn stopped(&self, ticket: CatalogTicket) -> Option<CatalogLoadError> {
-        if self.token.is_cancelled() {
-            return Some(CatalogLoadError::cancelled(self.service.reason(self.task_id)));
-        }
-        self.service.state.borrow().generations.check(ticket).err()
+    fn stopped(&self) -> Option<CatalogLoadError> {
+        self.token.is_cancelled().then(|| CatalogLoadError::cancelled(self.service.reason(self.task_id)))
     }
 
     async fn run_queries(&self, queries: &[CatalogQuery]) -> Option<Vec<QueryAnswer>> {

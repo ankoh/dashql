@@ -7,9 +7,7 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core::touched_relations::touched_relations;
 
 use super::RestoreHost;
-use dashql_core_runtime::catalog_loader::batch::{
-    publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations,
-};
+use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
 use dashql_core_runtime::catalog_loader::tables::{pack_catalog_table_update, CatalogStateFile};
 use dashql_core_runtime::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
 use dashql_core_runtime::host::HostError;
@@ -91,7 +89,7 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
     if !entries.is_empty() {
         let published = {
             let mut catalog = state.catalog().borrow_mut();
-            publish_catalog_batch_sync(&mut catalog, &mut CatalogGenerations::default(), &CatalogBatch::new(entries))
+            publish_catalog_batch_sync(&mut catalog, &CatalogBatch::new(entries))
         };
         if let Err(error) = published {
             out.error = Some(error.message().to_string());

@@ -1,11 +1,7 @@
 //! Catalog batches: SQL of the catalog of a connection that the core parses into descriptors before they are published
 //! into the connection layer of the catalog.
 //!
-//! A batch never parses on the catalog it publishes into, it analyzes its scripts on an empty catalog of its own. A
-//! batch publishes only while it is current: a newer batch of the same catalog or a reset of the connection
-//! (`ConnectionEffect::InvalidateCatalogBatch`) supersedes it.
-
-use std::collections::HashMap;
+//! A batch never parses on the catalog it publishes into, it analyzes its scripts on an empty catalog of its own.
 
 use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
 use dashql_buffers::catalog::CatalogDescriptor;
@@ -13,56 +9,7 @@ use dashql_core::batch::check_script;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::pack::pack_catalog_descriptor;
 
-use super::{CatalogLoadError, STALE_MESSAGE};
-
-/// The generations of the catalog batches of the catalogs, by the id of the catalog
-#[derive(Debug, Clone, Default)]
-pub struct CatalogGenerations {
-    generations: HashMap<u64, u64>,
-}
-
-/// The generation of a catalog that a batch began with
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CatalogTicket {
-    /// The id of the catalog
-    pub catalog_id: u64,
-    /// The generation
-    pub generation: u64,
-}
-
-impl CatalogGenerations {
-    /// Supersede the pending batches of a catalog, e.g. when its connection is reset
-    pub fn invalidate(&mut self, catalog_id: u64) -> u64 {
-        let generation = self.generations.entry(catalog_id).or_insert(0);
-        *generation += 1;
-        *generation
-    }
-
-    /// Begin a batch: supersede the pending ones. A batch begins before it fetches metadata, not after, so a slow fetch
-    /// can't supersede a newer refresh.
-    pub fn begin(&mut self, catalog_id: u64) -> CatalogTicket {
-        CatalogTicket { catalog_id, generation: self.invalidate(catalog_id) }
-    }
-
-    /// Is a batch still current?
-    pub fn is_current(&self, ticket: CatalogTicket) -> bool {
-        self.generations.get(&ticket.catalog_id) == Some(&ticket.generation)
-    }
-
-    /// Fail with a cancellation if a batch was superseded
-    pub fn check(&self, ticket: CatalogTicket) -> Result<(), CatalogLoadError> {
-        if self.is_current(ticket) {
-            Ok(())
-        } else {
-            Err(CatalogLoadError::cancelled(STALE_MESSAGE))
-        }
-    }
-
-    /// Forget a catalog that is gone
-    pub fn forget(&mut self, catalog_id: u64) {
-        self.generations.remove(&catalog_id);
-    }
-}
+use super::CatalogLoadError;
 
 /// SQL of the catalog of a connection, published as a descriptor under an entry id. A script that keeps the text, such
 /// as the function script of a connection, gets the text once the descriptor is published.
@@ -153,15 +100,12 @@ pub fn publish_prepared(catalog: &mut Catalog, prepared: &[PreparedDescriptor]) 
     Ok(())
 }
 
-/// Process and publish a batch right away, e.g. the bundled functions of a new connection or the catalog files of a
-/// restored one. It supersedes the pending batches of the catalog. The scripts of the entries get their texts from the
-/// caller once this succeeded.
+/// Process and publish a batch right away, e.g. the catalog files of a restored connection. The scripts of the entries
+/// get their texts from the caller once this succeeded.
 pub fn publish_catalog_batch_sync(
     catalog: &mut Catalog,
-    generations: &mut CatalogGenerations,
     batch: &CatalogBatch,
 ) -> Result<Vec<CatalogBatchCounts>, CatalogLoadError> {
-    generations.begin(catalog.id());
     if batch.entries.is_empty() {
         return Ok(Vec::new());
     }

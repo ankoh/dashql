@@ -10,7 +10,7 @@ use std::task::{Context, Poll, Wake, Waker};
 use arrow_array::builder::{ListBuilder, StringBuilder};
 use arrow_array::{ArrayRef, BooleanArray, Int32Array, Int64Array, RecordBatch, StringArray};
 use dashql_buffers::analyzer::QualifiedTableNameT;
-use dashql_core::catalog::{Catalog, CatalogLayer};
+use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
 use dashql_core_runtime::catalog_loader::hyper::{catalog_tables_from_hyper_cloud, hyper_cloud_catalog_query_sql};
@@ -22,7 +22,7 @@ use dashql_core_runtime::catalog_loader::pg_attribute::{
 };
 use dashql_core_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, PG_PROC_QUERY};
 use dashql_core_runtime::catalog_loader::prefetched_hyper_functions::{
-    load_prefetched_hyper_functions, qualify_prefetched_hyper_functions, PREFETCHED_HYPER_FUNCTIONS_SQL,
+    qualify_prefetched_hyper_functions, PREFETCHED_HYPER_FUNCTIONS_SQL,
 };
 use dashql_core_runtime::catalog_loader::salesforce::catalog_tables_from_salesforce_metadata;
 use dashql_core_runtime::catalog_loader::sql::{
@@ -37,8 +37,8 @@ use dashql_core_runtime::catalog_loader::trino::{
     parse_trino_catalog_entry, trino_catalog_entries, trino_catalog_scopes, TrinoCatalogEntry, TRINO_CATALOGS_QUERY,
 };
 use dashql_core_runtime::catalog_loader::{
-    CatalogGenerations, CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery,
-    CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer,
+    CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery, CatalogUpdate,
+    CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::http::{HttpRequest, HttpResponse};
@@ -202,14 +202,9 @@ impl<'a> Host<'a> {
         self
     }
 
-    /// Run an update to its end, publishing into a catalog while the batch of the update is current
-    fn drive(
-        &self,
-        update: CatalogUpdate,
-        catalog: &CatalogHandle,
-        generations: &RefCell<CatalogGenerations>,
-    ) -> CatalogUpdateOutcome {
-        block_on(update.run(&Steps { host: self, catalog, generations }))
+    /// Run an update to its end, publishing into a catalog
+    fn drive(&self, update: CatalogUpdate, catalog: &CatalogHandle) -> CatalogUpdateOutcome {
+        block_on(update.run(&Steps { host: self, catalog }))
     }
 }
 
@@ -217,15 +212,11 @@ impl<'a> Host<'a> {
 struct Steps<'h, 'a> {
     host: &'h Host<'a>,
     catalog: &'h CatalogHandle,
-    generations: &'h RefCell<CatalogGenerations>,
 }
 
 impl CatalogUpdateHost for Steps<'_, '_> {
-    fn stopped(&self, ticket: CatalogTicket) -> Option<CatalogLoadError> {
-        if let Some(reason) = self.host.cancel.borrow().clone() {
-            return Some(CatalogLoadError::cancelled(reason));
-        }
-        self.generations.borrow().check(ticket).err()
+    fn stopped(&self) -> Option<CatalogLoadError> {
+        self.host.cancel.borrow().clone().map(CatalogLoadError::cancelled)
     }
 
     async fn run_queries(&self, queries: &[CatalogQuery]) -> Option<Vec<QueryAnswer>> {
@@ -255,10 +246,9 @@ impl CatalogUpdateHost for Steps<'_, '_> {
     }
 }
 
-/// A connection and the generations of the catalog batches
+/// A connection and the id of its last update
 struct Fixture {
     connection: ConnectionState,
-    generations: RefCell<CatalogGenerations>,
     task_id: u32,
 }
 
@@ -266,7 +256,7 @@ impl Fixture {
     fn new(connector: ConnectorType, params: Value) -> Self {
         let connection =
             ConnectionState::from_params("connection", ConnectionParams::new(connector, object(params)), NOW);
-        Self { connection, generations: RefCell::default(), task_id: 0 }
+        Self { connection, task_id: 0 }
     }
 
     fn hyper(params: Value) -> Self {
@@ -276,27 +266,16 @@ impl Fixture {
     /// Start an update and register it with the connection
     fn start(&mut self, relations: Option<Vec<RelationName>>) -> CatalogUpdate {
         self.task_id += 1;
-        let update =
-            CatalogUpdate::start(&self.connection, self.task_id, relations, &mut self.generations.borrow_mut(), NOW)
-                .unwrap();
+        let update = CatalogUpdate::start(&self.connection, self.task_id, relations, NOW).unwrap();
         self.connection.apply(ConnectionAction::UpdateCatalog(update.task.clone()), NOW).unwrap();
         update
-    }
-
-    /// Start an update of a connection without registering it
-    fn start_of(
-        connection: &ConnectionState,
-        task_id: u32,
-        generations: &RefCell<CatalogGenerations>,
-    ) -> CatalogUpdate {
-        CatalogUpdate::start(connection, task_id, None, &mut generations.borrow_mut(), NOW).unwrap()
     }
 
     /// Run an update and finish it on the connection, setting the text of the function script
     fn run(&mut self, relations: Option<Vec<RelationName>>, host: &Host) -> (CatalogUpdateOutcome, Option<String>) {
         let update = self.start(relations);
         let catalog = self.connection.catalog().clone();
-        let outcome = host.drive(update, &catalog, &self.generations);
+        let outcome = host.drive(update, &catalog);
         self.connection.apply(outcome.connection_action(self.task_id), NOW).unwrap();
         (outcome.clone(), outcome.function_script_text)
     }
@@ -699,32 +678,6 @@ fn a_trino_refresh_orders_the_columns_by_bigint_ordinal_positions() {
 }
 
 #[test]
-fn an_update_publishes_only_while_it_is_current() {
-    for superseded in [false, true] {
-        let trino = trino(json!({ "defaultCatalog": "db" }));
-        let catalog_id = trino.connection.catalog().borrow().id();
-        let generations = &trino.generations;
-        let host = Host::new(|_| {
-            // A reset of the connection or a newer refresh supersedes the batch while the query runs
-            if superseded {
-                generations.borrow_mut().invalidate(catalog_id);
-            }
-            Ok(vec![information_schema_rows(&[("db", "public", "items", "id", 1, "bigint")])])
-        });
-        let update = Fixture::start_of(&trino.connection, 1, &trino.generations);
-        let outcome = host.drive(update, &trino.connection.catalog().clone(), &trino.generations);
-        assert_eq!(host.queries.borrow().len(), 1);
-        if superseded {
-            assert_eq!(outcome.status, CatalogUpdateTaskStatus::Cancelled);
-            assert!(trino.relations_text().is_empty());
-        } else {
-            assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
-            assert!(trino.relations_text().contains("\"items\""));
-        }
-    }
-}
-
-#[test]
 fn a_cancelled_update_publishes_nothing() {
     let mut trino = trino(json!({ "defaultCatalog": "db" }));
     let cancel = Rc::new(RefCell::new(None));
@@ -954,13 +907,18 @@ fn pg_proc_rejects_invalid_argument_metadata() {
 // ---------------------------------------------------------------------------------------------------------------------
 // The bundled functions of Hyper and the catalog batch
 
+/// Publish function SQL as the descriptor of a function script, the number of functions
+fn publish_functions(catalog: &mut Catalog, entry_id: CatalogEntryId, sql: &str) -> Result<usize, CatalogLoadError> {
+    let batch = CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text: sql.to_string(), require_functions: true }]);
+    let counts = publish_catalog_batch_sync(catalog, &batch)?;
+    Ok(counts.first().map_or(0, |counts| counts.functions))
+}
+
 #[test]
 fn loads_the_bundled_function_catalog_as_a_descriptor() {
     let mut catalog = Catalog::new();
-    let mut generations = CatalogGenerations::default();
     let entry = catalog.allocate_entry_id();
-    let count =
-        load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
+    let count = publish_functions(&mut catalog, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
     assert_eq!(count, 350);
     let entries = catalog.describe_entries().entries.unwrap();
     assert_eq!(entries[0].catalog_entry_type, dashql_buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
@@ -989,16 +947,14 @@ fn qualifies_the_bundled_functions_for_a_database() {
 #[test]
 fn rejects_invalid_or_empty_function_sql_without_publishing() {
     let mut catalog = Catalog::new();
-    let mut generations = CatalogGenerations::default();
     let entry = catalog.allocate_entry_id();
-    let error = load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, "<!doctype html><html></html>")
-        .unwrap_err();
+    let error = publish_functions(&mut catalog, entry, "<!doctype html><html></html>").unwrap_err();
     assert!(error.message().contains("contains invalid SQL"), "{error}");
     assert!(catalog.descriptor_bytes(entry).is_none());
 
-    load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
+    publish_functions(&mut catalog, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
     let version = catalog.version();
-    let error = load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, "-- no functions").unwrap_err();
+    let error = publish_functions(&mut catalog, entry, "-- no functions").unwrap_err();
     assert!(error.message().contains("function catalog is empty"), "{error}");
     assert_eq!(catalog.version(), version);
 }
@@ -1006,13 +962,12 @@ fn rejects_invalid_or_empty_function_sql_without_publishing() {
 #[test]
 fn a_batch_publishes_a_descriptor_per_entry_and_refuses_invalid_sql() {
     let mut catalog = Catalog::new();
-    let mut generations = CatalogGenerations::default();
     let (a, b) = (catalog.allocate_entry_id(), catalog.allocate_entry_id());
     let entry = |entry_id, text: &str| CatalogBatchEntry { entry_id, text: text.to_string(), require_functions: false };
     let both = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create table b(y int);")]);
     let broken = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create tabel b(y int);")]);
     assert!(broken.prepare().unwrap_err().message().starts_with("Catalog contains invalid SQL"));
-    let counts = publish_catalog_batch_sync(&mut catalog, &mut generations, &both).unwrap();
+    let counts = publish_catalog_batch_sync(&mut catalog, &both).unwrap();
     assert_eq!(counts.iter().map(|c| c.tables).collect::<Vec<_>>(), [1, 1]);
     assert!(catalog.descriptor_bytes(a).is_some() && catalog.descriptor_bytes(b).is_some());
 }
@@ -1554,7 +1509,6 @@ struct Registry {
     loader: CatalogLoader,
     connection: ConnectionState,
     active_queries: usize,
-    generations: RefCell<CatalogGenerations>,
     /// The running updates, with the reason of their cancellation
     running: Vec<(CatalogUpdate, Option<String>)>,
     /// The aborted task ids
@@ -1572,7 +1526,6 @@ impl Registry {
             loader: CatalogLoader::new(),
             connection,
             active_queries: 0,
-            generations: RefCell::default(),
             running: Vec::new(),
             aborted: Vec::new(),
             started: Vec::new(),
@@ -1629,14 +1582,7 @@ impl Registry {
                     }
                 }
                 CatalogLoaderCommand::Start { task_id, relations, .. } => {
-                    let update = CatalogUpdate::start(
-                        &self.connection,
-                        task_id,
-                        relations.clone(),
-                        &mut self.generations.borrow_mut(),
-                        self.now,
-                    )
-                    .unwrap();
+                    let update = CatalogUpdate::start(&self.connection, task_id, relations.clone(), self.now).unwrap();
                     self.apply(ConnectionAction::UpdateCatalog(update.task.clone()));
                     self.started.push(relations);
                     self.running.push((update, None));
@@ -1658,7 +1604,7 @@ impl Registry {
         let catalog = self.connection.catalog().clone();
         let host = Host::new(|_| if succeed { Ok(vec![pg_rows("orders", &["id"])]) } else { Err("down".to_string()) });
         *host.cancel.borrow_mut() = cancel;
-        let outcome = host.drive(update, &catalog, &self.generations);
+        let outcome = host.drive(update, &catalog);
         self.apply(outcome.connection_action(task_id));
         self.loader.finished("database", self.now);
         self.schedule();

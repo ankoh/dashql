@@ -126,8 +126,6 @@ impl fmt::Display for ConnectionHealth {
 pub enum ConnectionEffect {
     /// Cancel the setup of the connection that is running, e.g. an OAuth flow
     CancelSetup,
-    /// Let the pending publications of catalog batches into the catalog of the connection fail
-    InvalidateCatalogBatch,
     /// Drop the queries of the connection and the metrics: the holder of the history clears it, which aborts the
     /// active queries with the reason and releases the handles of all queries
     StopQueries { reason: &'static str },
@@ -729,7 +727,6 @@ impl ConnectionState {
         // The steps of the setup that runs change nothing anymore
         self.setup_epoch += 1;
         effects.push(ConnectionEffect::CancelSetup);
-        effects.push(ConnectionEffect::InvalidateCatalogBatch);
         let updates = std::mem::take(&mut self.catalog_updates);
         for task_id in updates.tasks_running.keys() {
             effects.push(ConnectionEffect::CancelCatalogUpdate { task_id: *task_id, reason });
