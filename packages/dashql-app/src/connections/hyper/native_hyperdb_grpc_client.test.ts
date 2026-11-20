@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import * as pb from '@akohn/dashql/platform/proto';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { AsyncConsumerLambdas } from '@akohn/dashql/platform/utils/async_consumer';
+import { readStreamBatches } from '@akohn/dashql/platform/query/query_execution_state';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
@@ -50,7 +50,7 @@ describe('NativeHyperDatabaseClient', () => {
         expect(sent.params).toMatchObject({ lc_time: 'en_US', external_client_context: JSON.stringify({ app: 'dashql' }) });
 
         const batches: arrow.RecordBatch[] = [];
-        await stream.produce(new AsyncConsumerLambdas((_, batch) => { batches.push(batch); }), new AsyncConsumerLambdas());
+        batches.push(...await readStreamBatches(stream));
         expect((await stream.getSchema())!.fields.map(field => field.name)).toEqual(['a']);
         expect(batches.flatMap(batch => [...batch.getChild('a')!])).toEqual([1, 2, 3]);
         expect(stream.getMetrics().totalDataBytesReceived).toBeGreaterThan(0);
@@ -78,6 +78,6 @@ describe('NativeHyperDatabaseClient', () => {
         installNativeGrpcProxy([nativeStreamBatch('StreamFinished', [qsv1])]);
         const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
         const stream = await channel.executeQuery(queryParam('select 1'));
-        await expect(stream.produce(new AsyncConsumerLambdas(), new AsyncConsumerLambdas())).rejects.toThrow('qsv1Chunk');
+        await expect(readStreamBatches(stream)).rejects.toThrow('qsv1Chunk');
     });
 });

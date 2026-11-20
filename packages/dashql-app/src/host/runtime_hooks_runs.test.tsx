@@ -40,7 +40,7 @@ function fixture(workbookId: string, deferStream = false) {
         cancel: vi.fn(() => cancellation.promise),
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => null,
-        produce: vi.fn<QueryExecutionResponseStream['produce']>(async (_batches, _progress, abort) => {
+        read: vi.fn<QueryExecutionResponseStream['read']>(async function* (abort) {
             signal = abort;
             abort?.addEventListener('abort', aborted, { once: true });
             await execution.promise;
@@ -170,7 +170,7 @@ describe('the runs of workbooks in the app', () => {
     async function start(f = fixtures[0]) {
         act(() => current.start());
         await vi.waitFor(() => {
-            expect(f.stream.produce).toHaveBeenCalledTimes(1);
+            expect(f.stream.read).toHaveBeenCalledTimes(1);
             expect(current.state?.phase).toBe('running');
         });
         expect(current.busy).toBe(true);

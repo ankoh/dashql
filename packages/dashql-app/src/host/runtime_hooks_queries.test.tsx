@@ -15,12 +15,12 @@ import {
     QueryType,
     type QueryExecutionProgress,
     type QueryExecutionResponseStream,
+    type QueryStreamItem,
 } from '@akohn/dashql/platform/query/query_execution_state';
 
 import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
-import type { AsyncConsumer } from '@akohn/dashql/platform/utils/async_consumer';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
@@ -51,7 +51,6 @@ class TestStream implements QueryExecutionResponseStream {
     private rejectProduce: ((error: unknown) => void) | null = null;
     private finishProduce: (() => void) | null = null;
     private produced = false;
-    private sink: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch> | null = null;
 
     constructor(
         readonly batches: arrow.RecordBatch[] = [batchOf([1, 2])],
@@ -63,16 +62,11 @@ class TestStream implements QueryExecutionResponseStream {
 
     getMetrics() { return this.metrics; }
     async getSchema() { return SCHEMA; }
-    async produce(
-        batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>,
-        progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>,
-        abort?: AbortSignal,
-    ): Promise<void> {
+    async *read(abort?: AbortSignal): AsyncGenerator<QueryStreamItem> {
         this.produced = true;
-        this.sink = batches;
-        for (const update of this.progress) await progress.resolve(this, update);
+        for (const update of this.progress) yield { type: 'progress', progress: update };
         if (this.failure != null) throw this.failure;
-        for (const batch of this.batches) await batches.resolve(this, batch);
+        for (const batch of this.batches) yield { type: 'batch', batch };
         if (!this.hold) return;
         await new Promise<void>((resolve, reject) => {
             this.finishProduce = resolve;
@@ -81,7 +75,7 @@ class TestStream implements QueryExecutionResponseStream {
         });
     }
     finish() { this.finishProduce?.(); }
-    get started() { return this.produced && this.sink != null; }
+    get started() { return this.produced; }
 }
 
 interface Api {

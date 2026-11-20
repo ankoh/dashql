@@ -32,7 +32,7 @@ function connection(connectionId: string) {
         cancel: vi.fn(async () => {}),
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => null,
-        produce: vi.fn<QueryExecutionResponseStream['produce']>(async (_batches, _progress, abort) => {
+        read: vi.fn<QueryExecutionResponseStream['read']>(async function* (abort) {
             await new Promise(resolve => abort?.addEventListener('abort', resolve, { once: true }));
             abort?.throwIfAborted();
         }),
@@ -118,7 +118,7 @@ describe('useMergeConnections', () => {
             query: 'select 1',
             metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true },
         });
-        await vi.waitFor(() => expect(source.stream.produce).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(source.stream.read).toHaveBeenCalledTimes(1));
 
         // The log monitor closes the monitoring database in the folder of the connection
         let closeMonitor!: () => void;

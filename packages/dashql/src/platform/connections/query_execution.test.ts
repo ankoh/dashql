@@ -24,9 +24,9 @@ function createStream(table: arrow.Table): QueryExecutionResponseStream {
     return {
         getMetrics: () => metrics,
         getSchema: async () => table.schema,
-        produce: async (batches, progress) => {
-            progress.resolve(null!, { isQueued: false, progressPercent: null, resultRows: null, rowsProcessed: null, executionTimeMs: null, metrics });
-            for (const batch of table.batches) batches.resolve(null!, batch);
+        read: async function* () {
+            yield { type: 'progress', progress: { isQueued: false, progressPercent: null, resultRows: null, rowsProcessed: null, executionTimeMs: null, metrics } };
+            for (const batch of table.batches) yield { type: 'batch', batch };
         },
     };
 }
@@ -73,7 +73,7 @@ describe('consumeQueryResponseStream', () => {
         const input = tableFromArrays({ value: [1] });
         const stream = createStream(input);
         const events: string[] = [];
-        stream.produce = async () => {};
+        stream.read = async function* () { };
         stream.getSchema = async () => {
             events.push('schema');
             return input.schema;

@@ -9,7 +9,7 @@ import type { HandleTable } from '../store/handles.js';
 import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
 import { QueryCacheMissError, type QueryResultCache } from '../../platform/query/query_result_cache.js';
-import type { QueryExecutionProgress, QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
+import type { QueryExecutionResponseStream, QueryStreamItem } from '../../platform/query/query_execution_state.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
 import type { LogRecord } from '../../platform/logger/log_buffer.js';
@@ -20,9 +20,6 @@ import { supportsParquet, type ParquetDatabase } from '../../platform/hyperdb/hy
 type ComputeDatabase = () => Promise<EmbeddedComputeDatabase>;
 
 const LOG_CTX = 'query_executor';
-
-/// A message of a channel of the host, what the stream produced. The batches stay in the table of the query.
-type ChannelMessage = core.RuntimeChannelMessage | { type: 'error'; error: unknown };
 
 /// What the platform keeps of a query of a channel: the channel of its connection, its stream and its cancellation.
 /// The runtime describes the query first (`describe`), which creates the record, and forgets it when its run ends
@@ -38,11 +35,12 @@ interface QueryRecord {
     stream: QueryExecutionResponseStream | null;
     /// The cancellation of the stream at the backend, every cancel waits for the same one
     streamCancel: Promise<void> | null;
-    producing: boolean;
+    /// The items of the stream, from the first message on
+    items: AsyncIterator<QueryStreamItem> | null;
+    /// The batches that went into the table
+    batches: number;
     /// The table that the batches of the stream go into
     table: number | null;
-    messages: ChannelMessage[];
-    wakeMessages: (() => void) | null;
 }
 
 function newRecord(): QueryRecord {
@@ -52,10 +50,9 @@ function newRecord(): QueryRecord {
         cancellation: new AbortController(),
         stream: null,
         streamCancel: null,
-        producing: false,
+        items: null,
+        batches: 0,
         table: null,
-        messages: [],
-        wakeMessages: null,
     };
 }
 
@@ -111,7 +108,10 @@ export class QueryChannels {
             return { type: 'host' };
         },
         forget: queryId => {
+            const record = this.records.get(queryId);
             this.records.delete(queryId);
+            // A stream that was not read to the end stops
+            void record?.items?.return?.()?.catch(() => { });
         },
         open: async (queryId, table) => {
             const record = this.recordOf(queryId);
@@ -123,7 +123,7 @@ export class QueryChannels {
             const stream = await channel.executeQuery(param, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
             if (stream == null) return false;
             record.stream = stream as QueryExecutionResponseStream;
-            // The stream produces with the first message, a query that was cancelled meanwhile never consumes it
+            // The stream is read from the first message on, a query that was cancelled meanwhile never reads it
             record.table = table;
             return true;
         },
@@ -289,55 +289,30 @@ export class QueryChannels {
         return record;
     }
 
-    /// Queue a message of a channel
-    private pushMessage(record: QueryRecord, message: ChannelMessage): void {
-        record.messages.push(message);
-        const wake = record.wakeMessages;
-        record.wakeMessages = null;
-        wake?.();
-    }
-
-    /// Start producing the result of a channel into the table of the query
-    private produce(record: QueryRecord, stream: QueryExecutionResponseStream, table: number): void {
+    /// The next message of a channel: the next batch that goes into the table of the query, the next progress, or the
+    /// end of the stream. The runtime pulls a message when it handled the last one, the stream is read as fast.
+    private async nextMessage(record: QueryRecord): Promise<core.RuntimeChannelMessage> {
+        const stream = record.stream;
+        if (stream == null || record.table == null) throw new Error('The query has no stream');
         const publish = record.query?.publishResults !== false;
-        const result = this.deps.tables.stream(table);
-        let batches = 0;
-        const batchConsumer = {
-            resolve: (_stream: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
-                if (!publish) return;
-                ++batches;
-                // The batch stays here, the executor follows the metrics
-                result?.pushBatch(batch);
-                this.pushMessage(record, { type: 'batch', metrics: stream.getMetrics() });
-            },
-            reject: () => { },
-        };
-        const progressConsumer = {
-            resolve: (_stream: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                this.pushMessage(record, { type: 'progress', progress: progress as core.QueryProgressView });
-            },
-            reject: () => { },
-        };
-        record.producing = true;
-        Promise.resolve().then(() => stream.produce(batchConsumer, progressConsumer, record.cancellation.signal)).then(
-            async () => {
-                if (publish && batches === 0) {
+        const result = this.deps.tables.stream(record.table);
+        record.items ??= stream.read(record.cancellation.signal)[Symbol.asyncIterator]();
+        for (;;) {
+            const next = await record.items.next();
+            if (next.done) {
+                if (publish && record.batches === 0) {
                     result?.setSchema(await stream.getSchema() ?? new arrow.Schema());
                 }
-                this.pushMessage(record, { type: 'end', metrics: stream.getMetrics() });
-            },
-        ).catch((error: unknown) => this.pushMessage(record, { type: 'error', error }));
-    }
-
-    /// The next message of a channel
-    private async nextMessage(record: QueryRecord): Promise<core.RuntimeChannelMessage> {
-        if (record.stream == null) throw new Error('The query has no stream');
-        if (!record.producing && record.table != null) this.produce(record, record.stream, record.table);
-        while (record.messages.length === 0) {
-            await new Promise<void>(resolve => { record.wakeMessages = resolve; });
+                return { type: 'end', metrics: stream.getMetrics() };
+            }
+            const item = next.value;
+            if (item.type === 'progress') return { type: 'progress', progress: item.progress as core.QueryProgressView };
+            // An unpublished result keeps no batches
+            if (!publish) continue;
+            ++record.batches;
+            // The batch stays here, the executor follows the metrics
+            result?.pushBatch(item.batch);
+            return { type: 'batch', metrics: stream.getMetrics() };
         }
-        const message = record.messages.shift()!;
-        if (message.type === 'error') throw message.error;
-        return message;
     }
 }

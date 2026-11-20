@@ -399,7 +399,9 @@ when the store took the changes. Every effect tells the host. `HandleTable.apply
 A query result never lives in the core module. The executor streams it into a table of the platform opened for the
 query (`tables.open`, `push`, `finish`): Hyper over HTTP hands its chunks over as they are, Trino and client functions
 pass one page at a time as the next part of an Arrow IPC stream, host channels (the embedded Hyper, gRPC, test channels)
-keep their record batches. `QueryResultStream` frames the parts and `apache-arrow` builds the table. The history of the
+keep their record batches. The stream of a host channel is an async iterator of its batches and its progress (`read`
+of `QueryExecutionResponseStream`): the runtime pulls the next message with `channels.next`, and `query_channels.ts`
+pulls the next item of the stream for it, so the stream is read no faster than the runtime takes it. `QueryResultStream` frames the parts and `apache-arrow` builds the table. The history of the
 connection names the table by its handle, the app resolves it with `useTable(handle)` or `runtime.table(handle)`.
 
 The computations work the same way: the compute platform imports a result by handle, the module reads only rows and

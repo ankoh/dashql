@@ -117,8 +117,8 @@ function probeResult(): QueryExecutionResponseStream {
     const stream: QueryExecutionResponseStream = {
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => table.schema,
-        produce: async batches => {
-            for (const batch of table.batches) batches.resolve(stream, batch);
+        read: async function* () {
+            for (const batch of table.batches) yield { type: 'batch', batch };
         },
     };
     return stream;

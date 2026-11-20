@@ -3,7 +3,6 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import type * as core from '../../core/index.js';
 import { QueryExecutionStatus, QueryType } from '../../core/index.js';
 
-import { AsyncConsumer } from '../utils/async_consumer.js';
 import type { QueryProfileProgress } from './query_progress.js';
 
 /// The status of the execution of a query, a numeric enum of the module
@@ -44,6 +43,12 @@ export interface QueryExecutionProgress {
     profileProgress?: QueryProfileProgress | null;
 }
 
+/// What the stream of a query result yields: a record batch of the result or the progress of the query
+export type QueryStreamItem =
+    | { type: 'batch'; batch: arrow.RecordBatch }
+    | { type: 'progress'; progress: QueryExecutionProgress };
+
+/// The result of a query on a channel of the host: the embedded Hyper, Hyper over gRPC, the channels of tests
 export interface QueryExecutionResponseStream {
     /// Ask the backend to stop the query, when the connector supports explicit cancellation.
     cancel?(): Promise<void>;
@@ -53,8 +58,18 @@ export interface QueryExecutionResponseStream {
     getMetrics(): QueryExecutionMetrics;
     /// Await the schema message
     getSchema(): Promise<arrow.Schema | null>;
-    /// Await the next record batch
-    produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void>;
+    /// The batches and the progress of the query in order, read once. The reader pulls the next item when it is done
+    /// with the last one, the abort signal of the query stops the stream.
+    read(abort?: AbortSignal): AsyncIterable<QueryStreamItem>;
+}
+
+/// The record batches of a stream, read to the end
+export async function readStreamBatches(stream: QueryExecutionResponseStream, abort?: AbortSignal): Promise<arrow.RecordBatch[]> {
+    const batches: arrow.RecordBatch[] = [];
+    for await (const item of stream.read(abort)) {
+        if (item.type === 'batch') batches.push(item.batch);
+    }
+    return batches;
 }
 
 /// The kind of a query, a numeric enum of the module

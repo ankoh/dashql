@@ -50,7 +50,7 @@ function fixture(workbookId: string, deferStream = false) {
         cancel: vi.fn(() => cancellation.promise),
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => null,
-        produce: vi.fn<QueryExecutionResponseStream['produce']>(async (_batches, _progress, abort) => {
+        read: vi.fn<QueryExecutionResponseStream['read']>(async function* (abort) {
             signal = abort;
             abort?.addEventListener('abort', aborted, { once: true });
             await execution.promise;
@@ -195,7 +195,7 @@ describe('the runs of workbooks of the runtime', () => {
     async function start(f = fixtures[0]) {
         void current.start();
         await vi.waitFor(() => {
-            expect(f.stream.produce).toHaveBeenCalledTimes(1);
+            expect(f.stream.read).toHaveBeenCalledTimes(1);
             expect(current.state?.phase).toBe('running');
         });
         expect(current.busy).toBe(true);
@@ -230,7 +230,7 @@ describe('the runs of workbooks of the runtime', () => {
         const first = current.start();
         const second = await current.start();
         expect(second.outcome.refused).toBe('a run holds the workbook');
-        await vi.waitFor(() => expect(fixtures[0].stream.produce).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(fixtures[0].stream.read).toHaveBeenCalledTimes(1));
         expect((await current.start()).outcome.refused).toBe('a run holds the workbook');
         expect(fixtures[0].executeQuery).toHaveBeenCalledTimes(1);
         expect(fixtures[0].latestQueryId()).not.toBeNull();
@@ -244,7 +244,7 @@ describe('the runs of workbooks of the runtime', () => {
         await openWorkbook();
         const run = current.start();
         await vi.waitFor(() => expect(current.state?.phase).toBe('running'));
-        await vi.waitFor(() => expect(fixtures[0].stream.produce).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(fixtures[0].stream.read).toHaveBeenCalledTimes(1));
         const f = fixtures[0];
         current.stop();
         current.stop();
@@ -284,7 +284,7 @@ describe('the runs of workbooks of the runtime', () => {
             expect(f.executeQuery).toHaveBeenCalledTimes(1);
             expect(current.state?.phase).toBe('running');
         });
-        expect(f.stream.produce).not.toHaveBeenCalled();
+        expect(f.stream.read).not.toHaveBeenCalled();
 
         current.stop();
         await settle();
@@ -295,7 +295,7 @@ describe('the runs of workbooks of the runtime', () => {
 
         f.acquisition.resolve();
         await vi.waitFor(() => expect(f.stream.cancel).toHaveBeenCalledTimes(1));
-        expect(f.stream.produce).not.toHaveBeenCalled();
+        expect(f.stream.read).not.toHaveBeenCalled();
         runtime!.flush();
         expect(current.state?.phase).toBe('stopping');
         expect(current.busy).toBe(true);
@@ -306,7 +306,7 @@ describe('the runs of workbooks of the runtime', () => {
         expect(current.busy).toBe(false);
         expect(f.executeQuery).toHaveBeenCalledTimes(1);
         expect(f.stream.cancel).toHaveBeenCalledTimes(1);
-        expect(f.stream.produce).not.toHaveBeenCalled();
+        expect(f.stream.read).not.toHaveBeenCalled();
         expect(f.latestQueryId()).not.toBeNull();
     });
 
@@ -320,7 +320,7 @@ describe('the runs of workbooks of the runtime', () => {
         expect(current.state).toMatchObject({ phase: 'succeeded', totalStatements: 2, completedStatements: 2, completedScripts: 1 });
         expect(current.busy).toBe(false);
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
-        expect(f.stream.produce).toHaveBeenCalledTimes(2);
+        expect(f.stream.read).toHaveBeenCalledTimes(2);
         expect(getSchema).not.toHaveBeenCalled();
         expect(f.stream.cancel).not.toHaveBeenCalled();
         expect(f.latestQueryId()).not.toBeNull();
@@ -355,7 +355,7 @@ describe('the runs of workbooks of the runtime', () => {
         remote.database.protocol = 'V3_GRPC';
         await openWorkbook();
         void current.start();
-        await vi.waitFor(() => expect(embedded.stream.produce).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(embedded.stream.read).toHaveBeenCalledTimes(1));
         await openWorkbook('second');
         await current.start();
         expect(remote.executeQuery).not.toHaveBeenCalled();
@@ -432,7 +432,7 @@ describe('the runs of scripts of the runtime', () => {
             const stream: QueryExecutionResponseStream = {
                 getMetrics: createQueryResponseStreamMetrics,
                 getSchema: async () => table.schema,
-                produce: async batches => { for (const batch of table.batches) batches.resolve(stream, batch); },
+                read: async function* () { for (const batch of table.batches) yield { type: 'batch' as const, batch }; },
             };
             return stream;
         };
@@ -732,7 +732,7 @@ describe('the runs of scripts of the runtime', () => {
             const stream: QueryExecutionResponseStream = {
                 getMetrics: createQueryResponseStreamMetrics,
                 getSchema: async () => table.schema,
-                produce: async batches => { for (const batch of table.batches) batches.resolve(stream, batch); },
+                read: async function* () { for (const batch of table.batches) yield { type: 'batch' as const, batch }; },
             };
             return stream;
         });

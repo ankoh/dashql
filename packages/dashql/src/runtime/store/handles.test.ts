@@ -113,7 +113,7 @@ describe('The handles of a runtime', () => {
             cancel: vi.fn(async () => { }),
             getMetrics: createQueryResponseStreamMetrics,
             getSchema: async () => null,
-            produce: vi.fn<QueryExecutionResponseStream['produce']>(async () => { }),
+            read: vi.fn<QueryExecutionResponseStream['read']>(async function* () { }),
         };
         // A statement `select 2` runs until it is cancelled
         const active = new AbortController();
@@ -139,7 +139,7 @@ describe('The handles of a runtime', () => {
         // A run of the workbook executes its statement on the connection, through the query executor of the runtime
         const run = await rt.runWorkbook(workbook.workbookId);
         expect(run.outcome.refused).toBeNull();
-        expect(stream.produce).toHaveBeenCalled();
+        expect(stream.read).toHaveBeenCalled();
         expect(rt.store.get('run', workbook.workbookId)?.held).toBeNull();
         expect(rt.connection(connectionId).queriesFinishedOrdered.length).toBeGreaterThan(0);
 

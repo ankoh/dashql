@@ -19,13 +19,11 @@ import {
 } from '../../host/native_grpc_client.js';
 import {
     createQueryResponseStreamMetrics,
-    QueryExecutionProgress,
-    QueryExecutionResponseStream, QueryExecutionMetrics,
+    type QueryExecutionResponseStream, type QueryExecutionMetrics, type QueryStreamItem,
 } from '@akohn/dashql/platform/query/query_execution_state';
 import { ChannelArgs, ChannelError } from '@akohn/dashql/platform/channel_common';
 import { decodeGrpcErrorHeaders, HyperQueryError } from '@akohn/dashql/platform/connections/hyper/hyper_error_info';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
-import { AsyncConsumer } from '@akohn/dashql/platform/utils/async_consumer';
 import { AsyncValue } from '@akohn/dashql/platform/utils/async_value';
 import { yieldToBrowser } from '@akohn/dashql/platform/utils/yield_to_browser';
 
@@ -103,8 +101,8 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
     getSchema(): Promise<arrow.Schema> {
         return this.resultSchema.getValue();
     }
-    /// Produce the result batches
-    async produce(batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>, _progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>, abort?: AbortSignal): Promise<void> {
+    /// The result batches
+    async *read(abort?: AbortSignal): AsyncGenerator<QueryStreamItem> {
         const cancel = () => { void this.cancel(); };
         abort?.addEventListener('abort', cancel, { once: true });
         try {
@@ -121,11 +119,11 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
                 abort?.throwIfAborted();
                 if (iter.done) {
                     if (iter.value !== undefined) {
-                        batches.resolve(this, iter.value);
+                        yield { type: 'batch', batch: iter.value };
                     }
                     return;
                 }
-                batches.resolve(this, iter.value);
+                yield { type: 'batch', batch: iter.value };
                 if (++batchesRead % STREAM_YIELD_INTERVAL === 0) await yieldToBrowser();
             }
         } catch (e: unknown) {

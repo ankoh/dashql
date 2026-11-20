@@ -4,12 +4,11 @@ import type * as pb from '../proto.js';
 
 import type { EmbeddedClientContext, EmbeddedConnection, EmbeddedDatabase, EmbeddedResultStream } from '../embedded_database.js';
 import { embeddedAttachedDatabasePath } from '../hyperdb/hyperdb_opfs_instance.js';
-import type { AsyncConsumer } from '../utils/async_consumer.js';
 import {
     createQueryResponseStreamMetrics,
-    QueryExecutionProgress,
-    QueryExecutionResponseStream,
     type QueryExecutionMetrics,
+    type QueryExecutionResponseStream,
+    type QueryStreamItem,
 } from '../query/query_execution_state.js';
 import type { HyperDatabaseChannel } from './hyper/hyperdb_grpc_client.js';
 import { yieldToBrowser } from '../utils/yield_to_browser.js';
@@ -52,12 +51,8 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
         return this.reader.schema;
     }
 
-    /// Produce the batches, the abort signal of the query cancels it in the database
-    async produce(
-        batches: AsyncConsumer<QueryExecutionResponseStream, arrow.RecordBatch>,
-        _progress: AsyncConsumer<QueryExecutionResponseStream, QueryExecutionProgress>,
-        abort?: AbortSignal,
-    ): Promise<void> {
+    /// The batches as the database produces them, the abort signal of the query cancels it in the database
+    async *read(abort?: AbortSignal): AsyncGenerator<QueryStreamItem> {
         try {
             for (;;) {
                 abort?.throwIfAborted();
@@ -68,7 +63,7 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
                 this.metrics.totalDataBytesReceived += batch.data.byteLength;
                 this.metrics.totalBatchesReceived += 1;
                 this.metrics.totalRowsReceived += batch.numRows;
-                batches.resolve(this, batch);
+                yield { type: 'batch', batch };
                 if (this.metrics.totalBatchesReceived % STREAM_YIELD_INTERVAL === 0) await yieldToBrowser();
             }
             this.metrics.totalQueryRequestsSucceeded = 1;
@@ -78,6 +73,11 @@ class EmbeddedQueryResultStream implements QueryExecutionResponseStream {
             await this.reader.cancel().catch(() => {});
             throw error;
         } finally {
+            // A reader that stops early returns the generator, the query is cancelled then
+            if (this.metrics.totalQueryRequestsSucceeded === 0 && this.metrics.totalQueryRequestsFailed === 0) {
+                this.metrics.totalQueryRequestsFailed = 1;
+                await this.reader.cancel().catch(() => {});
+            }
             this.metrics.totalQueryRequestDurationMs = performance.now() - this.startedAt;
             this.resolveFinished();
         }

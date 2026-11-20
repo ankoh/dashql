@@ -1,9 +1,8 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 import type { EmbeddedConnection, EmbeddedResultStream } from '../embedded_database.js';
-import { type QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import { readStreamBatches, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
 import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
@@ -35,10 +34,8 @@ async function readTable(table: arrow.Table, onDone: () => void = () => {}): Pro
 }
 
 /// Read a response stream to the end.
-async function produceAll(stream: QueryExecutionResponseStream): Promise<arrow.RecordBatch[]> {
-    const batches: arrow.RecordBatch[] = [];
-    await stream.produce(new AsyncConsumerLambdas((_stream, batch) => batches.push(batch)), new AsyncConsumerLambdas());
-    return batches;
+function produceAll(stream: QueryExecutionResponseStream): Promise<arrow.RecordBatch[]> {
+    return readStreamBatches(stream);
 }
 
 /// A connection that rejects a statement while a result is still read, like a HyperDB session.
