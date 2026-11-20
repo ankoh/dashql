@@ -33,7 +33,6 @@ use dashql_core_storage::connection_persistence::{
     connection_entry, connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes,
     write_workbook_copies, ConnectionChange, PersistedConnection,
 };
-use dashql_core_storage::storage::keys::connection_entry_key;
 use dashql_core_storage::storage::{StorageWriter as RuntimeStorageWriter, WriteTask};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
@@ -243,7 +242,7 @@ impl Connections {
             if let Some(fields) = entry.as_object_mut() {
                 fields.insert("createdAt".into(), json!(iso_now(now)));
             }
-            self.write(&connection_entry_key(&connection_id), WriteTask::WriteConnectionEntry { entry }, 0.0);
+            self.write(WriteTask::WriteConnectionEntry { entry }, 0.0);
         }
         self.platform.changed(Slice::Connection(&connection_id), true);
         self.follow_later();
@@ -294,14 +293,14 @@ impl Connections {
     }
 
     /// Schedule a write if the runtime has a writer
-    fn write(&self, key: &str, task: WriteTask, debounce_ms: f64) {
+    fn write(&self, task: WriteTask, debounce_ms: f64) {
         let writer = self.writer.borrow().clone();
         match writer {
-            Some(writer) => drop(writer.write(key, task, debounce_ms)),
+            Some(writer) => drop(writer.write(task, debounce_ms)),
             None => self.log(
                 LogLevel::Warn,
                 "The runtime has no storage writer, a change of a connection is not saved",
-                &[("key", key)],
+                &[("key", &task.key())],
             ),
         }
     }

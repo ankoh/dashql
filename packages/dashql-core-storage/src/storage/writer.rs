@@ -49,7 +49,9 @@ use super::workbook_file::{
     attachments_patch, created_workbook_file, properties_patch, same_file, upsert_connection_entry, CreatedWorkbook,
 };
 use super::StorageHost;
-use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
+use crate::workbook_format::data::{
+    WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript, WORKBOOK_FORMAT_VERSION,
+};
 use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
 use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
 use dashql_core_runtime::host::{HostError, LogLevel};
@@ -937,8 +939,6 @@ impl State {
 
 struct Shared<H: StorageHost> {
     host: H,
-    /// The format version of workbook files that the writer writes
-    format_version: i64,
     /// The stamps of the folders that may change outside the app
     stamps: Rc<FolderStamps>,
     state: RefCell<State>,
@@ -1143,7 +1143,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             let now = iso_timestamp_f64(host.now());
             let created = CreatedWorkbook {
                 workbook_id,
-                format_version: shared.format_version,
+                format_version: WORKBOOK_FORMAT_VERSION,
                 name: name.as_deref(),
                 connection: connection.as_ref(),
                 ephemeral: *ephemeral,
@@ -1286,16 +1286,9 @@ impl<H: StorageHost> Clone for StorageWriter<H> {
 }
 
 impl<H: StorageHost> StorageWriter<H> {
-    /// A writer that writes workbook files of a format version
-    pub fn new(host: H, format_version: i64) -> StorageWriter<H> {
-        Self::with_stamps(host, format_version, Rc::default())
-    }
-
     /// A writer that records the stamps of its writes in stamps that the host shares, e.g. with the checks of folders
-    pub fn with_stamps(host: H, format_version: i64, stamps: Rc<FolderStamps>) -> StorageWriter<H> {
-        StorageWriter {
-            shared: Rc::new(Shared { host, format_version, stamps, state: RefCell::new(State::default()) }),
-        }
+    pub fn new(host: H, stamps: Rc<FolderStamps>) -> StorageWriter<H> {
+        StorageWriter { shared: Rc::new(Shared { host, stamps, state: RefCell::new(State::default()) }) }
     }
 
     pub fn host(&self) -> &H {
@@ -1307,28 +1300,31 @@ impl<H: StorageHost> StorageWriter<H> {
         &self.shared.stamps
     }
 
-    /// Schedule a debounced write. A newer write with the same key replaces a pending task and supersedes its caller.
-    pub fn write(&self, key: &str, task: WriteTask, debounce_ms: f64) -> WriteResult {
-        update(&self.shared, |state| state.schedule(key, task, debounce_ms, None).0)
+    /// Schedule a debounced write under the key of the task (`WriteTask::key`). A newer write with the same key
+    /// replaces a pending task and supersedes its caller.
+    pub fn write(&self, task: WriteTask, debounce_ms: f64) -> WriteResult {
+        let key = task.key();
+        update(&self.shared, |state| state.schedule(&key, task, debounce_ms, None).0)
     }
 
     /// Write without debouncing. The task replaces a pending task with the same key and runs right away, after the
     /// earlier tasks of its files and the running tasks of its chain. A paused writer or workbook defers it, it stays
     /// pending and runs on resume.
-    pub fn write_durable(&self, key: &str, task: WriteTask) -> WriteResult {
-        self.write_now(key, task, None)
+    pub fn write_durable(&self, task: WriteTask) -> WriteResult {
+        self.write_now(task, None)
     }
 
     /// Write right away past a hold of a reason, e.g. the writes of an import that holds the workbook it replaces
-    pub fn write_past(&self, key: &str, task: WriteTask, reason: HoldReason) -> WriteResult {
-        self.write_now(key, task, Some(reason))
+    pub fn write_past(&self, task: WriteTask, reason: HoldReason) -> WriteResult {
+        self.write_now(task, Some(reason))
     }
 
-    fn write_now(&self, key: &str, task: WriteTask, passes: Option<HoldReason>) -> WriteResult {
+    fn write_now(&self, task: WriteTask, passes: Option<HoldReason>) -> WriteResult {
+        let key = task.key();
         update(&self.shared, |state| {
-            let (result, seq) = state.schedule(key, task, 0.0, passes);
+            let (result, seq) = state.schedule(&key, task, 0.0, passes);
             let Some(seq) = seq else { return result };
-            if state.is_held(key, false, passes) {
+            if state.is_held(&key, false, passes) {
                 if let Some((timer, resolver)) =
                     state.pending.get_mut(&seq).map(|p| (p.timer.take(), p.resolver.take()))
                 {

@@ -16,7 +16,6 @@ use std::rc::Rc;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::workbook::WorkbookEffect;
-use dashql_core_storage::storage::keys::workbook_connection_copy_key;
 use dashql_core_storage::storage::{FailedWrite, HoldReason, WriteResult, WriteTask};
 use dashql_core_storage::workbook_format::data::{
     WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript,
@@ -189,15 +188,15 @@ impl Persistence {
     }
 
     /// Schedule a write of the storage, nothing without storage
-    pub fn write(&self, key: &str, task: WriteTask, debounce_ms: f64) {
+    pub fn write(&self, task: WriteTask, debounce_ms: f64) {
         if let Some(writer) = self.writer() {
-            drop(writer.write(key, task, debounce_ms));
+            drop(writer.write(task, debounce_ms));
         }
     }
 
     /// Write at once and tell the outcome, none without storage
-    pub fn write_durable(&self, key: &str, task: WriteTask) -> Option<WriteResult> {
-        self.writer().map(|writer| writer.write_durable(key, task))
+    pub fn write_durable(&self, task: WriteTask) -> Option<WriteResult> {
+        self.writer().map(|writer| writer.write_durable(task))
     }
 
     /// Write a new workbook: the workbook file right away, the later writes of the file wait for it
@@ -210,7 +209,7 @@ impl Persistence {
             ephemeral: created.ephemeral,
             original_file_name: created.original_file_name,
         };
-        self.write(&task.key(), task, 0.0);
+        self.write(task, 0.0);
     }
 
     /// Rename the file of an attachment at once and tell the outcome. In memory the file is renamed and there is no
@@ -221,7 +220,7 @@ impl Persistence {
             return None;
         }
         let task = WriteTask::RenameDataFile { workbook_id: workbook_id.to_string(), from, to };
-        self.write_durable(&task.key(), task)
+        self.write_durable(task)
     }
 
     /// Schedule the writes of the effects of an action of a workbook, in order. `cloud` is the whole link to a cloud
@@ -281,12 +280,12 @@ impl Persistence {
                             copy: connection_copy(&connection_id, params.as_deref()),
                             replaced: vec![from.clone()],
                         };
-                        self.write(&workbook_connection_copy_key(workbook_id, &from), task, DEBOUNCE_MS);
+                        self.write(task, DEBOUNCE_MS);
                     }
                     continue;
                 }
             };
-            self.write(&task.key(), task, DEBOUNCE_MS);
+            self.write(task, DEBOUNCE_MS);
         }
     }
 

@@ -14,7 +14,7 @@ use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::names::script_display_name;
 use dashql_core_runtime::workbook::WorkbookAction;
-use dashql_core_storage::storage::keys::{attachment_key, workbook_attachment_list_key};
+use dashql_core_storage::storage::keys::attachment_key;
 use dashql_core_storage::storage::{WriteError, WriteOutcome, WriteTask};
 use js_sys::{Array, Promise};
 use serde::Serialize;
@@ -93,12 +93,7 @@ pub(crate) async fn reconcile_attachments(
     let _ = platform.storage_call("attachmentsChanged", &[JsValue::from_str(workbook_id)]);
     runs.describe_attachments();
     // The write runs once the workbook is not held
-    let key = workbook_attachment_list_key(workbook_id);
-    workbooks.persistence.write(
-        &key,
-        WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() },
-        0.0,
-    );
+    workbooks.persistence.write(WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0);
     Ok(())
 }
 
@@ -194,7 +189,7 @@ impl Runtime {
                 file_name: file_name.clone(),
                 file: HostBytes::new(Rc::new(content), size),
             };
-            writes.push(writer.write_durable(&task.key(), task));
+            writes.push(writer.write_durable(task));
             sizes.push((file_name.clone(), size));
             outcome.attached.push(AttachedFileName { name, file_name });
         }

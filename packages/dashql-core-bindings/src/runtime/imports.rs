@@ -1084,7 +1084,7 @@ impl Writer<'_> {
 
     /// Patch a registered workbook file through the writer, past the hold of an import that replaces the workbook
     async fn patch(&self, task: WriteTask, what: &str) -> Result<(), HostError> {
-        write_result(self.storage.write_past(&task.key(), task, HoldReason::Import).await, what)
+        write_result(self.storage.write_past(task, HoldReason::Import).await, what)
     }
 
     /// Copy the files of a workbook of the storage as they are: the workbook file, of any format, the scripts and the

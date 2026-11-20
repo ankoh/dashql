@@ -310,7 +310,7 @@ impl Fixture {
     }
 
     fn restore_with(&self, live: Vec<LiveConnection>) -> AppRestore<FakeHost, FakeHost> {
-        let writer = StorageWriter::new(self.host.clone(), 11);
+        let writer = StorageWriter::new(self.host.clone(), Rc::default());
         let mut next = 0;
         let options = RestoreOptions {
             offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS,
@@ -378,7 +378,7 @@ fn acknowledges_the_stamps_of_a_folder_that_it_reads_before_the_reads() {
     // The scripts folder is missing while the restore reads it
     let at_restore = FolderListing { workbook: Some(stamp(10.0)), ..FolderListing::default() };
     fixture.host.store.borrow_mut().listings.insert(WORKBOOK.to_string(), at_restore.clone());
-    let writer = StorageWriter::new(fixture.host.clone(), 11);
+    let writer = StorageWriter::new(fixture.host.clone(), Rc::default());
     let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
     let restore = AppRestore::new(fixture.host.clone(), writer.clone(), options);
     let restored = fixture.run(restore.restore());
@@ -878,7 +878,7 @@ mod persistence {
     }
 
     fn keys(writes: &ConnectionWrites) -> Vec<(String, f64)> {
-        writes.writes.iter().map(|write| (write.key.clone(), write.debounce_ms)).collect()
+        writes.writes.iter().map(|write| (write.task.key(), write.debounce_ms)).collect()
     }
 
     fn names(writes: &ConnectionWrites) -> Vec<String> {
@@ -938,7 +938,7 @@ mod persistence {
                 file("dashql-catalog-state.json")
             ]
         );
-        let writer = StorageWriter::new(fixture.host.clone(), 11);
+        let writer = StorageWriter::new(fixture.host.clone(), Rc::default());
         schedule_connection_writes(&writer, writes, CONNECTION);
         fixture.run(writer.flush());
         let relations = fixture.file(CONNECTION, "dashql-catalog-relations.sql").unwrap_or_default();
@@ -992,7 +992,7 @@ mod persistence {
         let entry = saved_entry(CONNECTION, &connection, &params);
         assert!(entry.get("paramsDraft").is_none());
         let params = serde_json::from_str::<Value>(&params.to_json()).unwrap();
-        let writer = StorageWriter::new(fixture.host.clone(), 11);
+        let writer = StorageWriter::new(fixture.host.clone(), Rc::default());
         let committed = Rc::new(Cell::new(false));
         let commit = committed.clone();
         let host = fixture.host.clone();

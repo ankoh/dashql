@@ -22,10 +22,6 @@ use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
-use crate::storage::keys::{
-    connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key,
-    workbook_script_list_key,
-};
 use crate::storage::{
     FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask,
 };
@@ -636,16 +632,12 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                     fields.insert("params".to_string(), params_value(state));
                 }
                 let task = WriteTask::WriteConnectionEntry { entry: json };
-                writes.push(PendingWrite {
-                    result: writer.write_durable(&connection_entry_key(&entry.id), task),
-                    what: entry.id.clone(),
-                });
+                writes.push(PendingWrite { result: writer.write_durable(task), what: entry.id.clone() });
             }
             for (connection_id, file_name, text) in std::mem::take(&mut self.connection_files) {
-                let key = connection_file_key(&connection_id, &file_name);
                 let what = format!("{connection_id}/{file_name}");
                 let task = WriteTask::WriteConnectionFile { connection_id, file_name, text: TextSource::Text(text) };
-                writes.push(PendingWrite { result: writer.write_durable(&key, task), what });
+                writes.push(PendingWrite { result: writer.write_durable(task), what });
             }
             copies = await_writes(self.host, writes, "Failed to persist restored connections").await;
         }
@@ -656,9 +648,8 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 let copy = WorkbookConnection::new(connection_id.clone(), params_value(state));
                 let task =
                     WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
-                let key = workbook_connection_copy_key(workbook_id, connection_id);
                 writes.push(PendingWrite {
-                    result: writer.write_durable(&key, task),
+                    result: writer.write_durable(task),
                     what: format!("{workbook_id}:{connection_id}"),
                 });
             }
@@ -669,19 +660,17 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 scripts: list.scripts.clone(),
                 connections: list.connections.clone(),
             };
-            let key = workbook_script_list_key(&list.workbook_id);
-            writes.push(PendingWrite { result: writer.write_durable(&key, task), what: list.workbook_id.clone() });
+            writes.push(PendingWrite { result: writer.write_durable(task), what: list.workbook_id.clone() });
         }
         for promotion in std::mem::take(&mut self.promotions) {
             // The properties as the file holds them, without the ephemeral marker
-            let key = workbook_file_key(&promotion.workbook_id);
             let task = WriteTask::WriteWorkbookProperties {
                 workbook_id: promotion.workbook_id.clone(),
                 name: promotion.name,
                 ephemeral: false,
                 cloud: promotion.cloud,
             };
-            writes.push(PendingWrite { result: writer.write_durable(&key, task), what: promotion.workbook_id });
+            writes.push(PendingWrite { result: writer.write_durable(task), what: promotion.workbook_id });
         }
         await_writes(self.host, writes, "Failed to update a restored workbook").await;
     }

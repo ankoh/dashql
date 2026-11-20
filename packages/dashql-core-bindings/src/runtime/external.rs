@@ -25,7 +25,7 @@ use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_storage::restore::connection_state;
-use dashql_core_storage::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
+use dashql_core_storage::storage::keys::is_reloaded_key;
 use dashql_core_storage::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
 use dashql_core_storage::workbook_format::data::{WorkbookConnection, WorkbookData};
 use dashql_core_storage::workbook_format::files::nfc;
@@ -444,7 +444,7 @@ impl ExternalChanges {
                 scripts: stored.workbook.scripts.clone(),
                 connections: stored.workbook.connections.clone(),
             };
-            drop(writer.write(&workbook_script_list_key(workbook_id), task, DEBOUNCE_MS));
+            drop(writer.write(task, DEBOUNCE_MS));
         }
         // A workbook that was removed while the question was open stays removed
         if self.workbooks.get(workbook_id).is_some() {
@@ -559,9 +559,8 @@ impl ExternalChanges {
             if disk.iter().any(|script| script.name == file_name && script.sql == text) {
                 continue;
             }
-            let key = script_key(workbook_id, &file_name);
             let task = WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text };
-            self.workbooks.persistence.write(&key, task, DEBOUNCE_MS);
+            self.workbooks.persistence.write(task, DEBOUNCE_MS);
         }
     }
 }

@@ -70,7 +70,6 @@ use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
 use dashql_core_storage::restore::bundle::BundleHost;
 use dashql_core_storage::restore::{AppRestore, RestoreOptions, RestoredState};
-use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use persistence::Persistence;
 use queries::{QueryArgs, QueryTicket};
 use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
@@ -844,11 +843,7 @@ impl Runtime {
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
         // A runtime without storage keeps nothing, e.g. the one of the shell or of an embed without OPFS
         let persistence = if platform.has_storage() {
-            let writer = dashql_core_storage::storage::StorageWriter::with_stamps(
-                host,
-                WORKBOOK_FORMAT_VERSION,
-                storage.stamps.clone(),
-            );
+            let writer = dashql_core_storage::storage::StorageWriter::new(host, storage.stamps.clone());
             *connections.writer.borrow_mut() = Some(writer.clone());
             Persistence::Writer(writer)
         } else {

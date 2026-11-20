@@ -7,7 +7,6 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::storage::keys::{connection_entry_key, connection_file_key, workbook_connection_copy_key};
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteOutcome, WriteTask};
 use crate::workbook_format::data::WorkbookConnection;
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE};
@@ -75,7 +74,6 @@ pub enum ConnectionChange {
 
 /// A write of a connection
 pub struct ConnectionWrite {
-    pub key: String,
     pub task: WriteTask,
     pub debounce_ms: f64,
 }
@@ -113,14 +111,12 @@ pub fn workbook_copy(connection_id: &str, params: &Value) -> WorkbookConnection 
 /// The writes of the saved params of a connection: the app manifest and every workbook that references it
 fn params_writes(id: &str, next: &ConnectionState, workbook_ids: &[String], out: &mut Vec<ConnectionWrite>) {
     out.push(ConnectionWrite {
-        key: connection_entry_key(id),
         task: WriteTask::WriteConnectionEntry { entry: connection_entry(id, next) },
         debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
     });
     let copy = workbook_copy(id, &params_value(next.params()));
     for workbook_id in workbook_ids {
         out.push(ConnectionWrite {
-            key: workbook_connection_copy_key(workbook_id, id),
             task: WriteTask::PatchWorkbookConnection {
                 workbook_id: workbook_id.clone(),
                 copy: copy.clone(),
@@ -150,7 +146,6 @@ pub fn connection_writes(
         if prev.active {
             out.cancel_file_writes = true;
             out.writes.push(ConnectionWrite {
-                key: connection_entry_key(id),
                 task: WriteTask::DeleteConnectionEntry { connection_id: id.to_string() },
                 debounce_ms: 0.0,
             });
@@ -171,7 +166,6 @@ pub fn connection_writes(
             || prev.cache_query_results != next.cache_query_results()
         {
             out.writes.push(ConnectionWrite {
-                key: connection_entry_key(id),
                 task: WriteTask::WriteConnectionEntry { entry: connection_entry(id, next) },
                 debounce_ms: CONNECTION_DRAFT_WRITE_DEBOUNCE_MS,
             });
@@ -182,7 +176,6 @@ pub fn connection_writes(
     }
     let durable = next.params().connector.connector().catalog_is_durable(&next.params().params);
     let file = |file_name: &str, text: TextSource| ConnectionWrite {
-        key: connection_file_key(id, file_name),
         task: WriteTask::WriteConnectionFile { connection_id: id.to_string(), file_name: file_name.to_string(), text },
         debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
     };
@@ -224,7 +217,7 @@ pub fn schedule_connection_writes<W: StorageHost>(
     }
     for write in writes.writes {
         // The outcome of a debounced write is not awaited, a save awaits its own writes
-        drop(writer.write(&write.key, write.task, write.debounce_ms));
+        drop(writer.write(write.task, write.debounce_ms));
     }
 }
 
@@ -268,7 +261,7 @@ pub async fn write_workbook_copies<W: StorageHost>(
                 copy: copy.clone(),
                 replaced: Vec::new(),
             };
-            (workbook_id.clone(), writer.write_durable(&workbook_connection_copy_key(workbook_id, connection_id), task))
+            (workbook_id.clone(), writer.write_durable(task))
         })
         .collect();
     let mut out = Vec::with_capacity(pending.len());
@@ -289,8 +282,7 @@ pub async fn save_connection<W: StorageHost>(
     workbook_ids: &[String],
     commit: impl FnOnce(),
 ) -> ConnectionSaveOutcome {
-    let manifest =
-        writer.write_durable(&connection_entry_key(connection_id), WriteTask::WriteConnectionEntry { entry }).await;
+    let manifest = writer.write_durable(WriteTask::WriteConnectionEntry { entry }).await;
     if !matches!(manifest, WriteOutcome::Written) {
         return ConnectionSaveOutcome { manifest, workbooks: Vec::new() };
     }

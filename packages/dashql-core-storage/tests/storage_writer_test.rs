@@ -396,7 +396,7 @@ impl Harness {
         clock.now.set(1_767_225_600_000);
         let store = Rc::new(RefCell::new(Store::default()));
         let host = FakeHost { executor: executor.clone(), clock: clock.clone(), store: store.clone() };
-        Harness { executor, clock, store, writer: StorageWriter::new(host, FORMAT_VERSION) }
+        Harness { executor, clock, store, writer: StorageWriter::new(host, Rc::default()) }
     }
 
     fn start<T: 'static>(&self, future: impl Future<Output = T> + 'static) -> Started<T> {
@@ -623,8 +623,7 @@ fn script_list(names: &[&str], connections: Vec<WorkbookConnection>) -> WriteTas
 
 /// Schedule a task under its own key
 fn schedule(h: &Harness, task: WriteTask, debounce_ms: f64) -> Started<WriteOutcome> {
-    let key = task.key();
-    h.start(h.writer.write(&key, task, debounce_ms))
+    h.start(h.writer.write(task, debounce_ms))
 }
 
 // Debouncing
@@ -632,9 +631,9 @@ fn schedule(h: &Harness, task: WriteTask, debounce_ms: f64) -> Started<WriteOutc
 #[test]
 fn debounces_writes_and_keeps_the_timer_of_the_first_one() {
     let h = Harness::new();
-    let first = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 100.0));
+    let first = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 100.0));
     h.advance(60);
-    let second = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "2"), 100.0));
+    let second = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "2"), 100.0));
     h.run();
     assert!(matches!(first.take(), WriteOutcome::Superseded));
     h.advance(39);
@@ -649,7 +648,7 @@ fn debounces_writes_and_keeps_the_timer_of_the_first_one() {
 #[test]
 fn pausing_clears_the_timers_and_resuming_waits_for_the_debounce_again() {
     let h = Harness::new();
-    let result = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 100.0));
+    let result = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 100.0));
     h.advance(50);
     h.writer.pause();
     h.run();
@@ -664,8 +663,8 @@ fn pausing_clears_the_timers_and_resuming_waits_for_the_debounce_again() {
 
     // A paused workbook holds its writes, the other workbooks keep writing
     h.writer.hold(Some(WORKBOOK), HoldReason::Pause);
-    let held = h.start(h.writer.write(&script_key(WORKBOOK, "b.sql"), write_script(WORKBOOK, "b.sql", "1"), 10.0));
-    let other = h.start(h.writer.write(&script_key(OTHER, "c.sql"), write_script(OTHER, "c.sql", "1"), 10.0));
+    let held = h.start(h.writer.write(write_script(WORKBOOK, "b.sql", "1"), 10.0));
+    let other = h.start(h.writer.write(write_script(OTHER, "c.sql", "1"), 10.0));
     h.advance(100);
     assert!(!held.done());
     assert!(written(&other.take()));
@@ -679,12 +678,12 @@ fn pausing_clears_the_timers_and_resuming_waits_for_the_debounce_again() {
 #[test]
 fn a_handover_writes_the_pending_writes_and_then_nothing() {
     let h = Harness::new();
-    let pending = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 100.0));
+    let pending = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 100.0));
     h.block_on(h.writer.hand_over());
     assert!(written(&pending.take()));
     assert_eq!(h.calls(), [format!("write:{WORKBOOK}/a.sql=1")]);
     // The tab that handed over writes nothing, not even when it flushes
-    let later = h.start(h.writer.write(&script_key(WORKBOOK, "b.sql"), write_script(WORKBOOK, "b.sql", "1"), 10.0));
+    let later = h.start(h.writer.write(write_script(WORKBOOK, "b.sql", "1"), 10.0));
     h.advance(1000);
     h.flush();
     assert!(!later.done());
@@ -704,10 +703,8 @@ fn retains_rename_and_connection_copy_in_separate_debounced_tasks() {
         h.set_workbook(WORKBOOK, json!({ "formatVersion": FORMAT_VERSION, "workbookId": WORKBOOK, "connections": [connection(CONNECTION, "committed")], "scripts": [], "attachments": [], "metadata": {} }));
         for endpoint in ["saved", "saved again"] {
             let name = format!("renamed before {endpoint}");
-            let rename = || h.start(h.writer.write(&manifest_key(WORKBOOK), properties(&name), 10_000.0));
-            let copy = || {
-                h.start(h.writer.write(&connection_copy_key(WORKBOOK, CONNECTION), patch(WORKBOOK, endpoint), 10_000.0))
-            };
+            let rename = || h.start(h.writer.write(properties(&name), 10_000.0));
+            let copy = || h.start(h.writer.write(patch(WORKBOOK, endpoint), 10_000.0));
             let tasks = if name_first { [rename(), copy()] } else { [copy(), rename()] };
             assert_eq!(h.writer.pending_keys_for_workbook(WORKBOOK).len(), 2);
             h.flush();
@@ -765,7 +762,7 @@ fn writes_a_script_after_a_delete_and_a_rename_onto_its_file() {
     // Without a task in between the newer write keeps the timer of the first one
     let h = Harness::new();
     schedule(&h, write_script(WORKBOOK, "q.sql", "1"), 100.0);
-    h.start(h.writer.write(&script_list_key(WORKBOOK), script_list(&["q.sql"], Vec::new()), 100.0));
+    h.start(h.writer.write(script_list(&["q.sql"], Vec::new()), 100.0));
     h.advance(60);
     schedule(&h, write_script(WORKBOOK, "q.sql", "2"), 100.0);
     h.advance(40);
@@ -792,11 +789,7 @@ fn does_not_overlap_mutations_of_the_same_workbook() {
     let deletion = schedule(&h, delete_script("02_old.sql"), 0.0);
     h.advance(0);
     assert_eq!(h.store.borrow().deleting.len(), 1);
-    let write = h.start(h.writer.write(
-        &script_key(WORKBOOK, "03_new.sql"),
-        write_script(WORKBOOK, "03_new.sql", "SELECT 3"),
-        10_000.0,
-    ));
+    let write = h.start(h.writer.write(write_script(WORKBOOK, "03_new.sql", "SELECT 3"), 10_000.0));
     let flush = h.start(h.writer.flush());
     h.run();
     // The flush started the write, it waits for the deletion
@@ -933,7 +926,6 @@ fn a_rename_in_the_same_turn_as_the_creation_never_replaces_it() {
         // The creation runs right away, the rename of the same turn is debounced
         let created = schedule(&h, creation(WORKBOOK, true), 0.0);
         let renamed = h.start(h.writer.write(
-            &manifest_key(WORKBOOK),
             WriteTask::WriteWorkbookProperties {
                 workbook_id: WORKBOOK.to_string(),
                 name: Some("Named".to_string()),
@@ -966,7 +958,7 @@ fn writes_and_removes_the_link_to_the_cloud_with_the_properties() {
             ephemeral: false,
             cloud,
         };
-        h.start(h.writer.write(&manifest_key(WORKBOOK), task, 0.0));
+        h.start(h.writer.write(task, 0.0));
         h.flush();
         h.workbook(WORKBOOK)
     };
@@ -982,9 +974,8 @@ fn patches_the_script_list_without_losing_pending_property_writes() {
     h.set_workbook(WORKBOOK, test_workbook());
     let remote = connection(REMOTE, "remote");
     let scripts = json!([{ "name": "b.sql", "connectionId": REMOTE }, { "name": "a.sql", "connectionId": CONNECTION }]);
-    let rename = h.start(h.writer.write(&manifest_key(WORKBOOK), properties("renamed"), 10_000.0));
+    let rename = h.start(h.writer.write(properties("renamed"), 10_000.0));
     let list = h.start(h.writer.write(
-        &script_list_key(WORKBOOK),
         WriteTask::WriteWorkbookScripts {
             workbook_id: WORKBOOK.to_string(),
             scripts: scripts_of(&scripts),
@@ -1017,7 +1008,7 @@ fn patches_the_script_list_without_losing_pending_property_writes() {
     assert!(h.calls().is_empty());
 
     // Once no script uses the remote connection, the workbook drops its copy
-    h.start(h.writer.write(&script_list_key(WORKBOOK), script_list(&["a.sql"], Vec::new()), 0.0));
+    h.start(h.writer.write(script_list(&["a.sql"], Vec::new()), 0.0));
     h.flush();
     assert_eq!(h.workbook(WORKBOOK)["connections"], json!([local]));
 }
@@ -1028,9 +1019,9 @@ fn runs_the_creation_and_the_patches_of_a_workbook_file_in_order() {
     // The patches wait for the creation, though they are due first
     let tasks = [
         schedule(&h, creation(WORKBOOK, false), 100.0),
-        h.start(h.writer.write(&script_list_key(WORKBOOK), script_list(&["a.sql"], Vec::new()), 0.0)),
-        h.start(h.writer.write(&manifest_key(WORKBOOK), properties("renamed"), 0.0)),
-        h.start(h.writer.write(&script_list_key(WORKBOOK), script_list(&["b.sql", "a.sql"], Vec::new()), 0.0)),
+        h.start(h.writer.write(script_list(&["a.sql"], Vec::new()), 0.0)),
+        h.start(h.writer.write(properties("renamed"), 0.0)),
+        h.start(h.writer.write(script_list(&["b.sql", "a.sql"], Vec::new()), 0.0)),
     ];
     h.advance(0);
     assert!(h.calls().is_empty());
@@ -1058,11 +1049,11 @@ fn patches_the_copies_of_a_connection_and_rewrites_the_connections_it_replaced()
         copy: copy(CONNECTION, "new"),
         replaced: vec![REMOTE.to_string()],
     };
-    assert!(written(&h.block_on(h.writer.write_durable(&connection_copy_key(WORKBOOK, CONNECTION), task))));
+    assert!(written(&h.block_on(h.writer.write_durable(task))));
     assert_eq!(h.workbook(WORKBOOK)["connections"], json!([connection(CONNECTION, "new")]));
     assert_eq!(h.workbook(WORKBOOK)["scripts"], json!([{ "name": "a.sql", "connectionId": CONNECTION }]));
     // An up-to-date copy is not written again
-    h.block_on(h.writer.write_durable(&connection_copy_key(WORKBOOK, CONNECTION), patch(WORKBOOK, "new")));
+    h.block_on(h.writer.write_durable(patch(WORKBOOK, "new")));
     assert_eq!(h.calls(), [format!("manifest:{WORKBOOK}")]);
 }
 
@@ -1072,7 +1063,7 @@ fn patches_the_copies_of_a_connection_and_rewrites_the_connections_it_replaced()
 fn stops_retrying_a_write_whose_workbook_is_unavailable_and_never_recreates_it() {
     let h = Harness::new();
     let key = connection_copy_key(WORKBOOK, CONNECTION);
-    let outcome = h.block_on(h.writer.write_durable(&key, patch(WORKBOOK, "x")));
+    let outcome = h.block_on(h.writer.write_durable(patch(WORKBOOK, "x")));
     match outcome {
         WriteOutcome::Failed(WriteError::WorkbookUnavailable { workbook_id, .. }) => assert_eq!(workbook_id, WORKBOOK),
         other => panic!("unexpected outcome {other:?}"),
@@ -1121,7 +1112,7 @@ fn keeps_a_failed_write_pending_and_retries_it_with_a_backoff() {
     let h = Harness::new();
     h.store.borrow_mut().failing = Some("disk full".to_string());
     let key = script_key(WORKBOOK, "a.sql");
-    let first = h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "1"), 0.0));
+    let first = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 0.0));
     h.advance(0);
     assert!(matches!(first.take(), WriteOutcome::Failed(_)));
     let status = h.store.borrow().status.clone();
@@ -1156,7 +1147,7 @@ fn keeps_a_failed_write_pending_for_the_next_flush() {
     h.set_workbook(WORKBOOK, test_workbook());
     h.store.borrow_mut().failing = Some("disk full".to_string());
     let key = connection_copy_key(WORKBOOK, CONNECTION);
-    let failed = h.start(h.writer.write(&key, patch(WORKBOOK, "retried"), 10_000.0));
+    let failed = h.start(h.writer.write(patch(WORKBOOK, "retried"), 10_000.0));
     let result = h.start(h.writer.flush_workbook(WORKBOOK));
     h.run();
     assert!(!result.take());
@@ -1178,10 +1169,9 @@ fn keeps_a_failed_write_pending_for_the_next_flush() {
 fn a_newer_write_replaces_a_failed_one_and_a_cancelled_one_no_longer_fails() {
     let h = Harness::new();
     h.store.borrow_mut().failing = Some("offline".to_string());
-    let key = script_key(WORKBOOK, "a.sql");
-    h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "1"), 0.0));
+    h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 0.0));
     h.advance(0);
-    h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "2"), 0.0));
+    h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "2"), 0.0));
     let flushed = h.start(h.writer.flush_workbook(WORKBOOK));
     h.run();
     assert!(!flushed.take(), "a workbook with a failed write is not flushed");
@@ -1192,7 +1182,7 @@ fn a_newer_write_replaces_a_failed_one_and_a_cancelled_one_no_longer_fails() {
     assert_eq!(h.calls(), [format!("write:{WORKBOOK}/a.sql=2")]);
 
     h.store.borrow_mut().failing = Some("offline".to_string());
-    h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "3"), 0.0));
+    h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "3"), 0.0));
     h.advance(0);
     assert_eq!(h.store.borrow().status.failed.len(), 1);
     h.writer.cancel_pending_writes_for_workbook(WORKBOOK);
@@ -1216,11 +1206,11 @@ fn writes_an_attachment_once_its_workbook_is_released() {
     assert_eq!(key, format!("{WORKBOOK}/attachments/sales.parquet"));
     // An import holds the workbook, the attachment waits for it like the scripts do
     h.writer.hold(Some(WORKBOOK), HoldReason::Import);
-    assert!(matches!(h.block_on(h.writer.write_durable(&key, task)), WriteOutcome::Deferred));
+    assert!(matches!(h.block_on(h.writer.write_durable(task)), WriteOutcome::Deferred));
     assert!(!h.store.borrow().calls.iter().any(|call| call.starts_with("data-file:")));
     h.writer.release(Some(WORKBOOK), HoldReason::Import);
     h.flush();
-    assert!(written(&h.block_on(h.writer.write_durable(&key, file("more rows")))));
+    assert!(written(&h.block_on(h.writer.write_durable(file("more rows")))));
     let calls: Vec<String> =
         h.store.borrow().calls.iter().filter(|call| call.starts_with("data-file:")).cloned().collect();
     assert_eq!(
@@ -1234,19 +1224,16 @@ fn a_write_past_the_hold_of_its_caller_runs_while_the_others_wait() {
     let h = Harness::new();
     h.set_workbook(WORKBOOK, test_workbook());
     h.writer.hold(Some(WORKBOOK), HoldReason::Import);
-    let held = h.start(h.writer.write(&manifest_key(WORKBOOK), properties("stale"), 0.0));
+    let held = h.start(h.writer.write(properties("stale"), 0.0));
     let list = script_list(&["a.sql"], Vec::new());
-    assert!(written(&h.block_on(h.writer.write_past(&script_list_key(WORKBOOK), list, HoldReason::Import))));
+    assert!(written(&h.block_on(h.writer.write_past(list, HoldReason::Import))));
     assert_eq!(h.workbook(WORKBOOK)["scripts"], json!([{ "name": "a.sql", "connectionId": CONNECTION }]));
     h.advance(1000);
     assert!(!held.done());
     // Another hold keeps it as well
     h.writer.hold(Some(WORKBOOK), HoldReason::Reload);
     let list = script_list(&["b.sql"], Vec::new());
-    assert!(matches!(
-        h.block_on(h.writer.write_past(&script_list_key(WORKBOOK), list, HoldReason::Import)),
-        WriteOutcome::Deferred
-    ));
+    assert!(matches!(h.block_on(h.writer.write_past(list, HoldReason::Import)), WriteOutcome::Deferred));
 }
 
 // Connections
@@ -1254,12 +1241,11 @@ fn a_write_past_the_hold_of_its_caller_runs_while_the_others_wait() {
 #[test]
 fn writes_connection_entries_durably_and_defers_while_paused() {
     let h = Harness::new();
-    let key = format!("@manifest/connections/{CONNECTION}");
     let entry = |endpoint: &str| WriteTask::WriteConnectionEntry {
         entry: json!({ "id": CONNECTION, "params": { "trino": { "endpoint": endpoint } } }),
     };
-    let debounced = h.start(h.writer.write(&key, entry("draft"), 10_000.0));
-    assert!(written(&h.block_on(h.writer.write_durable(&key, entry("saved")))));
+    let debounced = h.start(h.writer.write(entry("draft"), 10_000.0));
+    assert!(written(&h.block_on(h.writer.write_durable(entry("saved")))));
     assert!(matches!(debounced.take(), WriteOutcome::Superseded));
     assert_eq!(
         h.store.borrow().connections,
@@ -1267,7 +1253,7 @@ fn writes_connection_entries_durably_and_defers_while_paused() {
     );
 
     h.writer.pause();
-    assert!(matches!(h.block_on(h.writer.write_durable(&key, entry("paused"))), WriteOutcome::Deferred));
+    assert!(matches!(h.block_on(h.writer.write_durable(entry("paused"))), WriteOutcome::Deferred));
     assert_eq!(
         h.store.borrow().connections,
         Some(vec![json!({ "id": CONNECTION, "params": { "trino": { "endpoint": "saved" } } })])
@@ -1286,18 +1272,16 @@ fn keeps_the_creation_time_of_connection_entries_and_deletes_them() {
     h.store.borrow_mut().connections =
         Some(vec![json!({ "id": CONNECTION, "params": { "a": 1 }, "createdAt": "2026-01-01T00:00:00.000Z" })]);
     h.store.borrow_mut().connection_files.insert(format!("{CONNECTION}/catalog.sql"), "x".to_string());
-    let key = format!("@manifest/connections/{CONNECTION}");
-    h.block_on(h.writer.write_durable(
-        &key,
-        WriteTask::WriteConnectionEntry { entry: json!({ "id": CONNECTION, "params": { "a": 2 } }) },
-    ));
+    h.block_on(
+        h.writer.write_durable(WriteTask::WriteConnectionEntry {
+            entry: json!({ "id": CONNECTION, "params": { "a": 2 } }),
+        }),
+    );
     assert_eq!(
         h.store.borrow().connections,
         Some(vec![json!({ "id": CONNECTION, "params": { "a": 2 }, "createdAt": "2026-01-01T00:00:00.000Z" })])
     );
-    h.block_on(
-        h.writer.write_durable(&key, WriteTask::DeleteConnectionEntry { connection_id: CONNECTION.to_string() }),
-    );
+    h.block_on(h.writer.write_durable(WriteTask::DeleteConnectionEntry { connection_id: CONNECTION.to_string() }));
     assert_eq!(h.store.borrow().connections, Some(Vec::new()));
     assert!(h.store.borrow().connection_files.is_empty());
 }
@@ -1305,7 +1289,6 @@ fn keeps_the_creation_time_of_connection_entries_and_deletes_them() {
 #[test]
 fn reads_connection_files_when_they_are_written_and_cancels_them_with_the_connection() {
     let h = Harness::new();
-    let key = format!("@connections/{CONNECTION}/catalog.sql");
     let reads = Rc::new(Cell::new(0));
     let file = |text: Option<&'static str>| {
         let reads = reads.clone();
@@ -1319,15 +1302,15 @@ fn reads_connection_files_when_they_are_written_and_cancels_them_with_the_connec
         }
     };
     // Nothing to write anymore
-    assert!(written(&h.block_on(h.writer.write(&key, file(None), 0.0))));
+    assert!(written(&h.block_on(h.writer.write(file(None), 0.0))));
     assert!(h.calls().is_empty());
-    let cancelled = h.start(h.writer.write(&key, file(Some("select 1")), 1000.0));
+    let cancelled = h.start(h.writer.write(file(Some("select 1")), 1000.0));
     h.writer.cancel_pending_connection_file_writes(CONNECTION);
     h.flush();
     assert!(matches!(cancelled.take(), WriteOutcome::Cancelled));
     // The text is read when the write runs
     assert_eq!(reads.get(), 1);
-    assert!(written(&h.block_on(h.writer.write(&key, file(Some("select 2")), 0.0))));
+    assert!(written(&h.block_on(h.writer.write(file(Some("select 2")), 0.0))));
     assert_eq!(
         h.store.borrow().connection_files.get(&format!("{CONNECTION}/catalog.sql")).cloned(),
         Some("select 2".to_string())
@@ -1340,12 +1323,10 @@ fn reads_connection_files_when_they_are_written_and_cancels_them_with_the_connec
 fn drops_pending_and_later_writes_of_a_deleted_workbook_until_it_is_revived() {
     let h = Harness::new();
     h.set_workbook(WORKBOOK, test_workbook());
-    let pending =
-        h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "select 1"), 1000.0));
+    let pending = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "select 1"), 1000.0));
     assert!(h.block_on(h.writer.delete_workbook(WORKBOOK)).is_ok());
     assert!(matches!(pending.take(), WriteOutcome::Cancelled));
-    let later =
-        h.block_on(h.writer.write(&script_key(WORKBOOK, "b.sql"), write_script(WORKBOOK, "b.sql", "select 2"), 0.0));
+    let later = h.block_on(h.writer.write(write_script(WORKBOOK, "b.sql", "select 2"), 0.0));
     assert!(matches!(later, WriteOutcome::Cancelled));
     h.flush();
     assert!(h.store.borrow().workbooks.is_empty());
@@ -1353,11 +1334,7 @@ fn drops_pending_and_later_writes_of_a_deleted_workbook_until_it_is_revived() {
 
     // An import of the same bundle registers the id again
     h.writer.revive_workbook(WORKBOOK);
-    assert!(written(&h.block_on(h.writer.write(
-        &script_key(WORKBOOK, "a.sql"),
-        write_script(WORKBOOK, "a.sql", "select 1"),
-        0.0
-    ))));
+    assert!(written(&h.block_on(h.writer.write(write_script(WORKBOOK, "a.sql", "select 1"), 0.0))));
     assert!(h.calls().contains(&format!("write:{WORKBOOK}/a.sql=select 1")));
 }
 
@@ -1404,8 +1381,8 @@ fn a_failed_deletion_of_a_workbook_leaves_no_failed_write_behind() {
 fn forgets_the_keys_holds_and_stamps_of_a_deleted_workbook() {
     let h = Harness::new();
     h.set_workbook(WORKBOOK, test_workbook());
-    h.block_on(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 0.0));
-    h.block_on(h.writer.write(&script_key(OTHER, "a.sql"), write_script(OTHER, "a.sql", "1"), 0.0));
+    h.block_on(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 0.0));
+    h.block_on(h.writer.write(write_script(OTHER, "a.sql", "1"), 0.0));
     h.acknowledge(WORKBOOK);
     h.writer.hold(Some(WORKBOOK), HoldReason::ExternalChange);
     assert_eq!(h.writer.statistics().len(), 2);
@@ -1426,9 +1403,8 @@ fn flushes_the_pending_tasks_of_a_workbook_and_leaves_the_others_pending() {
     let h = Harness::new();
     h.set_workbook(WORKBOOK, test_workbook());
     h.set_workbook(OTHER, test_workbook());
-    let flushed =
-        h.start(h.writer.write(&connection_copy_key(WORKBOOK, CONNECTION), patch(WORKBOOK, "flushed"), 10_000.0));
-    h.start(h.writer.write(&connection_copy_key(OTHER, CONNECTION), patch(OTHER, "pending"), 10_000.0));
+    let flushed = h.start(h.writer.write(patch(WORKBOOK, "flushed"), 10_000.0));
+    h.start(h.writer.write(patch(OTHER, "pending"), 10_000.0));
     let flush = h.writer.flush_workbook(WORKBOOK);
     let result = h.start(flush);
     h.run();
@@ -1444,7 +1420,7 @@ fn flushes_the_pending_tasks_of_a_workbook_and_leaves_the_others_pending() {
 fn never_forces_the_writes_of_a_held_workbook() {
     let h = Harness::new();
     h.set_workbook(WORKBOOK, test_workbook());
-    h.start(h.writer.write(&connection_copy_key(WORKBOOK, CONNECTION), patch(WORKBOOK, "held"), 10_000.0));
+    h.start(h.writer.write(patch(WORKBOOK, "held"), 10_000.0));
     h.writer.hold(Some(WORKBOOK), HoldReason::Reload);
     assert!(!h.block_on(h.writer.flush_workbook(WORKBOOK)));
     assert_eq!(h.writer.pending_keys_for_workbook(WORKBOOK).len(), 1);
@@ -1461,7 +1437,7 @@ fn holds_a_write_that_would_overwrite_an_external_change_until_the_workbook_resu
     h.set_workbook(OTHER, test_workbook());
     h.store.borrow_mut().externally_changed = true;
     let key = script_key(WORKBOOK, "a.sql");
-    let pending = h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "select 1"), 0.0));
+    let pending = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "select 1"), 0.0));
     h.advance(10);
     h.block_on(h.writer.settle());
     assert_eq!(h.store.borrow().status.externally_changed().collect::<Vec<_>>(), [WORKBOOK]);
@@ -1476,7 +1452,7 @@ fn holds_a_write_that_would_overwrite_an_external_change_until_the_workbook_resu
         ephemeral: false,
         cloud: None,
     };
-    assert!(written(&h.block_on(h.writer.write_durable(&manifest_key(OTHER), other))));
+    assert!(written(&h.block_on(h.writer.write_durable(other))));
 
     h.store.borrow_mut().externally_changed = false;
     h.writer.release_all(Some(WORKBOOK), HoldReason::ExternalChange);
@@ -1490,10 +1466,9 @@ fn holds_a_write_that_would_overwrite_an_external_change_until_the_workbook_resu
 fn lets_a_newer_write_of_the_same_script_supersede_a_held_one() {
     let h = Harness::new();
     h.store.borrow_mut().externally_changed = true;
-    let key = script_key(WORKBOOK, "a.sql");
-    let held = h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "select 1"), 0.0));
+    let held = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "select 1"), 0.0));
     h.advance(10);
-    let newer = h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "select 2"), 0.0));
+    let newer = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "select 2"), 0.0));
     h.run();
     assert!(matches!(held.take(), WriteOutcome::Superseded));
     h.writer.cancel_pending_writes_for_workbook(WORKBOOK);
@@ -1508,11 +1483,11 @@ fn checks_the_writes_of_an_acknowledged_folder_against_its_stamps() {
     h.set_workbook(WORKBOOK, test_workbook());
     h.edit_outside(WORKBOOK, "a.sql", "on disk");
     // Before the folder is acknowledged, a write is not checked
-    h.block_on(h.writer.write_durable(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "app")));
+    h.block_on(h.writer.write_durable(write_script(WORKBOOK, "a.sql", "app")));
     h.acknowledge(WORKBOOK);
     // The writes of the app are no changes outside the app
-    h.block_on(h.writer.write_durable(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "app 2")));
-    h.block_on(h.writer.write_durable(&manifest_key(WORKBOOK), properties("renamed")));
+    h.block_on(h.writer.write_durable(write_script(WORKBOOK, "a.sql", "app 2")));
+    h.block_on(h.writer.write_durable(properties("renamed")));
     assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK), "dashql-workbook.json").is_empty());
     // An edit outside the app holds the next write of the script, a new file is no script of the app
     h.edit_outside(WORKBOOK, "a.sql", "edited outside");
@@ -1538,18 +1513,13 @@ fn renames_a_script_to_another_case_of_its_name_on_a_case_insensitive_folder() {
     h.store.borrow_mut().case_insensitive = true;
     h.edit_outside(WORKBOOK, "Query.sql", "select 1");
     h.acknowledge(WORKBOOK);
-    let renamed = h.block_on(
-        h.writer
-            .write_durable(&format!("{WORKBOOK}/scripts/Query.sql:rename"), rename_script("Query.sql", "query.sql")),
-    );
+    let renamed = h.block_on(h.writer.write_durable(rename_script("Query.sql", "query.sql")));
     assert!(written(&renamed));
     assert!(h.store.borrow().status.holds.is_empty());
     assert_eq!(h.script(WORKBOOK, "query.sql"), Some(("query.sql".to_string(), "select 1".to_string())));
     // The renamed file keeps its stamp, it is no change outside the app
     assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK), "dashql-workbook.json").is_empty());
-    assert!(written(&h.block_on(
-        h.writer.write_durable(&script_key(WORKBOOK, "query.sql"), write_script(WORKBOOK, "query.sql", "select 2"))
-    )));
+    assert!(written(&h.block_on(h.writer.write_durable(write_script(WORKBOOK, "query.sql", "select 2")))));
 }
 
 #[test]
@@ -1577,8 +1547,8 @@ fn keeps_a_held_script_as_a_recovery_copy_next_to_it() {
 fn counts_scheduled_and_performed_writes() {
     let h = Harness::new();
     let key = script_key(WORKBOOK, "a.sql");
-    h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "1"), 100.0));
-    h.start(h.writer.write(&key, write_script(WORKBOOK, "a.sql", "12"), 100.0));
+    h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 100.0));
+    h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "12"), 100.0));
     h.advance(10);
     h.advance(100);
     let stats = h.store.borrow().statistics.get(&key).cloned().unwrap_or_default();
@@ -1599,8 +1569,8 @@ fn a_forced_flush_writes_past_the_pause_of_the_writer_but_never_past_a_held_work
     // A question about a change outside the app is open, then the writer pauses
     h.writer.hold(Some(WORKBOOK), HoldReason::ExternalChange);
     h.writer.pause();
-    let held = h.start(h.writer.write(&manifest_key(WORKBOOK), properties("overwrites the disk"), 10_000.0));
-    let other = h.start(h.writer.write(&script_key(OTHER, "a.sql"), write_script(OTHER, "a.sql", "1"), 10_000.0));
+    let held = h.start(h.writer.write(properties("overwrites the disk"), 10_000.0));
+    let other = h.start(h.writer.write(write_script(OTHER, "a.sql", "1"), 10_000.0));
     // The page hides
     h.flush();
     assert!(written(&other.take()));
@@ -1612,7 +1582,7 @@ fn a_forced_flush_writes_past_the_pause_of_the_writer_but_never_past_a_held_work
     );
     assert_eq!(h.writer.pending_keys(), [manifest_key(WORKBOOK)]);
     // The pause of the writer stays after the flush
-    let later = h.start(h.writer.write(&script_key(OTHER, "b.sql"), write_script(OTHER, "b.sql", "2"), 10.0));
+    let later = h.start(h.writer.write(write_script(OTHER, "b.sql", "2"), 10.0));
     h.advance(100);
     assert!(!later.done());
     h.writer.resume();
@@ -1638,7 +1608,7 @@ fn counts_nested_holds_and_releases_them_one_by_one() {
     h.writer.hold(Some(WORKBOOK), HoldReason::Reload);
     h.writer.hold(Some(WORKBOOK), HoldReason::Reload);
     h.writer.hold(Some(WORKBOOK), HoldReason::Import);
-    let pending = h.start(h.writer.write(&script_key(WORKBOOK, "a.sql"), write_script(WORKBOOK, "a.sql", "1"), 10.0));
+    let pending = h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "1"), 10.0));
     h.writer.release(Some(WORKBOOK), HoldReason::Reload);
     h.advance(100);
     assert!(!pending.done());
