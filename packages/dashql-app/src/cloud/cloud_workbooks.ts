@@ -436,9 +436,10 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     }, [readyCloud]);
 
     const remove = React.useCallback((cloudId: string, cloudWorkbookId: string) => change(cloudId, async ({ query, database }) => {
-        await deleteCloudWorkbook(query, cloudWorkbookId, { database });
+        if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
+        await deleteCloudWorkbook(runtime.core, query, cloudWorkbookId, { database });
         logger.info('Deleted a published workbook', { cloudId, cloudWorkbookId }, LOG_CTX);
-    }), [change, logger]);
+    }), [change, logger, runtime]);
 
     const list = React.useCallback(async (cloudId: string, request: CloudListRequest, signal?: AbortSignal) => {
         const { query, database } = readyCloud(cloudId);

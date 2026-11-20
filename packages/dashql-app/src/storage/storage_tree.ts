@@ -1,5 +1,5 @@
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { type WorkbookLocation, displayPath } from './workbook_locator.js';
+import { type WorkbookLocation, displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
 import { joinPath } from '@akohn/dashql/platform/file_system';
 import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';

@@ -5,7 +5,7 @@ import { createStorageRoot } from '@akohn/dashql/platform/storage/storage_root';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
-import { OPFS_MANIFEST_LOCK } from './opfs_storage_backend.js';
+import { OPFS_MANIFEST_LOCK } from '@akohn/dashql/platform/storage/opfs_storage_backend';
 
 // The migrations of the storage are steps of the core (`workbook_format::storage_migration`), see
 // docs/design/storage_layout.md. The app gives them the origin private file system and the native workbook folders of

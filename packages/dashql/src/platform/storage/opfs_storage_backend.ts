@@ -1,27 +1,23 @@
-import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
-import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER, isAttachmentFileName, validateDataFileName } from '@akohn/dashql/platform/storage/storage_backend';
-import { sleep } from '@akohn/dashql/platform/utils/sleep';
-import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
-import { HYPER_CLOUDS_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
+import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
+import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
+import type * as core from '../../core/index.js';
+import { sleep } from '../utils/sleep.js';
+import { getOPFSRoot } from '../opfs_root.js';
+import { HYPER_CLOUDS_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
 import {
     INITIAL_WORKBOOK_FOLDER,
     STORAGE_FOLDER_FILE,
     STORAGE_WORKBOOK_TREE_FOLDER,
+    type WorkbookTreeChange,
     type WorkbookTreeFolder,
-    dropDuplicateWorkbooks,
+    changeWorkbookTree,
     emptyWorkbookTree,
     flattenWorkbookTree,
     folderAt,
-    folderNameError,
-    folderPathKey,
     isFolderPathWithin,
-    listFolders,
-    moveWorkbookInTree,
-    readWorkbookTreeDirectory,
-    removeWorkbookFromTree,
+    listWorkbookTreeDirectory,
     sameFolderPath,
-    upsertWorkbookInTree,
-} from '@akohn/dashql/platform/storage/workbook_tree';
+} from './workbook_tree.js';
 
 /// The name of the web lock that guards the manifest
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';
@@ -47,7 +43,9 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     /// The latest change of the workbook tree, every change of the tree chains onto it
     private treeChain: Promise<void> = Promise.resolve();
 
-    constructor(private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot) {}
+    /// The core decides the names of attachments and folders and how a change of the workbook tree changes its folder
+    /// files
+    constructor(private readonly core: core.DashQL, private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot) {}
 
     getBackendType(): StorageBackendType {
         return StorageBackendType.OPFS;
@@ -337,8 +335,8 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         for await (const [name, handle] of dir.entries()) {
             if (handle.kind === 'directory') throw new Error(`Invalid workbook layout: nested data directory ${name}`);
             // Other files in the folder are no attachments
-            if (!isAttachmentFileName(name)) continue;
-            validateDataFileName(name);
+            if (!this.core.isAttachmentFileName(name)) continue;
+            this.core.validateDataFileName(name);
             const file = await (handle as FileSystemFileHandle).getFile();
             files.push({ name, sizeBytes: file.size, mtimeMs: file.lastModified });
         }
@@ -346,7 +344,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     }
 
     async loadDataFile(workbookId: string, name: string): Promise<Uint8Array> {
-        validateDataFileName(name);
+        this.core.validateDataFileName(name);
         const dir = await this.dataDir(workbookId, false);
         if (!dir) throw new Error(`Data file not found: ${name}`);
         const handle = await dir.getFileHandle(name, { create: false });
@@ -354,7 +352,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     }
 
     async saveDataFile(workbookId: string, name: string, content: DataFileContent): Promise<void> {
-        validateDataFileName(name);
+        this.core.validateDataFileName(name);
         const dir = (await this.dataDir(workbookId, true))!;
         const handle = await dir.getFileHandle(name, { create: true });
         const writable = await handle.createWritable();
@@ -371,7 +369,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     }
 
     async deleteDataFile(workbookId: string, name: string): Promise<void> {
-        validateDataFileName(name);
+        this.core.validateDataFileName(name);
         const dir = await this.dataDir(workbookId, false);
         if (!dir) return;
         try {
@@ -383,8 +381,8 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     }
 
     async renameDataFile(workbookId: string, oldName: string, newName: string): Promise<void> {
-        validateDataFileName(oldName);
-        validateDataFileName(newName);
+        this.core.validateDataFileName(oldName);
+        this.core.validateDataFileName(newName);
         if (oldName === newName) return;
         const dir = await this.dataDir(workbookId, false);
         if (!dir) return;
@@ -546,7 +544,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     /// Load the workbook tree. A workbook that the tree registers twice is listed where it comes first.
     async loadWorkbookTree(): Promise<WorkbookTreeFolder> {
-        return await this.withTreeLock(async () => dropDuplicateWorkbooks(await this.readTree()));
+        return await this.withTreeLock(async () => await this.readTree(false));
     }
 
     /// Insert or replace a workbook's registry entry (matched by UUID), without touching files.
@@ -554,24 +552,19 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     /// A registered workbook keeps its place in the tree, a new one is appended to the folder at
     /// `folderPath` (the root by default). We never re-sort.
     async upsertWorkbookEntry(entry: WorkbookEntry, folderPath: readonly string[] = []): Promise<void> {
-        await this.mutateTree(tree => upsertWorkbookInTree(tree, entry, folderPath));
+        await this.mutateTree({ kind: 'upsert', entry, folderPath });
     }
 
     /// Remove a workbook's registry entry (matched by UUID), without touching files.
     async removeWorkbookEntry(workbookId: string): Promise<void> {
-        await this.mutateTree(tree => removeWorkbookFromTree(tree, workbookId));
+        await this.mutateTree({ kind: 'remove', workbookId });
     }
 
     /// Move a workbook to a position in a folder, without touching files. The index counts the workbooks of
     /// the folder without the moved workbook. A workbook that isn't registered yet is placed as an OPFS
     /// workbook, its first write keeps the place.
     async moveWorkbook(workbookId: string, folderPath: string[], index: number): Promise<void> {
-        await this.mutateTree(tree => {
-            if (folderAt(tree, folderPath) == null) {
-                throw new Error(`There is no folder ${folderPath.join('/')}`);
-            }
-            return moveWorkbookInTree(tree, workbookId, folderPath, index);
-        });
+        await this.mutateTree({ kind: 'move', workbookId, folderPath, index });
     }
 
     /// Create a folder, its parent must exist
@@ -583,7 +576,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             if (name == null || parent == null) {
                 throw new Error(`There is no folder ${path.slice(0, -1).join('/')}`);
             }
-            const error = folderNameError(name, parent.folders.map(folder => folder.name));
+            const error = this.core.folderNameError(name, parent.folders.map(folder => folder.name));
             if (error != null) throw new Error(error);
             await this.writeFolderFile(path, []);
         });
@@ -609,7 +602,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             if (sameParent && name === oldName) return;
             const siblings = parent.folders.map(folder => folder.name)
                 .filter(sibling => !(sameParent && sibling === oldName));
-            const error = folderNameError(name, siblings);
+            const error = this.core.folderNameError(name, siblings);
             if (error != null) throw new Error(error);
             if (sameParent && name.toLowerCase() === oldName.toLowerCase()) {
                 // A file system that ignores the case would copy the folder onto itself, the move takes a detour
@@ -626,7 +619,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     /// workbook is deleted.
     async deleteFolder(path: string[]): Promise<void> {
         await this.withTreeLock(async () => {
-            const tree = dropDuplicateWorkbooks(await this.readTree());
+            const tree = await this.readTree(false);
             const folder = folderAt(tree, path);
             if (path.length === 0 || folder == null) {
                 throw new Error(`There is no folder ${path.join('/')}`);
@@ -643,34 +636,28 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         });
     }
 
-    /// Read the workbook tree as it is stored, duplicates included
-    private async readTree(): Promise<WorkbookTreeFolder> {
+    /// Read the workbook tree, as it is stored with the workbooks that it registers twice (`stored`) or with each one where
+    /// it comes first
+    private async readTree(stored: boolean = true): Promise<WorkbookTreeFolder> {
         const root = this.ensureInitialized();
+        let dir: FileSystemDirectoryHandle;
         try {
-            const dir = await root.getDirectoryHandle(STORAGE_WORKBOOK_TREE_FOLDER, { create: false });
-            return await readWorkbookTreeDirectory(dir);
+            dir = await root.getDirectoryHandle(STORAGE_WORKBOOK_TREE_FOLDER, { create: false });
         } catch (error) {
             if ((error as DOMException).name === 'NotFoundError') return emptyWorkbookTree();
             throw error;
         }
+        return this.core.readWorkbookTree<WorkbookTreeFolder>(await listWorkbookTreeDirectory(dir), stored);
     }
 
-    /// Change the workbooks of the tree exclusively, only the folder files that change are written.
-    /// The folders that gain workbooks are written first, an interruption duplicates a workbook instead of
-    /// losing it, and the next change drops the duplicates.
-    private async mutateTree(fn: (tree: WorkbookTreeFolder) => WorkbookTreeFolder): Promise<void> {
+    /// Change the workbooks of the tree exclusively. The core returns the folder files that change in the order to write
+    /// them: the folders that gain workbooks first, an interruption duplicates a workbook instead of losing it, and the
+    /// next change drops the duplicates.
+    private async mutateTree(change: WorkbookTreeChange): Promise<void> {
         await this.withTreeLock(async () => {
-            const stored = await this.readTree();
-            const next = fn(dropDuplicateWorkbooks(stored));
-            const before = new Map(listFolders(stored).map(folder => [folderPathKey(folder.path), folder.workbooks]));
-            const changed = listFolders(next).filter(folder => {
-                const workbooks = before.get(folderPathKey(folder.path));
-                return workbooks == null || JSON.stringify(workbooks) !== JSON.stringify(folder.workbooks);
-            });
-            changed.sort((left, right) => (right.workbooks.length - (before.get(folderPathKey(right.path))?.length ?? 0))
-                - (left.workbooks.length - (before.get(folderPathKey(left.path))?.length ?? 0)));
-            for (const folder of changed) {
-                await this.writeFolderFile(folder.path, folder.workbooks);
+            const { writes } = changeWorkbookTree(this.core, await this.readTree(), change);
+            for (const write of writes) {
+                await this.writeFolderText(write.path, write.text);
             }
         });
     }
@@ -686,9 +673,14 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     /// Write the folder file of a folder, the folder is created when missing
     private async writeFolderFile(path: readonly string[], workbooks: WorkbookEntry[]): Promise<void> {
+        await this.writeFolderText(path, JSON.stringify({ workbooks }, null, 2));
+    }
+
+    /// Write the text of the folder file of a folder, the folder is created when missing
+    private async writeFolderText(path: readonly string[], text: string): Promise<void> {
         const dir = await this.folderDir(path, true);
         const writable = await (await dir.getFileHandle(STORAGE_FOLDER_FILE, { create: true })).createWritable();
-        await writable.write(JSON.stringify({ workbooks }, null, 2));
+        await writable.write(text);
         await writable.close();
     }
 

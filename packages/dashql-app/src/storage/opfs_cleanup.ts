@@ -8,8 +8,9 @@ import {
     STORAGE_SHELL_FOLDER,
     StorageBackendType,
 } from '@akohn/dashql/platform/storage/storage_backend';
-import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from './opfs_storage_backend.js';
+import { OPFS_MANIFEST_LOCK, OPFS_WORKBOOK_TREE_LOCK } from '@akohn/dashql/platform/storage/opfs_storage_backend';
 import { type WorkbookEntry, STORAGE_WORKBOOK_TREE_FOLDER, flattenWorkbookTree, readWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
+import type * as core from '@akohn/dashql';
 import { SHELL_FILES_DIRECTORY } from '../host/hyperdb/hyperdb_opfs.js';
 import {
     HYPER_INSTANCE_LOCK_PREFIX,
@@ -98,11 +99,12 @@ const UNUSED = 'Not used by this version of DashQL';
 /// and connections that are gone. The scan reads directory listings only, it never reads files besides
 /// the manifest and the folder files of the workbook tree and only descends into the folders it knows.
 export async function findOPFSCleanupCandidates(
+    instance: core.DashQL,
     root: FileSystemDirectoryHandle,
     locks: LockManager | null = navigator.locks ?? null,
 ): Promise<OPFSCleanupCandidate[]> {
     // Without a manifest there is no telling which workbooks and connections are registered, they are left alone
-    const registrations = await readRootRegistrations(root);
+    const registrations = await readRootRegistrations(instance, root);
     // Without Web Locks there is no telling which instance folders are alive, they are left alone
     const heldLocks = locks == null ? null : new Set(((await locks.query()).held ?? []).map(lock => lock.name));
     const candidates: OPFSCleanupCandidate[] = [];
@@ -207,12 +209,13 @@ async function scanWorkbooks(
 /// connection was registered in the meantime is kept. A candidate with a lock is only deleted while
 /// its lock is free, and files that are still open are kept.
 export async function removeOPFSCleanupCandidates(
+    instance: core.DashQL,
     root: FileSystemDirectoryHandle,
     candidates: readonly OPFSCleanupCandidate[],
     locks: LockManager | null = navigator.locks ?? null,
 ): Promise<OPFSCleanupResult> {
     const run = async (): Promise<OPFSCleanupResult> => {
-        const registrations = await readRootRegistrations(root);
+        const registrations = await readRootRegistrations(instance, root);
         const result: OPFSCleanupResult = { removed: 0, skipped: [] };
         for (const candidate of candidates) {
             const path = candidate.path.join('/');
@@ -254,8 +257,8 @@ async function readManifestJson(root: FileSystemDirectoryHandle): Promise<Manife
 }
 
 /// Read the registrations of a storage root
-async function readRootRegistrations(root: FileSystemDirectoryHandle): Promise<Registrations | null> {
-    return readRegistrations(await readManifestJson(root), flattenWorkbookTree(await readWorkbookTree(root)));
+async function readRootRegistrations(instance: core.DashQL, root: FileSystemDirectoryHandle): Promise<Registrations | null> {
+    return readRegistrations(await readManifestJson(root), flattenWorkbookTree(await readWorkbookTree(instance, root)));
 }
 
 /// Remove an entry, returns why it was kept or null

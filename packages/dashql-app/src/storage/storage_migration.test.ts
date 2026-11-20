@@ -2,7 +2,7 @@ import * as core from '@akohn/dashql';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
+import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
 import { fsStore, makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
 import { migrateStorage as migrateStorageWithCore } from './storage_migration.js';
 

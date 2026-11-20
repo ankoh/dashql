@@ -100,16 +100,6 @@ pub fn compare_folder_names(left: &str, right: &str) -> Ordering {
     natural_compare(left, right)
 }
 
-/// Is a folder path the path of a folder or of one of its subfolders?
-pub fn is_folder_path_within(path: &[String], ancestor: &[String]) -> bool {
-    path.len() >= ancestor.len() && ancestor.iter().zip(path.iter()).all(|(a, p)| a == p)
-}
-
-/// The key of a folder path, e.g. for maps of folders
-pub fn folder_path_key(path: &[String]) -> String {
-    serde_json::to_string(path).unwrap_or_default()
-}
-
 /// Why a name can't name a new folder next to its siblings, None if it can. Names are compared without case.
 pub fn folder_name_error(name: &str, siblings: &[String]) -> Option<String> {
     if name.is_empty() {
@@ -161,12 +151,18 @@ pub fn parse_folder_file(text: &str, path: &[String]) -> Result<Vec<WorkbookEntr
 /// Read the workbook tree of the directories of `workbooktree/`, the empty tree without it. A directory without a
 /// folder file is a folder without workbooks, workbooks that the tree registers twice count where they come first.
 pub fn read_workbook_tree(root: Option<&TreeDirectory>) -> Result<WorkbookTreeFolder> {
+    let mut tree = read_stored_workbook_tree(root)?;
+    tree.drop_duplicate_workbooks();
+    Ok(tree)
+}
+
+/// Read the workbook tree as it is stored, workbooks that it registers twice included, e.g. for a change of the tree
+/// that writes the folder files that lose the duplicates too
+pub fn read_stored_workbook_tree(root: Option<&TreeDirectory>) -> Result<WorkbookTreeFolder> {
     let Some(root) = root else {
         return Ok(WorkbookTreeFolder::default());
     };
-    let mut tree = read_directory(root, Vec::new())?;
-    tree.drop_duplicate_workbooks();
-    Ok(tree)
+    read_directory(root, Vec::new())
 }
 
 fn read_directory(dir: &TreeDirectory, path: Vec<String>) -> Result<WorkbookTreeFolder> {
@@ -289,6 +285,106 @@ impl WorkbookTreeFolder {
     }
 }
 
+impl WorkbookTreeFolder {
+    /// The tree as JSON: `{ name, path, folders, workbooks }`, the workbooks as entries of folder files
+    pub fn to_json(&self) -> Value {
+        json!({
+            "name": self.name,
+            "path": self.path,
+            "folders": self.folders.iter().map(WorkbookTreeFolder::to_json).collect::<Vec<_>>(),
+            "workbooks": self.workbooks.iter().map(WorkbookEntry::to_json).collect::<Vec<_>>(),
+        })
+    }
+
+    /// A tree of its JSON, the empty tree for anything else
+    pub fn from_json(value: &Value) -> Self {
+        let strings = |value: Option<&Value>| -> Vec<String> {
+            value.and_then(Value::as_array).map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+        };
+        WorkbookTreeFolder {
+            name: value.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+            path: strings(value.get("path")),
+            folders: value.get("folders").and_then(Value::as_array).map(|folders| folders.iter().map(Self::from_json).collect()).unwrap_or_default(),
+            workbooks: value
+                .get("workbooks")
+                .and_then(Value::as_array)
+                .map(|entries| entries.iter().filter_map(WorkbookEntry::from_json).collect())
+                .unwrap_or_default(),
+        }
+    }
+}
+
+impl TreeDirectory {
+    /// A directory of its JSON as the host lists it, `{ name, folderFile, directories }`
+    pub fn from_json(value: &Value) -> Self {
+        TreeDirectory {
+            name: value.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+            folder_file: value.get("folderFile").and_then(Value::as_str).map(str::to_string),
+            directories: value
+                .get("directories")
+                .and_then(Value::as_array)
+                .map(|directories| directories.iter().map(Self::from_json).collect())
+                .unwrap_or_default(),
+        }
+    }
+}
+
+/// A change of the workbooks of the tree
+#[derive(Debug, Clone, PartialEq)]
+pub enum WorkbookTreeChange {
+    /// Insert or replace the entry of a workbook, see `WorkbookTreeFolder::upsert_workbook`
+    Upsert { entry: WorkbookEntry, folder_path: Vec<String> },
+    /// Remove a workbook from every folder
+    Remove { workbook_id: String },
+    /// Move a workbook to a position in a folder, see `WorkbookTreeFolder::move_workbook`
+    Move { workbook_id: String, folder_path: Vec<String>, index: usize },
+}
+
+/// A folder file that a change of the tree writes, the folder is created when missing
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FolderFileWrite {
+    /// The folder names from the root
+    pub path: Vec<String>,
+    /// The text of the folder file
+    pub text: String,
+}
+
+/// Change the workbooks of the tree as it is stored, duplicates included. Returns the tree after the change, without
+/// the duplicates, and the folder files that change, the
+/// folders that gain workbooks first: an interruption duplicates a workbook instead of losing it, and the next change
+/// drops the duplicates. A move into a folder that doesn't exist fails.
+pub fn change_workbook_tree(
+    stored: &WorkbookTreeFolder,
+    change: WorkbookTreeChange,
+) -> Result<(WorkbookTreeFolder, Vec<FolderFileWrite>)> {
+    let mut next = stored.clone();
+    next.drop_duplicate_workbooks();
+    match change {
+        WorkbookTreeChange::Upsert { entry, folder_path } => next.upsert_workbook(entry, &folder_path),
+        WorkbookTreeChange::Remove { workbook_id } => next.remove_workbook(&workbook_id),
+        WorkbookTreeChange::Move { workbook_id, folder_path, index } => {
+            if !next.move_workbook(&workbook_id, &folder_path, index) {
+                return Err(Error::invalid_argument(format!("There is no folder {}", folder_path.join("/"))));
+            }
+        }
+    }
+    let before = stored.list_folders();
+    let before_of = |path: &[String]| before.iter().find(|folder| folder.path == path).map(|folder| &folder.workbooks);
+    let mut changed: Vec<(&WorkbookTreeFolder, i64)> = next
+        .list_folders()
+        .into_iter()
+        .filter(|folder| before_of(&folder.path) != Some(&folder.workbooks))
+        .map(|folder| {
+            let gained = folder.workbooks.len() as i64 - before_of(&folder.path).map_or(0, |workbooks| workbooks.len() as i64);
+            (folder, gained)
+        })
+        .collect();
+    changed.sort_by(|left, right| right.1.cmp(&left.1));
+    let writes =
+        changed.into_iter().map(|(folder, _)| FolderFileWrite { path: folder.path.clone(), text: folder_file_text(&folder.workbooks) }).collect();
+    Ok((next, writes))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,6 +422,26 @@ mod tests {
         assert!(folder_name_error("a/b", &[]).is_some());
         assert!(folder_name_error("Q2", &["q2".into()]).is_some());
         assert_eq!(folder_name_error("q3", &["q2".into()]), None);
-        assert_eq!(folder_path_key(&["a".into(), "b".into()]), r#"["a","b"]"#);
+    }
+    #[test]
+    fn writes_the_folders_that_gain_workbooks_first() {
+        let root = dir("", Some(r#"{"workbooks":[{"path":"a"},{"path":"b"}]}"#), vec![dir("q1", Some(r#"{"workbooks":[]}"#), vec![])]);
+        let stored = read_workbook_tree(Some(&root)).unwrap();
+        let q1 = vec!["q1".to_string()];
+        // A move writes the folder that gains the workbook before the one that loses it
+        let (tree, writes) =
+            change_workbook_tree(&stored, WorkbookTreeChange::Move { workbook_id: "a".into(), folder_path: q1.clone(), index: 0 }).unwrap();
+        assert_eq!(writes.iter().map(|write| write.path.clone()).collect::<Vec<_>>(), vec![q1.clone(), Vec::<String>::new()]);
+        assert_eq!(writes[0].text, folder_file_text(&[WorkbookEntry::new("a")]));
+        assert_eq!(tree.flatten().iter().map(|entry| entry.path.as_str()).collect::<Vec<_>>(), ["a", "b"]);
+        // A change that changes nothing writes nothing, a move into a missing folder fails
+        let (_, writes) = change_workbook_tree(&stored, WorkbookTreeChange::Upsert { entry: WorkbookEntry::new("a"), folder_path: q1 }).unwrap();
+        assert!(writes.is_empty());
+        let missing = WorkbookTreeChange::Move { workbook_id: "a".into(), folder_path: vec!["x".into()], index: 0 };
+        assert!(change_workbook_tree(&stored, missing).unwrap_err().message.contains("There is no folder x"));
+        // The tree round-trips through its JSON
+        assert_eq!(WorkbookTreeFolder::from_json(&tree.to_json()), tree);
+        let (_, writes) = change_workbook_tree(&stored, WorkbookTreeChange::Remove { workbook_id: "b".into() }).unwrap();
+        assert_eq!(writes.len(), 1);
     }
 }

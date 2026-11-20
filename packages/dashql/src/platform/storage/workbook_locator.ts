@@ -1,4 +1,4 @@
-import { StorageBackendType, STORAGE_WORKBOOKS_FOLDER, type WorkbookEntry } from '@akohn/dashql/platform/storage/storage_backend';
+import { StorageBackendType, STORAGE_WORKBOOKS_FOLDER, type WorkbookEntry } from './storage_backend.js';
 
 /// Where a single workbook's files live.
 ///

@@ -6,7 +6,7 @@ import { useAppConfig } from '../../config/app_config.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { displayPath } from '../../storage/workbook_locator.js';
+import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';

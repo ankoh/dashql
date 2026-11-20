@@ -1,19 +1,26 @@
-import * as core from '@akohn/dashql';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRuntime } from '@akohn/dashql/runtime/runtime';
-import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
+import * as core from '../core/index.js';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRuntime } from './runtime.js';
+import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 
-import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
-import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { fsStore, makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
-import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
-import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
+import { TestLogger } from '../platform/testing/test_logger.js';
+import { CompositeStorageBackend } from '../platform/storage/composite_storage_backend.js';
+import { NativeStorageBackend } from '../platform/storage/native_storage_backend.js';
+import { OPFSStorageBackend } from '../platform/storage/opfs_storage_backend.js';
+import { StorageBackendType } from '../platform/storage/storage_backend.js';
+import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '../platform/testing/workbook_test_backend.js';
+import { fsStore, makeFsMock, resetFsStore } from '../platform/testing/test_fs_mock.js';
+import { getOPFSRoot } from '../platform/opfs_root.js';
+import { ELECTRON_FILE_SYSTEM } from '../platform/electron_fs.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// The core that the backends ask about the names of attachments and the changes of the workbook tree
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
+/// The desktop app of the tests, its file system is a mock
+const electron = globalThis as { dashqlElectron?: unknown };
 
 const OTHER_WORKBOOK_ID = '22222222-3333-4444-8555-666666666666';
 
@@ -37,14 +44,14 @@ describe('CompositeStorageBackend V2 flat routing', () => {
 
     beforeEach(async () => {
         resetFsStore();
-        globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
-        registry = new Registry();
-        backend = new CompositeStorageBackend(registry, new TestLogger());
+        electron.dashqlElectron = { fs: makeFsMock() };
+        registry = new Registry(dql);
+        backend = new CompositeStorageBackend(dql, registry, new TestLogger());
         await backend.initialize();
     });
 
     afterEach(() => {
-        delete globalThis.dashqlElectron;
+        delete electron.dashqlElectron;
     });
 
     it('routes unknown and OPFS workbooks to the registry backend', async () => {
@@ -56,8 +63,8 @@ describe('CompositeStorageBackend V2 flat routing', () => {
     });
 
     it('mirrors native attachment bytes into the OPFS UUID namespace before returning a workbook', async () => {
-        const opfs = new OPFSStorageBackend();
-        const composite = new CompositeStorageBackend(opfs, new TestLogger());
+        const opfs = new OPFSStorageBackend(dql);
+        const composite = new CompositeStorageBackend(dql, opfs, new TestLogger());
         await composite.initialize();
         const native = new NativeStorageBackend('/tmp/native-attachments', ELECTRON_FILE_SYSTEM);
         const bytes = new Uint8Array([0, 128, 255, 10]);
@@ -187,7 +194,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         const dir = '/tmp/nested';
         await backend.createFolder(['clients']);
         await backend.upsertWorkbookEntry({ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: dir }, ['clients']);
-        const fresh = new CompositeStorageBackend(registry, new TestLogger());
+        const fresh = new CompositeStorageBackend(dql, registry, new TestLogger());
         await fresh.initialize();
         expect(fresh.getWorkbookLocation(TEST_WORKBOOK_ID)).toEqual({ type: StorageBackendType.Native, nativePath: dir });
         expect(fresh.getWorkbookTree().folders[0].workbooks).toEqual([{ path: TEST_WORKBOOK_ID, storageType: StorageBackendType.Native, nativePath: dir }]);

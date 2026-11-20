@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@akohn/dashql';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 
 import { StorageBrowserView } from './storage_browser_view.js';
 import * as styles from './storage_browser_view.module.css';
@@ -8,10 +11,15 @@ import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
-import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
+import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
 describe('StorageBrowserView', () => {
+    /// The runtime as the view uses it: the cleanup reads the workbook tree with its core
+    const runtime = { storage: null, core: null } as unknown as { storage: null; core: core.DashQL };
+    beforeAll(async () => { runtime.core = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
     let root: ReturnType<typeof createTestRoot>;
     let files: Map<string, string | ArrayBuffer>;
     let dirs: Set<string>;
@@ -43,7 +51,9 @@ describe('StorageBrowserView', () => {
         await root.render(
             <LoggerProvider>
                 <StorageProvider backend={new WorkbookTestBackend()}>
-                    <StorageBrowserView onClose={onClose} />
+                    <RuntimeContextProvider value={runtime as unknown as Runtime}>
+                        <StorageBrowserView onClose={onClose} />
+                    </RuntimeContextProvider>
                 </StorageProvider>
             </LoggerProvider>,
         );

@@ -177,13 +177,3 @@ export function emptyWorkbookTables(): WorkbookTables {
         data: new Map(),
     };
 }
-
-/// A fresh name of a table that holds the data of an attachment or a result
-export function newDataTableName(prefix: typeof ATTACHMENT_TABLE_PREFIX | typeof RESULT_TABLE_PREFIX): string {
-    return `${prefix}${crypto.randomUUID().replace(/-/g, '')}`;
-}
-
-/// Is a name the name of a table that holds the data of an attachment or a result?
-export function isDataTableName(name: string): boolean {
-    return /^workbook_(attachment|result)_[0-9a-f]{32}$/.test(name);
-}

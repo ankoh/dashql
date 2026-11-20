@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { TestLogger } from '../testing/test_logger.js';
 import { cloneWorkbook, copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { WorkbookTestBackend, TEST_CONNECTION_ID, TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
 
 async function seed(backend: WorkbookTestBackend): Promise<void> {
     await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());

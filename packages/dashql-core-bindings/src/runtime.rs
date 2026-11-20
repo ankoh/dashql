@@ -1488,6 +1488,94 @@ impl Runtime {
         JsonValue(serde_json::Value::Object(params.to_object())).to_js().map_err(|error| JsError::new(&error.to_string()))
     }
 
+    /// Build the workbook tree of the directories of `workbooktree/` as the platform lists them (`{ name, folderFile,
+    /// directories }`, null without the folder): the subfolders in the natural order of their names. A workbook that the
+    /// tree registers twice is listed where it comes first, or every time for the tree as it is `stored`. Fails on a
+    /// folder file that isn't one.
+    #[wasm_bindgen(js_name = readWorkbookTree, unchecked_return_type = "Record<string, unknown>")]
+    pub fn read_workbook_tree(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown> | null")] directory: JsValue,
+        stored: bool,
+    ) -> Result<JsValue, JsError> {
+        use dashql_core_storage::workbook_format::tree::{read_stored_workbook_tree, read_workbook_tree, TreeDirectory};
+        let directory =
+            (!directory.is_null() && !directory.is_undefined()).then(|| TreeDirectory::from_json(&JsonValue::of(&directory).0));
+        let tree = if stored { read_stored_workbook_tree(directory.as_ref()) } else { read_workbook_tree(directory.as_ref()) };
+        JsonValue(tree.map_err(js_error)?.to_json()).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
+    /// Change the workbooks of the workbook tree as it is stored: insert or replace the entry of a workbook (`upsert`),
+    /// remove it (`remove`) or move it to a position in a folder (`move`). Returns the tree after the change and the
+    /// folder files to write in their order, the folders that gain workbooks first.
+    #[wasm_bindgen(js_name = changeWorkbookTree, unchecked_return_type = "{ tree: Record<string, unknown>; writes: { path: string[]; text: string }[] }")]
+    pub fn change_workbook_tree(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] stored: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] change: JsValue,
+    ) -> Result<JsValue, JsError> {
+        use dashql_core_storage::workbook_format::tree::{change_workbook_tree, WorkbookEntry, WorkbookTreeChange, WorkbookTreeFolder};
+        let stored = WorkbookTreeFolder::from_json(&JsonValue::of(&stored).0);
+        let change = JsonValue::of(&change).0;
+        let path = |key: &str| -> Vec<String> {
+            change.get(key).and_then(serde_json::Value::as_array).map(|names| names.iter().filter_map(serde_json::Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+        };
+        let text = |key: &str| change.get(key).and_then(serde_json::Value::as_str).unwrap_or_default().to_string();
+        let change = match change.get("kind").and_then(serde_json::Value::as_str) {
+            Some("upsert") => WorkbookTreeChange::Upsert {
+                entry: change.get("entry").and_then(WorkbookEntry::from_json).ok_or_else(|| JsError::new("the change names no workbook"))?,
+                folder_path: path("folderPath"),
+            },
+            Some("remove") => WorkbookTreeChange::Remove { workbook_id: text("workbookId") },
+            Some("move") => WorkbookTreeChange::Move {
+                workbook_id: text("workbookId"),
+                folder_path: path("folderPath"),
+                // A float casts saturating, an index past the end appends
+                index: change.get("index").and_then(serde_json::Value::as_f64).map_or(usize::MAX, |index| index as usize),
+            },
+            _ => return Err(JsError::new("unknown change of the workbook tree")),
+        };
+        let (tree, writes) = change_workbook_tree(&stored, change).map_err(js_error)?;
+        let writes: Vec<serde_json::Value> = writes.into_iter().map(|write| serde_json::json!({ "path": write.path, "text": write.text })).collect();
+        JsonValue(serde_json::json!({ "tree": tree.to_json(), "writes": writes })).to_js().map_err(|error| JsError::new(&error.to_string()))
+    }
+
+    /// Why a name can't name a new folder of the workbook tree next to its siblings, null if it can. The names compare
+    /// without case.
+    #[wasm_bindgen(js_name = folderNameError)]
+    pub fn folder_name_error(name: &str, siblings: Vec<String>) -> Option<String> {
+        dashql_core_storage::workbook_format::tree::folder_name_error(name, &siblings)
+    }
+
+    /// A free name for a new folder of the workbook tree next to its siblings: "New folder", "New folder 2", ...
+    #[wasm_bindgen(js_name = freeFolderName)]
+    pub fn free_folder_name(siblings: Vec<String>) -> String {
+        dashql_core_storage::workbook_format::tree::free_folder_name(&siblings)
+    }
+
+    /// Check the name of an attachment: a plain file name of a Parquet file. Throws for any other name.
+    #[wasm_bindgen(js_name = validateDataFileName)]
+    pub fn validate_data_file_name(name: &str) -> Result<(), JsError> {
+        dashql_core_storage::workbook_format::layout::validate_data_file_name(name).map_err(js_error)
+    }
+
+    /// Is a file name the name of an attachment, a Parquet file? Listings leave other files out.
+    #[wasm_bindgen(js_name = isAttachmentFileName)]
+    pub fn is_attachment_file_name(name: &str) -> bool {
+        dashql_core_storage::workbook_format::layout::is_attachment_file_name(name)
+    }
+
+    /// A fresh name of a workbook table that holds the data of an attachment or a result, from the prefix of its kind
+    /// and a UUID
+    #[wasm_bindgen(js_name = newDataTableName)]
+    pub fn new_data_table_name(prefix: &str, uuid: &str) -> String {
+        dashql_core_storage::workbook_format::tables::new_data_table_name(prefix, uuid)
+    }
+
+    /// Is a name the name of a workbook table that holds the data of an attachment or a result?
+    #[wasm_bindgen(js_name = isDataTableName)]
+    pub fn is_data_table_name(name: &str) -> bool {
+        dashql_core_storage::workbook_format::tables::is_data_table_name(name)
+    }
+
     /// The Hyper Cloud database of a Database.com connection that names none
     #[wasm_bindgen(js_name = hyperCloudDefaultDatabaseName)]
     pub fn hyper_cloud_default_database_name() -> String {

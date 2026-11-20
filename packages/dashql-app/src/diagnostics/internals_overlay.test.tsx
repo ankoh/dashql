@@ -12,7 +12,7 @@ import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
+import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
 import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { TestRuntime } from '../tests/test_runtime.js';

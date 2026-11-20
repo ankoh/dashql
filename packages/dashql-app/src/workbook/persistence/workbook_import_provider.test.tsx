@@ -9,7 +9,7 @@ import { TestRuntime } from '../../tests/test_runtime.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../host/logger_provider.js';
 import { DashQLCoreProvider } from '../../host/core_provider.js';
-import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { STORAGE_WORKBOOK_FILE, StorageBackendType, type StorageBackend, type WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
@@ -116,7 +116,8 @@ function buttonWithText(text: string): HTMLButtonElement {
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 // The runtime of the test holds the connections with this core
-beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('WorkbookImportProvider', () => {
     let container: HTMLDivElement;
@@ -133,9 +134,9 @@ describe('WorkbookImportProvider', () => {
         root = createRoot(container);
         reload = vi.fn<() => void>();
         cancelQuery = vi.fn(async () => { });
-        registry = new Registry();
+        registry = new Registry(dql);
         resetFsStore();
-        composite = new CompositeStorageBackend(registry, { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as unknown as Logger);
+        composite = new CompositeStorageBackend(dql, registry, { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } as unknown as Logger);
         await composite.initialize();
     });
     afterEach(() => {

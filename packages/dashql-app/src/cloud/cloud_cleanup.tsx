@@ -7,6 +7,7 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { cloudDatabaseOf, useCloudQuery } from './cloud_query.js';
 import { useCloudState } from './cloud_state.js';
 import { cleanupCloud, type CloudCleanup } from './cloud_store.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 
 // The cleanup of a cloud, in its setup (docs/design/cloud.md, Setting Up a Cloud). It removes the workbooks and folders
 // that were deleted more than 30 days ago, the versions that are being deleted and the uploads that were abandoned,
@@ -45,6 +46,7 @@ export interface CloudCleanupLineProps {
 export function CloudCleanupLine(props: CloudCleanupLineProps): React.ReactElement {
     const { cloud } = props;
     const query = useCloudQuery(cloud.connectionId)!;
+    const runtime = useRuntime();
     const database = cloudDatabaseOf(cloud);
     const refresh = useCloudState(cloud.connectionId)?.refresh;
     const [running, setRunning] = React.useState(false);
@@ -61,7 +63,7 @@ export function CloudCleanupLine(props: CloudCleanupLineProps): React.ReactEleme
         setResult(null);
         setError(null);
         try {
-            setResult(await cleanupCloud(query, { database, signal: controller.signal }));
+            setResult(await cleanupCloud(runtime.core, query, { database, signal: controller.signal }));
             void refresh?.();
         } catch (error) {
             if (controller.signal.aborted) return;

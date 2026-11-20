@@ -150,12 +150,12 @@ describe('cloud folders', () => {
         await expect(moveCloudWorkbook(query, sales.workbookId, monthly.folderId)).rejects.toThrow('The cloud holds no folder');
         await expect(moveCloudWorkbook(query, crypto.randomUUID(), null)).rejects.toThrow('The cloud holds no workbook');
         await moveCloudWorkbook(query, sales.workbookId, q3.folderId);
-        await deleteCloudWorkbook(query, sales.workbookId);
+        await deleteCloudWorkbook(dql, query, sales.workbookId);
         await expect(moveCloudWorkbook(query, sales.workbookId, null)).rejects.toThrow('The cloud holds no workbook');
         expect(await namesIn(q3.folderId)).toEqual([]);
 
         // A cleanup removes the deleted folder
-        expect((await cleanupCloud(query, { purgeAfterSeconds: 0 })).folders).toEqual([monthly.folderId]);
+        expect((await cleanupCloud(dql, query, { purgeAfterSeconds: 0 })).folders).toEqual([monthly.folderId]);
         expect(await count(`SELECT count(*) AS n FROM "dashql"."dashql"."workbook_folders" WHERE folder_id = '${monthly.folderId}'`)).toBe(0);
     });
 
@@ -183,7 +183,7 @@ describe('cloud folders', () => {
         await moveCloudWorkbook(query, sales.workbookId, inner.folderId);
 
         // A cleanup moves what names a folder that it removes to the top
-        expect((await cleanupCloud(query, { purgeAfterSeconds: 0 })).folders).toEqual([reports.folderId]);
+        expect((await cleanupCloud(dql, query, { purgeAfterSeconds: 0 })).folders).toEqual([reports.folderId]);
         expect(await count(`SELECT count(*) AS n FROM "dashql"."dashql"."workbook_folders" WHERE parent_id IS NOT NULL`)).toBe(1);
         expect(await namesIn(null)).toEqual(['Inner/', 'Orphan/', 'Lost']);
     });
@@ -209,13 +209,13 @@ describe('cloud folders', () => {
         await expect(moveCloudFolder(query, d.folderId, c.folderId)).resolves.toBeUndefined();
         await expect(moveCloudFolder(query, a.folderId, c.folderId)).rejects.toThrow("can't move into itself");
 
-        const cleanup = await cleanupCloud(query);
+        const cleanup = await cleanupCloud(dql, query);
         expect(cleanup.rerooted.sort()).toEqual([a.folderId, b.folderId].sort());
         expect(cleanup.folders).toEqual([]);
         expect(await namesIn(null)).toEqual(['A/', 'B/']);
         expect(await namesIn(b.folderId)).toEqual(['C/']);
         expect(await namesIn(c.folderId)).toEqual(['D/']);
-        expect((await cleanupCloud(query)).rerooted).toEqual([]);
+        expect((await cleanupCloud(dql, query)).rerooted).toEqual([]);
     });
 
     it('lists pages of the folders first, then the workbooks, sorted by name ignoring case', async () => {
@@ -265,7 +265,7 @@ describe('cloud folders', () => {
         const costs = await publish('Costs', undefined, "select 'it''s'");
         const orders = await publish('Orders by region', reports.folderId);
         const deleted = await publish('Deleted orders');
-        await deleteCloudWorkbook(query, deleted.workbookId);
+        await deleteCloudWorkbook(dql, query, deleted.workbookId);
         await publish('Unrelated');
 
         const search = async (text: string, limit?: number) => (await listAll({ folderId: monthly.folderId, search: { text }, limit })).entries;
@@ -315,7 +315,7 @@ describe('cloud folders', () => {
         const sales = await publish('Sales', reports.folderId);
         const update = await publishCloudWorkbook(dql, query, database, tablesNamed('Sales'), { workbookId: sales.workbookId });
         const deleted = await publish('Deleted');
-        await deleteCloudWorkbook(query, deleted.workbookId);
+        await deleteCloudWorkbook(dql, query, deleted.workbookId);
         // An upload that runs counts once it is ready
         await connection.execute(`INSERT INTO "dashql"."dashql"."workbook_versions" VALUES ('${crypto.randomUUID()}', '${crypto.randomUUID()}', 1, 'x', '{}', 'uploading', now(), NULL, now(), NULL, NULL)`);
         expect(await readCloudStats(query)).toEqual({ workbooks: 1, folders: 2, versions: 2, lastPublishedAt: update.readyAt });

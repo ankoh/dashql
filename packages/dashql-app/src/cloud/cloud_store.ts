@@ -8,8 +8,6 @@ import type { ParquetReadDatabase } from '@akohn/dashql/runtime/workbook_archive
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,
-    isDataTableName,
-    newDataTableName,
     RESULT_TABLE_PREFIX,
     RESULTS_TABLE,
     WORKBOOK_TABLE,
@@ -165,8 +163,8 @@ export function newVersionId(): string {
 }
 
 /// A data table of DashQL. The store only drops tables with such names, whatever the rows say.
-function dataTable(tableName: string, options: CloudStoreOptions): string {
-    if (!isDataTableName(tableName)) {
+function dataTable(instance: core.DashQL, tableName: string, options: CloudStoreOptions): string {
+    if (!instance.isDataTableName(tableName)) {
         throw new Error(`Not the name of a data table: ${tableName}`);
     }
     return cloudTable(tableName, options);
@@ -236,7 +234,7 @@ export async function publishCloudWorkbook(
         throw new Error(`Expected one workbook, found ${tables[WORKBOOK_TABLE].length}`);
     }
     for (const name of [...tables[ATTACHMENTS_TABLE].map(row => row.table_name), ...tables[RESULTS_TABLE].map(row => row.table_name)]) {
-        if (!isDataTableName(name)) throw new Error(`Not the name of a data table: ${name}`);
+        if (!instance.isDataTableName(name)) throw new Error(`Not the name of a data table: ${name}`);
         if (!tables.data.has(name)) throw new Error(`Missing data table: ${name}`);
     }
     // The text of the values is at least as large as the Parquet files, larger files are refused before anything is sent
@@ -275,7 +273,7 @@ export async function publishCloudWorkbook(
         for (const [tableName, prefix] of [[ATTACHMENTS_TABLE, ATTACHMENT_TABLE_PREFIX], [RESULTS_TABLE, RESULT_TABLE_PREFIX]] as const) {
             const columns = workbookColumns(instance, tableName);
             for (const row of tables[tableName]) {
-                const name = newDataTableName(prefix);
+                const name = instance.newDataTableName(prefix);
                 created.push(name);
                 await insertRows(query, cloudTable(tableName, options), [...KEY_COLUMNS, ...columns], versionRows(key, columns, [{ ...row, table_name: name }]), maxLength, signal);
                 const { columns: dataColumns, rows } = await readDataTable(local, tableName === ATTACHMENTS_TABLE
@@ -283,8 +281,8 @@ export async function publishCloudWorkbook(
                     : `a query result`, tables.data.get(row.table_name)!.bytes, signal);
                 for (const values of rows) for (const value of values) dataBytes += value?.length ?? 0;
                 if (dataBytes > maxDataBytes) throw new CloudPublishTooLargeError(maxDataBytes);
-                await query(createTableSQL(dataTable(name, options), dataColumns), signal);
-                await insertRows(query, dataTable(name, options), dataColumns, rows, maxLength, signal);
+                await query(createTableSQL(dataTable(instance, name, options), dataColumns), signal);
+                await insertRows(query, dataTable(instance, name, options), dataColumns, rows, maxLength, signal);
             }
         }
         await query(`UPDATE ${versionsTable(options)} SET state = 'ready', ready_at = now(), updated_at = now() `
@@ -297,7 +295,7 @@ export async function publishCloudWorkbook(
     } catch (error) {
         // The publish is abandoned, a cleanup removes what this leaves behind
         const unsignaled = { ...options, signal: undefined };
-        await dropVersion(query, key, unsignaled, created).catch(() => {});
+        await dropVersion(instance, query, key, unsignaled, created).catch(() => {});
         if (createdRow) {
             await query(`DELETE FROM ${workbooksTable(options)} w WHERE workbook_id = ${quoteLiteral(workbookId)} `
                 + `AND NOT EXISTS (SELECT 1 FROM ${versionsTable(options)} v WHERE v.workbook_id = w.workbook_id)`).catch(() => {});
@@ -525,7 +523,7 @@ export async function readCloudWorkbook(
         if (result != null && (tableName === ATTACHMENTS_TABLE || tableName === RESULTS_TABLE)) dataTables.push(...textColumn(result, 'table_name'));
     }
     for (const name of dataTables) {
-        const result = await query(`SELECT * FROM ${dataTable(name, options)}`, signal);
+        const result = await query(`SELECT * FROM ${dataTable(instance, name, options)}`, signal);
         const bytes = await exportArrowTableAsParquet(local, result);
         tables.data.push({ tableName: name, file: new Blob([bytes as Uint8Array<ArrayBuffer>]) });
     }
@@ -534,7 +532,7 @@ export async function readCloudWorkbook(
 
 /// Delete a workbook with all its versions. A single UPDATE marks its row, the workbook is hidden from then on and can be
 /// restored until a cleanup removes it.
-export async function deleteCloudWorkbook(query: CloudQuery, workbookId: string, options: CloudStoreOptions = {}): Promise<void> {
+export async function deleteCloudWorkbook(instance: core.DashQL, query: CloudQuery, workbookId: string, options: CloudStoreOptions = {}): Promise<void> {
     checkCloudId(workbookId, 'workbook');
     await openCloudStore(query, 'write', options);
     const id = quoteLiteral(workbookId);
@@ -553,7 +551,7 @@ export async function deleteCloudWorkbook(query: CloudQuery, workbookId: string,
 ///
 /// A data table that a row of another version names stays. No client shares data tables between versions yet, but one
 /// that does can rely on every client keeping a shared table.
-async function dropVersion(query: CloudQuery, key: CloudVersionKey, options: CloudStoreOptions, dataTables: readonly string[] = []): Promise<void> {
+async function dropVersion(instance: core.DashQL, query: CloudQuery, key: CloudVersionKey, options: CloudStoreOptions, dataTables: readonly string[] = []): Promise<void> {
     const where = versionWhere(key);
     await query(`UPDATE ${versionsTable(options)} SET state = 'deleting', updated_at = now() WHERE ${where}`, options.signal);
     const named = await query(`SELECT table_name FROM ${cloudTable(ATTACHMENTS_TABLE, options)} WHERE ${where} `
@@ -561,14 +559,14 @@ async function dropVersion(query: CloudQuery, key: CloudVersionKey, options: Clo
     const names = new Set(dataTables);
     for (const row of named) names.add(String(row.table_name));
     // A row that doesn't name a data table stays, nothing else is dropped
-    const dropped = [...names].filter(isDataTableName);
+    const dropped = [...names].filter(name => instance.isDataTableName(name));
     if (dropped.length > 0) {
         const list = dropped.map(quoteLiteral).join(', ');
         const shared = await query(`SELECT table_name FROM ${cloudTable(ATTACHMENTS_TABLE, options)} WHERE table_name IN (${list}) AND NOT (${where}) `
             + `UNION SELECT table_name FROM ${cloudTable(RESULTS_TABLE, options)} WHERE table_name IN (${list}) AND NOT (${where})`, options.signal);
         const kept = new Set([...shared].map(row => String(row.table_name)));
         for (const name of dropped) {
-            if (!kept.has(name)) await query(`DROP TABLE IF EXISTS ${dataTable(name, options)}`, options.signal);
+            if (!kept.has(name)) await query(`DROP TABLE IF EXISTS ${dataTable(instance, name, options)}`, options.signal);
         }
     }
     for (const tableName of CLOUD_MERGED_TABLE_NAMES) {
@@ -596,11 +594,11 @@ export interface CloudCleanup {
 
 /// Remove the workbooks and folders that were deleted long ago, the versions that are being deleted, the uploads that
 /// were abandoned, and the rows of versions that have no row any more.
-export async function cleanupCloud(query: CloudQuery, options: CloudCleanupOptions = {}): Promise<CloudCleanup> {
+export async function cleanupCloud(instance: core.DashQL, query: CloudQuery, options: CloudCleanupOptions = {}): Promise<CloudCleanup> {
     await openCloudStore(query, 'write', options);
     const staleAfter = Math.max(0, Math.floor(options.staleAfterSeconds ?? 60 * 60));
     const purgeAfter = Math.max(0, Math.floor(options.purgeAfterSeconds ?? 30 * 24 * 60 * 60));
-    const workbooks = await purgeWorkbooks(query, staleAfter, purgeAfter, options);
+    const workbooks = await purgeWorkbooks(instance, query, staleAfter, purgeAfter, options);
     const folders = await purgeFolders(query, purgeAfter, options);
     const rerooted = await rerootFolderLoops(query, options);
     const abandoned = await readVersionRows(query,
@@ -613,14 +611,14 @@ export async function cleanupCloud(query: CloudQuery, options: CloudCleanupOptio
         .join(' UNION '), options.signal);
     for (const row of orphans) removed.push({ workbookId: String(row.workbook_id), versionId: String(row.version_id) });
     for (const key of removed) {
-        await dropVersion(query, key, options);
+        await dropVersion(instance, query, key, options);
     }
     return { versions: [...workbooks.versions, ...removed], workbooks: workbooks.workbooks, folders, rerooted };
 }
 
 /// Remove the workbooks that were deleted long ago with all their versions, their rows last, and the rows of workbooks
 /// whose first publish was abandoned
-async function purgeWorkbooks(query: CloudQuery, staleAfter: number, purgeAfter: number, options: CloudStoreOptions): Promise<{ versions: CloudVersionKey[]; workbooks: string[] }> {
+async function purgeWorkbooks(instance: core.DashQL, query: CloudQuery, staleAfter: number, purgeAfter: number, options: CloudStoreOptions): Promise<{ versions: CloudVersionKey[]; workbooks: string[] }> {
     const table = workbooksTable(options);
     const deleted = await query(`SELECT DISTINCT CAST(workbook_id AS text) AS workbook_id FROM ${table} `
         + `WHERE deleted_at < now() - INTERVAL '${purgeAfter} seconds'`, options.signal);
@@ -629,7 +627,7 @@ async function purgeWorkbooks(query: CloudQuery, staleAfter: number, purgeAfter:
     for (const row of deleted) {
         const id = String(row.workbook_id);
         for (const version of await readVersionRows(query, `workbook_id = ${quoteLiteral(id)}`, options)) {
-            await dropVersion(query, version, options);
+            await dropVersion(instance, query, version, options);
             versions.push({ workbookId: version.workbookId, versionId: version.versionId });
         }
         await query(`DELETE FROM ${table} WHERE workbook_id = ${quoteLiteral(id)}`, options.signal);

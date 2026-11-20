@@ -1,4 +1,4 @@
-import type * as core from '@akohn/dashql';
+import type * as core from '../../core/index.js';
 import {
     type StorageBackend,
     type WorkbookRegistryBackend,
@@ -12,21 +12,19 @@ import {
     type StorageManifest,
     type ExpectedStamp,
     StorageBackendType,
-    validateDataFileName,
-} from '@akohn/dashql/platform/storage/storage_backend';
+} from './storage_backend.js';
 import {
     type WorkbookTreeFolder,
+    applyWorkbookTreeChange,
     emptyWorkbookTree,
     flattenWorkbookTree,
-    removeWorkbookFromTree,
-    upsertWorkbookInTree,
-} from '@akohn/dashql/platform/storage/workbook_tree';
-import { type FileStamp } from '@akohn/dashql/platform/electron_fs';
-import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
+} from './workbook_tree.js';
+import { type FileStamp } from '../electron_fs.js';
+import { NativeStorageBackend } from './native_storage_backend.js';
 import { type WorkbookLocation, locationFromEntry } from './workbook_locator.js';
 import { copyWorkbook, verifyWorkbook } from './workbook_transfer.js';
-import type { Logger } from '@akohn/dashql/platform/logger/logger';
-import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
+import type { Logger } from '../logger/logger.js';
+import { ELECTRON_FILE_SYSTEM } from '../electron_fs.js';
 
 const LOG_CTX = 'composite_storage_backend';
 
@@ -54,7 +52,11 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// The logger
     private readonly logger: Logger;
 
-    constructor(opfs: WorkbookRegistryBackend, logger: Logger) {
+    /// The core decides the names of attachments and how a change of the workbook tree changes it
+    private readonly core: core.DashQL;
+
+    constructor(core: core.DashQL, opfs: WorkbookRegistryBackend, logger: Logger) {
+        this.core = core;
         this.opfs = opfs;
         this.locations = new Map();
         this.nativeCache = new Map();
@@ -147,7 +149,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     async upsertWorkbookEntry(entry: WorkbookEntry, folderPath: readonly string[] = []): Promise<void> {
         await this.opfs.upsertWorkbookEntry(entry, folderPath);
         this.locations.set(entry.path, locationFromEntry(entry));
-        this.tree = upsertWorkbookInTree(this.tree, entry, folderPath);
+        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry, folderPath });
     }
     async removeWorkbookEntry(workbookId: string): Promise<void> {
         await this.opfs.removeWorkbookEntry(workbookId);
@@ -175,7 +177,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.locations.delete(workbookId);
         this.nativeCache.delete(workbookId);
         this.mirroredAttachments.delete(workbookId);
-        this.tree = removeWorkbookFromTree(this.tree, workbookId);
+        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'remove', workbookId });
     }
 
     /// The workbook tree, the folders and workbooks of the sidebar
@@ -228,7 +230,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         }
         const names = new Set<string>();
         for (const file of files) {
-            validateDataFileName(file.name);
+            this.core.validateDataFileName(file.name);
             names.add(file.name);
             const stamp = mirrored.get(file.name);
             if (stamp !== undefined && stamp.size === file.size && stamp.mtimeMs === file.mtimeMs) {
@@ -268,7 +270,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             // The OPFS backend registered the workbook, a new one at the end of the root. Mirror that in
             // memory so getWorkbookOrder() includes it immediately, before the next app initialization.
             this.locations.set(workbookId, loc);
-            this.tree = upsertWorkbookInTree(this.tree, { path: workbookId, storageType: StorageBackendType.OPFS });
+            this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: workbookId, storageType: StorageBackendType.OPFS } });
         }
     }
 
@@ -434,7 +436,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             nativePath: dir,
         });
         this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
-        this.tree = upsertWorkbookInTree(this.tree, { path: uuid, storageType: StorageBackendType.Native, nativePath: dir });
+        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } });
         this.nativeCache.set(uuid, native);
 
         // 5. Now it's safe to drop the OPFS copy of the files (registry entry stays).

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { type StorageBackend, StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { CompositeStorageBackend } from './composite_storage_backend.js';
-import { type WorkbookLocation } from './workbook_locator.js';
+import { OPFSStorageBackend } from '@akohn/dashql/platform/storage/opfs_storage_backend';
+import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
+import { type WorkbookLocation } from '@akohn/dashql/platform/storage/workbook_locator';
 import { type WorkbookTreeFolder, emptyWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
@@ -75,8 +75,10 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             });
 
             logger.info("Initializing storage backend", {}, "storage_provider");
-            const opfsBackend = new OPFSStorageBackend();
-            const composite = new CompositeStorageBackend(opfsBackend, logger);
+            // The backends ask the core about the names of attachments and folders and the changes of the workbook tree
+            const instance = await setupCore('storage_provider');
+            const opfsBackend = new OPFSStorageBackend(instance);
+            const composite = new CompositeStorageBackend(instance, opfsBackend, logger);
             await composite.initialize();
 
             const initDuration = performance.now() - initStartTime;

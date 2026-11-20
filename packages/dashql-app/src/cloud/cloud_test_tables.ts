@@ -4,7 +4,6 @@ import type { WorkbookData } from '@akohn/dashql/platform/storage/storage_backen
 import {
     ATTACHMENT_TABLE_PREFIX,
     emptyWorkbookTables,
-    newDataTableName,
     RESULT_TABLE_PREFIX,
     type CatalogColumnRow,
     type CatalogFunctionParamRow,
@@ -13,6 +12,11 @@ import {
     type WorkbookTableName,
     type WorkbookTables,
 } from '@akohn/dashql/platform/storage/workbook_tables';
+
+/// A fresh name of a data table as the core gives one
+function testDataTableName(prefix: string): string {
+    return `${prefix}${crypto.randomUUID().replace(/-/g, '')}`;
+}
 
 import type { CloudWorkbookTables } from './cloud_store.js';
 
@@ -61,12 +65,12 @@ export function testWorkbookTables(spec: TestWorkbookTables): WorkbookTables {
     tables.connection_catalog_functions.push(...spec.catalog?.functions ?? []);
     tables.connection_catalog_function_params.push(...spec.catalog?.params ?? []);
     (spec.attachments ?? []).forEach((file, position) => {
-        const tableName = newDataTableName(ATTACHMENT_TABLE_PREFIX);
+        const tableName = testDataTableName(ATTACHMENT_TABLE_PREFIX);
         tables.workbook_attachments.push({ position, name: file.name, table_name: tableName });
         tables.data.set(tableName, { bytes: file.bytes });
     });
     for (const result of spec.results ?? []) {
-        const tableName = newDataTableName(RESULT_TABLE_PREFIX);
+        const tableName = testDataTableName(RESULT_TABLE_PREFIX);
         tables.workbook_results.push({ cache_key: result.key, table_name: tableName });
         tables.data.set(tableName, { bytes: result.bytes });
     }

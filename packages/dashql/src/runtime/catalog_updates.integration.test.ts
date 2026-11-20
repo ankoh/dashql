@@ -80,7 +80,7 @@ describe('the catalog of a connection follows statements', () => {
         connection = await database.connect();
         // A Hyper server that a restored catalog describes: the loader only asks about the relations of statements
         const params = { protocol: 'V3_GRPC', endpoint: 'https://hyper.example.com' };
-        storage = new WorkbookTestRegistry();
+        storage = new WorkbookTestRegistry(dql);
         storage.connections = [{ id: 'connection', params: { hyper: params } as ConnectionParams }];
         storage.connectionFiles.set(`connection/${STORAGE_CATALOG_RELATIONS}`, `-- DashQL Connection Relations.
 -- This file is auto-generated and can only be updated through a catalog refresh.

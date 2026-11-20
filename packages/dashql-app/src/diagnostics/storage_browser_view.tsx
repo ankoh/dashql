@@ -264,7 +264,9 @@ function describeCleanupResult(result: OPFSCleanupResult): string {
 /// visible rows only.
 export function StorageBrowserView(props: { onClose: () => void }) {
     const storageReader = useStorageReader();
-    const storageWriter = useOptionalRuntime()?.storage ?? null;
+    const runtime = useOptionalRuntime();
+    const storageWriter = runtime?.storage ?? null;
+    const instance = runtime?.core ?? null;
     const logger = useLogger();
 
     const [roots, setRoots] = React.useState<StorageTreeRoot[]>(() => listStorageTreeRoots(storageReader));
@@ -329,7 +331,8 @@ export function StorageBrowserView(props: { onClose: () => void }) {
         try {
             // Pending writes may register new workbooks and connections
             await storageWriter?.flush();
-            const candidates = await findOPFSCleanupCandidates(await getOPFSRoot());
+            if (instance == null) throw new Error('the cleanup needs the runtime of the app');
+            const candidates = await findOPFSCleanupCandidates(instance, await getOPFSRoot());
             setCleanup(candidates.length === 0
                 ? { status: 'done', message: 'Nothing to clean up.', error: false }
                 : { status: 'review', candidates });
@@ -337,11 +340,12 @@ export function StorageBrowserView(props: { onClose: () => void }) {
             logger.error('Failed to scan the OPFS for cleanup', { error: stringifyError(error) }, LOG_CTX);
             setCleanup({ status: 'done', message: `Scan failed: ${(error as Error)?.message ?? String(error)}`, error: true });
         }
-    }, [storageWriter, logger]);
+    }, [instance, storageWriter, logger]);
     const confirmCleanup = React.useCallback(async (candidates: OPFSCleanupCandidate[]) => {
         setCleanup({ status: 'deleting', candidates });
         try {
-            const result = await removeOPFSCleanupCandidates(await getOPFSRoot(), candidates);
+            if (instance == null) throw new Error('the cleanup needs the runtime of the app');
+            const result = await removeOPFSCleanupCandidates(instance, await getOPFSRoot(), candidates);
             logger.info('Cleaned up the OPFS', {
                 removed: result.removed.toString(),
                 skipped: result.skipped.length.toString(),

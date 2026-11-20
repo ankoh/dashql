@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import * as core from '@akohn/dashql';
 
-import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
+import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
 import { findOPFSCleanupCandidates, removeOPFSCleanupCandidates } from './opfs_cleanup.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+/// The core reads the workbook tree
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 const LIVE = crypto.randomUUID();
 const CLOSED = crypto.randomUUID();
@@ -66,7 +72,7 @@ function messyStorage() {
 describe('findOPFSCleanupCandidates', () => {
     it('flags everything the current layout does not use', async () => {
         const { root } = messyStorage();
-        const candidates = await findOPFSCleanupCandidates(root, fakeLocks([`dashql-instance-${LIVE}`]));
+        const candidates = await findOPFSCleanupCandidates(dql, root, fakeLocks([`dashql-instance-${LIVE}`]));
         expect(candidates.map(c => c.path.join('/')).sort()).toEqual([
             `dashql-session-${LEGACY}`,
             'connections/c2',
@@ -93,13 +99,13 @@ describe('findOPFSCleanupCandidates', () => {
     it('leaves workbooks and connections alone without a manifest', async () => {
         const { root, files } = messyStorage();
         files.delete('dashql-manifest.json');
-        const paths = (await findOPFSCleanupCandidates(root, fakeLocks([]))).map(c => c.path.join('/'));
+        const paths = (await findOPFSCleanupCandidates(dql, root, fakeLocks([]))).map(c => c.path.join('/'));
         expect(paths.some(path => path.startsWith('workbooks/') || path.startsWith('connections/'))).toBe(false);
     });
 
     it('leaves instance folders alone without Web Locks', async () => {
         const { root } = messyStorage();
-        const paths = (await findOPFSCleanupCandidates(root, null)).map(c => c.path.join('/'));
+        const paths = (await findOPFSCleanupCandidates(dql, root, null)).map(c => c.path.join('/'));
         expect(paths.some(path => path.startsWith('instances/') || path.startsWith('dashql-session-'))).toBe(false);
     });
 });
@@ -108,11 +114,11 @@ describe('removeOPFSCleanupCandidates', () => {
     it('deletes the candidates', async () => {
         const { root, files, dirs } = messyStorage();
         const locks = fakeLocks([`dashql-instance-${LIVE}`]);
-        const candidates = await findOPFSCleanupCandidates(root, locks);
+        const candidates = await findOPFSCleanupCandidates(dql, root, locks);
 
-        const result = await removeOPFSCleanupCandidates(root, candidates, locks);
+        const result = await removeOPFSCleanupCandidates(dql, root, candidates, locks);
         expect(result).toEqual({ removed: candidates.length, skipped: [] });
-        expect(await findOPFSCleanupCandidates(root, locks)).toEqual([]);
+        expect(await findOPFSCleanupCandidates(dql, root, locks)).toEqual([]);
         expect(files.has('workbooks/s1/scripts/1.sql')).toBe(true);
         expect(files.has('workbooks/s1/scripts/page/2.sql')).toBe(false);
         expect(dirs.has(`instances/${LIVE}`)).toBe(true);
@@ -120,11 +126,11 @@ describe('removeOPFSCleanupCandidates', () => {
 
     it('keeps entries that were registered again or are in use', async () => {
         const { root, files, dirs } = messyStorage();
-        const candidates = await findOPFSCleanupCandidates(root, fakeLocks([]));
+        const candidates = await findOPFSCleanupCandidates(dql, root, fakeLocks([]));
 
         // A workbook with the same id is registered and an app window opens the closed instance again
         files.set('workbooktree/dashql-folder.json', JSON.stringify({ workbooks: [{ path: 's1' }, { path: 'GONE' }] }));
-        const result = await removeOPFSCleanupCandidates(root, candidates, fakeLocks([`dashql-instance-${CLOSED}`]));
+        const result = await removeOPFSCleanupCandidates(dql, root, candidates, fakeLocks([`dashql-instance-${CLOSED}`]));
 
         expect(result.skipped).toEqual([
             { path: `instances/${CLOSED}`, reason: 'in use' },
@@ -140,7 +146,7 @@ describe('removeOPFSCleanupCandidates', () => {
         const open = new Error('open');
         open.name = 'NoModificationAllowedError';
         (root as unknown as OPFSDirectoryMock).removeEntry = async () => { throw open; };
-        const result = await removeOPFSCleanupCandidates(root, await findOPFSCleanupCandidates(root, null), null);
+        const result = await removeOPFSCleanupCandidates(dql, root, await findOPFSCleanupCandidates(dql, root, null), null);
         expect(result).toEqual({ removed: 0, skipped: [{ path: 'stray.txt', reason: 'in use' }] });
     });
 });

@@ -66,12 +66,12 @@ import { renderWorkbookName } from '../workbook_name.js';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
-import { displayPath } from '../../storage/workbook_locator.js';
+import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { WorkbookStorageOverlay } from '../persistence/workbook_storage_overlay.js';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { browserWorkbookFolder } from '../persistence/browser_workbook_folder.js';
-import { cloneWorkbook } from '../../storage/workbook_transfer.js';
+import { cloneWorkbook } from '@akohn/dashql/platform/storage/workbook_transfer';
 import { useWorkbookImport } from '../persistence/workbook_import_provider.js';
 import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, scriptsOnConnection, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
@@ -92,11 +92,8 @@ import {
     findWorkbookFolder,
     flattenWorkbookTree,
     folderAt,
-    folderNameError,
     folderPathKey,
-    freeFolderName,
-    moveWorkbookInTree,
-    upsertWorkbookInTree,
+    applyWorkbookTreeChange,
 } from '@akohn/dashql/platform/storage/workbook_tree';
 import { NameInput } from '@akohn/dashql-react/components/name_input';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
@@ -835,8 +832,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const listed = new Set(flattenWorkbookTree(workbookTree).map(entry => entry.path));
         return [...workbookItems.keys()]
             .filter(id => !listed.has(id))
-            .reduce((tree, path) => upsertWorkbookInTree(tree, { path }), workbookTree);
-    }, [workbookItems, workbookTree]);
+            .reduce((tree, path) => applyWorkbookTreeChange(runtime.core, tree, { kind: 'upsert', entry: { path } }), workbookTree);
+    }, [runtime, workbookItems, workbookTree]);
 
     // Opening a workbook expands the folders on the way to it
     const currentWorkbookFolderKey = folderPathKey(findWorkbookFolder(displayedTree, props.workbookScripts.workbookId) ?? []);
@@ -942,9 +939,9 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         changeWorkbookTree(
             'move the workbook',
             folders => folders.moveWorkbook(workbookId, folderPath, index),
-            tree => moveWorkbookInTree(tree, workbookId, folderPath, index),
+            tree => folderAt(tree, folderPath) == null ? tree : applyWorkbookTreeChange(runtime.core, tree, { kind: 'move', workbookId, folderPath, index }),
         );
-    }, [changeWorkbookTree]);
+    }, [changeWorkbookTree, runtime]);
 
     /// Where the dragged row would land
     const dropOf = React.useCallback((event: DragMoveEvent | DragEndEvent): WorkbookListDrop | null => {
@@ -992,7 +989,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const createFolder = React.useCallback((parentPath: string[]) => {
         const parent = folderAt(workbookTree, parentPath);
         if (parent == null) return;
-        const path = [...parentPath, freeFolderName(parent.folders.map(folder => folder.name))];
+        const path = [...parentPath, runtime.core.freeFolderName(parent.folders.map(folder => folder.name))];
         setCollapsedFolders(current => {
             const next = new Set(current);
             next.delete(folderPathKey(parentPath));
@@ -1000,7 +997,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         });
         setRenamingFolder(folderPathKey(path));
         changeWorkbookTree('create the folder', folders => folders.createFolder(path));
-    }, [changeWorkbookTree, workbookTree]);
+    }, [changeWorkbookTree, runtime, workbookTree]);
 
     const renameFolder = React.useCallback((folder: WorkbookTreeFolder, input: string) => {
         setRenamingFolder(null);
@@ -1010,7 +1007,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         const siblings = (folderAt(workbookTree, parentPath)?.folders ?? [])
             .map(sibling => sibling.name)
             .filter(sibling => sibling !== folder.name);
-        const error = folderNameError(name, siblings);
+        const error = runtime.core.folderNameError(name, siblings);
         if (error != null) {
             logger.warn('failed to rename the folder', { error }, 'workbook_workbench');
             return;

@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
@@ -287,8 +287,8 @@ describe('Workbook connections', () => {
         beforeEach(async () => {
             resetFsStore();
             globalThis.dashqlElectron = { fs: makeFsMock() } as unknown as DashQLElectronBridge;
-            registry = new Registry();
-            backend = new CompositeStorageBackend(registry, new TestLogger());
+            registry = new Registry(dql);
+            backend = new CompositeStorageBackend(dql, registry, new TestLogger());
             await backend.initialize();
             await seedWorkbook(registry, [
                 ['define.sql', HYPER_ID, 'create table items (id int)'],

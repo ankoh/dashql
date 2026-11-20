@@ -1,4 +1,10 @@
 import type * as app_folder from '@akohn/dashql-jsonschema/app_folder.js';
+import type * as core from '../../core/index.js';
+
+// The workbook tree: the folders of the sidebar in `workbooktree/`, every directory a folder with a `dashql-folder.json`
+// that lists its workbooks. The core builds the tree of the folder files and decides how a change of its workbooks
+// changes them (`workbook_format/tree.rs` of the core storage), the platform lists the directories and writes the
+// files. The functions here only read a tree that the core built.
 
 /// The folder of the workbook tree, it registers every workbook, e.g. `workbooktree/clients/acme/dashql-folder.json`
 export const STORAGE_WORKBOOK_TREE_FOLDER = 'workbooktree';
@@ -26,14 +32,31 @@ export interface WorkbookTreeFolder {
     workbooks: WorkbookEntry[];
 }
 
+/// A directory of `workbooktree/` as the platform lists it, with the text of its folder file
+export interface WorkbookTreeDirectory {
+    name: string;
+    /// The text of its `dashql-folder.json`, null if it has none
+    folderFile: string | null;
+    directories: WorkbookTreeDirectory[];
+}
+
+/// A change of the workbooks of the tree: insert or replace the entry of a workbook, a registered one keeps its place
+/// and a new one goes to the end of the folder at `folderPath` or of the root; remove a workbook; or move it to a
+/// position in a folder, counted without the moved workbook
+export type WorkbookTreeChange =
+    | { kind: 'upsert'; entry: WorkbookEntry; folderPath?: readonly string[] }
+    | { kind: 'remove'; workbookId: string }
+    | { kind: 'move'; workbookId: string; folderPath: readonly string[]; index: number };
+
+/// A folder file that a change of the tree writes, the folder is created when missing
+export interface FolderFileWrite {
+    path: string[];
+    text: string;
+}
+
 /// The tree without folders and workbooks
 export function emptyWorkbookTree(): WorkbookTreeFolder {
     return { name: '', path: [], folders: [], workbooks: [] };
-}
-
-/// Natural order of folder names (e.g. "q2" < "q10")
-export function compareFolderNames(left: string, right: string): number {
-    return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
 }
 
 /// Are two folder paths the same?
@@ -77,85 +100,6 @@ export function findWorkbookFolder(tree: WorkbookTreeFolder, workbookId: string)
     return null;
 }
 
-/// Why a name can't name a new folder next to its siblings, null if it can.
-/// The names are compared without case, so that folders stay apart on file systems that ignore it.
-export function folderNameError(name: string, siblings: readonly string[]): string | null {
-    if (name.length === 0) return 'The folder needs a name';
-    if (name === '.' || name === '..' || /[/\\\0]/.test(name)) return `"${name}" is not a valid folder name`;
-    const lower = name.toLowerCase();
-    if (siblings.some(sibling => sibling.toLowerCase() === lower)) return `There is already a folder "${name}"`;
-    return null;
-}
-
-/// Drop the later registrations of workbooks that the tree registers twice, the first one in tree order wins.
-/// A folder move that is interrupted between its copy and its delete leaves such duplicates.
-export function dropDuplicateWorkbooks(tree: WorkbookTreeFolder): WorkbookTreeFolder {
-    const seen = new Set<string>();
-    const visit = (folder: WorkbookTreeFolder): WorkbookTreeFolder => {
-        const folders = folder.folders.map(visit);
-        const workbooks = folder.workbooks.filter(entry => {
-            if (seen.has(entry.path)) return false;
-            seen.add(entry.path);
-            return true;
-        });
-        return { ...folder, folders, workbooks };
-    };
-    return visit(tree);
-}
-
-/// Replace the folder at a path, the folders on the way are copied
-function replaceFolder(tree: WorkbookTreeFolder, path: readonly string[], replace: (folder: WorkbookTreeFolder) => WorkbookTreeFolder): WorkbookTreeFolder {
-    if (path.length === 0) return replace(tree);
-    const [head, ...rest] = path;
-    return {
-        ...tree,
-        folders: tree.folders.map(folder => folder.name === head ? replaceFolder(folder, rest, replace) : folder),
-    };
-}
-
-/// Remove a workbook from every folder of the tree
-export function removeWorkbookFromTree(tree: WorkbookTreeFolder, workbookId: string): WorkbookTreeFolder {
-    const visit = (folder: WorkbookTreeFolder): WorkbookTreeFolder => ({
-        ...folder,
-        folders: folder.folders.map(visit),
-        workbooks: folder.workbooks.filter(entry => entry.path !== workbookId),
-    });
-    return visit(tree);
-}
-
-/// Insert or replace the entry of a workbook.
-/// A registered workbook keeps its place, a new one is appended to the folder at `folderPath`, or to the root
-/// if there is no such folder.
-export function upsertWorkbookInTree(tree: WorkbookTreeFolder, entry: WorkbookEntry, folderPath: readonly string[] = []): WorkbookTreeFolder {
-    const current = findWorkbookFolder(tree, entry.path);
-    if (current != null) {
-        return replaceFolder(tree, current, folder => ({
-            ...folder,
-            workbooks: folder.workbooks.map(existing => existing.path === entry.path ? entry : existing),
-        }));
-    }
-    const target = folderAt(tree, folderPath) != null ? folderPath : [];
-    return replaceFolder(tree, target, folder => ({ ...folder, workbooks: [...folder.workbooks, entry] }));
-}
-
-/// Move a workbook to a position in a folder. The index counts the workbooks of the target folder without the
-/// moved workbook, an index past the end appends. A workbook that the tree doesn't register yet is placed as an
-/// OPFS workbook, e.g. a new workbook that is created in a folder before its first write registers it.
-/// Returns the tree unchanged if there is no folder at the path.
-export function moveWorkbookInTree(tree: WorkbookTreeFolder, workbookId: string, folderPath: readonly string[], index: number): WorkbookTreeFolder {
-    if (folderAt(tree, folderPath) == null) return tree;
-    const from = findWorkbookFolder(tree, workbookId);
-    const entry = from == null
-        ? { path: workbookId }
-        : folderAt(tree, from)!.workbooks.find(workbook => workbook.path === workbookId)!;
-    const removed = removeWorkbookFromTree(tree, workbookId);
-    return replaceFolder(removed, folderPath, folder => {
-        const workbooks = [...folder.workbooks];
-        workbooks.splice(Math.max(0, Math.min(index, workbooks.length)), 0, entry);
-        return { ...folder, workbooks };
-    });
-}
-
 /// Every folder of a tree with its path, the root included
 export function listFolders(tree: WorkbookTreeFolder): WorkbookTreeFolder[] {
     const folders: WorkbookTreeFolder[] = [];
@@ -172,24 +116,33 @@ export function folderPathKey(path: readonly string[]): string {
     return JSON.stringify(path);
 }
 
-/// Read the workbook tree below a directory, `workbooktree/` of the OPFS root.
-/// A directory without a folder file is a folder without workbooks, entries without a workbook id are skipped.
-export async function readWorkbookTreeDirectory(dir: FileSystemDirectoryHandle, path: string[] = []): Promise<WorkbookTreeFolder> {
-    const folders: WorkbookTreeFolder[] = [];
-    let workbooks: WorkbookEntry[] = [];
-    for await (const [name, handle] of dir.entries()) {
-        if (handle.kind === 'directory') {
-            folders.push(await readWorkbookTreeDirectory(handle as FileSystemDirectoryHandle, [...path, name]));
-        } else if (name === STORAGE_FOLDER_FILE) {
-            workbooks = parseWorkbookFolderFile(await (await (handle as FileSystemFileHandle).getFile()).text(), path);
-        }
-    }
-    folders.sort((left, right) => compareFolderNames(left.name, right.name));
-    return { name: path[path.length - 1] ?? '', path, folders, workbooks };
+/// Change the workbooks of a tree as it is stored, duplicates included: the tree after the change and the folder files
+/// to write in their order, the folders that gain workbooks first. A move into a folder that doesn't exist throws.
+export function changeWorkbookTree(instance: core.DashQL, stored: WorkbookTreeFolder, change: WorkbookTreeChange): { tree: WorkbookTreeFolder; writes: FolderFileWrite[] } {
+    return instance.changeWorkbookTree<WorkbookTreeFolder>(stored, change);
 }
 
-/// Read the workbook tree of a storage root, the empty tree if it has none
-export async function readWorkbookTree(root: FileSystemDirectoryHandle): Promise<WorkbookTreeFolder> {
+/// The tree after a change of its workbooks, see `changeWorkbookTree`
+export function applyWorkbookTreeChange(instance: core.DashQL, tree: WorkbookTreeFolder, change: WorkbookTreeChange): WorkbookTreeFolder {
+    return changeWorkbookTree(instance, tree, change).tree;
+}
+
+/// List the directories of `workbooktree/` below a directory with the texts of their folder files
+export async function listWorkbookTreeDirectory(dir: FileSystemDirectoryHandle, name: string = ''): Promise<WorkbookTreeDirectory> {
+    const listed: WorkbookTreeDirectory = { name, folderFile: null, directories: [] };
+    for await (const [entry, handle] of dir.entries()) {
+        if (handle.kind === 'directory') {
+            listed.directories.push(await listWorkbookTreeDirectory(handle as FileSystemDirectoryHandle, entry));
+        } else if (entry === STORAGE_FOLDER_FILE) {
+            listed.folderFile = await (await (handle as FileSystemFileHandle).getFile()).text();
+        }
+    }
+    return listed;
+}
+
+/// Read the workbook tree of a storage root, the empty tree if it has none. A workbook that the tree registers twice is
+/// listed where it comes first.
+export async function readWorkbookTree(instance: core.DashQL, root: FileSystemDirectoryHandle): Promise<WorkbookTreeFolder> {
     let dir: FileSystemDirectoryHandle;
     try {
         dir = await root.getDirectoryHandle(STORAGE_WORKBOOK_TREE_FOLDER, { create: false });
@@ -197,24 +150,5 @@ export async function readWorkbookTree(root: FileSystemDirectoryHandle): Promise
         if ((error as DOMException).name === 'NotFoundError') return emptyWorkbookTree();
         throw error;
     }
-    return dropDuplicateWorkbooks(await readWorkbookTreeDirectory(dir));
-}
-
-/// Parse a folder file
-function parseWorkbookFolderFile(text: string, path: readonly string[]): WorkbookEntry[] {
-    const data: unknown = JSON.parse(text);
-    const workbooks = (data as Partial<WorkbookFolderFile> | null)?.workbooks;
-    if (!Array.isArray(workbooks)) {
-        throw new Error(`Invalid ${STORAGE_WORKBOOK_TREE_FOLDER}/${[...path, STORAGE_FOLDER_FILE].join('/')}: workbooks must be an array`);
-    }
-    return workbooks.filter((entry): entry is WorkbookEntry => typeof entry?.path === 'string' && entry.path.length > 0);
-}
-
-/// A free name for a new folder next to its siblings: "New folder", "New folder 2", …
-export function freeFolderName(siblings: readonly string[]): string {
-    const taken = new Set(siblings.map(name => name.toLowerCase()));
-    if (!taken.has('new folder')) return 'New folder';
-    let n = 2;
-    while (taken.has(`new folder ${n}`)) ++n;
-    return `New folder ${n}`;
+    return instance.readWorkbookTree<WorkbookTreeFolder>(await listWorkbookTreeDirectory(dir));
 }

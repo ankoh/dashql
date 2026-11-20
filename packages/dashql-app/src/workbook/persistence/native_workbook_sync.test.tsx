@@ -7,7 +7,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../../host/logger_provider.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { WorkbookTestRegistry, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, StorageBackendType, type WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
@@ -76,8 +76,8 @@ describe('NativeWorkbookSync', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        registry = new WorkbookTestRegistry();
-        backend = new CompositeStorageBackend(registry, new TestLogger());
+        registry = new WorkbookTestRegistry(dql);
+        backend = new CompositeStorageBackend(dql, registry, new TestLogger());
         await backend.initialize();
     });
     afterEach(() => {

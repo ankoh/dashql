@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import type { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import type { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
 import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import { relocateWorkbookToNative } from './workbook_relocation.js';
 

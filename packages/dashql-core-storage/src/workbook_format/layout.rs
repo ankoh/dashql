@@ -7,18 +7,12 @@ use dashql_core::error::{Error, Result};
 
 use dashql_core_runtime::attachments::attachment_parameter_name;
 
-/// The manifest of the storage root
-pub const STORAGE_MANIFEST_FILE: &str = "dashql-manifest.json";
-/// The folder of the OPFS workbooks, `workbooks/<id>/`
-pub const STORAGE_WORKBOOKS_FOLDER: &str = "workbooks";
 /// The workbook file of a workbook folder
 pub const STORAGE_WORKBOOK_FILE: &str = "dashql-workbook.json";
 /// The folder of the scripts of a workbook
 pub const STORAGE_SCRIPTS_FOLDER: &str = "scripts";
 /// The folder of the attachments of a workbook
 pub const STORAGE_ATTACHMENTS_FOLDER: &str = "attachments";
-/// The folder of the files of the standalone shell
-pub const STORAGE_SHELL_FOLDER: &str = "shell";
 /// The folder that holds the files of the connections, `connections/<id>/`
 pub const STORAGE_CONNECTIONS_FOLDER: &str = "connections";
 /// The monitoring database of a connection, not part of workbook bundles
@@ -35,8 +29,6 @@ pub const STORAGE_CATALOG_CHANGES: &str = "dashql-catalog-changes.sql";
 pub const STORAGE_WORKBOOK_TREE_FOLDER: &str = "workbooktree";
 /// The file of a folder of the workbook tree
 pub const STORAGE_FOLDER_FILE: &str = "dashql-folder.json";
-/// The folder that a new storage starts with
-pub const INITIAL_WORKBOOK_FOLDER: &str = "My Workbooks";
 /// The draft script of the editor, never a script of a workbook
 pub const DRAFT_SCRIPT_FILE: &str = "dashql-draft.sql";
 /// The maximum number of scripts and the maximum number of attachments of a workbook
@@ -45,8 +37,6 @@ pub const MAX_WORKBOOK_FILES: usize = 2048;
 pub const ATTACHMENT_EXTENSION: &str = dashql_core_runtime::attachments::ATTACHMENT_EXTENSION;
 /// The workbook file up to format version 10
 pub const LEGACY_SESSION_FILE: &str = "dashql-session.json";
-/// The `.gitignore` of a native workbook folder
-pub const GITIGNORE_FILE: &str = ".gitignore";
 /// The entries of the `.gitignore` of a native workbook folder: the former query result cache and Hyper databases
 pub const GITIGNORE_ENTRIES: [&str; 2] = ["cache/", "*.hyper"];
 /// The folder of the clouds in the OPFS root, a local cloud attaches a database of it

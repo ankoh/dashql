@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { locationFromEntry, displayPath, type WorkbookLocation } from './workbook_locator.js';
-import { StorageBackendType, type WorkbookEntry } from '@akohn/dashql/platform/storage/storage_backend';
+import { StorageBackendType, type WorkbookEntry } from './storage_backend.js';
 
 const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 

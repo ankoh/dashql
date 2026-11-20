@@ -489,6 +489,50 @@ export class DashQL {
         return this.bindings.Runtime.localCloudParams() as P;
     }
 
+    /// The workbook tree of the directories of `workbooktree/` as the platform lists them, null without the folder. A
+    /// workbook that the tree registers twice is listed where it comes first, or every time for the tree as it is
+    /// `stored`.
+    public readWorkbookTree<T>(directory: object | null, stored: boolean = false): T {
+        return this.bindings.Runtime.readWorkbookTree(directory as Record<string, unknown> | null, stored) as T;
+    }
+
+    /// Change the workbooks of the workbook tree as it is stored: the tree after the change and the folder files to write
+    /// in their order
+    public changeWorkbookTree<T>(stored: T, change: object): { tree: T; writes: { path: string[]; text: string }[] } {
+        const changed = this.bindings.Runtime.changeWorkbookTree(stored as Record<string, unknown>, change as Record<string, unknown>);
+        return { tree: changed.tree as T, writes: changed.writes };
+    }
+
+    /// Why a name can't name a new folder of the workbook tree next to its siblings, null if it can
+    public folderNameError(name: string, siblings: string[]): string | null {
+        return this.bindings.Runtime.folderNameError(name, siblings) ?? null;
+    }
+
+    /// A free name for a new folder of the workbook tree next to its siblings
+    public freeFolderName(siblings: string[]): string {
+        return this.bindings.Runtime.freeFolderName(siblings);
+    }
+
+    /// Check the name of an attachment, a plain file name of a Parquet file. Throws for any other name.
+    public validateDataFileName(name: string): void {
+        this.bindings.Runtime.validateDataFileName(name);
+    }
+
+    /// Is a file name the name of an attachment, a Parquet file?
+    public isAttachmentFileName(name: string): boolean {
+        return this.bindings.Runtime.isAttachmentFileName(name);
+    }
+
+    /// A fresh name of a workbook table that holds the data of an attachment or a result, by the prefix of its kind
+    public newDataTableName(prefix: string): string {
+        return this.bindings.Runtime.newDataTableName(prefix, crypto.randomUUID());
+    }
+
+    /// Is a name the name of a workbook table that holds the data of an attachment or a result?
+    public isDataTableName(name: string): boolean {
+        return this.bindings.Runtime.isDataTableName(name);
+    }
+
     /// The Hyper Cloud database of a Database.com connection that names none
     public hyperCloudDefaultDatabaseName(): string {
         return this.bindings.Runtime.hyperCloudDefaultDatabaseName();

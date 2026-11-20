@@ -16,7 +16,7 @@ import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types'
 import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { displayPath } from '../../storage/workbook_locator.js';
+import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';

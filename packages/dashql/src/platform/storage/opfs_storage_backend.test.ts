@@ -1,9 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '../../core/index.js';
 
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
-import { STORAGE_MANIFEST_FILE } from '@akohn/dashql/platform/storage/storage_backend';
-import { TEST_WORKBOOK_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { OPFSDirectoryMock } from '../tests/opfs_mock.js';
+import { STORAGE_MANIFEST_FILE } from './storage_backend.js';
+import { TEST_WORKBOOK_ID, testWorkbook } from '../testing/workbook_test_backend.js';
+import { OPFSDirectoryMock } from '../testing/opfs_mock.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// The core that the backend asks about the names of attachments and the changes of the workbook tree
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 describe('OPFSStorageBackend V2 flat storage', () => {
     let backend: OPFSStorageBackend;
@@ -13,7 +20,7 @@ describe('OPFSStorageBackend V2 flat storage', () => {
     beforeEach(async () => {
         files = new Map();
         dirs = new Set();
-        backend = new OPFSStorageBackend(async () => new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle);
+        backend = new OPFSStorageBackend(dql, async () => new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle);
         await backend.initialize();
     });
 

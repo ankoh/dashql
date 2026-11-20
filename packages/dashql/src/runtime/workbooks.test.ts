@@ -22,7 +22,8 @@ describe('the workbooks of the runtime', () => {
     });
 
     it('restores the stored workbooks with the connections of the app manifest', async () => {
-        const storage = new WorkbookTestRegistry();
+        const dql = await testCore();
+        const storage = new WorkbookTestRegistry(dql);
         storage.connections = [{ id: TEST_CONNECTION_ID, params: HYPER }];
         await storage.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook({
             name: 'Sales',
@@ -33,7 +34,6 @@ describe('the workbooks of the runtime', () => {
         await storage.saveScript(TEST_WORKBOOK_ID, '2_query.sql', 'select x from t;');
         // A workbook of a format that the app doesn't read is refused a load, it can only be deleted
         const invalid = '11111111-2222-4333-8444-666666666666';
-        const dql = await testCore();
         await storage.saveWorkbookManifest(invalid, testWorkbook({ workbookId: invalid, formatVersion: (dql.storageVersions().formatVersion + 100) as WorkbookData['formatVersion'] }));
 
         const rt = runtime = await createTestRuntime({ storage });

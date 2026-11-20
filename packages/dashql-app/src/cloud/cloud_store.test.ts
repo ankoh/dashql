@@ -9,7 +9,6 @@ import {
     CONNECTIONS_TABLE,
     CATALOG_FUNCTION_PARAMS_TABLE,
     CATALOG_TABLES_TABLE,
-    newDataTableName,
     SCRIPTS_TABLE,
     RESULTS_TABLE,
     WORKBOOK_TABLE,
@@ -138,7 +137,7 @@ async function insertVersion(state: string, age: string, readyAge: string | null
 }
 
 function testVersion(): TestVersion {
-    return { workbookId: crypto.randomUUID(), versionId: newVersionId(), tableName: newDataTableName('workbook_attachment_') };
+    return { workbookId: crypto.randomUUID(), versionId: newVersionId(), tableName: dql.newDataTableName('workbook_attachment_') };
 }
 
 /// Insert a row of a script and an attachment with its table under a version
@@ -221,7 +220,7 @@ describe('cloud store', () => {
         await expect(listCloudWorkbookVersions(query, 'w')).rejects.toThrow('Not the id of a workbook: w');
         await expect(publishCloudWorkbook(dql, query, database, await testTables(), { workbookId: crypto.randomUUID().toUpperCase() })).rejects.toThrow('Not the id of a workbook');
         await expect(readCloudWorkbook(dql, query, database, crypto.randomUUID(), { versionId: 'v' })).rejects.toThrow('Not the id of a version: v');
-        await expect(deleteCloudWorkbook(query, "x' OR true")).rejects.toThrow('Not the id of a workbook');
+        await expect(deleteCloudWorkbook(dql, query, "x' OR true")).rejects.toThrow('Not the id of a workbook');
     });
 
     it('refuses to read a version of a newer format', async () => {
@@ -345,7 +344,7 @@ describe('cloud store', () => {
         const cleaning: CloudQuery = async (sql, signal) => {
             if (sql.startsWith('UPDATE') && sql.includes("'ready'")) {
                 await connection.execute(`UPDATE "dashql"."dashql"."workbook_versions" SET state = 'deleting' WHERE state = 'uploading'`);
-                await cleanupCloud(query);
+                await cleanupCloud(dql, query);
             }
             return await query(sql, signal);
         };
@@ -363,13 +362,13 @@ describe('cloud store', () => {
         const [shared] = (await connection.query(`SELECT table_name FROM "dashql"."dashql"."workbook_attachments" `
             + `WHERE version_id = '${first.versionId}'`)).toArray().map(row => String(row.table_name));
         await connection.execute(`UPDATE "dashql"."dashql"."workbook_attachments" SET table_name = '${shared}' WHERE version_id = '${second.versionId}'`);
-        await deleteCloudWorkbook(query, first.workbookId);
-        await cleanupCloud(query, { purgeAfterSeconds: 0 });
+        await deleteCloudWorkbook(dql, query, first.workbookId);
+        await cleanupCloud(dql, query, { purgeAfterSeconds: 0 });
         expect(await tableExists(shared)).toBe(true);
         const { tables } = await readCloudWorkbook(dql, query, database, second.workbookId);
         expect(tables.data.map(entry => entry.tableName)).toContain(shared);
-        await deleteCloudWorkbook(query, second.workbookId);
-        await cleanupCloud(query, { purgeAfterSeconds: 0 });
+        await deleteCloudWorkbook(dql, query, second.workbookId);
+        await cleanupCloud(dql, query, { purgeAfterSeconds: 0 });
         expect(await tableExists(shared)).toBe(false);
         expect(await rowCount()).toBe(0);
     });
@@ -402,17 +401,17 @@ describe('cloud store', () => {
         const first = await publishCloudWorkbook(dql, query, database, await testTables());
         const second = await publishCloudWorkbook(dql, query, database, await testTables(), { workbookId: first.workbookId });
         const rows = await rowCount();
-        await deleteCloudWorkbook(query, first.workbookId);
+        await deleteCloudWorkbook(dql, query, first.workbookId);
         expect(await listWorkbooks()).toEqual([]);
         expect(await listCloudWorkbookVersions(query, first.workbookId)).toEqual([]);
         await expect(readCloudWorkbook(dql, query, database, first.workbookId, { versionId: first.versionId })).rejects.toThrow('The cloud holds no version');
         await expect(publishCloudWorkbook(dql, query, database, await testTables(), { workbookId: first.workbookId })).rejects.toThrow('was deleted');
         // Deleting marks a row, nothing else is removed
         expect(await rowCount()).toBe(rows);
-        await deleteCloudWorkbook(query, first.workbookId);
+        await deleteCloudWorkbook(dql, query, first.workbookId);
 
-        expect((await cleanupCloud(query)).workbooks).toEqual([]);
-        const removed = await cleanupCloud(query, { purgeAfterSeconds: 0 });
+        expect((await cleanupCloud(dql, query)).workbooks).toEqual([]);
+        const removed = await cleanupCloud(dql, query, { purgeAfterSeconds: 0 });
         expect(removed.workbooks).toEqual([first.workbookId]);
         expect(removed.versions.map(version => version.versionId).sort()).toEqual([first.versionId, second.versionId].sort());
         for (const tableName of createdDataTables()) expect(await tableExists(tableName)).toBe(false);
@@ -456,7 +455,7 @@ describe('cloud store', () => {
         await connection.execute(`INSERT INTO "dashql"."dashql"."workbooks" VALUES ('${empty}', NULL, now() - INTERVAL '2 hours', NULL, now(), NULL)`);
         await connection.execute(`INSERT INTO "dashql"."dashql"."workbooks" VALUES ('${young.workbookId}', NULL, now() - INTERVAL '2 hours', NULL, now(), NULL)`);
 
-        const cleanup = await cleanupCloud(query);
+        const cleanup = await cleanupCloud(dql, query);
         expect(cleanup.workbooks).toEqual([empty]);
         const removed = cleanup.versions;
         const versionIds = (versions: ReadonlyArray<{ versionId: string }>) => versions.map(version => version.versionId).sort();

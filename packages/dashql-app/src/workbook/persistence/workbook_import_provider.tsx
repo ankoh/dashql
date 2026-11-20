@@ -4,7 +4,7 @@ import type * as core from '@akohn/dashql';
 import type { ImportSource } from '@akohn/dashql/runtime/runtime';
 import { StorageBackendType, type WorkbookData, type WorkbookEntry } from '@akohn/dashql/platform/storage/storage_backend';
 import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { displayPath, locationFromEntry } from '../../storage/workbook_locator.js';
+import { displayPath, locationFromEntry } from '@akohn/dashql/platform/storage/workbook_locator';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import type { WorkbookImportCardDependencies } from './workbook_import_card.js';

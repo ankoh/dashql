@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@akohn/dashql';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { CompositeStorageBackend } from '../../storage/composite_storage_backend.js';
+import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
 import { WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
@@ -24,7 +25,7 @@ const state = {
     navigate: vi.fn(),
     modifyWorkbookScripts: vi.fn(),
     workbookScriptsMap: new Map<string, unknown>(),
-    registry: new WorkbookTestRegistry(),
+    registry: null as unknown as WorkbookTestRegistry,
     backend: null as CompositeStorageBackend | null,
 };
 
@@ -37,7 +38,13 @@ const storageReader = {
 };
 const storageWriter = { deleteWorkbook: vi.fn(), backend: {}, isWorkbookHeld: () => false };
 /// The runtime as the sidebar uses it, without connections
-const runtime = { storage: storageWriter, dispatch: vi.fn(), createConnection: vi.fn(), store: { get: () => null } };
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+let dql: core.DashQL;
+const runtime = { storage: storageWriter, dispatch: vi.fn(), createConnection: vi.fn(), store: { get: () => null }, core: null as unknown as core.DashQL };
+beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    runtime.core = dql;
+});
 const NO_CONNECTIONS = new Map();
 const NO_CONNECTION_LIST = { connections: [], connectionsByType: [[], [], [], []] };
 
@@ -142,13 +149,13 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         state.navigate.mockReset();
         state.modifyWorkbookScripts.mockReset();
         state.workbookScriptsMap.clear();
-        state.registry = new WorkbookTestRegistry();
+        state.registry = new WorkbookTestRegistry(dql);
         await state.registry.createFolder(['clients']);
         await state.registry.createFolder(['clients', 'acme']);
         await state.registry.upsertWorkbookEntry({ path: ROOT_WORKBOOK });
         await state.registry.upsertWorkbookEntry({ path: CLIENT_WORKBOOK }, ['clients']);
         await state.registry.upsertWorkbookEntry({ path: ACME_WORKBOOK }, ['clients', 'acme']);
-        state.backend = new CompositeStorageBackend(state.registry, new TestLogger());
+        state.backend = new CompositeStorageBackend(dql, state.registry, new TestLogger());
         await state.backend.initialize();
         addWorkbook(ROOT_WORKBOOK, 'Root');
         addWorkbook(CLIENT_WORKBOOK, 'Client');

@@ -10,16 +10,14 @@ import type {
     StorageManifest,
 } from '../storage/storage_backend.js';
 import { StorageBackendType, validateDataFileName } from '../storage/storage_backend.js';
+import type * as core from '../../core/index.js';
 import {
     type WorkbookTreeFolder,
     emptyWorkbookTree,
     flattenWorkbookTree,
+    applyWorkbookTreeChange,
     folderAt,
-    folderNameError,
     isFolderPathWithin,
-    moveWorkbookInTree,
-    removeWorkbookFromTree,
-    upsertWorkbookInTree,
 } from '../storage/workbook_tree.js';
 
 export class WorkbookTestBackend implements StorageBackend {
@@ -167,6 +165,11 @@ export function testWorkbook(overrides: Partial<WorkbookData> = {}): WorkbookDat
 export class WorkbookTestRegistry extends WorkbookTestBackend implements WorkbookRegistryBackend {
     tree: WorkbookTreeFolder = emptyWorkbookTree();
 
+    /// The core changes the tree like it changes the tree of the OPFS
+    constructor(private readonly core: core.DashQL) {
+        super();
+    }
+
     /// The registered workbooks in tree order
     get manifest(): WorkbookEntry[] { return flattenWorkbookTree(this.tree); }
 
@@ -177,17 +180,18 @@ export class WorkbookTestRegistry extends WorkbookTestBackend implements Workboo
     }
     async loadWorkbookTree(): Promise<WorkbookTreeFolder> { return structuredClone(this.tree); }
     async upsertWorkbookEntry(entry: WorkbookEntry, folderPath?: readonly string[]): Promise<void> {
-        this.tree = upsertWorkbookInTree(this.tree, entry, folderPath);
+        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry, folderPath });
     }
-    async removeWorkbookEntry(id: string): Promise<void> { this.tree = removeWorkbookFromTree(this.tree, id); }
+    async removeWorkbookEntry(id: string): Promise<void> { this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'remove', workbookId: id }); }
     async moveWorkbook(id: string, folderPath: string[], index: number): Promise<void> {
-        this.tree = moveWorkbookInTree(this.tree, id, folderPath, index);
+        if (folderAt(this.tree, folderPath) == null) return;
+        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'move', workbookId: id, folderPath, index });
     }
     async createFolder(path: string[]): Promise<void> {
         const parent = folderAt(this.tree, path.slice(0, -1));
         const name = path[path.length - 1];
         if (parent == null || name == null) throw new Error('There is no parent folder');
-        const error = folderNameError(name, parent.folders.map(folder => folder.name));
+        const error = this.core.folderNameError(name, parent.folders.map(folder => folder.name));
         if (error != null) throw new Error(error);
         this.tree = this.mapFolder(path.slice(0, -1), folder => ({
             ...folder,

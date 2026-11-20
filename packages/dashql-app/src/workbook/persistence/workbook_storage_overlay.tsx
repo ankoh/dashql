@@ -10,7 +10,7 @@ import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button
 import { OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { PlatformType, usePlatformType } from '../../host/platform_type.js';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { displayPath } from '../../storage/workbook_locator.js';
+import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { useLogger } from '../../host/logger_provider.js';

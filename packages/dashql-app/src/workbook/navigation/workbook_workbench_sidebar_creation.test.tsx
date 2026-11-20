@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@akohn/dashql';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
@@ -103,6 +104,11 @@ const storageWriter = {
     isWorkbookHeld: () => false,
 };
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+/// The core that changes the workbook tree of the sidebar
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+
 /// The runtime as the sidebar uses it: the storage writer, the actions of the connections and the creation of one
 const runtime = {
     storage: storageWriter,
@@ -110,7 +116,13 @@ const runtime = {
     createConnection: (...args: unknown[]) => state.allocateConnection(...args),
     store: { get: () => null },
     // The params of a new connection come from the core
-    core: { defaultConnectionParams: () => ({ trino: { endpoint: '' } }), connectionParamsShareEqual: () => false },
+    core: {
+        defaultConnectionParams: () => ({ trino: { endpoint: '' } }),
+        connectionParamsShareEqual: () => false,
+        changeWorkbookTree: (...args: unknown[]) => (dql.changeWorkbookTree as (...args: unknown[]) => unknown)(...args),
+        folderNameError: (name: string, siblings: string[]) => dql.folderNameError(name, siblings),
+        freeFolderName: (siblings: string[]) => dql.freeFolderName(siblings),
+    },
 };
 
 const dependencies = {

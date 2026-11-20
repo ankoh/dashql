@@ -73,7 +73,11 @@ Writers hold the Web Lock of the manifest, which all tabs of the app share.
 folder, the directory name is the folder name, and holds a `dashql-folder.json` (schema
 `proto/json/dashql/app_folder.json`) with `workbooks`, one entry per workbook of the folder in the order of the sidebar:
 `path` (the workbook id), `storageType` and, for native workbooks, `nativePath`. The sidebar lists the subfolders of a
-folder before its workbooks, in the natural order of their names.
+folder before its workbooks, in the natural order of their names. The core reads the tree of the folder files and
+decides how a change of its workbooks rewrites them (`workbook_format/tree.rs`, `readWorkbookTree` and
+`changeWorkbookTree` of the core), and it decides the names of folders (`folderNameError`, `freeFolderName`); the
+storage backends of `@akohn/dashql` (`platform/storage/opfs_storage_backend.ts`, `composite_storage_backend.ts`) list
+the directories and write the files.
 
 A storage without a workbook tree starts with the folder `My Workbooks`, an ordinary folder that the user may rename or
 delete. The tree is only created once, a deleted `My Workbooks` folder is not created again. New workbooks are
