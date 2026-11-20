@@ -87,7 +87,7 @@ export interface LoggerLike {
     info(message: string, keyValues: LogKeyValues, target?: string): void;
     warn(message: string, keyValues: LogKeyValues, target?: string): void;
     error(message: string, keyValues: LogKeyValues, target?: string): void;
-    exception(error: any): void;
+    exception(error: unknown): void;
 }
 
 export class LoggableException extends Error {
@@ -188,7 +188,7 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log an exception
-    public exception(error: any) {
+    public exception(error: unknown) {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {
@@ -241,7 +241,7 @@ export class TracedLogger {
     public error(message: string, keyValues: LogKeyValues, target?: string): void {
         this.base.error(message, this.tag(keyValues), target);
     }
-    public exception(error: any) {
+    public exception(error: unknown) {
         if (error instanceof LoggableException) {
             this.error(error.message, error.keyValues, error.target);
         } else {

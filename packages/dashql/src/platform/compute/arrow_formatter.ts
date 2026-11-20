@@ -183,13 +183,13 @@ function formatTime(value: number | bigint, unit: arrow.TimeUnit): string {
 }
 
 /// Format a struct value to a string representation
-function formatStruct(value: Map<string, any> | Record<string, any>): string {
+function formatStruct(value: Map<string, unknown> | Record<string, unknown>): string {
     if (value == null) return '';
     const entries: string[] = [];
     const maxEntries = 5;
     let count = 0;
 
-    const iterate = (key: string, val: any) => {
+    const iterate = (key: string, val: unknown) => {
         if (count >= maxEntries) return;
         let formatted: string;
         if (val === null) {
@@ -225,8 +225,11 @@ function formatStruct(value: Map<string, any> | Record<string, any>): string {
     return `{${entries.join(', ')}}`;
 }
 
+/// The value of an interval: the months of IntervalYearMonth, the parts of the others
+type IntervalValue = number | { days: number; milliseconds: number } | { months: number; days: number; nanoseconds: number | bigint };
+
 /// Format interval value
-function formatInterval(value: any, _typeId: arrow.Type): string {
+function formatInterval(value: IntervalValue, _typeId: arrow.Type): string {
     if (value == null) return '';
 
     // IntervalDayTime: { days, milliseconds }
@@ -327,13 +330,21 @@ function readRawInt64(column: arrow.Vector, row: number): bigint | null {
     return null;
 }
 
+/// A formatter of the values of a column
+type ValueFormatter = (o: unknown) => null | string;
+
+/// The formatter of a column of one Arrow type, the visitor of Arrow reads the values of that type from its vectors
+function ofValues<V>(format: (v: V) => null | string): ValueFormatter {
+    return format as ValueFormatter;
+}
+
 /// Build a value formatter for an Arrow field. This is the single source of truth for how each
 /// Arrow type renders as text — `ArrowTextColumnFormatter` uses it per column, and callers that
 /// need to format an individual cell reuse it directly instead of hand-rolling per-type
 /// stringification.
 export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike): ArrowValueFormatter {
     // The default: an unknown/unsupported type renders as empty text.
-    let formatter: (o: any) => (null | string) = _ => "";
+    let formatter: ValueFormatter = _ => "";
 
     switch (field.type.typeId) {
         case arrow.Type.Int:
@@ -345,23 +356,23 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.Float32:
         case arrow.Type.Float64: {
             const fmt = Intl.NumberFormat('en-US');
-            formatter = (v: number) => (v == null ? null : fmt.format(v));
+            formatter = ofValues((v: number) => (v == null ? null : fmt.format(v)));
             break;
         }
         case arrow.Type.Decimal: {
             const decimalType = field.type as arrow.Decimal;
-            formatter = (v: any) => {
+            formatter = ofValues((v: Uint32Array) => {
                 const i = Int128.decodeLE(v);
                 return Decimal128.format(i, decimalType.scale);
-            }
+            });
             break;
         }
         case arrow.Type.Utf8:
         case arrow.Type.LargeUtf8:
-            formatter = (v: string) => v || null;
+            formatter = ofValues((v: string) => v || null);
             break;
         case arrow.Type.Bool: {
-            formatter = (v: boolean) => (v == null ? null : v ? 'true' : 'false');
+            formatter = ofValues((v: boolean) => (v == null ? null : v ? 'true' : 'false'));
             break;
         }
         case arrow.Type.Null: {
@@ -371,7 +382,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.Binary:
         case arrow.Type.LargeBinary:
         case arrow.Type.FixedSizeBinary: {
-            formatter = (v: Uint8Array) => (v == null ? null : formatBinary(v));
+            formatter = ofValues((v: Uint8Array) => (v == null ? null : formatBinary(v)));
             break;
         }
         case arrow.Type.Time:
@@ -380,7 +391,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.TimeMicrosecond:
         case arrow.Type.TimeNanosecond: {
             const timeType = field.type as arrow.Time;
-            formatter = (v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit));
+            formatter = ofValues((v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit)));
             break;
         }
         case arrow.Type.Timestamp:
@@ -394,7 +405,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
             // second per-unit conversion here would double-scale it (e.g. microsecond `now()`
             // rendered as 1970). Just interpret the value as milliseconds.
             const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
-            formatter = (v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v));
+            formatter = ofValues((v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v)));
             break;
         }
         case arrow.Type.DateMillisecond:
@@ -406,7 +417,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
                 month: 'short',
                 year: 'numeric',
             });
-            formatter = (v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v));
+            formatter = ofValues((v: number | bigint) => (v == null ? null : formatEpochMilliseconds(fmt, v)));
             break;
         }
         case arrow.Type.Duration:
@@ -415,32 +426,32 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.DurationMicrosecond:
         case arrow.Type.DurationNanosecond: {
             const durationType = field.type as arrow.Duration;
-            formatter = (v: bigint) => {
+            formatter = ofValues((v: bigint) => {
                 if (v == null) return null;
                 return formatDuration(v, durationType.unit);
-            };
+            });
             break;
         }
         case arrow.Type.List:
         case arrow.Type.FixedSizeList: {
-            formatter = (v: arrow.Vector) => {
+            formatter = ofValues((v: arrow.Vector) => {
                 if (v == null) return null;
                 return formatList(v);
-            };
+            });
             break;
         }
         case arrow.Type.Struct: {
-            formatter = (v: any) => {
+            formatter = ofValues((v: Map<string, unknown> | Record<string, unknown>) => {
                 if (v == null) return null;
                 return formatStruct(v);
-            };
+            });
             break;
         }
         case arrow.Type.Map: {
-            formatter = (v: any) => {
+            formatter = ofValues((v: Map<string, unknown> | Record<string, unknown>) => {
                 if (v == null) return null;
                 return formatStruct(v);
-            };
+            });
             break;
         }
         case arrow.Type.Interval:
@@ -448,16 +459,16 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         case arrow.Type.IntervalYearMonth:
         case arrow.Type.IntervalMonthDayNano: {
             const intervalType = field.type;
-            formatter = (v: any) => {
+            formatter = ofValues((v: IntervalValue) => {
                 if (v == null) return null;
                 return formatInterval(v, intervalType.typeId);
-            };
+            });
             break;
         }
         case arrow.Type.Union:
         case arrow.Type.DenseUnion:
         case arrow.Type.SparseUnion: {
-            formatter = (v: any) => {
+            formatter = (v: unknown) => {
                 if (v == null) return null;
                 if (typeof v === 'string') return v;
                 if (typeof v === 'number' || typeof v === 'bigint') return String(v);
@@ -467,7 +478,7 @@ export function makeArrowValueFormatter(field: arrow.Field, logger?: LoggerLike)
         }
         case arrow.Type.Dictionary: {
             // Dictionary values are decoded to their actual values by Arrow
-            formatter = (v: any) => {
+            formatter = (v: unknown) => {
                 if (v == null) return null;
                 if (typeof v === 'string') return v;
                 if (typeof v === 'number' || typeof v === 'bigint') return String(v);
@@ -496,7 +507,7 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     formattedRowCount: number;
     formattedLengthMax: number;
     formattedLengthSum: number;
-    formatter: ((o: any) => (null | string));
+    formatter: ValueFormatter;
 
     public constructor(
         logger: LoggerLike,

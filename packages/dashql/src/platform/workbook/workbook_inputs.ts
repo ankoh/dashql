@@ -134,7 +134,7 @@ export function workbookInputLiteral(instance: core.DashQL, type: WorkbookInputT
     if (value.trim().length === 0) return { error: 'The input has no value' };
     try {
         return { literal: instance.inputLiteral(value, type.known ? type.sql : null) };
-    } catch (e: any) {
-        return { error: String(e?.message ?? e) };
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) };
     }
 }

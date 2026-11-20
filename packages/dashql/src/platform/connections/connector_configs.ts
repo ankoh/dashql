@@ -28,7 +28,7 @@ export interface ConnectorConfigs {
     trino?: TrinoConnectorConfig;
 }
 
-export function readConnectorConfigs(configs: any): ConnectorConfigs {
+export function readConnectorConfigs(configs: ConnectorConfigs): ConnectorConfigs {
     const out: ConnectorConfigs = {};
     if (configs.salesforce) {
         out.salesforce = configs.salesforce;

@@ -1,9 +1,29 @@
 import mochaUrl from 'mocha/mocha.js?url';
 import coreWasmUrl from './inputs/dependencies/dashql-wasm/dashql_core.wasm?url';
 
-const globals = globalThis as any;
-const summary = globals.__DASHQL_BROWSER_TESTS__ = {
-    status: 'running', files: [] as any[], passed: 0, failed: 0, skipped: 0, duration: 0,
+interface SerializedError { message: string; stack: string | null }
+interface TestResult { titlePath: string[]; status: string; error: SerializedError | null }
+interface FileResult { file: string; status: string; tests: TestResult[]; error: SerializedError | null; duration: number; started?: number }
+interface Summary {
+    status: string;
+    files: FileResult[];
+    passed: number;
+    failed: number;
+    skipped: number;
+    duration: number;
+    activeTest?: string;
+}
+// The parts of Mocha's browser build that the runner uses, a test or a suite
+interface MochaRunnable { __dashqlFile?: string; parent?: MochaRunnable; titlePath(): string[] }
+interface MochaRunner { on(event: string, callback: (runnable: MochaRunnable, error?: unknown) => void): void }
+
+const globals = globalThis as typeof globalThis & {
+    __DASHQL_BROWSER_TESTS__: Summary;
+    DASHQL_PRECOMPILED: Promise<Uint8Array>;
+    mocha: { setup(options: Record<string, unknown>): void; run(callback: () => void): MochaRunner };
+};
+const summary: Summary = globals.__DASHQL_BROWSER_TESTS__ = {
+    status: 'running', files: [], passed: 0, failed: 0, skipped: 0, duration: 0,
 };
 const started = performance.now();
 const modules = import.meta.glob(['./inputs/src/core/**/*.test.ts', './*.test.ts']);
@@ -11,8 +31,9 @@ const requestedFile = new URLSearchParams(location.search).get('file');
 const files = requestedFile
     ? [requestedFile.startsWith('src/') ? `./inputs/${requestedFile}` : `./${requestedFile}`]
     : Object.keys(modules).sort();
-function serializeError(error: any) {
-    return { message: error?.message ?? String(error), stack: error?.stack ?? null };
+function serializeError(error: unknown): SerializedError {
+    const { message, stack } = (error ?? {}) as { message?: string; stack?: string };
+    return { message: message ?? String(error), stack: stack ?? null };
 }
 
 async function run(): Promise<void> {
@@ -43,9 +64,9 @@ async function run(): Promise<void> {
         });
         return resolvedInstance = await instance;
     };
-    const results = new Map<string, any>();
+    const results = new Map<string, FileResult>();
     for (const path of files) {
-        const result = { file: path.replace(/^\.\/(inputs\/)?/, ''), status: 'running', tests: [] as any[], error: null as any, duration: 0 };
+        const result: FileResult = { file: path.replace(/^\.\/(inputs\/)?/, ''), status: 'running', tests: [], error: null, duration: 0 };
         summary.files.push(result);
         results.set(result.file, result);
         try {
@@ -62,29 +83,29 @@ async function run(): Promise<void> {
     if (files.length === 0) throw new Error('No core browser test files found');
     await new Promise<void>(resolve => {
         const runner = globals.mocha.run(resolve);
-        runner.on('test', (test: any) => {
+        runner.on('test', test => {
             globals.__DASHQL_BROWSER_TESTS__.activeTest = test.titlePath().join(' > ');
         });
-        runner.on('suite', (suite: any) => {
-            const result = results.get(suite.__dashqlFile);
+        runner.on('suite', suite => {
+            const result = results.get(suite.__dashqlFile ?? '');
             if (result) result.started = performance.now();
         });
-        for (const [event, status] of [['pass', 'passed'], ['fail', 'failed'], ['pending', 'skipped']]) {
-            runner.on(event, (test: any, error: any) => {
+        for (const [event, status] of [['pass', 'passed'], ['fail', 'failed'], ['pending', 'skipped']] as const) {
+            runner.on(event, (test, error) => {
                 let suite = test.parent;
                 while (suite && !suite.__dashqlFile) suite = suite.parent;
-                const result = results.get(suite?.__dashqlFile);
+                const result = results.get(suite?.__dashqlFile ?? '');
                 if (!result) throw new Error('Test registered outside a file suite');
                 result.tests.push({ titlePath: test.titlePath(), status, error: error ? serializeError(error) : null });
                 summary[status === 'passed' ? 'passed' : status === 'failed' ? 'failed' : 'skipped']++;
             });
         }
         // The reset is synchronous: Mocha starts the next file immediately after this event.
-        runner.on('suite end', (suite: any) => {
-            const result = results.get(suite.__dashqlFile);
+        runner.on('suite end', suite => {
+            const result = results.get(suite.__dashqlFile ?? '');
             if (!result) return;
             resolvedInstance?.resetUnsafe();
-            result.duration = performance.now() - result.started;
+            result.duration = performance.now() - (result.started ?? NaN);
         });
     });
     for (const result of results.values()) {
@@ -93,7 +114,7 @@ async function run(): Promise<void> {
             result.error = serializeError(new Error(`No tests registered for ${result.file}`));
             summary.failed++;
         }
-        result.status = result.error || result.tests.some((test: any) => test.status === 'failed') ? 'failed' : 'passed';
+        result.status = result.error || result.tests.some(test => test.status === 'failed') ? 'failed' : 'passed';
     }
 }
 

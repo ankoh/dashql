@@ -13,7 +13,7 @@ export interface HttpFetchResult {
     statusText: string,
 
     arrayBuffer(): Promise<ArrayBuffer>;
-    json(): Promise<any>;
+    json(): Promise<unknown>;
     text(): Promise<string>;
 }
 

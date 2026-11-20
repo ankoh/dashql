@@ -33,7 +33,7 @@ export class OPFSDirectoryMock {
     }
     async removeEntry(name: string, options?: { recursive?: boolean }) {
         const path = this.path(name);
-        if (!this.files.delete(path) && !this.dirs.delete(path) && ![...this.files, ...this.dirs].some(([candidate]: any) => candidate.startsWith(`${path}/`))) throw notFound();
+        if (!this.files.delete(path) && !this.dirs.delete(path) && ![...this.files.keys()].some(candidate => candidate.startsWith(`${path}/`))) throw notFound();
         if (options?.recursive) {
             for (const file of [...this.files.keys()]) if (file.startsWith(`${path}/`)) this.files.delete(file);
             for (const dir of [...this.dirs]) if (dir.startsWith(`${path}/`)) this.dirs.delete(dir);
@@ -56,4 +56,4 @@ export class OPFSDirectoryMock {
     }
 }
 
-export function notFound(): Error { const error = new Error('not found'); error.name = 'NotFoundError'; return error; }
+export function notFound(): DOMException { return new DOMException('not found', 'NotFoundError'); }

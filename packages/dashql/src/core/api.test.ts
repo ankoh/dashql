@@ -259,7 +259,7 @@ describe('DashQL planner', () => {
             session.destroy();
             expect(() => collect(catalog, [session])).toThrow(dashql.NULL_POINTER_EXCEPTION);
             for (const input of [null, undefined, {}, [null], [undefined], [{}], new Array(1)]) {
-                expect(() => dql!.collectSessionInputs({ connections: [{ id: 'c', local: false, catalog }], scripts: input as any })).toThrow(TypeError);
+                expect(() => dql!.collectSessionInputs({ connections: [{ id: 'c', local: false, catalog }], scripts: input as unknown as dashql.SessionPlanRequest['scripts'] })).toThrow(TypeError);
             }
             expect(collectSessionInputs).not.toHaveBeenCalled();
         } finally {

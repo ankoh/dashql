@@ -24,12 +24,13 @@ describe('createDefaultConnectionParamsForConnector', () => {
     });
 
     it('uses WASM for Electron Hyper', () => {
-        (globalThis as any).dashqlElectron = {};
+        const host = globalThis as { dashqlElectron?: object };
+        host.dashqlElectron = {};
         try {
             const params = createDefaultConnectionParamsForConnector(dql, CONNECTOR_INFOS[ConnectorType.HYPER]);
             expect(params).toMatchObject({ hyper: { protocol: 'WASM' } });
         } finally {
-            delete (globalThis as any).dashqlElectron;
+            delete host.dashqlElectron;
         }
     });
 

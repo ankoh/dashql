@@ -28,6 +28,22 @@ export const OPFS_WORKBOOK_TREE_LOCK = 'dashql-workbook-tree';
 const DELETE_IN_USE_ATTEMPTS = 20;
 const DELETE_IN_USE_RETRY_MS = 100;
 
+/// The name of an error of the file system API, a DOMException
+function domErrorName(error: unknown): string | null {
+    return error instanceof DOMException ? error.name : null;
+}
+
+/// Is an error a missing directory of `getWorkbookDir`, or a missing entry of the file system API?
+function isMissingDirectory(error: unknown): boolean {
+    return domErrorName(error) === 'NotFoundError' || (error instanceof Error && error.message.startsWith('Directory not found'));
+}
+
+/// `FileSystemFileHandle.move()` of Chromium, missing in the other browsers: a new name in the same directory, or a
+/// directory and a name
+interface MovableFileHandle {
+    move?(destination: FileSystemDirectoryHandle | string, name?: string): Promise<void>;
+}
+
 /// Origin Private File System storage backend.
 ///
 /// This backend owns the workbook registry (the workbook tree `workbooktree/`), which lists *every*
@@ -180,7 +196,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             }
         } catch (error) {
             // If workbooks folder or workbook doesn't exist, that's fine - it's already deleted
-            if ((error as any).name !== 'NotFoundError') {
+            if (domErrorName(error) !== 'NotFoundError') {
                 throw error;
             }
         }
@@ -188,7 +204,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     async loadScripts(workbookId: string): Promise<ScriptData[]> {
         const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false).catch((error) => {
-            if ((error as any).name === 'NotFoundError') return null;
+            if (domErrorName(error) === 'NotFoundError') return null;
             throw error;
         });
         if (!workbookDir) {
@@ -198,7 +214,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         try {
             scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
         } catch (error) {
-            if ((error as any).name === 'NotFoundError') {
+            if (domErrorName(error) === 'NotFoundError') {
                 return [];
             }
             throw error;
@@ -236,7 +252,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             return;
         }
         const srcHandle = await srcDir.getFileHandle(srcName, { create: false });
-        const move = (srcHandle as any).move as ((...args: any[]) => Promise<void>) | undefined;
+        const move = (srcHandle as FileSystemFileHandle & MovableFileHandle).move;
         if (typeof move === 'function') {
             // move(name) renames in place; move(destDir, name) relocates across directories.
             await (srcDir === destDir ? move.call(srcHandle, destName) : move.call(srcHandle, destDir, destName));
@@ -287,7 +303,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             const scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
             await scriptsDir.removeEntry(scriptName);
         } catch (error) {
-            if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
+            if (isMissingDirectory(error)) {
                 return;
             }
             throw error;
@@ -308,7 +324,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
             await scriptsDir.getFileHandle(oldScriptName, { create: false });
         } catch (error) {
-            if ((error as any).name === 'NotFoundError' || ((error as any).message ?? '').startsWith('Directory not found')) {
+            if (isMissingDirectory(error)) {
                 return;
             }
             throw error;
@@ -440,7 +456,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             const manifest: StorageManifest = JSON.parse(text);
             return manifest.appSettings ?? null;
         } catch (error) {
-            if ((error as any).name === 'NotFoundError') {
+            if (domErrorName(error) === 'NotFoundError') {
                 return null;
             }
             throw error;
@@ -506,7 +522,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
                 await connections.removeEntry(connectionId, { recursive: true });
                 return;
             } catch (error) {
-                const name = (error as any).name;
+                const name = domErrorName(error);
                 if (name === 'NotFoundError') return;
                 const inUse = name === 'NoModificationAllowedError' || name === 'InvalidModificationError';
                 if (!inUse || attempt >= DELETE_IN_USE_ATTEMPTS) throw error;
@@ -526,7 +542,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             }
             return manifest as StorageManifest;
         } catch (error) {
-            if ((error as any).name === 'NotFoundError') {
+            if (domErrorName(error) === 'NotFoundError') {
                 return {};
             }
             throw error;
@@ -709,7 +725,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
                 try {
                     currentDir = await currentDir.getDirectoryHandle(part, { create });
                 } catch (error) {
-                    if ((error as any).name === 'NotFoundError') {
+                    if (domErrorName(error) === 'NotFoundError') {
                         throw new Error(`Directory not found: opfs://${accumulated}`, { cause: error });
                     }
                     throw error;

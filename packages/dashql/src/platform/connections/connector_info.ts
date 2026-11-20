@@ -82,7 +82,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-export function getConnectorInfoForParams(params: { hyper?: any; salesforce?: any; dbcom?: any; trino?: any }): ConnectorInfo | null {
+export function getConnectorInfoForParams(params: { hyper?: unknown; salesforce?: unknown; dbcom?: unknown; trino?: unknown }): ConnectorInfo | null {
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
     if ("dbcom" in params) return CONNECTOR_INFOS[ConnectorType.DBCOM];

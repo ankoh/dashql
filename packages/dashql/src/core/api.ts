@@ -596,9 +596,9 @@ export interface TableParametersScript {
 /// scripts that are a single SELECT. The analyzer resolves columns through them and completion offers their names
 /// after `:`. See docs/design/script_references.md.
 export class DashQLTableParameters {
-    public readonly ptr: Ptr<typeof TABLE_PARAMETERS_TYPE>;
+    public readonly ptr: Ptr<typeof TABLE_PARAMETERS_TYPE, glue.TableParameters>;
 
-    public constructor(ptr: Ptr<typeof TABLE_PARAMETERS_TYPE>) {
+    public constructor(ptr: Ptr<typeof TABLE_PARAMETERS_TYPE, glue.TableParameters>) {
         this.ptr = ptr;
     }
     public destroy(): void {
@@ -632,7 +632,7 @@ export class DashQLTableParameters {
 }
 
 /// An owned native object of the wasm module
-export class Ptr<T extends symbol, O extends NativeObject = any> {
+export class Ptr<T extends symbol, O extends NativeObject = NativeObject> {
     /// The object type
     public readonly type: T;
     /// The DashQL api
@@ -674,7 +674,7 @@ export class Ptr<T extends symbol, O extends NativeObject = any> {
 }
 
 /// A FlatBuffer returned by the wasm module. The bytes are owned by JS.
-export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
+export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = ReturnType<T['unpack']>> {
     /// The object type
     public readonly type: symbol;
     /// The DashQL api
@@ -703,7 +703,7 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
         return this.data.slice();
     }
     /// Equals a different flatbuffer ptr?
-    public equals(other: FlatBufferPtr<T>): boolean {
+    public equals(other: FlatBufferPtr<T, O>): boolean {
         return this === other;
     }
     // Get the flatbuffer object

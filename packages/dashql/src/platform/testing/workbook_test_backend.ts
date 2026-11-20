@@ -1,6 +1,7 @@
 import type {
     AppSettings,
     ConnectionEntry,
+    ConnectionParams,
     DataFile,
     WorkbookData,
     WorkbookEntry,
@@ -153,7 +154,7 @@ export function testWorkbook(overrides: Partial<WorkbookData> = {}): WorkbookDat
         formatVersion: 11,
         workbookId: TEST_WORKBOOK_ID,
         name: 'V2 Workbook',
-        connections: [{ connectionId: TEST_CONNECTION_ID, params: { hyper: {} } as any }],
+        connections: [{ connectionId: TEST_CONNECTION_ID, params: { hyper: {} } as ConnectionParams }],
         scripts: [],
         attachments: [],
         metadata: {},
