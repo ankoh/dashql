@@ -6,10 +6,7 @@
 //! URLs become plain spans. Adjacent text is merged into one text node, soft line breaks are text (`\n`).
 
 use crate::analyzer::types::VisualizationSpec;
-use dashql_buffers::visualization::{
-    MarkdownNode as MarkdownNodeBuffer, MarkdownNodeArgs, MarkdownNodeType, MarkdownSpec, MarkdownSpecArgs,
-};
-use flatbuffers::{FlatBufferBuilder, WIPOffset};
+use dashql_buffers::visualization::{MarkdownNodeT, MarkdownNodeType, MarkdownSpecT};
 use pulldown_cmark::{CodeBlockKind, Event, LinkType, Parser, Tag, TagEnd};
 
 /// A node of a compiled document. Empty strings are not set.
@@ -318,53 +315,39 @@ pub fn compile_markdown_spec(spec: &VisualizationSpec) -> Option<MarkdownDocumen
     Some(compile_markdown_template(&spec.markdown.as_ref()?.row_template))
 }
 
-/// Pack a node, empty strings and vectors are omitted
-fn pack_markdown_node<'a>(
-    builder: &mut FlatBufferBuilder<'a>,
-    node: &MarkdownNode,
-) -> WIPOffset<MarkdownNodeBuffer<'a>> {
-    let mut string = |s: &str| if s.is_empty() { None } else { Some(builder.create_string(s)) };
-    let value = string(&node.value);
-    let url = string(&node.url);
-    let title = string(&node.title);
-    let language = string(&node.language);
-    let children = if node.children.is_empty() {
-        None
-    } else {
-        let children: Vec<_> = node.children.iter().map(|child| pack_markdown_node(builder, child)).collect();
-        Some(builder.create_vector(&children))
-    };
-    MarkdownNodeBuffer::create(
-        builder,
-        &MarkdownNodeArgs {
-            node_type: node.node_type,
-            value,
-            url,
-            title,
-            language,
-            level: node.level,
-            start: node.start,
-            ordered: node.ordered,
-            tight: node.tight,
-            children,
-        },
-    )
+/// A string of a FlatBuffer object, empty strings are not set
+fn non_empty(s: &str) -> Option<String> {
+    (!s.is_empty()).then(|| s.to_string())
 }
 
-/// Pack a compiled document
-pub fn pack_markdown_spec<'a>(
-    builder: &mut FlatBufferBuilder<'a>,
-    spec: &MarkdownDocument,
-) -> WIPOffset<MarkdownSpec<'a>> {
-    let template = if spec.template.is_empty() { None } else { Some(builder.create_string(&spec.template)) };
-    let fields = if spec.fields.is_empty() {
-        None
-    } else {
-        let fields: Vec<_> = spec.fields.iter().map(|f| builder.create_string(f)).collect();
-        Some(builder.create_vector(&fields))
-    };
-    let document = Some(pack_markdown_node(builder, &spec.document));
-    MarkdownSpec::create(builder, &MarkdownSpecArgs { template, fields, document })
+impl MarkdownNode {
+    /// The FlatBuffer object of a node, empty strings and vectors are not set
+    pub fn to_object(&self) -> MarkdownNodeT {
+        let mut node = MarkdownNodeT::default();
+        node.node_type = self.node_type;
+        node.value = non_empty(&self.value);
+        node.url = non_empty(&self.url);
+        node.title = non_empty(&self.title);
+        node.language = non_empty(&self.language);
+        node.level = self.level;
+        node.start = self.start;
+        node.ordered = self.ordered;
+        node.tight = self.tight;
+        node.children =
+            (!self.children.is_empty()).then(|| self.children.iter().map(MarkdownNode::to_object).collect());
+        node
+    }
+}
+
+impl MarkdownDocument {
+    /// The FlatBuffer object of a compiled document, empty strings and vectors are not set
+    pub fn to_object(&self) -> MarkdownSpecT {
+        let mut spec = MarkdownSpecT::default();
+        spec.template = non_empty(&self.template);
+        spec.fields = (!self.fields.is_empty()).then(|| self.fields.clone());
+        spec.document = Some(Box::new(self.document.to_object()));
+        spec
+    }
 }
 
 #[cfg(test)]

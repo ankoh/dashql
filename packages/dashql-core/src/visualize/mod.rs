@@ -9,9 +9,7 @@
 mod markdown;
 mod vegalite_generator;
 
-pub use markdown::{
-    compile_markdown_spec, compile_markdown_template, pack_markdown_spec, MarkdownDocument, MarkdownNode,
-};
+pub use markdown::{compile_markdown_spec, compile_markdown_template, MarkdownDocument, MarkdownNode};
 pub use vegalite_generator::generate_vegalite_spec;
 
 use crate::analyzer::{AnalyzedScript, VisualizationSpec};
@@ -35,17 +33,13 @@ pub(crate) fn pack_visualization(
     script: &AnalyzedScript,
     spec: &VisualizationSpec,
 ) -> (Option<String>, Option<Box<dashql_buffers::visualization::MarkdownSpecT>>) {
-    use dashql_buffers::visualization::MarkdownSpec;
     let renderer = spec.renderer.as_deref();
     let vegalite =
         (renderer == Some("vegalite")).then(|| generate_vegalite_spec(spec, script)).filter(|json| !json.is_empty());
-    // A spec that does not read back packs as no Markdown spec
-    let markdown = (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().and_then(|doc| {
-        let mut builder = flatbuffers::FlatBufferBuilder::new();
-        let packed = pack_markdown_spec(&mut builder, &doc);
-        builder.finish(packed, None);
-        flatbuffers::root::<MarkdownSpec>(builder.finished_data()).ok().map(|spec| Box::new(spec.unpack()))
-    });
+    let markdown = (renderer == Some("markdown"))
+        .then(|| compile_markdown_spec(spec))
+        .flatten()
+        .map(|doc| Box::new(doc.to_object()));
     (vegalite, markdown)
 }
 

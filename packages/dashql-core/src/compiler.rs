@@ -13,7 +13,7 @@ use dashql_buffers::execution::{
 };
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{AttributeKey, NodeType, StatementType, TextSpanT};
-use dashql_buffers::visualization::{DashboardSpecT, MarkdownSpec, TableSpecT};
+use dashql_buffers::visualization::{DashboardSpecT, TableSpecT};
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::{ParsedScript, Statement};
@@ -123,12 +123,7 @@ pub fn compile_visualization(
         "vegalite" => out.vegalite_spec = Some(visualize::generate_vegalite_spec(spec, script)),
         "markdown" => {
             let doc = visualize::compile_markdown_spec(spec).ok_or("could not compile Markdown visualization spec")?;
-            let mut builder = flatbuffers::FlatBufferBuilder::new();
-            let packed = visualize::pack_markdown_spec(&mut builder, &doc);
-            builder.finish(packed, None);
-            let packed = flatbuffers::root::<MarkdownSpec>(builder.finished_data())
-                .map_err(|e| format!("could not read the packed Markdown visualization spec: {e}"))?;
-            out.markdown_spec = Some(Box::new(packed.unpack()));
+            out.markdown_spec = Some(Box::new(doc.to_object()));
         }
         "table" => out.table_spec = Some(Box::new(TableSpecT::default())),
         _ => return Err(format!("unsupported visualization renderer: {renderer}")),

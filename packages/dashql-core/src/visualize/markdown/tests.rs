@@ -125,17 +125,22 @@ fn checks_urls() {
 }
 
 #[test]
-fn packs_documents() {
-    let document = compile_markdown_template("# {{a}}");
-    let mut builder = FlatBufferBuilder::new();
-    let spec = pack_markdown_spec(&mut builder, &document);
-    builder.finish(spec, None);
-    let spec = flatbuffers::root::<MarkdownSpec>(builder.finished_data()).unwrap();
-    assert_eq!(spec.template(), Some("# {{a}}"));
-    let root = spec.document().unwrap();
-    assert_eq!(root.node_type(), MarkdownNodeType::DOCUMENT);
-    assert_eq!(root.value(), None);
-    let heading = root.children().unwrap().get(0);
-    assert_eq!(heading.level(), 1);
-    assert_eq!(heading.children().unwrap().get(0).value(), Some("a"));
+fn converts_documents_to_objects() {
+    let spec = compile_markdown_template("# {{a}}").to_object();
+    assert_eq!(spec.template.as_deref(), Some("# {{a}}"));
+    assert_eq!(spec.fields, Some(vec!["a".to_string()]));
+    let root = spec.document.unwrap();
+    assert_eq!(root.node_type, MarkdownNodeType::DOCUMENT);
+    assert_eq!(root.value, None);
+    let heading = &root.children.as_ref().unwrap()[0];
+    assert_eq!(heading.level, 1);
+    assert_eq!(heading.url, None);
+    let field = &heading.children.as_ref().unwrap()[0];
+    assert_eq!(field.value.as_deref(), Some("a"));
+    assert_eq!(field.children, None);
+    // Empty strings and vectors are not set
+    let empty = compile_markdown_template("").to_object();
+    assert_eq!(empty.template, None);
+    assert_eq!(empty.fields, None);
+    assert_eq!(empty.document.unwrap().children, None);
 }
