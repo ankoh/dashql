@@ -105,7 +105,7 @@ export function AppSettings(props: { onClose: () => void; }) {
             type: CONFIRM_FINISHED_SETUP,
             value: false,
         });
-    }, [reconfigure]);
+    }, [reconfigure, routerNavigate]);
 
     const minLogLevel = config?.settings?.minLogLevel ?? LogLevel.Info;
     const keywordCase = config?.settings?.keywordCase === 'upper' ? 'upper' : 'lower';

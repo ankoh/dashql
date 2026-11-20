@@ -73,6 +73,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const appConfigRef = React.useRef(appConfig);
     appConfigRef.current = appConfig;
     const loginHistoryRef = React.useRef(new SalesforceLoginHistoryStore());
+    const { onEngineVersion } = props;
     const { controller: loginDialog, dialog } = useSalesforceLoginDialog({
         nativeOAuth: platformType !== PlatformType.WEB,
         loadHistory: () => loginHistoryRef.current.load(),
@@ -125,7 +126,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             });
             void database.getVersion()
                 .then(version => {
-                    if (!cancelled) props.onEngineVersion(version);
+                    if (!cancelled) onEngineVersion(version);
                 })
                 .catch(error => {
                     logger.warn('Failed to load engine version', { error: stringifyError(error) }, LOG_CTX);
@@ -342,7 +343,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             // The connection stops after the shell, its channel closes the session
             void (fileRegistry?.dispose() ?? Promise.resolve()).finally(() => session?.close());
         };
-    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, props.onEngineVersion, shellHistory, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, onEngineVersion, shellHistory, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (

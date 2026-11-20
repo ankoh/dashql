@@ -92,11 +92,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     // Run the setup once at the beginning. We guard against re-runs triggered by config identity
     // changes (e.g. AppSettingsSync hydrating persisted settings into AppConfig).
     const hasStartedSetup = React.useRef(false);
-    React.useEffect(() => {
-        if (config == null || !appSettingsReady || hasStartedSetup.current) {
-            return;
-        }
-        hasStartedSetup.current = true;
+    // The setup reads the values of the render that starts it
+    const startSetup = React.useEffectEvent(() => {
         let failedComponent: string | null = null;
         const trackInitialization = async <T,>(name: string, promise: Promise<T>): Promise<T> => {
             try {
@@ -217,6 +214,13 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 component: failedComponent ?? "Unknown",
             }, LOG_CTX);
         });
+    });
+    React.useEffect(() => {
+        if (config == null || !appSettingsReady || hasStartedSetup.current) {
+            return;
+        }
+        hasStartedSetup.current = true;
+        startSetup();
     }, [appSettingsReady, config]);
 
     return { done, opened, progress, embeddedDatabaseStatus };

@@ -127,6 +127,7 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
     const abort = React.useRef<AbortController | null>(null);
 
     // Look at the tables when the installer opens, after a run and on request
+    const inspected = React.useEffectEvent((found: CloudInstallation) => onInspected?.(found));
     React.useEffect(() => {
         const controller = new AbortController();
         setInstallation(null);
@@ -134,7 +135,7 @@ export function CloudInstaller(props: CloudInstallerProps): React.ReactElement {
             .then(found => {
                 if (controller.signal.aborted) return;
                 setInstallation(found);
-                onInspected?.(found);
+                inspected(found);
             })
             .catch(error => {
                 if (!controller.signal.aborted) setError(error instanceof Error ? error.message : String(error));

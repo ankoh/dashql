@@ -88,19 +88,20 @@ function sameBucket<B extends object>(l: B, r: B): boolean {
     return (Object.keys(l) as (keyof B)[]).every(key => l[key] === r[key]);
 }
 
-/// The rows of buckets, a row keeps its identity while its bucket is unchanged.
+/// The rows of buckets, a row keeps its identity while its bucket and the function of its row are unchanged.
 /// A chart then only receives the rows of the buckets that changed, e.g. of the newest one.
 function useBucketRows<B extends { start: number }, R>(buckets: readonly B[], toRow: (bucket: B) => R): R[] {
-    const previous = React.useRef(new Map<number, { bucket: B; row: R }>());
+    const previous = React.useRef<{ toRow: (bucket: B) => R; rows: Map<number, { bucket: B; row: R }> } | null>(null);
     return React.useMemo(() => {
+        const known = previous.current?.toRow === toRow ? previous.current.rows : null;
         const rows = new Map<number, { bucket: B; row: R }>();
         for (const bucket of buckets) {
-            const known = previous.current.get(bucket.start);
-            rows.set(bucket.start, known != null && sameBucket(known.bucket, bucket) ? known : { bucket, row: toRow(bucket) });
+            const entry = known?.get(bucket.start);
+            rows.set(bucket.start, entry != null && sameBucket(entry.bucket, bucket) ? entry : { bucket, row: toRow(bucket) });
         }
-        previous.current = rows;
+        previous.current = { toRow, rows };
         return [...rows.values()].map(entry => entry.row);
-    }, [buckets]);
+    }, [buckets, toRow]);
 }
 
 /// The queries of a bucket as a row of the query charts, with the formatted values of the tooltips
@@ -193,7 +194,12 @@ const EngineMetricCard: React.FC<EngineMetricCardProps> = ({ metric, samples, la
         () => bucketSamples(samples, bucketMs, metric.value, metric.aggregate),
         [samples, bucketMs, metric],
     );
-    const rows = useBucketRows(buckets, bucket => ({ t: (bucket.start + bucket.end) / 2, series: metric.title, value: bucket.value }));
+    const series = metric.title;
+    const toRow = React.useCallback(
+        (bucket: (typeof buckets)[number]) => ({ t: (bucket.start + bucket.end) / 2, series, value: bucket.value }),
+        [series],
+    );
+    const rows = useBucketRows(buckets, toRow);
     const datasets = React.useMemo(() => ({ [ROWS_DATASET]: rows }), [rows]);
     return (
         <MetricCard
@@ -354,6 +360,7 @@ const QueryActivity: React.FC<QueryActivityProps> = props => {
         if (props.queryEnds == null) return null;
         const query = view === ActivityView.Top ? queryShapesSql : recentQueriesSql;
         return query(props.queryEnds, props.scope, props.windowStart);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the window slides every second, the query follows the key of its queries and keeps an earlier start until it changes
     }, [key, view, props.queryEnds, props.scope]);
     return (
         <section className={styles.panel} aria-label="Queries" data-testid="recent-queries">
@@ -490,12 +497,13 @@ export const HyperLogDashboardView: React.FC<ViewProps> = ({ queries, queryEnds,
     const resources = React.useMemo(() => computeResourceMetrics(samples, window, end), [samples, window, end]);
     const latest = resources.latest;
     // The p95 windows of the scope, they keep their p95 while their queries are unchanged
-    const p95Cache = React.useMemo(() => new Map<string, number | null>(), [scope]);
+    const p95Cache = React.useMemo(() => ({ scope, windows: new Map<string, number | null>() }), [scope]).windows;
     const buckets = React.useMemo(
         () => bucketQueries(metrics.queries, window, scopedQueries, p95Cache),
         [metrics.queries, window, scopedQueries, p95Cache],
     );
-    const bucketRows = useBucketRows(buckets, bucket => queryBucketRow(bucket, window));
+    const toBucketRow = React.useCallback((bucket: QueryBucket) => queryBucketRow(bucket, window), [window]);
+    const bucketRows = useBucketRows(buckets, toBucketRow);
 
     const signals = React.useMemo(
         () => ({ [WINDOW_START_SIGNAL]: metrics.start, [WINDOW_END_SIGNAL]: metrics.end }),

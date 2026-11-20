@@ -41,7 +41,7 @@ export function FileDropzone(props: { children: React.ReactElement }) {
                 break;
             }
         }
-    }, []);
+    }, [onDropFile]);
 
     // Subscribe drag/drop events
     React.useEffect(() => {

@@ -23,7 +23,8 @@ function SetupConsumer(props: {
 
 function SetupCapture(props: { onSetup: (setup: ReturnType<typeof useEmbeddedDatabaseSetup>) => void }) {
     const setup = useEmbeddedDatabaseSetup();
-    React.useEffect(() => props.onSetup(setup), [props.onSetup, setup]);
+    const { onSetup } = props;
+    React.useEffect(() => onSetup(setup), [onSetup, setup]);
     return null;
 }
 

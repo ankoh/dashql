@@ -123,7 +123,7 @@ export const ElectronVersionCheck: React.FC<Props> = ({children}) => {
                 .then(applyStatus)
                 .catch(error => applyStatus({status: 'error', channel: activeChannel, message: String(error)})),
         ]);
-    }, [bridge, logger]);
+    }, [bridge, logger, activeChannel]);
     const refresh = useVersionCheckRefreshState(check);
 
     React.useEffect(() => {

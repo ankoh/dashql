@@ -122,11 +122,13 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
     // Setup auto-trigger
     const skipAutoTrigger = props.state.flowVariant == "NATIVE_LINK_FLOW" && props.state.debugMode;
-    const autoTriggersAt = React.useMemo(() => new Date(now.getTime() + AUTO_TRIGGER_DELAY), []);
+    // The flow triggers a delay after the page opened
+    const [autoTriggersAt] = React.useState(() => new Date(now.getTime() + AUTO_TRIGGER_DELAY));
     const [remainingUntilAutoTrigger, setRemainingUntilAutoTrigger] = React.useState<number>(() => Math.max(autoTriggersAt.getTime(), now.getTime()) - now.getTime());
     const [wasTriggered, setWasTriggered] = React.useState<boolean>(false);
 
-    React.useEffect(() => {
+    // The timers start with the values of the render of a new state or code, the countdown doesn't restart them
+    const startAutoTrigger = React.useEffectEvent(() => {
         // Skip auto trigger for native apps in debug mode
         if (skipAutoTrigger) {
             logger.info(`Skipping auto-trigger for native app in debug mode`, {}, LOG_CTX);
@@ -156,7 +158,8 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                 }
             }
         }
-    }, [props.state, code]);
+    });
+    React.useEffect(() => startAutoTrigger(), [props.state, code]);
 
     // Render provider options
     let providerOptionsSection: React.ReactElement = <div />;
@@ -195,11 +198,13 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     // Determine the time we have left
     const remainingUntilExpiration = codeExpiresAt !== undefined
         ? (Math.max(codeExpiresAt.getTime(), now.getTime()) - now.getTime()) : 0;
-    React.useEffect(() => {
+    // The expiration is timed once per state, the remaining time of a later render doesn't time it again
+    const startExpiration = React.useEffectEvent(() => {
         logger.info("Determining code expiration", { "remaining": formatHHMMSS(remainingUntilExpiration / 1000) }, LOG_CTX);
         const timeoutId = setTimeout(() => setCodeIsExpired(true), remainingUntilExpiration);
         return () => clearTimeout(timeoutId);
-    }, [props.state]);
+    });
+    React.useEffect(() => startExpiration(), [props.state]);
 
     // Get expiration validation
     let codeExpirationValidation: TextFieldValidationStatus;

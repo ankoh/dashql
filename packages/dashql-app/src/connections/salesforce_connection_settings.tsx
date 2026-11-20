@@ -419,11 +419,11 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const coreSummary = oauthState?.coreAccessToken ?? null;
     const dcSummary = oauthState?.dataCloudAccessToken ?? null;
     const summaries = JSON.stringify([coreSummary, dcSummary]);
-    const secrets = React.useMemo(
-        () => props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.revealConnectionSecrets(props.connectionId) ?? null : null,
-        // The summaries change with the tokens
-        [runtime, props.connectionId, summaries],
-    );
+    // The summaries change with the tokens
+    const secrets = React.useMemo(() => {
+        const [core, dc] = JSON.parse(summaries) as [unknown, unknown];
+        return props.connectionId != null && (core != null || dc != null) ? runtime?.revealConnectionSecrets(props.connectionId) ?? null : null;
+    }, [runtime, props.connectionId, summaries]);
     const coreAccessToken = secrets?.coreAccessToken == null ? null : JSON.parse(secrets.coreAccessToken);
     const dcAccessToken = secrets?.dataCloudAccessToken == null ? null : JSON.parse(secrets.dataCloudAccessToken);
 

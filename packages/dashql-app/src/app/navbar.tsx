@@ -199,7 +199,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
 
     React.useEffect(() => {
         logger.debug("Navigated to path", { "path": location.pathname }, LOG_CTX);
-    }, [location.pathname]);
+    }, [location.pathname, logger]);
 
     return (
         <div className={railWide ? `${styles.container} ${styles.container_wide}` : styles.container}>

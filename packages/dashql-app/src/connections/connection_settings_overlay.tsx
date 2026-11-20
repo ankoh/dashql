@@ -42,12 +42,13 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const currentConnectorType = conn?.connectorType ?? ConnectorType.HYPER;
 
     const completedDatabaseId = React.useRef<string | null>(null);
+    const { isOpen, onConnected } = props;
     React.useEffect(() => {
-        if (!props.isOpen || conn?.connectionHealth !== ConnectionHealth.ONLINE || props.onConnected == null) return;
+        if (!isOpen || conn?.connectionHealth !== ConnectionHealth.ONLINE || onConnected == null) return;
         if (completedDatabaseId.current === conn.connectionId) return;
         completedDatabaseId.current = conn.connectionId;
-        void props.onConnected(conn);
-    }, [conn, props.isOpen, props.onConnected]);
+        void onConnected(conn);
+    }, [conn, isOpen, onConnected]);
     React.useEffect(() => {
         if (!props.isOpen) completedDatabaseId.current = null;
     }, [props.isOpen]);

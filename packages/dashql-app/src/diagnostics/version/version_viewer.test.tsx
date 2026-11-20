@@ -25,7 +25,9 @@ function renderAnchor(props: object) {
 
 function RefreshState(props: {onChange: (refreshing: boolean) => void}) {
     const state = useVersionCheckRefresh();
-    React.useEffect(() => props.onChange(state?.isRefreshing ?? false), [state?.isRefreshing]);
+    const refreshing = state?.isRefreshing ?? false;
+    const onChange = React.useEffectEvent(props.onChange);
+    React.useEffect(() => onChange(refreshing), [refreshing]);
     return null;
 }
 

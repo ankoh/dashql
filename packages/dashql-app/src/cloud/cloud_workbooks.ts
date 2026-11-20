@@ -485,10 +485,11 @@ export function useCloudWorkbooks(): CloudWorkbooks {
 /// been opened and the navigation to it is on its way.
 export function useCloudPreviewCleanup(currentWorkbookId: string | null, workbooks: Iterable<WorkbookScripts>, discard: (workbookId: string) => Promise<void>): void {
     const shown = React.useRef(new Set<string>());
-    const previews = [...workbooks].filter(isCloudPreview).map(workbook => workbook.workbookId);
-    const previewKey = previews.join(',');
+    const previewKey = [...workbooks].filter(isCloudPreview).map(workbook => workbook.workbookId).join(',');
     React.useEffect(() => {
         if (currentWorkbookId == null) return;
+        // The ids of workbooks are UUIDs, the key lists them without ambiguity
+        const previews = previewKey === '' ? [] : previewKey.split(',');
         if (previews.includes(currentWorkbookId)) shown.current.add(currentWorkbookId);
         for (const workbookId of previews) {
             if (workbookId !== currentWorkbookId && shown.current.has(workbookId)) {

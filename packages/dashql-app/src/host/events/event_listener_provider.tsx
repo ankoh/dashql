@@ -33,12 +33,23 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
             ? new ElectronPlatformEventListener(logger)
             : new WebPlatformEventListener(logger);
         return l;
-    }, []);
+    }, [logger]);
 
     React.useEffect(() => {
         void listener.setup();
         return () => listener.dispose();
     }, [listener]);
+
+    // Drop the parameters of a consumed event from the address of the current location
+    const dropEventParameters = React.useEffectEvent((searchParams: URLSearchParams) => {
+        searchParams.delete(EVENT_QUERY_PARAMETER);
+        searchParams.delete(ZIP_QUERY_PARAMETER);
+        searchParams.delete(WORKBOOK_QUERY_PARAMETER);
+        for (const name of LEGACY_WORKBOOK_QUERY_PARAMETERS) searchParams.delete(name);
+        const search = searchParams.toString();
+        const nextUrl = `${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
+        globalThis.history.replaceState(globalThis.history.state, '', nextUrl);
+    });
 
     // Search for app events passed via the url parameter
     React.useEffect(() => {
@@ -67,13 +78,7 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
         if (consumed) {
             // Consume the event before an import can trigger a reload. Leaving `data` in the address
             // would dispatch the same workbook again and immediately reopen the conflict dialog.
-            searchParams.delete(EVENT_QUERY_PARAMETER);
-            searchParams.delete(ZIP_QUERY_PARAMETER);
-            searchParams.delete(WORKBOOK_QUERY_PARAMETER);
-            for (const name of LEGACY_WORKBOOK_QUERY_PARAMETERS) searchParams.delete(name);
-            const search = searchParams.toString();
-            const nextUrl = `${location.pathname}${search ? `?${search}` : ''}${location.hash}`;
-            globalThis.history.replaceState(globalThis.history.state, '', nextUrl);
+            dropEventParameters(searchParams);
         }
     }, [documentSearch, location.state, listener]);
 

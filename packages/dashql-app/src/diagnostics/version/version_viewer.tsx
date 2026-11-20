@@ -291,12 +291,12 @@ type VersionInfoOverlayProps = {
     anchorOffset?: number;
 }
 export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
-    const refreshVersionCheck = useVersionCheckRefresh();
+    const refreshVersionCheck = useVersionCheckRefresh()?.refresh ?? null;
     const lastOverlayCheckAt = React.useRef<number | null>(null);
     const refresh = React.useCallback(() => {
         lastOverlayCheckAt.current = Date.now();
-        refreshVersionCheck?.refresh();
-    }, [refreshVersionCheck?.refresh]);
+        refreshVersionCheck?.();
+    }, [refreshVersionCheck]);
     React.useEffect(() => {
         if (props.isOpen && refreshVersionCheck != null) {
             const now = Date.now();
@@ -305,7 +305,7 @@ export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
             }
             refresh();
         }
-    }, [props.isOpen, refresh]);
+    }, [props.isOpen, refresh, refreshVersionCheck]);
 
     return (
         <AnchoredOverlay

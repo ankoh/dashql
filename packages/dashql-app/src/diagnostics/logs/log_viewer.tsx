@@ -142,7 +142,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         } catch (error) {
             console.error('Failed to download logs:', error);
         }
-    }, [logger, host, props.traceId, filteredLogs, filteredLogsVersion]);
+    }, [logger, host, props.traceId, filteredLogs]);
 
     // Subscribe to trace-specific logs if traceId is provided
     React.useEffect(() => {
@@ -217,7 +217,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         if (record) {
             setJsonModalState([record, rowIndex]);
         }
-    }, [props.traceId, filteredLogs, filteredLogsVersion, logger]);
+    }, [props.traceId, filteredLogs, logger]);
 
     // Navigate to previous log record
     const showPreviousRecord = React.useCallback(() => {
@@ -230,7 +230,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         const maxIndex = props.traceId !== undefined ? filteredLogs.length - 1 : logger.buffer.length - 1;
         if (jsonModalRecordIndex >= maxIndex) return;
         showJsonRecord(jsonModalRecordIndex + 1);
-    }, [jsonModalRecordIndex, showJsonRecord, props.traceId, filteredLogs, filteredLogsVersion, logger]);
+    }, [jsonModalRecordIndex, showJsonRecord, props.traceId, filteredLogs, logger]);
 
     // Keyboard navigation when modal is open
     useKeyEvents(
@@ -274,7 +274,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         showJsonRecord,
         selectedRecordIndex: jsonModalRecordIndex,
         filteredLogs: props.traceId !== undefined ? filteredLogs : undefined,
-    }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs, filteredLogsVersion]);
+    }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs]);
 
     // Determine row count based on whether we're filtering by trace
     const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;

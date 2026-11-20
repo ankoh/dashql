@@ -68,12 +68,12 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
                 setConfig(null);
             });
         }
-    }, []);
+    }, [logger, flavor]);
 
     const reconfigure = React.useCallback((mapper: ReconfigureStateFn) => {
         logger.info(`Reconfiguring application`, {}, "app_config");
         setConfig(c => mapper(c));
-    }, []);
+    }, [logger]);
 
     return (
         <CONFIG_CTX.Provider value={config}>

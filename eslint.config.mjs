@@ -102,8 +102,9 @@ export default defineConfig(
         },
     },
     {
-        // The React packages whose hooks are reviewed: every hook lists what it reads
-        files: ['packages/dashql-org/**', 'packages/dashql-react/**'],
+        // The React packages whose hooks are reviewed: every hook lists what it reads. The workbooks of the app follow.
+        files: ['packages/dashql-org/**', 'packages/dashql-react/**', 'packages/dashql-app/**'],
+        ignores: ['packages/dashql-app/src/workbook/**'],
         rules: { 'react-hooks/exhaustive-deps': 'error' },
     },
     {

@@ -670,8 +670,8 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         return initial;
     });
     const knownConnectionIds = React.useRef(new Set(connectionIds));
-    React.useEffect(() => {
-        const nextConnectionIds = new Set(connectionIds);
+    // A new connection expands as at the start, with the catalogs of the render that sees it first
+    const expandNewConnections = React.useEffectEvent((nextConnectionIds: Set<string>) => {
         setExpanded(current => {
             const next = new Set([...current].filter(key => {
                 const connectionId = key.split(':', 2)[1]?.split('/', 1)[0];
@@ -687,6 +687,10 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             });
             return next;
         });
+    });
+    React.useEffect(() => {
+        const nextConnectionIds = new Set(connectionIds);
+        expandNewConnections(nextConnectionIds);
         knownConnectionIds.current = nextConnectionIds;
     }, [connectionIds]);
     const catalogRows = React.useMemo(() => catalogTrees.map(tree => (

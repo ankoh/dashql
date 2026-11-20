@@ -356,7 +356,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
             setCleanup({ status: 'done', message: `Cleanup failed: ${(error as Error)?.message ?? String(error)}`, error: true });
         }
         refresh();
-    }, [logger, refresh]);
+    }, [instance, logger, refresh]);
     const reviewing = cleanup?.status === 'review' || cleanup?.status === 'deleting' ? cleanup.candidates : null;
     const cleanupBusy = cleanup?.status === 'scanning' || cleanup?.status === 'deleting';
 

@@ -27,12 +27,13 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
     // crate). The Hyper connector of the config enables it.
     const hyperEnabled = config?.connectors?.hyper != null;
     const openedWorkbook = useWorkbook(routeContext.workbookId ?? null);
+    const openedWorkbookId = openedWorkbook?.workbookId ?? null;
     const openedConnections = openedWorkbook?.connectionIds.join(' ') ?? null;
     const hyperLinks = useHyperLinkTabState();
     React.useEffect(() => {
-        if (runtime == null || !hyperEnabled || openedWorkbook == null) return;
-        runtime.setUpOpenedWorkbook(openedWorkbook.workbookId);
-    }, [runtime, hyperEnabled, openedWorkbook?.workbookId, openedConnections, hyperLinks]);
+        if (runtime == null || !hyperEnabled || openedWorkbookId == null) return;
+        runtime.setUpOpenedWorkbook(openedWorkbookId);
+    }, [runtime, hyperEnabled, openedWorkbookId, openedConnections, hyperLinks]);
 
     // The import of a workbook that the app was started with, the setup then doesn't open another one
     const initialImport = React.useRef<Promise<boolean> | null>(null);

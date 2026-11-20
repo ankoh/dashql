@@ -88,9 +88,10 @@ function Capture(props: { database: (runtime: Runtime) => Promise<void>; capture
     const execute = runtime.execute.bind(runtime);
     const compute = useComputeDatabase();
     const [created, setCreated] = React.useState(false);
+    const createDatabase = React.useEffectEvent(props.database);
     React.useEffect(() => {
         void (async () => {
-            if (runtime.connection(CONNECTION_ID) == null) await props.database(runtime);
+            if (runtime.connection(CONNECTION_ID) == null) await createDatabase(runtime);
             setCreated(true);
         })();
     }, [runtime]);

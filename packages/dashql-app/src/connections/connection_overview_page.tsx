@@ -29,9 +29,10 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
     const connectorIcon = useConnectorIcon();
     const connection = useConnection(connectionId);
     const list = useConnectionList();
+    const deleted = connection == null;
     React.useEffect(() => {
-        if (connection == null) onClose();
-    }, [connection == null, onClose]);
+        if (deleted) onClose();
+    }, [deleted, onClose]);
     if (connection == null) return null;
     const label = connectionLabelOf(connection, connectionLabels(list));
     const labelText = label.text;

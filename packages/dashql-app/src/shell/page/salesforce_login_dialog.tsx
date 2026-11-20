@@ -405,12 +405,13 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
         returnFocusRef: buttonRef as React.RefObject<HTMLElement>,
     });
 
+    const { open, loadHistory, onOpenChange, deleteHistoryEntry } = props;
     React.useEffect(() => {
-        if (!props.open) return;
+        if (!open) return;
         let cancelled = false;
         setLoading(true);
         setError(null);
-        void props.loadHistory().then(nextEntries => {
+        void loadHistory().then(nextEntries => {
             if (!cancelled) setEntries(nextEntries);
         }).catch(loadError => {
             if (!cancelled) setError(loadError instanceof Error ? loadError.message : String(loadError));
@@ -418,31 +419,31 @@ function SalesforceLoginHistoryButton(props: SalesforceLoginHistoryButtonProps) 
             if (!cancelled) setLoading(false);
         });
         return () => { cancelled = true; };
-    }, [props.loadHistory, props.open]);
+    }, [loadHistory, open]);
 
     React.useEffect(() => {
-        if (!props.open) return;
+        if (!open) return;
         const closeOnOutsideClick = (event: MouseEvent) => {
             if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
-                props.onOpenChange(false);
+                onOpenChange(false);
             }
         };
         document.addEventListener('mousedown', closeOnOutsideClick);
         return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-    }, [props.onOpenChange, props.open]);
+    }, [onOpenChange, open]);
 
     const deleteEntry = React.useCallback(async (entry: SalesforceLoginHistoryEntry) => {
-        if (!props.deleteHistoryEntry || deletingOrganizationId != null) return;
+        if (!deleteHistoryEntry || deletingOrganizationId != null) return;
         setDeletingOrganizationId(entry.organizationId);
         setError(null);
         try {
-            setEntries(await props.deleteHistoryEntry(entry.organizationId));
+            setEntries(await deleteHistoryEntry(entry.organizationId));
         } catch (deleteError) {
             setError(deleteError instanceof Error ? deleteError.message : String(deleteError));
         } finally {
             setDeletingOrganizationId(null);
         }
-    }, [deletingOrganizationId, props.deleteHistoryEntry]);
+    }, [deletingOrganizationId, deleteHistoryEntry]);
 
     return (
         <div ref={containerRef} className={styles.historyAnchor}>

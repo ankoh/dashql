@@ -41,7 +41,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         };
         run();
         return () => abort.abort();
-    }, []);
+    }, [coreSetup]);
 
     // Show the continue button?
     const showContinueButton = props.pauseAfterSetup && routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE;

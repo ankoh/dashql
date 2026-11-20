@@ -437,11 +437,12 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const version = followed?.state.version;
     const followedKey = followedScript?.scriptKey;
     const { followScript } = args;
-    React.useEffect(() => {
+    const followLatest = React.useEffectEvent(() => {
         if (followedScript == null || latest == null) return;
         followScript(followedScript.scriptKey, DASHQL_RUN.test(latest.question.status ?? '') ? 'result' : 'script');
-        // Every event of the agent follows it again, and a new script of the agent once the tab created it: the state
-        // that names its file comes before the tab took the file
-    }, [version, followedKey]);
+    });
+    // Every event of the agent follows it again, and a new script of the agent once the tab created it: the state that
+    // names its file comes before the tab took the file
+    React.useEffect(() => followLatest(), [version, followedKey]);
     return session;
 }

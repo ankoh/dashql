@@ -44,8 +44,9 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     const [migrationError, setMigrationError] = React.useState<string | null>(null);
     const initialization = React.useRef<Promise<void> | null>(null);
 
-    // Initialize the configured backend if no backend was provided
-    React.useEffect(() => {
+    // Initialize the configured backend if no backend was provided, with the logger and the core of the render that
+    // starts it: the storage is set up once per backend
+    const setUpBackend = React.useEffectEvent((providedBackend: StorageBackend | undefined) => {
         if (providedBackend) {
             logger.info("Using provided storage backend", {}, "storage_provider");
             setBackend(providedBackend);
@@ -91,7 +92,8 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         };
 
         initialization.current = initBackend();
-    }, [providedBackend]);
+    });
+    React.useEffect(() => setUpBackend(providedBackend), [providedBackend]);
 
     // Another tab takes over the app, the migration finishes first. The runtime stops its writer.
     useAppHandOver(async () => {
@@ -122,7 +124,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 return workbookFolders?.getWorkbookTree() ?? emptyWorkbookTree();
             },
         };
-    }, [backend, logger]);
+    }, [backend]);
 
     if (!backend || !reader) {
         // Still migrating or initializing, the app providers below are not set up yet

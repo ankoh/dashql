@@ -21,7 +21,7 @@ export const HyperDatabaseClientProvider: React.FC<Props> = (props: Props) => {
         if (isDesktopHost()) {
             setGrpcClient(new NativeHyperDatabaseClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger));
         }
-    }, []);
+    }, [logger]);
     return (
         <GRPC_CLIENT_CTX.Provider value={grpcClient}>
             {props.children}

@@ -117,9 +117,10 @@ interface Props {
 /// The overview of a cloud. Closes itself once the connection is no cloud.
 export const CloudOverviewPage: React.FC<Props> = ({ connectionId, onClose, dependencies = DEFAULT_DEPENDENCIES }) => {
     const cloud = useCloudState(connectionId);
+    const noCloud = cloud == null;
     React.useEffect(() => {
-        if (cloud == null) onClose();
-    }, [cloud == null, onClose]);
+        if (noCloud) onClose();
+    }, [noCloud, onClose]);
     if (cloud == null) return null;
     return (
         <div className={styles.container}>
