@@ -66,6 +66,9 @@ coverage:linux --test_env=LLVM_COV=/usr/bin/llvm-cov
 coverage:linux --test_env=LLVM_PROFDATA=/usr/bin/llvm-profdata
 coverage:macos --test_env=LLVM_COV=/opt/homebrew/opt/llvm/bin/llvm-cov
 coverage:macos --test_env=LLVM_PROFDATA=/opt/homebrew/opt/llvm/bin/llvm-profdata
+# The rustfmt and clippy tests are shell tests with Rust targets in their data. Under coverage, Bazel runs the collector
+# of C++ for them, which fails without COVERAGE_GCOV_PATH. They cover nothing, coverage leaves them out.
+coverage --test_tag_filters=-lint
 
 # Show errors by default
 test --test_output=errors

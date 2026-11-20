@@ -20,6 +20,8 @@ def rustfmt_test(name, srcs, **kwargs):
         name = name,
         size = "small",
         srcs = ["//bazel:rustfmt_test.sh"],
+        # Out of `bazel coverage`, see the `coverage --test_tag_filters` of .bazelrc
+        tags = kwargs.pop("tags", []) + ["lint"],
         args = [
             "$(rootpath @rules_rust//rust/toolchain:current_rustfmt_toolchain)",
             "$(rootpath //:rustfmt.toml)",

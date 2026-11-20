@@ -26,6 +26,8 @@ def rust_safety_test(name, deps, **kwargs):
         name = name,
         size = "small",
         srcs = ["//bazel:clippy_test.sh"],
+        # Out of `bazel coverage`, see the `coverage --test_tag_filters` of .bazelrc
+        tags = kwargs.pop("tags", []) + ["lint"],
         args = ["$(rootpaths :" + name + "_clippy)"],
         data = [":" + name + "_clippy"],
         **kwargs
