@@ -87,10 +87,11 @@ pub fn dataflow_config() -> DataflowConfig {
 #[wasm_bindgen(js_name = routeDataflowEdges)]
 pub fn route_dataflow_edges(boxes: &[f64], edges: &[f64]) -> Vec<f64> {
     use dashql_dataflow::routing::{route_edges, RouteBox, RouteRequestEdge};
-    let boxes: Vec<RouteBox> =
-        boxes.chunks_exact(4).map(|b| RouteBox { x: b[0], y: b[1], width: b[2], height: b[3] }).collect();
+    let (boxes, _) = boxes.as_chunks::<4>();
+    let boxes: Vec<RouteBox> = boxes.iter().map(|&[x, y, width, height]| RouteBox { x, y, width, height }).collect();
+    let (edges, _) = edges.as_chunks::<4>();
     let edges: Vec<RouteRequestEdge> =
-        edges.chunks_exact(4).map(|e| RouteRequestEdge { from: (e[0], e[1]), to: (e[2], e[3]) }).collect();
+        edges.iter().map(|&[x0, y0, x1, y1]| RouteRequestEdge { from: (x0, y0), to: (x1, y1) }).collect();
     let mut out = Vec::new();
     for route in route_edges(&boxes, &edges, &dashql_dataflow::layout::DataflowLayoutConfig::default()) {
         let points = route.unwrap_or_default();

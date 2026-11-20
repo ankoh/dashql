@@ -7,6 +7,7 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
 load("//bazel:rustfmt.bzl", "rustfmt_test")
 load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
 
@@ -16,6 +17,7 @@ rust_library(
     crate_name = "dashql_dataflow",
     crate_root = "src/lib.rs",
     edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
     visibility = ["//visibility:public"],
     deps = [
         "@core_crates//:org-eclipse-elk-alg-layered",
@@ -31,6 +33,11 @@ rust_test(
 )
 
 # The wasm-bindgen API of the layout
+DATAFLOW_BINDINGS_DEPS = [
+    ":dashql_dataflow",
+    "@core_crates//:wasm-bindgen",
+]
+
 rust_shared_library(
     name = "dashql_dataflow_bindings",
     srcs = ["bindings/lib.rs"],
@@ -38,9 +45,27 @@ rust_shared_library(
     crate_root = "bindings/lib.rs",
     edition = "2021",
     target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = DATAFLOW_BINDINGS_DEPS,
+)
+
+# The same crate for the host, only for clippy: the bindings compile on the host and fail only when they call JS
+rust_library(
+    name = "dashql_dataflow_bindings_lint",
+    srcs = ["bindings/lib.rs"],
+    crate_name = "dashql_dataflow_bindings",
+    crate_root = "bindings/lib.rs",
+    edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
+    tags = ["manual"],
+    deps = DATAFLOW_BINDINGS_DEPS,
+)
+
+# Clippy with the safety lints, see //bazel:rust_safety.bzl
+rust_safety_test(
+    name = "clippy_test",
     deps = [
         ":dashql_dataflow",
-        "@core_crates//:wasm-bindgen",
+        ":dashql_dataflow_bindings_lint",
     ],
 )
 

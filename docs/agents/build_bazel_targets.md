@@ -113,7 +113,7 @@ bazel test //...
 | `//packages/dashql-core-bindings:all` | The bindings of the core module on the host: the unit tests of the parts that call no JS (the marks of the changes of the runtime) and Clippy with the safety lints, see "Clippy" |
 | `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
-| `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
+| `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests, Clippy with the safety lints |
 | `//<package>:rustfmt_test` | `rustfmt --check` of the Rust files of a package with Rust code, part of its `:all`, see "rustfmt" |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//tests/snapshots:parser_snapshot_test` | Parser snapshot tests |
@@ -348,7 +348,9 @@ Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql
 traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-bindings` deny
 every warning under Clippy (`lib.rs`). See "The rules" in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
 (`:clippy_test` of each crate), part of `//packages/...`; the bindings are checked as a host build of the same sources
-(`//packages/dashql-core-bindings:dashql_core_bindings_lint`), they compile on the host.
+(`//packages/dashql-core-bindings:dashql_core_bindings_lint`), they compile on the host. The dataflow layout
+(`dashql-dataflow`), a wasm module of its own, has the same lints, its bindings as
+`//packages/dashql-dataflow:dashql_dataflow_bindings_lint`.
 
 ```bash
 # Clippy with the safety lints, a breach fails the build of the test

@@ -53,25 +53,29 @@ pub(crate) fn nudge(routes: &mut [Route], spacing: f32, margin: f32) {
             .then(a.route.cmp(&b.route))
             .then(a.k.cmp(&b.k))
     });
+    // The groups: one line, and each segment overlapping the span of
+    // those before it.
+    let mut groups: Vec<Vec<Seg>> = Vec::new();
+    let mut hi = f32::NEG_INFINITY;
+    for s in segs {
+        match groups.last_mut() {
+            Some(group)
+                if group.first().is_some_and(|first| {
+                    s.horizontal == first.horizontal && (s.at - first.at).abs() <= EPS && s.lo < hi - EPS
+                }) =>
+            {
+                hi = hi.max(s.hi);
+                group.push(s);
+            }
+            _ => {
+                hi = s.hi;
+                groups.push(vec![s]);
+            }
+        }
+    }
     // Shifts, decided on the routes as found, then applied.
     let mut shifts: Vec<(usize, usize, bool, f32)> = Vec::new();
-    let mut start = 0;
-    while start < segs.len() {
-        // A group: one line, and each segment overlapping the span of
-        // those before it.
-        let first = segs[start];
-        let mut end = start + 1;
-        let mut hi = first.hi;
-        while end < segs.len() {
-            let s = segs[end];
-            if s.horizontal != first.horizontal || (s.at - first.at).abs() > EPS || s.lo >= hi - EPS {
-                break;
-            }
-            hi = hi.max(s.hi);
-            end += 1;
-        }
-        let group = &mut segs[start..end];
-        start = end;
+    for mut group in groups {
         let routes_in = {
             let mut r: Vec<usize> = group.iter().map(|s| s.route).collect();
             r.dedup();
@@ -91,8 +95,8 @@ pub(crate) fn nudge(routes: &mut [Route], spacing: f32, margin: f32) {
         }
     }
     for (r, k, horizontal, off) in shifts {
-        let points = &mut routes[r].points;
-        for p in &mut points[k..k + 2] {
+        let Some(points) = routes.get_mut(r).and_then(|route| route.points.get_mut(k..k + 2)) else { continue };
+        for p in points {
             if horizontal {
                 p.y += off;
             } else {
@@ -110,10 +114,9 @@ fn segments(routes: &[Route]) -> Vec<Seg> {
         if !route.routed {
             continue;
         }
-        let p = &route.points;
-        for k in 1..p.len().saturating_sub(2) {
-            let (a, b) = (p[k], p[k + 1]);
-            let (before, after) = (p[k - 1], p[k + 2]);
+        // The segment from `a` to `b` at `k`, between the points `before` and `after`
+        for (k, window) in (1..).zip(route.points.windows(4)) {
+            let &[before, a, b, after] = window else { continue };
             let horizontal = (a.y - b.y).abs() <= EPS;
             // Along the segment `u`, across it `v`.
             let uv = |p: Point| if horizontal { (p.x, p.y) } else { (p.y, p.x) };

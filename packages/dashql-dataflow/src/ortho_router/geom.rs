@@ -145,5 +145,16 @@ impl Side {
         self as usize
     }
 
+    /// The side of a search direction: its [`index`](Side::index),
+    /// modulo 4.
+    pub(crate) fn from_index(i: usize) -> Side {
+        match i % 4 {
+            0 => Side::Left,
+            1 => Side::Right,
+            2 => Side::Top,
+            _ => Side::Bottom,
+        }
+    }
+
     pub(crate) const ALL: [Side; 4] = [Side::Left, Side::Right, Side::Top, Side::Bottom];
 }

@@ -3,7 +3,8 @@
 //!
 //! Vendored from ortho-router 0.1.0 (https://crates.io/crates/ortho-router, part of
 //! https://github.com/quazardous/egui-pop), MIT license (`LICENSE-MIT`, NOTICE). Changed: the crate root is this
-//! module, its tests are `tests.rs`.
+//! module, its tests are `tests.rs`, and it indexes no slice (the safety lints of the crate): the grid and the search
+//! look up their cells with `get`, the search keeps one `Node` per state.
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
@@ -94,7 +95,7 @@ impl Route {
 
     /// Its length.
     pub fn length(&self) -> f32 {
-        self.points.windows(2).map(|w| (w[1].x - w[0].x).abs() + (w[1].y - w[0].y).abs()).sum()
+        self.points.iter().zip(self.points.iter().skip(1)).map(|(a, b)| (b.x - a.x).abs() + (b.y - a.y).abs()).sum()
     }
 }
 
@@ -212,17 +213,18 @@ fn route_in(grid: &Grid, search: &mut Search, c: &Connector, margin: f32, bend: 
         return Route { points: vec![a, b], routed: false };
     }
     let (sa, sb) = (stub(&c.from, margin), stub(&c.to, margin));
-    let path = grid.vertex(sa).zip(grid.vertex(sb)).and_then(|(va, vb)| {
-        // The route arrives going into the second port's node.
-        search.find(grid, va, c.from.side, vb, c.to.side.opposite(), bend)
-    });
+    let path = grid
+        .vertex(sa)
+        .zip(grid.vertex(sb))
+        .and_then(|(va, vb)| {
+            // The route arrives going into the second port's node.
+            search.find(grid, va, c.from.side, vb, c.to.side.opposite(), bend)
+        })
+        .and_then(|path| path.into_iter().map(|v| grid.point(v)).collect::<Option<Vec<Point>>>());
     match path {
-        Some(path) => Route {
-            points: simplify(
-                std::iter::once(a).chain(path.into_iter().map(|v| grid.point(v))).chain(std::iter::once(b)),
-            ),
-            routed: true,
-        },
+        Some(path) => {
+            Route { points: simplify(std::iter::once(a).chain(path).chain(std::iter::once(b))), routed: true }
+        }
         None => Route { points: simplify(fallback(a, sa, c.from.side, sb, b)), routed: false },
     }
 }

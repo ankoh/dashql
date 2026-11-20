@@ -471,6 +471,11 @@ through `AnalyzedScript::{node, children, expression, scope, table_ref}` (with `
 invariant of the analysis breaks; the caller then returns an error where it returns a `Result`, and otherwise skips the
 object or returns None. The generated FlatBuffers bindings (`//proto/fb:dashql_buffers_rs`) are not linted. Test code (`#[cfg(test)]`, `tests/`) may index and unwrap.
 
+The layout of the dataflow canvas (`dashql-dataflow`) is a wasm module of its own, a panic traps it and breaks the
+canvas, so it takes the same lints: its `clippy_test` checks the crate and its bindings, the latter as the host build
+`:dashql_dataflow_bindings_lint`. The layout looks up boxes and grid cells by index with `get` and skips one that is
+missing, which happens only when an invariant of the layout breaks. The crates of ELK are third-party and not linted.
+
 `dashql-core-runtime` and `dashql-core-bindings` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
 their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,
 `type_complexity` and `field_reassign_with_default`.
