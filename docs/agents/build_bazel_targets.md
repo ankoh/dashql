@@ -305,6 +305,8 @@ part of `//packages/...` and `//tests/agents/...`. Every finding fails the test,
 `eslint-disable` comments included. The rules need no type information, the type checks check the types:
 
 - `@eslint/js` and `typescript-eslint` recommended, unused variables unless they start with `_`
+- no explicit `any` (`@typescript-eslint/no-explicit-any`), tests included: a value of unknown shape is `unknown` and
+  narrowed, a fake that implements part of an interface casts through `unknown` to it
 - no default import of `immutable` (`no-restricted-syntax`), its ESM build has none
 - in `.ts` and `.tsx`, a relative import names its file with `.js`: `./foo.js`, not `./foo` or `./foo.ts`
   (`no-restricted-imports` for `import` and `export … from`, `no-restricted-syntax` for `import()`); hyperdb-edge and
@@ -314,8 +316,7 @@ part of `//packages/...` and `//tests/agents/...`. Every finding fails the test,
   function that calls hooks is named `use…`, a hook lists every value it reads. An effect that runs on one value by
   intent reads the others with `useEffectEvent`, a suppression names its reason
 
-Off, with the reason in the config: `@typescript-eslint/no-explicit-any`, `no-control-regex` and
-`@typescript-eslint/no-namespace`.
+Off, with the reason in the config: `no-control-regex` and `@typescript-eslint/no-namespace`.
 
 ```bash
 # One package

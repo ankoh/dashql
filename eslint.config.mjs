@@ -44,9 +44,6 @@ export default defineConfig(
                     destructuredArrayIgnorePattern: '^_',
                 },
             ],
-            // Off: 292 uses, two thirds in tests (fakes, partial objects), the rest at untyped seams (Wasm, workers, IPC,
-            // Vega, module declarations); the type checks run strict
-            '@typescript-eslint/no-explicit-any': 'off',
             // Off: the terminal and the shell match ANSI escape sequences on purpose
             'no-control-regex': 'off',
             // Off: the ids of the core (ExternalObjectID) and the generated protobuf modules are grouped in namespaces
@@ -84,11 +81,6 @@ export default defineConfig(
                 },
             ],
         },
-    },
-    {
-        // The packages without explicit any, until all of them are
-        files: ['packages/dashql/**', 'packages/dashql-app/**', 'packages/dashql-react/**', 'packages/dashql-slack/**'],
-        rules: { '@typescript-eslint/no-explicit-any': 'error' },
     },
     {
         // Globals of a declaration are declared with var
