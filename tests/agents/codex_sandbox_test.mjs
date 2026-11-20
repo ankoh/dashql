@@ -10,6 +10,8 @@ import { after, before, test } from 'node:test';
 
 import { functionCall, functionCallOutputs, message, startFakeOpenAI } from './fake_openai.mjs';
 import {
+    followDashQLSession,
+    freePort,
     readHookLog,
     requireLinuxSandboxTools,
     runHarness,
@@ -17,7 +19,6 @@ import {
     stopSessionServer,
     writeBrokenScript,
     writeDashQLCommand,
-    readDashQLSession,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -39,8 +40,8 @@ before(async () => {
 
 after(() => target?.close());
 
-/// Run `codex exec` with a fake model that calls exec_command once
-async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, hookEvents = HOOK_EVENTS, allowPrefix = null, escalate = false, env = {} }) {
+/// Run `codex exec` with a fake model that calls exec_command once, or `dashql connect` on a port that runs it
+async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, hookEvents = HOOK_EVENTS, allowPrefix = null, escalate = false, env = {}, connectPort = null }) {
     const codexHome = join(dir, 'codex');
     const work = join(dir, 'work');
     mkdirSync(join(codexHome, 'rules'), { recursive: true });
@@ -75,12 +76,16 @@ env_key = "FAKE_API_KEY"
 `);
     }
     try {
-        const output = await runHarness(CODEX, [
+        const exec = [
             'exec', '--skip-git-repo-check', '--json', '--sandbox', sandbox,
             // Codex skips user hooks until a user trusted them in /hooks
-            ...(hook != null ? ['--dangerously-bypass-hook-trust'] : []),
+            ...(hook != null || connectPort != null ? ['--dangerously-bypass-hook-trust'] : []),
             'run the probe',
-        ], {
+        ];
+        const [program, args] = connectPort == null
+            ? [CODEX, exec]
+            : [DASHQL, ['connect', '--launch', 'codex', '--command', CODEX, '--port', String(connectPort), '--secret', 's3cret', '--', ...exec]];
+        const output = await runHarness(program, args, {
             cwd: work,
             env: { PATH: '/usr/bin:/bin', HOME: join(dir, 'home'), CODEX_HOME: codexHome, FAKE_API_KEY: 'fake', ...env },
         });
@@ -152,18 +157,13 @@ test('dashql lint runs in workspace-write', async () => {
     assert.match(commands[0], /1 file, 1 error/);
 });
 
-test('the hooks show the session in DashQL: the question, what the agent ran and its answer', async () => {
+test('the hooks of dashql connect show the session in DashQL: the question, what the agent ran and its answer', async () => {
     const dir = caseDir('dashql_session');
-    const servers = join(dir, 'servers');
-    const { commands } = await runCodex(dir, {
-        command: 'echo hello from scripts/orders.sql',
-        hook: `${DASHQL} session hook {event} --harness codex`,
-        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'],
-        env: { DASHQL_SERVERS: servers },
-    });
+    const port = await freePort();
+    const following = followDashQLSession(port, 's3cret');
+    const { commands } = await runCodex(dir, { command: 'echo hello from scripts/orders.sql', connectPort: port });
     assert.deepEqual(commands, ['hello from scripts/orders.sql']);
-    const { files, state } = await readDashQLSession(servers);
-    assert.equal(files.length, 1, JSON.stringify(files));
+    const state = await following;
     assert.equal(state.harness, 'codex');
     // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
     const steps = state.turns.flatMap(turn => turn.steps);

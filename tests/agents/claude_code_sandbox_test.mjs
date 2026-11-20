@@ -9,6 +9,8 @@ import { after, before, test } from 'node:test';
 
 import { startFakeAnthropic, text, toolResults, toolUse } from './fake_anthropic.mjs';
 import {
+    followDashQLSession,
+    freePort,
     readHookLog,
     requireLinuxSandboxTools,
     runHarness,
@@ -16,7 +18,6 @@ import {
     stopSessionServer,
     writeBrokenScript,
     writeDashQLCommand,
-    readDashQLSession,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -149,44 +150,57 @@ test('dashql lint runs in the sandbox', async () => {
     assert.match(output, /1 file, 1 error/);
 });
 
-test('the hooks show the session in DashQL: the question, what the agent ran and its answer', async () => {
-    const dir = caseDir('dashql_session');
-    const servers = join(dir, 'servers');
-    const { output } = await runClaude(dir, {
-        command: 'echo hello from scripts/orders.sql',
-        hook: `${DASHQL} session hook {event} --harness claude`,
-        hookEvents: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'],
-        env: { DASHQL_SERVERS: servers },
-    });
-    assert.equal(output, 'hello from scripts/orders.sql');
-    const { files, state } = await readDashQLSession(servers);
-    assert.equal(files.length, 1, JSON.stringify(files));
-    assert.equal(state.harness, 'claude');
-    // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
-    const steps = state.turns.flatMap(turn => turn.steps);
-    assert.equal(steps.length, 1, JSON.stringify(steps));
-    assert.equal(typeof steps[0].toolUseId, 'string');
-    assert.ok(steps[0].startedAt <= steps[0].endedAt, JSON.stringify(steps));
-    assert.deepEqual(state.turns.map(({ steps, ...turn }) => ({ ...turn, steps: steps.map(({ label, failed }) => ({ label, failed })) })), [{
-        turnId: 1,
-        question: 'run the probe',
-        status: null,
-        error: null,
-        note: 'done',
-        files: ['scripts/orders.sql'],
-        steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
-    }]);
-});
-
-/// A port that is free right now
-async function freePort() {
-    const { createServer } = await import('node:net');
-    const server = createServer();
-    await new Promise(done => server.listen(0, '127.0.0.1', done));
-    const { port } = server.address();
-    await new Promise(done => server.close(done));
-    return port;
+/// The environment of Claude Code with the fake model, PATH without a dashql: connect puts its own in front
+function claudeEnv(home, model) {
+    return {
+        PATH: '/usr/bin:/bin',
+        HOME: home,
+        ANTHROPIC_BASE_URL: model.url,
+        ANTHROPIC_API_KEY: 'sk-fake',
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+        DISABLE_AUTOUPDATER: '1',
+    };
 }
+
+test('the hooks of dashql connect show the session in DashQL: the question, what the agent ran and its answer', async () => {
+    const dir = caseDir('dashql_session');
+    const home = join(dir, 'home');
+    const work = join(dir, 'work');
+    mkdirSync(home, { recursive: true });
+    mkdirSync(work, { recursive: true });
+    const model = await startFakeAnthropic({
+        turn: request => toolResults(request).length === 0
+            ? [toolUse('Bash', { command: 'echo hello from scripts/orders.sql', description: 'probe' })]
+            : [text('done')],
+    });
+    const port = await freePort();
+    try {
+        const following = followDashQLSession(port, 's3cret');
+        await runHarness(DASHQL, [
+            'connect', '--launch', 'claude', '--command', CLAUDE, '--port', String(port), '--secret', 's3cret',
+            '--', '-p', 'run the probe', '--output-format', 'stream-json', '--verbose', '--allowedTools', 'Bash',
+        ], { cwd: work, env: claudeEnv(home, model) });
+        const state = await following;
+        assert.equal(state.harness, 'claude');
+        assert.equal(state.ended, true);
+        // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
+        const steps = state.turns.flatMap(turn => turn.steps);
+        assert.equal(steps.length, 1, JSON.stringify(steps));
+        assert.equal(typeof steps[0].toolUseId, 'string');
+        assert.ok(steps[0].startedAt <= steps[0].endedAt, JSON.stringify(steps));
+        assert.deepEqual(state.turns.map(({ steps, ...turn }) => ({ ...turn, steps: steps.map(({ label, failed }) => ({ label, failed })) })), [{
+            turnId: 1,
+            question: 'run the probe',
+            status: null,
+            error: null,
+            note: 'done',
+            files: ['scripts/orders.sql'],
+            steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
+        }]);
+    } finally {
+        await model.close();
+    }
+});
 
 test('dashql connect gives Claude Code the guide of DashQL and lets it run dashql and edit the workbooks without asking', async () => {
     const dir = caseDir('connect');
@@ -212,17 +226,7 @@ test('dashql connect gives Claude Code the guide of DashQL and lets it run dashq
         const output = await runHarness(DASHQL, [
             'connect', '--launch', 'claude', '--command', CLAUDE, '--port', String(port), '--secret', 's3cret',
             '--', '-p', 'how many orders', '--output-format', 'stream-json', '--verbose',
-        ], {
-            cwd: work,
-            env: {
-                PATH: '/usr/bin:/bin',
-                HOME: home,
-                ANTHROPIC_BASE_URL: model.url,
-                ANTHROPIC_API_KEY: 'sk-fake',
-                CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-                DISABLE_AUTOUPDATER: '1',
-            },
-        });
+        ], { cwd: work, env: claudeEnv(home, model) });
         const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line))
             .flatMap(event => event.type === 'user' && Array.isArray(event.message?.content) ? event.message.content : [])
             .filter(block => block.type === 'tool_result');

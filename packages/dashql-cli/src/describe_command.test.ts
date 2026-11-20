@@ -3,8 +3,7 @@ import path from 'node:path';
 import { DESCRIBE_TEXT, DESCRIBE_USAGE, runDescribe } from './describe_command.js';
 import { runWith, testFiles } from './test_process.js';
 
-const describeIn = (cwd: string, args: string[] = [], session: string | null = null, sessionWorkspace: string | null = null) =>
-    runWith(async (a, cli) => runDescribe(a, cli, session, sessionWorkspace), cwd, args);
+const describeIn = (cwd: string, args: string[] = []) => runWith(async (a, cli) => runDescribe(a, cli), cwd, args);
 
 describe('dashql describe', () => {
     it('tells how to work on workbooks and lists the workbooks that the tabs copied', async () => {
@@ -31,8 +30,6 @@ describe('dashql describe', () => {
 
         // A workspace that the invoking directory is not
         expect((await describeIn(path.join(workspace, '.dashql'), ['--workspace', '..'])).stdout).toBe(output.stdout);
-        // The folder of the session of dashql connect, from a shell in a copy
-        expect((await describeIn(path.join(workspace, '.dashql', 'workbooks', 'w1'), [], null, workspace)).stdout).toBe(output.stdout);
     });
 
     it('says when no tab copied a workbook yet and checks its arguments', async () => {
@@ -49,15 +46,19 @@ describe('dashql describe', () => {
         const workspace = testFiles([
             ['.dashql/sessions/51001/connections.json', JSON.stringify(allowed)],
             ['.dashql/sessions/51002/connections.json', '{"connections":[]}'],
+            ['.dashql/sessions/51003/journal.jsonl', ''],
         ]);
-        expect((await describeIn(workspace, [], '51001')).stdout.endsWith(`
+        const inSession = (session: string) => describeIn(workspace, ['--workspace', '.', '--session', session]);
+        expect((await inSession('51001')).stdout.endsWith(`
 Connections that the tab of DashQL lets you use, dashql run refuses the others:
   Trino prod (c1)
   Hyper (hyper)
 `)).toBe(true);
-        expect((await describeIn(workspace, [], '51002')).stdout).toContain('Connections: the tab of DashQL lets you use none');
+        expect((await inSession('51002')).stdout).toContain('Connections: the tab of DashQL lets you use none');
         // Before the tab told them, and outside a session, nothing is said about them
-        expect((await describeIn(workspace, [], '51003')).stdout).not.toContain('Connections');
+        expect((await inSession('51003')).stdout).not.toContain('Connections');
+        // A session that doesn't run
+        expect((await inSession('51004')).stderr).toBe(`error: no session 51004 runs in ${workspace}\n`);
         expect((await describeIn(workspace)).stdout).not.toContain('Connections');
     });
 });

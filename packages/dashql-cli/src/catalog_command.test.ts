@@ -1,7 +1,7 @@
 import { runCatalog, CATALOG_USAGE } from './catalog_command.js';
 import { runWith, testFiles } from './test_process.js';
 
-const catalogIn = (cwd: string, args: string[], session: string | null = null) => runWith(async (a, cli) => runCatalog(a, cli, session), cwd, args);
+const catalogIn = (cwd: string, args: string[]) => runWith(async (a, cli) => runCatalog(a, cli), cwd, args);
 
 const WORKBOOK = {
     name: 'Orders',
@@ -50,7 +50,7 @@ CREATE TABLE s.t (a integer);
             ['connections/c1/dashql-catalog-relations.sql', RELATIONS],
             ['.dashql/sessions/51001/connections.json', JSON.stringify({ connections: [{ connectionId: 'hyper', name: 'Hyper' }] })],
         ]);
-        const output = await catalogIn(dir, ['.', 'c1', 'hyper', '--max-chars', '70'], '51001');
+        const output = await catalogIn(dir, ['--workspace', '.', '--session', '51001', '.', 'c1', 'hyper', '--max-chars', '70']);
         expect(output.stdout).toBe(`-- Trino prod (c1): Trino, 2 scripts, 2 tables, the tab of DashQL does not let the agent use it
 CREATE TABLE tpch.tiny.customer (custkey bigint, name varchar);
 -- Cut off after 70 characters, grep connections/c1/dashql-catalog-relations.sql for the rest
@@ -70,5 +70,12 @@ CREATE TABLE tpch.tiny.customer (custkey bigint, name varchar);
         expect(none.code).toBe(2);
         expect(none.stderr).toBe('error: . is no workbook folder, it has no dashql-workbook.json\n');
         expect((await catalogIn(dir, [])).stderr).toBe(`error: missing the workbook folder\n\n${CATALOG_USAGE}\n`);
+        // A session needs its folder, a copy of a tab needs the session
+        expect((await catalogIn(dir, ['--session', '51001', '.'])).stderr).toBe('error: --session needs --workspace, the folder of the session\n');
+        expect((await catalogIn(dir, ['--workspace', '.', '--session', '51009', '.'])).stderr).toBe(`error: no session 51009 runs in ${dir}\n`);
+        const workspace = testFiles([['.dashql/workbooks/w1/dashql-workbook.json', JSON.stringify(WORKBOOK)]]);
+        const copy = await catalogIn(workspace, ['.dashql/workbooks/w1']);
+        expect(copy.code).toBe(2);
+        expect(copy.stderr).toBe('error: .dashql/workbooks/w1 is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says\n');
     });
 });

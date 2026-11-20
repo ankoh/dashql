@@ -168,7 +168,7 @@ async function testAppWorkbook(page, navigate) {
     await scriptEditor(page, 'select 43 as answer').waitFor();
 }
 
-/// A server of the session of an agent, like `dashql session serve`, that streams the states that the test pushes
+/// A server of the session of an agent, like the one of `dashql connect`, that streams the states that the test pushes
 /// Wait until a condition in the test process holds, e.g. a request reached a server of the test
 async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     const end = Date.now() + timeout;

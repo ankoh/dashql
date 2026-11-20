@@ -42,7 +42,7 @@ export interface AgentTurn {
 }
 
 /// The session of a harness in the terminal, as the page follows it. The page only watches: the hooks of the harness
-/// send its events to `dashql session serve`, the page reads them from there (docs/design/agent_session.md). The
+/// send its events to the server of `dashql connect`, the page reads them from there (docs/design/agent_session.md). The
 /// questions come from the terminal, the prompt of the page is closed while the page reaches the session.
 export interface AgentSession {
     /// The id of the session, a new one for every server on the port of the line; empty from an older server

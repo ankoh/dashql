@@ -1,9 +1,9 @@
 # Agent Sessions
 
 An agent works on DashQL from a harness in the terminal, Claude Code or Codex, with the Node `dashql` on the runtime
-(`docs/design/dashql_runtime.md`). The hooks of the harness send the events of a session to `dashql session serve` or
-to the server of `dashql connect`, and `dashql run` appends its log to the journal of the session. The page follows the
-session through a link or through the line of the AI side of its prompt. A tab that connects copies its workbooks into
+(`docs/design/dashql_runtime.md`). `dashql connect` is the one way to attach a harness: it launches the harness with
+hooks that send the events of the session to its server, and `dashql run` appends its log to the journal of the
+session. The page follows the session through the line of the AI side of its prompt. A tab that connects copies its workbooks into
 the folder of the session, takes the scripts that the agent changes there and runs them when the agent runs them
 ([agent_integration.md](agent_integration.md), "Runs in the tab"). There is no agent server that the page asks, no agent
 access per workbook and no prompt in natural language.
@@ -42,12 +42,15 @@ its draft for SQL.
 
 ## The session
 
-- **Hooks carry the events.** Every hook runs `dashql session hook <event>` (`packages/dashql-cli/README.md` has the
-  settings of both harnesses). The first event starts `dashql session serve` on `127.0.0.1` with a token, detached;
-  `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd` go to it, and the page reads them from
-  there. `PostToolUseFailure` of Claude Code goes as a `PostToolUse` with the error.
-  `SessionStart` prints the link of the session, `https://dashql.app/?data=` with `{"agentSession": {"endpoint",
-  "token"}}`; the harness hands the output of the hook to the agent, which tells the user.
+- **One id.** `dashql connect` picks the id of the session, a new UUID. It is the `id` of the state that the tab
+  follows, names the folder of the session `.dashql/sessions/<id>/`, and goes to the hooks and the commands of the agent
+  as an argument; `connect` sets no variable for them but the `PATH` of the `dashql` of the agent.
+- **Hooks carry the events.** Every hook that `connect` gives the harness runs `dashql session hook <event> --harness
+  <name> --workspace <folder> --session <id>` and sends the event to the server that `server.json` of the folder of the
+  session names: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd`, the page
+  reads them from there. `PostToolUseFailure` of Claude Code goes as a `PostToolUse` with the error. `SessionStart`
+  prints the session that the commands take, the workbooks and the connections; the harness hands it to the agent.
+  There are no hooks to install in the settings of a harness, so a session never has two servers.
   Hooks run outside the sandbox of both harnesses, the commands of the agent inside it don't need the server:
   `//tests/agents` checks both ([agent_integration_tests.md](agent_integration_tests.md)).
 - **The agent works on files.** Its commands (`dashql lint`, `format`, `run`) read and write the workbook folder, the
@@ -102,18 +105,14 @@ The server of a session and its clients (the page, the hooks, `dashql run`) come
 The files of the agent reach the page through a journal, not through the hooks: every agent interaction with a workbook
 goes through a `dashql` command, so the commands tell what they changed.
 
-- **The server creates it.** `dashql session serve` creates `.dashql/journal.jsonl` in the folder of the session, empty
-  for every session; the folder ignores itself (`.dashql/.gitignore` is `*`). A folder it can't write to has no
-  journal.
-- **One journal per session of `dashql connect`.** Its journal is `.dashql/sessions/<port>/journal.jsonl`: the port
-  names the session, no other session on the machine has it while it runs. `dashql connect` passes the name to the
-  harness in an environment variable without a secret in it (`DASHQL_SESSION`), the folder of the session in another
-  (`DASHQL_WORKSPACE`). `dashql run` appends to the journal of that session, and to `.dashql/journal.jsonl` of `dashql
-  session serve` without it. The folder of the session goes when it ends, two sessions in one folder keep apart.
-- **Commands append their log to it.** A command gets the workspace, the folder that the harness works in:
-  `--workspace <dir>`, else the folder of the session of `dashql connect` (`DASHQL_WORKSPACE`), else the invoking
-  directory. The shell of the agent may change into a copy, the commands and the hooks still find the copies of the
-  tab, the journal and the server; nothing is searched for. If the workspace has a journal, a command of a workbook folder in the
+- **The server creates it.** The server of `dashql connect` creates `.dashql/sessions/<id>/journal.jsonl` in the folder
+  of the session, empty for every session, and `server.json` next to it with its address and token, readable by the
+  user only; the folder ignores itself (`.dashql/.gitignore` is `*`). A folder it can't write to has no journal. The
+  folder of the session goes when it ends, two sessions in one folder keep apart.
+- **Commands append their log to it.** A command takes the session in its arguments, `--workspace <folder> --session
+  <id>`, as the start of the session gives them to the agent; nothing comes from the environment and nothing is
+  searched for, so a shell that changed into a copy still reaches the session. A copy of a tab
+  (`.dashql/workbooks/<id>`) without them fails with a hint. In a session, a command of a workbook folder in the
   workspace appends its log records from `info` on, one JSON line each, the `LogRecord`s of the log of the app.
   Records of the target `workbook_journal` are markers of what changed (`session/workbook_journal.ts` of the runtime),
   with the workbook folder relative to the folder of the session and the workbook id in their values:
@@ -130,8 +129,7 @@ goes through a `dashql` command, so the commands tell what they changed.
 - **The page pulls.** The server hands out the files of a workbook folder at
   `/v1/workbooks/<token>/<workbook id>/<path>` (the files of a published workbook, `workbook_publishing.md`). The token
   is part of the path, so the relative paths of a workbook folder keep it.
-- **The hooks stay** for the conversation: `SessionStart` starts the server, `UserPromptSubmit` and `Stop` carry the
-  question and the final message.
+- **The hooks stay** for the conversation: `UserPromptSubmit` and `Stop` carry the question and the final message.
 
 ## The copies of the workbooks
 
@@ -186,8 +184,8 @@ of their own after the other connections. Every connection but a cloud is allowe
 one; a cloud keeps the published workbooks and is allowed only once the user ticks it. The tab keeps what the user
 ticked and unticked per target in the storage of the tab. Once the server answers and after every change, the page
 sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them next to the
-journal, `.dashql/sessions/<port>/connections.json`. A run in the tab takes only the allowed connections, the tab
-decides. `dashql run` on a folder of its own with `DASHQL_SESSION` reads that file and treats a connection that is not
+journal, `.dashql/sessions/<id>/connections.json`. A run in the tab takes only the allowed connections, the tab
+decides. `dashql run` on a folder of its own with `--session` reads that file and treats a connection that is not
 in it like one that can't be set up: its scripts are not run, with the reason. A result that the cache serves needs no
 connection and is still served. `dashql describe` lists the allowed connections. The file is guidance for the agent,
 not a boundary: the agent can write it.
@@ -264,7 +262,7 @@ stays the one place the page talks to.
 
 ## Tests
 
-- `//tests/agents`: Claude Code and Codex run a turn with the hooks of `dashql session hook`, the server holds the
+- `//tests/agents`: Claude Code and Codex run a turn under `dashql connect`, the state of its server holds the
   question, the command with its SQL file and the final message.
 - `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths), the payloads of both
   harnesses with the lines of their steps and the hooks of the tools that `dashql connect` gives them, a session that

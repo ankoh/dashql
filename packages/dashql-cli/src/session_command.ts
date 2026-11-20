@@ -1,134 +1,54 @@
-import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import path from 'node:path';
-
 import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
 import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 
-import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
+import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE, describeWorkspace } from './describe_command.js';
 import { sessionEventOf, workbookOnlyRefusal } from './session_hook.js';
-import { SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
-import { startSessionServer } from './session_server.js';
+import { readSessionServer } from './session_journal.js';
 
 export const SESSION_USAGE = `Usage:
-  dashql session hook <event> --harness <name> [--connected]
-      Called by a hook of the harness with its payload on stdin: SessionStart, UserPromptSubmit, PreToolUse,
-      PostToolUse, PostToolUseFailure, Stop or SessionEnd. Starts the server of the session if it has none and sends
-      the event to it. SessionStart prints the link that shows the session in DashQL. Never fails the harness. In a
-      harness that dashql connect runs, only the hooks of dashql connect (--connected) send the events, to the server
-      of dashql connect.
-  dashql session serve --session <id> --harness <name> [--folder <dir>] [--port <port>]
-      Runs the server of a session on 127.0.0.1 until the harness ends the session.
-  dashql session link [--session <id>]
-      Prints the link of a running session, the latest one by default.
-
-DASHQL_SERVERS is the folder of the running servers of sessions (~/.dashql/servers), DASHQL_APP_URL the page of the links
-(https://dashql.app). DASHQL_SESSION_ENDPOINT and DASHQL_SESSION_TOKEN name the server of dashql connect.`;
+  dashql session hook <event> --harness <name> --workspace <dir> --session <id> [--workbook-only]
+      The hooks that dashql connect gives the harness. Called with the payload of the hook on stdin: SessionStart,
+      UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Stop or SessionEnd. Sends the event to the
+      server of the session that --workspace and --session name. SessionStart prints how to work on the workbooks of
+      the session. --workbook-only refuses the file tools outside the copies of the workbooks. Never fails the
+      harness.`;
 
 /// The exit code of a hook that refuses a tool, Claude Code and Codex show its stderr to the agent
 const EXIT_REFUSED = 2;
 
-/// A running session, as its server leaves it in the folder of the servers
-interface SessionFile {
-    session: string;
-    port: number;
-    token: string;
-    pid: number;
+/// A word of a POSIX shell command
+export function shellWord(word: string): string {
+    return /^[\w@%+=:,./-]+$/.test(word) ? word : `'${word.replace(/'/g, `'\\''`)}'`;
 }
 
-/// Where the sessions and the links point to
-export interface SessionEnvironment {
-    /// The folder of the running servers of sessions, a file per server
-    servers: string;
-    /// The page of the links
-    appUrl: string;
-    /// Start `dashql session serve` with the arguments after `session serve`, detached from the hook
-    startServer: (args: string[]) => void;
-    /// The server of `dashql connect` that runs the harness, null outside of it
-    connected: SessionTarget | null;
-    /// The name of the session of `dashql connect` (DASHQL_SESSION), null outside of it
-    sessionName?: string | null;
-    /// The folder of the session of `dashql connect` (DASHQL_WORKSPACE), null outside of it. The `cwd` of a payload
-    /// follows the directory of the shell of the agent.
-    sessionWorkspace?: string | null;
-    /// May the agent write only into the workbooks of the session (`dashql connect --workbook-only`)?
-    workbookOnly?: boolean;
+/// The arguments that name the session of `dashql connect` to a command, as the agent passes them
+export function sessionArgs(workspace: string, session: string): string {
+    return `--workspace ${shellWord(workspace)} --session ${session}`;
 }
 
-/// The variable that tells the hooks of `dashql connect --workbook-only` to refuse the edits of other files
-export const WORKBOOK_ONLY_ENV = 'DASHQL_WORKBOOK_ONLY';
-
-/// What a hook of `dashql connect` tells the agent at the start of the session, the harness puts it into the context.
-/// Claude Code has the guide in its system prompt (connect_command.ts), Codex gets it here.
-export const CONNECTED_SESSION_START = `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
-.dashql/workbooks/<id>/ of this folder, work on that folder as the guide of DashQL says.`;
+/// What a hook of `dashql connect` tells the agent at the start of the session, the harness puts it into the context:
+/// the copies and the session that the commands take
+export function connectedSessionStartText(workspace: string, session: string): string {
+    const args = sessionArgs(workspace, session);
+    return `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
+.dashql/workbooks/<id>/ of this folder, work on that folder as the guide of DashQL says. Pass this session to dashql
+catalog, describe, run and vis, they fail without it on a copy of the tab: ${args}
+For example: dashql run ${args} ${shellWord(`${workspace}/.dashql/workbooks/`)}<id>`;
+}
 
 /// What the hook at the start of a session of `dashql connect` prints for a harness: the guide unless the harness has
-/// it in its system prompt, then the workbooks and the connections of the folder
-export function connectedSessionStart(harness: string, workspace: string, session: string | null): string {
+/// it in its system prompt, then the session, the workbooks and the connections of the folder
+export function connectedSessionStart(harness: string, workspace: string, session: string): string {
     const guide = harness === 'claude' ? '' : `${CONNECTED_AGENT_GUIDE}\n\n`;
-    return `${guide}${CONNECTED_SESSION_START}\n\n${describeWorkspace(workspace, session)}`;
+    return `${guide}${connectedSessionStartText(workspace, session)}\n\n${describeWorkspace(workspace, session)}`;
 }
-
-export const SESSION_ENDPOINT_ENV = 'DASHQL_SESSION_ENDPOINT';
-export const SESSION_TOKEN_ENV = 'DASHQL_SESSION_TOKEN';
 
 /// The server of a session that a hook sends to
 export interface SessionTarget {
     /// The base URL, `http://127.0.0.1:<port>`
     endpoint: string;
     token: string;
-}
-
-export function processSessionEnvironment(): SessionEnvironment {
-    const endpoint = process.env[SESSION_ENDPOINT_ENV];
-    const token = process.env[SESSION_TOKEN_ENV];
-    return {
-        servers: process.env.DASHQL_SERVERS || path.join(homedir(), '.dashql', 'servers'),
-        appUrl: process.env.DASHQL_APP_URL || 'https://dashql.app',
-        startServer: args => {
-            // Node runs the module of dashql again, a hook must not wait for the server
-            spawn(process.execPath, [process.argv[1], 'session', 'serve', ...args], { detached: true, stdio: 'ignore' }).unref();
-        },
-        connected: endpoint && token ? { endpoint, token } : null,
-        sessionName: process.env[SESSION_NAME_ENV] || null,
-        sessionWorkspace: process.env[SESSION_WORKSPACE_ENV] || null,
-        workbookOnly: process.env[WORKBOOK_ONLY_ENV] === '1',
-    };
-}
-
-/// The name of a session in a file name
-function sessionFileName(session: string): string {
-    return `${session.replace(/[^\w.-]/g, '_')}.json`;
-}
-
-function readSessionFile(servers: string, session: string): SessionFile | null {
-    try {
-        return JSON.parse(readFileSync(path.join(servers, sessionFileName(session)), 'utf8')) as SessionFile;
-    } catch {
-        return null;
-    }
-}
-
-/// The link of a page to a session
-export function sessionLink(appUrl: string, file: Pick<SessionFile, 'port' | 'token'>): string {
-    const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${file.port}`, token: file.token } })).toString('base64url');
-    return `${appUrl.replace(/\/$/, '')}/?data=${data}`;
-}
-
-/// Does the server of a session answer? A server of another protocol does not, a new one takes its place.
-async function alive(file: SessionFile): Promise<boolean> {
-    try {
-        const response = await fetchAgentSession(`http://127.0.0.1:${file.port}/v1/state`, {
-            headers: { Authorization: `Bearer ${file.token}` },
-            signal: AbortSignal.timeout(1000),
-        });
-        return response.ok;
-    } catch {
-        return false;
-    }
 }
 
 /// The options of a command, `--name value` or `--name=value`, and the `flags` without a value.
@@ -167,14 +87,13 @@ export async function postSessionEvent(target: SessionTarget, event: AgentSessio
     });
 }
 
-async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): Promise<number> {
-    const { positional, named, set } = options(args, new Set(['connected']));
+async function hook(args: string[], cli: CliProcess): Promise<number> {
+    const { positional, named, set } = options(args, new Set(['workbook-only']));
     const [name] = positional;
     const harness = named.get('harness') ?? 'agent';
-    // In a harness that `dashql connect` runs, its own hooks send the events; hooks in the settings of the harness
-    // would send them twice or start a second server
-    const connected = set.has('connected');
-    if (connected !== (env.connected != null)) return EXIT_OK;
+    const workspace = named.get('workspace');
+    const session = named.get('session');
+    if (workspace == null || session == null) throw '--workspace and --session name the session of dashql connect';
     let payload: unknown = {};
     try {
         const input = new TextDecoder().decode(await cli.readStdin());
@@ -184,112 +103,34 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
     }
     const event = sessionEventOf(name ?? '', harness, payload);
     if (event == null) return EXIT_OK;
-    if (env.connected != null) {
-        const cwd = event.folder || cli.cwd;
-        const workspace = env.sessionWorkspace || cwd;
-        // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why
-        const refusal = env.workbookOnly && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, workspace, cwd) : null;
-        if (refusal != null) {
-            cli.stderr(`${refusal}\n`);
-            return EXIT_REFUSED;
-        }
-        try {
-            await postSessionEvent(env.connected, event);
-        } catch (error) {
-            cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
-        }
-        if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, workspace, env.sessionName ?? null));
+    // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why. Relative paths
+    // are relative to the directory of the agent, the `cwd` of the payload.
+    const refusal = set.has('workbook-only') && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, workspace, event.folder || cli.cwd) : null;
+    if (refusal != null) {
+        cli.stderr(`${refusal}\n`);
+        return EXIT_REFUSED;
+    }
+    const target = readSessionServer(workspace, session);
+    if (target == null) {
+        cli.stderr(`dashql: the session ${session} does not run in ${workspace}\n`);
         return EXIT_OK;
     }
-    const session = (payload as { session_id?: unknown })?.session_id;
-    const id = typeof session === 'string' && session.length > 0 ? session : 'default';
-    let file = readSessionFile(env.servers, id);
-    if (file == null || !(await alive(file))) {
-        if (event.event === 'SessionEnd') return EXIT_OK;
-        env.startServer(['--session', id, '--harness', harness, '--folder', event.folder || cli.cwd]);
-        file = null;
-        for (let i = 0; i < 100 && file == null; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-            const written = readSessionFile(env.servers, id);
-            if (written != null && await alive(written)) file = written;
-        }
-        if (file == null) {
-            cli.stderr('dashql: the server of the session did not start\n');
-            return EXIT_OK;
-        }
-    }
     try {
-        await postSessionEvent({ endpoint: `http://127.0.0.1:${file.port}`, token: file.token }, event);
+        await postSessionEvent(target, event);
     } catch (error) {
         cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
     }
-    if (event.event === 'SessionStart') cli.stdout(`DashQL shows this session at ${sessionLink(env.appUrl, file)}\n`);
-    return EXIT_OK;
-}
-
-async function serve(args: string[], cli: CliProcess, env: SessionEnvironment): Promise<number> {
-    const { named } = options(args);
-    const id = named.get('session') ?? 'default';
-    const server = await startSessionServer({
-        harness: named.get('harness') ?? 'agent',
-        folder: named.get('folder') ?? cli.cwd,
-        port: Number(named.get('port') ?? 0),
-        onEnd: () => setTimeout(() => void stop(), 100),
-    });
-    mkdirSync(env.servers, { recursive: true });
-    const target = path.join(env.servers, sessionFileName(id));
-    const file: SessionFile = { session: id, port: server.port, token: server.token, pid: process.pid };
-    // Written at once, a hook never reads half of it
-    writeFileSync(`${target}.tmp`, JSON.stringify(file), { mode: 0o600 });
-    renameSync(`${target}.tmp`, target);
-    cli.stdout(`${sessionLink(env.appUrl, file)}\n`);
-    let stopping = false;
-    const stop = async () => {
-        if (stopping) return;
-        stopping = true;
-        rmSync(target, { force: true });
-        await server.close();
-        process.exit(EXIT_OK);
-    };
-    process.on('SIGINT', () => void stop());
-    process.on('SIGTERM', () => void stop());
-    return await new Promise<number>(() => { });
-}
-
-function link(args: string[], cli: CliProcess, env: SessionEnvironment): number {
-    const { named } = options(args);
-    let id = named.get('session');
-    if (id == null) {
-        // The latest session
-        let names: string[];
-        try {
-            names = readdirSync(env.servers).filter(name => name.endsWith('.json'));
-        } catch {
-            names = [];
-        }
-        names.sort((a, b) => statSync(path.join(env.servers, b)).mtimeMs - statSync(path.join(env.servers, a)).mtimeMs);
-        id = names[0]?.slice(0, -'.json'.length);
-    }
-    const file = id == null ? null : readSessionFile(env.servers, id);
-    if (file == null) {
-        cli.stderr('dashql: no session runs\n');
-        return EXIT_FAILED;
-    }
-    cli.stdout(`${sessionLink(env.appUrl, file)}\n`);
+    if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, workspace, session));
     return EXIT_OK;
 }
 
 /// Run `session` with the arguments after it, returns the exit code
-export async function runSession(argv: string[], cli: CliProcess, env: SessionEnvironment = processSessionEnvironment()): Promise<number> {
+export async function runSession(argv: string[], cli: CliProcess): Promise<number> {
     const [command, ...args] = argv;
     try {
         switch (command) {
             case 'hook':
-                return await hook(args, cli, env);
-            case 'serve':
-                return await serve(args, cli, env);
-            case 'link':
-                return link(args, cli, env);
+                return await hook(args, cli);
             case '-h':
             case '--help':
                 cli.stdout(`${SESSION_USAGE}\n`);

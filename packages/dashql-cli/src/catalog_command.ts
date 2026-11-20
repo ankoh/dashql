@@ -7,12 +7,13 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { readSessionConnections, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
+import { commandSession, readSessionConnections } from './session_journal.js';
 
-export const CATALOG_USAGE = `Usage: dashql catalog [--workspace <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
+export const CATALOG_USAGE = `Usage: dashql catalog [--workspace <dir> --session <id>] [--max-chars <n>] <workbook-dir> [<connection>...]
 
 Prints the tables of connections as CREATE TABLE statements, the names and types of their columns: the named
-connections by id or name, else every connection of the workbook. A connection that the agent may not use is marked.
+connections by id or name, else every connection of the workbook. A connection that the agent may not use in the
+session of dashql connect that --workspace and --session name is marked.
 The embedded Hyper lists the attachments of the workbook, scripts on it read them as :name.
 
 The tables come from the catalog files of the workbook folder, connections/<id>/dashql-catalog-relations.sql, which
@@ -101,13 +102,9 @@ function upTo(text: string, max: number): { text: string; cut: boolean } {
 }
 
 /// Run `catalog` with the arguments after it, returns the exit code
-export function runCatalog(
-    args: string[],
-    cli: CliProcess,
-    session: string | null = process.env[SESSION_NAME_ENV] || null,
-    sessionWorkspace: string | null = process.env[SESSION_WORKSPACE_ENV] || null,
-): number {
-    let workspace = path.resolve(cli.cwd, sessionWorkspace ?? '.');
+export function runCatalog(args: string[], cli: CliProcess): number {
+    let workspace: string | null = null;
+    let session: string | null = null;
     let maxChars = DEFAULT_MAX_CHARS;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {
@@ -117,7 +114,9 @@ export function runCatalog(
             return EXIT_OK;
         }
         if (arg === '--workspace' && i + 1 < args.length) {
-            workspace = path.resolve(cli.cwd, args[++i]);
+            workspace = args[++i];
+        } else if (arg === '--session' && i + 1 < args.length) {
+            session = args[++i];
         } else if (arg === '--max-chars' && i + 1 < args.length && /^\d+$/.test(args[i + 1])) {
             maxChars = Number(args[++i]);
         } else if (arg.startsWith('-')) {
@@ -132,13 +131,18 @@ export function runCatalog(
         cli.stderr(`error: missing the workbook folder\n\n${CATALOG_USAGE}\n`);
         return EXIT_USAGE;
     }
+    const resolved = commandSession(cli.cwd, workspace, session, workbook);
+    if (typeof resolved === 'string') {
+        cli.stderr(`error: ${resolved}\n`);
+        return EXIT_USAGE;
+    }
     const dir = path.resolve(cli.cwd, workbook);
     if (readText(path.join(dir, STORAGE_WORKBOOK_FILE)) == null) {
         cli.stderr(`error: ${workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
     }
     // The connections that the tab lets the agent use, with their names
-    const allowed = readSessionConnections(workspace, session);
+    const allowed = readSessionConnections(resolved.workspace, resolved.session);
     const names = new Map(allowed?.connections.map(connection => [connection.connectionId, connection.name]) ?? []);
     const connections = folderConnections(dir, names);
     const matches = (connection: FolderConnection, name: string) =>

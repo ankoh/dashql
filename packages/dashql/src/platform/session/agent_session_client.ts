@@ -3,7 +3,7 @@ import { fetchAgentSession } from './agent_session_protocol.js';
 import type { AgentSessionState } from './agent_session_state.js';
 import type { SessionConnections } from './workbook_journal.js';
 
-/// Where a page finds the server of a session: `dashql session serve` on this machine
+/// Where a page finds the server of a session: the one of `dashql connect` on this machine
 export interface AgentSessionTarget {
     /// The base URL of the server, http on a loopback address
     endpoint: string;

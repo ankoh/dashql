@@ -1,8 +1,8 @@
-// The journal of a session (docs/design/agent_session.md). `dashql session serve` creates `.dashql/journal.jsonl` in the
-// folder of the session, and dashql commands below it append their log records to it, one JSON line each. Records of
-// the target `workbook_journal` are markers that tell what changed: the files of a workbook folder. The server folds
-// the markers into the workbooks of the session and keeps the latest other records as the log of the commands; the
-// page fetches the files that it lacks.
+// The journal of a session (docs/design/agent_session.md). The server of `dashql connect` creates
+// `.dashql/sessions/<id>/journal.jsonl` in the folder of the session, and dashql commands below it append their log
+// records to it, one JSON line each. Records of the target `workbook_journal` are markers that tell what changed: the
+// files of a workbook folder. The server folds the markers into the workbooks of the session and keeps the latest other
+// records as the log of the commands; the page fetches the files that it lacks.
 import type { LogKeyValues, LogRecord, LogValue } from '../logger/log_buffer.js';
 
 /// The folder of the journal in the folder of a session
@@ -60,7 +60,7 @@ export function workbookCopyPath(workbookId: string): string {
 }
 
 /// The path of the journal of a session in the folder of the journal: `sessions/<name>/journal.jsonl` for a session of
-/// `dashql connect`, `journal.jsonl` for the one of `dashql session serve`
+/// `dashql connect`, `journal.jsonl` without a name
 export function sessionJournalPath(session: string | null): string[] {
     if (session == null) return [SESSION_JOURNAL_FILE];
     if (!isSessionName(session)) throw new Error(`invalid session name ${JSON.stringify(session)}`);

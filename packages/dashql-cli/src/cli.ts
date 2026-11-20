@@ -20,7 +20,7 @@ Commands:
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help
   run <workbook-dir> [<script>...]    Run the scripts of a workbook folder on their connections, see dashql run --help
-  session <command>                   Show the session of an agent harness in DashQL, see dashql session --help
+  session hook <event>                The hooks that dashql connect gives the harness, see dashql session --help
   vis <workbook-dir> <script>         Check the chart of a script with its result and render it as PNG, see dashql vis --help`;
 
 /// Run dashql with its arguments, returns the exit code

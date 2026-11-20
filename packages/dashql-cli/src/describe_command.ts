@@ -7,13 +7,13 @@ import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/p
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { readSessionConnections, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
+import { commandSession, readSessionConnections } from './session_journal.js';
 
-export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir>]
+export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir> [--session <id>]]
 
 Prints how to work on the workbooks of DashQL with the commands of dashql, and the workbooks that the tabs of DashQL
-copied into the workspace (.dashql/workbooks/). The workspace is --workspace, else the folder of the session of dashql
-connect (DASHQL_WORKSPACE), else the invoking directory.`;
+copied into the workspace (.dashql/workbooks/), the invoking directory unless --workspace names it. --session names
+the session of dashql connect, whose connections it lists.`;
 
 export const DESCRIBE_TEXT = `DashQL works on workbooks: folders of SQL scripts that run on connections. The tab of DashQL in the browser shows
 the workbooks of this session live: the scripts, their runs, their results and their charts. Work on a workbook
@@ -31,20 +31,22 @@ A workbook folder:
                                 that you put here.
   connections/<id>/             The tables of the connections, dashql catalog prints them.
 
-Commands:
-  dashql catalog <workbook-dir> [<connection>...]
+Commands, <session> is the --workspace <dir> --session <id> of the session of dashql connect that the start of the
+session gives you; catalog, run and vis fail without it on a workbook that the tab copied:
+  dashql catalog <session> <workbook-dir> [<connection>...]
                                 The tables that you can query, as CREATE TABLE statements with the types of
                                 their columns, for every connection of the workbook or the named ones.
-  dashql run <workbook-dir> [<script>...]
+  dashql run <session> <workbook-dir> [<script>...]
                                 Run the scripts on their connections, all of them or the named ones with the
                                 scripts they read. Prints syntax errors first, then the first rows of every result
                                 and the Parquet file with all of it. A cached result is not run again, --refresh
                                 runs it.
-  dashql vis <workbook-dir> <script>
+  dashql vis <session> <workbook-dir> <script>
                                 Check the chart of a script against its result and render it as PNG.
   dashql lint <file.sql|dir>... Check scripts without running them.
   dashql format --write <file.sql|dir>...
                                 Pretty print scripts in place.
+  dashql describe <session>      This guide, the workbooks and the connections of the session.
   dashql <command> --help       The options of a command.
 
 Scripts:
@@ -104,9 +106,9 @@ Charts:
 
 How to work:
 1. Learn the workbook: dashql-workbook.json, its scripts, and dashql catalog for the tables and the attachments.
-2. Write SQL into new scripts that build on the existing ones, run them with dashql run <workbook-dir> <script> and
-   fix the errors. Run the workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab
-   copied runs in the tab, on the connections that the user lets you use, and the user watches the run there.
+2. Write SQL into new scripts that build on the existing ones, run them with dashql run <session> <workbook-dir>
+   <script> and fix the errors. Run the workbook folder, not a copy of it: the tab follows the folder. A workbook that
+   the tab copied runs in the tab, on the connections that the user lets you use, and the user watches the run there.
 3. Chart a result that a chart explains better than a table, and check it with dashql vis.
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
    plain sentence that answers the request, or with nothing if the results already answer it.
@@ -123,8 +125,8 @@ them.`;
 /// at its start
 export const CONNECTED_AGENT_PREFACE = `The user started you from DashQL, a SQL workbench in the browser, to work on its workbooks. A request about data
 is a request to the workbooks of DashQL: answer it with scripts in a workbook that the tab shows, with charts where
-they help, not with ad hoc queries, notebooks or files outside the workbook. dashql describe prints this guide again
-with the workbooks of this folder.`;
+they help, not with ad hoc queries, notebooks or files outside the workbook. dashql describe <session> prints this
+guide again with the workbooks and the connections of the session.`;
 
 /// The guide with its preface, for a harness that `dashql connect` launches
 export const CONNECTED_AGENT_GUIDE = `${CONNECTED_AGENT_PREFACE}
@@ -217,13 +219,9 @@ ${lines.join('\n')}`;
 }
 
 /// Run `describe` with the arguments after it, returns the exit code
-export function runDescribe(
-    args: string[],
-    cli: CliProcess,
-    session: string | null = process.env[SESSION_NAME_ENV] || null,
-    sessionWorkspace: string | null = process.env[SESSION_WORKSPACE_ENV] || null,
-): number {
-    let workspace = path.resolve(cli.cwd, sessionWorkspace ?? '.');
+export function runDescribe(args: string[], cli: CliProcess): number {
+    let workspace: string | null = null;
+    let session: string | null = null;
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
         if (arg === '-h' || arg === '--help') {
@@ -231,13 +229,22 @@ export function runDescribe(
             return EXIT_OK;
         }
         if (arg === '--workspace' && i + 1 < args.length) {
-            workspace = path.resolve(cli.cwd, args[++i]);
+            workspace = args[++i];
+            continue;
+        }
+        if (arg === '--session' && i + 1 < args.length) {
+            session = args[++i];
             continue;
         }
         cli.stderr(`error: unexpected argument ${arg}\n\n${DESCRIBE_USAGE}\n`);
         return EXIT_USAGE;
     }
-    cli.stdout(`${DESCRIBE_TEXT}\n\n${describeWorkspace(workspace, session)}`);
+    const resolved = commandSession(cli.cwd, workspace, session, null);
+    if (typeof resolved === 'string') {
+        cli.stderr(`error: ${resolved}\n`);
+        return EXIT_USAGE;
+    }
+    cli.stdout(`${DESCRIBE_TEXT}\n\n${describeWorkspace(resolved.workspace, resolved.session)}`);
     return EXIT_OK;
 }
 

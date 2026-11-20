@@ -1,7 +1,7 @@
 // The probes of the agent integration tests: a server on loopback, a script that tries to reach it, and a hook that
 // runs the script and logs what it saw.
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join, resolve } from 'node:path';
 
@@ -21,21 +21,48 @@ exec ${JSON.stringify(NODE)} ${JSON.stringify(resolve(process.env.DASHQL_BUNDLE)
     return command;
 }
 
-/// The state of the session that `dashql session hook` started in a folder of sessions, its server stops afterwards
-export async function readDashQLSession(home) {
-    const files = existsSync(home) ? readdirSync(home).filter(name => name.endsWith('.json')) : [];
-    if (files.length !== 1) return { files, state: null };
-    const session = JSON.parse(readFileSync(join(home, files[0]), 'utf8'));
-    try {
-        // The server answers a client of its oldest protocol, every answer names it
-        const url = `http://127.0.0.1:${session.port}/v1/state`;
-        const auth = { Authorization: `Bearer ${session.token}` };
-        const protocol = (await fetch(url, { headers: auth })).headers.get('x-dashql-min-protocol') ?? '';
-        const response = await fetch(url, { headers: { ...auth, 'X-DashQL-Protocol': protocol } });
-        return { files, state: await response.json() };
-    } finally {
-        try { process.kill(session.pid); } catch { /* gone */ }
+/// Follow the server of `dashql connect` on a port, from before it listens until it ends: resolves with the last state
+/// that it sent
+export async function followDashQLSession(port, token) {
+    const base = `http://127.0.0.1:${port}`;
+    let response = null;
+    for (let i = 0; i < 300 && response == null; ++i) {
+        try {
+            // The server answers a client of its oldest protocol, every answer names it
+            const protocol = (await fetch(`${base}/v1/state`, { headers: { Authorization: `Bearer ${token}` } })).headers.get('x-dashql-min-protocol') ?? '';
+            response = await fetch(`${base}/v1/stream?token=${token}`, { headers: { 'X-DashQL-Protocol': protocol } });
+        } catch {
+            await new Promise(done => setTimeout(done, 100));
+        }
     }
+    if (response == null || !response.ok) throw new Error(`no server of dashql connect on port ${port}`);
+    let state = null;
+    let rest = '';
+    const decoder = new TextDecoder();
+    try {
+        for await (const chunk of response.body) {
+            rest += decoder.decode(chunk, { stream: true });
+            let end;
+            while ((end = rest.indexOf('\n\n')) >= 0) {
+                const message = rest.slice(0, end);
+                rest = rest.slice(end + 2);
+                const data = message.split('\n').filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n');
+                if (data.length > 0) state = JSON.parse(data);
+            }
+        }
+    } catch {
+        // The server ended the stream with the session
+    }
+    return state;
+}
+
+/// A port that is free right now
+export async function freePort() {
+    const server = net.createServer();
+    await new Promise(done => server.listen(0, '127.0.0.1', done));
+    const { port } = server.address();
+    await new Promise(done => server.close(done));
+    return port;
 }
 
 /// A server on loopback that the probes connect to

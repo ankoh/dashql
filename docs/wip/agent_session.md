@@ -9,7 +9,8 @@ What is built of agent sessions is in [docs/design/agent_session.md](../design/a
   to AI and runs the line of `dashql connect` in the folder of a project. The site is the truth, the disk holds a copy
   for the agent. Built, see "The copies of the workbooks" of the design.
 - **B, the user stays in the shell.** The agent creates a workbook folder in the project and the page only shows it.
-  The folder is the truth, the page holds a copy.
+  The folder is the truth, the page holds a copy. It starts with `dashql connect` as well: there is no other way to
+  attach a harness, no hooks in its settings.
 
 In both cases the agent works on files on disk and the page follows them, the direction of the files is what differs.
 
@@ -33,16 +34,12 @@ the agent set up appears in the tab.
 
 ## How the agent learns DashQL
 
-- **A skill** only for the installed path without `dashql connect` (case B with hooks in the settings): a short
-  `SKILL.md` in the package that says when to use DashQL and to run `dashql describe`, as the one of hyperdb-edge.
 - **MCP as a fallback.** An MCP server is the fallback for the runs in the process of `dashql connect` if a sandbox
   stands in the way: a tool of an MCP server runs in that process, outside the sandbox, and needs no token of the
   session in the environment of the agent.
 
 To check:
 
-- Whether the default `shell_environment_policy` of Codex drops variables with `TOKEN` in their name from the commands
-  of the agent, then `dashql run` lacks `DASHQL_SESSION_TOKEN`.
 - Whether the sandbox of Codex (`workspace-write` without network) and the one of Claude Code let a command reach
   `127.0.0.1`. `dashql connect` can allow it for Codex with `-c`.
 - Whether the managed settings of a company allow an MCP server that a session adds, should the fallback be needed.
@@ -55,5 +52,5 @@ To check:
 ## Next
 
 - `@akohn/dashql` and `@akohn/dashql-cli` are not on npm yet, the line of the prompt needs both published.
-- `dashql connect` without `--launch`: the server alone, for a harness that runs already or in an IDE, with hooks
-  installed once in its settings.
+- A harness that runs already or in an IDE: `dashql connect` launches the harness, a session of a harness that it did
+  not launch is not supported.

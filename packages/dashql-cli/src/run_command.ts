@@ -29,9 +29,9 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { openSessionJournal, readSessionConnections, readSessionServer, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { commandSession, openSessionJournal, readSessionConnections, readSessionServer, workbookFolderPaths, type CommandSession, type SessionJournal } from './session_journal.js';
 
-const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
+const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir> --session <id>] [--verbose] <workbook-dir> [<script>...]
 
 Runs the scripts of a workbook folder on their connections like the Run of the workbook in DashQL, all of them by
 default, the named ones with the scripts they reference otherwise. Scripts of different connections run at the same
@@ -51,9 +51,9 @@ connection that can't be set up are not run.
 
 The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
 attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the .dashql/ of the workspace, which
-dashql session serve creates in the folder of its session, or ~/.dashql. The workspace is the folder that the harness
-works in: --workspace, else the folder of the session of dashql connect (DASHQL_WORKSPACE), else the invoking
-directory. In a session, run appends its log to the journal there.
+dashql connect creates in the folder of its session, or ~/.dashql. The workspace is --workspace, else the invoking
+directory. --workspace and --session name the session of dashql connect, as the start of the session tells the agent;
+run appends its log to the journal of the session.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
@@ -72,17 +72,10 @@ const LIVE_PROGRESS_INTERVAL_MS = 100;
 /// The files and the credentials of the process
 export interface RunEnvironment {
     /// The folder of the files of DashQL (DASHQL_HOME), null for the `.dashql/` of the workspace, which
-    /// `dashql session serve` creates in the folder of its session, or `~/.dashql`
+    /// `dashql connect` creates in the folder of its session, or `~/.dashql`
     home: string | null;
     trinoUser?: string;
     trinoPassword?: string;
-    /// The session of `dashql connect` that the command runs in (DASHQL_SESSION), its journal gets the log
-    session?: string | null;
-    /// The server of that session (DASHQL_SESSION_ENDPOINT, DASHQL_SESSION_TOKEN), else the folder of the session names it
-    sessionEndpoint?: string;
-    sessionToken?: string;
-    /// The folder of that session (DASHQL_WORKSPACE), the workspace unless --workspace names one
-    workspace?: string | null;
 }
 
 export function processRunEnvironment(): RunEnvironment {
@@ -90,10 +83,6 @@ export function processRunEnvironment(): RunEnvironment {
         home: process.env.DASHQL_HOME || null,
         trinoUser: process.env.DASHQL_TRINO_USER || undefined,
         trinoPassword: process.env.DASHQL_TRINO_PASSWORD || undefined,
-        session: process.env[SESSION_NAME_ENV] || null,
-        sessionEndpoint: process.env.DASHQL_SESSION_ENDPOINT || undefined,
-        sessionToken: process.env.DASHQL_SESSION_TOKEN || undefined,
-        workspace: process.env[SESSION_WORKSPACE_ENV] || null,
     };
 }
 
@@ -101,6 +90,8 @@ interface RunArgs {
     workbook: string;
     /// The folder that the harness works in, the invoking directory by default
     workspace: string | null;
+    /// The session of `dashql connect`, with --workspace
+    session: string | null;
     scripts: string[];
     rows: number;
     refresh: boolean;
@@ -116,6 +107,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     let refresh = false;
     let plain = false;
     let workspace: string | null = null;
+    let session: string | null = null;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
@@ -133,6 +125,10 @@ function parseRunArgs(args: string[]): RunArgs | string {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--workspace takes a folder';
             workspace = value;
+        } else if (arg === '--session') {
+            const value = args[++i];
+            if (value == null || value.startsWith('-')) return '--session takes the id of the session';
+            session = value;
         } else if (arg.startsWith('-')) {
             return `unknown option ${arg}`;
         } else {
@@ -141,7 +137,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     }
     if (positional.length === 0) return 'missing the workbook folder';
     const [workbook, ...scripts] = positional;
-    return { workbook, workspace, scripts, rows, refresh, plain, verbose };
+    return { workbook, workspace, session, scripts, rows, refresh, plain, verbose };
 }
 
 /// The logger of a run: prints the records with --verbose, writes them from info on into the journal of a session
@@ -209,7 +205,7 @@ async function finishSetup(rt: Runtime, conn: ConnectionState, channelParams: co
     }
 }
 
-/// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql session serve` creates in the folder of
+/// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql connect` creates in the folder of
 /// its session, or `~/.dashql` outside a session
 function dashqlRootOf(workspace: string): string {
     const root = path.join(workspace, SESSION_JOURNAL_FOLDER);
@@ -258,8 +254,12 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    // The folder that the harness works in, the folder of its session
-    const workspace = path.resolve(cli.cwd, parsed.workspace ?? env.workspace ?? '.');
+    // The folder that the harness works in and its session of dashql connect
+    const session = commandSession(cli.cwd, parsed.workspace, parsed.session, parsed.workbook);
+    if (typeof session === 'string') {
+        cli.stderr(`error: ${session}\n`);
+        return EXIT_USAGE;
+    }
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -278,7 +278,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     const emit = (event: RunEvent) => { for (const reporter of reporters) reporter.event(event); };
     try {
         await printSyntaxErrors(dir, parsed.scripts, cli);
-        return await runWorkbookFolder(parsed, dir, workspace, env, cli, stop.signal, emit, live);
+        return await runWorkbookFolder(parsed, dir, session, env, cli, stop.signal, emit, live);
     } finally {
         for (const reporter of reporters) reporter.close();
         cli.interrupt?.removeEventListener('abort', interrupt);
@@ -324,17 +324,22 @@ export interface WorkbookFolderRun {
 export async function runWorkbookFolder(
     run: WorkbookFolderRun,
     dir: string,
-    workspace: string,
+    session: CommandSession,
     env: RunEnvironment,
     cli: CliProcess,
     signal: AbortSignal,
     emit: (event: RunEvent) => void,
     live = false,
 ): Promise<number> {
+    const { workspace } = session;
     // A workbook that the tab of a session of dashql connect copied runs in the tab
-    const server = env.session == null ? null : readSessionServer(workspace, env.session, { endpoint: env.sessionEndpoint, token: env.sessionToken });
-    const copied = copiedWorkbookId(workspace, dir);
-    if (server != null && copied != null) {
+    const server = readSessionServer(workspace, session.session);
+    const copied = session.session == null ? null : copiedWorkbookId(workspace, dir);
+    if (copied != null) {
+        if (server == null) {
+            cli.stderr(`error: the session ${session.session} has no server in ${workspace}, it ended\n`);
+            return EXIT_FAILED;
+        }
         try {
             const request = { workbookId: copied, label: run.workbook, scripts: run.scripts, refresh: run.refresh, rows: run.rows };
             const end = await runInTab(server, run.chart == null ? request : { ...request, chart: run.chart }, signal, emit);
@@ -346,15 +351,15 @@ export async function runWorkbookFolder(
         }
     }
     // In a session, say that the tab doesn't show this run: the agent may have meant a copy of the tab
-    if (server != null) cli.stderr(`${notACopyNote(run.workbook, workspace)}\n`);
-    return await runHere(run, dir, workspace, env, cli, signal, emit, live);
+    if (session.session != null) cli.stderr(`${notACopyNote(run.workbook, workspace)}\n`);
+    return await runHere(run, dir, session, env, cli, signal, emit, live);
 }
 
 /// Run a workbook folder with a runtime of this process
 async function runHere(
     parsed: WorkbookFolderRun,
     dir: string,
-    workspace: string,
+    { workspace, session }: CommandSession,
     env: RunEnvironment,
     cli: CliProcess,
     signal: AbortSignal,
@@ -362,7 +367,7 @@ async function runHere(
     live: boolean,
 ): Promise<number> {
     // In a session the log of the run goes into its journal, with the files of the folder
-    const journal = openSessionJournal(workspace, dir, env.session ?? null);
+    const journal = openSessionJournal(workspace, dir, session);
     const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null, journal);
     const storage = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
     // The embedded Hyper writes the results into the query result cache of the root and reads the results of other
@@ -412,7 +417,7 @@ async function runHere(
             logger.info(message, keyValues, JOURNAL_TARGET);
         }
         // The tab of the session lets the agent use the connections that the user picked
-        const allowed = readSessionConnections(workspace, env.session ?? null);
+        const allowed = readSessionConnections(workspace, session);
         const end = await runWorkbookReported(runtime, workbook, {
             label: parsed.workbook,
             scripts: parsed.scripts,

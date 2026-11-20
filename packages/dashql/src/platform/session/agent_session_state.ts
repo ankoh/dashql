@@ -1,7 +1,7 @@
 import type { LogRecord } from '../logger/log_buffer.js';
 import { isJournalMarker, reduceJournalMarker, type JournalFile, type SessionWorkbook } from './workbook_journal.js';
 
-/// The events of a harness that its hooks send to `dashql session serve`, docs/design/agent_session.md
+/// The events of a harness that its hooks send to the server of `dashql connect`, docs/design/agent_session.md
 export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Stop' | 'SessionEnd';
 
 /// An event of a session, as the hook command of dashql reads it from the harness
@@ -57,8 +57,8 @@ export interface AgentSessionTurn {
 
 /// The state of a session that the server keeps and the page follows
 export interface AgentSessionState {
-    /// A new one for every server, so that a page tells a new session on the same port from the one it followed.
-    /// Missing from servers before protocol 3.
+    /// A new one for every session, the id that `dashql connect` picks, so that a page tells a new session on the same
+    /// port from the one it followed. Missing from servers before protocol 3.
     id?: string;
     harness: string;
     folder: string;

@@ -3,18 +3,18 @@
 The integrations with agent harnesses rest on assumptions about their sandboxes: what a command of the agent can
 reach, where hooks run, what an approval by prefix allows. The tests in `//tests/agents` run the real harnesses, Claude
 Code and Codex, with a fake model, so they check those assumptions on every machine that runs them, without model calls
-and in CI: the sandbox, the hooks, the ways out of the sandbox, the session server that `dashql session hook` starts,
-`dashql lint` and `dashql connect`. `dashql run` in the sandboxes and opencode are planned.
+and in CI: the sandbox, the hooks, the ways out of the sandbox, a session server of hooks, `dashql lint` and `dashql
+connect`. `dashql run` in the sandboxes and opencode are planned.
 
 | Part | State |
 |---|---|
 | Harness binaries from npm, pinned and verified (`//bazel:external_agent_harnesses.bzl`) | Claude Code 2.1.325, Codex 0.169.0 |
 | Fake Messages API of Anthropic (`tests/agents/fake_anthropic.mjs`), fake Responses API of OpenAI (`tests/agents/fake_openai.mjs`) | Done |
-| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server, `dashql lint`, `dashql connect`: the guide in the system prompt, `dashql` and the copies without approval, other files only with one | Done |
-| `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server, `dashql lint` | Done |
+| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server, `dashql lint`, `dashql connect`: the events of a turn in its server, the guide in the system prompt, `dashql` and the copies without approval, other files only with one | Done |
+| `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server, `dashql lint`, `dashql connect`: the events of a turn in its server | Done |
 | `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](../wip/hyperdb_edge.md#harness-tests) | Done |
 | `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](../wip/hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
-| `dashql session hook` in the hooks of both harnesses: it starts `dashql session serve`, which holds the question, the command and the final message | Done |
+| The hooks of `dashql connect` in both harnesses: its server holds the question, the command and the final message | Done |
 | `dashql run` in both sandboxes: the embedded Hyper, its root in the `.dashql/` of the workspace, the journal | Planned |
 | opencode | Planned |
 | The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added; the first run on GitHub failed on AppArmor (see [Findings](#findings)), the fix not yet run |
@@ -96,8 +96,8 @@ CAP_SYS_ADMIN): Permission denied`, while commands outside the sandbox and hooks
 its own bubblewrap and isn't affected. The CI job removes the two profiles; a user of Ubuntu needs the same, or a rule in
 `/etc/apparmor.d/local/unpriv_bwrap`.
 
-Hooks run outside the sandbox in both harnesses, so they are the way out of it for the live view: a hook starts `dashql session serve`
-and carries the events of the agent to it, while the commands of the agent work on files. The test checks loopback;
+Hooks run outside the sandbox in both harnesses, so they are the way out of it for the live view: the hooks of `dashql
+connect` carry the events of the agent to its server, while the commands of the agent work on files. The test checks loopback;
 DNS and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
 below the temporary folder, which the sandbox may allow.
 

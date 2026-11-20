@@ -20,9 +20,10 @@ import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { processRunEnvironment, runWorkbookFolder, type RunEnvironment } from './run_command.js';
+import { commandSession } from './session_journal.js';
 
-export const VIS_USAGE = `Usage: dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh] [--workspace <dir>]
-                 <workbook-dir> <script>
+export const VIS_USAGE = `Usage: dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh]
+                 [--workspace <dir> --session <id>] <workbook-dir> <script>
 
 Checks the chart of a script and renders it as PNG to look at. The chart is the @vis tag in the comment above the
 last query of the script, the result of the script is its data. vis runs the script like dashql run, a result that is
@@ -30,7 +31,7 @@ cached is not run again. It prints the renderer, the columns and the rows of the
 Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of the result, sizes that DashQL decides.
 
 The tab of DashQL renders the PNG with the result, as it runs the script: for a workbook that it copied into a
-session of dashql connect. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
+session of dashql connect, which --workspace and --session name. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
 Check a narrow card too, e.g. --width 400 --height 400: the cards of the feed, the dashboard and the dataflow differ in
 aspect ratio. The file is charts/<script>.png in the .dashql/ of the workspace unless --out names it. Other workbook
 folders get the check only.
@@ -47,6 +48,7 @@ interface VisArgs {
     scale: number;
     refresh: boolean;
     workspace: string | null;
+    session: string | null;
 }
 
 /// Parse the arguments, an error message if they are invalid
@@ -58,6 +60,7 @@ function parseVisArgs(args: string[]): VisArgs | string {
         scale: CHART_IMAGE_SCALE,
         refresh: false,
         workspace: null,
+        session: null,
     };
     const positional: string[] = [];
     const number = (name: string, value: string | undefined, max: number): number | string => {
@@ -81,6 +84,10 @@ function parseVisArgs(args: string[]): VisArgs | string {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--workspace takes a folder';
             out.workspace = value;
+        } else if (arg === '--session') {
+            const value = args[++i];
+            if (value == null || value.startsWith('-')) return '--session takes the id of the session';
+            out.session = value;
         } else if (arg === '--width') {
             error = take('width', 4096);
         } else if (arg === '--height') {
@@ -171,7 +178,12 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    const workspace = path.resolve(cli.cwd, parsed.workspace ?? env.workspace ?? '.');
+    const session = commandSession(cli.cwd, parsed.workspace, parsed.session, parsed.workbook);
+    if (typeof session === 'string') {
+        cli.stderr(`error: ${session}\n`);
+        return EXIT_USAGE;
+    }
+    const { workspace } = session;
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -209,7 +221,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     // The tab renders the PNG of a Vega-Lite chart after the result
     const chartSize = tag.spec == null ? null : { width: parsed.width, height: parsed.height, scale: parsed.scale };
     try {
-        code = await runWorkbookFolder({ ...run, chart: chartSize }, dir, workspace, env, cli, stop.signal, event => {
+        code = await runWorkbookFolder({ ...run, chart: chartSize }, dir, session, env, cli, stop.signal, event => {
             switch (event.type) {
                 case 'script_done':
                     if (event.script === fileName) done = event;

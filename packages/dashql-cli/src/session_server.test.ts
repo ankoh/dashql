@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -36,10 +36,14 @@ describe('the session server', () => {
         writeFileSync(path.join(folder, 'orders', 'scripts', 'a.sql'), 'select 1\n');
         writeFileSync(path.join(folder, 'secret.txt'), 'no');
 
-        server = await startSessionServer({ harness: 'claude', folder });
-        const journal = path.join(folder, '.dashql', 'journal.jsonl');
+        server = await startSessionServer({ harness: 'claude', folder, session: '51000' });
+        const journal = path.join(folder, '.dashql', 'sessions', '51000', 'journal.jsonl');
         expect(readFileSync(journal, 'utf8')).toBe('');
         expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
+        // The commands of the agent find the server in the folder of the session, only the user reads it
+        const address = path.join(folder, '.dashql', 'sessions', '51000', 'server.json');
+        expect(JSON.parse(readFileSync(address, 'utf8'))).toEqual({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token });
+        expect(statSync(address).mode & 0o077).toBe(0);
 
         const workbook = { [JOURNAL_KEYS.workbook]: 'orders', [JOURNAL_KEYS.workbookId]: 'w1' };
         const entries: LogRecord[] = [
@@ -76,10 +80,11 @@ describe('the session server', () => {
         expect(server.state().workbooks.find(workbook => workbook.workbookId === 'w9')?.files).toEqual([]);
         expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/w9/dashql-workbook.json`)).status).toBe(404);
 
-        // A stopped server leaves no journal, later commands find no session
+        // A stopped server leaves no journal and no address, later commands find no session
         await server.close();
         server = null;
         expect(existsSync(journal)).toBe(false);
+        expect(existsSync(address)).toBe(false);
     });
 
     it('keeps the journal of a session of dashql connect in a folder of its own', async () => {
@@ -92,12 +97,10 @@ describe('the session server', () => {
         try {
             expect(readFileSync(journal('51001'), 'utf8')).toBe('');
             expect(readFileSync(journal('51002'), 'utf8')).toBe('');
-            expect(existsSync(path.join(folder, '.dashql', 'journal.jsonl'))).toBe(false);
             expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
-            // Every server names its session, a page tells the next session on a port by it
-            expect(first.state().id).toMatch(/^[0-9a-f-]{36}$/);
-            expect(second.state().id).toMatch(/^[0-9a-f-]{36}$/);
-            expect(second.state().id).not.toBe(first.state().id);
+            // Every server names its session by its id, a page tells the next session on a port by it
+            expect(first.state().id).toBe('51001');
+            expect(second.state().id).toBe('51002');
             appendFileSync(journal('51002'), `${JSON.stringify(record(JOURNAL_FILES, JOURNAL_TARGET, { [JOURNAL_KEYS.workbook]: '.', [JOURNAL_KEYS.workbookId]: 'w1', [JOURNAL_KEYS.files]: [] }))}\n`);
             await until(() => second.state().workbooks.length === 1);
             expect(first.state().workbooks).toEqual([]);
@@ -183,7 +186,7 @@ describe('the session server', () => {
     });
 
     it('serves the state only with the token and to the pages of DashQL', async () => {
-        const server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        const server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-'), session: '51009' });
         try {
             const base = `http://127.0.0.1:${server.port}`;
             expect((await fetchAgentSession(`${base}/v1/state`)).status).toBe(401);
@@ -202,7 +205,7 @@ describe('the session server', () => {
     });
 
     it('names its protocol on every answer and answers clients of an older protocol with nothing', async () => {
-        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-'), session: '51009' });
         const base = `http://127.0.0.1:${server.port}`;
         // A page reads the protocols of every answer, also of an error
         for (const answer of [
@@ -233,7 +236,7 @@ describe('the session server', () => {
     });
 
     it('answers malformed paths without ending', async () => {
-        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-') });
+        server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-'), session: '51009' });
         const base = `http://127.0.0.1:${server.port}`;
         expect((await fetchAgentSession(`${base}/v1/workbooks/%E0/x`)).status).toBe(401);
         expect((await fetchAgentSession(`${base}/v1/workbooks/${server.token}/%E0/x`)).status).toBe(404);
@@ -241,7 +244,7 @@ describe('the session server', () => {
     });
 
     it('follows the conversation in a folder without a journal', async () => {
-        server = await startSessionServer({ harness: 'claude', folder: path.join(temp('dashql-session-'), 'missing', '\0') });
+        server = await startSessionServer({ harness: 'claude', folder: path.join(temp('dashql-session-'), 'missing', '\0'), session: '51009' });
         expect(server.state().workbooks).toEqual([]);
         expect(existsSync(path.join(server.state().folder, '.dashql'))).toBe(false);
     });

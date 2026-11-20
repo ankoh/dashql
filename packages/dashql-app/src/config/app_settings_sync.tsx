@@ -38,7 +38,7 @@ export const AppSettingsSync: React.FC<Props> = (props: Props) => {
                 logger.info("Hydrated app settings from manifest", {}, LOG_CTX);
                 // Drop retired settings, the AI provider settings may hold credentials.
                 // The dashboards and the dataflow were experimental views and are always shown now.
-                // The settings of the agent bridge went with it, agents reach the app through `dashql session serve`.
+                // The settings of the agent bridge went with it, agents reach the app through `dashql connect`.
                 const {
                     lastOpenedWorkbookId: _lastOpenedWorkbookId,
                     aiProvider: _aiProvider,

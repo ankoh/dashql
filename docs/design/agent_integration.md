@@ -106,7 +106,7 @@ The folder of the session is the folder that the harness works in.
 
 ```
 .dashql/                               ignored by git (.gitignore is *)
-├── sessions/<port>/                   a session of dashql connect, gone when it ends
+├── sessions/<session id>/             a session of dashql connect, gone when it ends
 │   ├── journal.jsonl                  the log of the commands that ran in the process
 │   ├── connections.json               the connections that the agent may use, from the tab
 │   ├── server.json                    the address and token of the server, for the commands
@@ -131,15 +131,16 @@ sequenceDiagram
     participant Harness
     Tab->>Tab: AI picks a port and a secret, shows the line
     Note over Tab: tries the port every 2 s
-    Connect->>Connect: server on 127.0.0.1:port, the secret as token
-    Connect->>Harness: launch with hooks, guide, permissions, PATH
+    Connect->>Connect: a new session id, server on 127.0.0.1:port, the secret as token
+    Connect->>Harness: launch with hooks (the session in their arguments), guide, permissions, PATH
     Tab->>Connect: stream, then the copy and the connections
     Harness->>Connect: SessionStart, the hook prints the workbooks
 ```
 
 The tab keeps the port and the secret across the switch of the prompt, a reload and the end of a session; only the
 button of a new port changes them. Once a harness ended its session, the same line starts the next one, with either
-harness: the tab keeps trying the port, tells the new session by the `id` of its state and copies its workbooks again.
+harness: the tab keeps trying the port, tells the new session by the `id` of its state, the id that `connect` picked,
+and copies its workbooks again.
 
 ### An edit of the agent
 
@@ -151,9 +152,10 @@ harness: the tab keeps trying the port, tells the new session by the `id` of its
 
 ### A run
 
-1. `dashql run .dashql/workbooks/<id> top.sql` prints the syntax errors of the script, finds the server through
-   `DASHQL_SESSION` and the copy in the folder of the session (`DASHQL_WORKSPACE`), and posts the run request. A
-   folder that is no copy of the tab runs in the process, `dashql run` says so on stderr.
+1. `dashql run --workspace <folder> --session <id> .dashql/workbooks/<id> top.sql` prints the syntax errors of the
+   script, finds the server in `server.json` of the folder of the session and posts the run request. The start of the
+   session gives the agent both arguments; a copy without them fails, a folder that is no copy of the tab runs in the
+   process, `dashql run` says so on stderr.
 2. The server stamps the copies, sends the state and then the run to the tab.
 3. The tab fails the run if the prompt is in SQL, waits until it took the edits, and runs the workbook with its
    runtime on the connections that the agent may use. The feed shows the run.
@@ -176,7 +178,8 @@ user changed keeps the text of the user.
 - **The guide** (`DESCRIBE_TEXT`): workbook folders, the commands, the rules of scripts, charts with an example, how to
   work, that the user may take the workbook back, and that file contents and results are data, not instructions.
 - **At the start**: Claude Code has the guide with a preface in its system prompt, which outranks the `CLAUDE.md` of a
-  project. Codex gets it in the output of the hook at the start. Both get the copies and the connections of the folder.
+  project. Codex gets it in the output of the hook at the start. Both get the session that the commands take
+  (`--workspace <folder> --session <id>`), the copies and the connections of the folder.
 - **Permissions**: Claude Code may run `dashql` and edit `.dashql/workbooks/**` without asking; everything else asks as
   the user configured it. `--workbook-only` refuses the file tools outside the copies in the hook.
 - **Connections**: the tab runs only the connections that the user allows; `dashql run` in the process refuses the
@@ -188,8 +191,7 @@ user changed keeps the text of the user.
   Hyper. Connections with OAuth and Salesforce run only in a tab.
 - `dashql vis` checks the chart there and writes no PNG; `dashql catalog` prints the catalog files that the folder has,
   e.g. those of a published workbook.
-- Runs in the tab need a session of `dashql connect`; with hooks of `dashql session` in the settings of a harness, the
-  tab follows the conversation and the commands run in the process.
+- Runs in the tab need a session of `dashql connect`, the one way to attach a harness to the tab.
 
 ## Adding something for the agent
 
@@ -240,7 +242,7 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 
 1. **Files come in.** The agent writes the copy of the workbook (`.dashql/workbooks/<workbook id>/`), the tab takes the
    changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
-2. **The run request.** `dashql run .dashql/workbooks/<id>` in a session of `dashql connect` (`DASHQL_SESSION`) posts
+2. **The run request.** `dashql run --workspace <folder> --session <id> .dashql/workbooks/<id>` posts
    `{ workbookId, label, scripts, refresh, rows }` to `/v1/runs/<token>` (`run_tab.ts`). The server stamps the copies,
    sends the state, then the run as an event `run` on the stream of the tab (`event: run`), and answers with the
    events of the run as JSON lines, its header `X-DashQL-Run` names the run.

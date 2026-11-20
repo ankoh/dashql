@@ -1,5 +1,5 @@
-// The journal of the session of a workspace (@akohn/dashql/platform/session/workbook_journal): dashql
-// commands append their log records, `dashql session serve` reads them.
+// The session of `dashql connect` that a command runs in, and its journal
+// (@akohn/dashql/platform/session/workbook_journal): dashql commands append their log records, the server reads them.
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -10,6 +10,7 @@ import {
     sessionJournalPath,
     SESSION_CONNECTIONS_FILE,
     SESSION_JOURNAL_FOLDER,
+    SESSION_WORKBOOK_COPIES,
     type SessionConnections,
 } from '@akohn/dashql/platform/session/workbook_journal';
 import type { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
@@ -26,22 +27,47 @@ export interface SessionJournal {
 /// The file with the address of the server in the folder of a session of `dashql connect`
 export const SESSION_SERVER_FILE = 'server.json';
 
-/// The variable that names the session of `dashql connect` for the commands of its harness. It holds no secret: Codex
-/// passes it to the commands of its agent.
-export const SESSION_NAME_ENV = 'DASHQL_SESSION';
+/// The folder of a session of `dashql connect` in its workspace, `.dashql/sessions/<session>/`
+export function sessionFolder(workspace: string, session: string): string {
+    return path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1));
+}
 
-/// The variable that names the folder of the session of `dashql connect` for the commands of its harness and its hooks:
-/// their workspace. The agent may change the directory of its shell, e.g. into a workbook folder; the commands still
-/// find the copies of the tab, the journal and the server of the session.
-export const SESSION_WORKSPACE_ENV = 'DASHQL_WORKSPACE';
+/// The session that a command runs in, from --workspace and --session
+export interface CommandSession {
+    /// The folder of the session, else the invoking directory
+    workspace: string;
+    /// The id of the session of `dashql connect`, null outside of it
+    session: string | null;
+}
 
-/// The journal of the session of a workspace, which the server of the session creates in its folder:
-/// `.dashql/sessions/<session>/journal.jsonl` for a session of `dashql connect`, `.dashql/journal.jsonl` for one of
-/// `dashql session serve`. Null outside a session and for a workbook folder outside the workspace: the server hands
-/// out only the files of its folder.
-export function openSessionJournal(workspace: string, workbookFolder: string, session: string | null = null): SessionJournal | null {
-    const name = session != null && isSessionName(session) ? session : null;
-    const journal = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(name));
+/// The session of a command from its arguments. Both name the session of `dashql connect`, as the start of the session
+/// tells the agent; nothing comes from the environment. An error message when they are wrong, or when they are missing
+/// for the copy of a workbook of a tab (`<folder>/.dashql/workbooks/<id>`), which only a session runs.
+export function commandSession(cwd: string, workspace: string | null, session: string | null, workbookFolder: string | null): CommandSession | string {
+    if (session == null) {
+        if (workbookFolder != null && isWorkbookCopyFolder(path.resolve(cwd, workbookFolder))) {
+            return `${workbookFolder} is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says`;
+        }
+        return { workspace: path.resolve(cwd, workspace ?? '.'), session: null };
+    }
+    if (workspace == null) return '--session needs --workspace, the folder of the session';
+    if (!isSessionName(session)) return `invalid session ${JSON.stringify(session)}`;
+    const resolved = path.resolve(cwd, workspace);
+    if (!existsSync(sessionFolder(resolved, session))) return `no session ${session} runs in ${resolved}`;
+    return { workspace: resolved, session };
+}
+
+/// Is a folder the copy of a workbook of a tab, `.dashql/workbooks/<id>` of a folder?
+function isWorkbookCopyFolder(folder: string): boolean {
+    const parent = path.dirname(folder);
+    return path.basename(parent) === SESSION_WORKBOOK_COPIES && path.basename(path.dirname(parent)) === SESSION_JOURNAL_FOLDER;
+}
+
+/// The journal of a session of `dashql connect`, which its server creates in the folder of the session. Null outside a
+/// session and for a workbook folder outside the workspace: the server hands out only the files of its folder.
+export function openSessionJournal(workspace: string, workbookFolder: string, session: string | null): SessionJournal | null {
+    if (session == null || !isSessionName(session)) return null;
+    const journal = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session));
     const relative = path.relative(path.resolve(workspace), path.resolve(workbookFolder));
     if (!existsSync(journal) || relative.startsWith('..') || path.isAbsolute(relative)) return null;
     return {
@@ -71,22 +97,19 @@ export async function workbookFolderPaths(storage: NativeStorageBackend): Promis
 /// before the tab told them: every connection then
 export function readSessionConnections(workspace: string, session: string | null): SessionConnections | null {
     if (session == null || !isSessionName(session)) return null;
-    const file = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_CONNECTIONS_FILE);
     try {
-        return parseSessionConnections(readFileSync(file, 'utf8'));
+        return parseSessionConnections(readFileSync(path.join(sessionFolder(workspace, session), SESSION_CONNECTIONS_FILE), 'utf8'));
     } catch {
         return null;
     }
 }
 
-/// The server of a session of `dashql connect`: from DASHQL_SESSION_ENDPOINT and DASHQL_SESSION_TOKEN, else from the
-/// folder of the session. Null outside such a session.
-export function readSessionServer(workspace: string, session: string | null, env: { endpoint?: string; token?: string } = {}): { endpoint: string; token: string } | null {
-    if (env.endpoint && env.token) return { endpoint: env.endpoint, token: env.token };
+/// The server of a session of `dashql connect`, from the file that it writes into the folder of the session. Null
+/// outside such a session.
+export function readSessionServer(workspace: string, session: string | null): { endpoint: string; token: string } | null {
     if (session == null || !isSessionName(session)) return null;
     try {
-        const file = path.join(workspace, SESSION_JOURNAL_FOLDER, ...sessionJournalPath(session).slice(0, -1), SESSION_SERVER_FILE);
-        const value = JSON.parse(readFileSync(file, 'utf8')) as { endpoint?: unknown; token?: unknown };
+        const value = JSON.parse(readFileSync(path.join(sessionFolder(workspace, session), SESSION_SERVER_FILE), 'utf8')) as { endpoint?: unknown; token?: unknown };
         return typeof value.endpoint === 'string' && typeof value.token === 'string' ? { endpoint: value.endpoint, token: value.token } : null;
     } catch {
         return null;

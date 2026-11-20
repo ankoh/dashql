@@ -278,14 +278,15 @@ describe('dashql run', () => {
 
     it('appends the files of the folder and the log of the run to the journal of a session', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
-        // `dashql session serve` creates the journal in the folder of its session
-        mkdirSync(path.join(dir, '.dashql'));
-        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
+        // The server of dashql connect creates the journal in the folder of its session
+        const journal = path.join(dir, '.dashql', 'sessions', '51001', 'journal.jsonl');
+        mkdirSync(path.dirname(journal), { recursive: true });
+        writeFileSync(journal, '');
         // Without DASHQL_HOME the files of DashQL go into the .dashql/ of the session
-        expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(1);
+        expect((await run(dir, ['--workspace', '.', '--session', '51001', '.'], PASSWORD, null)).code).toBe(1);
         const home = path.join(dir, '.dashql');
-        expect(readdirSync(home).sort()).toEqual(['cache', 'instances', 'journal.jsonl', 'logs', 'workbooks']);
-        const records = readFileSync(path.join(dir, '.dashql', 'journal.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line));
+        expect(readdirSync(home).sort()).toEqual(['cache', 'instances', 'logs', 'sessions', 'workbooks']);
+        const records = readFileSync(journal, 'utf8').trim().split('\n').map(line => JSON.parse(line));
         // The log of the run, at info and above, with the markers of what changed
         expect(records.every(record => record.level >= 3)).toBe(true);
         expect(records.some(record => record.target !== 'workbook_journal')).toBe(true);
@@ -295,19 +296,19 @@ describe('dashql run', () => {
     });
 
     it('finds the session in the workspace that it is given, not above the invoking directory', async () => {
-        const workspace = testFiles([['.dashql/journal.jsonl', '']]);
+        const workspace = testFiles([['.dashql/sessions/51001/journal.jsonl', '']]);
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const nested = path.join(workspace, 'orders');
         copyFileSync(path.join(dir, 'dashql-workbook.json'), (mkdirSync(path.join(nested, 'scripts'), { recursive: true }), path.join(nested, 'dashql-workbook.json')));
         copyFileSync(path.join(dir, 'scripts', ORDERS[0]), path.join(nested, 'scripts', ORDERS[0]));
-        const journal = () => readFileSync(path.join(workspace, '.dashql', 'journal.jsonl'), 'utf8');
+        const journal = () => readFileSync(path.join(workspace, '.dashql', 'sessions', '51001', 'journal.jsonl'), 'utf8');
 
-        // Invoked in the workbook folder, the session one level up is not searched for
+        // Invoked in the workbook folder without the session, the session one level up is not searched for
         expect((await run(nested, ['.'])).code).toBe(0);
         expect(journal()).toBe('');
 
-        // Given the workspace, the run names its workbook folder relative to it
-        expect((await run(nested, ['--workspace', '..', '.'], PASSWORD, null)).code).toBe(0);
+        // Given the session, the run names its workbook folder relative to its folder
+        expect((await run(nested, ['--workspace', '..', '--session', '51001', '.'], PASSWORD, null)).code).toBe(0);
         const markers = journal().trim().split('\n').map(line => JSON.parse(line)).filter(record => record.target === 'workbook_journal');
         expect(markers[0].keyValues).toMatchObject({ workbook: 'orders', files: ['dashql-workbook.json', 'scripts/01_orders.sql'] });
         expect(existsSync(path.join(workspace, '.dashql', 'cache'))).toBe(true);
@@ -315,16 +316,18 @@ describe('dashql run', () => {
 
     it('appends to the journal of the session of dashql connect that it runs in', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
-        // The sessions of two connects in the folder and the one of session serve
-        for (const journal of ['journal.jsonl', 'sessions/51001/journal.jsonl', 'sessions/51002/journal.jsonl']) {
+        // The sessions of two connects in the folder
+        for (const journal of ['sessions/51001/journal.jsonl', 'sessions/51002/journal.jsonl']) {
             mkdirSync(path.dirname(path.join(dir, '.dashql', journal)), { recursive: true });
             writeFileSync(path.join(dir, '.dashql', journal), '');
         }
-        expect((await run(dir, ['.'], { ...PASSWORD, session: '51002' })).code).toBe(0);
+        const output = await run(dir, ['--workspace', '.', '--session', '51002', '.']);
+        expect(output.code).toBe(0);
+        // The folder is no copy of a tab, the run says so
+        expect(output.stderr).toBe(`${notACopyNote('.', dir)}\n`);
         const lines = (journal: string) => readFileSync(path.join(dir, '.dashql', journal), 'utf8');
         expect(lines('sessions/51002/journal.jsonl')).toContain('"workbook_journal"');
         expect(lines('sessions/51001/journal.jsonl')).toBe('');
-        expect(lines('journal.jsonl')).toBe('');
     });
 
     it('runs only on the connections that the tab of the session lets the agent use', async () => {
@@ -332,14 +335,16 @@ describe('dashql run', () => {
         withHyperScripts(dir, [['02_one.sql', 'select 1 as one\n']]);
         mkdirSync(path.join(dir, '.dashql', 'sessions', '51003'), { recursive: true });
         writeFileSync(path.join(dir, '.dashql', 'sessions', '51003', 'connections.json'), JSON.stringify({ connections: [{ connectionId: HYPER_ID, name: 'Hyper' }] }));
-        const output = await run(dir, ['.'], { ...PASSWORD, session: '51003' });
+        const output = await run(dir, ['--workspace', '.', '--session', '51003', '.']);
         expect(output.code).toBe(1);
         expect(output.stdout).toContain(`trino ${trino.endpoint}  failed\n  the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt\n`);
         expect(output.stdout).toMatch(/^02_one\.sql {2}ok {2}1 row /m);
         expect(output.stdout).toContain('01_orders.sql  not run  its connection could not be set up\n');
         expect(trino.statements).toEqual([]);
-        // Another session, or none, lets the agent use every connection
-        expect((await run(dir, ['.'], { ...PASSWORD, session: '51004' })).code).toBe(0);
+        // A session whose tab told no connections yet, or none, lets the agent use every connection
+        mkdirSync(path.join(dir, '.dashql', 'sessions', '51004'), { recursive: true });
+        expect((await run(dir, ['--workspace', '.', '--session', '51004', '.'])).code).toBe(0);
+        expect((await run(dir, ['.'])).code).toBe(0);
     });
 
     it('reaches a connection with OAuth only in the tab of a session', async () => {
@@ -389,11 +394,11 @@ describe('dashql run', () => {
     it('takes the user from the environment and never writes the password', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS], 'someone');
         // A session in the folder, its journal gets the log of the run
-        mkdirSync(path.join(dir, '.dashql'));
-        writeFileSync(path.join(dir, '.dashql', 'journal.jsonl'), '');
+        mkdirSync(path.join(dir, '.dashql', 'sessions', '51001'), { recursive: true });
+        writeFileSync(path.join(dir, '.dashql', 'sessions', '51001', 'journal.jsonl'), '');
         const secret = 'pw-0a1b2c3d';
         trino.password = secret;
-        const output = await run(dir, ['.'], { trinoUser: 'ann', trinoPassword: secret }, null);
+        const output = await run(dir, ['--workspace', '.', '--session', '51001', '.'], { trinoUser: 'ann', trinoPassword: secret }, null);
         expect(output.code).toBe(0);
         // Neither the workbook nor anything of the session holds it
         const files = [path.join(dir, 'dashql-workbook.json'), ...readdirSync(path.join(dir, '.dashql'), { recursive: true, withFileTypes: true })
@@ -432,7 +437,7 @@ describe('dashql run', () => {
 });
 
 describe('dashql run in a session of dashql connect', () => {
-    const SESSION = '51020';
+    const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
     const COPY = `.dashql/workbooks/${WORKBOOK_ID}`;
 
     /// A session with a tab that follows it: the tab copied the workbook and answers its runs
@@ -454,9 +459,10 @@ describe('dashql run in a session of dashql connect', () => {
         await following;
         const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
         await writeAgentSessionWorkbook(target, WORKBOOK_ID, ['dashql-workbook.json', `scripts/${ORDERS[0]}`].map(file => ({ path: file, content: readFileSync(path.join(workbook, file), 'utf8') })));
-        const env: Partial<RunEnvironment> = { session: SESSION, sessionEndpoint: target.endpoint, sessionToken: target.token };
+        // The session as the agent passes it
+        const args = ['--workspace', folder, '--session', SESSION];
         return {
-            folder, env, runs, target,
+            folder, args, runs, target,
             close: async () => {
                 tab.abort();
                 await server.close();
@@ -476,7 +482,7 @@ describe('dashql run in a session of dashql connect', () => {
             await send({ type: 'run_finished', ms: 1300, ok: 1, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
         try {
-            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...session.env }), session.folder, ['--rows', '2', COPY]);
+            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), session.folder, [...session.args, '--rows', '2', COPY]);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             // The table of the result came with its first rows, the count with all of them, the file is in the cache of
@@ -494,17 +500,24 @@ describe('dashql run in a session of dashql connect', () => {
         }
     });
 
-    it('runs the copy in the tab from a shell in the copy, in the folder of the session that dashql connect names', async () => {
+    it('runs the copy in the tab from a shell in the copy, in the session that its arguments name', async () => {
         const session = await sessionWithTab(async (message, send) => {
             await send({ type: 'run_started', workbook: message.label, scripts: [ORDERS[0]] });
             await send({ type: 'run_finished', ms: 1, ok: 0, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
         try {
             const copy = path.join(session.folder, ...COPY.split('/'));
-            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...session.env, workspace: session.folder }), copy, ['.']);
+            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, [...session.args, '.']);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: '.', scripts: [], refresh: false, rows: 10 }]);
+            // Without the session the copy doesn't run, nor with a session that doesn't run
+            const bare = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, ['.']);
+            expect(bare.code).toBe(2);
+            expect(bare.stderr).toBe('error: . is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says\n');
+            const other = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, ['--workspace', session.folder, '--session', 'gone', '.']);
+            expect(other.stderr).toBe(`error: no session gone runs in ${session.folder}\n`);
+            expect(session.runs).toHaveLength(1);
         } finally {
             await session.close();
         }
@@ -520,7 +533,7 @@ describe('dashql run in a session of dashql connect', () => {
         });
         try {
             const interrupt = new AbortController();
-            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }, { home: tempHome(), ...session.env }), session.folder, [COPY]);
+            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }, { home: tempHome() }), session.folder, [...session.args, COPY]);
             await vi.waitFor(() => expect(session.runs).toHaveLength(1));
             interrupt.abort();
             const output = await running;
@@ -536,16 +549,16 @@ describe('dashql run in a session of dashql connect', () => {
         const folder = testFiles([]);
         const server = await startSessionServer({ harness: 'claude', folder, session: SESSION });
         try {
-            const env: Partial<RunEnvironment> = { session: SESSION, sessionEndpoint: `http://127.0.0.1:${server.port}`, sessionToken: server.token };
+            const args = ['--workspace', folder, '--session', SESSION];
             const copy = path.join(folder, ...COPY.split('/'));
             const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
             mkdirSync(path.join(copy, 'scripts'), { recursive: true });
             for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(copy, file));
-            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env }), folder, [COPY]);
+            const output = await runWith((a, cli) => runRun(a, cli, { home: tempHome() }), folder, [...args, COPY]);
             expect(output.code).toBe(1);
             expect(output.stderr).toBe('error: no tab of DashQL follows the session, open it with the line of dashql connect\n');
             // A workbook folder that no tab copied runs in this process
-            const own = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env, workspace: folder }), workbook, ['.']);
+            const own = await runWith((a, cli) => runRun(a, cli, { home: tempHome() }), workbook, [...args, '.']);
             expect(own.stdout).toContain(`trino http://trino.invalid  failed`);
             // It says that the tab does not show it
             expect(own.stderr).toBe(`${notACopyNote('.', folder)}\n`);

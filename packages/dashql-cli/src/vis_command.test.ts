@@ -118,8 +118,7 @@ No PNG: the tab of DashQL renders it, for a workbook that it copied into a sessi
                 { path: 'dashql-workbook.json', content: workbookFile(['revenue.sql']) },
                 { path: 'scripts/revenue.sql', content: charted(BAR) },
             ]);
-            const env: Partial<RunEnvironment> = { session, sessionEndpoint: target.endpoint, sessionToken: target.token };
-            const output = await vis(folder, [`.dashql/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1'], env);
+            const output = await vis(folder, ['--workspace', '.', '--session', session, `.dashql/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1']);
             expect(output.stderr).toBe('');
             expect(output.stdout).toBe(`revenue.sql: @vis vegalite, 2 rows, columns region, revenue
 No problems.

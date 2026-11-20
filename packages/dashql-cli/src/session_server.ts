@@ -42,6 +42,8 @@ import {
 } from '@akohn/dashql/platform/session/workbook_journal';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
+import { SESSION_SERVER_FILE } from './session_journal.js';
+
 /// The headers of an answer that a page reads
 const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}`;
 /// How long a run waits for the first event of the tab
@@ -65,9 +67,9 @@ export interface SessionServerOptions {
     port?: number;
     /// The token, a random one by default
     token?: string;
-    /// The name of the session of `dashql connect`, its journal is `.dashql/sessions/<name>/journal.jsonl`; without
-    /// one the journal is `.dashql/journal.jsonl`
-    session?: string | null;
+    /// The id of the session of `dashql connect`: the id of its state and its folder `.dashql/sessions/<id>/`, with the
+    /// journal and the address of the server for the commands
+    session: string;
     /// The pages that may follow the session, besides requests without an origin
     origins?: string[];
     /// Called when the harness ended the session
@@ -168,7 +170,7 @@ function sendFile(response: http.ServerResponse, file: string, type: string): vo
 export async function startSessionServer(options: SessionServerOptions): Promise<SessionServer> {
     const token = options.token ?? randomBytes(24).toString('base64url');
     const origins = new Set(options.origins ?? SESSION_PAGE_ORIGINS);
-    let state = createAgentSessionState(options.harness, options.folder);
+    let state = createAgentSessionState(options.harness, options.folder, options.session);
     const streams = new Set<http.ServerResponse>();
 
     const send = (response: http.ServerResponse) => response.write(`data: ${JSON.stringify(state)}\n\n`);
@@ -199,9 +201,9 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     // itself, it is no part of a repository of the folder.
     // A folder that the server can't write to has no journal, the page still follows the conversation.
     const journalFolder = path.join(options.folder, SESSION_JOURNAL_FOLDER);
-    let journal: string | null = path.join(journalFolder, ...sessionJournalPath(options.session ?? null));
-    // A session of `dashql connect` removes its folder when it stops
-    const sessionFolder = options.session != null ? path.dirname(journal) : null;
+    let journal: string | null = path.join(journalFolder, ...sessionJournalPath(options.session));
+    // The session removes its folder when it stops
+    const sessionFolder = path.dirname(journal);
     try {
         mkdirSync(path.dirname(journal), { recursive: true });
         writeFileSync(path.join(journalFolder, '.gitignore'), '*\n');
@@ -253,7 +255,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     };
     const removeJournal = () => {
         if (journal == null) return;
-        rmSync(sessionFolder ?? journal, { force: true, recursive: true });
+        rmSync(sessionFolder, { force: true, recursive: true });
     };
     const journalTimer = setInterval(() => void readJournal(), JOURNAL_READ_INTERVAL_MS);
     journalTimer.unref();
@@ -585,8 +587,17 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         removeJournal();
         throw error;
     }
+    const port = (server.address() as { port: number }).port;
+    // The commands of the agent find the server in the folder of the session, readable by the user only
+    if (journal != null) {
+        try {
+            writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
+        } catch {
+            // A folder that can't be written has no journal either, the page still follows the conversation
+        }
+    }
     return {
-        port: (server.address() as { port: number }).port,
+        port,
         token,
         state: () => state,
         close: () => new Promise<void>(resolve => {
